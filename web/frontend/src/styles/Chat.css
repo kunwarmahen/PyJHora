@@ -74,35 +74,29 @@
   font-weight: 600;
 }
 
-/* Chart display in sidebar */
-.chart-info-card .north-indian-chart-container {
-  margin: var(--space-md) 0 0 0;
-  padding: 0;
+/* Chart display in sidebar - SVG-based */
+.chart-info-card > div > div {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
-.chart-info-card .chart-title h3 {
-  font-size: 0.875rem;
-  margin: var(--space-md) 0 var(--space-sm) 0;
-  color: var(--text-secondary);
+.chart-info-card > div > div > h3 {
+  font-size: 0.875rem !important;
+  margin: var(--space-md) 0 var(--space-sm) 0 !important;
+  color: var(--text-secondary) !important;
 }
 
-.chart-info-card .north-indian-chart {
-  width: 100%;
-  max-width: 280px;
-  margin: 0 auto;
+.chart-info-card svg {
+  max-width: 100% !important;
+  height: auto !important;
 }
 
-.chart-info-card .house {
-  font-size: 10px;
-}
-
-.chart-info-card .house-number {
-  font-size: 9px;
-}
-
-.chart-info-card .planet {
-  font-size: 10px;
-  padding: 2px 4px;
+/* Scale down SVG text for sidebar */
+.chart-info-card svg text {
+  font-size: 0.85em !important;
 }
 
 /* LLM Selector */

@@ -188,7 +188,7 @@ export const ChartTestPage = () => {
 
           return (
             <g key={house.num}>
-              {/* House number */}
+              {/* House number - always visible */}
               <text
                 x={house.cx}
                 y={house.cy - 25}
@@ -200,7 +200,7 @@ export const ChartTestPage = () => {
                 {house.num}
               </text>
 
-              {/* Sign name */}
+              {/* Sign name - hidden by default, shown on hover */}
               <text
                 x={house.cx}
                 y={house.cy - 10}
@@ -208,35 +208,61 @@ export const ChartTestPage = () => {
                 fill="var(--cosmic-indigo)"
                 fontSize="10"
                 fontWeight="500"
+                opacity="0"
+                className="sign-name"
+                style={{ transition: 'opacity 0.2s ease' }}
               >
                 {rasiNames[house.num - 1]}
               </text>
 
               {/* Planets in this house */}
-              {planetsInHouse.map((item, idx) => (
-                <g key={idx}>
-                  <text
-                    x={house.cx}
-                    y={house.cy + 10 + idx * 18}
-                    textAnchor="middle"
-                    fill={item.type === 'lagna' ? 'var(--saffron)' : 'var(--cosmic-indigo)'}
-                    fontSize="13"
-                    fontWeight="700"
-                  >
-                    {item.name}
-                  </text>
-                  {/* Degrees */}
-                  <text
-                    x={house.cx}
-                    y={house.cy + 22 + idx * 18}
-                    textAnchor="middle"
-                    fill="var(--text-secondary)"
-                    fontSize="8"
-                  >
-                    {item.degrees?.toFixed(1)}°
-                  </text>
-                </g>
-              ))}
+              {planetsInHouse.map((item, idx) => {
+                // Calculate vertical offset based on number of planets
+                const totalItems = planetsInHouse.length;
+                const startY = totalItems > 1 ? house.cy - (totalItems - 1) * 10 : house.cy;
+
+                return (
+                  <g key={idx}>
+                    <text
+                      x={house.cx}
+                      y={startY + 10 + idx * 20}
+                      textAnchor="middle"
+                      fill={item.type === 'lagna' ? 'var(--saffron)' : 'var(--cosmic-indigo)'}
+                      fontSize="13"
+                      fontWeight="700"
+                    >
+                      {item.name}
+                    </text>
+                    {/* Degrees */}
+                    <text
+                      x={house.cx}
+                      y={startY + 22 + idx * 20}
+                      textAnchor="middle"
+                      fill="var(--text-secondary)"
+                      fontSize="8"
+                    >
+                      {item.degrees?.toFixed(1)}°
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Invisible hover area to trigger sign name visibility */}
+              <circle
+                cx={house.cx}
+                cy={house.cy}
+                r="50"
+                fill="transparent"
+                style={{ cursor: 'pointer' }}
+                onMouseEnter={(e) => {
+                  const signName = e.currentTarget.parentElement.querySelector('.sign-name');
+                  if (signName) signName.setAttribute('opacity', '1');
+                }}
+                onMouseLeave={(e) => {
+                  const signName = e.currentTarget.parentElement.querySelector('.sign-name');
+                  if (signName) signName.setAttribute('opacity', '0');
+                }}
+              />
             </g>
           );
         })}

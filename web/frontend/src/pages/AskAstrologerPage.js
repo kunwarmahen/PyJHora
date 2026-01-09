@@ -234,166 +234,203 @@ export const AskAstrologerPage = () => {
           </button>
         </div>
 
-        {/* Chat Container */}
-        <div className="chat-container" style={{ opacity: 0, animation: 'fadeIn 0.6s ease-out forwards' }}>
-          {/* Sidebar */}
-          <div className="chat-sidebar">
-            {/* Chart Info Card */}
-            <div className="chart-info-card">
-              <h3>
-                <Sparkles size={18} style={{ color: 'var(--saffron)' }} />
-                Chart Details
-              </h3>
-              <div className="chart-info-item">
-                <strong>Name:</strong> {selectedProfile.birth_details.name || selectedProfile.profile_name}
-              </div>
-              <div className="chart-info-item">
-                <strong>DOB:</strong> {selectedProfile.birth_details.dob.split('T')[0]}
-              </div>
-              <div className="chart-info-item">
-                <strong>TOB:</strong> {selectedProfile.birth_details.tob}
-              </div>
-              <div className="chart-info-item">
-                <strong>Place:</strong> {selectedProfile.birth_details.place}
-              </div>
+        {/* Display Birth Chart */}
+        {chartData && (
+          <div style={{ opacity: 0, animation: 'fadeIn 0.6s ease-out 0.2s forwards' }}>
+            <NorthIndianChart chartData={chartData} />
+          </div>
+        )}
 
-              {/* Display Birth Chart */}
-              {chartData && (
-                <div style={{ marginTop: 'var(--space-lg)' }}>
-                  <NorthIndianChart chartData={chartData} />
-                </div>
-              )}
-            </div>
-
-            {/* LLM Selector Card */}
-            <div className="llm-selector-card">
-              <h3>
-                <Bot size={18} style={{ color: 'var(--saffron)' }} />
-                AI Model
-              </h3>
-              <div className="llm-options">
-                {llmProviders.map((provider) => (
-                  <label
-                    key={provider.value}
-                    className={`llm-option ${
-                      llmProvider === provider.value ? "active" : ""
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="llm"
-                      value={provider.value}
-                      checked={llmProvider === provider.value}
-                      onChange={(e) => setLlmProvider(e.target.value)}
-                    />
-                    <div className="llm-option-content">
-                      <div className="llm-icon">{provider.icon}</div>
-                      <div>
-                        <div className="llm-name">{provider.label}</div>
-                        <div className="llm-desc">{provider.description}</div>
-                      </div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Examples Card */}
-            <div className="examples-card">
-              <h3>
-                <MessageCircle size={18} style={{ color: 'var(--saffron)' }} />
-                Example Questions
-              </h3>
-              {exampleQuestions.map((q, index) => (
-                <button
-                  key={index}
-                  className="example-question"
-                  onClick={() => handleExampleClick(q)}
-                  disabled={loading}
+        {/* AI Model Selector and Examples */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: 'var(--space-lg)',
+          marginBottom: 'var(--space-xl)',
+          opacity: 0,
+          animation: 'fadeIn 0.6s ease-out 0.4s forwards'
+        }}>
+          {/* LLM Selector Card */}
+          <div style={{
+            background: 'white',
+            borderRadius: 'var(--radius-xl)',
+            padding: 'var(--space-xl)',
+            boxShadow: 'var(--shadow-lg)',
+            borderTop: '4px solid var(--saffron)'
+          }}>
+            <h3 style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-sm)',
+              marginBottom: 'var(--space-lg)',
+              color: 'var(--cosmic-indigo)',
+              fontSize: '1.25rem',
+              fontWeight: 700
+            }}>
+              <Bot size={20} style={{ color: 'var(--saffron)' }} />
+              AI Model
+            </h3>
+            <div className="llm-options">
+              {llmProviders.map((provider) => (
+                <label
+                  key={provider.value}
+                  className={`llm-option ${
+                    llmProvider === provider.value ? "active" : ""
+                  }`}
                 >
-                  {q}
-                </button>
+                  <input
+                    type="radio"
+                    name="llm"
+                    value={provider.value}
+                    checked={llmProvider === provider.value}
+                    onChange={(e) => setLlmProvider(e.target.value)}
+                  />
+                  <div className="llm-option-content">
+                    <div className="llm-icon">{provider.icon}</div>
+                    <div>
+                      <div className="llm-name">{provider.label}</div>
+                      <div className="llm-desc">{provider.description}</div>
+                    </div>
+                  </div>
+                </label>
               ))}
             </div>
           </div>
 
-          {/* Main Chat Area */}
-          <div className="chat-main">
-            <div className="messages-container">
-              {messages.map((message, index) => (
-                <div key={index} className={`message ${message.type}`}>
-                  {message.type === "user" && (
-                    <div className="message-header">
-                      <User size={18} />
-                      <span>You</span>
-                      <span className="timestamp">{message.timestamp}</span>
-                    </div>
-                  )}
-                  {message.type === "ai" && (
-                    <div className="message-header">
-                      <Bot size={18} />
-                      <span>
-                        AI Astrologer ({message.provider?.toUpperCase()})
-                      </span>
-                      <span className="timestamp">{message.timestamp}</span>
-                    </div>
-                  )}
-                  {message.type === "system" && (
-                    <div className="message-header">
-                      <Sparkles size={18} />
-                      <span>System</span>
-                    </div>
-                  )}
-                  <div className="message-content">
-                    {message.type === "ai" ? (
-                      <ReactMarkdown>{message.content}</ReactMarkdown>
-                    ) : (
-                      message.content
-                    )}
-                  </div>
-                </div>
-              ))}
+          {/* Examples Card */}
+          <div style={{
+            background: 'white',
+            borderRadius: 'var(--radius-xl)',
+            padding: 'var(--space-xl)',
+            boxShadow: 'var(--shadow-lg)',
+            borderTop: '4px solid var(--saffron)'
+          }}>
+            <h3 style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-sm)',
+              marginBottom: 'var(--space-lg)',
+              color: 'var(--cosmic-indigo)',
+              fontSize: '1.25rem',
+              fontWeight: 700
+            }}>
+              <MessageCircle size={20} style={{ color: 'var(--saffron)' }} />
+              Example Questions
+            </h3>
+            {exampleQuestions.map((q, index) => (
+              <button
+                key={index}
+                className="example-question"
+                onClick={() => handleExampleClick(q)}
+                disabled={loading}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
 
-              {loading && (
-                <div className="message ai">
+        {/* Chat Area */}
+        <div style={{
+          background: 'white',
+          borderRadius: 'var(--radius-xl)',
+          boxShadow: 'var(--shadow-lg)',
+          borderTop: '4px solid var(--saffron)',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '500px',
+          maxHeight: '700px',
+          opacity: 0,
+          animation: 'fadeIn 0.6s ease-out 0.6s forwards'
+        }}>
+          <div className="messages-container" style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: 'var(--space-xl)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-lg)',
+            background: 'var(--sacred-white)'
+          }}>
+            {messages.map((message, index) => (
+              <div key={index} className={`message ${message.type}`}>
+                {message.type === "user" && (
+                  <div className="message-header">
+                    <User size={18} />
+                    <span>You</span>
+                    <span className="timestamp">{message.timestamp}</span>
+                  </div>
+                )}
+                {message.type === "ai" && (
                   <div className="message-header">
                     <Bot size={18} />
-                    <span>AI Astrologer</span>
+                    <span>
+                      AI Astrologer ({message.provider?.toUpperCase()})
+                    </span>
+                    <span className="timestamp">{message.timestamp}</span>
                   </div>
-                  <div className="message-content loading">
-                    <div className="typing-indicator">
-                      <span></span>
-                      <span></span>
-                      <span></span>
-                    </div>
-                    Analyzing your chart...
+                )}
+                {message.type === "system" && (
+                  <div className="message-header">
+                    <Sparkles size={18} />
+                    <span>System</span>
                   </div>
+                )}
+                <div className="message-content">
+                  {message.type === "ai" ? (
+                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                  ) : (
+                    message.content
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            ))}
 
-            <div className="chat-input-container">
-              <input
-                type="text"
-                className="chat-input"
-                placeholder="Ask a question about your birth chart..."
-                value={currentQuestion}
-                onChange={(e) => setCurrentQuestion(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === "Enter" && !loading) {
-                    handleAskQuestion(currentQuestion);
-                  }
-                }}
-                disabled={loading}
-              />
-              <button
-                className="btn-send"
-                onClick={() => handleAskQuestion(currentQuestion)}
-                disabled={loading || !currentQuestion.trim()}
-              >
-                <Send size={20} />
-              </button>
-            </div>
+            {loading && (
+              <div className="message ai">
+                <div className="message-header">
+                  <Bot size={18} />
+                  <span>AI Astrologer</span>
+                </div>
+                <div className="message-content loading">
+                  <div className="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                  Analyzing your chart...
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="chat-input-container" style={{
+            display: 'flex',
+            gap: 'var(--space-sm)',
+            padding: 'var(--space-lg)',
+            borderTop: '2px solid var(--sandalwood)',
+            background: 'white'
+          }}>
+            <input
+              type="text"
+              className="chat-input"
+              placeholder="Ask a question about your birth chart..."
+              value={currentQuestion}
+              onChange={(e) => setCurrentQuestion(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === "Enter" && !loading) {
+                  handleAskQuestion(currentQuestion);
+                }
+              }}
+              disabled={loading}
+            />
+            <button
+              className="btn-send"
+              onClick={() => handleAskQuestion(currentQuestion)}
+              disabled={loading || !currentQuestion.trim()}
+            >
+              <Send size={20} />
+            </button>
           </div>
         </div>
       </div>
