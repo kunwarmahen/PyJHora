@@ -165,22 +165,26 @@ class AstrologyCompute:
             # Get Mahadasha using PyJHora's built-in function
             mahadashas = vimsottari.vimsottari_mahadasa(jd, place_obj)
 
-            # Planet name mapping
+            # Planet name mapping (PyJHora standard indexing)
+            # 0=Sun, 1=Moon, 2=Mars, 3=Mercury, 4=Jupiter, 5=Venus, 6=Saturn, 7=Rahu, 8=Ketu
             planet_names = {
-                6: "Ketu",
-                3: "Venus",
                 0: "Sun",
                 1: "Moon",
                 2: "Mars",
-                7: "Rahu",
+                3: "Mercury",
                 4: "Jupiter",
-                5: "Saturn",
-                8: "Mercury"
+                5: "Venus",
+                6: "Saturn",
+                7: "Rahu",
+                8: "Ketu"
             }
+
+            # Sort mahadashas by start date to get chronological order
+            sorted_mahadashas = sorted(mahadashas.items(), key=lambda x: x[1])
 
             # Convert to list with dates
             dasha_periods = []
-            lords_list = list(mahadashas.keys())
+            lords_list = [lord for lord, _ in sorted_mahadashas]
 
             for i, lord in enumerate(lords_list):
                 start_jd = mahadashas[lord]
