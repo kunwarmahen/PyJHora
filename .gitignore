@@ -2,3 +2,5 @@
 /dist
 *.pyc
 /src/PyJHora.egg-info
+ **/__pycache__/*
+ frontend/package-lock.json

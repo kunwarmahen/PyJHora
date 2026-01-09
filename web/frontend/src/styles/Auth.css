@@ -1,0 +1,194 @@
+/* Auth Pages CSS - Vedic Theme */
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--sandalwood) 0%, var(--sacred-white) 50%, var(--sandalwood) 100%);
+  padding: var(--space-xl);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23FFB347' stroke-width='0.5' opacity='0.1'%3E%3Ccircle cx='100' cy='100' r='80'/%3E%3Ccircle cx='100' cy='100' r='60'/%3E%3Ccircle cx='100' cy='100' r='40'/%3E%3Cpath d='M100,20 L100,180 M20,100 L180,100 M35,35 L165,165 M165,35 L35,165'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  animation: rotate-mandala 120s linear infinite;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.auth-card {
+  background: white;
+  border-radius: var(--radius-xl);
+  padding: var(--space-3xl);
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--shadow-xl);
+  position: relative;
+  z-index: 1;
+  border-top: 4px solid var(--saffron);
+}
+
+.auth-card h1 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin: 0 0 var(--space-sm) 0;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.auth-card .subtitle {
+  text-align: center;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2xl);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: rgba(227, 66, 52, 0.1);
+  border: 1px solid rgba(227, 66, 52, 0.3);
+  color: var(--vermillion);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.error-message svg {
+  flex-shrink: 0;
+}
+
+.form-group {
+  margin-bottom: var(--space-lg);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--space-sm);
+  color: var(--cosmic-indigo);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 2px solid var(--sandalwood);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-md);
+  background: var(--sacred-white);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input-wrapper:focus-within {
+  border-color: var(--saffron);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(255, 153, 51, 0.1);
+}
+
+.input-wrapper svg {
+  color: var(--saffron);
+  margin-right: var(--space-md);
+  flex-shrink: 0;
+}
+
+.input-wrapper input {
+  flex: 1;
+  border: none;
+  background: none;
+  padding: var(--space-md) 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.input-wrapper input::placeholder {
+  color: var(--text-muted);
+}
+
+.submit-btn {
+  width: 100%;
+  padding: var(--space-md) var(--space-xl);
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: var(--shadow-md);
+  margin-top: var(--space-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.submit-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.submit-btn:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-link {
+  text-align: center;
+  color: var(--text-secondary);
+  margin-top: var(--space-xl);
+  font-size: 0.875rem;
+}
+
+.auth-link a {
+  color: var(--saffron);
+  text-decoration: none;
+  font-weight: 700;
+  transition: color 0.3s ease;
+}
+
+.auth-link a:hover {
+  color: var(--vermillion);
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .auth-card {
+    padding: var(--space-xl);
+  }
+
+  .auth-card h1 {
+    font-size: 2rem;
+  }
+}

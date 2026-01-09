@@ -1,0 +1,213 @@
+.dasha-container {
+  padding: 20px;
+  background: #fafafa;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.dasha-title {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.dasha-title h3 {
+  color: #667eea;
+  margin: 0;
+  font-size: 20px;
+}
+
+.dasha-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.dasha-card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.dasha-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dasha-card.current {
+  border-left: 4px solid #667eea;
+}
+
+.dasha-card.next {
+  border-left: 4px solid #764ba2;
+}
+
+.card-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px 16px;
+}
+
+.card-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.card-content {
+  padding: 16px;
+}
+
+.dasha-lord {
+  font-size: 24px;
+  font-weight: bold;
+  color: #667eea;
+  margin-bottom: 12px;
+}
+
+.dasha-duration {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.dasha-duration strong {
+  color: #333;
+  font-size: 16px;
+}
+
+.dasha-desc {
+  color: #888;
+  font-size: 13px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.dasha-sequence-section {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.dasha-sequence-section h4 {
+  margin-top: 0;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.dasha-sequence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dasha-sequence-item {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+  min-width: 80px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sequence-number {
+  font-size: 12px;
+  opacity: 0.9;
+  margin-bottom: 4px;
+}
+
+.sequence-lord {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.sequence-duration {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.bhukthi-section {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.bhukthi-section h4 {
+  margin-top: 0;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.bhukthi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.bhukthi-card {
+  background: #f5f7fa;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 3px solid #667eea;
+  text-align: center;
+}
+
+.bhukthi-lord {
+  font-weight: bold;
+  color: #667eea;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.bhukthi-duration {
+  color: #666;
+  font-size: 13px;
+}
+
+.dasha-note {
+  background: #e8f4f8;
+  border-left: 4px solid #17a2b8;
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-top: 20px;
+  color: #0c5460;
+  font-size: 13px;
+}
+
+.dasha-note p {
+  margin: 0;
+}
+
+.error-message {
+  background: #fee;
+  color: #c33;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .dasha-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .dasha-sequence {
+    gap: 8px;
+  }
+
+  .dasha-sequence-item {
+    min-width: 70px;
+    padding: 10px;
+  }
+
+  .bhukthi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

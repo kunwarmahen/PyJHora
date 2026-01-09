@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: pyjhora-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - pyjhora-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pyjhora-backend
+    environment:
+      MONGODB_URL: mongodb://admin:admin123@mongodb:27017
+      DATABASE_NAME: pyjhora_db
+      SECRET_KEY: your-secret-key-change-in-production
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      QWEN_API_URL: http://localhost:5000
+      USE_QWEN: "false"
+      CORS_ORIGINS: '["http://localhost:3000", "http://localhost:8000"]'
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend:/app
+    networks:
+      - pyjhora-network
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pyjhora-frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+      REACT_APP_API_TIMEOUT: 30000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - pyjhora-network
+    command: npm start
+
+volumes:
+  mongodb_data:
+
+networks:
+  pyjhora-network:
+    driver: bridge

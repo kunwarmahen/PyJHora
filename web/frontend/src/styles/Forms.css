@@ -1,0 +1,395 @@
+/* Forms CSS */
+.page-container {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding: 40px 20px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.form-wrapper {
+  max-width: 700px;
+  margin: 0 auto;
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.form-wrapper h1 {
+  color: #333;
+  margin: 0 0 10px 0;
+  font-size: 28px;
+}
+
+.form-wrapper .subtitle {
+  color: #666;
+  margin-bottom: 30px;
+  font-size: 14px;
+}
+
+.error-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fee;
+  border: 1px solid #fcc;
+  color: #c33;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.error-box svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.astrology-form {
+  width: 100%;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 8px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fafafa;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #667eea;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group.checkbox {
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.form-group.checkbox input[type="checkbox"] {
+  margin: 0;
+  width: auto;
+  cursor: pointer;
+}
+
+.form-group.checkbox label {
+  margin: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.result-box {
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 40px;
+}
+
+.result-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.result-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.result-header .success {
+  color: #4caf50;
+}
+
+.result-content {
+  padding: 30px;
+  color: #333;
+}
+
+.result-content p {
+  margin: 10px 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.result-content strong {
+  color: #667eea;
+}
+
+.score-display {
+  background: white;
+  padding: 20px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.score-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+}
+
+.score-item .label {
+  font-weight: 600;
+  color: #333;
+}
+
+.score-item .value {
+  color: #667eea;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.compatibility-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.item {
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-left: 4px solid #667eea;
+}
+
+.item span:first-child {
+  font-weight: 500;
+  color: #666;
+}
+
+.item span:last-child {
+  font-weight: 700;
+  color: #667eea;
+  font-size: 16px;
+}
+
+.planets-section,
+.periods-list,
+.ai-analysis,
+.ai-prediction,
+.predictions-detail,
+.status-section {
+  background: white;
+  padding: 20px;
+  border-radius: 6px;
+  margin-top: 20px;
+}
+
+.planets-section h3,
+.periods-list h3,
+.ai-analysis h3,
+.ai-prediction h3,
+.predictions-detail h3,
+.current-period h3 {
+  margin-top: 0;
+  color: #333;
+  font-size: 16px;
+  margin-bottom: 15px;
+}
+
+.planets-section pre,
+.periods-list pre {
+  background: #f5f5f5;
+  padding: 15px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 12px;
+  max-height: 300px;
+}
+
+.ai-analysis p,
+.ai-prediction p {
+  color: #666;
+  line-height: 1.8;
+  margin: 0;
+}
+
+.prediction-item {
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.prediction-item:last-child {
+  border-bottom: none;
+}
+
+.prediction-item strong {
+  display: block;
+  color: #667eea;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.prediction-item p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.capitalize {
+  text-transform: capitalize;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.info-item strong {
+  color: #667eea;
+}
+
+.period-info {
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+}
+
+.period-info p {
+  margin: 8px 0;
+}
+
+@media (max-width: 768px) {
+  .form-wrapper {
+    padding: 25px 20px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .compatibility-items {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.form-group select {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fafafa;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.form-group select:focus {
+  outline: none;
+  border-color: #667eea;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group select option {
+  background: white;
+  color: #333;
+  padding: 8px;
+}
+
+/* Location Search Styles */
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.location-info-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  margin-top: 15px;
+  background: #e8f5e9;
+  border: 1px solid #4CAF50;
+  border-left: 4px solid #4CAF50;
+  border-radius: 8px;
+  animation: slideIn 0.3s ease;
+}
+
+.location-info-box strong {
+  color: #2e7d32;
+  font-size: 14px;
+}
+
+.location-info-box small {
+  color: #555;
+  font-size: 12px;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
