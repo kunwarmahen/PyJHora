@@ -289,6 +289,126 @@ export const BirthChartPage = () => {
 
             {/* North Indian Chart */}
             <NorthIndianChart chartData={result} />
+
+            {/* Nakshatra Information Section */}
+            {result.lagna || result.d1_chart ? (
+              <div style={{
+                background: 'white',
+                borderRadius: 'var(--radius-xl)',
+                padding: 'var(--space-xl)',
+                marginTop: 'var(--space-xl)',
+                boxShadow: 'var(--shadow-lg)',
+                borderTop: '4px solid var(--saffron)'
+              }}>
+                <h3 style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-sm)',
+                  marginBottom: 'var(--space-lg)',
+                  color: 'var(--cosmic-indigo)',
+                  fontSize: '1.5rem'
+                }}>
+                  <Star size={24} style={{ color: 'var(--saffron)' }} />
+                  Nakshatra Information
+                </h3>
+
+                {/* Lagna Nakshatra */}
+                {result.lagna && result.lagna.nakshatra && (
+                  <div style={{
+                    padding: 'var(--space-lg)',
+                    background: 'linear-gradient(135deg, rgba(255, 153, 51, 0.05) 0%, rgba(255, 153, 51, 0.15) 100%)',
+                    borderRadius: 'var(--radius-lg)',
+                    marginBottom: 'var(--space-lg)',
+                    border: '2px solid var(--saffron)'
+                  }}>
+                    <h4 style={{
+                      color: 'var(--saffron)',
+                      marginBottom: 'var(--space-md)',
+                      fontSize: '1.125rem',
+                      fontWeight: 700
+                    }}>
+                      Lagna (Ascendant)
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-md)' }}>
+                      <div>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Sign: </span>
+                        <span style={{ color: 'var(--cosmic-indigo)', fontWeight: 600 }}>{result.lagna.sign_name}</span>
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Nakshatra: </span>
+                        <span style={{ color: 'var(--cosmic-indigo)', fontWeight: 600 }}>{result.lagna.nakshatra}</span>
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Pada: </span>
+                        <span style={{ color: 'var(--cosmic-indigo)', fontWeight: 600 }}>{result.lagna.nakshatra_pada}</span>
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Degrees: </span>
+                        <span style={{ color: 'var(--cosmic-indigo)', fontWeight: 600 }}>{result.lagna.degrees}°</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Planetary Nakshatras */}
+                {result.d1_chart && (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                    gap: 'var(--space-md)'
+                  }}>
+                    {Object.entries(result.d1_chart).map(([planet, data]) => (
+                      <div key={planet} style={{
+                        padding: 'var(--space-md)',
+                        background: 'var(--sacred-white)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--sandalwood)',
+                        transition: 'all 0.3s ease'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}>
+                        <h5 style={{
+                          color: 'var(--saffron)',
+                          marginBottom: 'var(--space-sm)',
+                          fontSize: '1rem',
+                          fontWeight: 700
+                        }}>
+                          {planet}
+                        </h5>
+                        <div style={{ fontSize: '0.875rem', lineHeight: '1.6' }}>
+                          <div style={{ marginBottom: 'var(--space-xs)' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>Sign: </span>
+                            <span style={{ color: 'var(--cosmic-indigo)', fontWeight: 600 }}>{data.sign_name}</span>
+                          </div>
+                          {data.nakshatra && (
+                            <>
+                              <div style={{ marginBottom: 'var(--space-xs)' }}>
+                                <span style={{ color: 'var(--text-secondary)' }}>Nakshatra: </span>
+                                <span style={{ color: 'var(--cosmic-indigo)', fontWeight: 600 }}>{data.nakshatra}</span>
+                              </div>
+                              <div style={{ marginBottom: 'var(--space-xs)' }}>
+                                <span style={{ color: 'var(--text-secondary)' }}>Pada: </span>
+                                <span style={{ color: 'var(--cosmic-indigo)', fontWeight: 600 }}>{data.nakshatra_pada}</span>
+                              </div>
+                            </>
+                          )}
+                          <div>
+                            <span style={{ color: 'var(--text-secondary)' }}>Degrees: </span>
+                            <span style={{ color: 'var(--cosmic-indigo)', fontWeight: 600 }}>{data.degrees}°</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>

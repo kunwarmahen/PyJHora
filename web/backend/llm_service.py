@@ -216,6 +216,11 @@ class LLMService:
     def _build_chart_analysis_prompt(self, chart_data: Dict[str, Any], question: str) -> str:
         """Build prompt for answering questions about a chart"""
 
+        from datetime import datetime
+
+        # Get current date for Dasha period identification
+        current_date = datetime.now().strftime("%Y-%m-%d")
+
         # Extract key information
         lagna_info = chart_data.get("lagna", {})
         moon_info = chart_data.get("moon_sign", {})
@@ -224,29 +229,54 @@ class LLMService:
         birth_details = chart_data.get("birth_details", {})
 
         # Build comprehensive chart description
-        chart_description = f"""Birth Details:
+        chart_description = f"""TODAY'S DATE: {current_date}
+
+Birth Details:
 - Date of Birth: {birth_details.get('dob', 'Unknown')}
 - Time of Birth: {birth_details.get('tob', 'Unknown')}
 - Place of Birth: {birth_details.get('place', 'Unknown')}
 
 Lagna (Ascendant):
-- Sign: {lagna_info.get('sign_name', 'Unknown')} (Rasi #{lagna_info.get('rasi', 'Unknown')})
-- Nakshatra: {lagna_info.get('nakshatra', 'Unknown')}
-- Longitude: {lagna_info.get('longitude', 'Unknown')}°
+- Sign: {lagna_info.get('sign_name', 'Unknown')} (House #{lagna_info.get('house', 'Unknown')})
+- Nakshatra: {lagna_info.get('nakshatra', 'Unknown')} Pada {lagna_info.get('nakshatra_pada', 'Unknown')}
+- Degrees: {lagna_info.get('degrees', 'Unknown')}°
 
 Moon Sign (Chandra Rasi):
 - Sign: {moon_info.get('sign_name', 'Unknown')} (Rasi #{moon_info.get('rasi', 'Unknown')})
-- Nakshatra: {moon_info.get('nakshatra', 'Unknown')}
-- Pada: {moon_info.get('pada', 'Unknown')}
+- Nakshatra: {moon_info.get('nakshatra', 'Unknown')} Pada {moon_info.get('nakshatra_pada', 'Unknown')}
 
 Sun Sign (Surya Rasi):
 - Sign: {sun_info.get('sign_name', 'Unknown')} (Rasi #{sun_info.get('rasi', 'Unknown')})
+- Nakshatra: {sun_info.get('nakshatra', 'Unknown')} Pada {sun_info.get('nakshatra_pada', 'Unknown')}
 
 Planetary Positions (All 9 Grahas):"""
 
-        # Add planetary positions
+        # Add planetary positions with nakshatras
         for planet, data in planets.items():
-            chart_description += f"\n- {planet}: {data.get('sign_name', 'Unknown')} sign (Rasi #{data.get('rasi', 'Unknown')}), Longitude: {data.get('longitude', 0):.2f}°"
+            nakshatra_info = ""
+            if data.get('nakshatra'):
+                nakshatra_info = f", Nakshatra: {data.get('nakshatra', 'Unknown')} Pada {data.get('nakshatra_pada', 'Unknown')}"
+            chart_description += f"\n- {planet}: {data.get('sign_name', 'Unknown')} sign (Rasi #{data.get('rasi', 'Unknown')}), {data.get('degrees', 0):.2f}°{nakshatra_info}"
+
+        # Add Dasha information
+        current_dasha = chart_data.get("current_dasha", {})
+        next_dasha = chart_data.get("next_dasha", {})
+        current_bhukthi = chart_data.get("current_bhukthi", {})
+
+        if current_dasha:
+            chart_description += f"\n\nCurrent Dasha (Vimsottari):"
+            chart_description += f"\n- Maha Dasha: {current_dasha.get('lord', 'Unknown')} ({current_dasha.get('start_date', 'Unknown')} to {current_dasha.get('end_date', 'Unknown')})"
+            chart_description += f"\n- Duration: {current_dasha.get('duration_years', 0)} years"
+
+        if current_bhukthi and current_bhukthi.get('periods'):
+            chart_description += f"\n\nAll Sub-periods (Antar Dasha / Bhukti) within {current_dasha.get('lord', 'Unknown')} Maha Dasha:"
+            # Show ALL sub-periods so LLM can identify which one is current
+            for period in current_bhukthi.get('periods', []):
+                chart_description += f"\n- {period.get('lord', 'Unknown')}: {period.get('start_date', 'Unknown')} to {period.get('end_date', 'Unknown')} ({period.get('duration_months', 0)} months)"
+
+        if next_dasha:
+            chart_description += f"\n\nNext Dasha:"
+            chart_description += f"\n- {next_dasha.get('lord', 'Unknown')} starting {next_dasha.get('start_date', 'Unknown')}"
 
         prompt = f"""You are an expert Vedic astrologer. Below is the COMPLETE BIRTH CHART DATA for this person, calculated using precise astronomical calculations from the PyJHora Vedic astrology software. This is REAL, VERIFIED CHART DATA - not hypothetical.
 
@@ -256,18 +286,23 @@ Planetary Positions (All 9 Grahas):"""
 
 === END OF CHART DATA ===
 
-IMPORTANT: The above planetary positions, signs, houses, and nakshatras have been calculated accurately based on the person's exact birth time and location. Use this data directly to answer their question.
+IMPORTANT INSTRUCTIONS:
+1. TODAY'S DATE is {current_date} - Use this to determine which Dasha and sub-period is CURRENTLY active
+2. The above planetary positions, signs, houses, nakshatras, and Dasha periods have been calculated accurately based on the person's exact birth time and location
+3. When asked about "current dasha" or "current period", check which Dasha/sub-period TODAY'S DATE ({current_date}) falls within
+4. Use the complete chart data directly to answer their question
 
 User's Question: {question}
 
 Please provide a detailed, personalized answer based on THIS SPECIFIC BIRTH CHART. You have all the necessary information above. Analyze:
-1. The specific planetary positions in their chart
-2. Their lagna (ascendant) in {lagna_info.get('sign_name', 'Unknown')}
-3. Their moon sign in {moon_info.get('sign_name', 'Unknown')} and nakshatra {moon_info.get('nakshatra', 'Unknown')}
-4. How the planets in their chart relate to the question asked
-5. Practical, actionable guidance based on their specific placements
+1. TODAY'S DATE ({current_date}) to identify the current Dasha and sub-period
+2. The specific planetary positions in their chart
+3. Their lagna (ascendant) in {lagna_info.get('sign_name', 'Unknown')}
+4. Their moon sign in {moon_info.get('sign_name', 'Unknown')} and nakshatra {moon_info.get('nakshatra', 'Unknown')}
+5. How the planets in their chart relate to the question asked
+6. Practical, actionable guidance based on their specific placements
 
-Do NOT ask for more information - you have the complete chart. Give a confident, detailed answer based on the data provided above."""
+Do NOT ask for more information - you have the complete chart and today's date. Give a confident, detailed answer based on the data provided above."""
 
         return prompt
 

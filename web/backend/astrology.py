@@ -70,14 +70,44 @@ class AstrologyCompute:
                 "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
             ]
 
-            # Format planetary positions for D1
+            # Nakshatra names
+            nakshatra_names = [
+                "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra",
+                "Punarvasu", "Pushya", "Ashlesha", "Magha", "Purva Phalguni", "Uttara Phalguni",
+                "Hasta", "Chitra", "Swati", "Vishakha", "Anuradha", "Jyeshtha",
+                "Mula", "Purva Ashadha", "Uttara Ashadha", "Shravana", "Dhanishta", "Shatabhisha",
+                "Purva Bhadrapada", "Uttara Bhadrapada", "Revati"
+            ]
+
+            # Helper function to get nakshatra from longitude
+            def get_nakshatra_from_longitude(longitude):
+                """Calculate nakshatra and pada from absolute longitude"""
+                # Each nakshatra is 13°20' (13.333333°)
+                nakshatra_span = 360.0 / 27.0
+                nakshatra_index = int(longitude / nakshatra_span)
+                pada_span = nakshatra_span / 4.0
+                pada = int((longitude % nakshatra_span) / pada_span) + 1
+                return nakshatra_index, pada
+
+            # Calculate nakshatra for ascendant
+            ascendant_longitude = ascendant[0] * 30.0 + ascendant[1]
+            ascendant_nakshatra_idx, ascendant_pada = get_nakshatra_from_longitude(ascendant_longitude)
+
+            # Format planetary positions for D1 with nakshatras
             d1_planets = {}
             for planet_index, (rasi, degrees) in d1_chart[1:]:  # Skip ascendant at index 0
                 planet_name = planet_names.get(planet_index, f"Planet_{planet_index}")
+                # Calculate absolute longitude
+                absolute_longitude = rasi * 30.0 + degrees
+                nakshatra_idx, pada = get_nakshatra_from_longitude(absolute_longitude)
+
                 d1_planets[planet_name] = {
                     "rasi": rasi,
                     "degrees": round(degrees, 2),
-                    "sign_name": zodiac_names[rasi]
+                    "sign_name": zodiac_names[rasi],
+                    "nakshatra": nakshatra_names[nakshatra_idx],
+                    "nakshatra_pada": pada,
+                    "absolute_longitude": round(absolute_longitude, 2)
                 }
 
             # Format planetary positions for D9
@@ -108,12 +138,17 @@ class AstrologyCompute:
                 "ascendant": {
                     "rasi": ascendant[0],
                     "degrees": round(ascendant[1], 2),
-                    "sign_name": zodiac_names[ascendant[0]]
+                    "sign_name": zodiac_names[ascendant[0]],
+                    "nakshatra": nakshatra_names[ascendant_nakshatra_idx],
+                    "nakshatra_pada": ascendant_pada,
+                    "absolute_longitude": round(ascendant_longitude, 2)
                 },
                 "lagna": {
                     "house": ascendant[0] + 1,  # Convert from 0-based to 1-based for frontend
                     "degrees": round(ascendant[1], 2),
-                    "sign_name": zodiac_names[ascendant[0]]
+                    "sign_name": zodiac_names[ascendant[0]],
+                    "nakshatra": nakshatra_names[ascendant_nakshatra_idx],
+                    "nakshatra_pada": ascendant_pada
                 },
                 "planets": planets_for_chart,  # For frontend chart component
                 "d1_chart": d1_planets,

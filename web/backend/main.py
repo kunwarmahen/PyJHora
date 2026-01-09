@@ -438,15 +438,55 @@ async def ask_question(
 ):
     """Ask a question about the birth chart using AI"""
     try:
-        # Get full chart data
-        chart_data = AstrologyCompute.get_horoscope_predictions(
+        # Calculate birth chart
+        birth_chart = AstrologyCompute.calculate_birth_chart(
             dob=request.birth_details.dob,
             tob=request.birth_details.tob,
             place=request.birth_details.place,
             lat=request.birth_details.latitude,
             lon=request.birth_details.longitude,
-            tz=5.5
+            tz=request.birth_details.timezone or 5.5
         )
+
+        # Calculate Dashas
+        dashas = AstrologyCompute.get_dashas(
+            dob=request.birth_details.dob,
+            tob=request.birth_details.tob,
+            place=request.birth_details.place,
+            lat=request.birth_details.latitude,
+            lon=request.birth_details.longitude,
+            tz=request.birth_details.timezone or 5.5
+        )
+
+        # Combine chart data for LLM
+        moon_data = birth_chart.get("d1_chart", {}).get("Moon", {})
+        sun_data = birth_chart.get("d1_chart", {}).get("Sun", {})
+
+        chart_data = {
+            "birth_details": {
+                "dob": request.birth_details.dob,
+                "tob": request.birth_details.tob,
+                "place": request.birth_details.place
+            },
+            "lagna": birth_chart.get("lagna", {}),
+            "moon_sign": {
+                "sign_name": moon_data.get("sign_name", "Unknown"),
+                "rasi": moon_data.get("rasi", 0),
+                "nakshatra": moon_data.get("nakshatra", "Unknown"),
+                "nakshatra_pada": moon_data.get("nakshatra_pada", 0)
+            },
+            "sun_sign": {
+                "sign_name": sun_data.get("sign_name", "Unknown"),
+                "rasi": sun_data.get("rasi", 0),
+                "nakshatra": sun_data.get("nakshatra", "Unknown"),
+                "nakshatra_pada": sun_data.get("nakshatra_pada", 0)
+            },
+            "planetary_positions": birth_chart.get("d1_chart", {}),
+            "current_dasha": dashas.get("current_dasha", {}),
+            "next_dasha": dashas.get("next_dasha", {}),
+            "current_bhukthi": dashas.get("current_bhukthi", {}),
+            "dasha_sequence": dashas.get("dasha_sequence", [])
+        }
 
         # Validate LLM provider
         try:
