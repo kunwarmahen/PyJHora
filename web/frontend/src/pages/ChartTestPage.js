@@ -7,8 +7,10 @@ export const ChartTestPage = () => {
   const navigate = useNavigate();
 
   // Sample chart data for testing
+  // Note: 'house' here refers to the zodiac sign (1=Aries, 2=Taurus, etc.)
+  // The visual house positions will be calculated based on Lagna
   const [chartData] = useState({
-    lagna: { house: 4, sign_name: 'Cancer', degrees: 15.23 },
+    lagna: { house: 4, sign_name: 'Cancer', degrees: 15.23 }, // Lagna in Cancer (sign 4)
     planets: {
       Sun: { house: 4, sign_name: 'Cancer', degrees: 10.5 },
       Moon: { house: 10, sign_name: 'Capricorn', degrees: 23.45 },
@@ -41,18 +43,38 @@ export const ChartTestPage = () => {
     'Ketu': 'Ke'
   };
 
-  // Get planets in a specific house
-  const getPlanetsInHouse = (houseNum) => {
+  // Calculate which zodiac sign is in a given visual house position
+  // visualHouseNum: 1-12 (1 being where Lagna is)
+  // Returns the zodiac sign number (1-12) that should be displayed there
+  const getSignForVisualHouse = (visualHouseNum) => {
+    if (!chartData.lagna) return visualHouseNum;
+
+    // Lagna's zodiac sign is in visual house 1
+    // Other signs follow in order
+    const lagnaSign = chartData.lagna.house; // e.g., 4 for Cancer
+    let signNum = lagnaSign + visualHouseNum - 1;
+
+    // Wrap around if we go past 12
+    if (signNum > 12) signNum -= 12;
+
+    return signNum;
+  };
+
+  // Get planets in a specific visual house position
+  const getPlanetsInHouse = (visualHouseNum) => {
     const items = [];
 
-    // Add Lagna if in this house
-    if (chartData.lagna && chartData.lagna.house === houseNum) {
+    // Get which zodiac sign is at this visual position
+    const signAtThisPosition = getSignForVisualHouse(visualHouseNum);
+
+    // Add Lagna if it's in this zodiac sign
+    if (chartData.lagna && chartData.lagna.house === signAtThisPosition) {
       items.push({ name: 'As', type: 'lagna', degrees: chartData.lagna.degrees });
     }
 
-    // Find planets in this house
+    // Find planets in this zodiac sign
     Object.entries(chartData.planets).forEach(([name, data]) => {
-      if (data.house === houseNum) {
+      if (data.house === signAtThisPosition) {
         items.push({
           name: planetAbbr[name] || name,
           type: 'planet',
@@ -212,7 +234,7 @@ export const ChartTestPage = () => {
                 className="sign-name"
                 style={{ transition: 'opacity 0.2s ease' }}
               >
-                {rasiNames[house.num - 1]}
+                {rasiNames[getSignForVisualHouse(house.num) - 1]}
               </text>
 
               {/* Planets in this house */}
