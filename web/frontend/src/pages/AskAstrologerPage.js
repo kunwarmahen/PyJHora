@@ -12,6 +12,8 @@ import {
   Calendar,
   Clock,
   MapPin,
+  Info,
+  X,
 } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
@@ -29,6 +31,7 @@ export const AskAstrologerPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [llmProvider, setLlmProvider] = useState("qwen");
+  const [showInfoModal, setShowInfoModal] = useState(false);
 
   const llmProviders = [
     {
@@ -88,8 +91,17 @@ export const AskAstrologerPage = () => {
         timezone: parseFloat(selectedProfile.birth_details.timezone),
       };
 
-      const response = await astrologyService.calculateBirthChart(birthDetails);
-      setChartData(response.data);
+      // Fetch both chart data and dasha data
+      const [chartResponse, dashaResponse] = await Promise.all([
+        astrologyService.calculateBirthChart(birthDetails),
+        astrologyService.getDhasa(birthDetails, "vimsottari")
+      ]);
+
+      // Combine chart data with dasha data
+      setChartData({
+        ...chartResponse.data,
+        dashas: dashaResponse.data
+      });
       setMessages([
         {
           type: "system",
@@ -158,6 +170,39 @@ export const AskAstrologerPage = () => {
 
   const handleExampleClick = (question) => {
     handleAskQuestion(question);
+  };
+
+  const getChartDataForLLM = () => {
+    if (!chartData) return "No chart data available";
+
+    const moonData = chartData.d1_chart?.Moon || {};
+    const sunData = chartData.d1_chart?.Sun || {};
+
+    return {
+      birth_details: {
+        dob: selectedProfile.birth_details.dob,
+        tob: selectedProfile.birth_details.tob,
+        place: selectedProfile.birth_details.place,
+      },
+      lagna: chartData.lagna,
+      moon_sign: {
+        sign_name: moonData.sign_name || "Unknown",
+        rasi: moonData.rasi || 0,
+        nakshatra: moonData.nakshatra || "Unknown",
+        nakshatra_pada: moonData.nakshatra_pada || 0,
+      },
+      sun_sign: {
+        sign_name: sunData.sign_name || "Unknown",
+        rasi: sunData.rasi || 0,
+        nakshatra: sunData.nakshatra || "Unknown",
+        nakshatra_pada: sunData.nakshatra_pada || 0,
+      },
+      planetary_positions: chartData.d1_chart || {},
+      current_dasha: chartData.dashas?.current_dasha || {},
+      next_dasha: chartData.dashas?.next_dasha || {},
+      current_bhukthi: chartData.dashas?.current_bhukthi || {},
+      dasha_sequence: chartData.dashas?.dasha_sequence || []
+    };
   };
 
   if (!selectedProfile) {
@@ -269,6 +314,28 @@ export const AskAstrologerPage = () => {
             }}>
               <Bot size={20} style={{ color: 'var(--saffron)' }} />
               AI Model
+              <button
+                onClick={() => setShowInfoModal(true)}
+                style={{
+                  marginLeft: 'auto',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--saffron)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-xs)',
+                  padding: 'var(--space-xs)',
+                  borderRadius: 'var(--radius-sm)',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 153, 51, 0.1)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                title="View chart data sent to AI"
+              >
+                <Info size={18} />
+                <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>Info</span>
+              </button>
             </h3>
             <div className="llm-options">
               {llmProviders.map((provider) => (
@@ -433,6 +500,133 @@ export const AskAstrologerPage = () => {
             </button>
           </div>
         </div>
+
+        {/* Info Modal */}
+        {showInfoModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 'var(--space-lg)',
+            animation: 'fadeIn 0.3s ease-out'
+          }}
+          onClick={() => setShowInfoModal(false)}>
+            <div style={{
+              background: 'white',
+              borderRadius: 'var(--radius-xl)',
+              maxWidth: '800px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+              animation: 'slideIn 0.3s ease-out'
+            }}
+            onClick={(e) => e.stopPropagation()}>
+              {/* Modal Header */}
+              <div style={{
+                padding: 'var(--space-xl)',
+                borderBottom: '2px solid var(--sandalwood)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                position: 'sticky',
+                top: 0,
+                background: 'white',
+                zIndex: 1
+              }}>
+                <h3 style={{
+                  margin: 0,
+                  fontSize: '1.5rem',
+                  color: 'var(--cosmic-indigo)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-sm)'
+                }}>
+                  <Info size={24} style={{ color: 'var(--saffron)' }} />
+                  Chart Data Sent to AI
+                </h3>
+                <button
+                  onClick={() => setShowInfoModal(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    padding: 'var(--space-sm)',
+                    borderRadius: 'var(--radius-md)',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'var(--sandalwood)';
+                    e.currentTarget.style.color = 'var(--vermillion)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'none';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }}
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div style={{
+                padding: 'var(--space-xl)',
+                fontSize: '0.875rem',
+                lineHeight: '1.6'
+              }}>
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(255, 153, 51, 0.05) 0%, rgba(255, 153, 51, 0.1) 100%)',
+                  padding: 'var(--space-lg)',
+                  borderRadius: 'var(--radius-lg)',
+                  marginBottom: 'var(--space-lg)',
+                  border: '1px solid var(--saffron)'
+                }}>
+                  <p style={{ margin: 0, color: 'var(--cosmic-indigo)', fontWeight: 500 }}>
+                    This is the chart information that is being sent to the AI model to provide personalized astrological insights:
+                  </p>
+                </div>
+
+                <pre style={{
+                  background: 'var(--sacred-white)',
+                  padding: 'var(--space-lg)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--sandalwood)',
+                  overflow: 'auto',
+                  fontFamily: 'monospace',
+                  fontSize: '0.8125rem',
+                  lineHeight: '1.8',
+                  color: 'var(--cosmic-indigo)'
+                }}>
+{JSON.stringify(getChartDataForLLM(), null, 2)}
+                </pre>
+
+                <div style={{
+                  marginTop: 'var(--space-lg)',
+                  padding: 'var(--space-md)',
+                  background: 'rgba(52, 73, 94, 0.05)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--cosmic-indigo)',
+                  fontSize: '0.8125rem'
+                }}>
+                  <p style={{ margin: '0 0 var(--space-sm) 0', color: 'var(--cosmic-indigo)', fontWeight: 600 }}>
+                    📝 Note:
+                  </p>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                    The AI model receives this structured data along with your question to provide accurate and personalized astrological guidance based on your birth chart. This includes your Lagna (Ascendant), planetary positions, nakshatras, and other relevant astrological details.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
