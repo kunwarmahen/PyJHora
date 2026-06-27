@@ -21,265 +21,335 @@
 from jhora.panchanga import drik
 from jhora import const,utils
 from jhora.horoscope.chart import house, charts
-def tri_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1):
+def tri_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
+                           dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
     mixed_dvf = varga_factor_1*varga_factor_2
-    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2, chart_method_2)
-    moon_long = planet_positions[2][1][0]*30+planet_positions[2][1][1]
+    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2,
+                                          chart_method_2,dhasa_progression_correction=dhasa_progression_correction)
+    moon_long = planet_positions[const.MOON_ID+1][1][0]*30+planet_positions[const.MOON_ID+1][1][1]
     asc_long = planet_positions[0][1][0]*30+planet_positions[0][1][1]
-    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=mixed_dvf)
+    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=mixed_dvf,
+                                   dhasa_progression_correction=dhasa_progression_correction)
     gulika_long = gulika[0]*30+gulika[1]
     _tri_sphuta = (moon_long+asc_long+gulika_long)%360
     return drik.dasavarga_from_long(_tri_sphuta, divisional_chart_factor=mixed_dvf)
     
-def tri_sphuta(dob,tob,place, ayanamsa_mode=const._DEFAULT_AYANAMSA_MODE,divisional_chart_factor=1,
-               chart_method=1,years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None):
+def tri_sphuta(dob,tob,place, divisional_chart_factor=1,
+               chart_method=1,years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None,
+               dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
-    planet_positions = charts.divisional_chart(jd_at_dob, place, ayanamsa_mode=ayanamsa_mode, 
+    planet_positions = charts.divisional_chart(jd_at_dob, place,  
                                         divisional_chart_factor=divisional_chart_factor, chart_method=chart_method,
-                                        years=years,months=months, sixty_hours=sixty_hours)
-    moon_long = planet_positions[2][1][0]*30+planet_positions[2][1][1]
+                                        years=years,months=months, sixty_hours=sixty_hours,
+                                        dhasa_progression_correction=dhasa_progression_correction)
+    moon_long = planet_positions[const.MOON_ID+1][1][0]*30+planet_positions[const.MOON_ID+1][1][1]
     asc_long = planet_positions[0][1][0]*30+planet_positions[0][1][1]
-    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=divisional_chart_factor)
+    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=divisional_chart_factor,
+                                   dhasa_progression_correction=dhasa_progression_correction)
     gulika_long = gulika[0]*30+gulika[1]
     _tri_sphuta = (moon_long+asc_long+gulika_long)%360
     return drik.dasavarga_from_long(_tri_sphuta, divisional_chart_factor=divisional_chart_factor)
-def chatur_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1):
+def chatur_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
+                              dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
     mixed_dvf = varga_factor_1*varga_factor_2
-    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2, chart_method_2)
-    sun_long = planet_positions[1][1][0]*30+planet_positions[1][1][1]
-    _tri_sphuta= tri_sphuta_mixed_chart(dob, tob, place,varga_factor_1,chart_method_1,varga_factor_2,chart_method_2)
+    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2,
+                                          chart_method_2,dhasa_progression_correction=dhasa_progression_correction)
+    sun_long = planet_positions[const.SUN_ID+1][1][0]*30+planet_positions[const.SUN_ID+1][1][1]
+    _tri_sphuta= tri_sphuta_mixed_chart(dob, tob, place,varga_factor_1,chart_method_1,varga_factor_2,chart_method_2,
+                                        dhasa_progression_correction=dhasa_progression_correction)
     _chatur_sphuta = (sun_long+_tri_sphuta[0]*30+_tri_sphuta[1])%360
     return drik.dasavarga_from_long(_chatur_sphuta, divisional_chart_factor=mixed_dvf)
-def chatur_sphuta(dob,tob,place, ayanamsa_mode=const._DEFAULT_AYANAMSA_MODE,divisional_chart_factor=1,
-               chart_method=1,years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None):
+def chatur_sphuta(dob,tob,place, divisional_chart_factor=1,
+               chart_method=1,years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None,
+               dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
-    planet_positions = charts.divisional_chart(jd_at_dob, place, ayanamsa_mode=ayanamsa_mode, 
+    planet_positions = charts.divisional_chart(jd_at_dob, place,  
                                         divisional_chart_factor=divisional_chart_factor, chart_method=chart_method,
-                                        years=years,months=months, sixty_hours=sixty_hours)
-    sun_long = planet_positions[1][1][0]*30+planet_positions[1][1][1]
-    _tri_sphuta= tri_sphuta(dob, tob, place, ayanamsa_mode, divisional_chart_factor, chart_method,
-                            years, months, sixty_hours)
+                                        years=years,months=months, sixty_hours=sixty_hours,
+                                        dhasa_progression_correction=dhasa_progression_correction)
+    sun_long = planet_positions[const.SUN_ID+1][1][0]*30+planet_positions[const.SUN_ID+1][1][1]
+    _tri_sphuta= tri_sphuta(dob, tob, place, divisional_chart_factor, chart_method,
+                            years, months, sixty_hours,dhasa_progression_correction=dhasa_progression_correction)
     _chatur_sphuta = (sun_long+_tri_sphuta[0]*30+_tri_sphuta[1])%360
     return drik.dasavarga_from_long(_chatur_sphuta, divisional_chart_factor=divisional_chart_factor)
-def pancha_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1):
+def pancha_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
+                              dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
     mixed_dvf = varga_factor_1*varga_factor_2
-    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2, chart_method_2)
-    rahu_long = planet_positions[8][1][0]*30+planet_positions[8][1][1]
-    _chatur_sphuta= chatur_sphuta_mixed_chart(dob, tob, place,varga_factor_1,chart_method_1,varga_factor_2,chart_method_2)
+    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2,
+                                          chart_method_2,dhasa_progression_correction=dhasa_progression_correction)
+    rahu_long = planet_positions[const.RAHU_ID+1][1][0]*30+planet_positions[const.RAHU_ID+1][1][1]
+    _chatur_sphuta= chatur_sphuta_mixed_chart(dob, tob, place,varga_factor_1,chart_method_1,varga_factor_2,
+                                              chart_method_2,dhasa_progression_correction=dhasa_progression_correction)
     _pancha_sphuta = (rahu_long+_chatur_sphuta[0]*30+_chatur_sphuta[1])%360
     return drik.dasavarga_from_long(_pancha_sphuta, divisional_chart_factor=mixed_dvf)    
-def pancha_sphuta(dob,tob,place, ayanamsa_mode=const._DEFAULT_AYANAMSA_MODE,divisional_chart_factor=1,
-               chart_method=1,years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None):
+def pancha_sphuta(dob,tob,place, divisional_chart_factor=1,
+               chart_method=1,years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None,
+               dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
-    planet_positions = charts.divisional_chart(jd_at_dob, place, ayanamsa_mode=ayanamsa_mode, 
+    planet_positions = charts.divisional_chart(jd_at_dob, place,  
                                         divisional_chart_factor=divisional_chart_factor, chart_method=chart_method,
-                                        years=years,months=months, sixty_hours=sixty_hours)
-    rahu_long = planet_positions[8][1][0]*30+planet_positions[8][1][1]
-    _chatur_sphuta= chatur_sphuta(dob, tob, place, ayanamsa_mode, divisional_chart_factor, chart_method,
-                                  years, months, sixty_hours)
+                                        years=years,months=months, sixty_hours=sixty_hours,
+                                        dhasa_progression_correction=dhasa_progression_correction)
+    rahu_long = planet_positions[const.RAHU_ID+1][1][0]*30+planet_positions[const.RAHU_ID+1][1][1]
+    _chatur_sphuta= chatur_sphuta(dob, tob, place, divisional_chart_factor, chart_method,
+                                  years, months, sixty_hours,dhasa_progression_correction=dhasa_progression_correction)
     _pancha_sphuta = (rahu_long+_chatur_sphuta[0]*30+_chatur_sphuta[1])%360
     return drik.dasavarga_from_long(_pancha_sphuta, divisional_chart_factor=divisional_chart_factor)
-def prana_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1):
+def prana_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
+                             dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
     mixed_dvf = varga_factor_1*varga_factor_2
-    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2, chart_method_2)
+    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2,
+                                          chart_method_2,dhasa_progression_correction=dhasa_progression_correction)
     asc_long = planet_positions[0][1][0]*30+planet_positions[0][1][1]
-    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=mixed_dvf)
+    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=mixed_dvf,
+                                   dhasa_progression_correction=dhasa_progression_correction)
     gulika_long = gulika[0]*30+gulika[1]
     _prana_long = (asc_long*5 + gulika_long) %360
     return drik.dasavarga_from_long(_prana_long, divisional_chart_factor=mixed_dvf)
-def prana_sphuta(dob,tob,place, ayanamsa_mode=const._DEFAULT_AYANAMSA_MODE,divisional_chart_factor=1,chart_method=1,
-                 years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None):
+def prana_sphuta(dob,tob,place, divisional_chart_factor=1,chart_method=1,
+                 years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None,
+                 dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
-    planet_positions = charts.divisional_chart(jd_at_dob, place, ayanamsa_mode=ayanamsa_mode, 
+    planet_positions = charts.divisional_chart(jd_at_dob, place,  
                                         divisional_chart_factor=divisional_chart_factor, chart_method=chart_method,
-                                        years=years,months=months, sixty_hours=sixty_hours)
+                                        years=years,months=months, sixty_hours=sixty_hours,
+                                        dhasa_progression_correction=dhasa_progression_correction)
     asc_long = planet_positions[0][1][0]*30+planet_positions[0][1][1]
-    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=divisional_chart_factor)
+    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=divisional_chart_factor,
+                                   dhasa_progression_correction=dhasa_progression_correction)
     gulika_long = gulika[0]*30+gulika[1]
     _prana_long = (asc_long*5 + gulika_long) %360
     return drik.dasavarga_from_long(_prana_long, divisional_chart_factor=divisional_chart_factor)
-def deha_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1):
+def deha_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
+                            dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
     mixed_dvf = varga_factor_1*varga_factor_2
-    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2, chart_method_2)
-    moon_long = planet_positions[2][1][0]*30+planet_positions[2][1][1]
-    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=mixed_dvf)
+    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2,
+                                          chart_method_2,dhasa_progression_correction=dhasa_progression_correction)
+    moon_long = planet_positions[const.MOON_ID+1][1][0]*30+planet_positions[const.MOON_ID+1][1][1]
+    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=mixed_dvf,
+                                   dhasa_progression_correction=dhasa_progression_correction)
     gulika_long = gulika[0]*30+gulika[1]
     _deha_long = (moon_long*8 + gulika_long) %360
     return drik.dasavarga_from_long(_deha_long, divisional_chart_factor=mixed_dvf)
-def deha_sphuta(dob,tob,place, ayanamsa_mode=const._DEFAULT_AYANAMSA_MODE,divisional_chart_factor=1,chart_method=1,
-                years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None):
+def deha_sphuta(dob,tob,place, divisional_chart_factor=1,chart_method=1,
+                years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None,
+                dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
-    planet_positions = charts.divisional_chart(jd_at_dob, place, ayanamsa_mode=ayanamsa_mode, 
+    planet_positions = charts.divisional_chart(jd_at_dob, place,  
                                         divisional_chart_factor=divisional_chart_factor, chart_method=chart_method,
-                                        years=years,months=months, sixty_hours=sixty_hours)
-    moon_long = planet_positions[2][1][0]*30+planet_positions[2][1][1]
-    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=divisional_chart_factor)
+                                        years=years,months=months, sixty_hours=sixty_hours,
+                                        dhasa_progression_correction=dhasa_progression_correction)
+    moon_long = planet_positions[const.MOON_ID+1][1][0]*30+planet_positions[const.MOON_ID+1][1][1]
+    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=divisional_chart_factor,
+                                   dhasa_progression_correction=dhasa_progression_correction)
     gulika_long = gulika[0]*30+gulika[1]
     _deha_long = (moon_long*8 + gulika_long) %360
     return drik.dasavarga_from_long(_deha_long, divisional_chart_factor=divisional_chart_factor)
-def mrityu_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1):
+def mrityu_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
+                              dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
     mixed_dvf = varga_factor_1*varga_factor_2
-    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2, chart_method_2)
-    sun_long = planet_positions[1][1][0]*30+planet_positions[1][1][1]
-    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=mixed_dvf)
+    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2,
+                                          chart_method_2,dhasa_progression_correction=dhasa_progression_correction)
+    sun_long = planet_positions[const.SUN_ID+1][1][0]*30+planet_positions[const.SUN_ID+1][1][1]
+    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=mixed_dvf,
+                                   dhasa_progression_correction=dhasa_progression_correction)
     gulika_long = gulika[0]*30+gulika[1]
     _mrityu_long = (gulika_long*7 + sun_long) %360
     return drik.dasavarga_from_long(_mrityu_long, divisional_chart_factor=mixed_dvf)
-def mrityu_sphuta(dob,tob,place, ayanamsa_mode=const._DEFAULT_AYANAMSA_MODE,divisional_chart_factor=1,chart_method=1,
-                  years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None):
+def mrityu_sphuta(dob,tob,place, divisional_chart_factor=1,chart_method=1,
+                  years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None,
+                  dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
-    planet_positions = charts.divisional_chart(jd_at_dob, place, ayanamsa_mode=ayanamsa_mode, 
+    planet_positions = charts.divisional_chart(jd_at_dob, place,  
                                         divisional_chart_factor=divisional_chart_factor,chart_method=chart_method,
                                         years=years,months=months, sixty_hours=sixty_hours,
-                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign)
-    sun_long = planet_positions[1][1][0]*30+planet_positions[1][1][1]
-    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=divisional_chart_factor)
+                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
+                                        dhasa_progression_correction=dhasa_progression_correction)
+    sun_long = planet_positions[const.SUN_ID+1][1][0]*30+planet_positions[const.SUN_ID+1][1][1]
+    gulika = drik.gulika_longitude(dob,tob,place,divisional_chart_factor=divisional_chart_factor,
+                                   dhasa_progression_correction=dhasa_progression_correction)
     gulika_long = gulika[0]*30+gulika[1]
     _mrityu_long = (gulika_long*7 + sun_long) %360
     return drik.dasavarga_from_long(_mrityu_long, divisional_chart_factor=divisional_chart_factor)
-def sookshma_tri_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1):
+def sookshma_tri_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
+                                    dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
     mixed_dvf = varga_factor_1*varga_factor_2
-    _prana_long = prana_sphuta_mixed_chart(dob, tob, place,varga_factor_1,chart_method_1,varga_factor_2,chart_method_2)
-    _deha_long = deha_sphuta_mixed_chart(dob, tob, place,varga_factor_1,chart_method_1,varga_factor_2,chart_method_2)
-    _mrityu_long = mrityu_sphuta_mixed_chart(dob, tob, place,varga_factor_1,chart_method_1,varga_factor_2,chart_method_2)
-    _sookshma_long = (_prana_long[0]*30+_prana_long[1] + _deha_long[0]*30+_deha_long[1] + _mrityu_long[0]*30+_mrityu_long[1]) %360
+    _prana_long = prana_sphuta_mixed_chart(dob, tob, place,varga_factor_1,chart_method_1,varga_factor_2,chart_method_2,
+                                           dhasa_progression_correction=dhasa_progression_correction)
+    _deha_long = deha_sphuta_mixed_chart(dob, tob, place,varga_factor_1,chart_method_1,varga_factor_2,chart_method_2,
+                                         dhasa_progression_correction=dhasa_progression_correction)
+    _mrityu_long = mrityu_sphuta_mixed_chart(dob, tob, place,varga_factor_1,chart_method_1,varga_factor_2,chart_method_2,
+                                             dhasa_progression_correction=dhasa_progression_correction)
+    _sookshma_long = (utils.norm360(_prana_long[0]*30+_prana_long[1] + _deha_long[0]*30+_deha_long[1] 
+                                   + _mrityu_long[0]*30+_mrityu_long[1]))
     return drik.dasavarga_from_long(_sookshma_long, divisional_chart_factor=mixed_dvf)
-def sookshma_tri_sphuta(dob,tob,place, ayanamsa_mode=const._DEFAULT_AYANAMSA_MODE,divisional_chart_factor=1,
-                        chart_method=1,years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None):
-    _prana_long = prana_sphuta(dob, tob, place, ayanamsa_mode, divisional_chart_factor, chart_method,years, months, sixty_hours,
-                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign)
-    _deha_long = deha_sphuta(dob, tob, place, ayanamsa_mode, divisional_chart_factor,chart_method, years, months, sixty_hours,
-                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign)
-    _mrityu_long = mrityu_sphuta(dob, tob, place, ayanamsa_mode, divisional_chart_factor, chart_method,years, months, sixty_hours,
-                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign)
-    _sookshma_long = (_prana_long[0]*30+_prana_long[1] + _deha_long[0]*30+_deha_long[1] + _mrityu_long[0]*30+_mrityu_long[1]) %360
+def sookshma_tri_sphuta(dob,tob,place, divisional_chart_factor=1,
+                        chart_method=1,years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None,
+                        dhasa_progression_correction=0.0):
+    _prana_long = prana_sphuta(dob, tob, place, divisional_chart_factor, chart_method,years, months, sixty_hours,
+                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
+                                        dhasa_progression_correction=dhasa_progression_correction)
+    _deha_long = deha_sphuta(dob, tob, place, divisional_chart_factor,chart_method, years, months, sixty_hours,
+                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
+                                        dhasa_progression_correction=dhasa_progression_correction)
+    _mrityu_long = mrityu_sphuta(dob, tob, place, divisional_chart_factor, chart_method,years, months, sixty_hours,
+                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
+                                        dhasa_progression_correction=dhasa_progression_correction)
+    _sookshma_long = (utils.norm360(_prana_long[0]*30+_prana_long[1] + _deha_long[0]*30+_deha_long[1] 
+                                    + _mrityu_long[0]*30+_mrityu_long[1]) )
     return drik.dasavarga_from_long(_sookshma_long, divisional_chart_factor=divisional_chart_factor)
-def beeja_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1):
+def beeja_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
+                             dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
     mixed_dvf = varga_factor_1*varga_factor_2
-    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2, chart_method_2)
-    sun_long = planet_positions[1][1][0]*30+planet_positions[1][1][1]
-    jupiter_long = planet_positions[5][1][0]*30+planet_positions[5][1][1]
-    venus_long = planet_positions[6][1][0]*30+planet_positions[6][1][1]
+    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2,
+                                          chart_method_2,dhasa_progression_correction=dhasa_progression_correction)
+    sun_long = planet_positions[const.SUN_ID+1][1][0]*30+planet_positions[const.SUN_ID+1][1][1]
+    jupiter_long = planet_positions[const.JUPITER_ID+1][1][0]*30+planet_positions[const.JUPITER_ID+1][1][1]
+    venus_long = planet_positions[const.VENUS_ID+1][1][0]*30+planet_positions[const.VENUS_ID+1][1][1]
     _beeja_long = (sun_long + jupiter_long + venus_long)%360
     return drik.dasavarga_from_long(_beeja_long, divisional_chart_factor=mixed_dvf)
-def beeja_sphuta(dob,tob,place, ayanamsa_mode=const._DEFAULT_AYANAMSA_MODE,divisional_chart_factor=1,chart_method=1,
-                 years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None):
+def beeja_sphuta(dob,tob,place, divisional_chart_factor=1,chart_method=1,
+                 years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None,
+                 dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
-    planet_positions = charts.divisional_chart(jd_at_dob, place, ayanamsa_mode=ayanamsa_mode, 
+    planet_positions = charts.divisional_chart(jd_at_dob, place,  
                                         divisional_chart_factor=divisional_chart_factor,chart_method=chart_method,
                                         years=years,months=months, sixty_hours=sixty_hours,
-                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign)
-    sun_long = planet_positions[1][1][0]*30+planet_positions[1][1][1]
-    jupiter_long = planet_positions[5][1][0]*30+planet_positions[5][1][1]
-    venus_long = planet_positions[6][1][0]*30+planet_positions[6][1][1]
+                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
+                                        dhasa_progression_correction=dhasa_progression_correction)
+    sun_long = planet_positions[const.SUN_ID+1][1][0]*30+planet_positions[const.SUN_ID+1][1][1]
+    jupiter_long = planet_positions[const.JUPITER_ID+1][1][0]*30+planet_positions[const.JUPITER_ID+1][1][1]
+    venus_long = planet_positions[const.VENUS_ID+1][1][0]*30+planet_positions[const.VENUS_ID+1][1][1]
     _beeja_long = (sun_long + jupiter_long + venus_long)%360
     return drik.dasavarga_from_long(_beeja_long, divisional_chart_factor=divisional_chart_factor)
-def kshetra_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1):
+def kshetra_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
+                               dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
     mixed_dvf = varga_factor_1*varga_factor_2
-    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2, chart_method_2)
-    moon_long = planet_positions[2][1][0]*30+planet_positions[2][1][1]
-    jupiter_long = planet_positions[5][1][0]*30+planet_positions[5][1][1]
-    mars_long = planet_positions[3][1][0]*30+planet_positions[3][1][1]
+    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2,
+                                          chart_method_2,dhasa_progression_correction=dhasa_progression_correction)
+    moon_long = planet_positions[const.MOON_ID+1][1][0]*30+planet_positions[const.MOON_ID+1][1][1]
+    jupiter_long = planet_positions[const.JUPITER_ID+1][1][0]*30+planet_positions[const.JUPITER_ID+1][1][1]
+    mars_long = planet_positions[const.MARS_ID+1][1][0]*30+planet_positions[const.MARS_ID+1][1][1]
     _kshetra_long = (moon_long + jupiter_long + mars_long)%360
     return drik.dasavarga_from_long(_kshetra_long, divisional_chart_factor=mixed_dvf)
-def kshetra_sphuta(dob,tob,place, ayanamsa_mode=const._DEFAULT_AYANAMSA_MODE,divisional_chart_factor=1,chart_method=1,
-                   years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None):
+def kshetra_sphuta(dob,tob,place, divisional_chart_factor=1,chart_method=1,
+                   years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None,
+                   dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
-    planet_positions = charts.divisional_chart(jd_at_dob, place, ayanamsa_mode=ayanamsa_mode, 
+    planet_positions = charts.divisional_chart(jd_at_dob, place,  
                                         divisional_chart_factor=divisional_chart_factor,chart_method=chart_method,
                                         years=years,months=months, sixty_hours=sixty_hours,
-                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign)
-    moon_long = planet_positions[2][1][0]*30+planet_positions[2][1][1]
-    jupiter_long = planet_positions[5][1][0]*30+planet_positions[5][1][1]
-    mars_long = planet_positions[3][1][0]*30+planet_positions[3][1][1]
+                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
+                                        dhasa_progression_correction=dhasa_progression_correction)
+    moon_long = planet_positions[const.MOON_ID+1][1][0]*30+planet_positions[const.MOON_ID+1][1][1]
+    jupiter_long = planet_positions[const.JUPITER_ID+1][1][0]*30+planet_positions[const.JUPITER_ID+1][1][1]
+    mars_long = planet_positions[const.MARS_ID+1][1][0]*30+planet_positions[const.MARS_ID+1][1][1]
     _kshetra_long = (moon_long + jupiter_long + mars_long)%360
     return drik.dasavarga_from_long(_kshetra_long, divisional_chart_factor=divisional_chart_factor)
-def tithi_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1):
+def tithi_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
+                             dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
     mixed_dvf = varga_factor_1*varga_factor_2
-    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2, chart_method_2)
-    moon_long = planet_positions[2][1][0]*30+planet_positions[2][1][1]
-    sun_long = planet_positions[1][1][0]*30+planet_positions[1][1][1]
+    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2,
+                                          chart_method_2,dhasa_progression_correction=dhasa_progression_correction)
+    moon_long = planet_positions[const.MOON_ID+1][1][0]*30+planet_positions[const.MOON_ID+1][1][1]
+    sun_long = planet_positions[const.SUN_ID+1][1][0]*30+planet_positions[const.SUN_ID+1][1][1]
     _tithi_long = (moon_long - sun_long) %360
     return drik.dasavarga_from_long(_tithi_long, divisional_chart_factor=mixed_dvf)
-def tithi_sphuta(dob,tob,place, ayanamsa_mode=const._DEFAULT_AYANAMSA_MODE,divisional_chart_factor=1,chart_method=1,
-                 years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None):
+def tithi_sphuta(dob,tob,place, divisional_chart_factor=1,chart_method=1,
+                 years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None,
+                 dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
-    planet_positions = charts.divisional_chart(jd_at_dob, place, ayanamsa_mode=ayanamsa_mode, 
+    planet_positions = charts.divisional_chart(jd_at_dob, place,  
                                         divisional_chart_factor=divisional_chart_factor,chart_method=chart_method,
                                         years=years,months=months, sixty_hours=sixty_hours,
-                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign)
-    moon_long = planet_positions[2][1][0]*30+planet_positions[2][1][1]
-    sun_long = planet_positions[1][1][0]*30+planet_positions[1][1][1]
+                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
+                                        dhasa_progression_correction=dhasa_progression_correction)
+    moon_long = planet_positions[const.MOON_ID+1][1][0]*30+planet_positions[const.MOON_ID+1][1][1]
+    sun_long = planet_positions[const.SUN_ID+1][1][0]*30+planet_positions[const.SUN_ID+1][1][1]
     _tithi_long = (moon_long - sun_long) %360
     return drik.dasavarga_from_long(_tithi_long, divisional_chart_factor=divisional_chart_factor)
 def yoga_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
-                            add_yogi_longitude=False):
+                            add_yogi_longitude=False,dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
     mixed_dvf = varga_factor_1*varga_factor_2
-    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2, chart_method_2)
-    moon_long = planet_positions[2][1][0]*30+planet_positions[2][1][1]
-    sun_long = planet_positions[1][1][0]*30+planet_positions[1][1][1]
+    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2,
+                                          chart_method_2,dhasa_progression_correction=dhasa_progression_correction)
+    moon_long = planet_positions[const.MOON_ID+1][1][0]*30+planet_positions[const.MOON_ID+1][1][1]
+    sun_long = planet_positions[const.SUN_ID+1][1][0]*30+planet_positions[const.SUN_ID+1][1][1]
     yogi_long = 93+20/60 if add_yogi_longitude else 0
     _yoga_long = (moon_long + sun_long + yogi_long) %360
     return drik.dasavarga_from_long(_yoga_long, divisional_chart_factor=mixed_dvf)
-def yoga_sphuta(dob,tob,place, ayanamsa_mode=const._DEFAULT_AYANAMSA_MODE,divisional_chart_factor=1,chart_method=1,
-                years=1,months=1,sixty_hours=1,add_yogi_longitude=False,base_rasi=None,count_from_end_of_sign=None):
+def yoga_sphuta(dob,tob,place, divisional_chart_factor=1,chart_method=1,
+                years=1,months=1,sixty_hours=1,add_yogi_longitude=False,base_rasi=None,count_from_end_of_sign=None,
+                dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
-    planet_positions = charts.divisional_chart(jd_at_dob, place, ayanamsa_mode=ayanamsa_mode, 
+    planet_positions = charts.divisional_chart(jd_at_dob, place,  
                                         divisional_chart_factor=divisional_chart_factor,chart_method=chart_method,
                                         years=years,months=months, sixty_hours=sixty_hours,
-                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign)
-    moon_long = planet_positions[2][1][0]*30+planet_positions[2][1][1]
-    sun_long = planet_positions[1][1][0]*30+planet_positions[1][1][1]
+                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
+                                        dhasa_progression_correction=dhasa_progression_correction)
+    moon_long = planet_positions[const.MOON_ID+1][1][0]*30+planet_positions[const.MOON_ID+1][1][1]
+    sun_long = planet_positions[const.SUN_ID+1][1][0]*30+planet_positions[const.SUN_ID+1][1][1]
     yogi_long = 93+20/60 if add_yogi_longitude else 0
     _yoga_long = (moon_long + sun_long + yogi_long) %360
     return drik.dasavarga_from_long(_yoga_long, divisional_chart_factor=divisional_chart_factor)
-def yogi_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1):
+def yogi_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
+                            dhasa_progression_correction=0.0):
     return yoga_sphuta_mixed_chart(dob, tob, place, varga_factor_1, chart_method_1, varga_factor_2, chart_method_2, 
-                                   add_yogi_longitude=True)
-def yogi_sphuta(dob,tob,place, ayanamsa_mode=const._DEFAULT_AYANAMSA_MODE,divisional_chart_factor=1,chart_method=1,
-                years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None):
-    return yoga_sphuta(dob,tob,place,ayanamsa_mode,divisional_chart_factor,chart_method,
+                                   add_yogi_longitude=True,dhasa_progression_correction=dhasa_progression_correction)
+def yogi_sphuta(dob,tob,place, divisional_chart_factor=1,chart_method=1,
+                years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None,
+                dhasa_progression_correction=0.0):
+    return yoga_sphuta(dob,tob,place,divisional_chart_factor,chart_method,
                        years,months,sixty_hours,add_yogi_longitude=True,
-                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign)
-def avayogi_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1):
+                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
+                                        dhasa_progression_correction=dhasa_progression_correction)
+def avayogi_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
+                               dhasa_progression_correction=0.0):
     mixed_dvf = varga_factor_1*varga_factor_2
-    yl = yogi_sphuta_mixed_chart(dob, tob, place, varga_factor_1, chart_method_1, varga_factor_2, chart_method_2)
+    yl = yogi_sphuta_mixed_chart(dob, tob, place, varga_factor_1, chart_method_1, varga_factor_2, chart_method_2,
+                                 dhasa_progression_correction=dhasa_progression_correction)
     ayl = (yl[0]*30+yl[1]+186+40/60)%360
     return drik.dasavarga_from_long(ayl, mixed_dvf)
-def avayogi_sphuta(dob,tob,place, ayanamsa_mode=const._DEFAULT_AYANAMSA_MODE,divisional_chart_factor=1,chart_method=1,
-                   years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None):
-    yl = yogi_sphuta(dob,tob,place,ayanamsa_mode,divisional_chart_factor,chart_method,years,months,sixty_hours,
-                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign)
+def avayogi_sphuta(dob,tob,place, divisional_chart_factor=1,chart_method=1,
+                   years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None,
+                   dhasa_progression_correction=0.0):
+    yl = yogi_sphuta(dob,tob,place,divisional_chart_factor,chart_method,years,months,sixty_hours,
+                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
+                                        dhasa_progression_correction=dhasa_progression_correction)
     ayl = (yl[0]*30+yl[1]+186+40/60)%360
     return drik.dasavarga_from_long(ayl, divisional_chart_factor)
-def rahu_tithi_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1):
+def rahu_tithi_sphuta_mixed_chart(dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
+                                  dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
     mixed_dvf = varga_factor_1*varga_factor_2
-    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2, chart_method_2)
-    rahu_long = planet_positions[8][1][0]*30+planet_positions[8][1][1]
-    sun_long = planet_positions[1][1][0]*30+planet_positions[1][1][1]
+    planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2,
+                                          chart_method_2,dhasa_progression_correction=dhasa_progression_correction)
+    rahu_long = planet_positions[const.RAHU_ID+1][1][0]*30+planet_positions[const.RAHU_ID+1][1][1]
+    sun_long = planet_positions[const.SUN_ID+1][1][0]*30+planet_positions[const.SUN_ID+1][1][1]
     _tithi_long = (rahu_long - sun_long) %360
     return drik.dasavarga_from_long(_tithi_long, divisional_chart_factor=mixed_dvf)
-def rahu_tithi_sphuta(dob,tob,place, ayanamsa_mode=const._DEFAULT_AYANAMSA_MODE,divisional_chart_factor=1,chart_method=1,
-                      years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None):
+def rahu_tithi_sphuta(dob,tob,place, divisional_chart_factor=1,chart_method=1,
+                      years=1,months=1,sixty_hours=1,base_rasi=None,count_from_end_of_sign=None,
+                      dhasa_progression_correction=0.0):
     jd_at_dob = utils.julian_day_number(dob, tob)
-    planet_positions = charts.divisional_chart(jd_at_dob, place, ayanamsa_mode=ayanamsa_mode, 
+    planet_positions = charts.divisional_chart(jd_at_dob, place,  
                                         divisional_chart_factor=divisional_chart_factor,chart_method=chart_method,
                                         years=years,months=months, sixty_hours=sixty_hours,
-                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign)
-    rahu_long = planet_positions[8][1][0]*30+planet_positions[8][1][1]
-    sun_long = planet_positions[1][1][0]*30+planet_positions[1][1][1]
+                                        base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
+                                        dhasa_progression_correction=dhasa_progression_correction)
+    rahu_long = planet_positions[const.RAHU_ID+1][1][0]*30+planet_positions[const.RAHU_ID+1][1][1]
+    sun_long = planet_positions[const.SUN_ID+1][1][0]*30+planet_positions[const.SUN_ID+1][1][1]
     _tithi_long = (rahu_long - sun_long) %360
     return drik.dasavarga_from_long(_tithi_long, divisional_chart_factor=divisional_chart_factor)
     #return _tithi_long

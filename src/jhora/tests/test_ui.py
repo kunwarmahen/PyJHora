@@ -405,7 +405,7 @@ class VedicCalendar(QWidget):
             _panchanga_dict = {'top_left': (kp_icon,_tithi), 'middle_left':(_tithi_icon,str(td)),
                                'middle_right':('',str(d)), 'bottom_left': _nak,
                                'top_right': (_sunrise_icon,_srise), 'bottom_right':(_sunset_icon,_sset)}
-            header_text = year_str+' '+str(y)+' '+ utils.MONTH_LIST_EN[m-1]+' '+str(d)+' '+utils.DAYS_LIST[drik.vaara(jd)]+' '+\
+            header_text = year_str+' '+str(y)+' '+ utils.MONTH_LIST_EN[m-1]+' '+str(d)+' '+utils.DAYS_LIST[drik.vaara(jd,place)]+' '+\
                           spl_month_text+' '+ utils.PAKSHA_LIST[_paksha]+' ' + \
                           utils.TITHI_LIST[_tit-1]
             return _panchanga_dict, header_text
@@ -451,7 +451,7 @@ class VedicCalendar(QWidget):
                 next_month_start = utils.next_panchanga_day(last_day, add_days=1)
                 last_day = last_day.day
             _jd -= 1; current_date = previous_month_end
-            start_day = drik.vaara(_jd)
+            start_day = drik.vaara(_jd,self.start_place)
             reached_end_of_month = False
             [self.cells[row][col].setVisible(False) for col in range(7) for row in range(7)]
             for row in range(7):
@@ -518,8 +518,7 @@ class VedicCalendar(QWidget):
             info_str = ''; format_str = _KEY_VALUE_FORMAT_
             from jhora.ui import panchangam
             panchangam._SHOW_SPECIAL_TITHIS = False
-            info_str = PanchangaInfoDialog._fill_information_label1(self,show_more_link=False, jd=jd, place=place,
-                                                                    ayanamsa_mode=const._DEFAULT_AYANAMSA_MODE)
+            info_str = PanchangaInfoDialog._fill_information_label1(self,show_more_link=False, jd=jd, place=place)
             if show_more_link:
                 info_str += format_str.format('<a href="show_more">Show more</a>','')
                 try:

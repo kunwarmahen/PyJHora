@@ -237,7 +237,7 @@ def get_eesarpha_yoga_planet_pairs(planet_positions):
     """
     house_planet_dict = utils.get_house_planet_list_from_planet_positions(planet_positions)
     com1=[]
-    for p1,p2 in list(itertools.combinations([*range(7)],2)):
+    for p1,p2 in list(itertools.combinations(const.SUN_TO_SATURN,2)):
         iy = eesarpha_yoga(planet_positions, p1, p2)
         if iy:
            com1.append((p1,p2))
@@ -251,7 +251,7 @@ def get_ithasala_yoga_planet_pairs(planet_positions):
     house_planet_dict = utils.get_house_planet_list_from_planet_positions(planet_positions)
     print('house_planet_dict',house_planet_dict)
     com1=[]
-    for p1,p2 in list(itertools.combinations([*range(7)],2)):
+    for p1,p2 in list(itertools.combinations(const.SUN_TO_SATURN,2)):
         iy,iyt = ithasala_yoga(planet_positions, p1, p2)
         if iy:
            com1.append((p1,p2,iyt))
@@ -417,11 +417,10 @@ if __name__ == "__main__":
     years = 21
     place = drik.Place('unknown',16+15.0/60,81+12.0/60,5.5)
     divisional_chart_factor = 1
-    ayanamsa_mode = const._DEFAULT_AYANAMSA_MODE
     jd_at_years = utils.julian_day_number((1993,6,1),(13,30,4))
     dky = get_duhphali_kutta_yoga_planet_pairs(jd_at_years,place)
     exit()
-    chart_67_rasi = charts.divisional_chart(jd_at_years, place, ayanamsa_mode, divisional_chart_factor=1)
+    chart_67_rasi = charts.divisional_chart(jd_at_years, placedivisional_chart_factor=1)
     print(chart_67_rasi)
     house_planet_dict = utils.get_house_planet_list_from_planet_positions(chart_67_rasi)
     print(house_planet_dict)
@@ -440,7 +439,7 @@ if __name__ == "__main__":
     print('eesarpha combinations\n',com)
     exit()
     com = []
-    for planet in range(7):
+    for planet in const.SUN_TO_SATURN:
         ty = nakta_yoga(chart_67_rasi,planet)
         if ty[0] and len(ty[1])>0:
             com.append([planet,ty[1]])

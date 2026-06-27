@@ -22,17 +22,86 @@
 import os
 import swisseph as swe
 import numpy as np
+from enum import IntEnum, unique, Enum
 from jhora._package_info import version as _APP_VERSION
 
 " setup paths "
 _sep = os.path.sep
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 _DATA_DIR = os.path.dirname(ROOT_DIR+_sep+"data"+_sep)
+FACTORY_SETTINGS_FILE = os.path.join(_DATA_DIR, "factory_settings.json")
+USER_SETTINGS_FILE = os.path.join(_DATA_DIR, "user_settings.json")
 _IMAGES_PATH = os.path.dirname(ROOT_DIR+_sep+"images"+_sep)
 _IMAGE_ICON_PATH=os.path.join(_IMAGES_PATH+_sep+"lord_ganesha2.jpg")
 _INPUT_DATA_FILE = _DATA_DIR +'program_inputs.txt' #os.path.join(ROOT_DIR,'data'+_sep+'program_inputs.txt')
 _FESTIVAL_FILE = _DATA_DIR +_sep+'hindu_festivals_multilingual_unicode_bom.csv'
-_world_city_csv_file = os.path.join(ROOT_DIR,'data'+_sep+'world_cities_with_tz.csv')
+class PLACE_DATABASE_ENGINE:
+    NONE = 0
+    CSV_5K = 1          # CSV countries >5000 population
+    PICKLE_5K = 2       # PICKLE countries >5000 population
+    SQLITE_5K = 3       # SQLITE countries >5000 population
+    CSV_5K_IN = 4       # CSV countries > 5000 population PLUS All Indian Cities Population >= 0
+    PICKLE_5K_IN = 5    # Pickle countries > 5000 population PLUS All Indian Cities Population >= 0
+    SQLITE_5K_IN = 6    # SQLite countries > 5000 population PLUS All Indian Cities Population >= 0
+    CSV_500 = 7         # CSV countries >500 population
+    PICKLE_500 = 8      # Pickle countries >500 population
+    SQLITE_500 = 9      # SQLite countries >500 population
+    CSV_500_IN = 10     # CSV countries > 500 population PLUS All Indian Cities Population >= 0
+    PICKLE_500_IN = 11  # PICKLE countries > 500 population PLUS All Indian Cities Population >= 0
+    SQLITE_500_IN = 12  # SQLITE countries > 500 population PLUS All Indian Cities Population >= 0
+    CSV_1K = 13         # CSV countries >1000 population
+    PICKLE_1K = 14      # Pickle countries >1000 population
+    SQLITE_1K = 15      # SQLite countries >1000 population
+    CSV_1K_IN = 16     # CSV countries > 1000 population PLUS All Indian Cities Population >= 0
+    PICKLE_1K_IN = 17  # PICKLE countries > 1000 population PLUS All Indian Cities Population >= 0
+    SQLITE_1K_IN = 18  # SQLITE countries > 1000 population PLUS All Indian Cities Population >= 0
+    CSV_10K = 19         # CSV countries >10000 population
+    PICKLE_10K = 20      # Pickle countries >10000 population
+    SQLITE_10K = 21      # SQLite countries >10000 population
+    CSV_10K_IN = 22     # CSV countries > 10000 population PLUS All Indian Cities Population >= 0
+    PICKLE_10K_IN = 23  # PICKLE countries > 10000 population PLUS All Indian Cities Population >= 0
+    SQLITE_10K_IN = 24  # SQLITE countries > 10000 population PLUS All Indian Cities Population >= 0
+_PLACE_DATABASE_FILES = {
+    PLACE_DATABASE_ENGINE.NONE: None,
+    PLACE_DATABASE_ENGINE.CSV_5K: "geonames_places_5k.csv",
+    PLACE_DATABASE_ENGINE.PICKLE_5K: "geonames_places_5k.pkl",
+    PLACE_DATABASE_ENGINE.SQLITE_5K: "geonames_places_5k.db",
+    PLACE_DATABASE_ENGINE.CSV_5K_IN: "geonames_places_5k_IN.csv",
+    PLACE_DATABASE_ENGINE.PICKLE_5K_IN: "geonames_places_5k_IN.pkl",
+    PLACE_DATABASE_ENGINE.SQLITE_5K_IN: "geonames_places_5k_IN.db",
+    PLACE_DATABASE_ENGINE.CSV_500: "geonames_places_500.csv",
+    PLACE_DATABASE_ENGINE.PICKLE_500: "geonames_places_500.pkl",
+    PLACE_DATABASE_ENGINE.SQLITE_500: "geonames_places_500.db",
+    PLACE_DATABASE_ENGINE.CSV_500_IN: "geonames_places_500_IN.csv",
+    PLACE_DATABASE_ENGINE.PICKLE_500_IN: "geonames_places_500_IN.pkl",
+    PLACE_DATABASE_ENGINE.SQLITE_500_IN: "geonames_places_500_IN.db",
+    PLACE_DATABASE_ENGINE.CSV_1K: "geonames_places_1K.csv",
+    PLACE_DATABASE_ENGINE.PICKLE_1K: "geonames_places_1K.pkl",
+    PLACE_DATABASE_ENGINE.SQLITE_1K: "geonames_places_1K.db",
+    PLACE_DATABASE_ENGINE.CSV_1K_IN: "geonames_places_1K_IN.csv",
+    PLACE_DATABASE_ENGINE.PICKLE_1K_IN: "geonames_places_1K_IN.pkl",
+    PLACE_DATABASE_ENGINE.SQLITE_1K_IN: "geonames_places_1K_IN.db",
+    PLACE_DATABASE_ENGINE.CSV_10K: "geonames_places_10K.csv",
+    PLACE_DATABASE_ENGINE.PICKLE_10K: "geonames_places_10K.pkl",
+    PLACE_DATABASE_ENGINE.SQLITE_10K: "geonames_places_10K.db",
+    PLACE_DATABASE_ENGINE.CSV_10K_IN: "geonames_places_10K_IN.csv",
+    PLACE_DATABASE_ENGINE.PICKLE_10K_IN: "geonames_places_10K_IN.pkl",
+    PLACE_DATABASE_ENGINE.SQLITE_10K_IN: "geonames_places_10K_IN.db",
+}
+database_engine = PLACE_DATABASE_ENGINE.SQLITE_5K
+_place_database_file = None
+def set_place_database_engine(engine):
+    global database_engine, _place_database_file
+
+    if engine not in _PLACE_DATABASE_FILES:
+        raise ValueError(f"Unsupported database engine: {engine}")
+
+    database_engine = engine
+
+    filename = _PLACE_DATABASE_FILES[engine]
+    _place_database_file = None if filename is None else os.path.join(ROOT_DIR, "data", filename)
+set_place_database_engine(database_engine)
+
 _open_elevation_api_url = lambda lat,long:f'https://api.open-elevation.com/api/v1/lookup?locations={lat},{long}'
 _EPHIMERIDE_DATA_PATH = os.path.join(ROOT_DIR,'data'+_sep+'ephe'+_sep)
 _LANGUAGE_PATH = os.path.join(ROOT_DIR,'lang'+_sep)
@@ -43,15 +112,21 @@ _DEFAULT_YOGA_JSON_FILE_PREFIX = "yoga_msgs_"
 _DEFAULT_RAJA_YOGA_JSON_FILE_PREFIX = "raja_yoga_msgs_" 
 _DEFAULT_DOSHA_JSON_FILE_PREFIX = "dosha_msgs_" 
 _DEFAULT_PREDICTION_JSON_FILE_PREFIX = "prediction_msgs_" 
+""" To use Ur/Ne/Pl TODO: You have to exclude them all vedic astrology functions e.g. dhasa. strength"""
 _INCLUDE_URANUS_TO_PLUTO = False#True # Only for Western Charts
 _degree_symbol = "°" 
 _minute_symbol = u'\u2019'
 _second_symbol = '"'
 _retrogade_symbol = '℞'
+_stationary_symbol = 'Ꞩ' #"\ua7a8"
+ret_stat_symbols = {-1:_retrogade_symbol,0:_stationary_symbol,1:''} # V4.8.6
 _ascendant_symbol = 'L'
 " Planet names mapped to swiss ephemerides "
-_KETU = -swe.MEAN_NODE; KETU_ID = 8
-_RAHU = swe.MEAN_NODE; RAHU_ID = 7
+_use_true_nodes_for_rahu_ketu = True
+_KETU = -10 #99 if _use_true_nodes_for_rahu_ketu else -swe.MEAN_NODE
+KETU_ID = 8
+_RAHU = swe.TRUE_NODE if _use_true_nodes_for_rahu_ketu else swe.MEAN_NODE
+RAHU_ID = 7
 _SUN = swe.SUN; SURYA = _SUN ; SUN_ID = 0
 _MOON = swe.MOON; CHANDRA = _MOON; MOON_ID = 1; CHANDRA_ID = 1
 _MARS = swe.MARS; KUJA = _MARS; KUJA_ID = 2; MARS_ID = 2
@@ -62,16 +137,32 @@ _SATURN = swe.SATURN; SANI = _SATURN; SANI_ID = 6; SATURN_ID = 6
 _URANUS = swe.URANUS; URANUS_ID = 9
 _NEPTUNE = swe.NEPTUNE; NEPTUNE_ID = 10
 _PLUTO = swe.PLUTO; PLUTO_ID = 11
+
+def set_node_mode(use_true: bool) -> None:
+    """
+    Switch Rahu/Ketu between True and Mean nodes at runtime.
+    Call this ONCE at process start (e.g., tests or app bootstrap).
+    """
+    global _use_true_nodes_for_rahu_ketu, _RAHU, _KETU
+    _use_true_nodes_for_rahu_ketu = bool(use_true)
+    _RAHU = swe.TRUE_NODE if _use_true_nodes_for_rahu_ketu else swe.MEAN_NODE
+    """ _KETU is always kept as -10 because no other number is allowed in swiss Ephemris """
+    _KETU = -10 if _use_true_nodes_for_rahu_ketu else -swe.MEAN_NODE
+
+set_node_mode(_use_true_nodes_for_rahu_ketu)
+
 SUN_TO_SATURN = [*range(SUN_ID,SATURN_ID+1)]
 SUN_TO_KETU = [*range(SUN_ID,KETU_ID+1)]
+SUN_TO_PLUTO = [*range(SUN_ID,PLUTO_ID+1)]
 HOUSE_1 = 0; HOUSE_2 = 1; HOUSE_3 = 2; HOUSE_4 = 3; HOUSE_5 = 4; HOUSE_6 = 5
 HOUSE_7 = 6; HOUSE_8 = 7; HOUSE_9 = 8; HOUSE_10 = 9; HOUSE_11 = 10; HOUSE_12 = 11
 ARIES = 0; TAURUS = 1; GEMINI = 2; CANCER = 3; LEO = 4; VIRGO = 5; LIBRA = 6
 SCORPIO = 7; SAGITTARIUS = 8; CAPRICORN = 9; AQUARIUS = 10; PISCES = 11
 MESHAM = ARIES; RISHABAM = TAURUS; MITHUNAM = GEMINI; KATAKAM = CANCER; SIMMAM = LEO; KANNI = VIRGO; THULAM = LIBRA
 VIRUCHIGAM=SCORPIO; DHANUS=SAGITTARIUS; MAKARAM=CAPRICORN;KUMBAM=AQUARIUS;MEENAM=PISCES
-_pp_count_upto_saturn = 8; _pp_count_upto_ketu = 10; _pp_count_upto_rahu = 9
+_pp_count_upto_saturn = 8; _pp_count_upto_ketu = 10; _pp_count_upto_rahu = 9; _pp_count_upto_pluto = 13
 _planets_upto_ketu = 9; _planets_upto_saturn = 7; _planets_upto_rahu = 8
+
 """ Surya Siddhantha Constants """
 planet_mean_revolutions_at_kali = {_SUN: 4320000,_MOON:57753336,_MARS: 2296832,_MERCURY: 17937060,
                                    _JUPITER:364220,_VENUS:7022376,_SATURN:146568,_RAHU:232238,_KETU:232238,
@@ -127,6 +218,7 @@ _planet_symbols=['ℒ','☉','☾','♂','☿','♃','♀','♄','☊','☋']
 _zodiac_symbols = ['\u2648', '\u2649', '\u264A', '\u264B', '\u264C', '\u264D', '\u264E', '\u264F', '\u2650', '\u2651', '\u2652', '\u2653']
 
 available_languages = {"English":'en','Tamil':'ta','Telugu':'te','Hindi':"hi",'Kannada':'ka','Malayalam':'ml'}
+reverse_languages = {v: k for k, v in available_languages.items()}
 " declare constants "
 """
 # Planet Rulers of the 8 parts of the DAY and NIGHT
@@ -176,9 +268,11 @@ swe.set_ephe_path(_ephe_path)
 sidereal_year = 365.256364   # From JHora
 lunar_year = 354.36707
 savana_year = 360
+nakshathra_year = 324
 average_gregorian_year = 365.2425
 tropical_year = 365.242190#365.242190=>JHora value #PyJHora Value=>365.24219879 
 human_life_span_for_dhasa = 120. ## years
+human_life_span_for_ashtottari_dhasa = 108
 # Nakshatra lords, order matters. See https://en.wikipedia.org/wiki/Dasha_(astrology)
 adhipati_list = [ 8, 5, 0, 1, 2, 7, 4, 6, 3 ]
 
@@ -199,7 +293,7 @@ available_ayanamsa_modes = {"FAGAN":swe.SIDM_FAGAN_BRADLEY ,"KP": swe.SIDM_KRISH
                             "SIDM_USER":swe.SIDM_USER,'SUNDAR_SS':'',
                             #"ARYABHATA_522":swe.SIDM_ARYABHATA_522, 
                             }
-_DEFAULT_AYANAMSA_MODE = 'LAHIRI' #'TRUE_CITRA'
+_DEFAULT_AYANAMSA_MODE = 'TRUE_PUSHYA' #'LAHIRI' #'TRUE_CITRA'
 human_life_span_for_vimsottari_dhasa = 120
 # Nakshatra lords, order matters. See https://en.wikipedia.org/wiki/Dasha_(astrology)
  # Nak Lord Order: Aswini(Rahu),Bharani(Mars),Krithika(Moon),Rohini(Sun),Mrigasira(Venus),Ardra(Ketu),...
@@ -236,6 +330,8 @@ kalachakra_rasis_list = sum(savya_stars_1_rasis,[])+sum(savya_stars_2_rasis,[])+
 #print(kalachakra_rasis_list)
 
 kalachakra_paramayush = [savya_stars_1_rasis_paramayush,savya_stars_2_rasis_paramayush,apasavya_stars_1_rasis_paramayush,apasavya_stars_2_rasis_paramayush]
+# dict of benefic houses for a planet to occupy with respect to another planet
+# For example dict[0][3] = 3,5,6... Which means 3,4,5.. are the benefic houses from Mercury for sun to occupy
 ashtaka_varga_dict={ #7 is used for Lagna here
     "0":[[1,2,4,7,8,9,10,11],[3,6,10,11],[1,2,4,7,8,9,10,11],[3,5,6,9,10,11,12],[5,6,9,11],[6,7,12],[1,2,4,7,8,9,10,11],[3,4,6,10,11,12]],
     "1":[[3,6,7,8,10,11 ],[1,3,6,7,9,10,11],[2,3,5,6,10,11],[1,3,4,5,7,8,10,11],[1,2,4,7,8,10,11],[3,4,5,7,9,10,11],[3,5,6,11],[3,6,10,11]],
@@ -292,7 +388,10 @@ house_strengths_of_planets = [
     [2, 5, 3, 1, 1, 0, 5, 2, 3, 3, 3, 4], # 5 Venus
     [0, 3, 3, 1, 1, 3, 4, 1, 2, 5, 5, 2], # 6 Saturn
     [1, 4, 4, 1, 1, 3, 3, 0, 0, 3, 1, 3], # 7 Rahu (Exalted 1,2 | Debilitated 7,8)
-    [1, 0, 0, 1, 1, 3, 3, 4, 4, 3, 1, 3]  # 8 Ketu (Debilitated 1,2 | Exalted 7,8)
+    [1, 0, 0, 1, 1, 3, 3, 4, 4, 3, 1, 3], # 8 Ketu (Debilitated 1,2 | Exalted 7,8)
+    #[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 5, 2], # 9 Uranus # Aquarius
+    #[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 5], # 10 Neptune #Pisces
+    #[2, 2, 2, 2, 2, 2, 2, 5, 2, 2, 2, 2], # 11 Pluto # Scorpio
 ]
 __house_strengths_of_planets_old=[[4,1,2,2,5,2,0,3,3,1,1,3],
                             [2,4,3,5,3,3,2,0,2,2,2,2],
@@ -344,6 +443,21 @@ compound_planet_relations = [[-1,5,5,4,3,3,3,3,3], # Sun
                              [3,3,3,3,2,5,-1,5,1], # Saturn
                              [3,1,1,4,2,3,5,-1,1], # Rahu
                              [3,1,5,2,4,5,1,1,-1]] # Ketu
+compound_planet_relations_including_western_planets = [  # V4.8.5
+    # Sun, Moon, Mars, Mer, Jup, Ven, Sat, Rah, Ket, Ura, Nep, Plu
+    [-1, 5, 5, 4, 3, 3, 3, 3, 3, 5, 5, 5], # Sun
+    [5, -1, 2, 5, 2, 2, 4, 1, 1, 4, 5, 2], # Moon
+    [5, 3, -1, 3, 3, 2, 4, 1, 5, 4, 4, 5], # Mars
+    [5, 3, 4, -1, 2, 5, 2, 4, 2, 5, 3, 2], # Mercury
+    [3, 3, 3, 1, -1, 1, 2, 3, 4, 4, 5, 4], # Jupiter
+    [3, 1, 2, 5, 2, -1, 5, 3, 5, 2, 2, 1], # Venus
+    [3, 3, 3, 3, 2, 5, -1, 5, 1, 3, 2, 2], # Saturn
+    [3, 1, 1, 4, 2, 3, 5, -1, 1, 2, 1, 1], # Rahu
+    [3, 1, 5, 2, 4, 5, 1, 1, -1, 4, 5, 5], # Ketu
+    [5, 4, 4, 5, 4, 2, 3, 2, 4, -1, 4, 4], # Uranus (Higher Octave Mercury)
+    [5, 5, 4, 3, 5, 2, 2, 1, 5, 4, -1, 4], # Neptune (Higher Octave Moon/Ketu)
+    [5, 2, 5, 2, 4, 1, 2, 1, 5, 4, 4, -1]  # Pluto (Higher Octave Mars)
+]
 """ 3:'Friend',2:'Samam',1:'Enemy' """
 planet_relations = [ [5,3,3,2,3,1,1,1,2],
                      [3,5,2,3,2,2,2,2,2],
@@ -385,7 +499,7 @@ _friendly_planets = [[1,2,4],[0,3],[0,1,4],[0,5],[0,1,2],[3,6],[3,5]]
 _neutral_planets = [[3],[2,4,5,6],[5,6],[2,4,6],[6],[2,4],[4]]
 _enemy_planets = [[5,6],[],[3],[1],[3,5],[0,1],[0,1,2]]
 #"""
-house_owners = np.where(np.array(house_strengths_of_planets).transpose()==_OWNER_RULER)[1]
+house_owners = np.where(np.array(house_strengths_of_planets).transpose()==_OWNER_RULER)[1].tolist() # V4.8.6
 _house_owners_list = [2,5,3,1,0,3,5,2,4,6,6,4]
 planet_deep_exaltation_longitudes = [10.0,33.0,298.0,165.0,95.0,357.0,200.0]
 planet_deep_exaltation_tolerance = 1.0 # 1 degree
@@ -442,7 +556,7 @@ hadda_lords = [[(4,6),(5,12),(3,20),(2,25),(6,30)], #Aries (planet, long_degree_
                [(5,12),(4,16),(3,19),(2,28),(6,30)]] #Pisces
 hadda_points = [15,7.5,3.75] # [15,11.5,7.5,3.75] # Own, Friend, Enemy, Neutral
 " Narayana Dhasa constants "
-human_life_span_for_narayana_dhasa = 120
+human_life_span_for_narayana_dhasa = 144
 narayana_dhasa_normal_progression = \
     [[0,1,2,3,4,5,6,7,8,9,10,11],
     [1,8,3,10,5,0,7,2,9,4,11,6],
@@ -571,7 +685,6 @@ mean_venus_daily_motions_table_from_1900 = [
 naisargika_bala = [60.00,51.43,17.14,25.71,34.29,42.86,8.57,0.0,0.0]
 minimum_bhava_bala_rupa = 7.0
 planets_retrograde_limits_from_sun = {2:(164,196),3:(144,216),4:(130,230),5:(163,197),6:(115,245)}
-planet_retrogression_calculation_method = 1 # 1 => Old method 2 = Wiki calculations
 lunar_gregory_month_max = 6
 sthree_dheerga_threshold = 13
 sthree_dheerga_threshold_south = 7
@@ -595,12 +708,12 @@ birth_rectification_step_minutes = 0.25
 birth_rectification_loop_count = 120 # Number of steps
 _GREEN_CHECK = '\u2705' ; _RED_CROSS = '\u274C'
 _GREEN_OR_RED = lambda b:_GREEN_CHECK if b else _RED_CROSS
-include_special_and_arudha_lagna_in_charts = True # V3.1.9
+include_special_and_arudha_lagna_in_charts = False # V3.1.9
 """ SPECIAL CASE OF TITHI SKIPPING BEFORE MAHABHARATHA TIME 
     See Dr. Jayasree Saranatha Mahabharatha date validation book
 """
 increase_tithi_by_one_before_kali_yuga = True
-mahabharatha_tithi_julian_day = 588465.5
+mahabharatha_tithi_julian_day = 588465.0
 
 use_aharghana_for_vaara_calcuation = False # V4.4.5
 minimum_separation_longitude=0.00001
@@ -608,7 +721,8 @@ conjunction_increment=0.00001 #1.0/86400 #
 include_charts_only_for_western_type = False
 include_maandhi_in_charts=True
 _PRAVESHA_LIST = ['birth_str','annual_str','tithi_pravesha_str','lunar_month_year_str','present_str','planetary_conjunctions_str',
-                  'planet_transit_str','vakra_gathi_change_str','prenatal_time_str','vrathas_str','customized_str']
+                  'planet_transit_str','vakra_gathi_change_str','eclipse_str','prenatal_time_str','vrathas_str',
+                  'customized_str','nakshathra_dhasa_progression_str']
 sphuta_list = ["tri","chatur","pancha","prana","deha","mrityu","sookshma_tri","beeja","kshetra","tithi","yoga",
                "rahu_tithi","yogi","avayogi"]
 ashtottari_bhukthi_starts_from_dhasa_lord = True #PVR Book says this should be False. But JHora has this True
@@ -627,14 +741,6 @@ nisargayu_base_longevity_of_planets=[0.5*full for full in nisargayu_full_longevi
 aayu_dhasa_types = ['pinda','nisarga','amsa']
 kaala_dhasa_types = ['dawn','day','dusk','night']
 aayu_types = {0:['alpaayu','0-32'],1:['madhyaayu','33-70'],2:['poornaayu','71-100']}
-indian_house_systems = {1:'Equal Housing - Lagna in the middle',2:'Equal Housing - Lagna as start',3:'Sripati method',
-                        4:'KP Method (aka Placidus Houses method)',5:'Each Rasi is the house'}
-western_house_systems = {'P':'Placidus','K':'Koch','O':'Porphyrius','R':'Regiomontanus','C':'Campanus','A':'Equal (cusp 1 is Ascendant)',
-                         'V':'Vehlow equal (Asc. in middle of house 1)','X':'axial rotation system','H':'azimuthal or horizontal system',
-                         'T':'Polich/Page (topocentric system)','B':'Alcabitus','M':'Morinus'}
-available_house_systems = {**indian_house_systems, **western_house_systems}
-""" Bhaava Madhya Methods: = one of the above keys as the value """
-bhaava_madhya_method = 1 # 'Equal Housing - Lagna in the middle'
 nakshatra_rulers = ['Aswini Kumara','Yama','Agni','Bramha','Moon','Shiva','Aditi','Jupiter','Rahu','Sun','Aryaman','Sun',
                     'Viswakarma','Vaayu','Indra','Mitra','Indra','Nirriti','Varuna','Viswaa deva','Brahma','Vishnu','Vasu',
                     'Varuna','Ajacharana','Ahirbudhanya','Pooshan']
@@ -716,13 +822,6 @@ kalachakra_navamsa = {0:[0,1,2,3], 1:[4,5,6,7], 2:[8,9,10,11], 3:[7,6,5,3], 4:[4
 varga_option_dict = {2:(6,1),3:(5,1),4:(4,1),5:(4,1),6:(4,1),7:(6,1),8:(4,1),9:(5,1),10:(6,1),11:(5,1),12:(5,1),16:(4,1),
                       20:(4,1),24:(3,1),27:(4,1),30:(5,1),40:(4,1),45:(4,1),60:(4,1),81:(3,1),108:(4,1),144:(4,1)
                       }
-dhasa_default_options={0:[False,2,1,0,0,0,-1],1:[False,0],2:[True,False,2,1,0,0,0,-1],3:[False,5,1,0,0,0,-1],
-                       4:[0,False,2],5:[False,6,1,0,0,0,-1],6:[0,False,0],7:[False,7,1,0,0,0,-1],
-                       8:[False,26,1,0,0,0,-1],9:[False,18,1,0,0,0,-1],10:[False,16,1,0,0,0,-1],
-                       11:[False,26,1,0,0,0,-1],12:[False,14,1,0,0,0,-1],13:[False,0],14:[False,0,1,0,0,0,-1],
-                       15:[False,21,1,0,0,0,-1],16:[True,False,False],17:[0,0,-1],18:[],19:[0,-1],20:[],
-                       21:[3],22:[False,1,0,0,0,-1]
-                       }
 MAX_DHASAVARGA_FACTOR = 300
 DEFAULT_CUSTOM_VARGA_FACTOR=57
 # If True standard vargas such as D2,D3 etc will follow custom calculations and not standard calculations
@@ -1191,7 +1290,7 @@ tamil_month_method = 3
 #### Enable / Disable World City Checking
 check_database_for_world_cities = True
 use_internet_for_location_check = True
-one_second_lontitude_in_degrees = 1.0/3600.
+one_arc_second = 1.0/3600.
 """ To match Pramaadhi (North Indian) or Prabhava (South Indian) Set ONLY ONE of the below to True.
     Or If you dont like this experiment set both to False
     This means before Kali Year 4099 - i.e. 908AD - The South And North do not share year names
@@ -1202,7 +1301,435 @@ kali_start_year = 13 # 13 (Pramaadhi) North or 1 (Prabhava) for South
 special_tithis = ['janma','dhana','bhrartri','matri','putra','satru','kalatra','mrutyu','bhagya','karma','laabha','vyaya']
 skip_using_girls_varna_for_minimum_tamil_porutham = True # V4.5.5
 benefic_signs = [TAURUS, GEMINI, CANCER, VIRGO, LIBRA, SAGITTARIUS, PISCES]
-force_saturn_as_owner_of_aquarius = False
-force_mars_as_owner_of_scorpio = False
+malefic_signs = [ARIES, LEO, SCORPIO, CAPRICORN, AQUARIUS]
+show_yoga_caution_message = True
+ashtakavarga_rasi_owners=[4,3,(0,7),(2,5),(8,11),(1,6),(9,10)]
+ashtakavarga_rasimana_multipliers = [7,10,8,4,10,6,7,8,9,5,11,12]
+ashtakavarga_grahamana_multipliers = [5,5,8,5,10,7,5]
+planet_hora_dict_for_odd_even_signs = {0:(4,4),1:(3,3),2:(7,0),3:(5,2),4:(11,8),5:(6,1),6:(10,9),7:(10,10),8:(4,4)}
+panchamsa_odd_signs = [0,10,8,2,6]
+panchamsa_even_signs = [1,5,11,9,7]
+vimsopaka_bala_scores = [5,7,10,15,18]
+KP_lord_fractions = [7/120, 20/120,6/120,10/120,7/120,18/120,16/120,19/120,17/120]
+dosha_manglik_houses = [4,7,8,12]
+kalathra_dosha_houses = [HOUSE_1,HOUSE_2,HOUSE_4,HOUSE_7,HOUSE_8,HOUSE_12]
+varga_viswa_scores = [5,7,10,15,18]
+western_planets = [URANUS_ID, NEPTUNE_ID,PLUTO_ID]
+sapthavargaja_factors = [1, 2, 3, 7, 9, 12, 30]
+dreshkon_bala_list = [(0,2,4),(3,6),(1,5)]
+dig_bala_powerless_houses_of_planets = [3,9,3,6,6,9,0]
+abdahipathi_weekdays = [2,3,4,5,6,0,1]
+hora_bala_hora_order = [6,4,2,0,5,3,1]
+shad_bala_factors = [5,6,5,7,6.5,5.5,5]
+subha_asubha_factors_dict = {12:(0,0.5),11:(0.5,0.75),10:(2/3,5/6),9:(3/4,7/8),8:(4/5,9/10),7:(5/6,11/12)}
+check_yogas_on_all_divisional_charts = False
+# 1st house from Sun, 2nd house from jupiter etc...
+naisargika_karakas = [SUN_ID, JUPITER_ID, MARS_ID, MOON_ID, JUPITER_ID, MARS_ID, VENUS_ID, SATURN_ID, JUPITER_ID,
+                      MERCURY_ID, JUPITER_ID, SATURN_ID]
+
+@unique
+class MAHA_DHASA_DEPTH(IntEnum):
+    MAHA_DHASA_ONLY   = 1   # Maha only (no Antara)
+    ANTARA      = 2   # + Antara (Bhukthi)
+    PRATYANTARA = 3   # + Pratyantara
+    SOOKSHMA    = 4   # + Sookshma
+    PRANA       = 5   # + Prana
+    DEHA        = 6   # + Deha-antara
+DHASA_DURATION_ROUNDING_TO = 2
+
+""" V4.6.5 - Use the below constants to force and reset owners of Sc/Aq for dhasa calculations """ 
+scorpio_owner_for_dhasa_calculations = None
+aquarius_owner_for_dhasa_calculations = None
+use_kp_dictionary_for_lords_calculation = False
+_JULIAN_TRANSITION_DAY = 2299149.5 # (1582,10,4) (0,0,0)
+
+# -------------------------------
+# Aṣṭakavarga Daśā: fixed choices
+# -------------------------------
+
+class ASHTAKAVARGA_DHASA_METHOD:
+    """Available AV-based dasha methods (documented in practitioner literature)."""
+    BAV_PLANET   = "BAV_PLANET"    # Graha dasha; carriers = Sun..Saturn (0..6); weights = planetary BAV totals
+    SAV_SIGN     = "SAV_SIGN"      # Rāśi dasha; carriers = 12 signs (0..11); weights = sign SAV (SAV total=337)
+    PINDA_PLANET = "PINDA_PLANET"  # Graha dasha; carriers = Sun..Saturn; weights = Sodhya-Pinda per planet
+
+class ASHTAKAVARGA_DHASA_START_RULE:
+    """How to choose which carrier appears first (then rotate base order accordingly)."""
+    MAX_STRENGTH        = "MAX_STRENGTH"         # start from highest-weight item
+    LAGNA_SIGN          = "LAGNA_SIGN"           # (SAV_SIGN only) start from Lagna sign
+    JANMA_RASI          = "JANMA_RASI"           # (SAV_SIGN only) start from Moon sign
+    USER_DEFINED_SIGN   = "USER_DEFINED_SIGN"    # (SAV_SIGN only) start from a sign id (0..11)
+    USER_DEFINED_PLANET = "USER_DEFINED_PLANET"  # (planet methods only) start from a planet id (0..6)
+
+class ASHTAKAVARGA_DHASA_SEQUENCE_RULE:
+    """How to build the base order before rotating with the start rule."""
+    STRENGTH_ORDER     = "STRENGTH_ORDER"      # sort carriers by weight high→low
+    ZODIACAL_ORDER          = "ZODIACAL_ORDER"           # (SAV_SIGN only) signs 0..11 (Ar..Pi)
+    FIXED_SUN_SATURN  = "FIXED_SUN_SATURN"   # (planet methods only) planets 0..6 (Sun..Saturn)
+
+# -------------------------------
+# Allowed combinations (policy)
+# -------------------------------
+
+# Start-rule compatibility
+ASHTAKAVARGA_DHASA_ALLOWED_START_RULES = {
+    ASHTAKAVARGA_DHASA_METHOD.BAV_PLANET:   {ASHTAKAVARGA_DHASA_START_RULE.MAX_STRENGTH, 
+                                             ASHTAKAVARGA_DHASA_START_RULE.USER_DEFINED_PLANET},
+    ASHTAKAVARGA_DHASA_METHOD.PINDA_PLANET: {ASHTAKAVARGA_DHASA_START_RULE.MAX_STRENGTH, 
+                                             ASHTAKAVARGA_DHASA_START_RULE.USER_DEFINED_PLANET},
+    ASHTAKAVARGA_DHASA_METHOD.SAV_SIGN:     {ASHTAKAVARGA_DHASA_START_RULE.MAX_STRENGTH, 
+                                             ASHTAKAVARGA_DHASA_START_RULE.LAGNA_SIGN,
+                             ASHTAKAVARGA_DHASA_START_RULE.JANMA_RASI, ASHTAKAVARGA_DHASA_START_RULE.USER_DEFINED_SIGN},
+}
+
+# Sequence-rule compatibility
+ASHTAKAVARGA_DHASA_ALLOWED_SEQUENCE_RULES = {
+    ASHTAKAVARGA_DHASA_METHOD.BAV_PLANET:   {ASHTAKAVARGA_DHASA_SEQUENCE_RULE.STRENGTH_ORDER, 
+                                             ASHTAKAVARGA_DHASA_SEQUENCE_RULE.FIXED_SUN_SATURN},
+    ASHTAKAVARGA_DHASA_METHOD.PINDA_PLANET: {ASHTAKAVARGA_DHASA_SEQUENCE_RULE.STRENGTH_ORDER, 
+                                             ASHTAKAVARGA_DHASA_SEQUENCE_RULE.FIXED_SUN_SATURN},
+    ASHTAKAVARGA_DHASA_METHOD.SAV_SIGN:     {ASHTAKAVARGA_DHASA_SEQUENCE_RULE.STRENGTH_ORDER, 
+                                             ASHTAKAVARGA_DHASA_SEQUENCE_RULE.ZODIACAL_ORDER},
+}
+class AAYU_TYPE:
+    PINDA = 0
+    NISARGA = 1
+    AMSA = 2
+    NONE = None
+class KAALA_TYPE:
+    DAWN = 0
+    DAY = 1
+    DUSK = 2
+    NIGHT = 3
+class RASHMI_TYPE:
+    BPHS_HIGHEST_RAY = 1
+    NATURAL_ORDER = 2
+    VIMSOTTARI_ORDER = 3
+class TARA_TYPE:
+    SANJAY_RATH = 1
+    PARASARA = 2
+class CHARA_TYPE:
+    PVN_RAO = 1
+    KN_RAO = 2
+    IRANGATTI_MALE1 = 3
+    IRANGATTI_MALE2 = 4
+    MIND_SUTRA = 5
+class DRIG_TYPE:
+    PVR_PAPER = 1
+    PVR_BOOK = 2
+class KALACHAKRA_TYPE:
+    PVR_BOOK = 1
+    SANJAY_RATH = 2
+    RAGHAVACHARYA = 3
+class MANDOOKA_TYPE:
+    SANJAY_RATH = 1
+    KN_RAO = 2
+class PADHANADHAMSA_TYPE:
+    IRANGATTI_RANGACHARYA = 1
+    SANJAY_RATH = 2
+    PVR_JHORA = 3
+# ============================================================
+# Dhasa Method defaults
+# ============================================================
+ASHTAKAVARGA_DHASA_METHOD_DEFAULT = ASHTAKAVARGA_DHASA_METHOD.SAV_SIGN
+ASHTAKAVARGA_DHASA_START_RULE_DEFAULT = ASHTAKAVARGA_DHASA_START_RULE.MAX_STRENGTH
+ASHTAKAVARGA_DHASA_SEQUENCE_RULE_DEFAULT = ASHTAKAVARGA_DHASA_SEQUENCE_RULE.STRENGTH_ORDER
+
+AAYU_TYPE_DEFAULT = AAYU_TYPE.NONE
+RASHMI_TYPE_DEFAULT = RASHMI_TYPE.BPHS_HIGHEST_RAY
+TARA_TYPE_DEFAULT = TARA_TYPE.SANJAY_RATH
+CHARA_TYPE_DEFAULT = CHARA_TYPE.KN_RAO
+DRIG_TYPE_DEFAULT = DRIG_TYPE.PVR_PAPER
+KALACHAKRA_TYPE_DEFAULT = KALACHAKRA_TYPE.PVR_BOOK
+MANDOOKA_TYPE_DEFAULT = MANDOOKA_TYPE.KN_RAO
+PADHANADHAMSA_TYPE_DEFAULT = PADHANADHAMSA_TYPE.IRANGATTI_RANGACHARYA
+
+_chart_names = ['raasi_str','hora_str','drekkanam_str','chaturthamsa_str','panchamsa_str',
+              'shashthamsa_str','saptamsam_str','ashtamsa_str','navamsam_str','dhasamsam_str','rudramsa_str',
+              'dhwadamsam_str','shodamsa_str','vimsamsa_str','chaturvimsamsa_str','nakshatramsa_str','thrisamsam_str',
+              'khavedamsa_str','akshavedamsa_str','sashtiamsam_str','nava_navamsa_str','ashtotharamsa_str',
+              'dwadas_dwadasamsa_str','custom_varga_kundali_str','mixed_varga_kundali_str']
+_chart_names_upto_d144 = _chart_names[:-2]
+_bala_names = ['amsa_ruler_str','sphuta_str','drishti_str','bhava_graha_arudha_str','vimsopaka_bala_str','vaiseshikamsa_bala_str',
+               'harsha_pancha_dwadhasa_vargeeya_bala_str','shad_bala_str','bhava_bala_str']
+_graha_dhasa_dict = {'vimsottari':[3,10,3,9,1,0,[],[]],'yoga_vimsottari':[3,10,3,9,1,0,[],[]],'rasi_bhukthi_vimsottari':[3,10,3,12,1,0,[],[]],
+                     'ashtottari':[3,10,3,8,1,0,[],[]],'tithi_ashtottari':[3,10,3,8,1,0,[],[]],'yogini':[4,8,4,8,1,0,[],[]],
+                     'tithi_yogini':[4,8,4,8,1,0,[],[]],'shodasottari':[2,8,4,8,1,0,[],[]],'dwadasottari':[2,8,4,8,1,0,[],[]],
+                     'dwisatpathi':[4,8,4,8,1,0,[],[]],'panchottari':[2,8,4,7,1,0,[],[]],'satabdika':[2,8,4,7,1,0,[],[]],
+                     'chaturaaseeti_sama':[2,8,4,7,1,0,[],[]],'karana_chaturaaseethi_sama':[2,8,4,7,1,0,[],[]],
+                     'shashtisama':[2,8,4,8,1,0,[],[]],'shattrimsa_sama':[6,7,4,8,1,0,[],[]],'naisargika':[2,8,4,6,1,0,[],[]],
+                     'tara':[3,10,3,9,1,0,[],[]],'karaka':[4,7.5,4,8,1,0,[],[]],'buddhi_gathi':[5,7,4,9,1,0,[],[]],
+                     'kaala':[6,8,3,18,1,0,[],[]],'aayu':[2,8,4,8,1,0,[],[]],'saptharishi_nakshathra':[3,8,3,11,1,0,[],[]],
+                     'rashmi':[5,7,4,9,1,0,[],[]],'ashtaka_varga_planet':[5,7,4,9,1,0,[],[]],
+                     'ashtaka_varga_pinda':[5,7,4,9,1,0,[],[]],
+                     }
+dhasa_default_options={'vimsottari':[False,2,1,0,0,0,-1],'yoga_vimsottari':[False,0],
+                             'rasi_bhukthi_vimsottari':[True,False,2,1,0,0,0,-1],'ashtottari':[False,5,1,0,0,0,-1],
+                       'tithi_ashtottari':[0,False,2],'yogini':[False,6,1,0,0,0,-1],'tithi_yogini':[0,False,0],
+                       'shodasottari':[False,7,1,0,0,0,-1],'dwadasottari':[False,26,1,0,0,0,-1],
+                       'dwisatpathi':[False,18,1,0,0,0,-1],'panchottari':[False,16,1,0,0,0,-1],
+                       'satabdika':[False,26,1,0,0,0,-1],'chaturaaseeti_sama':[False,14,1,0,0,0,-1],
+                       'karana_chaturaaseethi_sama':[False,0],'shashtisama':[False,0,1,0,0,0,-1],
+                       'shattrimsa_sama':[False,21,1,0,0,0,-1],'naisargika':[True,False,False],
+                       'tara':[0,0,-1],'karaka':[0,-1],'buddhi_gathi':[0,-1],'kaala':[],'aayu':[3],
+                       'saptharishi_nakshathra':[False,1,0,0,0,-1],'rashmi':[0,-1],'ashtaka_varga_planet':[0,-1],
+                       'ashtaka_varga_pinda':[0,-1],
+                       'narayana':[0,-1],'lagna_kendraadhi':[0,-1],'sudasa':[0,-1],'drig':[0,-1],
+                'niryaana':[0,-1], 'shoola':[0,-1],'karaka_kendraadhi':[0,-1],
+                'chara':[0,-1],'lagnamsaka':[0,-1],'padhanadhamsa':[0,-1],
+                'mandooka':[0,-1],'sthira':[0,-1],'tara_lagna':[0,-1],
+                'brahma':[0,-1],'varnada':[0,-1],'yogardha':[0,-1],
+                'navamsa':[0,-1],'paryaaya':[0,-1],'trikona':[0,-1],
+                'kalachakra':[0,-1],'chakra':[0,-1],
+                'sandhya':[0,-1],'pachaka':[0,-1],
+                'raashiyanka':[0,-1],'ashtaka_varga_sign':[0,-1],
+                'chathurvidha_lagna_utthara':[0,-1],'chathurvidha_kendra_utthara':[0,-1],
+                'chathurvidha_trikona_utthara':[0,-1],'chathurvidha_dasha_utthara':[0,-1],
+                }
+_rasi_dhasa_dict = {'narayana':[4,7,3,12,1,0,[],[]],'lagna_kendraadhi':[4,7,3,12,1,0,[],[]],'sudasa':[4,7,3,12,1,0,[],[]],'drig':[3,8,4,12,1,0,[],[]],
+                'niryaana':[4,7,3,12,1,0,[],[]], 'shoola':[4,7,3,12,1,0,[],[]],'karaka_kendraadhi':[4,7,3,12,1,0,[],[]],
+                'chara':[4,7,3,12,1,0,[],[]],'lagnamsaka':[4,7,3,12,1,0,[],[]],'padhanadhamsa':[4,7,3,12,1,0,[],[]],
+                'mandooka':[4,7,3,12,1,0,[],[]],'sthira':[4,7,3,12,1,0,[],[]],'tara_lagna':[4,7,3,12,1,0,[],[]],
+                'brahma':[4,7,3,12,1,0,[],[]],'varnada':[4,7,3,12,1,0,[],[]],'yogardha':[4,7,3,12,1,0,[],[]],
+                'navamsa':[3,7.5,4,12,1,0,[],[]],'paryaaya':[3,7.5,4,12,1,0,[],[]],'trikona':[3,7.5,4,12,1,0,[],[]],
+                'kalachakra':[3,8,3,9,1,0,[],[]],'chakra':[3,7.5,4,12,1,0,[],[]],
+                'sandhya':[3,7.5,4,12,1,0,[],[]],'pachaka':[3,7.5,4,12,1,0,[],[]],
+                'raashiyanka':[3,7.5,4,12,1,0,[],[]],'ashtaka_varga_sign':[3,7.5,4,12,1,0,[],[]],
+                'chathurvidha_lagna_utthara':[3,7.5,4,12,1,0,[],[]],'chathurvidha_kendra_utthara':[3,7.5,4,12,1,0,[],[]],
+                'chathurvidha_trikona_utthara':[3,7.5,4,12,1,0,[],[]],'chathurvidha_dasha_utthara':[3,7.5,4,12,1,0,[],[]],
+                }
+_annual_dhasa_dict ={'patyayini':[2,7.5,4,8,1,0,[],[]],'varsha_vimsottari':[3,9,3,9,1,0,[],[]],
+                     'varsha_narayana':[5,7.5,4,12,1,0,[],[]],'sudarsana_chakra':[5,7.5,4,12,1,0,[],[]],
+                     'panchasvara':[5,7.5,4,12,1,0,[],[]]}
+#M=Mandi,G=Gulika,B=BhriguBindu,I=Indu Lagna,P=PranaPadaLagna,T=Triphuta,A1-A12=ArudhaLagna,V1-V12=VarnadaLagna
+_everything_considered_for_charts = ['L']+[*range(12)]+["M", "G", "T", "I", "B", "I", "P"]
+sub_planet_dict_1 = {'kaala_str':'kaala_longitude','mrityu_str':'mrityu_longitude','artha_str':'artha_praharaka_longitude',
+                     'yama_ghantaka_str':'yama_ghantaka_longitude',
+                   'gulika_str':'gulika_longitude','maandi_str':'maandi_longitude'}
+sub_planet_list_2 = ['dhuma','vyatipaata','parivesha','indrachaapa','upaketu']
+
+_multi_cycle_dhasas = {'narayana':2,'lagna_kendraadhi':2,'karaka_kendraadhi':2,'paryaaya':2,'yogini':3,'tithi_yogini':3,
+                       'sudasa':2,'drig':2,'niryaana':2, 'lagnamsaka':2,'dwisatpathi':2,'shashtisama':2,'shattrimsa_sama':3,
+                       'buddhi_gathi':2,'rashmi':8,'panchasvara':2,'sudarsana_chakra':9}
+""" 
+    Following dhasa cycles depend on their methods:
+    padhanadhamsa: _dhasa_cycle_count = 1 if _dhasa_method==1 else 2
+"""
+
+planet_dhasas = ['vimsottari','yoga_vimsottari','ashtottari','tithi_ashtottari','yogini','tithi_yogini','shodasottari',
+                 'dwadasottari','dwisatpathi','panchottari','satabdika','chaturaaseeti_sama','karana_chaturaaseethi_sama','shashtisama',
+                 'shattrimsa_sama','tara','buddhi_gathi','kaala','aayu','rashmi','ashtaka_varga_planet',
+                 'ashtaka_varga_pinda','naisargika','patyayini']
+rasi_dhasas = ['narayana','lagna_kendraadhi','sudasa','drig','niryaana','shoola','karaka_kendraadhi','chara','lagnamsaka','padhanadhamsa',
+                'mandooka','sthira','tara_lagna','brahma','varnada','yogardha','navamsa','paryaaya','trikona','kalachakra','chakra','sandhya',
+                'pachaka','raashiyanka','ashtaka_varga_sign','chathurvidha_lagna_utthara','chathurvidha_kendra_utthara','chathurvidha_trikona_utthara',
+                'chathurvidha_dasha_utthara','sudarsana_chakra']
+nakshathra_dhasas = ['saptharishi_nakshathra']
+karaka_dhasas = ['karaka']
+tuple_dhasas = ['karaka','sudarsana_chakra']
+special_dhasas = ['panchasvara']
+supported_dhasas = planet_dhasas+rasi_dhasas+nakshathra_dhasas+karaka_dhasas+special_dhasas
+# Minimal registry of aliases/variants → 1 canonical module
+SPECIAL_DASHA_OPTIONS = {
+    "satabdika":{"module":"sataatbika","domain":"graha"},
+    "chaturaaseeti_sama":{"module":"chathuraaseethi_sama","domain":"graha"},
+    "karana_chaturaaseethi_sama":{"module":"karana_chathuraaseethi_sama","domain":"graha"},
+    "panchasvara":{"module":"panchasvara","domain":""},
+    "patyayini":{"module":"patyayini","domain":"annual"},
+    "sudarsana_chakra":{"module":"sudharsana_chakra","domain":""},
+    "pachaka": {
+        "module": "sandhya",
+        "domain": "raasi",
+        "defaults": {"use_pachaka_variation": True},
+    },
+    "sandhya": {
+        "module": "sandhya",
+        "domain": "raasi",
+        "defaults": {},
+    },
+    "pinda_aayu": {"module":"aayu", "domain":"graha","defaults":{"aayur_type":AAYU_TYPE.PINDA}},
+    "nisarga_aayu": {"module":"aayu", "domain":"graha","defaults":{"aayur_type":AAYU_TYPE.NISARGA}},
+    "amsa_aayu": {"module":"aayu", "domain":"graha","defaults":{"aayur_type":AAYU_TYPE.AMSA}},
+    # Chathurvidha variants (4 methods) — each is a daśā by itself
+    "chathurvidha_lagna_utthara":   {"module": "chathurvidha_utthara", "domain": "raasi", "defaults": {"dhasa_method": 1}},
+    "chathurvidha_kendra_utthara":  {"module": "chathurvidha_utthara", "domain": "raasi", "defaults": {"dhasa_method": 2}},
+    "chathurvidha_trikona_utthara": {"module": "chathurvidha_utthara", "domain": "raasi", "defaults": {"dhasa_method": 3}},
+    "chathurvidha_dasha_utthara":   {"module": "chathurvidha_utthara", "domain": "raasi", "defaults": {"dhasa_method": 4}},
+
+    # Ashtaka-varga with explicit “virtual names” for clarity
+    "ashtaka_varga_planet": {"module": "ashtaka_varga", "defaults": {"dhasa_method": ASHTAKAVARGA_DHASA_METHOD.BAV_PLANET}},
+    "ashtaka_varga_sign":   {"module": "ashtaka_varga", "defaults": {"dhasa_method": ASHTAKAVARGA_DHASA_METHOD.SAV_SIGN}},
+    "ashtaka_varga_pinda":  {"module": "ashtaka_varga", "defaults": {"dhasa_method": ASHTAKAVARGA_DHASA_METHOD.PINDA_PLANET}},
+
+    # The canonical “ashtaka_varga” (no baked-in method; user must pass dhasa_method or your module has a default)
+    "ashtaka_varga": {"module": "ashtaka_varga", "defaults": {}},
+}
+class BHAVA_METHODS(Enum):
+    KN_RAO_JHORA_DEFAULT = 1 #KN Rao method (Parashari - Bhava Chalita - cusp-15,cusp,cusp+15)
+    PARASHARI = 2 #Parashari - (Whole Sign - Houses 0-30, cusps as calculated from Swiss Ephimeris)
+    KP = 3 #KP Method (houses start from cusp and end at cusp)
+    BV_RAMAN = 4 #BV Raman (get 1,4,6,10 cusps, equally divided houses. Sandhi/edges 1/2 of adjacent cusps.
+    NAKSHATHRA_PAADHA = 5 #Equal Houses based on nakshathra padas (9 padhas each)
+    SRIPATHI_PORPHYRIUS = 'O' #Sripathi/Porphyrius - To match Jagannatha Hora,
+    SRIPATHI_ASTRODIENST = 'S' #Sripathi/Astrodienst - to match Sripati padhati - book by  V. Subramanya Sastri
+    EQUAL_CUSP_ASC1_A = 'A' # Equal (cusp 1 is Ascendant)
+    EQUAL_CUSP_ASC1_E = 'E' # Equal (cusp 1 is Ascendant)
+    ALCABITUS = 'B' #Alcabitus
+    CAMPANUS = 'C'  #Campanus
+    AZIMUTHAL = 'H' # azimuthal or horizontal system
+    KOCH = 'K'
+    MORINUS = 'M'
+    PLACIDUS = 'P'
+    PORPHYRIUS_SRIPATHI = 'O' #Sripathi/Porphyrius - To match Jagannatha Hora
+    REGIOMONTANUS = 'R' #Regiomontanus
+    VEHLOW = 'V'  # Vehlow equal (Asc. in middle of house 1)
+    AXIAL_ROTATION = 'X' # axial rotation system
+    WHOLE_SIGN = 'W'   # Whole Sign - (0,15,30),(30,45,60) - Same as Rasi Chart
+    TOPOCENTRIC = 'T'  # Polich/Page (topocentric system)
+indian_house_systems = {1 : 'KN Rao method (Parashari - Bhava Chalita - cusp-15,cusp,cusp+15)',
+         2 : 'Parashari - (Whole Sign - Houses 0-30, cusps as calculated from Swiss Ephimeris)',
+         3 : 'KP Method (houses start from cusp and end at cusp)',
+         4 : 'BV Raman (get 1,4,6,10 cusps, equally divided houses. Sandhi/edges 1/2 of adjacent cusps.',
+         5 : 'Equal Houses based on nakshathra padas (9 padhas each)',
+         'O' : 'Sripathi/Porphyrius - To match Jagannatha Hora',
+         'S' : 'Sripathi/Astrodienst - to match Sripati padhati - book by  V. Subramanya Sastri' 
+}
+include_western_house_systems = True
+western_house_systems = {'A':'Equal (cusp 1 is Ascendant)', 'B':'Alcabitus','C':'Campanus', 
+                         'E':'Equal (cusp 1 is Ascendant)', 
+                         'H':'azimuthal or horizontal system','K':'Koch','M':'Morinus',
+                         'O' : 'Sripathi/Porphyrius - To match Jagannatha Hora',
+                         'P':'Placidus','R':'Regiomontanus', 
+                         'S' : 'Sripathi/Astrodienst - to match Sripati padhati - book by  V. Subramanya Sastri',
+                         'V':'Vehlow equal (Asc. in middle of house 1)', 
+                         'X':'axial rotation system',
+                         'W':'Whole Sign - (0,15,30),(30,45,60) - Same as Rasi Chart',
+                         'T':'Polich/Page (topocentric system)'}
+available_house_systems = lambda : {**indian_house_systems, **western_house_systems} if include_western_house_systems \
+                                else indian_house_systems
+""" Bhaava Madhya Methods: = one of the above keys as the value """
+bhaava_madhya_method = 1 #'KN Rao method (Parashari - Bhava Chalita - cusp-15,cusp,cusp+15)'
+class SANKRANTI_RULE(IntEnum):
+    TAMIL_NADU_SUNSET_RULE = 1
+    BEFORE_GHATIKAS = 2
+    SUNRISE_TO_SUNRISE = 3
+class CALENDAR_TYPE(IntEnum):
+    SOLAR = 0
+    LUNAR_AMANTHA = 1
+    LUNAR_PURNIMANTHA = 2
+    HIJRI_ISLAMIC = 3
+    GREGORIAN = 4
+class LUNAR_MONTH_TYPE(IntEnum):
+    AMANTHA = 0
+    PURNIMANTHA = 1
+class NAVA_THARA(IntEnum):
+    FROM_LAGNA = 0
+    FROM_MOON = 1
+include_islamic_calendar = False
+class SAVANA_YEAR_METHOD(IntEnum):
+    PROSPECTIVE_0_to_360_JHORA = 1
+    MIDPOINT = 0
+    RETROSPECTIVE_360_to_0 = -1
+    DEFAULT = PROSPECTIVE_0_to_360_JHORA
+class TRUE_LUNAR_YEAR_METHOD(IntEnum):
+    TITHI_BOUNDARY = 1
+    TITHI_AT_DOB = 2
+    DEFAULT = TITHI_AT_DOB
+true_lunar_year_method_default = TRUE_LUNAR_YEAR_METHOD.DEFAULT
+get_place_elevation_from_internet = False
+class DHASA_YEAR_DURATION(IntEnum):
+    MEAN_SIDEREAL_YEAR = 1  # 
+    TRUE_SIDEREAL_YEAR = 2
+    MEAN_TROPICAL_YEAR = 3
+    TRUE_TROPICAL_YEAR = 4
+    SAVANA_YEAR = 5
+    MEAN_LUNAR_YEAR = 6
+    TRUE_LUNAR_YEAR = 7
+    GREGORIAN_YEAR = 8
+    JHORA_DEFAULT = TRUE_SIDEREAL_YEAR
+dhasa_year_duration_default = DHASA_YEAR_DURATION.JHORA_DEFAULT
+apply_daylight_savings_correction = True
+## If True every UI tab will expanded when saved as PDF. False only Kundali and last 4 tabs expanded.
+expand_all_tabs_to_save_as_pdf = False
+
+# ============================================================
+# Swiss Ephemeris / astronomy configuration defaults
+# ============================================================
+
+# Planet positions:
+#   True  -> geocentric
+#   False -> topocentric (requires swe.set_topo(lon, lat, alt_m))
+PLANET_POSITIONS_GEOCENTRIC = True
+
+# Position type:
+#   False -> apparent positions
+#   True  -> true positions (FLG_TRUEPOS)
+PLANET_POSITIONS_TRUE = True
+
+# These two are only meaningful when PLANET_POSITIONS_TRUE == False
+PLANET_POSITIONS_USE_ABERRATION = True
+PLANET_POSITIONS_USE_DEFLECTION = True
+
+# Nutation is independent of sidereal/tropical
+PLANET_POSITIONS_USE_NUTATION = True
+
+# Rise / Set defaults
+RISE_SET_USE_REFRACTION = False
+RISE_SET_USE_DISC_CENTER_FOR_RISING = True
+RISE_SET_HINDU_RISING = True
+# ============================================================
+# Optional setters (nice for config binding; direct attr also works)
+# ============================================================
+
+def set_planet_positions_geocentric(value: bool) -> None:
+    global PLANET_POSITIONS_GEOCENTRIC
+    PLANET_POSITIONS_GEOCENTRIC = bool(value)
+
+
+def set_planet_positions_true(value: bool) -> None:
+    global PLANET_POSITIONS_TRUE
+    PLANET_POSITIONS_TRUE = bool(value)
+
+
+def set_planet_positions_use_aberration(value: bool) -> None:
+    global PLANET_POSITIONS_USE_ABERRATION
+    PLANET_POSITIONS_USE_ABERRATION = bool(value)
+
+
+def set_planet_positions_use_deflection(value: bool) -> None:
+    global PLANET_POSITIONS_USE_DEFLECTION
+    PLANET_POSITIONS_USE_DEFLECTION = bool(value)
+
+
+def set_planet_positions_use_nutation(value: bool) -> None:
+    global PLANET_POSITIONS_USE_NUTATION
+    PLANET_POSITIONS_USE_NUTATION = bool(value)
+
+
+def set_rise_set_use_refraction(value: bool) -> None:
+    global RISE_SET_USE_REFRACTION
+    RISE_SET_USE_REFRACTION = bool(value)
+
+stationary_planet_speed_percent = 0.25
+
+vedic_mean_speeds = {
+    SUN_ID:   0.985556,   # 0°59'08"
+    MOON_ID: 13.176667,   # 13°10'36"
+    MERCURY_ID: 1.383333,  # 01° 23' 00''
+    VENUS_ID: 1.200000,    # 01° 12' 00''
+    MARS_ID: 0.524167,     # 00° 31' 25''
+    JUPITER_ID: 0.083056,  # 00° 04' 59''
+    SATURN_ID: 0.033611,    # 00° 02' 01''
+    RAHU_ID: 0.050000,   # -0°03'00"
+    KETU_ID: 0.050000,   # same as Rahu in mean-node mode
+}
+
+planet_info_round_factors = [3,3,4,3,3,6]
+
 if __name__ == "__main__":
+    print('graha',len(_graha_dhasa_dict),len(dhasa_default_options))
+    print('rasi',len(_rasi_dhasa_dict))
+    print('planet',len(planet_dhasas))
+    print('rasi',len(rasi_dhasas))
+    print([x for x in _graha_dhasa_dict.keys() if x not in planet_dhasas])
     pass

@@ -22,38 +22,52 @@ from PyQt6.QtWidgets import QLineEdit, QApplication, QLabel, QHBoxLayout, QVBoxL
                             QComboBox, QDialog, QCheckBox
 from PyQt6.QtCore import Qt
 from jhora import utils, const
-_chart_names = ['raasi_str', 'hora_str', 'drekkanam_str', 'chaturthamsa_str', 'panchamsa_str', 
-    'shashthamsa_str', 'saptamsam_str', 'ashtamsa_str', 'navamsam_str', 'dhasamsam_str', 'rudramsa_str', 
-    'dhwadamsam_str', 'shodamsa_str', 'vimsamsa_str', 'chaturvimsamsa_str', 'nakshatramsa_str', 'thrisamsam_str', 
-    'khavedamsa_str', 'akshavedamsa_str', 'sashtiamsam_str', 
-    'nava_navamsa_str', 'ashtotharamsa_str', 'dwadas_dwadasamsa_str']
-_graha_dhasa_list = ['vimsottari','yoga_vimsottari','rasi_bhukthi_vimsottari','ashtottari','tithi_ashtottari',
-                     'yogini','tithi_yogini','shodasottari','dwadasottari','dwisatpathi','panchottari','satabdika',
-                     'chaturaaseeti_sama','karana_chaturaaseeti_sama','shashtisama','shattrimsa_sama','naisargika',
-                     'tara','karaka','buddhi_gathi','kaala','aayu','saptharishi_nakshathra']
+from jhora.panchanga.drik import Date
+_chart_names = const._chart_names
+""" Below list should match horo_chart_tabs._graha_dhasa_dict and length should match const.graha_dhasa_default_options"""
+#_graha_dhasa_list = const._graha_dhasa_dict.keys()
 _tithi_list = ['janma_tithi_str','dhana_tithi_str','bhrartri_tithi_str','matri_tithi_str','putra_tithi_str',
                'satru_tithi_str','kalatra_tithi_str','mrutyu_tithi_str','bhagya_tithi_str','karma_tithi_str',
                'laabha_tithi_str','vyaya_tithi_str']
-seed_list_dhasas = {0:3,2:3,3:6,5:7,7:8,8:27,9:19,10:17,11:27,12:15,14:1,15:22}
-dhasa_start_planet_dhasas = [0,2,3,5,7,8,9,10,11,12,14,15,22]
-start_from_moon_dhasas = [0,2,3,5,7,8,9,10,11,12,14,15,22]
-tribhagi_dhasas = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,22]
-varga_dhasas = [0,2,3,5,7,8,9,10,11,12,14,15,17,19,22]
-antardhasa_option_list = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,22]
-tithi_dhasas = [4,6]
+# seed_list_dhasas = {dhasa:seed_star}
+seed_list_dhasas = {'vimsottari':3,'rasi_bhukthi_vimsottari':3,'ashtottari':6,'yogini':7,'shodasottari':8,'dwadasottari':27,
+                    'dwisatpathi':19,'panchottari':17,'satabdika':27,'chaturaaseeti_sama':15,'shashtisama':1,'shattrimsa_sama':22}
+dhasa_start_planet_dhasas = ['vimsottari','rasi_bhukthi_vimsottari','ashtottari','yogini','shodasottari','dwadasottari',
+                             'dwisatpathi','panchottari','satabdika','chaturaaseeti_sama','shashtisama','shattrimsa_sama',
+                             'saptharishi_nakshathra']
+start_from_moon_dhasas = ['vimsottari','rasi_bhukthi_vimsottari','ashtottari','yogini','shodasottari','dwadasottari',
+                             'dwisatpathi','panchottari','satabdika','chaturaaseeti_sama','shashtisama','shattrimsa_sama',
+                             'saptharishi_nakshathra']
+tribhagi_dhasas = ['vimsottari','yoga_vimsottari','rasi_bhukthi_vimsottari','ashtottari','tithi_ashtottari','yogini',
+                   'tithi_yogini','shodasottari','dwadasottari','dwisatpathi','panchottari','satabdika','chaturaaseeti_sama',
+                   'karana_chaturaaseethi_sama','shashtisama','shattrimsa_sama','saptharishi_nakshathra']
+varga_dhasas = ['vimsottari','rasi_bhukthi_vimsottari','ashtottari','yogini','shodasottari','dwadasottari','dwisatpathi',
+                'panchottari','satabdika','chaturaaseeti_sama','shashtisama','shattrimsa_sama','tara','karaka','buddhi_gathi',
+                'saptharishi_nakshathra','rashmi','ashtaka_varga_planet','ashtaka_varga_pinda','narayana','lagna_kendraadhi','sudasa','drig',
+                'niryaana', 'shoola','karaka_kendraadhi','chara','lagnamsaka','padhanadhamsa','mandooka','sthira','tara_lagna',
+                'brahma','varnada','yogardha','navamsa','paryaaya','trikona','kalachakra','chakra','sandhya','pachaka',
+                'raashiyanka','ashtaka_varga_sign','chathurvidha_lagna_utthara','chathurvidha_kendra_utthara',
+                'chathurvidha_trikona_utthara','chathurvidha_dasha_utthara']
+antardhasa_option_list = ['vimsottari','yoga_vimsottari','rasi_bhukthi_vimsottari','ashtottari','tithi_ashtottari','yogini',
+                          'tithi_yogini','shodasottari','dwadasottari','dwisatpathi','panchottari','satabdika',
+                          'chaturaaseeti_sama','karana_chaturaaseethi_sama','shashtisama','shattrimsa_sama',
+                          'saptharishi_nakshathra']
+tithi_dhasas = ['tithi_ashtottari','tithi_yogini']
 _varga_option_dict = const.varga_option_dict
 class DhasaBhukthiOptionDialog(QDialog):
     """
         Dhasa Bhukthi Options Dialog
     """
-    def __init__(self, dhasa_index=0, dhasa_option_list=None):
+    def __init__(self, dhasa_name=None, dhasa_option_list=None):
         super().__init__()
-        #utils.set_language(const._DEFAULT_LANGUAGE)
-        self._dhasa_index = dhasa_index
-        self._dhasa_option_list = const.dhasa_default_options[dhasa_index] if dhasa_option_list==None else dhasa_option_list
+        if dhasa_name is None or dhasa_name not in const.dhasa_default_options.keys():
+            raise ValueError ("dhasa_name is a required argument and should be one of const.graha_dhasa_default_options.keys()")
+        self._dhasa_name = dhasa_name.lower()
+        self._dhasa_option_list = const.dhasa_default_options[dhasa_name] if dhasa_option_list==None else dhasa_option_list
+        if len(self._dhasa_option_list) == 0: self._cancel_button_clicked() 
         self.res = utils.resource_strings
-        self._graha_dhasa_dict = [self.res[d+'_str'] for d in _graha_dhasa_list]
-        self._dhasa_name = self._graha_dhasa_dict[self._dhasa_index]
+        #self._graha_dhasa_dict = [self.res[d+'_str'] for d in _graha_dhasa_list]
+        #self._dhasa_name = self._graha_dhasa_dict[self._dhasa_index]
         self._tribhagi_visible = False
         self._aayu_visible = False
         self._seed_star_visible = False
@@ -74,10 +88,10 @@ class DhasaBhukthiOptionDialog(QDialog):
         return QDialog.closeEvent(self, *args, **kwargs)
     def create_ui(self):
         v_layout = QVBoxLayout()
-        title = self._dhasa_name+' '+self.res['dhasa_str']+' '+self.res['options_str']
+        title = self.res[self._dhasa_name+"_str"]+' '+self.res['dhasa_str']+' '+self.res['options_str']
         self.setWindowTitle(title)
         _option_counter = 0
-        if self._dhasa_index==21: #'aayu':
+        if self._dhasa_name=='aayu': #'aayu':
             self._aayu_visible = True
             h_layout1 = QHBoxLayout()
             _label = QLabel(self.res['aayu_dhasa_option_str'])
@@ -89,7 +103,7 @@ class DhasaBhukthiOptionDialog(QDialog):
             h_layout1.addWidget(self._dhasa_type_combo)
             v_layout.addLayout(h_layout1)
             self.setLayout(v_layout)
-        elif self._dhasa_index==16: # Naisargika
+        elif self._dhasa_name=='naisargika': # Naisargika
             self._naisargika_option_visible = True
             v_layout1 = QVBoxLayout()
             _label = QLabel(self.res['nisargika_dhasa_option1_str'])
@@ -105,7 +119,7 @@ class DhasaBhukthiOptionDialog(QDialog):
             v_layout1.addWidget(self._naisargika_option3)
             v_layout.addLayout(v_layout1)
             self.setLayout(v_layout)
-        elif self._dhasa_index==17: # Tara
+        elif self._dhasa_name=='tara': # Tara
             self._tara_method_visible = True
             _label = QLabel(self.res['tara_dhasa_option1_str'])
             v_layout.addWidget(_label)
@@ -115,14 +129,14 @@ class DhasaBhukthiOptionDialog(QDialog):
             self._tara_method_combo.setCurrentIndex(self._dhasa_option_list[_option_counter]); _option_counter+=1
             v_layout.addWidget(self._tara_method_combo)
             self.setLayout(v_layout)
-        elif self._dhasa_index==2: # Raasi Bhukthi Variation
+        elif self._dhasa_name=='rasi_bhukthi_vimsottari': # Raasi Bhukthi Variation
             self._rbv_variation_visible = True
             self._rbv_check = QCheckBox(self.res['rbv_dhasa_option_str'])
             self._rbv_check.setChecked(self._dhasa_option_list[_option_counter]); _option_counter+=1
             self._rbv_check.setEnabled(False)
             v_layout.addWidget(self._rbv_check)
             self.setLayout(v_layout)
-        if self._dhasa_index in tithi_dhasas:
+        if self._dhasa_name in tithi_dhasas:
             self._tithi_list_visible = True
             h_layout1 = QHBoxLayout()
             _label = QLabel(self.res['tithi_index_option_str'])
@@ -132,7 +146,7 @@ class DhasaBhukthiOptionDialog(QDialog):
             self._tithi_combo.setCurrentIndex(self._dhasa_option_list[_option_counter]); _option_counter+=1
             h_layout1.addWidget(self._tithi_combo)
             v_layout.addLayout(h_layout1)
-        if self._dhasa_index in tribhagi_dhasas: # Tribhagi
+        if self._dhasa_name in tribhagi_dhasas: # Tribhagi
             self._tribhagi_visible = True
             h_layout1 = QHBoxLayout()
             _label = QLabel(self.res['tribhagi_option_str'])
@@ -141,7 +155,7 @@ class DhasaBhukthiOptionDialog(QDialog):
             self._tribhagi_check.setChecked(self._dhasa_option_list[_option_counter]); _option_counter+=1
             h_layout1.addWidget(self._tribhagi_check)
             v_layout.addLayout(h_layout1)
-        if self._dhasa_index in seed_list_dhasas.keys(): # Seed Star
+        if self._dhasa_name in seed_list_dhasas.keys(): # Seed Star
             self._seed_star_visible = True
             h_layout1 = QHBoxLayout()
             _label = QLabel(self.res['seed_star_option_str'])
@@ -152,7 +166,7 @@ class DhasaBhukthiOptionDialog(QDialog):
             self._seed_star_combo.setCurrentIndex(self._dhasa_option_list[_option_counter]); _option_counter+=1
             h_layout1.addWidget(self._seed_star_combo)
             v_layout.addLayout(h_layout1)
-        if self._dhasa_index in dhasa_start_planet_dhasas: # dhasa start
+        if self._dhasa_name in dhasa_start_planet_dhasas: # dhasa start
             self._dhasa_start_visible = True
             h_layout1 = QHBoxLayout()
             _label = QLabel(self.res['dhasa_start_option_str'])
@@ -166,7 +180,7 @@ class DhasaBhukthiOptionDialog(QDialog):
             self._dhasa_start_combo.setCurrentIndex(self._dhasa_option_list[_option_counter]); _option_counter+=1
             h_layout1.addWidget(self._dhasa_start_combo)
             v_layout.addLayout(h_layout1)
-        if self._dhasa_index in start_from_moon_dhasas: # start from moon
+        if self._dhasa_name in start_from_moon_dhasas: # start from moon
             self._moon_start_visible = True
             h_layout1 = QHBoxLayout()
             _label = QLabel(self.res['moon_start_option1_str'])
@@ -178,7 +192,7 @@ class DhasaBhukthiOptionDialog(QDialog):
             self._moon_start_combo.setCurrentIndex(self._dhasa_option_list[_option_counter]); _option_counter+=1
             h_layout1.addWidget(self._moon_start_combo)
             v_layout.addLayout(h_layout1)
-        if self._dhasa_index in antardhasa_option_list: # Antardhasa Option
+        if self._dhasa_name in antardhasa_option_list: # Antardhasa Option
             self._ant_option_visible = True
             h_layout1 = QHBoxLayout()
             _label = QLabel(self.res['ant_dhasa_option_str'])
@@ -191,17 +205,17 @@ class DhasaBhukthiOptionDialog(QDialog):
             self._ant_option_combo.setCurrentIndex(self._dhasa_option_list[_option_counter]); _option_counter+=1
             h_layout1.addWidget(self._ant_option_combo)
             v_layout.addLayout(h_layout1)
-        if self._dhasa_index in varga_dhasas: # Varga Chart 
+        if self._dhasa_name in varga_dhasas: # Varga Chart 
             self._varga_chart_visible = True
             h_layout1 = QHBoxLayout()
             _label = QLabel(self.res['varga_option_str'])
             h_layout1.addWidget(_label)
-            self._varga_chart_combo = QComboBox()
+            self._star_chart_combo = QComboBox()
             varga_chart_list = [self.res[c] for c in _chart_names]
-            self._varga_chart_combo.addItems(varga_chart_list)
-            self._varga_chart_combo.setCurrentIndex(self._dhasa_option_list[_option_counter]); _option_counter+=1
-            self._varga_chart_combo.currentIndexChanged.connect(self._varga_chart_selection_changed)
-            h_layout1.addWidget(self._varga_chart_combo)
+            self._star_chart_combo.addItems(varga_chart_list)
+            self._star_chart_combo.setCurrentIndex(self._dhasa_option_list[_option_counter]); _option_counter+=1
+            self._star_chart_combo.currentIndexChanged.connect(self._varga_chart_selection_changed)
+            h_layout1.addWidget(self._star_chart_combo)
             v_layout.addLayout(h_layout1)
             if self._dhasa_option_list[_option_counter] != -1:
                 h_layout1 = QHBoxLayout()
@@ -210,7 +224,7 @@ class DhasaBhukthiOptionDialog(QDialog):
                 h_layout1.addWidget(self._varga_chart_method_label)
                 self._varga_chart_method_combo = QComboBox()
                 self._varga_chart_method_combo.setVisible(True)
-                _varga_chart_index = self._varga_chart_combo.currentIndex()
+                _varga_chart_index = self._star_chart_combo.currentIndex()
                 _varga_factor = const.division_chart_factors[_varga_chart_index]
                 _method_count = _varga_option_dict[_varga_factor][0]
                 for m in range(_method_count):
@@ -243,7 +257,7 @@ class DhasaBhukthiOptionDialog(QDialog):
         v_layout.addLayout(h_layout)
         self.setLayout(v_layout)
     def _varga_chart_selection_changed(self):
-        _varga_chart_index = self._varga_chart_combo.currentIndex()
+        _varga_chart_index = self._star_chart_combo.currentIndex()
         _varga_factor = const.division_chart_factors[_varga_chart_index]
         if _varga_factor ==1:
             self._varga_chart_method_combo.setVisible(False)
@@ -311,7 +325,7 @@ class DhasaBhukthiOptionDialog(QDialog):
             opt = 'antardhasa_option='+str(ind+1)
             option_str.append(opt); option_list.append(ind)
         if self._varga_chart_visible:
-            ind = self._varga_chart_combo.currentIndex()
+            ind = self._star_chart_combo.currentIndex()
             dcf = const.division_chart_factors[ind]
             opt = 'divisional_chart_factor='+str(dcf)
             option_str.append(opt); option_list.append(ind)
@@ -332,6 +346,195 @@ class DhasaBhukthiOptionDialog(QDialog):
         self._accept_clicked = False
         self._option_string = ''
         self.reject()
+        return
+
+class RunningDhasaDialog(QDialog):
+    def __init__(self,dhasa_name,dhasa_type=None, db=None, dhasa_cycle_count=1, parent=None,
+                 jd_at_dob=None,place=None,options_dict={}):
+        super().__init__(parent)
+        if dhasa_name is not None and dhasa_type is None:
+            dhasa_type = (0 if dhasa_name in const._graha_dhasa_dict.keys()
+                            else (1 if dhasa_name in const._rasi_dhasa_dict.keys() else 2) 
+                           )
+        self.dhasa_type = dhasa_type
+        self.dhasa_name = dhasa_name
+        self.jd_at_dob = jd_at_dob; self.place = place
+        self.db = db
+        self.options_dict = options_dict
+        self.dhasa_cycle_count = dhasa_cycle_count
+        self.resources = utils.resource_strings
+
+        self.setWindowTitle(self.resources['show_running_dhasa_str'])
+        #self.setMinimumWidth(600)
+
+        v_layout = QVBoxLayout(self)
+
+        # -------------------------------------------------------
+        # Row for Date and Time Input
+        # -------------------------------------------------------
+        datetime_row = QHBoxLayout()
+
+        # Default values (current system time)
+        from datetime import datetime
+        now = datetime.now()
+        y, m, d = now.year, now.month, now.day
+        hh, mm, ss = now.hour, now.minute, now.second
+
+        self.date_edit = QLineEdit(f"{y},{m},{d}")
+        self.time_edit = QLineEdit(f"{hh}:{mm}:{ss}")
+
+        self.date_edit.setToolTip("YYYY,MM,DD")
+        self.time_edit.setToolTip("HH:MM:SS")
+
+        datetime_row.addWidget(QLabel(self.resources['current_date_str']))
+        datetime_row.addWidget(self.date_edit)
+
+        datetime_row.addWidget(QLabel(self.resources['time_of_birth_str']))
+        datetime_row.addWidget(self.time_edit)
+
+        v_layout.addLayout(datetime_row)
+
+        # -------------------------------------------------------
+        # Results Label (Multi-line output)
+        # -------------------------------------------------------
+        self.results_area = QLabel()
+        #self.results_area.setReadOnly(True)
+        #self.results_area.setMinimumHeight(250)
+        v_layout.addWidget(self.results_area)
+
+        # -------------------------------------------------------
+        # Buttons Row
+        # -------------------------------------------------------
+        button_row = QHBoxLayout()
+
+        compute_btn = QPushButton(self.resources['compute_str'])
+        compute_btn.clicked.connect(self.compute_results)
+        button_row.addWidget(compute_btn)
+
+        cancel_btn = QPushButton(self.resources['cancel_str'])
+        cancel_btn.clicked.connect(self.reject)
+        button_row.addWidget(cancel_btn)
+
+        v_layout.addLayout(button_row)
+
+    # ------------------------------------------------------------------
+    # COMPUTE RESULTS BASED ON USER INPUT
+    # ------------------------------------------------------------------
+    def compute_results(self):
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            # ------------------ Parse Date ---------------------
+            y, m, d = map(int, self.date_edit.text().split(','))
+
+            # ------------------ Parse Time ---------------------
+            hh, mm, ss = map(int, self.time_edit.text().split(':'))
+
+        except Exception:
+            self.results_area.setText("<b>Invalid date/time format</b>")
+            return
+
+        # Convert to JD
+        current_jd = utils.julian_day_number(
+            Date(y, m, d),
+            (hh, mm, ss)
+        )
+        if self.db is None:
+            module, defaults = utils._get_import_dhasa_module(self.dhasa_name)
+            # 2) Locate callable
+            func = getattr(module, "get_running_dhasa_for_given_date", None)
+            if not callable(func):
+                raise AttributeError(f"{module.__name__}.get_running_dhasa_for_given_date not found/callable")
+            # 3) Build opts (defaults ⊕ user), user wins
+            import ast
+            def _val(x):
+                x = x.strip()
+                if x.lower() in ("true", "false", "none"):
+                    return {"true": True, "false": False, "none": None}[x.lower()]
+                try:
+                    return ast.literal_eval(x)  # quoted strings, numbers, lists, etc.
+                except Exception:
+                    return x                    # unquoted token becomes a plain str
+            opts = ({k.strip(): _val(v)
+                     for k, v in (pair.split("=", 1) for pair in self.options_dict.split(",") if "=" in pair)}
+                    if self.options_dict else {})
+            opts = {**defaults, **opts}  # merge, user overrides
+            # 4) Call
+            rd = func(current_jd, self.jd_at_dob, self.place, **opts)
+            """
+            for row in rd:
+                lords,ds,de = row
+                print([utils.RAASI_LIST[lord] for lord in lords],ds,de)
+            """
+        else:
+            #print(self.dhasa_name,'utils.get_running_dhasa_at_all_levels_for_given_date')
+            rd = utils.get_running_dhasa_at_all_levels_for_given_date(
+                current_jd,
+                self.db,
+                const.MAHA_DHASA_DEPTH.DEHA,
+                extract_running_period_for_all_levels=True,
+                dhasa_cycle_count=self.dhasa_cycle_count
+            )
+        if rd is None:
+            html = "<html><b>"+f"{self.dhasa_name} is not supported.</b></html>"
+            self.results_area.setText(html)
+            return
+        _dhasa_type = (self.resources['graha_str'] if self.dhasa_type==0 else 
+                       (self.resources['raasi_str'] if self.dhasa_type==1 else self.resources['annual_str']) ) 
+        html = "<html><b>"+f"{self.resources[self.dhasa_name+'_str']} {_dhasa_type} {self.resources['dhasa_str']}"+":<br>"
+        html += "<table border=1 cellspacing=0 cellpadding=4>"
+        html += (
+            f"<tr>"
+            f"<th>{self.resources['dhasa_str']}</th>"
+            f"<th>{self.resources['lord_str']}</th>"
+            f"<th>{self.resources['starts_at_str']}</th>"
+            f"<th>{self.resources['ends_at_str']}</th>"
+            f"</tr>"
+        )
+
+        dli_lords = ['maha_str','antara_str','prathyanthara_str','sookshma_str','praana_str','deha_str']
+
+        for dli, row in enumerate(rd):
+            lord = row[0][dli]
+            #if isinstance(lord, tuple):
+            #    print('karaka lords',lord)
+            #    lord = lord[1]
+
+            start = row[1]
+            end = row[2]
+            if self.dhasa_name in const.nakshathra_dhasas:
+                lord_str = utils.NAKSHATRA_LIST[lord]
+            elif self.dhasa_name in const.special_dhasas:
+                lord_str = self.resources[lord + "_str"]
+            elif self.dhasa_type in [0,2] and self.dhasa_name in const.planet_dhasas:
+                lord_str = utils.resource_strings['ascendant_str'] if lord==const._ascendant_symbol else utils.PLANET_NAMES[lord]
+            elif self.dhasa_name in const.tuple_dhasas:
+                if self.dhasa_name.lower() == 'karaka':
+                    lord_str = utils.PLANET_NAMES[lord[1]]+' ('+self.resources[lord[0]+'_str']+')'
+                elif self.dhasa_name.lower() == 'sudarsana_chakra':
+                    lord_str = '/'.join([utils.RAASI_LIST[l] for l in lord ])
+            elif self.dhasa_type==1 and self.dhasa_name in const.rasi_dhasas:
+                lord_str = utils.RAASI_LIST[lord]
+            else:
+                lord_str = "?"
+
+            # Format start/end
+            s = f"{start[0]:04}-{start[1]:02}-{start[2]:02} {utils.to_dms(start[-1])}"
+            e = f"{end[0]:04}-{end[1]:02}-{end[2]:02} {utils.to_dms(end[-1])}"
+
+            html += (
+                f"<tr>"
+                f"<td>{self.resources[dli_lords[dli]]}</td>"
+                f"<td>{lord_str}</td>"
+                f"<td>{s}</td>"
+                f"<td>{e}</td>"
+                f"</tr>"
+            )
+
+        html += "</table></b></html>"
+        QApplication.restoreOverrideCursor()
+        self.results_area.setText(html)
+        self.adjustSize()
+        
 if __name__ == "__main__":
     import sys
     utils.set_language('ta')
@@ -340,7 +543,36 @@ if __name__ == "__main__":
         sys.__excepthook__(cls, exception, traceback)
     sys.excepthook = except_hook
     App = QApplication(sys.argv)
-    chart = DhasaBhukthiOptionDialog(2,[True,False,2,13,0,0,0,-1])
+    #"""
+    from jhora.panchanga.drik import Date,Place
+    dob = Date(1996,12,7); tob = (10,34,0)
+    place = Place('Chennai,IN', 13.0389, 80.2619, +5.5)    
+    jd_at_dob  = utils.julian_day_number(dob, tob)
+    from datetime import datetime
+    current_date_str,current_time_str = datetime.now().strftime('%Y,%m,%d;%H:%M:%S').split(';')
+    y,m,d = map(int,current_date_str.split(','))
+    hh,mm,ss = map(int,current_time_str.split(':')); fh = hh+mm/60+ss/3600
+    print(utils.date_time_tuple_to_date_time_string(y, m, d, fh))
+    current_jd = utils.julian_day_number(Date(y,m,d),(hh,mm,ss))
+    _dhasa_name = 'karaka'
+    import random
+    _dhasa_name = random.choice(const.supported_dhasas)
+    opts = ''#'divisional_chart_factor=9,chart_method=3'
+    dlg = RunningDhasaDialog(dhasa_name=_dhasa_name,jd_at_dob=jd_at_dob,place=place,options_dict=opts)
+    dlg.show()
+    sys.exit(App.exec())
+    exit()
+    #"""
+    """
+    print('total graha dhasas',len(const.dhasa_default_options))
+    import random
+    _dhasa_name = random.choice(list(const.dhasa_default_options))
+    _dhasa_name = 'narayana'
+    print('Selected Dhasa',utils.resource_strings[_dhasa_name+"_str"])
+    _graha_dhasa_options = const.dhasa_default_options[_dhasa_name]
+    print(_graha_dhasa_options)
+    chart = DhasaBhukthiOptionDialog(dhasa_name=_dhasa_name,dhasa_option_list=_graha_dhasa_options)
+    #chart = DhasaBhukthiOptionDialog(2,[True,False,2,13,0,0,0,-1])
     chart.show()
     sys.exit(App.exec())
-
+    """

@@ -1,0 +1,705 @@
+{
+  "language": {
+    "label": "Language",
+    "type": "choice",
+    "default": "en",
+    "tab": "User",
+    "section": "general",
+    "order": 10,
+    "visible": true,
+    "choices": [
+      ["en", "English"],
+      ["ta", "Tamil"],
+      ["te", "Telugu"],
+      ["hi", "Hindi"],
+      ["ka", "Kannada"],
+      ["ml", "Malayalam"]
+    ],
+    "const_name": "_DEFAULT_LANGUAGE",
+    "adapter": "language_code"
+  },
+  "include_uranus_to_pluto": {
+    "label": "Include Uranus / Neptune / Pluto",
+    "type": "bool",
+    "default": false,
+    "tab": "User",
+    "section": "general",
+    "order": 20,
+    "visible": true,
+    "const_name": "_INCLUDE_URANUS_TO_PLUTO"
+  },
+  "include_islamic_calendar": {
+    "label": "Include Islamic Calendar",
+    "type": "bool",
+    "default": false,
+    "tab": "User",
+    "section": "general",
+    "order": 30,
+    "visible": true,
+    "const_name": "include_islamic_calendar"
+  },
+  "expand_all_tabs_to_save_as_pdf": {
+    "label": "Expand all tabs while saving UI as PDF",
+    "type": "bool",
+    "default": false,
+    "tab": "User",
+    "section": "general",
+    "order": 30,
+    "visible": true,
+    "const_name": "expand_all_tabs_to_save_as_pdf"
+  },
+  "apply_daylight_savings_correction": {
+    "label": "Apply Daylight Savings Correction",
+    "type": "bool",
+    "default": true,
+    "tab": "User",
+    "section": "calculation",
+    "order": 75,
+    "visible": true,
+    "const_name": "apply_daylight_savings_correction"
+  },
+  "database_engine": {
+    "label": "Place Database Engine",
+    "type": "choice",
+    "default": 3,
+    "tab": "User",
+    "section": "location",
+    "order": 10,
+    "visible": true,
+    "choices": [
+      [1, "CSV (Population > 5000)"],
+      [2, "PICKLE (Population > 5000)"],
+      [3, "SQLITE (Population > 5000)"],
+      [4, "CSV (Population > 5000, India >= 0)"],
+      [5, "PICKLE (Population > 5000, India >= 0)"],
+      [6, "SQLITE (Population > 5000, India >= 0)"],
+      [7, "CSV (Population > 500)"],
+      [8, "PICKLE (Population > 500)"],
+      [9, "SQLITE (Population > 500)"],
+      [10, "CSV (Population > 500, India >= 0)"],
+      [11, "PICKLE (Population > 500, India >= 0)"],
+      [12, "SQLITE (Population > 500, India >= 0)"],
+      [0, "NONE"],
+      [13, "CSV_1K"],
+      [14, "PICKLE_1K"],
+      [15, "SQLITE_1K"],
+      [16, "CSV_1K_IN"],
+      [17, "PICKLE_1K_IN"],
+      [18, "SQLITE_1K_IN"],
+      [19, "CSV_10K"],
+      [20, "PICKLE_10K"],
+      [21, "SQLITE_10K"],
+      [22, "CSV_10K_IN"],
+      [23, "PICKLE_10K_IN"],
+      [24, "SQLITE_10K_IN"]
+    ],
+    "setter": "set_place_database_engine"
+  },
+  "default_ayanamsa_mode": {
+    "label": "Default Ayanamsa Mode",
+    "type": "choice",
+    "default": "TRUE_PUSHYA",
+    "tab": "User",
+    "section": "calculation",
+    "order": 10,
+    "visible": true,
+    "choices": [
+      ["FAGAN", "FAGAN"],
+      ["KP", "KP"],
+      ["LAHIRI", "LAHIRI"],
+      ["RAMAN", "RAMAN"],
+      ["USHASHASHI", "USHASHASHI"],
+      ["YUKTESHWAR", "YUKTESHWAR"],
+      ["SURYASIDDHANTA", "SURYASIDDHANTA"],
+      ["SURYASIDDHANTA_MSUN", "SURYASIDDHANTA_MSUN"],
+      ["ARYABHATA", "ARYABHATA"],
+      ["ARYABHATA_MSUN", "ARYABHATA_MSUN"],
+      ["SS_CITRA", "SS_CITRA"],
+      ["TRUE_CITRA", "TRUE_CITRA"],
+      ["TRUE_REVATI", "TRUE_REVATI"],
+      ["SS_REVATI", "SS_REVATI"],
+      ["SENTHIL", "SENTHIL"],
+      ["TRUE_LAHIRI", "TRUE_LAHIRI"],
+      ["TRUE_PUSHYA", "TRUE_PUSHYA"],
+      ["TRUE_MULA", "TRUE_MULA"],
+      ["KP-SENTHIL", "KP-SENTHIL"],
+      ["SIDM_USER", "SIDM_USER"],
+      ["SUNDAR_SS", "SUNDAR_SS"]
+    ],
+    "const_name": "_DEFAULT_AYANAMSA_MODE",
+    "adapter": "ayanamsa_name"
+  },
+  "dhasa_year_duration_default": {
+    "label": "Dhasa Year Duration",
+    "type": "choice",
+    "default": "TRUE_SIDEREAL_YEAR",
+    "tab": "User",
+    "section": "calculation",
+    "order": 20,
+    "visible": true,
+    "choices": [
+      ["TRUE_SIDEREAL_YEAR", "TRUE_SIDEREAL_YEAR"],
+      ["MEAN_SIDEREAL_YEAR", "MEAN_SIDEREAL_YEAR"],
+      ["MEAN_TROPICAL_YEAR", "MEAN_TROPICAL_YEAR"],
+      ["TRUE_TROPICAL_YEAR", "TRUE_TROPICAL_YEAR"],
+      ["SAVANA_YEAR", "SAVANA_YEAR"],
+      ["MEAN_LUNAR_YEAR", "MEAN_LUNAR_YEAR"],
+      ["TRUE_LUNAR_YEAR", "TRUE_LUNAR_YEAR"],
+      ["GREGORIAN_YEAR", "GREGORIAN_YEAR"]
+    ],
+    "const_name": "dhasa_year_duration_default",
+    "enum_class": "DHASA_YEAR_DURATION",
+    "exclude": ["JHORA_DEFAULT", "DEFAULT"]
+  },
+  "savana_year_method_default": {
+    "label": "Savana Year Method",
+    "type": "choice",
+    "default": "PROSPECTIVE_0_to_360_JHORA",
+    "tab": "User",
+    "section": "calculation",
+    "order": 30,
+    "visible": true,
+    "choices": [
+      ["PROSPECTIVE_0_to_360_JHORA", "PROSPECTIVE_0_to_360_JHORA"],
+      ["MIDPOINT", "MIDPOINT"],
+      ["RETROSPECTIVE_360_to_0", "RETROSPECTIVE_360_to_0"]
+    ],
+    "const_name": "savana_year_method_default",
+    "enum_class": "SAVANA_YEAR_METHOD",
+    "exclude": ["DEFAULT"]
+  },
+  "true_lunar_year_method_default": {
+    "label": "True Lunar Year Method",
+    "type": "choice",
+    "default": "TITHI_AT_DOB",
+    "tab": "User",
+    "section": "calculation",
+    "order": 40,
+    "visible": true,
+    "choices": [
+      ["TITHI_BOUNDARY", "TITHI_BOUNDARY"],
+      ["TITHI_AT_DOB", "TITHI_AT_DOB"]
+    ],
+    "const_name": "true_lunar_year_method_default",
+    "enum_class": "TRUE_LUNAR_YEAR_METHOD",
+    "exclude": ["DEFAULT"]
+  },
+  "bhaava_madhya_method": {
+    "label": "Bhava Madhya Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "User",
+    "section": "calculation",
+    "order": 50,
+    "visible": true,
+    "choices": [
+      [1, "KN Rao method (Parashari - Bhava Chalita - cusp-15,cusp,cusp+15)"],
+      [2, "Parashari - (Whole Sign - Houses 0-30, cusps as calculated from Swiss Ephimeris)"],
+      [3, "KP Method (houses start from cusp and end at cusp)"],
+      [4, "BV Raman (get 1,4,6,10 cusps, equally divided houses. Sandhi/edges 1/2 of adjacent cusps."],
+      [5, "Equal Houses based on nakshathra padas (9 padhas each)"],
+      ["O", "Sripathi/Porphyrius - To match Jagannatha Hora"],
+      ["S", "Sripathi/Astrodienst - to match Sripati padhati - book by  V. Subramanya Sastri"],
+      ["A", "Equal (cusp 1 is Ascendant)"],
+      ["B", "Alcabitus"],
+      ["C", "Campanus"],
+      ["E", "Equal (cusp 1 is Ascendant)"],
+      ["H", "azimuthal or horizontal system"],
+      ["K", "Koch"],
+      ["M", "Morinus"],
+      ["P", "Placidus"],
+      ["R", "Regiomontanus"],
+      ["V", "Vehlow equal (Asc. in middle of house 1)"],
+      ["X", "axial rotation system"],
+      ["W", "Whole Sign - (0,15,30),(30,45,60) - Same as Rasi Chart"],
+      ["T", "Polich/Page (topocentric system)"]
+    ],
+    "const_name": "bhaava_madhya_method",
+    "adapter": "house_method_key"
+  },
+  "include_special_and_arudha_lagna_in_charts": {
+    "label": "Include special & arudha lagna in charts",
+    "type": "bool",
+    "default": false,
+    "tab": "User",
+    "section": "charts",
+    "order": 10,
+    "visible": true,
+    "const_name": "include_special_and_arudha_lagna_in_charts"
+  },
+  "include_maandhi_in_charts": {
+    "label": "Include Maandhi in charts",
+    "type": "bool",
+    "default": true,
+    "tab": "User",
+    "section": "charts",
+    "order": 20,
+    "visible": true,
+    "const_name": "include_maandhi_in_charts"
+  },
+  "use_saravali_formula_for_uccha_bala": {
+    "label": "Use Saravali formula for Uccha Bala",
+    "type": "bool",
+    "default": true,
+    "tab": "Advanced",
+    "section": "calculation_variants",
+    "order": 10,
+    "visible": true,
+    "const_name": "use_saravali_formula_for_uccha_bala"
+  },
+  "hora_chart_by_pvr_method": {
+    "label": "Hora chart by PVR method",
+    "type": "bool",
+    "default": true,
+    "tab": "Advanced",
+    "section": "calculation_variants",
+    "order": 20,
+    "visible": true,
+    "const_name": "hora_chart_by_pvr_method"
+  },
+  "ashtottari_bhukthi_starts_from_dhasa_lord": {
+    "label": "Ashtottari Bhukthi starts from Dhasa lord",
+    "type": "bool",
+    "default": true,
+    "tab": "Advanced",
+    "section": "calculation_variants",
+    "order": 30,
+    "visible": true,
+    "const_name": "ashtottari_bhukthi_starts_from_dhasa_lord"
+  },
+  "force_kali_start_year_for_years_before_kali_year_4009": {
+    "label": "Force Kali start year before Kali year 4009",
+    "type": "bool",
+    "default": true,
+    "tab": "Advanced",
+    "section": "tradition_overrides",
+    "order": 10,
+    "visible": true,
+    "const_name": "force_kali_start_year_for_years_before_kali_year_4009"
+  },
+  "kali_start_year": {
+    "label": "Kali start year",
+    "type": "choice",
+    "default": 13,
+    "tab": "Advanced",
+    "section": "tradition_overrides",
+    "order": 20,
+    "visible": true,
+    "choices": [
+      [1, "1"],
+      [13, "13"]
+    ],
+    "const_name": "kali_start_year"
+  },
+  "ritu_per_solar_tamil_month": {
+    "label": "Ritu per solar Tamil month",
+    "type": "bool",
+    "default": true,
+    "tab": "Advanced",
+    "section": "tradition_overrides",
+    "order": 30,
+    "visible": true,
+    "const_name": "ritu_per_solar_tamil_month"
+  },
+  "use_aharghana_for_vaara_calcuation": {
+    "label": "Use aharghana for vaara calculation",
+    "type": "bool",
+    "default": false,
+    "tab": "Advanced",
+    "section": "tradition_overrides",
+    "order": 40,
+    "visible": true,
+    "const_name": "use_aharghana_for_vaara_calcuation"
+  },
+  "scorpio_owner_for_dhasa_calculations": {
+    "label": "Scorpio owner for dhasa calculations",
+    "type": "string",
+    "default": "",
+    "tab": "Advanced",
+    "section": "tradition_overrides",
+    "order": 50,
+    "visible": false,
+    "nullable": true,
+    "const_name": "scorpio_owner_for_dhasa_calculations",
+    "adapter": "optional_string"
+  },
+  "aquarius_owner_for_dhasa_calculations": {
+    "label": "Aquarius owner for dhasa calculations",
+    "type": "string",
+    "default": "",
+    "tab": "Advanced",
+    "section": "tradition_overrides",
+    "order": 60,
+    "visible": false,
+    "nullable": true,
+    "const_name": "aquarius_owner_for_dhasa_calculations",
+    "adapter": "optional_string"
+  },
+  "use_kp_dictionary_for_lords_calculation": {
+    "label": "Use KP dictionary for lords calculation",
+    "type": "bool",
+    "default": false,
+    "tab": "Advanced",
+    "section": "tradition_overrides",
+    "order": 70,
+    "visible": true,
+    "const_name": "use_kp_dictionary_for_lords_calculation"
+  },
+  "planet_position_reference_frame": {
+    "label": "Planet Position Reference Frame",
+    "type": "choice",
+    "default": true,
+    "tab": "Planet Calculation",
+    "section": "planet_positions",
+    "order": 10,
+    "visible": true,
+    "description": "Geocentric uses Earth-center positions. Topocentric uses observer-based positions and requires observer longitude, latitude, and elevation.",
+    "choices": [
+      [true, "Geocentric"],
+      [false, "Topocentric"]
+    ],
+    "const_name": "PLANET_POSITIONS_GEOCENTRIC"
+  },
+  "planet_position_type": {
+    "label": "Planet Position Type",
+    "type": "choice",
+    "default": true,
+    "tab": "Planet Calculation",
+    "section": "planet_positions",
+    "order": 20,
+    "visible": true,
+    "description": "Apparent positions allow observational corrections like aberration and gravitational deflection. True positions use FLG_TRUEPOS.",
+    "choices": [
+      [false, "Apparent"],
+      [true, "True"]
+    ],
+    "const_name": "PLANET_POSITIONS_TRUE"
+  },
+  "use_aberration_of_light": {
+    "label": "Use Aberration of Light",
+    "type": "bool",
+    "default": true,
+    "tab": "Planet Calculation",
+    "section": "planet_positions",
+    "order": 30,
+    "visible": true,
+    "description": "Relevant only for apparent positions. If disabled, FLG_NOABERR is added.",
+    "const_name": "PLANET_POSITIONS_USE_ABERRATION"
+  },
+  "use_gravitational_deflection": {
+    "label": "Use Gravitational Deflection",
+    "type": "bool",
+    "default": true,
+    "tab": "Planet Calculation",
+    "section": "planet_positions",
+    "order": 40,
+    "visible": true,
+    "description": "Relevant only for apparent positions. If disabled, FLG_NOGDEFL is added.",
+    "const_name": "PLANET_POSITIONS_USE_DEFLECTION"
+  },
+  "use_nutation": {
+    "label": "Use Nutation",
+    "type": "bool",
+    "default": true,
+    "tab": "Planet Calculation",
+    "section": "planet_positions",
+    "order": 50,
+    "visible": true,
+    "description": "Independent of sidereal/tropical selection. If disabled, FLG_NONUT is added.",
+    "const_name": "PLANET_POSITIONS_USE_NUTATION"
+  },
+  "use_true_nodes_for_rahu_ketu": {
+    "label": "Rahu / Ketu Node Type",
+    "type": "choice",
+    "default": true,
+    "tab": "Planet Calculation",
+    "section": "nodes",
+    "order": 10,
+    "visible": true,
+    "description": "Controls only the lunar nodes (Rahu / Ketu), not all planets.",
+    "choices": [
+      [true, "True Nodes"],
+      [false, "Mean Nodes"]
+    ],
+    "setter": "set_node_mode"
+  },
+  "rise_set_use_refraction": {
+    "label": "Use Refraction for Rise / Set",
+    "type": "bool",
+    "default": false,
+    "tab": "Planet Calculation",
+    "section": "rise_set",
+    "order": 10,
+    "visible": true,
+    "const_name": "RISE_SET_USE_REFRACTION",
+    "description": "False = true horizon, True = apparent horizon."
+  },
+  "rise_set_use_disc_center_for_rising": {
+    "label": "Disc Reference for Rise / Set",
+    "type": "choice",
+    "default": true,
+    "tab": "Planet Calculation",
+    "section": "rise_set",
+    "order": 20,
+    "visible": true,
+    "const_name": "RISE_SET_USE_DISC_CENTER_FOR_RISING",
+    "choices": [
+      [true, "Disc Center"],
+      [false, "Disc Bottom"]
+    ],
+    "description": "Choose whether rising/setting is computed for the disc center or the disc bottom."
+  },
+  "rise_set_hindu_rising": {
+    "label": "Use Hindu Rising",
+    "type": "bool",
+    "default": true,
+    "tab": "Planet Calculation",
+    "section": "rise_set",
+    "order": 30,
+    "visible": true,
+    "const_name": "RISE_SET_HINDU_RISING",
+    "description": "Uses the Hindu sunrise convention. When enabled, rise/set may not follow plain astronomical interpretation exactly."
+  },
+  "skip_using_girls_varna_for_minimum_tamil_porutham": {
+    "label": "Skip girl's varna for minimum Tamil porutham",
+    "type": "bool",
+    "default": true,
+    "tab": "Advanced",
+    "section": "compatibility",
+    "order": 10,
+    "visible": true,
+    "const_name": "skip_using_girls_varna_for_minimum_tamil_porutham"
+  },
+  "mandatory_compatibility_south_list": {
+    "label": "Mandatory compatibility south list",
+    "type": "int_list",
+    "default": [1, 2, 3, 5],
+    "tab": "Advanced",
+    "section": "compatibility",
+    "order": 20,
+    "visible": false,
+    "const_name": "mandatory_compatibility_south_list",
+    "adapter": "int_list"
+  },
+  "compatibility_minimum_score_north": {
+    "label": "Compatibility minimum score north",
+    "type": "float",
+    "default": 18.0,
+    "tab": "Advanced",
+    "section": "compatibility",
+    "order": 30,
+    "visible": false,
+    "const_name": "compatibility_minimum_score_north"
+  },
+  "compatibility_minimum_score_south": {
+    "label": "Compatibility minimum score south",
+    "type": "float",
+    "default": 6.0,
+    "tab": "Advanced",
+    "section": "compatibility",
+    "order": 40,
+    "visible": false,
+    "const_name": "compatibility_minimum_score_south"
+  },
+  "compatibility_maximum_score_north": {
+    "label": "Compatibility maximum score north",
+    "type": "float",
+    "default": 36.0,
+    "tab": "Advanced",
+    "section": "compatibility",
+    "order": 50,
+    "visible": false,
+    "const_name": "compatibility_maximum_score_north"
+  },
+  "compatibility_maximum_score_south": {
+    "label": "Compatibility maximum score south",
+    "type": "float",
+    "default": 10.0,
+    "tab": "Advanced",
+    "section": "compatibility",
+    "order": 60,
+    "visible": false,
+    "const_name": "compatibility_maximum_score_south"
+  },
+  "ashtakavarga_dhasa_method": {
+    "label": "Ashtakavarga Dhasa Method",
+    "type": "choice",
+    "default": "SAV_SIGN",
+    "tab": "Dhasa Methods",
+    "section": "Calculation Methods",
+    "order": 10,
+    "visible": true,
+    "choices": [
+      ["BAV_PLANET", "BAV_PLANET"],
+      ["SAV_SIGN", "SAV_SIGN"],
+      ["PINDA_PLANET", "PINDA_PLANET"]
+    ],
+    "const_name": "ASHTAKAVARGA_DHASA_METHOD_DEFAULT",
+    "enum_class": "ASHTAKAVARGA_DHASA_METHOD",
+    "description": "Available AV-based dhasa methods. BAV_PLANET = Graha dhasa using planetary BAV totals; SAV_SIGN = Rasi dhasa using sign SAV; PINDA_PLANET = Graha dhasa using Sodhya-Pinda per planet."
+  },
+  "ashtakavarga_dhasa_start_rule": {
+    "label": "Ashtakavarga Dhasa Start Rule",
+    "type": "choice",
+    "default": "MAX_STRENGTH",
+    "tab": "Dhasa Methods",
+    "section": "Calculation Methods",
+    "order": 10,
+    "visible": true,
+    "choices": [
+      ["MAX_STRENGTH", "MAX_STRENGTH"],
+      ["LAGNA_SIGN", "LAGNA_SIGN"],
+      ["JANMA_RASI", "JANMA_RASI"],
+      ["USER_DEFINED_SIGN", "USER_DEFINED_SIGN"],
+      ["USER_DEFINED_PLANET", "USER_DEFINED_PLANET"]
+    ],
+    "const_name": "ASHTAKAVARGA_DHASA_START_RULE_DEFAULT",
+    "enum_class": "ASHTAKAVARGA_DHASA_START_RULE",
+    "description": "How to choose the first carrier before rotation of the sequence."
+  },
+  "ashtakavarga_dhasa_sequence_rule": {
+    "label": "Ashtakavarga Dhasa Sequence Rule",
+    "type": "choice",
+    "default": "STRENGTH_ORDER",
+    "tab": "Dhasa Methods",
+    "section": "Calculation Methods",
+    "order": 10,
+    "visible": true,
+    "choices": [
+      ["STRENGTH_ORDER", "STRENGTH_ORDER"],
+      ["ZODIACAL_ORDER", "ZODIACAL_ORDER"],
+      ["FIXED_SUN_SATURN", "FIXED_SUN_SATURN"]
+    ],
+    "const_name": "ASHTAKAVARGA_DHASA_SEQUENCE_RULE_DEFAULT",
+    "enum_class": "ASHTAKAVARGA_DHASA_SEQUENCE_RULE",
+    "description": "How to build the base order before applying the start rule."
+  },
+  "aayu_type": {
+    "label": "Aayu Dhasa Type",
+    "type": "choice",
+    "default": "NONE",
+    "tab": "Dhasa Methods",
+    "section": "Calculation Methods",
+    "order": 5,
+    "visible": true,
+    "choices": [
+      [0, "PINDA"],
+      [1, "NISARGA"],
+      [2, "AMSA"],
+      [null, "NONE"]
+    ],
+    "const_name": "AAYU_TYPE_DEFAULT",
+    "enum_class": "AAYU_TYPE"
+  },
+  "rashmi_type": {
+    "label": "Rashmi Dhasa Type",
+    "type": "choice",
+    "default": 1,
+    "tab": "Dhasa Methods",
+    "section": "Calculation Methods",
+    "order": 20,
+    "visible": true,
+    "choices": [
+      [1, "BPHS_HIGHEST_RAY"],
+      [2, "NATURAL_ORDER"],
+      [3, "VIMSOTTARI_ORDER"]
+    ],
+    "const_name": "RASHMI_TYPE_DEFAULT",
+    "enum_class": "RASHMI_TYPE"
+  },
+  "tara_type": {
+    "label": "Tara Dhasa Type",
+    "type": "choice",
+    "default": 1,
+    "tab": "Dhasa Methods",
+    "section": "Calculation Methods",
+    "order": 20,
+    "visible": true,
+    "choices": [
+      [1, "SANJAY_RATH"],
+      [2, "PARASARA"]
+    ],
+    "const_name": "TARA_TYPE_DEFAULT",
+    "enum_class": "TARA_TYPE"
+  },
+  "chara_type": {
+    "label": "Chara Dhasa Type",
+    "type": "choice",
+    "default": 2,
+    "tab": "Dhasa Methods",
+    "section": "Calculation Methods",
+    "order": 20,
+    "visible": true,
+    "choices": [
+      [1, "PVN_RAO"],
+      [2, "KN_RAO"],
+      [3, "IRANGATTI_MALE1"],
+      [4, "IRANGATTI_MALE2"],
+      [5, "MIND_SUTRA"]
+    ],
+    "const_name": "CHARA_TYPE_DEFAULT",
+    "enum_class": "CHARA_TYPE"
+  },
+  "drig_type": {
+    "label": "Drig Dhasa Type",
+    "type": "choice",
+    "default": 1,
+    "tab": "Dhasa Methods",
+    "section": "Calculation Methods",
+    "order": 20,
+    "visible": true,
+    "choices": [
+      [1, "PVR_PAPER"],
+      [2, "PVR_BOOK"]
+    ],
+    "const_name": "DRIG_TYPE_DEFAULT",
+    "enum_class": "DRIG_TYPE"
+  },
+  "kalachakra_type": {
+    "label": "Kalachakra Dhasa Type",
+    "type": "choice",
+    "default": 1,
+    "tab": "Dhasa Methods",
+    "section": "Calculation Methods",
+    "order": 20,
+    "visible": true,
+    "choices": [
+      [1, "PVR_BOOK"],
+      [2, "SANJAY_RATH"],
+      [3, "RAGHAVACHARYA"]
+    ],
+    "const_name": "KALACHAKRA_TYPE_DEFAULT",
+    "enum_class": "KALACHAKRA_TYPE"
+  },
+  "mandooka_type": {
+    "label": "Mandooka Dhasa Type",
+    "type": "choice",
+    "default": 2,
+    "tab": "Dhasa Methods",
+    "section": "Calculation Methods",
+    "order": 20,
+    "visible": true,
+    "choices": [
+      [1, "SANJAY_RATH"],
+      [2, "KN_RAO"]
+    ],
+    "const_name": "MANDOOKA_TYPE_DEFAULT",
+    "enum_class": "MANDOOKA_TYPE"
+  },
+  "padhanadhamsa_type": {
+    "label": "Padhanadhamsa Dhasa Type",
+    "type": "choice",
+    "default": 1,
+    "tab": "Dhasa Methods",
+    "section": "Calculation Methods",
+    "order": 20,
+    "visible": true,
+    "choices": [
+      [1, "IRANGATTI_RANGACHARYA"],
+      [2, "SANJAY_RATH"],
+      [3, "PVR_JHORA"]
+    ],
+    "const_name": "PADHANADHAMSA_TYPE_DEFAULT",
+    "enum_class": "PADHANADHAMSA_TYPE"
+  }
+}

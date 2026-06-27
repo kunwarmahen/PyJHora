@@ -30,7 +30,7 @@ from _datetime import datetime
 import img2pdf
 from jhora import utils,const
 from jhora.panchanga import drik
-from jhora.horoscope import main
+from jhora.horoscope import info
 from jhora.ui.chart_styles import EastIndianChart, WesternChart, SouthIndianChart, NorthIndianChart, SudarsanaChakraChart
 from jhora.horoscope.dhasa import sudharsana_chakra
 
@@ -389,14 +389,12 @@ class ChartSimple(QWidget):
         self._create_chart_ui()
         print('compute horoscope ', self._ayanamsa_mode)
         if self._place_name.strip() != '' and abs(self._latitude) > 0.0 and abs(self._longitude) > 0.0 and abs(self._time_zone) > 0.0:
-            self._horo= main.Horoscope(latitude=self._latitude,longitude=self._longitude,timezone_offset=self._time_zone,
-                        date_in=birth_date,birth_time=self._time_of_birth,ayanamsa_mode=self._ayanamsa_mode,
-                        ayanamsa_value=self._ayanamsa_value,calculation_type=self._calculation_type,
+            self._horo= info.Horoscope(latitude=self._latitude,longitude=self._longitude,timezone_offset=self._time_zone,
+                        date_in=birth_date,birth_time=self._time_of_birth,calculation_type=self._calculation_type,
                         language=available_languages[self._language])
         else:
-            self._horo= main.Horoscope(place_with_country_code=self._place_name,date_in=birth_date,
-                        birth_time=self._time_of_birth,ayanamsa_mode=self._ayanamsa_mode,
-                        ayanamsa_value=self._ayanamsa_value,calculation_type=self._calculation_type,
+            self._horo= info.Horoscope(place_with_country_code=self._place_name,date_in=birth_date,
+                        birth_time=self._time_of_birth,calculation_type=self._calculation_type,
                         language=available_languages[self._language])
         self._calendar_info = self._horo.calendar_info
         self._calendar_key_list= self._horo._get_calendar_resource_strings()

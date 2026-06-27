@@ -18,10 +18,12 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from PyQt6.QtWidgets import QLineEdit, QApplication, QLabel, QHBoxLayout, QVBoxLayout, QPushButton,\
-                            QRadioButton, QDialog, QCheckBox, QComboBox
+from PyQt6.QtWidgets import (QLineEdit, QApplication, QLabel, QHBoxLayout, QVBoxLayout, QPushButton,
+                            QRadioButton, QDialog, QCheckBox, QComboBox,)
 from PyQt6.QtCore import Qt
 from jhora import utils, const
+from jhora.panchanga.drik import Date
+
 class WidgetDialog(QDialog):
     """
         TODO: DONOT USE THIS CLASS YET
@@ -200,6 +202,25 @@ if __name__ == "__main__":
         sys.__excepthook__(cls, exception, traceback)
     sys.excepthook = except_hook
     App = QApplication(sys.argv)
+    from jhora.panchanga.drik import Date,Place
+    dob = Date(1996,12,7); tob = (10,34,0)
+    place = Place('Chennai,IN', 13.0389, 80.2619, +5.5)    
+    jd_at_dob  = utils.julian_day_number(dob, tob)
+    from datetime import datetime
+    current_date_str,current_time_str = datetime.now().strftime('%Y,%m,%d;%H:%M:%S').split(';')
+    y,m,d = map(int,current_date_str.split(','))
+    hh,mm,ss = map(int,current_time_str.split(':')); fh = hh+mm/60+ss/3600
+    print(utils.date_time_tuple_to_date_time_string(y, m, d, fh))
+    current_jd = utils.julian_day_number(Date(y,m,d),(hh,mm,ss))
+    _dhasa_name = 'sudarsana_chakra'
+    #import random
+    #_dhasa_name = random.choice(const.supported_dhasas)
+    opts = ''#'divisional_chart_factor=9,chart_method=3'
+    from jhora.ui.dhasa_bhukthi_options_dialog import RunningDhasaDialog
+    dlg = RunningDhasaDialog(dhasa_name=_dhasa_name,jd_at_dob=jd_at_dob,place=place,options_dict=opts)
+    dlg.show()
+    sys.exit(App.exec())
+    exit()
     """
     dlg = InfoDialog(title=utils.resource_strings['saham_str'],button_texts=[utils.resource_strings['accept_str']],
                      info_text=utils.resource_strings['saptha_shalaka_str']+'<br>'+
@@ -207,12 +228,53 @@ if __name__ == "__main__":
     dlg.show()
     sys.exit(App.exec())
     """
-    #"""
+    """
     _title_list = ['solar','amantha','purnimantha']
     _title = '/'.join([utils.resource_strings[ol+'_str'] for ol in _title_list])+' '+utils.resource_strings['month_str']
     option_list = [utils.resource_strings[ol+'_str']+' '+utils.resource_strings['month_str'] for ol in _title_list]
     lm_dlg = OptionDialog(title=_title,option_label='Select options from',options_list=option_list,
                          multi_selection=False,default_options=1)
     lm_dlg.show()
+    sys.exit(App.exec())
+    """
+    ### Widget Dialog Example - widget to show current date and time and to show running dhasa
+    #"""
+    from PyQt6.QtWidgets import QWidget
+    date_widget = QWidget()
+    res = utils.resource_strings
+    from datetime import datetime
+    current_date_str,current_time_str = datetime.now().strftime('%Y,%m,%d;%H:%M:%S').split(';')
+    y,m,d = map(int,current_date_str.split(','))
+    hh,mm,ss = map(int,current_time_str.split(':'))
+    v_layout = QVBoxLayout()
+    datetime_row = QHBoxLayout()
+    _current_date_label = QLabel(res['current_date_str'])
+    datetime_row.addWidget(_current_date_label)
+    _dob_text = QLineEdit(f"{y},{m},{d}")
+    _dob_text.setToolTip('Date in the format YYYY,MM,DD\nFor BC enter negative years.\nAllowed Year Range: -13000 (BC) to 16800 (AD)')
+    datetime_row.addWidget(_dob_text)
+
+    _tob_label = QLabel(res['time_of_birth_str'])
+    datetime_row.addWidget(_tob_label)
+    _tob_text = QLineEdit(f"{hh}:{mm}:{ss}")
+    _tob_text.setToolTip('Enter time of birth in the format HH:MM:SS if afternoon use 12+ hours')
+    datetime_row.addWidget(_tob_text)
+    v_layout.addLayout(datetime_row)
+    results_label = QLabel("Results")
+    v_layout.addWidget(results_label)
+    buttons_row = QHBoxLayout()
+    def _calculate_clicked():
+        print('calculate clicked')
+    def _close_dialog():
+        print('_close_dialog clicked')
+    _find_button = QPushButton(res['compute_str']); buttons_row.addWidget(_find_button)
+    _find_button.clicked.connect(_calculate_clicked)
+    _close_button = QPushButton(res['cancel_str']); buttons_row.addWidget(_close_button)
+    _close_button.clicked.connect(_close_dialog)
+    v_layout.addLayout(buttons_row)
+    date_widget.setLayout(v_layout)
+    test_widget = WidgetDialog(title="Show Running Dhasa for Given Date/time",h_widgets=[date_widget],
+                               fit_to_widget_contents=True)
+    test_widget.show()
     sys.exit(App.exec())
     #"""

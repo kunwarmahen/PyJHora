@@ -1,435 +1,656 @@
-import sys, os
-import datetime
-from PyQt6.QtWidgets import (QApplication, QWidget, QGridLayout, QPushButton, QCompleter, QMessageBox,
-                            QLineEdit, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QDialog)
-from PyQt6.QtCore import Qt, QRect, pyqtSignal, QPoint, pyqtSlot
-from jhora.panchanga import drik, pancha_paksha
-from jhora import utils, const
-from PyQt6.QtGui import QFont, QFontMetrics, QPainter, QColor, QPen, QPixmap
-from jhora.ui.panchangam import PanchangaInfoDialog
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+# Copyright (C) Open Astro Technologies, USA.
+# Modified by Sundar Sundaresan, USA. carnaticmusicguru2015@comcast.net
+# Downloaded from https://github.com/naturalstupid/PyJHora
 
-_SHOW_MUHURTHA_OR_SHUBHA_HORA = 1 # 0=Muhurtha 1=Shubha Hora
-_sunrise_icon = os.path.abspath(const._IMAGES_PATH) + const._sep + "sunrise1.png"
-_sunset_icon = os.path.abspath(const._IMAGES_PATH) + const._sep + "sunset1.png"
-_pournami_icon = os.path.abspath(const._IMAGES_PATH) + const._sep + "pournami.png"
-_amavasai_icon = os.path.abspath(const._IMAGES_PATH) + const._sep + "amavasai.png"
-_shukla_paksha_icon = os.path.abspath(const._IMAGES_PATH) + const._sep + "shukla_paksha.png"
-_krishna_paksha_icon = os.path.abspath(const._IMAGES_PATH) + const._sep + "krishna_paksha.png"
-_info_label1_font_size = 6#8
-_info_label2_font_size = 6 if _SHOW_MUHURTHA_OR_SHUBHA_HORA==1 else 5
-_info_label3_font_size =6#8
-_ICON_SIZE = 12
-_top_left_font_size = 9; _top_right_font_size = 9
-_bottom_left_font_size = 9; _bottom_right_font_size = 9
-_center_left_font_size = 12; _center_right_font_size = 16
-_calendar_cell_width = 100;_calendar_cell_height = 80 
-_label_offset_x = 2; _label_offset_y = 1
-#_info_label1_font_size = 6
-_info_label1_width = 300
-_HEADER_CELL_HEIGHT = 20; _HEADER_COLOR='green'
-_KEY_COLOR = 'brown'; _VALUE_COLOR = 'blue'
-_KEY_LENGTH=50; _VALUE_LENGTH=50; _HEADER_LENGTH=100
-_HEADER_FORMAT_ = '<b><span style="color:'+_HEADER_COLOR+';">{:.'+str(_HEADER_LENGTH)+'}</span></b><br>'
-_KEY_VALUE_FORMAT_ = '<span style="color:'+_KEY_COLOR+';">{:.'+str(_KEY_LENGTH)+'}</span><span style="color:'+\
-        _VALUE_COLOR+';">{:.'+str(_VALUE_LENGTH)+'}</span><br>'
-previous_month_color = "orange"; default_color = "lightyellow"
-input_day_color = "lightgreen"; next_month_color = "lightblue"
-_top_left_label_color = 'magenta'; _top_right_label_color = 'blue'
-_middle_left_label_color = 'red'; _middle_right_label_color = 'black'
-_bottom_left_label_color = 'green'; _bottom_right_label_color = 'blue'
-_cell_border_line_color = 'brown'; _cell_border_line_thickness = 1
+# This file is part of the "PyJHora" Python library
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+Drig Dhasa (Parāśari) — JHora v8.0 parity-first (DRIG-local overrides only)
 
-class CustomLabel(QLabel):
-    clicked = pyqtSignal()  # Signal for click event
+Supports:
+  - PVR_PAPER
+  - PVR_BOOK (2 cycles: cycle2 = 12 - cycle1)
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.texts = {}
-        self.font_sizes = {
-            "top_left": _top_left_font_size, "top_right": _top_right_font_size,
-            "middle_left":_center_left_font_size,"middle_right": _center_right_font_size,
-            "bottom_left": _bottom_left_font_size, "bottom_right": _bottom_right_font_size ,
-            "center":_center_right_font_size
-        }
-        self.colors = {
-            "top_left": QColor(_top_left_label_color), "top_right": QColor(_top_right_label_color),
-            "middle_left": QColor(_middle_left_label_color),"middle_right": QColor(_middle_right_label_color),
-            "bottom_left": QColor(_bottom_left_label_color), "bottom_right": QColor(_bottom_right_label_color),
-            "center":QColor(_middle_right_label_color),
-        }
-        self.setStyleSheet("border: "+str(_cell_border_line_thickness)+"px solid "+_cell_border_line_color+";")
-    def set_texts(self, text_pos):
-        """Set texts at specified positions."""
-        self.texts = text_pos
-        self.update()
+JHora Drig UI settings supported (DRIG only):
+  1) Force Scorpio/Aquarius dasha owners (default JHora):
+       Scorpio -> Ketu
+       Aquarius -> Saturn
 
-    def paintEvent(self, event):
-        try:
-            super().paintEvent(event)
-            painter = QPainter(self)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            painter.setPen(QColor(Qt.GlobalColor.black))
-            for pos, value in self.texts.items():
-                alignment = self.get_alignment(pos)
-                cell_width = self.width() // 2
-                cell_height = self.height() // 3
-                cell_x = (0 if 'left' in pos else self.width() // 2)
-                cell_y = (0 if 'top' in pos else self.height() // 3 if 'middle' in pos else 2 * self.height() // 3)
-                cell_y = self.height()//2 if 'center' in pos else cell_y
-                # Adjust the size of the bounding rect to ensure it fully fits within the grid cell
-                text_rect = QRect(cell_x, cell_y, cell_width, cell_height)
-                rect = QRect(cell_x+_label_offset_x,cell_y+_label_offset_y,
-                             text_rect.width()-_label_offset_x,text_rect.height()-_label_offset_y
-                             )
-                # Set font size based on position
-                font = painter.font()
-                font_size = self.font_sizes.get(pos, 9)
-                pen_color = self.colors.get(pos,QColor('black')); painter.setPen(pen_color)
-                font.setPointSize(font_size); font.setBold(True)
-                painter.setFont(font)
-                # Check if the value is a tuple (icon_path, text)
-                if isinstance(value, tuple):
-                    icon_path, text = value
-                    icon = QPixmap(icon_path).scaled(_ICON_SIZE, _ICON_SIZE, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                    icon_rect = QRect(cell_x, cell_y, _ICON_SIZE, _ICON_SIZE)
-                    painter.drawPixmap(icon_rect, icon)
-                    rect.setLeft(icon_rect.right())  # Add some space between icon and text
+  2) Force "stronger of opposite pairs" (6 pairs), with exceptions:
+       Ar-Li -> Li         (No exception)
+       Ta-Sc -> Sc         (No exception)
+       Ge-Sg -> Sg         (No exception)
+       Cn-Cp -> Cn         (No exception)
+       Le-Aq -> Le         (No exception)
+       Vi-Pi -> Pi         (Ketu Exception)
+
+"Ketu Exception" meaning (from PVR Narayana Dasa chapter):
+  If Ketu occupies the DASA SEED, reverse the basic direction of progression.
+
+NOTE:
+  - const.HOUSE_7 must be 6 (0-based sign indexing).
+"""
+
+from typing import List, Tuple, Sequence, Optional, Union, Dict
+
+from jhora import const, utils
+from jhora.horoscope.chart import house, charts
+from jhora.horoscope.dhasa.raasi import narayana
+from jhora.panchanga import drik
+
+_DHASA_OWNER_OVERRIDES = {
+  "owners": {
+     const.SCORPIO: const.KETU_ID,
+     const.AQUARIUS: const.SATURN_ID
+  },
+  "stronger_pairs": {
+     (const.ARIES, const.LIBRA): {"stronger": const.LIBRA, "exception": "NONE"},
+     (const.TAURUS, const.SCORPIO): {"stronger": const.SCORPIO, "exception": "NONE"},
+     (const.GEMINI, const.SAGITTARIUS): {"stronger": const.SAGITTARIUS, "exception": "NONE"},
+     (const.CANCER, const.CAPRICORN): {"stronger": const.CANCER, "exception": "NONE"},
+     (const.LEO, const.AQUARIUS): {"stronger": const.LEO, "exception": "NONE"},   # <-- your Aq/Le choice
+     (const.VIRGO, const.PISCES): {"stronger": const.PISCES, "exception": "KETU"}, # only if you want
+  }
+}
+
+_DAYS_IN_YEAR = float(const.sidereal_year)
+_ROUND_NDIGITS = int(getattr(const, "DHASA_DURATION_ROUNDING_TO", 2))
+
+
+# ---------------- small helpers ----------------
+def _mod12(x: int) -> int:
+    return x % 12
+
+def _pp_upto_ketu(jd: float, place, dcf: int, chart_method: int = 1, **kwargs):
+    pp = charts.divisional_chart(jd, place, divisional_chart_factor=dcf, chart_method=chart_method, **kwargs)
+    return pp[:const._pp_count_upto_ketu]
+
+def _p_to_h(pp):
+    return utils.get_planet_house_dictionary_from_planet_positions(pp)
+
+def _lagna_sign(pp) -> int:
+    pth = _p_to_h(pp)
+    if 'L' in pth:
+        return int(pth['L']) % 12
+    asc_sym = getattr(const, "_ascendant_symbol", "L")
+    if asc_sym in pth:
+        return int(pth[asc_sym]) % 12
+    raise ValueError("Lagna not found (expected key 'L').")
+
+def _jd_to_tuple(jd_val: float):
+    return utils.jd_to_gregorian(jd_val)
+
+def _tuple_to_jd(t):
+    y, m, d, fh = t
+    return utils.julian_day_number(drik.Date(y, m, d), (fh, 0, 0))
+
+def _append_row(rows, lords, start_jd, dur_years, round_duration: bool):
+    start_t = _jd_to_tuple(start_jd)
+    d = round(float(dur_years), _ROUND_NDIGITS) if round_duration else float(dur_years)
+    rows.append((tuple(int(x) % 12 for x in lords), start_t, float(d)))
+
+def _dist_forward(a: int, b: int) -> int:
+    d = (b - a) % 12
+    return 12 if d == 0 else d
+
+def _dist_backward(a: int, b: int) -> int:
+    d = (a - b) % 12
+    return 12 if d == 0 else d
+
+def _is_odd_sign(s: int) -> bool:
+    return s in const.odd_signs
+def _is_movable(s: int) -> bool:
+    return s in const.movable_signs
+def _is_fixed(s: int) -> bool:
+    return s in const.fixed_signs
+def _is_dual(s: int) -> bool:
+    return s in const.dual_signs
+
+
+# ---------------- global override helpers ----------------
+def _get_pair_rule(a: int, b: int):
+    rules = utils.get_dhasa_stronger_pair_rules()
+    key = (min(a % 12, b % 12), max(a % 12, b % 12))
+    return rules.get(key)
+
+def _stronger_for_dhasa(pp, a: int, b: int) -> int:
+    """
+    Returns stronger sign for dhasa decisions using global overrides if present.
+    If no override exists for the pair, fall back to house.stronger_rasi_from_planet_positions.
+    """
+    a, b = int(a) % 12, int(b) % 12
+    rule = _get_pair_rule(a, b)
+    if rule and "stronger" in rule:
+        return int(rule["stronger"]) % 12
+    return int(house.stronger_rasi_from_planet_positions(pp, a, b)) % 12
+
+def _apply_pair_exception_direction(pp, a: int, b: int, seed: int, direction: int) -> int:
+    """
+    Apply per-pair exception flags to direction, using global rules.
+    Supported exceptions: NONE, KETU, SATURN, SATURN_KETU.
+    Semantics:
+      - SATURN: if Saturn is in seed => force forward (+1)
+      - KETU:   if Ketu is in seed   => reverse direction
+    """
+    a, b = int(a) % 12, int(b) % 12
+    seed = int(seed) % 12
+    rule = _get_pair_rule(a, b)
+    if not rule:
+        return direction
+    ex = str(rule.get("exception", "NONE")).upper()
+
+    pth = _p_to_h(pp)
+    sat = pth.get(const.SATURN_ID, -999)
+    ket = pth.get(const.KETU_ID, -999)
+
+    if ex in ("SATURN", "SATURN_KETU"):
+        if int(sat) == seed:
+            direction = 1
+    if ex in ("KETU", "SATURN_KETU"):
+        if int(ket) == seed:
+            direction *= -1
+    return direction
+
+
+# ---------------- MD sequence ----------------
+def _md_sequence(lagna: int, method: int, chart, pp):
+    seq = []
+    for offset in (const.HOUSE_9, const.HOUSE_10, const.HOUSE_11):
+        anchor = _mod12(lagna + offset)
+        seq.append(anchor)
+
+        if method == const.DRIG_TYPE.PVR_BOOK:
+            even_footed = anchor in const.even_footed_signs
+            aspects = list(house.aspected_kendras_of_raasi(anchor, even_footed) or [])
+            uniq = []
+            for x in aspects:
+                x = int(x) % 12
+                if x not in uniq:
+                    uniq.append(x)
+            if len(uniq) != 3:
+                raise ValueError(f"BOOK: expected 3 aspected kendras for anchor={anchor}, got {uniq}")
+            seq.extend(uniq)
+        else:
+            cand = list(house.raasi_drishti_of_the_raasi(chart, anchor) or [])
+            uniq = []
+            for x in cand:
+                x = int(x) % 12
+                if x not in uniq:
+                    uniq.append(x)
+            if len(uniq) != 3:
+                raise ValueError(f"PAPER: expected 3 rasi-drishti signs for anchor={anchor}, got {uniq}")
+
+            zodiacal = (_is_fixed(anchor) or (_is_dual(anchor) and _is_odd_sign(anchor)))
+            dist = (lambda t: _dist_forward(anchor, t)) if zodiacal else (lambda t: _dist_backward(anchor, t))
+            uniq.sort(key=lambda t: dist(t))
+
+            # tie-break: same lord as anchor
+            anchor_lord = house.house_owner_from_planet_positions(pp, anchor, check_during_dhasa=True)
+            out = []
+            i = 0
+            while i < len(uniq):
+                d0 = dist(uniq[i])
+                group = [uniq[i]]
+                j = i + 1
+                while j < len(uniq) and dist(uniq[j]) == d0:
+                    group.append(uniq[j])
+                    j += 1
+                if len(group) == 1:
+                    out.extend(group)
                 else:
-                    text = value
-                painter.drawText(rect, int(alignment), str(text))
-                painter.setPen(QPen())
-            painter.end()
-        except Exception as e:
-            print(f"CustomLabel paintEvent - An error occurred: {e}")
-    
-    def get_alignment(self, pos):
-        if "top" in pos:
-            vertical = Qt.AlignmentFlag.AlignTop
-        elif "bottom" in pos:
-            vertical = Qt.AlignmentFlag.AlignBottom
-        else:
-            vertical = Qt.AlignmentFlag.AlignVCenter
-            
-        if "left" in pos:
-            horizontal = Qt.AlignmentFlag.AlignLeft
-        elif "right" in pos:
-            horizontal = Qt.AlignmentFlag.AlignRight
-        else:
-            horizontal = Qt.AlignmentFlag.AlignHCenter
-            
-        return horizontal | vertical
-
-    def mousePressEvent(self, event):
-        self.clicked.emit()  # Emit signal when label is clicked
-
-class VedicCalendar(QWidget):
-    def __init__(self,start_date:drik.Date=None,place:drik.Place=None, language='ta'):
-        super().__init__()
-        self._language = language
-        utils.set_language(const.available_languages[language])
-        self.res = utils.resource_strings
-        self.start_date = start_date; self.start_place=place
-        self.selected_cell = None; self.previous_month_cell=None; self.next_month_cell=None
-        self.setWindowTitle(self.res['calendar_str']+' '+const._APP_VERSION)
-        self.initUI()
-
-    def initUI(self):
-        main_layout = QVBoxLayout()
-        input_layout = QHBoxLayout()
-        if self.start_date is None:
-            current_date_str = datetime.datetime.now().strftime('%Y,%m,%d')
-        else:
-            year,month,day = self.start_date
-            current_date_str = str(year)+','+str(month)+','+str(day)
-        self.date_text = QLineEdit(self)
-        self.date_text.setText(current_date_str)
-        if self.start_place is None:
-            loc = utils.get_place_from_user_ip_address()
-            print('loc from IP address',loc)
-            if len(loc)==4:
-                print('setting values from loc')
-                self.start_place = drik.Place(loc[0],loc[1],loc[2],loc[3])
-        self._place_text = QLineEdit(self)
-        self._world_cities_list = utils.world_cities_list
-        completer = QCompleter(self._world_cities_list)
-        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self._place_text.setCompleter(completer)
-        self._place_text.textChanged.connect(self._resize_place_text_size)
-        self._place_text.editingFinished.connect(lambda: self._get_location(self._place_text.text()))
-        self._place_text.setToolTip('Enter place of birth, country name')
-        self._lat_text = QLineEdit(self)
-        self._long_text = QLineEdit(self)
-        self._tz_text = QLineEdit(self)
-        if isinstance(self.start_place,drik.Place):
-            self._place_text.setText(self.start_place.Place)
-            self._lat_text.setText(str(self.start_place.latitude))
-            self._long_text.setText(str(self.start_place.longitude))
-            self._tz_text.setText(str(self.start_place.timezone))
-        self._dob_label = QLabel('Date:')
-        input_layout.addWidget(self._dob_label)
-        input_layout.addWidget(self.date_text)
-        self._place_label = QLabel('Place Name:')
-        input_layout.addWidget(self._place_label)
-        input_layout.addWidget(self._place_text)
-        self._lat_label = QLabel('Latitude:')
-        input_layout.addWidget(self._lat_label)
-        input_layout.addWidget(self._lat_text)
-        self._long_label = QLabel('Longitude:')
-        input_layout.addWidget(self._long_label)
-        input_layout.addWidget(self._long_text)
-        self._tz_label = QLabel('TimeZone Hours:')
-        input_layout.addWidget(self._tz_label)
-        input_layout.addWidget(self._tz_text)
-        self._lang_combo = QComboBox()
-        self._lang_combo.addItems(const.available_languages.keys())
-        self._lang_combo.setCurrentText(self._language)
-        self._lang_combo.activated.connect(self._change_language)
-        self._lang_combo.setToolTip('Choose language for display')
-        input_layout.addWidget(self._lang_combo)
-        self.compute_btn = QPushButton(self.res['calendar_str'], self)
-        self.compute_btn.clicked.connect(self.computeCalendar)
-        input_layout.addWidget(self.compute_btn)
-
-        main_layout.addLayout(input_layout)
-
-        h_layout = QHBoxLayout()
-        self._info_label1 = QLabel("Information:")
-        self._info_label1.setFixedWidth(_info_label1_width)
-        self._info_label1.setStyleSheet("border: 1px solid black; font-size: "+str(_info_label1_font_size)+" pt")
-        # Use setTextFormat and setTextInteractionFlags to make the link clickable
-        self._info_label1.setTextFormat(Qt.TextFormat.RichText)
-        self._info_label1.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
-        self._info_label1.setOpenExternalLinks(False)  # Disable opening links in the default browser
-        h_layout.addWidget(self._info_label1)
-        v_layout = QVBoxLayout()
-        self.header_label = QLabel('')
-        self.header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.header_label.setStyleSheet("border: 1px solid black; font-weight: bold; font-size: "+str(12)+"pt")
-        v_layout.setSpacing(0); v_layout.setContentsMargins(0,0,0,0)
-        v_layout.addWidget(self.header_label)
-        self.grid_layout = QGridLayout()
-        self.grid_layout.setSpacing(0)
-        self.grid_layout.setContentsMargins(0, 0, 0, 0)
-        self.cells = []; self.jd = []
-
-        headers = ['<b><span style="color:'+_HEADER_COLOR+';">'+str(h)+'</span></b>' for h in utils.DAYS_SHORT_NAMES]
-        for col, header in enumerate(headers):
-            label = QLabel(header)
-            label.setFixedHeight(_HEADER_CELL_HEIGHT)  # Set a fixed height for the header
-            label.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center align the text
-            _cell_style = "border: "+str(_cell_border_line_thickness)+"px solid "+_cell_border_line_color+";"
-            label.setStyleSheet(_cell_style)
-            self.grid_layout.addWidget(label, 0, col)
-
-        for row in range(1, 8):
-            week = []; jd_week = []
-            for col in range(7):
-                cell = CustomLabel(self)
-                cell.setMinimumSize(_calendar_cell_width, _calendar_cell_height)
-                cell.setVisible(False)
-                cell.clicked.connect(lambda r=row, c=col: self.cell_clicked(r, c))
-                self.grid_layout.addWidget(cell, row, col)
-                week.append(cell); jd_week.append(None)
-            self.cells.append(week); self.jd.append(jd_week)
-
-        v_layout.addLayout(self.grid_layout)
-        h_layout.addLayout(v_layout)
-        main_layout.addLayout(h_layout)
-        self.move(50,50)
-        self.setLayout(main_layout)
-        self.computeCalendar()
-    
-    @pyqtSlot(str)
-    def _on_show_more_link_clicked(self, link,jd, place):
-        if link == "show_more":
-            try:
-                _info_dialog = QDialog(self) 
-                _info_dialog.setWindowTitle(self.res['panchangam_str'])
-                dialog_layout = QVBoxLayout()
-                panchanga_widget = PanchangaInfoDialog(language=self._language,jd=jd,place=place)
-                dialog_layout.addWidget(panchanga_widget)
-                _info_dialog.setLayout(dialog_layout)
-                _info_dialog.show()
-            except Exception as e:
-                print(f"An error occurred: {e}")
-    def _change_language(self):
-        self._language = self._lang_combo.currentText()
-        utils.set_language(const.available_languages[self._language])
-        self.res = utils.resource_strings
-        self.computeCalendar()
-        
-    def _reshade_cells(self):
-        for row in range(7):
-            for col in range(7):
-                cell = self.cells[row][col]
-                if cell.isVisible():
-                    _cell_style = "border: "+str(_cell_border_line_thickness)+"px solid "+_cell_border_line_color+"; "
-                    if (row,col)==self.selected_cell:
-                        _cell_style +=  f"background-color: {input_day_color}"
-                    elif (row,col)==self.previous_month_cell:
-                        _cell_style +=  f"background-color: {previous_month_color}"
-                    elif (row,col)==self.next_month_cell:
-                        _cell_style +=  f"background-color: {next_month_color}"
+                    pref = None
+                    for g in group:
+                        if house.house_owner_from_planet_positions(pp, g, check_during_dhasa=True) == anchor_lord:
+                            pref = g
+                            break
+                    if pref is None:
+                        out.extend(group)
                     else:
-                        _cell_style +=  f"background-color: {default_color}"
-                    cell.setStyleSheet(_cell_style)
-    def _resize_place_text_size(self):
-        pt = self._place_text.text()
-        f = QFont("", 0)
-        fm = QFontMetrics(f)
-        pw = fm.boundingRect(pt).width()
-        ph = fm.height()
-        self._place_text.setFixedSize(pw, ph)
-        self._place_text.adjustSize()
+                        out.append(pref)
+                        out.extend([g for g in group if g != pref])
+                i = j
 
-    def _get_location(self, place_name):
-        result = utils.get_location(place_name)
-        print('RESULT', result)
-        if result:
-            self._place_name, self._latitude, self._longitude, self._time_zone = result
-            self._place_text.setText(self._place_name)
-            self._lat_text.setText(str(self._latitude))
-            self._long_text.setText(str(self._longitude))
-            self._tz_text.setText(str(self._time_zone))
-            print(self._place_name, self._latitude, self._longitude, self._time_zone)
-        else:
-            msg = place_name + " could not be found in OpenStreetMap.\nTry entering latitude and longitude manually.\nOr try entering nearest big city"
-            print(msg)
-            QMessageBox.about(self, "City not found", msg)
-            self._lat_text.setText('')
-            self._long_text.setText('')
-        self._resize_place_text_size()
+            seq.extend(out)
 
-    def _get_days_panchanga_info(self,row,col):
-        jd = self.jd[row][col]
-        if jd is not None:
-            place = self.start_place; y,m,d,_ = utils.jd_to_gregorian(jd); date_in = drik.Date(y,m,d)
-            _tit = drik.tithi(jd, place)[0]
-            _tithi_icon = _pournami_icon if _tit==15 else (_amavasai_icon if _tit==30 else '' )
-            _tithi = utils.TITHI_SHORT_LIST[_tit-1]
-            _paksha = 0 if _tit<=15 else  1
-            kp_icon = _shukla_paksha_icon if _paksha==0 else  _krishna_paksha_icon
-            _srise = utils.to_dms(drik.sunrise(jd, place)[0],round_to_minutes=True).strip()
-            _sset = utils.to_dms(drik.sunset(jd, place)[0],round_to_minutes=True).strip()
-            _nak = utils.NAKSHATRA_SHORT_LIST[drik.nakshatra(jd, place)[0]-1]
-            tm,td = drik.tamil_solar_month_and_date(date_in, place)
-            _panchanga_dict = {'top_left': (kp_icon,_tithi), 'middle_left':(_tithi_icon,str(td)),
-                               'middle_right':('',str(d)), 'bottom_left': _nak,
-                               'top_right': (_sunrise_icon,_srise), 'bottom_right':(_sunset_icon,_sset)}
-            header_text = str(y)+' '+ utils.MONTH_LIST_EN[m-1]+' '+str(d)+' '+utils.DAYS_LIST[drik.vaara(jd)]+' '+\
-                          utils.MONTH_LIST[tm]+' '+str(td)+' '+ utils.PAKSHA_LIST[_paksha]+' ' + \
-                          utils.TITHI_LIST[_tit-1]
-            return _panchanga_dict, header_text
-    def _update_resources(self):
-        msgs = self.res
-        self._dob_label.setText(msgs['date_of_birth_str'])
-        self._dob_label.setToolTip(msgs['dob_tooltip_str'])
-        self._place_label.setText(msgs['place_str'])
-        self._place_label.setToolTip(msgs['place_tooltip_str'])
-        self._lat_label.setText(msgs['latitude_str'])
-        self._lat_label.setToolTip(msgs['latitude_tooltip_str'])
-        self._long_label.setText(msgs['longitude_str'])
-        self._long_label.setToolTip(msgs['longitude_tooltip_str'])
-        self._tz_label.setText(msgs['timezone_offset_str'])
-        self._tz_label.setToolTip(msgs['timezone_tooltip_str'])
-        self.compute_btn.setText(msgs['calendar_str'])
-    def computeCalendar(self):
-        try:
-            self._update_resources()
-            date_str = self.date_text.text()
-            place_name = self._place_text.text()
-            latitude = float(self._lat_text.text())
-            longitude = float(self._long_text.text())
-            timezone = float(self._tz_text.text())
-            self.start_place = drik.Place(place_name, latitude, longitude, timezone)
-            year, month, day = utils.get_year_month_day_from_date_format(date_str)
-            selected_date = drik.Date(year,month,day)
-            _jd = utils.julian_day_number((year, month, 1), (10, 0, 0))
-            sunrise_hours = drik.sunrise(_jd,self.start_place)[0]
-            _jd = utils.julian_day_number((year, month, 1), (sunrise_hours, 0, 0))
-            first_day = drik.Date(year, month, 1)
-            previous_month_end = utils.previous_panchanga_day(first_day, minus_days=1)
-            if month == 12:
-                last_day = 31
-                next_month_start = drik.Date(year+1,1,1)
+    if len(seq) != 12:
+        raise ValueError(f"Invalid MD sequence length {len(seq)}: {seq}")
+    return seq
+
+
+# ---------------- durations ----------------
+def _md_years_paper(sign: int) -> float:
+    if _is_movable(sign): return 7.0
+    if _is_fixed(sign):   return 8.0
+    return 9.0
+
+def _md_years_book_cycle1(pp, sign: int) -> float:
+    return float(narayana._dhasa_duration(pp, sign))
+
+def _book_cycle_years(cycle_idx: int, cycle1: float) -> float:
+    if cycle_idx == 1:
+        return float(cycle1)
+    y2 = 12.0 - float(cycle1)
+    return 0.0 if y2 <= 0 else float(y2)
+
+
+# ---------------- child order (Antardasa and deeper) ----------------
+def _paper_children_order(parent_sign: int, pp) -> List[int]:
+    opp = _mod12(parent_sign + const.HOUSE_7)  # HOUSE_7 should be 6
+    seed = _stronger_for_dhasa(pp, parent_sign, opp)
+
+    direction = 1 if _is_odd_sign(parent_sign) else -1
+    direction = _apply_pair_exception_direction(pp, parent_sign, opp, seed, direction)
+
+    if _is_movable(parent_sign):
+        return [_mod12(seed + direction * i) for i in range(12)]
+
+    if _is_fixed(parent_sign):
+        step = 5 * direction
+        return [_mod12(seed + step * i) for i in range(12)]
+
+    # dual
+    step3 = 3 * direction
+    if direction == 1:
+        bases = [seed, _mod12(seed + const.HOUSE_5), _mod12(seed + const.HOUSE_9)]
+    else:
+        bases = [seed, _mod12(seed + const.HOUSE_9), _mod12(seed + const.HOUSE_5)]
+
+    seq = []
+    for base in bases:
+        for i in range(4):
+            seq.append(_mod12(base + step3 * i))
+    return seq
+
+
+def _book_children_order(parent_sign: int, pp) -> List[int]:
+    """
+    DRIG-local Narayana antardasa logic so that global stronger-pair overrides affect it.
+    Uses the same shape as narayana._narayana_antardhasa but seed comparison uses _stronger_for_dhasa.
+    """
+    dhasa_rasi = int(parent_sign) % 12
+
+    # lord of maha sign
+    lord_of_dhasa = house.house_owner_from_planet_positions(pp, dhasa_rasi, check_during_dhasa=True)
+    house_of_lord = pp[int(lord_of_dhasa) + 1][1][0]
+
+    # lord of 7th from maha sign
+    lord_of_7th = house.house_owner_from_planet_positions(pp, (dhasa_rasi + const.HOUSE_7) % 12, check_during_dhasa=True)
+    house_of_7th_lord = pp[int(lord_of_7th) + 1][1][0]
+
+    a = int(house_of_lord) % 12
+    b = int(house_of_7th_lord) % 12
+
+    seed = _stronger_for_dhasa(pp, a, b)
+
+    pth = _p_to_h(pp)
+    direction = 1 if seed in const.odd_signs else -1
+
+    # Saturn in seed -> force forward
+    if int(pth.get(const.SATURN_ID, -999)) == seed:
+        direction = 1
+
+    # apply pair exception (if configured for that opposite pair)
+    direction = _apply_pair_exception_direction(pp, a, b, seed, direction)
+
+    # Ketu in maha sign flips antardasa direction (Narayana rule)
+    if int(pth.get(const.KETU_ID, -999)) == dhasa_rasi:
+        direction *= -1
+
+    return [(seed + direction * i) % 12 for i in range(12)]
+
+
+def _children_order(parent_sign: int, pp, method: int) -> List[int]:
+    if method == const.DRIG_TYPE.PVR_BOOK:
+        return _book_children_order(parent_sign, pp)
+    return _paper_children_order(parent_sign, pp)
+
+
+# ---------------- recursion ----------------
+def _expand_equal_12(rows, target_depth, current_depth, lords_prefix, parent_sign, start_jd, dur_years,
+                     pp, method, round_duration):
+    if current_depth == target_depth:
+        _append_row(rows, lords_prefix, start_jd, dur_years, round_duration)
+        return
+
+    order = _children_order(parent_sign, pp, method)
+    child_years = float(dur_years) / 12.0
+    jd_ptr = float(start_jd)
+
+    for child_sign in order:
+        child_sign = int(child_sign) % 12
+        _expand_equal_12(rows, target_depth, current_depth + 1,
+                         lords_prefix + [child_sign],
+                         child_sign, jd_ptr, child_years,
+                         pp, method, round_duration)
+        jd_ptr += child_years * _DAYS_IN_YEAR
+
+
+# ============================================================
+# PUBLIC 1: get_dhasa_antardhasa
+# ============================================================
+def get_dhasa_antardhasa(jd: float,
+                         place,
+                         dhasa_method=const.DRIG_TYPE.PVR_PAPER,
+                         divisional_chart_factor: int = 1,
+                         chart_method: int = 1,
+                         **kwargs) -> List[Tuple]:
+    dhasa_level_index = int(kwargs.pop("dhasa_level_index", int(const.MAHA_DHASA_DEPTH.ANTARA)))
+    round_duration = bool(kwargs.pop("round_duration", True))
+    if not (1 <= dhasa_level_index <= 6):
+        raise ValueError("dhasa_level_index must be in 1..6")
+
+    pp = _pp_upto_ketu(jd, place, divisional_chart_factor, chart_method=chart_method, **kwargs)
+    chart = utils.get_house_planet_list_from_planet_positions(pp)
+    lagna = _lagna_sign(pp)
+    md_seq = _md_sequence(lagna, dhasa_method, chart, pp)
+
+    rows: List[Tuple] = []
+    jd_ptr = float(jd)
+
+    if dhasa_method == const.DRIG_TYPE.PVR_BOOK:
+        for cycle in (1, 2):
+            for md_sign in md_seq:
+                c1 = _md_years_book_cycle1(pp, md_sign)
+                md_years = _book_cycle_years(cycle, c1)
+                if md_years <= 0:
+                    continue
+
+                if dhasa_level_index == int(const.MAHA_DHASA_DEPTH.MAHA_DHASA_ONLY):
+                    _append_row(rows, [md_sign], jd_ptr, md_years, round_duration)
+                else:
+                    _expand_equal_12(rows, dhasa_level_index, 1, [md_sign], md_sign, jd_ptr, md_years,
+                                     pp, dhasa_method, round_duration)
+
+                jd_ptr += md_years * _DAYS_IN_YEAR
+    else:
+        for md_sign in md_seq:
+            md_years = _md_years_paper(md_sign)
+
+            if dhasa_level_index == int(const.MAHA_DHASA_DEPTH.MAHA_DHASA_ONLY):
+                _append_row(rows, [md_sign], jd_ptr, md_years, round_duration)
             else:
-                last_day = utils.next_panchanga_day(drik.Date(year,(month+1)%13,1), -1)
-                next_month_start = utils.next_panchanga_day(last_day, add_days=1)
-                last_day = last_day.day
-            _jd -= 1; current_date = previous_month_end
-            start_day = drik.vaara(_jd)
-            reached_end_of_month = False
-            [self.cells[row][col].setVisible(False) for col in range(7) for row in range(7)]
-            for row in range(7):
-                for col in range(7):
-                    cell = self.cells[row][col]
-                    cell.clear()
-                    if reached_end_of_month:
-                        break
-                    if row * 7 + col >= start_day:
-                        self.jd[row][col]=_jd
-                        cell.setVisible(True)
-                        panchanga_dict,_ = self._get_days_panchanga_info(row,col)
-                        if panchanga_dict is not None: cell.set_texts(panchanga_dict)
-                        _cell_style = "border: "+str(_cell_border_line_thickness)+"px solid "+_cell_border_line_color+"; "
-                        if current_date == selected_date:
-                            _cell_style += f"background-color: {input_day_color}"
-                            self.selected_cell = (row+1,col)
-                        elif current_date == previous_month_end:
-                            _cell_style += f"background-color: {previous_month_color}"
-                            self.previous_month_cell = (row,col)
-                        elif current_date == next_month_start:
-                            _cell_style += f"background-color: {next_month_color}"
-                            self.next_month_cell = (row,col)
-                        else:
-                            _cell_style += f"background-color: {default_color}"
-                        cell.setStyleSheet(_cell_style)
-                            
-                        reached_end_of_month = (current_date == next_month_start)
-                        current_date = utils.next_panchanga_day(current_date, add_days=1)
-                        _jd += 1
-            if self.selected_cell is not None:
-                self.cell_clicked(self.selected_cell[0], self.selected_cell[1])
-        except Exception as e:
-            print(f"An error occurred: {e}")
+                _expand_equal_12(rows, dhasa_level_index, 1, [md_sign], md_sign, jd_ptr, md_years,
+                                 pp, dhasa_method, round_duration)
 
-    def cell_clicked(self,row,col):
-        self.selected_cell = (row-1,col)
-        jd = self.jd[row-1][col]; place = self.start_place
-        self._reshade_cells()
-        sep_str = '\n'
-        info_list = self._fill_information_label1(jd,place).split(sep_str)
-        _,header_text = self._get_days_panchanga_info(row-1,col)
-        self.header_label.setText(header_text)
-        info_len = int(len(info_list)/3)
-        font = QFont(); font.setPointSize(_info_label1_font_size); self._info_label1.setFont(font)
-        self._info_label1.setText(sep_str.join(info_list[:]))
-        if self.selected_cell == self.previous_month_cell or self.selected_cell==self.next_month_cell:
-            y,m,d,_ = utils.jd_to_gregorian(self.jd[row-1][col])
-            self.date_text.setText(str(y)+','+str(m)+','+str(d))
-            self.computeCalendar()
-    def _fill_information_label1(self,jd,place,show_more_link=True):
-        try:
-            info_str = ''; format_str = _KEY_VALUE_FORMAT_
-            info_str = PanchangaInfoDialog._fill_information_label1(self,show_more_link=False, jd=jd, place=place)
-            if show_more_link:
-                info_str += format_str.format('<a href="show_more">Show more</a>','')
-                try:
-                    self._info_label1.linkActivated.disconnect()
-                except TypeError:
-                    pass
-                self._info_label1.linkActivated.connect(lambda link: self._on_show_more_link_clicked(link, jd, place))
-            return info_str
-        except Exception as e:
-            print(f"An error occurred: {e}")
-if __name__ == '__main__':
-    try:
-        app = QApplication(sys.argv)
-        lang = 'Tamil'
-        #start_date = (2012,8,18); start_place = drik.Place('Chennai,India',13.0878,80.2785,5.5)
-        start_date = None; start_place = None
-        ex = VedicCalendar(start_date=start_date,place=start_place,language=lang)
-        ex.show()
-        sys.exit(app.exec())
-    except Exception as e:
-        print(f"An error occurred: {e}")
+            jd_ptr += md_years * _DAYS_IN_YEAR
+
+    return rows
+
+
+# ============================================================
+# PUBLIC 2: drig_immediate_children
+# ============================================================
+def drig_immediate_children(
+    parent_lords: Union[int, Sequence[int]],
+    parent_start: Tuple[int, int, int, float],
+    parent_duration: Optional[float] = None,
+    parent_end: Optional[Tuple[int, int, int, float]] = None,
+    *,
+    jd_at_dob: float,
+    place,
+    dhasa_method=const.DRIG_TYPE.PVR_PAPER,
+    divisional_chart_factor: int = 1,
+    chart_method: int = 1,
+    **kwargs
+):
+    if isinstance(parent_lords, int):
+        path = (int(parent_lords) % 12,)
+    else:
+        path = tuple(int(x) % 12 for x in parent_lords)
+
+    parent_sign = int(path[-1]) % 12
+
+    start_jd = _tuple_to_jd(parent_start)
+    if (parent_duration is None) == (parent_end is None):
+        raise ValueError("Provide exactly one of parent_duration or parent_end.")
+    if parent_end is None:
+        end_jd = start_jd + float(parent_duration) * _DAYS_IN_YEAR
+    else:
+        end_jd = _tuple_to_jd(parent_end)
+
+    if end_jd <= start_jd:
+        return []
+
+    pp_birth = _pp_upto_ketu(jd_at_dob, place, divisional_chart_factor, chart_method=chart_method, **kwargs)
+    order = _children_order(parent_sign, pp_birth, dhasa_method)
+
+    parent_years = (end_jd - start_jd) / _DAYS_IN_YEAR
+    child_years = parent_years / 12.0
+
+    out = []
+    cursor = start_jd
+    for i, child_sign in enumerate(order):
+        child_end = end_jd if i == 11 else cursor + child_years * _DAYS_IN_YEAR
+        out.append([path + (int(child_sign) % 12,), _jd_to_tuple(cursor), _jd_to_tuple(child_end)])
+        cursor = child_end
+        if cursor >= end_jd:
+            break
+
+    if out:
+        out[-1][2] = _jd_to_tuple(end_jd)
+    return out
+
+
+# ============================================================
+# PUBLIC 3: get_running_dhasa_for_given_date
+# ============================================================
+def get_running_dhasa_for_given_date(
+    current_jd: float,
+    jd_at_dob: float,
+    place,
+    dhasa_method=const.DRIG_TYPE.PVR_PAPER,
+    dhasa_level_index: int = const.MAHA_DHASA_DEPTH.DEHA,
+    *,
+    divisional_chart_factor: int = 1,
+    chart_method: int = 1,
+    **kwargs
+):
+    target_depth = max(1, min(6, int(dhasa_level_index)))
+
+    # MD-only schedule
+    md_rows = get_dhasa_antardhasa(
+        jd=jd_at_dob,
+        place=place,
+        dhasa_method=dhasa_method,
+        divisional_chart_factor=divisional_chart_factor,
+        chart_method=chart_method,
+        dhasa_level_index=int(const.MAHA_DHASA_DEPTH.MAHA_DHASA_ONLY),
+        round_duration=False,
+        **kwargs
+    )
+    if not md_rows:
+        return []
+
+    spans = []
+    for lords, start_t, dur in md_rows:
+        sjd = _tuple_to_jd(start_t)
+        ejd = sjd + float(dur) * _DAYS_IN_YEAR
+        spans.append((sjd, ejd, tuple(lords)))
+    spans.sort(key=lambda x: x[0])
+
+    cur = float(current_jd)
+    running = None
+    for sjd, ejd, lords in spans:
+        if sjd <= cur < ejd:
+            running = [lords, _jd_to_tuple(sjd), _jd_to_tuple(ejd)]
+            break
+    if running is None:
+        sjd, ejd, lords = spans[-1]
+        running = [lords, _jd_to_tuple(sjd), _jd_to_tuple(ejd)]
+
+    ladder = [running]
+    if target_depth == 1:
+        return ladder
+
+    for depth in range(2, target_depth + 1):
+        parent_lords, parent_start, parent_end = running
+        children = drig_immediate_children(
+            parent_lords=parent_lords,
+            parent_start=parent_start,
+            parent_end=parent_end,
+            jd_at_dob=jd_at_dob,
+            place=place,
+            dhasa_method=dhasa_method,
+            divisional_chart_factor=divisional_chart_factor,
+            chart_method=chart_method,
+            **kwargs
+        )
+        if not children:
+            break
+
+        found = None
+        for lords, st, en in children:
+            sjd = _tuple_to_jd(st)
+            ejd = _tuple_to_jd(en)
+            if sjd <= cur < ejd:
+                found = (tuple(lords), st, en)
+                break
+        if found is None:
+            lords, st, en = children[-1]
+            found = (tuple(lords), st, en)
+
+        running = [found[0], found[1], found[2]]
+        ladder.append(running)
+
+    return ladder
+
+if __name__ == "__main__":
+    """
+    dob = drik.Date(1996,12,7)
+    tob = (10,34,0)
+    place = drik.Place('Chennai,IN', 13.0389, 80.2619, +5.5)
+    jd = utils.julian_day_number(dob, tob)
+    
+    pp1 = charts.divisional_chart(jd, place, divisional_chart_factor=1, chart_method=1)[:const._pp_count_upto_ketu]
+    pp9 = charts.divisional_chart(jd, place, divisional_chart_factor=9, chart_method=1)[:const._pp_count_upto_ketu]
+    
+    VI = const.VIRGO   # should be 5
+    PI = const.PISCES  # should be 11
+    
+    print("D1 stronger(Vi,Pi) =", house.stronger_rasi_from_planet_positions(pp1, VI, PI))
+    print("D9 stronger(Vi,Pi) =", house.stronger_rasi_from_planet_positions(pp9, VI, PI))
+    
+    print("D9 stronger(Aq,Le) =", house.stronger_rasi_from_planet_positions(pp9, const.AQUARIUS, const.LEO))
+    print("D9 stronger(Sc,Ta) =", house.stronger_rasi_from_planet_positions(pp9, const.SCORPIO, const.TAURUS))
+    chart9 = utils.get_house_planet_list_from_planet_positions(pp9)
+    
+    print("D9 Leo occupants:", chart9[const.LEO])
+    print("D9 Aquarius occupants:", chart9[const.AQUARIUS])    
+    exit()
+    """
+    utils.set_language('en')
+    utils.set_owner_overrides_for_dhasa(_DHASA_OWNER_OVERRIDES)
+    dob = drik.Date(1996,12,7)
+    tob = (10,34,0)
+    place = drik.Place('Chennai,IN', 13.0389, 80.2619, +5.5)
+    jd = utils.julian_day_number(dob, tob)
+    def print_md_ad(dcf, method, chart_method=1):
+        rows = get_dhasa_antardhasa(
+            jd=jd, place=place,
+            dhasa_method=method,
+            divisional_chart_factor=dcf,
+            chart_method=chart_method,
+            dhasa_level_index=const.MAHA_DHASA_DEPTH.ANTARA,  # MD+AD
+            round_duration=False
+        )
+    
+        # group by MD
+        cur_md = None
+        md_years = None
+        ad_list = []
+        for lords, start_t, dur in rows:
+            md = lords[0]
+            ad = lords[1]
+            if cur_md is None:
+                cur_md = md
+                ad_list = [ad]
+                md_years = dur * 12.0  # because rows are equal 1/12 for PAPER and also for BOOK expansion
+            elif md == cur_md:
+                ad_list.append(ad)
+            else:
+                print(utils.RAASI_SHORT_LIST[cur_md], f"({md_years:.0f})", ",".join(utils.RAASI_SHORT_LIST[x] for x in ad_list))
+                cur_md = md
+                ad_list = [ad]
+                md_years = dur * 12.0
+    
+        if cur_md is not None:
+            print(utils.RAASI_SHORT_LIST[cur_md], f"({md_years:.0f})", ",".join(utils.RAASI_SHORT_LIST[x] for x in ad_list))
+    
+    print("PVR_PAPER D1")
+    print_md_ad(1, const.DRIG_TYPE.PVR_PAPER, chart_method=1)
+    
+    print("PVR_PAPER D9")
+    print_md_ad(9, const.DRIG_TYPE.PVR_PAPER, chart_method=1)
+    
+    print("PVR_BOOK D1")
+    print_md_ad(1, const.DRIG_TYPE.PVR_BOOK, chart_method=1)
+    
+    print("PVR_BOOK D9")
+    print_md_ad(9, const.DRIG_TYPE.PVR_BOOK, chart_method=1)
+    exit()    
+    utils.set_language('en')
+    dob = drik.Date(1996,12,7); tob = (10,34,0)
+    place = drik.Place('Chennai,IN', 13.0389, 80.2619, +5.5)    
+    jd_at_dob  = utils.julian_day_number(dob, tob)
+    from datetime import datetime
+    current_date_str,current_time_str = datetime.now().strftime('%Y,%m,%d;%H:%M:%S').split(';')
+    y,m,d = map(int,current_date_str.split(','))
+    hh,mm,ss = map(int,current_time_str.split(':')); fh = hh+mm/60+ss/3600
+    print(utils.date_time_tuple_to_date_time_string(y, m, d, fh))
+    current_jd = utils.julian_day_number(drik.Date(y,m,d),(hh,mm,ss))
+    import time
+    _dhasa_method=const.DRIG_TYPE.PVR_BOOK; dcf = 9; chart_method = 1
+    sc_owner = const.KETU_ID; aq_owner = const.SATURN_ID
+    print("Drig Dhasa Method","PVR_BOOK" if _dhasa_method==const.DRIG_TYPE.PVR_BOOK else "PVR_PAPER","div=",dcf,"cm=",chart_method)
+    start_time = time.time()
+    DLI = const.MAHA_DHASA_DEPTH.MAHA_DHASA_ONLY
+    rd1 = get_running_dhasa_for_given_date(current_jd, jd_at_dob, place,
+                                                            dhasa_level_index=DLI,
+                                                            dhasa_method=_dhasa_method,
+                                                            divisional_chart_factor=dcf,
+                                                            chart_method=chart_method,
+                                                            scorpio_owner_for_dhasa_calculations=sc_owner,
+                                                            aquarius_owner_for_dhasa_calculations=aq_owner)
+    for row in rd1:
+        lords,ds,de = row
+        print([utils.RAASI_LIST[lord] for lord in lords],ds,de)
+    print('new method elapsed time',time.time()-start_time)
+    start_time = time.time()
+    _dhasa_cycles = 1 if _dhasa_method==1 else 2
+    ad = get_dhasa_antardhasa(jd_at_dob, place, dhasa_level_index=DLI,dhasa_method=_dhasa_method,
+                                                            divisional_chart_factor=dcf,
+                                                            chart_method=chart_method,
+                                                            scorpio_owner_for_dhasa_calculations=sc_owner,
+                                                            aquarius_owner_for_dhasa_calculations=aq_owner)
+    #"""
+    if DLI <= const.MAHA_DHASA_DEPTH.ANTARA:
+        for row in ad:
+            lords,ds,dur = row
+            print([utils.RAASI_LIST[lord] for lord in lords],ds,dur)
+        exit()
+    #"""
+    rd2 = utils.get_running_dhasa_at_all_levels_for_given_date(current_jd, ad,DLI,
+                                                               extract_running_period_for_all_levels=True,
+                                                               dhasa_cycle_count=_dhasa_cycles)
+    for row in rd2:
+        lords,ds,de = row
+        print([utils.RAASI_LIST[lord] for lord in lords],ds,de)
+    print('old method elapsed time',time.time()-start_time)
+    exit()
+    from jhora.tests import pvr_tests
+    pvr_tests._STOP_IF_ANY_TEST_FAILED = True
+    pvr_tests.chapter_21_tests()
