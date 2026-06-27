@@ -128,11 +128,9 @@ export const NorthIndianChart = ({
     cy: centroid.y,
   }));
 
-  const brass = "var(--jl-brass)";
-  const ink = "var(--jl-ink)";
-  const inkSoft = "var(--jl-ink-soft)";
-  const saffron = "var(--jl-saffron)";
-  const mono = "var(--jl-mono)";
+  const accent = "var(--saffron)";
+  const indigo = "var(--cosmic-indigo)";
+  const muted = "var(--text-secondary)";
 
   return (
     <div className="chart-card">
@@ -145,18 +143,25 @@ export const NorthIndianChart = ({
           role="img"
           aria-label={`${title} (${subtitle})`}
         >
-          {/* Outer square — brass on parchment */}
-          <rect x={squareX} y={squareY} width={size} height={size} fill="var(--jl-parchment)" stroke={brass} strokeWidth="2.5" />
+          <defs>
+            <linearGradient id="chartGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style={{ stopColor: "var(--saffron)", stopOpacity: 1 }} />
+              <stop offset="100%" style={{ stopColor: "var(--vermillion)", stopOpacity: 1 }} />
+            </linearGradient>
+          </defs>
+
+          {/* Outer square */}
+          <rect x={squareX} y={squareY} width={size} height={size} fill="white" stroke="url(#chartGradient)" strokeWidth="3" />
 
           {/* Diagonals */}
-          <line x1={topLeft.x} y1={topLeft.y} x2={bottomRight.x} y2={bottomRight.y} stroke={brass} strokeWidth="1.5" opacity="0.55" />
-          <line x1={topRight.x} y1={topRight.y} x2={bottomLeft.x} y2={bottomLeft.y} stroke={brass} strokeWidth="1.5" opacity="0.55" />
+          <line x1={topLeft.x} y1={topLeft.y} x2={bottomRight.x} y2={bottomRight.y} stroke={indigo} strokeWidth="2" />
+          <line x1={topRight.x} y1={topRight.y} x2={bottomLeft.x} y2={bottomLeft.y} stroke={indigo} strokeWidth="2" />
 
           {/* Inner diamond */}
-          <line x1={topMid.x} y1={topMid.y} x2={rightMid.x} y2={rightMid.y} stroke={brass} strokeWidth="1.5" opacity="0.55" />
-          <line x1={rightMid.x} y1={rightMid.y} x2={bottomMid.x} y2={bottomMid.y} stroke={brass} strokeWidth="1.5" opacity="0.55" />
-          <line x1={bottomMid.x} y1={bottomMid.y} x2={leftMid.x} y2={leftMid.y} stroke={brass} strokeWidth="1.5" opacity="0.55" />
-          <line x1={leftMid.x} y1={leftMid.y} x2={topMid.x} y2={topMid.y} stroke={brass} strokeWidth="1.5" opacity="0.55" />
+          <line x1={topMid.x} y1={topMid.y} x2={rightMid.x} y2={rightMid.y} stroke={indigo} strokeWidth="2" />
+          <line x1={rightMid.x} y1={rightMid.y} x2={bottomMid.x} y2={bottomMid.y} stroke={indigo} strokeWidth="2" />
+          <line x1={bottomMid.x} y1={bottomMid.y} x2={leftMid.x} y2={leftMid.y} stroke={indigo} strokeWidth="2" />
+          <line x1={leftMid.x} y1={leftMid.y} x2={topMid.x} y2={topMid.y} stroke={indigo} strokeWidth="2" />
 
           {houses.map((house) => {
             const planetsInHouse = getPlanetsInHouse(house.num);
@@ -165,7 +170,7 @@ export const NorthIndianChart = ({
             return (
               <g key={house.num}>
                 {/* House number */}
-                <text x={house.cx} y={house.cy - 25} textAnchor="middle" fill={brass} fontSize="11" fontFamily={mono} fontWeight="500">
+                <text x={house.cx} y={house.cy - 25} textAnchor="middle" fill={muted} fontSize="11" fontWeight="600">
                   {house.num}
                 </text>
 
@@ -174,9 +179,9 @@ export const NorthIndianChart = ({
                   x={house.cx}
                   y={house.cy - 10}
                   textAnchor="middle"
-                  fill={inkSoft}
+                  fill={indigo}
                   fontSize="10"
-                  fontFamily={mono}
+                  fontWeight="500"
                   opacity={isHovered ? 1 : 0}
                   style={{ transition: "opacity 0.2s ease" }}
                 >
@@ -193,14 +198,13 @@ export const NorthIndianChart = ({
                         x={house.cx}
                         y={startY + 10 + idx * 20}
                         textAnchor="middle"
-                        fill={item.type === "lagna" ? saffron : ink}
+                        fill={item.type === "lagna" ? accent : indigo}
                         fontSize="13"
-                        fontFamily={mono}
-                        fontWeight="600"
+                        fontWeight="700"
                       >
                         {item.name}
                       </text>
-                      <text x={house.cx} y={startY + 22 + idx * 20} textAnchor="middle" fill={inkSoft} fontSize="8" fontFamily={mono}>
+                      <text x={house.cx} y={startY + 22 + idx * 20} textAnchor="middle" fill={muted} fontSize="8">
                         {item.degrees?.toFixed(1)}°
                       </text>
                     </g>
@@ -222,12 +226,12 @@ export const NorthIndianChart = ({
             );
           })}
 
-          {/* Center cartouche */}
-          <text x={center.x} y={center.y - 4} textAnchor="middle" fill={ink} fontSize="13" fontFamily="var(--jl-display)" fontWeight="600">
+          {/* Center label */}
+          <text x={center.x} y={center.y - 5} textAnchor="middle" fill={indigo} fontSize="12" fontWeight="700">
             {title}
           </text>
-          <text x={center.x} y={center.y + 12} textAnchor="middle" fill={brass} fontSize="9" fontFamily={mono} letterSpacing="1.5">
-            {subtitle.toUpperCase()}
+          <text x={center.x} y={center.y + 10} textAnchor="middle" fill={muted} fontSize="10">
+            {subtitle}
           </text>
         </svg>
       </div>

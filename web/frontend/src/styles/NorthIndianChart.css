@@ -1,21 +1,21 @@
-/* North Indian (diamond) chart card — Jyotisha Ledger style */
+/* North Indian (diamond) chart card — Vedic theme */
 
 .chart-card {
-  background: var(--jl-parchment-deep);
-  border: 1px solid var(--jl-parchment-line);
-  border-radius: 6px;
-  padding: 20px;
+  background: white;
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-xl);
+  box-shadow: var(--shadow-lg);
+  border-top: 4px solid var(--saffron);
 }
 
 .chart-card-title {
-  font-family: var(--jl-mono);
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--jl-brass);
-  margin-bottom: 14px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  color: var(--cosmic-indigo);
+  font-size: 1.5rem;
 }
 
 .chart-card-svg-wrap {
@@ -23,18 +23,17 @@
   justify-content: center;
   align-items: center;
   width: 100%;
-  max-width: 560px;
+  max-width: 600px;
   margin: 0 auto;
 }
 
 .chart-empty {
   text-align: center;
-  color: var(--jl-ink-faint);
-  font-family: var(--jl-mono);
-  font-size: 0.85rem;
-  padding: 32px;
+  color: var(--text-muted);
+  padding: var(--space-xl);
 }
 
-@media (max-width: 640px) {
-  .chart-card { padding: 14px; }
+@media (max-width: 768px) {
+  .chart-card { padding: var(--space-lg); }
+  .chart-card-title { font-size: 1.25rem; }
 }

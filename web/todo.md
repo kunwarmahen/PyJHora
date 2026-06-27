@@ -59,36 +59,28 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
       as a future option (faster dev, smaller config).
 - [ ] Add a `.env.example`-driven config check so a missing API base URL fails loudly.
 
-## 3. Visual redesign — Refined Vedic / "Jyotisha Ledger" (P1)
+## 3. Visual redesign (P1) — REVERTED, keep the original look
 
-Direction chosen 2026-06-27: **"Jyotisha Ledger"** — birth chart as a precise
-astronomical instrument on aged manuscript. Indigo ink + antique brass + parchment;
-saffron is a precise accent only (no gradients). Type: Fraunces (display) / Inter
-(body) / IBM Plex Mono (astronomical data). Tokens are prefixed `--jl-*` in
-`src/styles/ledger.css` so they coexist with the legacy theme during rollout.
-**Birth Chart page rebuilt as the reference implementation** (see preview note below).
+**Decision 2026-06-27:** the "Jyotisha Ledger" redesign (indigo/brass/parchment, then a
+warm-saffron variant) was built on the Birth Chart page + Dashboard, but the owner
+preferred the **original saffron/cream Vedic design** (the look still on the Dasha,
+Compatibility, etc. pages). Reverted Dashboard + Birth Chart to the original; deleted
+the ledger design system (`ledger.css`, `LedgerLayout.js`, `GrahaTable.js`, preview HTML).
 
-- [x] **Tokens:** established as `--jl-*` in `ledger.css` (ink/brass/parchment +
-      saffron accent + 3 type roles). Legacy `App.css` tokens untouched for now.
-- [x] **Remove the noise** (on the redesigned page): no mandala/pulse-glow/gradient
-      text; one static paper-grain background. Legacy pages still have it — rolls out
-      as they migrate.
-- [x] **Typography:** Fraunces / Inter / IBM Plex Mono with a real scale, applied on
-      Birth Chart page.
-- [x] **Cards:** soft 1px parchment border, 6px radius, no heavy shadows / saffron bars
-      (chart cards + table). Applied on Birth Chart page.
-- [x] **North Indian chart restyle:** brass-on-parchment, solid strokes (gradient
-      removed), mono glyphs, lagna in saffron. Done in `NorthIndianChart.js`.
-- [ ] **Roll the `--jl-*` system + ledger layout across the other pages** (Dashboard,
-      Profile Selection, Dhasa, Compatibility, Predictions, Ask Astrologer, Login/Register).
-- [ ] Extract a shared `LedgerLayout` (topbar + folio) from BirthChartPage during rollout.
-- [ ] **Dark mode** (token-based night-sky variant) — toggle, not default.
-- [ ] Empty states, skeleton loaders (Birth Chart has a ledger loading state; others pending).
-- [ ] Optional degrees toggle on the chart; consider South-Indian style toggle (§5).
+**Kept from the effort (functional, look-agnostic):**
+- Timezone bug fix, /health fix, PyJHora 4.8.7, backend requirements (all backend).
+- Navamsa (D9) chart now rendered alongside Rasi on Birth Chart — in the original style.
+- `NorthIndianChart` is reusable (props for D9) with React-state hover (no raw DOM);
+  colors reverted to the original saffron/indigo.
+- Profile form: LocationSearch is source of truth, lat/long/tz an optional override.
+- Dead code removed (ChartTestPage, astrology_fixed.py).
 
-> **Preview:** `frontend/ledger-preview.html` (gitignored throwaway) renders the new
-> Birth Chart look with sample data — open in a browser to review the direction without
-> running the full stack.
+**If the design is revisited later:** the original `App.css` token system is the basis;
+do incremental cleanups (kill inline styles, shared navbar) WITHOUT changing the visual
+identity. Don't reintroduce a wholesale new theme unless the owner asks.
+
+> Lesson learned: the owner likes the existing saffron/cream Vedic identity — modernize
+> by cleaning it up, not replacing it.
 
 ## 4. Mobile / responsive (P1)
 
