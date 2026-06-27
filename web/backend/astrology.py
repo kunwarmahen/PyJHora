@@ -22,6 +22,10 @@ except ImportError as e:
 class AstrologyCompute:
     """Core astrology calculations using PyJHora"""
 
+    # Expose the module-level availability flag as a class attribute so callers
+    # (e.g. the /health endpoint) can read AstrologyCompute.PYJHORA_AVAILABLE.
+    PYJHORA_AVAILABLE = PYJHORA_AVAILABLE
+
     @staticmethod
     def calculate_birth_chart(dob: str, tob: str, place: str,
                              lat: Optional[float] = None, lon: Optional[float] = None,
@@ -111,14 +115,24 @@ class AstrologyCompute:
                 }
 
             # Format planetary positions for D9
+            # Include 1-based 'house' so the frontend chart component can render D9
             d9_planets = {}
             for planet_index, (rasi, degrees) in d9_chart[1:]:
                 planet_name = planet_names.get(planet_index, f"Planet_{planet_index}")
                 d9_planets[planet_name] = {
                     "rasi": rasi,
+                    "house": rasi + 1,  # Convert from 0-based rasi to 1-based house
                     "degrees": round(degrees, 2),
                     "sign_name": zodiac_names[rasi]
                 }
+
+            # D9 (Navamsa) ascendant / lagna — index 0 of the divisional chart
+            d9_ascendant = d9_chart[0][1]  # (rasi, degrees)
+            d9_lagna = {
+                "house": d9_ascendant[0] + 1,  # 1-based for frontend
+                "degrees": round(d9_ascendant[1], 2),
+                "sign_name": zodiac_names[d9_ascendant[0]]
+            }
 
             # Format for frontend chart component (expects 'house' which is 1-based instead of 'rasi' which is 0-based)
             planets_for_chart = {}
@@ -151,6 +165,7 @@ class AstrologyCompute:
                     "nakshatra_pada": ascendant_pada
                 },
                 "planets": planets_for_chart,  # For frontend chart component
+                "d9_lagna": d9_lagna,  # Navamsa ascendant for D9 chart rendering
                 "d1_chart": d1_planets,
                 "d9_chart": d9_planets,
                 "d1_houses": [[p[1][0]] for p in d1_chart],  # House-wise planet placement

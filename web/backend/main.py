@@ -150,9 +150,9 @@ async def calculate_birth_chart(
             place=birth_details.place,
             lat=birth_details.latitude,
             lon=birth_details.longitude,
-            tz=5.5
+            tz=birth_details.timezone
         )
-        
+
         charts_collection = database["charts"]
         chart_doc = {
             "user_id": current_user,
@@ -528,7 +528,7 @@ async def generate_prediction(
             place=request.birth_details.place,
             lat=request.birth_details.latitude,
             lon=request.birth_details.longitude,
-            tz=5.5
+            tz=request.birth_details.timezone
         )
 
         # Validate LLM provider
@@ -574,7 +574,7 @@ async def analyze_compatibility(
             male_lon=male_details.longitude,
             female_lat=female_details.latitude,
             female_lon=female_details.longitude,
-            tz=5.5
+            tz=male_details.timezone or female_details.timezone
         )
 
         # Get chart data for both
@@ -584,7 +584,7 @@ async def analyze_compatibility(
             place=male_details.place,
             lat=male_details.latitude,
             lon=male_details.longitude,
-            tz=5.5
+            tz=male_details.timezone
         )
 
         female_chart = AstrologyCompute.get_horoscope_predictions(
@@ -593,7 +593,7 @@ async def analyze_compatibility(
             place=female_details.place,
             lat=female_details.latitude,
             lon=female_details.longitude,
-            tz=5.5
+            tz=female_details.timezone
         )
 
         # Validate LLM provider

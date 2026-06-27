@@ -12,7 +12,6 @@ import { CompatibilityPage } from './pages/CompatibilityPage';
 import { DhasaPage } from './pages/DhasaPage';
 import { PredictionsPage } from './pages/PredictionsPage';
 import { AskAstrologerPage } from './pages/AskAstrologerPage';
-import { ChartTestPage } from './pages/ChartTestPage';
 import './App.css';
 
 function App() {
@@ -83,15 +82,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AskAstrologerPage />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/chart-test"
-              element={
-                <ProtectedRoute>
-                  <ChartTestPage />
                 </ProtectedRoute>
               }
             />

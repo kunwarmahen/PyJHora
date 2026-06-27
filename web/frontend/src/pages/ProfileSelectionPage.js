@@ -67,6 +67,11 @@ export const ProfileSelectionPage = () => {
       setError('Please enter a profile name');
       return;
     }
+    if (formData.latitude == null || formData.longitude == null ||
+        formData.latitude === '' || formData.longitude === '') {
+      setError('Please search and select a place of birth (this sets the coordinates and timezone).');
+      return;
+    }
 
     setSaving(true);
     setError('');
@@ -327,48 +332,51 @@ export const ProfileSelectionPage = () => {
                 )}
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Latitude *</label>
-                  <input
-                    type="number"
-                    name="latitude"
-                    value={formData.latitude || ''}
-                    onChange={handleInputChange}
-                    placeholder="e.g., 28.6139"
-                    step="0.0001"
-                    required
-                  />
+              {/* Coordinates & timezone are auto-filled from the location search above.
+                  These fields are an optional manual override for advanced users. */}
+              <details className="advanced-coordinates">
+                <summary>Advanced: adjust coordinates &amp; timezone</summary>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Latitude</label>
+                    <input
+                      type="number"
+                      name="latitude"
+                      value={formData.latitude ?? ''}
+                      onChange={handleInputChange}
+                      placeholder="Auto-filled from place"
+                      step="0.0001"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Longitude</label>
+                    <input
+                      type="number"
+                      name="longitude"
+                      value={formData.longitude ?? ''}
+                      onChange={handleInputChange}
+                      placeholder="Auto-filled from place"
+                      step="0.0001"
+                    />
+                  </div>
                 </div>
 
                 <div className="form-group">
-                  <label>Longitude *</label>
-                  <input
-                    type="number"
-                    name="longitude"
-                    value={formData.longitude || ''}
+                  <label>Timezone (UTC offset)</label>
+                  <select
+                    name="timezone"
+                    value={formData.timezone}
                     onChange={handleInputChange}
-                    placeholder="e.g., 77.2090"
-                    step="0.0001"
-                    required
-                  />
+                  >
+                    {timezones.map(tz => (
+                      <option key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </div>
-
-              <div className="form-group">
-                <label>Timezone</label>
-                <select
-                  name="timezone"
-                  value={formData.timezone}
-                  onChange={handleInputChange}
-                >
-                  {timezones.map(tz => (
-                    <option key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              </details>
 
               {error && (
                 <div className="error-message">

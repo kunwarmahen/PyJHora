@@ -7,9 +7,13 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Backend**: FastAPI with MongoDB for data persistence and JWT authentication
 - **Frontend**: React SPA with responsive UI
 - **Authentication**: User registration and login with JWT tokens
-- **Features**: Birth Chart, Horoscope, Compatibility, Dhasa, Transit predictions
+- **Features**: Birth Chart (Rasi D1 + Navamsa D9), Horoscope, Compatibility, Dhasa, Transit predictions
 - **AI Integration**: Multi-model LLM support (Qwen 2.5, Google Gemini, ChatGPT)
 - **Interactive Q&A**: Chat with AI Astrologer for personalized insights
+
+> **Modernization in progress.** See [`todo.md`](todo.md) for the redesign plan and
+> feature backlog. Charts are computed using the birth location's actual timezone,
+> and the Birth Chart page now renders both the Rasi (D1) and Navamsa (D9) charts.
 
 ## What's New - AI-Powered Features 🆕
 

@@ -1,0 +1,273 @@
+/* ============================================================
+   Jyotisha Ledger — Refined Vedic design system
+   Scoped under .jl-page so it coexists with the legacy theme.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* Palette */
+  --jl-ink: #1C2541;
+  --jl-ink-soft: #4A5273;
+  --jl-ink-faint: #8A8FA6;
+  --jl-parchment: #F6EFE2;
+  --jl-parchment-deep: #ECE0C8;
+  --jl-parchment-line: #DCCBA6;
+  --jl-brass: #B07D2B;
+  --jl-brass-soft: rgba(176, 125, 43, 0.30);
+  --jl-saffron: #D9772E;
+  --jl-vermilion: #9E2B25;
+
+  /* Type */
+  --jl-display: 'Fraunces', Georgia, serif;
+  --jl-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --jl-mono: 'IBM Plex Mono', 'SFMono-Regular', Menlo, monospace;
+
+  /* Rhythm */
+  --jl-maxw: 1080px;
+  --jl-gap: 28px;
+}
+
+/* ---------- Page shell ---------- */
+.jl-page {
+  min-height: 100vh;
+  background-color: var(--jl-parchment);
+  /* faint engraved paper grain — static, no animation */
+  background-image:
+    radial-gradient(circle at 18% 12%, rgba(176, 125, 43, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 88% 78%, rgba(28, 37, 65, 0.04) 0%, transparent 45%);
+  color: var(--jl-ink);
+  font-family: var(--jl-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Top bar ---------- */
+.jl-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px clamp(20px, 5vw, 48px);
+  background: var(--jl-ink);
+  color: var(--jl-parchment);
+  border-bottom: 2px solid var(--jl-brass);
+}
+
+.jl-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--jl-mono);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.jl-brand svg { color: var(--jl-saffron); }
+
+.jl-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--jl-parchment);
+  border: 1px solid rgba(246, 239, 226, 0.28);
+  border-radius: 4px;
+  padding: 7px 14px;
+  font-family: var(--jl-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.jl-back:hover { border-color: var(--jl-saffron); background: rgba(217, 119, 46, 0.12); }
+.jl-back:focus-visible { outline: 2px solid var(--jl-saffron); outline-offset: 2px; }
+
+/* ---------- Folio (content) ---------- */
+.jl-folio {
+  max-width: var(--jl-maxw);
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 56px) clamp(20px, 5vw, 48px) 80px;
+}
+
+/* ---------- Masthead (birth particulars) ---------- */
+.jl-eyebrow {
+  font-family: var(--jl-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--jl-brass);
+  margin-bottom: 10px;
+}
+
+.jl-name {
+  font-family: var(--jl-display);
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-size: clamp(2.1rem, 5vw, 3.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+  color: var(--jl-ink);
+  margin: 0;
+}
+
+.jl-particulars {
+  font-size: 1rem;
+  color: var(--jl-ink-soft);
+  margin-top: 8px;
+}
+
+.jl-rule {
+  height: 1px;
+  background: var(--jl-brass);
+  opacity: 0.55;
+  margin: 22px 0;
+}
+
+/* mono ledger row of coordinates */
+.jl-coords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  font-family: var(--jl-mono);
+  font-size: 0.82rem;
+}
+.jl-coords > div { display: flex; gap: 8px; align-items: baseline; }
+.jl-coords dt {
+  color: var(--jl-ink-faint);
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+}
+.jl-coords dd { color: var(--jl-ink); font-weight: 500; }
+
+/* ---------- Section heads ---------- */
+.jl-section { margin-top: clamp(36px, 6vw, 56px); }
+
+.jl-section-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.jl-section-head h2 {
+  font-family: var(--jl-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--jl-ink);
+  white-space: nowrap;
+}
+.jl-section-head::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--jl-parchment-line);
+}
+
+/* ---------- Charts row ---------- */
+.jl-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--jl-gap);
+}
+
+/* ---------- Graha (ephemeris) table ---------- */
+.jl-table-wrap { overflow-x: auto; }
+
+.jl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.jl-table thead th {
+  font-family: var(--jl-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--jl-brass);
+  text-align: left;
+  padding: 0 14px 10px;
+  border-bottom: 1.5px solid var(--jl-brass);
+  white-space: nowrap;
+}
+.jl-table thead th.jl-num { text-align: right; }
+
+.jl-table tbody td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--jl-parchment-line);
+  color: var(--jl-ink);
+  vertical-align: baseline;
+}
+.jl-table tbody tr:last-child td { border-bottom: none; }
+.jl-table tbody tr:hover td { background: rgba(176, 125, 43, 0.06); }
+
+.jl-body-name { font-weight: 600; }
+.jl-glyph {
+  font-family: var(--jl-mono);
+  color: var(--jl-ink-soft);
+  width: 1.4em;
+  display: inline-block;
+}
+.jl-num {
+  font-family: var(--jl-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.jl-deg { color: var(--jl-ink); }
+
+/* Lagna row — the one saffron accent in the table */
+.jl-row-lagna td { background: rgba(217, 119, 46, 0.07); }
+.jl-row-lagna .jl-body-name { color: var(--jl-saffron); }
+.jl-row-lagna td:first-child {
+  box-shadow: inset 3px 0 0 var(--jl-saffron);
+}
+
+/* ---------- Loading / error / empty ---------- */
+.jl-loading {
+  text-align: center;
+  padding: clamp(48px, 12vw, 120px) 20px;
+  color: var(--jl-ink-soft);
+}
+.jl-loading-mark {
+  width: 40px; height: 40px;
+  margin: 0 auto 20px;
+  border: 2px solid var(--jl-brass-soft);
+  border-top-color: var(--jl-brass);
+  border-radius: 50%;
+  animation: jl-spin 0.9s linear infinite;
+}
+@keyframes jl-spin { to { transform: rotate(360deg); } }
+.jl-loading h2 {
+  font-family: var(--jl-display);
+  font-weight: 500;
+  font-size: 1.4rem;
+  color: var(--jl-ink);
+  margin-bottom: 6px;
+}
+
+.jl-alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  margin-bottom: 28px;
+  background: rgba(158, 43, 37, 0.07);
+  border: 1px solid rgba(158, 43, 37, 0.35);
+  border-left: 4px solid var(--jl-vermilion);
+  border-radius: 4px;
+  color: var(--jl-vermilion);
+  font-size: 0.92rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jl-loading-mark { animation: none; }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+  .jl-coords { gap: 6px 20px; font-size: 0.76rem; }
+  .jl-table tbody td, .jl-table thead th { padding-left: 10px; padding-right: 10px; }
+}
