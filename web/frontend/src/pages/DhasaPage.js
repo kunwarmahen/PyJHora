@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Clock, AlertCircle, ArrowLeft, User, Star, ChevronDown, ChevronRight, Calendar } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
+import { orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
 import "../styles/Dashboard.css";
 
@@ -185,9 +186,9 @@ export const DhasaPage = () => {
               <div className="profile-meta">
                 <span>{selectedProfile.birth_details.name || 'Anonymous'}</span>
                 <span className="separator">•</span>
-                <span>{selectedProfile.birth_details.dob.split('T')[0]}</span>
+                <span>{formatDate(selectedProfile.birth_details.dob)}</span>
                 <span className="separator">•</span>
-                <span>{selectedProfile.birth_details.place}</span>
+                <span>{orDash(selectedProfile.birth_details.place)}</span>
               </div>
             </div>
           </div>

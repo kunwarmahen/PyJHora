@@ -10,6 +10,7 @@ import {
   Star,
 } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
+import { formatDate, orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import "../styles/Dashboard.css";
@@ -120,9 +121,9 @@ export const BirthChartPage = () => {
               <div className="profile-meta">
                 <span>{selectedProfile.birth_details.name || 'Anonymous'}</span>
                 <span className="separator">•</span>
-                <span>{selectedProfile.birth_details.dob.split('T')[0]}</span>
+                <span>{formatDate(selectedProfile.birth_details.dob)}</span>
                 <span className="separator">•</span>
-                <span>{selectedProfile.birth_details.place}</span>
+                <span>{orDash(selectedProfile.birth_details.place)}</span>
               </div>
             </div>
           </div>
@@ -237,7 +238,7 @@ export const BirthChartPage = () => {
                     </span>
                   </div>
                   <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--cosmic-indigo)' }}>
-                    {selectedProfile.birth_details.dob.split('T')[0]}
+                    {formatDate(selectedProfile.birth_details.dob)}
                   </div>
                 </div>
                 <div style={{
@@ -259,7 +260,7 @@ export const BirthChartPage = () => {
                     </span>
                   </div>
                   <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--cosmic-indigo)' }}>
-                    {selectedProfile.birth_details.tob}
+                    {orDash(selectedProfile.birth_details.tob)}
                   </div>
                 </div>
                 <div style={{
@@ -281,7 +282,7 @@ export const BirthChartPage = () => {
                     </span>
                   </div>
                   <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--cosmic-indigo)' }}>
-                    {selectedProfile.birth_details.place}
+                    {orDash(selectedProfile.birth_details.place)}
                   </div>
                 </div>
               </div>

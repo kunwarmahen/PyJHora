@@ -24,8 +24,11 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
       is now the source of truth; manual lat/long/timezone moved into a collapsible
       "Advanced" override and are no longer `required`. Save validates that coordinates
       exist (from search or manual override).
-- [ ] Verify dates: `dob.split('T')[0]` assumes ISO; confirm backend always returns
-      that shape, and handle missing `tob`/`place` gracefully (currently raw render).
+- [x] **Date/field robustness.** DONE 2026-06-27: added `src/utils/format.js`
+      (`formatDate`, `orDash`) and routed all `dob.split('T')[0]` renders + raw
+      `tob`/`place` through them across Dashboard, ProfileSelection, BirthChart,
+      AskAstrologer, Compatibility (DhasaPage already had a safe local `formatDate`).
+      Missing values now show "—" instead of crashing on `.split` of undefined.
 - [ ] **Docker can't import PyJHora.** `backend/Dockerfile` build context is `./backend`
       and compose mounts only `./backend:/app`, but `astrology.py` imports jhora from
       `../../src` — that path doesn't exist in the container, so PyJHora fails in Docker

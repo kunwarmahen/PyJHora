@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../contexts/ProfileContext';
+import { formatDate, orDash } from '../utils/format';
 import { User, Plus, Calendar, MapPin, Clock, Trash2, ChevronRight, Star, Edit2 } from 'lucide-react';
 import LocationSearch from '../components/LocationSearch';
 import '../styles/ProfileSelection.css';
@@ -193,15 +194,15 @@ export const ProfileSelectionPage = () => {
                         </div>
                         <div className="detail-item">
                           <Calendar size={14} />
-                          <span>{profile.birth_details.dob.split('T')[0]}</span>
+                          <span>{formatDate(profile.birth_details.dob)}</span>
                         </div>
                         <div className="detail-item">
                           <Clock size={14} />
-                          <span>{profile.birth_details.tob}</span>
+                          <span>{orDash(profile.birth_details.tob)}</span>
                         </div>
                         <div className="detail-item">
                           <MapPin size={14} />
-                          <span>{profile.birth_details.place}</span>
+                          <span>{orDash(profile.birth_details.place)}</span>
                         </div>
                       </div>
                       <div className="select-indicator">

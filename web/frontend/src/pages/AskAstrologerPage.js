@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
+import { formatDate, orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import "../styles/Dashboard.css";
@@ -267,9 +268,9 @@ export const AskAstrologerPage = () => {
               <div className="profile-meta">
                 <span>{selectedProfile.birth_details.name || 'Anonymous'}</span>
                 <span className="separator">•</span>
-                <span>{selectedProfile.birth_details.dob.split('T')[0]}</span>
+                <span>{formatDate(selectedProfile.birth_details.dob)}</span>
                 <span className="separator">•</span>
-                <span>{selectedProfile.birth_details.place}</span>
+                <span>{orDash(selectedProfile.birth_details.place)}</span>
               </div>
             </div>
           </div>

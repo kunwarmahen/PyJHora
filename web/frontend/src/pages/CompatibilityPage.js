@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, AlertCircle, ArrowLeft, User, Star, Users, Sparkles } from 'lucide-react';
 import { useProfile } from '../contexts/ProfileContext';
+import { formatDate, orDash } from '../utils/format';
 import { astrologyService } from '../services/api';
 import '../styles/Dashboard.css';
 
@@ -187,13 +188,13 @@ export const CompatibilityPage = () => {
                     <strong>Name:</strong> {selectedProfile.birth_details.name || 'Anonymous'}
                   </div>
                   <div style={{ marginBottom: 'var(--space-xs)' }}>
-                    <strong>DOB:</strong> {selectedProfile.birth_details.dob.split('T')[0]}
+                    <strong>DOB:</strong> {formatDate(selectedProfile.birth_details.dob)}
                   </div>
                   <div style={{ marginBottom: 'var(--space-xs)' }}>
-                    <strong>Time:</strong> {selectedProfile.birth_details.tob}
+                    <strong>Time:</strong> {orDash(selectedProfile.birth_details.tob)}
                   </div>
                   <div>
-                    <strong>Place:</strong> {selectedProfile.birth_details.place}
+                    <strong>Place:</strong> {orDash(selectedProfile.birth_details.place)}
                   </div>
                 </div>
               </div>
@@ -271,13 +272,13 @@ export const CompatibilityPage = () => {
                       <strong>Name:</strong> {secondProfile.birth_details.name || 'Anonymous'}
                     </div>
                     <div style={{ marginBottom: 'var(--space-xs)' }}>
-                      <strong>DOB:</strong> {secondProfile.birth_details.dob.split('T')[0]}
+                      <strong>DOB:</strong> {formatDate(secondProfile.birth_details.dob)}
                     </div>
                     <div style={{ marginBottom: 'var(--space-xs)' }}>
-                      <strong>Time:</strong> {secondProfile.birth_details.tob}
+                      <strong>Time:</strong> {orDash(secondProfile.birth_details.tob)}
                     </div>
                     <div>
-                      <strong>Place:</strong> {secondProfile.birth_details.place}
+                      <strong>Place:</strong> {orDash(secondProfile.birth_details.place)}
                     </div>
                   </div>
                 </div>

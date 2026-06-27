@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
+import { formatDate, orDash } from "../utils/format";
 import { Calendar, Heart, Clock, MessageCircle, LogOut, User, Star, Sparkles } from "lucide-react";
 import "../styles/Dashboard.css";
 
@@ -83,9 +84,9 @@ export const DashboardPage = () => {
                 <div className="profile-meta">
                   <span>{selectedProfile.birth_details.name || 'Anonymous'}</span>
                   <span className="separator">•</span>
-                  <span>{selectedProfile.birth_details.dob.split('T')[0]}</span>
+                  <span>{formatDate(selectedProfile.birth_details.dob)}</span>
                   <span className="separator">•</span>
-                  <span>{selectedProfile.birth_details.place}</span>
+                  <span>{orDash(selectedProfile.birth_details.place)}</span>
                 </div>
               </div>
             </div>
