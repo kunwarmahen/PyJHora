@@ -57,7 +57,8 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
       across Dashboard, BirthChart, Dhasa, Compatibility, etc. Extract once.
 - [ ] **Shared primitives:** `<Card>`, `<Button>`, `<PageHeader>`, `<DataField>`,
       `<LoadingState>`, `<ErrorBanner>` to replace the repeated ad-hoc blocks.
-- [ ] Centralize the planet/rasi/nakshatra constants (duplicated across components).
+- [x] Centralize the planet/rasi constants — `src/constants/jyotish.js` (PLANET_ABBR,
+      RASI_NAMES, RASI_ABBR); used by both chart components. (2026-06-27)
 - [ ] Add an ESLint/Prettier pass; CRA is fine for now but note migration to Vite
       as a future option (faster dev, smaller config).
 - [ ] Add a `.env.example`-driven config check so a missing API base URL fails loudly.
@@ -100,8 +101,10 @@ identity. Don't reintroduce a wholesale new theme unless the owner asks.
 The engine (`src/jhora/...`, see `features_per_book.txt`) supports far more than the
 web exposes. High-value additions:
 
-- [ ] **Chart style toggle: North vs South Indian** (P1). South Indian is the more
-      common style for many users; engine has both.
+- [x] **Chart style toggle: North vs South Indian** (P1). DONE 2026-06-27: new
+      `SouthIndianChart.js` (fixed-sign 4x4 grid); toggle on Birth Chart page switches
+      both Rasi + Navamsa, preference saved to localStorage. Lagna cell marked with a
+      saffron corner. Reuses the same data (planet `house` = sign number).
 - [ ] **Divisional charts D1–D60** (P1): at minimum D9 (Navamsa), D10 (Dasamsa,
       career), D7, D12, D24 with a varga picker.
 - [ ] **Panchanga / daily almanac** (P1): tithi, nakshatra, yoga, karana, vaara,

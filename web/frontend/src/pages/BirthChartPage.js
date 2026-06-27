@@ -13,6 +13,7 @@ import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
 import { NorthIndianChart } from "../components/NorthIndianChart";
+import { SouthIndianChart } from "../components/SouthIndianChart";
 import "../styles/Dashboard.css";
 
 export const BirthChartPage = () => {
@@ -22,6 +23,14 @@ export const BirthChartPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [chartStyle, setChartStyle] = useState(
+    () => localStorage.getItem("chartStyle") || "north"
+  );
+
+  const changeChartStyle = (style) => {
+    setChartStyle(style);
+    localStorage.setItem("chartStyle", style);
+  };
 
   // Redirect if no profile selected, otherwise calculate chart
   useEffect(() => {
@@ -288,16 +297,39 @@ export const BirthChartPage = () => {
               </div>
             </div>
 
-            {/* North Indian Charts: Rasi (D1) + Navamsa (D9) */}
-            <NorthIndianChart chartData={result} title="Rasi Chart" subtitle="North Indian" />
-            {result.d9_chart && result.d9_lagna && (
-              <NorthIndianChart
-                planets={result.d9_chart}
-                lagna={result.d9_lagna}
-                title="Navamsa Chart"
-                subtitle="D9 · North Indian"
-              />
-            )}
+            {/* Chart style toggle: North / South Indian */}
+            {(() => {
+              const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
+              const styleLabel = chartStyle === "south" ? "South Indian" : "North Indian";
+              return (
+                <>
+                  <div className="chart-style-toggle" role="group" aria-label="Chart style">
+                    <button
+                      className={chartStyle === "north" ? "active" : ""}
+                      onClick={() => changeChartStyle("north")}
+                    >
+                      North Indian
+                    </button>
+                    <button
+                      className={chartStyle === "south" ? "active" : ""}
+                      onClick={() => changeChartStyle("south")}
+                    >
+                      South Indian
+                    </button>
+                  </div>
+
+                  <Kundali chartData={result} title="Rasi Chart" subtitle={styleLabel} />
+                  {result.d9_chart && result.d9_lagna && (
+                    <Kundali
+                      planets={result.d9_chart}
+                      lagna={result.d9_lagna}
+                      title="Navamsa Chart"
+                      subtitle={`D9 · ${styleLabel}`}
+                    />
+                  )}
+                </>
+              );
+            })()}
 
             {/* Nakshatra Information Section */}
             {result.lagna || result.d1_chart ? (

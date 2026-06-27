@@ -1,24 +1,6 @@
 import React, { useState } from "react";
+import { PLANET_ABBR, RASI_NAMES } from "../constants/jyotish";
 import "../styles/NorthIndianChart.css";
-
-// Planet abbreviations for cleaner display
-const PLANET_ABBR = {
-  Sun: "Su",
-  Moon: "Mo",
-  Mars: "Ma",
-  Mercury: "Me",
-  Jupiter: "Ju",
-  Venus: "Ve",
-  Saturn: "Sa",
-  Rahu: "Ra",
-  Ketu: "Ke",
-};
-
-// Rasi / Sign names (1-indexed lookup via getSignForVisualHouse)
-const RASI_NAMES = [
-  "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-  "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
-];
 
 /**
  * Reusable North Indian (diamond) chart.
