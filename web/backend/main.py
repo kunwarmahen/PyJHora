@@ -275,6 +275,7 @@ def generate_basic_predictions(chart_data):
 @app.post("/api/astrology/doshas")
 async def get_doshas(
     birth_details: BirthDetails,
+    ayanamsa: str = "LAHIRI",
     current_user: str = Depends(get_current_user)
 ):
     """Get doshas"""
@@ -285,7 +286,8 @@ async def get_doshas(
             place=birth_details.place,
             lat=birth_details.latitude,
             lon=birth_details.longitude,
-            tz=birth_details.timezone
+            tz=birth_details.timezone,
+            ayanamsa=ayanamsa
         )
         return doshas
     except Exception as e:

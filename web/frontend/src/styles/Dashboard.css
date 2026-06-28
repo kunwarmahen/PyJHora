@@ -330,3 +330,41 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Dosha cards (Birth Chart page) ===== */
+.dosha-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-md);
+}
+.dosha-card {
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--sandalwood);
+  background: var(--sacred-white);
+  transition: all 0.25s ease;
+}
+.dosha-card.present {
+  border-color: var(--vermillion);
+  background: rgba(227, 66, 52, 0.04);
+}
+.dosha-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+.dosha-name { font-weight: 700; color: var(--cosmic-indigo); font-size: 1rem; }
+.dosha-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+.dosha-badge.yes { background: var(--vermillion); color: white; }
+.dosha-badge.no { background: rgba(45, 53, 97, 0.08); color: var(--text-secondary); }
+.dosha-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }

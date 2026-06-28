@@ -24,6 +24,7 @@ export const BirthChartPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [doshas, setDoshas] = useState(null);
   const [chartStyle, setChartStyle] = useState(
     () => localStorage.getItem("chartStyle") || "north"
   );
@@ -71,6 +72,13 @@ export const BirthChartPage = () => {
 
       const response = await astrologyService.calculateBirthChart(birthDetails, ayanamsa);
       setResult(response.data);
+
+      // Doshas load independently — a failure here shouldn't blank the chart.
+      setDoshas(null);
+      astrologyService
+        .getDoshas(birthDetails, ayanamsa)
+        .then((r) => setDoshas(r.data?.doshas || null))
+        .catch(() => setDoshas(null));
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to calculate chart");
     } finally {
@@ -471,6 +479,39 @@ export const BirthChartPage = () => {
                 )}
               </div>
             ) : null}
+
+            {/* Doshas */}
+            {doshas && doshas.length > 0 && (
+              <div style={{
+                background: 'white',
+                borderRadius: 'var(--radius-xl)',
+                padding: 'var(--space-xl)',
+                marginTop: 'var(--space-xl)',
+                boxShadow: 'var(--shadow-lg)',
+                borderTop: '4px solid var(--saffron)'
+              }}>
+                <h3 style={{
+                  display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
+                  marginBottom: 'var(--space-lg)', color: 'var(--cosmic-indigo)', fontSize: '1.5rem'
+                }}>
+                  <Star size={24} style={{ color: 'var(--saffron)' }} />
+                  Doshas
+                </h3>
+                <div className="dosha-grid">
+                  {doshas.map((d) => (
+                    <div key={d.key} className={`dosha-card${d.present ? ' present' : ''}`}>
+                      <div className="dosha-head">
+                        <span className="dosha-name">{d.name}</span>
+                        <span className={`dosha-badge ${d.present ? 'yes' : 'no'}`}>
+                          {d.present ? 'Present' : 'Absent'}
+                        </span>
+                      </div>
+                      <p className="dosha-desc">{d.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : null}
       </div>

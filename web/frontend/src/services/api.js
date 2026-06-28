@@ -47,7 +47,8 @@ export const astrologyService = {
     api.post("/api/astrology/horoscope", birthDetails, {
       params: { use_qwen: useQwen }
     }),
-  getDoshas: (birthDetails) => api.post("/api/astrology/doshas", birthDetails),
+  getDoshas: (birthDetails, ayanamsa = "LAHIRI") =>
+    api.post("/api/astrology/doshas", birthDetails, { params: { ayanamsa } }),
   getYogas: (birthDetails) => api.post("/api/astrology/yogas", birthDetails),
   getDhasa: (birthDetails, dashaType = "vimsottari") =>
     api.post("/api/astrology/dhasa", {

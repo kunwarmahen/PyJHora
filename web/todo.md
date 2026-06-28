@@ -127,8 +127,13 @@ web exposes. High-value additions:
 - [ ] **More dasha systems** (P2): Ashtottari, Narayana, Kalachakra, Yogini, etc.
       (engine has ~10 under `dhasa/`).
 - [ ] **Ashtakavarga** (P2): Bhinna + Sarva tables/heatmap.
-- [ ] **Yogas & Doshas surfaced as cards** (P1): backend already has `/doshas`,
-      `/yogas`; present them with plain-language explanations (Manglik, Kaal Sarp…).
+- [~] **Yogas & Doshas surfaced as cards** (P1). DOSHAS DONE 2026-06-28: implemented
+      `AstrologyCompute.get_doshas` (the `/doshas` compute was a stub) — 8 doshas
+      (Kala Sarpa, Manglik, Pitru, Guru Chandala, Ganda Moola, Kalathra, Ghata, Shrapit)
+      with present/absent + plain-language descriptions; endpoint takes `ayanamsa`.
+      Birth Chart page shows a Doshas card grid (present = vermillion highlight),
+      refetched on ayanamsa change. TODO: implement `get_yogas` (still a stub) +
+      yoga cards (PyJHora `yoga.py` has the functions).
 - [ ] **Arudha Padas, Karakas, Special Lagnas, Upagrahas** (P2): engine supports;
       add to an "advanced" chart details section.
 - [ ] **Transits / Gochara** (P1): backend `/transit` exists; add a current-transits

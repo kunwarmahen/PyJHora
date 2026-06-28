@@ -405,8 +405,68 @@ class AstrologyCompute:
         return {"error": "Not implemented yet"}
 
     @staticmethod
-    def get_doshas(*args, **kwargs):
-        return {"error": "Not implemented yet"}
+    def get_doshas(dob: str, tob: str, place: str,
+                   lat: Optional[float] = None, lon: Optional[float] = None,
+                   tz: Optional[float] = None, ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Detect the common doshas for a birth chart (present/absent + description)."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz or 5.5
+            jd = swe.julday(year, month, day, hour + minute / 60)
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+
+            pp = charts.rasi_chart(jd, place_obj)
+            h2p = utils.get_house_planet_list_from_planet_positions(pp)
+            moon_rasi, moon_long = pp[2][1]  # pp[0]=Asc, pp[1]=Sun, pp[2]=Moon
+            moon_star = drik.nakshatra_pada(moon_rasi * 30 + moon_long)[0]
+
+            def _present(v):
+                if isinstance(v, bool):
+                    return v
+                if isinstance(v, (list, tuple)):
+                    return any(x is True for x in v)
+                return bool(v)
+
+            catalog = [
+                ("kala_sarpa", "Kala Sarpa Dosha", dosha.kala_sarpa(h2p),
+                 "All planets fall on one side of the Rahu–Ketu axis. Can bring delays and obstacles, often with strong results later in life."),
+                ("manglik", "Manglik (Kuja) Dosha", dosha.manglik(pp),
+                 "Mars in certain houses from the Lagna, Moon or Venus. Traditionally weighed in marriage compatibility."),
+                ("pitru", "Pitru Dosha", dosha.pitru_dosha(pp),
+                 "Affliction linked to the 9th house and the Sun, associated with ancestral karma."),
+                ("guru_chandala", "Guru Chandala Dosha", dosha.guru_chandala_dosha(pp),
+                 "Jupiter conjunct Rahu or Ketu. Can affect judgement, ethics and guidance."),
+                ("ganda_moola", "Ganda Moola Dosha", dosha.ganda_moola(moon_star),
+                 "Moon in a gandanta nakshatra (Ashwini, Ashlesha, Magha, Jyeshtha, Mula, Revati). A sensitive early period; remedies are advised."),
+                ("kalathra", "Kalathra Dosha", dosha.kalathra(pp),
+                 "Affliction to the 7th house and spouse significators, considered for marriage and partnerships."),
+                ("ghata", "Ghata Dosha", dosha.ghata(pp),
+                 "Mars–Saturn conjunction. Can bring friction, haste and accidents."),
+                ("shrapit", "Shrapit Dosha", dosha.shrapit(pp),
+                 "Rahu–Saturn conjunction. Associated with chronic, carried-over difficulties."),
+            ]
+            doshas = [
+                {"key": k, "name": n, "present": _present(v), "description": d}
+                for (k, n, v, d) in catalog
+            ]
+            return {
+                "status": "success",
+                "doshas": doshas,
+                "present_count": sum(1 for x in doshas if x["present"]),
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
     def get_yogas(*args, **kwargs):
