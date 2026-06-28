@@ -12,10 +12,15 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
 ## 1. Bugs & correctness (P0 — fix first)
 
 - [x] **Wrong ayanamsa (planets one house off vs JHora).** FIXED 2026-06-27: PyJHora
-      defaults to `TRUE_PUSHYA`; the backend now sets `LAHIRI` (Jagannatha Hora's
-      default) at import in `astrology.py`. The ~0.9° difference was flipping fast
-      bodies (esp. the Moon) near a sign cusp into the wrong rasi/house. Affects all
-      computations (charts, dashas, compatibility). TODO: make ayanamsa configurable.
+      defaults to `TRUE_PUSHYA`; the backend now defaults to `LAHIRI` (Jagannatha Hora's
+      default). The ~0.9° difference was flipping fast bodies (esp. the Moon) near a sign
+      cusp into the wrong rasi/house.
+- [x] **User-selectable ayanamsa.** DONE 2026-06-28: backend `calculate_birth_chart`
+      takes an `ayanamsa` arg (default Lahiri) + resets after each request so endpoints
+      don't leak; `GET /api/astrology/ayanamsas` lists the curated options; Birth Chart
+      page has a dropdown (Lahiri/True Chitra/KP/Raman/Yukteshwar/True Pushya/Fagan),
+      persisted in localStorage, refetches on change. FOLLOW-UP: thread the selected
+      ayanamsa through the Dasha/Compatibility pages too (they currently use Lahiri).
 - [x] **North Indian chart clutter.** FIXED 2026-06-27: crowded houses now use a
       compact one-line-per-planet layout (name + inline degree) with adaptive
       spacing/size, instead of two stacked lines that overflowed the triangles.

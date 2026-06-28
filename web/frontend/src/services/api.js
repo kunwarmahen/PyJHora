@@ -40,8 +40,8 @@ export const authService = {
 };
 
 export const astrologyService = {
-  calculateBirthChart: (birthDetails) =>
-    api.post("/api/astrology/birth-chart", birthDetails),
+  calculateBirthChart: (birthDetails, ayanamsa = "LAHIRI") =>
+    api.post("/api/astrology/birth-chart", birthDetails, { params: { ayanamsa } }),
   getBirthChart: (chartId) => api.get(`/api/astrology/birth-chart/${chartId}`),
   getHoroscope: (birthDetails, useQwen = false) =>
     api.post("/api/astrology/horoscope", birthDetails, {

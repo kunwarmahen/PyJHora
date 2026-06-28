@@ -153,3 +153,33 @@
   .si-pl { font-size: 0.72rem; }
   .si-sign { font-size: 0.55rem; }
 }
+
+/* ===== Chart controls row (style toggle + ayanamsa) ===== */
+.chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+.chart-controls .chart-style-toggle { margin-bottom: 0; }
+.ayanamsa-select {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.ayanamsa-select select {
+  padding: 8px 12px;
+  border: 2px solid var(--sandalwood-dark);
+  border-radius: var(--radius-md);
+  background: white;
+  color: var(--cosmic-indigo);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ayanamsa-select select:focus { outline: 2px solid var(--saffron); outline-offset: 1px; }

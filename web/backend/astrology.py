@@ -26,6 +26,32 @@ except ImportError as e:
     print(f"PyJHora import error: {e}")
     PYJHORA_AVAILABLE = False
 
+DEFAULT_AYANAMSA = "LAHIRI"
+
+# Curated, user-facing ayanamsa options (value -> label). Values must exist in
+# PyJHora's const.available_ayanamsa_modes.
+SUPPORTED_AYANAMSAS = {
+    "LAHIRI": "Lahiri (Chitrapaksha)",
+    "TRUE_CITRA": "True Chitra Paksha",
+    "KP": "Krishnamurti (KP)",
+    "RAMAN": "B. V. Raman",
+    "YUKTESHWAR": "Sri Yukteshwar",
+    "TRUE_PUSHYA": "True Pushya",
+    "FAGAN": "Fagan / Bradley",
+}
+
+
+def _set_ayanamsa(name):
+    """Set the global ayanamsa for the next computation; fall back to the default
+    for unknown values. Returns the key that was actually applied."""
+    key = (name or DEFAULT_AYANAMSA).upper()
+    if key not in SUPPORTED_AYANAMSAS:
+        key = DEFAULT_AYANAMSA
+    if PYJHORA_AVAILABLE:
+        drik.set_ayanamsa_mode(key)
+    return key
+
+
 class AstrologyCompute:
     """Core astrology calculations using PyJHora"""
 
@@ -36,12 +62,13 @@ class AstrologyCompute:
     @staticmethod
     def calculate_birth_chart(dob: str, tob: str, place: str,
                              lat: Optional[float] = None, lon: Optional[float] = None,
-                             tz: Optional[float] = None) -> Dict:
+                             tz: Optional[float] = None, ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """Calculate birth chart with planetary positions"""
         if not PYJHORA_AVAILABLE:
             return {"error": "PyJHora not available"}
 
         try:
+            _set_ayanamsa(ayanamsa)
             # Parse date/time
             year, month, day = map(int, dob.split("-"))
             time_parts = tob.split(":")
@@ -184,6 +211,9 @@ class AstrologyCompute:
             import traceback
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
+        finally:
+            # Restore the default so other endpoints aren't affected by this request.
+            _set_ayanamsa(DEFAULT_AYANAMSA)
 
     # Alias for backwards compatibility
     get_birth_chart = calculate_birth_chart

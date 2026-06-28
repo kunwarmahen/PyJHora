@@ -10,7 +10,7 @@ from config import settings
 from database import connect_to_mongo, close_mongo_connection
 from auth import create_access_token, decode_token, get_password_hash, verify_password, Token
 from database import User, BirthDetails, ChartData, Prediction
-from astrology import AstrologyCompute
+from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA
 from qwen_predictor import QwenPredictor
 from llm_service import llm_service, LLMProvider
 
@@ -138,19 +138,21 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 @app.post("/api/astrology/birth-chart")
 async def calculate_birth_chart(
     birth_details: BirthDetails,
+    ayanamsa: str = "LAHIRI",
     current_user: str = Depends(get_current_user)
 ):
     """Calculate birth chart for given details"""
     try:
         from database import database
-        
+
         chart = AstrologyCompute.get_birth_chart(
             dob=birth_details.dob,
             tob=birth_details.tob,
             place=birth_details.place,
             lat=birth_details.latitude,
             lon=birth_details.longitude,
-            tz=birth_details.timezone
+            tz=birth_details.timezone,
+            ayanamsa=ayanamsa
         )
 
         charts_collection = database["charts"]
@@ -167,6 +169,14 @@ async def calculate_birth_chart(
         return chart
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/astrology/ayanamsas")
+async def list_ayanamsas():
+    """Supported ayanamsa options for chart calculation."""
+    return {
+        "default": DEFAULT_AYANAMSA,
+        "options": [{"value": k, "label": v} for k, v in SUPPORTED_AYANAMSAS.items()],
+    }
 
 @app.get("/api/astrology/birth-chart/{chart_id}")
 async def get_birth_chart(chart_id: str, current_user: str = Depends(get_current_user)):

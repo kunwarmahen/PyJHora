@@ -14,6 +14,7 @@ import { formatDate, orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
+import { AYANAMSAS, DEFAULT_AYANAMSA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 
 export const BirthChartPage = () => {
@@ -26,13 +27,21 @@ export const BirthChartPage = () => {
   const [chartStyle, setChartStyle] = useState(
     () => localStorage.getItem("chartStyle") || "north"
   );
+  const [ayanamsa, setAyanamsa] = useState(
+    () => localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA
+  );
 
   const changeChartStyle = (style) => {
     setChartStyle(style);
     localStorage.setItem("chartStyle", style);
   };
 
-  // Redirect if no profile selected, otherwise calculate chart
+  const changeAyanamsa = (value) => {
+    setAyanamsa(value);
+    localStorage.setItem("ayanamsa", value);
+  };
+
+  // Redirect if no profile selected; (re)calculate when profile or ayanamsa changes
   useEffect(() => {
     if (!selectedProfile) {
       navigate('/profile-selection');
@@ -40,7 +49,8 @@ export const BirthChartPage = () => {
     }
 
     calculateChart();
-  }, [selectedProfile, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProfile, navigate, ayanamsa]);
 
   const calculateChart = async () => {
     if (!selectedProfile) return;
@@ -59,7 +69,7 @@ export const BirthChartPage = () => {
         timezone: parseFloat(selectedProfile.birth_details.timezone),
       };
 
-      const response = await astrologyService.calculateBirthChart(birthDetails);
+      const response = await astrologyService.calculateBirthChart(birthDetails, ayanamsa);
       setResult(response.data);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to calculate chart");
@@ -303,19 +313,30 @@ export const BirthChartPage = () => {
               const styleLabel = chartStyle === "south" ? "South Indian" : "North Indian";
               return (
                 <>
-                  <div className="chart-style-toggle" role="group" aria-label="Chart style">
-                    <button
-                      className={chartStyle === "north" ? "active" : ""}
-                      onClick={() => changeChartStyle("north")}
-                    >
-                      North Indian
-                    </button>
-                    <button
-                      className={chartStyle === "south" ? "active" : ""}
-                      onClick={() => changeChartStyle("south")}
-                    >
-                      South Indian
-                    </button>
+                  <div className="chart-controls">
+                    <div className="chart-style-toggle" role="group" aria-label="Chart style">
+                      <button
+                        className={chartStyle === "north" ? "active" : ""}
+                        onClick={() => changeChartStyle("north")}
+                      >
+                        North Indian
+                      </button>
+                      <button
+                        className={chartStyle === "south" ? "active" : ""}
+                        onClick={() => changeChartStyle("south")}
+                      >
+                        South Indian
+                      </button>
+                    </div>
+
+                    <label className="ayanamsa-select">
+                      <span>Ayanamsa</span>
+                      <select value={ayanamsa} onChange={(e) => changeAyanamsa(e.target.value)}>
+                        {AYANAMSAS.map((a) => (
+                          <option key={a.value} value={a.value}>{a.label}</option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
 
                   <Kundali chartData={result} title="Rasi Chart" subtitle={styleLabel} />
