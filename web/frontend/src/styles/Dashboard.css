@@ -421,6 +421,13 @@
   color: var(--cosmic-indigo);
   font-size: 1.5rem;
 }
+.panchanga-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+.panchanga-controls .chart-style-toggle { margin-bottom: 0; }
 .panchanga-date {
   padding: var(--space-xs) var(--space-md);
   border: 1px solid var(--sandalwood);
@@ -429,6 +436,16 @@
   font-size: 0.9rem;
   background: var(--sacred-white);
 }
+.panchanga-place {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.panchanga-place svg { color: var(--saffron); }
 .panchanga-status {
   color: var(--text-secondary);
   font-size: 0.9rem;

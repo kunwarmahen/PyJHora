@@ -728,7 +728,11 @@ class AstrologyCompute:
 
             kar = drik.karana(jd, place_obj)
 
-            weekday = drik.vaara(jd, place_obj)
+            # Read vaara at local noon, not at sunrise: the vedic weekday compares
+            # the time-of-day against sunrise, and evaluating exactly at sunrise
+            # lands on a floating-point boundary that can flip to the previous day
+            # (notably at western longitudes). Noon is safely within the vedic day.
+            weekday = drik.vaara(jd_noon, place_obj)
 
             def _period(option):
                 s, e = drik.trikalam(jd_noon, place_obj, option)
@@ -775,5 +779,30 @@ class AstrologyCompute:
         return {"error": "Not implemented yet"}
 
     @staticmethod
-    def search_location(*args, **kwargs):
-        return {"error": "Not implemented yet"}
+    def search_location(query: str = "", *args, **kwargs):
+        """Geocode a free-text place query to [display_name, lat, lon, tz_offset].
+
+        Coordinates come from OpenStreetMap (Nominatim via geopy) and the UTC
+        offset from timezonefinder (both already PyJHora dependencies). The tz
+        offset reflects the place's *current* rules (incl. DST), which is what
+        the form needs when picking a location. Returns None when nothing
+        matches so the endpoint can report a friendly "not found"."""
+        if not PYJHORA_AVAILABLE:
+            return None
+        q = (query or "").strip()
+        if not q:
+            return None
+        try:
+            from geopy.geocoders import Nominatim
+
+            geolocator = Nominatim(user_agent="PyJHoraWeb", timeout=10)
+            loc = geolocator.geocode(q, language="en")
+            if not loc:
+                return None
+            lat = round(loc.latitude, 6)
+            lon = round(loc.longitude, 6)
+            tz = utils.get_place_timezone_offset(lat, lon)
+            return [loc.address, lat, lon, round(float(tz), 2)]
+        except Exception as e:
+            print(f"Location search error: {e}")
+            return None

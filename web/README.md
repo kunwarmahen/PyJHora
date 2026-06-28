@@ -220,7 +220,7 @@ REACT_APP_API_TIMEOUT=30000
 - Yogas & Doshas surfaced as cards
 - Panchanga (daily almanac) panel: tithi, vaara, nakshatra, yoga, karana plus
   sunrise/sunset and rahu kalam / yamaganda / gulika / abhijit / durmuhurtam,
-  with a date picker
+  with a date picker and a Birth-place / Current-location (geolocation) toggle
 - Store charts in MongoDB
 - Display planetary positions
 

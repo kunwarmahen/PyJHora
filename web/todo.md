@@ -40,6 +40,15 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
       is now the source of truth; manual lat/long/timezone moved into a collapsible
       "Advanced" override and are no longer `required`. Save validates that coordinates
       exist (from search or manual override).
+- [x] **`search_location` was a stub → LocationSearch broken.** FIXED 2026-06-28:
+      `AstrologyCompute.search_location` returned `{"error": "Not implemented yet"}`,
+      so `/api/location/search` (which indexes `result[0..3]`) 500'd on every query.
+      Implemented it with geopy Nominatim (OpenStreetMap) for coordinates +
+      timezonefinder for the UTC offset (both already PyJHora deps); returns
+      `[display_name, lat, lon, tz]` or `None` (→ friendly "not found"). Verified
+      Chennai/Mumbai/NYC/London/Tokyo resolve with correct tz. NOTE: tz reflects the
+      place's *current* DST rules — fine for picking a location, a known limitation for
+      historical births (the app stores a single tz offset anyway).
 - [x] **Date/field robustness.** DONE 2026-06-27: added `src/utils/format.js`
       (`formatDate`, `orDash`) and routed all `dob.split('T')[0]` renders + raw
       `tob`/`place` through them across Dashboard, ProfileSelection, BirthChart,
@@ -145,8 +154,13 @@ web exposes. High-value additions:
       defaults to "today" in the place's own timezone. `GET /api/astrology/panchanga`
       (query params, auth-protected). Frontend: self-contained `PanchangaPanel`
       component (own fetch, won't blank the page on failure) with a date picker,
-      rendered on the Birth Chart page using the profile's location; styled in
-      `Dashboard.css` in the original saffron/gold identity.
+      rendered on the Birth Chart page; styled in `Dashboard.css` in the original
+      saffron/gold identity. UPDATED 2026-06-28: location toggle — "Birth place"
+      (profile) vs "Current location" (browser geolocation → lat/lon, tz from
+      `getTimezoneOffset`, reverse-geocoded name via BigDataCloud, graceful
+      fallback). Fixed a vaara bug exposed by western longitudes: reading the
+      weekday exactly at sunrise hit a float boundary that flipped to the prior
+      vedic day (NYC/London showed Sat for a Sun) — now read at local noon.
 - [ ] **Vimsottari Dasa with drill-down** (P1): the Dhasa page exists; add nested
       Dasa→Bhukti→Antara→Sookshma tree with current-period highlighting.
 - [ ] **More dasha systems** (P2): Ashtottari, Narayana, Kalachakra, Yogini, etc.

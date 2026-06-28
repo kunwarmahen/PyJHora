@@ -1,11 +1,30 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Sun, Sunrise, Sunset } from "lucide-react";
+import { Sun, Sunrise, Sunset, MapPin } from "lucide-react";
 import { astrologyService } from "../services/api";
 
 /**
- * Daily almanac (Panchanga) for a location. Defaults to today; a date picker
- * lets the user check any day. Self-contained: fetches independently so a
- * failure here never blanks the surrounding page.
+ * Reverse-geocode coordinates to a "City, Country" label using BigDataCloud's
+ * free, key-less, CORS-enabled client endpoint. Returns null on any failure —
+ * the panchanga itself only needs lat/lon/timezone, so the name is cosmetic.
+ */
+async function reverseGeocode(latitude, longitude) {
+  try {
+    const res = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+    );
+    const d = await res.json();
+    const city = d.city || d.locality || d.principalSubdivision;
+    return [city, d.countryName].filter(Boolean).join(", ") || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Daily almanac (Panchanga) for a location. Defaults to the profile's birth
+ * place, but can switch to the device's current location (browser geolocation)
+ * for a true "today, here" almanac. A date picker lets the user check any day.
+ * Self-contained: fetches independently so a failure never blanks the page.
  */
 export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
   const today = new Date().toISOString().split("T")[0];
@@ -14,15 +33,62 @@ export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Location source: 'birth' (profile) or 'current' (device geolocation).
+  const [source, setSource] = useState("birth");
+  const [currentLoc, setCurrentLoc] = useState(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState("");
+
+  const birthLoc = { place, latitude, longitude, timezone };
+  const activeLoc = source === "current" && currentLoc ? currentLoc : birthLoc;
+
+  const requestCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setGeoError("Geolocation isn't supported by this browser.");
+      return;
+    }
+    setGeoLoading(true);
+    setGeoError("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(4));
+        const lon = Number(pos.coords.longitude.toFixed(4));
+        // getTimezoneOffset() is (UTC - local) in minutes; negate for the
+        // east-positive offset PyJHora expects (e.g. IST -330 → +5.5).
+        const tz = -new Date().getTimezoneOffset() / 60;
+        const name = (await reverseGeocode(lat, lon)) || "Current location";
+        setCurrentLoc({ place: name, latitude: lat, longitude: lon, timezone: tz });
+        setSource("current");
+        setGeoLoading(false);
+      },
+      (err) => {
+        setGeoError(
+          err.code === err.PERMISSION_DENIED
+            ? "Location permission denied."
+            : "Couldn't get your current location."
+        );
+        setGeoLoading(false);
+      },
+      { timeout: 10000, maximumAge: 600000 }
+    );
+  }, []);
+
+  const useCurrent = () => {
+    if (currentLoc) setSource("current");
+    else requestCurrentLocation();
+  };
+
   const load = useCallback(() => {
+    if (activeLoc.latitude == null || activeLoc.longitude == null) return;
     setLoading(true);
     setError("");
     astrologyService
-      .getPanchanga({ place, latitude, longitude, timezone, date })
+      .getPanchanga({ ...activeLoc, date })
       .then((r) => setData(r.data))
       .catch(() => setError("Panchanga unavailable for this place/date."))
       .finally(() => setLoading(false));
-  }, [place, latitude, longitude, timezone, date]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLoc.place, activeLoc.latitude, activeLoc.longitude, activeLoc.timezone, date]);
 
   useEffect(() => {
     load();
@@ -46,14 +112,36 @@ export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
           <Sun size={24} style={{ color: "var(--saffron)" }} />
           Panchanga
         </h3>
-        <input
-          type="date"
-          className="panchanga-date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          aria-label="Almanac date"
-        />
+        <div className="panchanga-controls">
+          <div className="chart-style-toggle" role="group" aria-label="Almanac location">
+            <button
+              className={source === "birth" ? "active" : ""}
+              onClick={() => setSource("birth")}
+            >
+              Birth place
+            </button>
+            <button
+              className={source === "current" ? "active" : ""}
+              onClick={useCurrent}
+              disabled={geoLoading}
+            >
+              {geoLoading ? "Locating…" : "Current location"}
+            </button>
+          </div>
+          <input
+            type="date"
+            className="panchanga-date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            aria-label="Almanac date"
+          />
+        </div>
       </div>
+
+      <div className="panchanga-place">
+        <MapPin size={14} /> {activeLoc.place || "—"}
+      </div>
+      {geoError && <div className="panchanga-status">{geoError}</div>}
 
       {loading && <div className="panchanga-status">Loading almanac…</div>}
       {error && !loading && <div className="panchanga-status">{error}</div>}
