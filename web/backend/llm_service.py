@@ -404,6 +404,21 @@ Planetary Positions (All 9 Grahas):"""
                 nakshatra_info = f", Nakshatra: {data.get('nakshatra', 'Unknown')} Pada {data.get('nakshatra_pada', 'Unknown')}"
             chart_description += f"\n- {planet}: {data.get('sign_name', 'Unknown')} sign (Rasi #{data.get('rasi', 'Unknown')}), {data.get('degrees', 0):.2f}°{nakshatra_info}"
 
+        # Divisional charts (vargas) — compact one line per chart for token economy
+        vargas = chart_data.get("vargas", [])
+        if vargas:
+            chart_description += "\n\nDivisional Charts (Vargas):"
+            for v in vargas:
+                lagna_sign = v.get("lagna", {}).get("sign_name", "?")
+                placements = ", ".join(
+                    f"{name} {p.get('sign_name', '?')}"
+                    for name, p in v.get("planets", {}).items()
+                )
+                chart_description += (
+                    f"\n- {v.get('code', '?')} {v.get('name', '')} "
+                    f"({v.get('significance', '')}): Asc {lagna_sign}; {placements}"
+                )
+
         # Add Dasha information
         current_dasha = chart_data.get("current_dasha", {})
         next_dasha = chart_data.get("next_dasha", {})

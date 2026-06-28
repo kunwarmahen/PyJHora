@@ -291,16 +291,22 @@ workspace. **Decisions captured 2026-06-28** (owner answered the clarifying roun
 - [ ] FOLLOW-UP: per-user API-key entry in the UI (currently keys come from `.env`;
       full per-user key management is §8.6).
 
-### 8.2 Divisional-chart (varga) context selection (P1)
+### 8.2 Divisional-chart (varga) context selection (P1) — DONE 2026-06-28
 
-- [ ] Multi-select varga picker on the Ask page (reuse `GET /api/astrology/vargas`
-      + the existing `SUPPORTED_VARGAS` list). Default sensible bundle: D1, D9, D10.
-- [ ] Backend builds the prompt from the **selected** vargas (compute each via the
-      existing `calculate_divisional_chart`), labeling each chart and its
-      significance (e.g. "D10 Dasamsa — career"). Token-budget aware: summarize
-      (sign + house per planet) rather than dumping every field.
-- [ ] Suggest relevant vargas per question category (career→D10, marriage→D9/D7,
-      wealth→D2/D11-equiv, etc.) as a one-click hint — still user-overridable.
+- [x] Multi-select varga picker on the Ask page ("Charts to Consult" card) using the
+      existing `VARGAS` constant (mirrors backend `SUPPORTED_VARGAS`). Default bundle
+      D1/D9/D10; D1 is always-on (disabled chip) since it's the natal base. Selection
+      persisted in localStorage (`ai_vargas`).
+- [x] `build_chart_context` takes a `vargas` list, computes each (≠ D1) via
+      `calculate_divisional_chart`, and adds a `vargas` section. The prompt renders one
+      compact line per chart — code + name + significance + Asc + each planet's sign
+      (sign-only for token economy; 3 vargas ≈ +140 tokens). `/ask` request carries
+      `vargas`; response echoes the included list.
+- [x] Verified live: asking about marriage/career with D1/D9/D10 returns an answer
+      that references the Navamsa (D9) and Dasamsa (D10) placements we sent.
+- [ ] FOLLOW-UP: per-question varga suggestions (career→D10, marriage→D9/D7, ...) as a
+      one-click hint. NOTE: with sign-only varga data, models sometimes embellish exact
+      degrees/nakshatra — fine for signs; revisit if more precision is wanted.
 
 ### 8.3 Richer astrological context (P1) — MOSTLY DONE 2026-06-28
 

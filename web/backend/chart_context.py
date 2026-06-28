@@ -16,7 +16,7 @@ dict consumed by llm_service._build_chart_analysis_prompt.
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
-from astrology import AstrologyCompute, DEFAULT_AYANAMSA
+from astrology import AstrologyCompute, DEFAULT_AYANAMSA, SUPPORTED_VARGAS
 
 # Which context sections are included by default.
 DEFAULT_SECTIONS = {
@@ -25,6 +25,11 @@ DEFAULT_SECTIONS = {
     "doshas": True,
     "transits": True,
 }
+
+# Divisional charts included by default: D1 (natal), D9 (Navamsa), D10 (Dasamsa).
+# D1 is always present as the natal `planetary_positions`; the extra vargas are
+# computed and added in a dedicated section.
+DEFAULT_VARGAS = [1, 9, 10]
 
 _LEVEL_NAMES = {1: "Maha Dasha", 2: "Bhukti (Antardasha)",
                 3: "Antara (Pratyantar)", 4: "Sookshma"}
@@ -101,13 +106,24 @@ def _running_dasha_chain(args: Dict[str, Any], dashas: Dict[str, Any]) -> List[D
 
 def build_chart_context(birth_details: Dict[str, Any],
                         ayanamsa: str = DEFAULT_AYANAMSA,
-                        sections: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
+                        sections: Optional[Dict[str, bool]] = None,
+                        vargas: Optional[List[int]] = None) -> Dict[str, Any]:
     """Build the structured context dict for the LLM prompt.
 
     `birth_details` is a dict with dob, tob, place, latitude, longitude, timezone.
     `sections` overrides DEFAULT_SECTIONS to toggle individual context blocks.
+    `vargas` is the list of divisional-chart factors to include (D1 is always the
+    natal base; the rest are computed into a dedicated section).
     """
     sections = {**DEFAULT_SECTIONS, **(sections or {})}
+    # Keep only supported factors, preserve order, dedupe.
+    requested = vargas if vargas is not None else DEFAULT_VARGAS
+    seen = set()
+    varga_factors = []
+    for f in requested:
+        if f in SUPPORTED_VARGAS and f not in seen:
+            seen.add(f)
+            varga_factors.append(f)
     args = {
         "dob": birth_details["dob"],
         "tob": birth_details["tob"],
@@ -171,7 +187,28 @@ def build_chart_context(birth_details: Dict[str, Any],
                 "upcoming": t.get("upcoming", []),
             }
 
+    # Divisional charts (vargas). D1 is already the natal `planetary_positions`,
+    # so only the extra factors are computed into their own section.
+    varga_charts = []
+    for factor in varga_factors:
+        if factor == 1:
+            continue
+        vc = AstrologyCompute.calculate_divisional_chart(
+            varga_factor=factor, ayanamsa=ayanamsa, **args)
+        if vc.get("status") == "success":
+            varga_charts.append({
+                "varga": vc.get("varga"),
+                "code": vc.get("code"),
+                "name": vc.get("name"),
+                "significance": vc.get("significance"),
+                "lagna": vc.get("lagna", {}),
+                "planets": vc.get("planets", {}),
+            })
+    if varga_charts:
+        ctx["vargas"] = varga_charts
+
     # Record what was included so the caller (and the "what was sent" modal) can
     # show it.
     ctx["_sections"] = sections
+    ctx["_vargas"] = varga_factors
     return ctx

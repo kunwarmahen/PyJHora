@@ -37,6 +37,7 @@ class AskQuestionRequest(BaseModel):
     # Context controls (optional)
     ayanamsa: Optional[str] = None
     sections: Optional[dict] = None  # toggle dasha_tree/yogas/doshas/transits
+    vargas: Optional[list] = None    # divisional-chart factors, e.g. [1, 9, 10]
 
 class PredictionRequest(BaseModel):
     birth_details: BirthDetails
@@ -573,6 +574,7 @@ async def ask_question(
             birth_details=request.birth_details.model_dump(),
             ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
             sections=request.sections,
+            vargas=request.vargas,
         )
 
         # Resolve the model config (new fields take precedence, legacy string as fallback)
@@ -597,6 +599,7 @@ async def ask_question(
             "provider": cfg.provider_type.value,
             "model": cfg.model,
             "sections": chart_data.get("_sections", {}),
+            "vargas": chart_data.get("_vargas", []),
             "context": chart_data,  # full structured context (for the "what was sent" view)
             "chart_summary": {
                 "lagna": chart_data.get("lagna", {}),

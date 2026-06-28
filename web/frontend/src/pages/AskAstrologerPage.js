@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash } from "../utils/format";
+import { VARGAS } from "../constants/jyotish";
 import { astrologyService } from "../services/api";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import "../styles/Dashboard.css";
@@ -60,6 +61,29 @@ export const AskAstrologerPage = () => {
     () => localStorage.getItem("ai_base_url") || ""
   );
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Divisional charts to include in the AI context (D1 is always the natal base)
+  const [selectedVargas, setSelectedVargas] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("ai_vargas"));
+      if (Array.isArray(saved) && saved.length) return saved;
+    } catch (e) {
+      /* ignore */
+    }
+    return [1, 9, 10];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("ai_vargas", JSON.stringify(selectedVargas));
+  }, [selectedVargas]);
+
+  const toggleVarga = (value) => {
+    setSelectedVargas((prev) =>
+      prev.includes(value)
+        ? prev.filter((v) => v !== value)
+        : [...prev, value].sort((a, b) => a - b)
+    );
+  };
 
   const PROVIDER_ICONS = {
     ollama: "🤖",
@@ -230,6 +254,7 @@ export const AskAstrologerPage = () => {
           model,
           baseUrl: selectedProvider?.editable_base_url ? baseUrl : undefined,
           legacyProvider: providerType === "ollama" ? "qwen" : providerType,
+          vargas: selectedVargas,
         }
       );
 
@@ -553,6 +578,59 @@ export const AskAstrologerPage = () => {
                 {q}
               </button>
             ))}
+          </div>
+
+          {/* Divisional Charts (Vargas) Card */}
+          <div style={{
+            background: 'white',
+            borderRadius: 'var(--radius-xl)',
+            padding: 'var(--space-xl)',
+            boxShadow: 'var(--shadow-lg)',
+            borderTop: '4px solid var(--saffron)'
+          }}>
+            <h3 style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-sm)',
+              marginBottom: 'var(--space-xs)',
+              color: 'var(--cosmic-indigo)',
+              fontSize: '1.25rem',
+              fontWeight: 700
+            }}>
+              <Star size={20} style={{ color: 'var(--saffron)' }} />
+              Charts to Consult
+            </h3>
+            <p style={{ margin: '0 0 var(--space-md)', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+              Pick which divisional charts the AI should weigh. D1 (Rasi) is always included.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+              {VARGAS.map((v) => {
+                const active = selectedVargas.includes(v.value);
+                const isD1 = v.value === 1;
+                return (
+                  <button
+                    key={v.value}
+                    type="button"
+                    onClick={() => !isD1 && toggleVarga(v.value)}
+                    disabled={isD1}
+                    title={`${v.name} — ${v.significance}`}
+                    style={{
+                      cursor: isD1 ? 'default' : 'pointer',
+                      padding: 'var(--space-xs) var(--space-md)',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '0.8125rem',
+                      fontWeight: 600,
+                      border: `1px solid ${active ? 'var(--saffron)' : 'var(--sandalwood)'}`,
+                      background: active ? 'rgba(255, 153, 51, 0.12)' : 'white',
+                      color: active ? 'var(--vermillion)' : 'var(--text-secondary)',
+                      opacity: isD1 ? 0.8 : 1,
+                    }}
+                  >
+                    {v.code}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

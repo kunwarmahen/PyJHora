@@ -107,6 +107,8 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        vargas: model.vargas,
+        ayanamsa: model.ayanamsa,
       },
       // Local models can be slow to load + generate; allow up to 5 minutes
       { timeout: 300000 }
