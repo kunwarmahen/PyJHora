@@ -284,12 +284,14 @@ export const AskAstrologerPage = () => {
         profileId: selectedProfile._id,
       },
       {
-        onMeta: (m) =>
+        onMeta: (m) => {
+          if (m.context) setLastContext(m.context);
           updateLastAi((msg) => ({
             ...msg,
             provider: m.provider || msg.provider,
             model: m.model || msg.model,
-          })),
+          }));
+        },
         onToken: (t) =>
           updateLastAi((msg) => ({ ...msg, content: msg.content + t })),
         onDone: (d) => {

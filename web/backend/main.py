@@ -680,6 +680,7 @@ async def ask_question_stream(
             "model": cfg.model,
             "sections": chart_data.get("_sections", {}),
             "vargas": chart_data.get("_vargas", []),
+            "context": chart_data,  # exact structured context sent to the model
         }
         yield f"data: {json.dumps(meta)}\n\n"
 
