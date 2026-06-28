@@ -47,6 +47,24 @@ export const AskAstrologerPage = () => {
   const [showInfoModal, setShowInfoModal] = useState(false);
   // The actual structured context the backend assembled for the last answer
   const [lastContext, setLastContext] = useState(null);
+  // Data currently shown in the info modal (last answer, or a specific message)
+  const [modalData, setModalData] = useState(null);
+
+  const openInfo = (data) => {
+    setModalData(data || null);
+    setShowInfoModal(true);
+  };
+
+  // What to show for a single AI message: its own context snapshot if we have it
+  // (answers from this session), else the metadata stored with the message.
+  const messageInfo = (m) =>
+    m.context || {
+      provider: m.provider,
+      model: m.model,
+      vargas: m.vargas,
+      sections: m.sections,
+      note: "Full chart snapshot is only kept for answers generated in this session. Re-ask to see the complete data sent.",
+    };
 
   // Conversation persistence + multi-turn
   const [conversationId, setConversationId] = useState(null);
@@ -290,6 +308,9 @@ export const AskAstrologerPage = () => {
             ...msg,
             provider: m.provider || msg.provider,
             model: m.model || msg.model,
+            context: m.context || msg.context,
+            vargas: m.vargas || msg.vargas,
+            sections: m.sections || msg.sections,
           }));
         },
         onToken: (t) =>
@@ -350,7 +371,14 @@ export const AskAstrologerPage = () => {
       const msgs = (conv.messages || []).map((m) =>
         m.role === "user"
           ? { type: "user", content: m.content }
-          : { type: "ai", content: m.content, provider: m.provider, model: m.model }
+          : {
+              type: "ai",
+              content: m.content,
+              provider: m.provider,
+              model: m.model,
+              vargas: m.vargas,
+              sections: m.sections,
+            }
       );
       setMessages(
         msgs.length
@@ -600,26 +628,26 @@ export const AskAstrologerPage = () => {
               <Bot size={20} style={{ color: 'var(--saffron)' }} />
               AI Model
               <button
-                onClick={() => setShowInfoModal(true)}
+                onClick={() => openInfo(lastContext)}
                 style={{
                   marginLeft: 'auto',
-                  background: 'none',
-                  border: 'none',
+                  background: 'rgba(255, 153, 51, 0.1)',
+                  border: '1px solid var(--saffron)',
                   cursor: 'pointer',
                   color: 'var(--saffron)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 'var(--space-xs)',
-                  padding: 'var(--space-xs)',
+                  padding: 'var(--space-xs) var(--space-sm)',
                   borderRadius: 'var(--radius-sm)',
                   transition: 'all 0.3s ease'
                 }}
-                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 153, 51, 0.1)'}
-                onMouseOut={(e) => e.currentTarget.style.background = 'none'}
-                title="View chart data sent to AI"
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 153, 51, 0.2)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 153, 51, 0.1)'}
+                title="See the exact chart data sent to the AI"
               >
                 <Info size={18} />
-                <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>Info</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>View data sent</span>
               </button>
             </h3>
             {providersLoading ? (
@@ -805,6 +833,30 @@ export const AskAstrologerPage = () => {
           </div>
         </div>
 
+        {/* Error banner */}
+        {error && (
+          <div
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: 'var(--space-md)', marginBottom: 'var(--space-lg)',
+              padding: 'var(--space-md) var(--space-lg)',
+              background: 'rgba(229, 57, 53, 0.08)',
+              border: '1px solid rgba(229, 57, 53, 0.3)',
+              borderRadius: 'var(--radius-md)', color: 'var(--vermillion)',
+              fontSize: '0.875rem',
+            }}
+          >
+            <span>⚠ {error}</span>
+            <button
+              onClick={() => setError("")}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--vermillion)', display: 'flex' }}
+              title="Dismiss"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
         {/* Chat Area */}
         <div style={{
           background: 'white',
@@ -847,7 +899,28 @@ export const AskAstrologerPage = () => {
                         ? ` (${message.provider})`
                         : ""}
                     </span>
-                    <span className="timestamp">{message.timestamp}</span>
+                    {message.timestamp && (
+                      <span className="timestamp">{message.timestamp}</span>
+                    )}
+                    {!message.streaming && (message.context || message.model) && (
+                      <button
+                        onClick={() => openInfo(messageInfo(message))}
+                        title="See the chart data used for this answer"
+                        style={{
+                          marginLeft: 'auto',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--saffron)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '2px',
+                          borderRadius: 'var(--radius-sm)',
+                        }}
+                      >
+                        <Info size={15} />
+                      </button>
+                    )}
                   </div>
                 )}
                 {message.type === "system" && (
@@ -1002,8 +1075,8 @@ export const AskAstrologerPage = () => {
                   border: '1px solid var(--saffron)'
                 }}>
                   <p style={{ margin: 0, color: 'var(--cosmic-indigo)', fontWeight: 500 }}>
-                    {lastContext
-                      ? "This is the exact structured context the backend assembled and sent to the AI model for your last question:"
+                    {modalData
+                      ? "This is the exact structured context the backend assembled and sent to the AI model:"
                       : "This is the chart information that will be sent to the AI model. The backend also adds your full running dasha chain, yogas, doshas and current transits — visible here after you ask a question:"}
                   </p>
                 </div>
@@ -1019,7 +1092,7 @@ export const AskAstrologerPage = () => {
                   lineHeight: '1.8',
                   color: 'var(--cosmic-indigo)'
                 }}>
-{JSON.stringify(lastContext || getChartDataForLLM(), null, 2)}
+{JSON.stringify(modalData || getChartDataForLLM(), null, 2)}
                 </pre>
 
                 <div style={{
