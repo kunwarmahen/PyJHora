@@ -50,6 +50,30 @@ is_running() {  # is_running <pidfile>
   [ -f "$f" ] && kill -0 "$(cat "$f")" 2>/dev/null
 }
 
+kill_tree() {  # kill_tree <pid> — kill a pid and ALL descendants, leaves first
+  local pid="$1" child
+  for child in $(pgrep -P "$pid" 2>/dev/null); do
+    kill_tree "$child"
+  done
+  kill "$pid" 2>/dev/null || true
+}
+
+kill_port() {  # kill_port <port> — kill whatever is LISTENing on a tcp port
+  local port="$1" pids
+  pids="$(lsof -ti tcp:"$port" -sTCP:LISTEN 2>/dev/null || true)"
+  [ -z "$pids" ] && return
+  # shellcheck disable=SC2086
+  kill $pids 2>/dev/null || true
+  # wait for a clean exit, then force-kill anything still bound
+  for _ in 1 2 3 4 5 6; do
+    pids="$(lsof -ti tcp:"$port" -sTCP:LISTEN 2>/dev/null || true)"
+    [ -z "$pids" ] && return
+    sleep 0.5
+  done
+  # shellcheck disable=SC2086
+  kill -9 $pids 2>/dev/null || true
+}
+
 # --- backend ------------------------------------------------------------
 start_backend() {
   if is_running "$BACKEND_PID"; then
@@ -59,10 +83,11 @@ start_backend() {
   info "starting backend on :$BACKEND_PORT ..."
   (
     cd "$BACKEND_DIR"
-    # prefer the project venv if present
-    if [ -f venv/bin/activate ]; then
-      # shellcheck disable=SC1091
-      source venv/bin/activate
+    # Invoke the venv interpreter directly rather than sourcing activate:
+    # a venv resolves from the executable's location, so this is robust even
+    # if the venv was created under an old (since-renamed) directory path.
+    if [ -x venv/bin/python ]; then
+      exec venv/bin/python main.py
     fi
     exec python main.py
   ) >"$BACKEND_LOG" 2>&1 &
@@ -80,12 +105,12 @@ stop_backend() {
   if is_running "$BACKEND_PID"; then
     local pid; pid="$(cat "$BACKEND_PID")"
     info "stopping backend (pid $pid) ..."
-    # kill the process group so uvicorn child workers go too
-    kill "$pid" 2>/dev/null || true
-    pkill -P "$pid" 2>/dev/null || true
+    # kill the whole tree so uvicorn child workers go too
+    kill_tree "$pid"
   fi
-  # safety net: anything left on the port / matching the entrypoint
+  # safety net: anything still matching the entrypoint or holding the port
   pkill -f "python main.py" 2>/dev/null || true
+  kill_port "$BACKEND_PORT"
   rm -f "$BACKEND_PID"
   ok "backend stopped"
 }
@@ -115,9 +140,12 @@ stop_frontend() {
   if is_running "$FRONTEND_PID"; then
     local pid; pid="$(cat "$FRONTEND_PID")"
     info "stopping frontend (pid $pid) ..."
-    kill "$pid" 2>/dev/null || true
-    pkill -P "$pid" 2>/dev/null || true   # react-scripts spawns children
+    # npm start -> react-scripts -> webpack dev server: kill the whole tree,
+    # not just direct children, or the grandchild keeps holding the port
+    kill_tree "$pid"
   fi
+  # safety net: the dev server that actually binds the port
+  kill_port "$FRONTEND_PORT"
   rm -f "$FRONTEND_PID"
   ok "frontend stopped"
 }
