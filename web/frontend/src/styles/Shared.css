@@ -117,3 +117,129 @@
     transform: rotate(360deg);
   }
 }
+
+/* ---- Card ---- */
+.ui-card {
+  background: white;
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+.ui-card--accent {
+  border-top: 4px solid var(--saffron);
+}
+.ui-card--accent-indigo {
+  border-top: 4px solid var(--cosmic-indigo);
+}
+.ui-card--accent-vermillion {
+  border-top: 4px solid var(--vermillion);
+}
+.ui-card--accent-gold {
+  border-top: 4px solid var(--marigold);
+}
+
+.ui-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  color: var(--cosmic-indigo);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.ui-card-header svg {
+  color: var(--saffron);
+  flex-shrink: 0;
+}
+.ui-card-header .ui-card-count {
+  margin-left: auto;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ---- Button ---- */
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.ui-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ui-btn--block {
+  width: 100%;
+}
+
+.ui-btn--primary {
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+.ui-btn--primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.ui-btn--secondary {
+  background: rgba(255, 153, 51, 0.1);
+  color: var(--saffron);
+  border: 2px solid rgba(255, 153, 51, 0.25);
+}
+.ui-btn--secondary:hover:not(:disabled) {
+  background: rgba(255, 153, 51, 0.2);
+}
+
+.ui-btn--ghost {
+  background: none;
+  color: var(--cosmic-indigo);
+}
+.ui-btn--ghost:hover:not(:disabled) {
+  background: rgba(45, 53, 97, 0.06);
+}
+
+/* ---- DataField ---- */
+.ui-datafield {
+  padding: var(--space-md);
+  background: var(--sacred-white);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--sandalwood);
+}
+.ui-datafield-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-sm);
+}
+.ui-datafield-label svg {
+  color: var(--saffron);
+  flex-shrink: 0;
+}
+.ui-datafield-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--cosmic-indigo);
+}
+
+/* A responsive grid of DataFields / cards. */
+.ui-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-lg);
+}

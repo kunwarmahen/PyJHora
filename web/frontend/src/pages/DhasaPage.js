@@ -6,6 +6,8 @@ import { astrologyService } from "../services/api";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { LoadingState } from "../components/LoadingState";
+import { Card } from "../components/Card";
 import "../styles/Dashboard.css";
 
 // ── Shared helpers ──────────────────────────────────────────────────────────
@@ -394,21 +396,9 @@ export const DhasaPage = () => {
         </div>
 
         {loading ? (
-          <div
-            style={{
-              background: "white",
-              borderRadius: "var(--radius-xl)",
-              padding: "var(--space-3xl)",
-              textAlign: "center",
-              boxShadow: "var(--shadow-lg)",
-            }}
-          >
-            <div className="spinner" style={{ margin: "0 auto var(--space-xl)" }}></div>
-            <h3 style={{ color: "var(--cosmic-indigo)", marginBottom: "var(--space-sm)" }}>
-              Calculating Vimsottari Dasha
-            </h3>
-            <p style={{ color: "var(--text-secondary)" }}>Analyzing planetary periods…</p>
-          </div>
+          <Card>
+            <LoadingState message="Calculating Vimsottari Dasha — analyzing planetary periods…" />
+          </Card>
         ) : result ? (
           <div style={{ opacity: 0, animation: "fadeIn 0.6s ease-out forwards" }}>
             {/* Current Period Highlight */}

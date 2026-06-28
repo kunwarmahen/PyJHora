@@ -6,6 +6,8 @@ import { formatDate, orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { LoadingState } from "../components/LoadingState";
+import { Card } from "../components/Card";
 import "../styles/Dashboard.css";
 
 export const CompatibilityPage = () => {
@@ -374,24 +376,9 @@ export const CompatibilityPage = () => {
 
         {/* Loading State */}
         {loading && (
-          <div
-            style={{
-              background: "white",
-              borderRadius: "var(--radius-xl)",
-              padding: "var(--space-3xl)",
-              textAlign: "center",
-              boxShadow: "var(--shadow-lg)",
-              animation: "fadeIn 0.6s ease-out",
-            }}
-          >
-            <div className="spinner" style={{ margin: "0 auto var(--space-xl)" }}></div>
-            <h3 style={{ color: "var(--cosmic-indigo)", marginBottom: "var(--space-sm)" }}>
-              Calculating Compatibility
-            </h3>
-            <p style={{ color: "var(--text-secondary)" }}>
-              Analyzing Ashtakoot matching between the two charts...
-            </p>
-          </div>
+          <Card>
+            <LoadingState message="Calculating Compatibility — analyzing Ashtakoot matching between the two charts…" />
+          </Card>
         )}
 
         {/* Results */}

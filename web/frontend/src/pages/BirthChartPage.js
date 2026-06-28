@@ -10,6 +10,9 @@ import { PanchangaPanel } from "../components/PanchangaPanel";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { LoadingState } from "../components/LoadingState";
+import { Card } from "../components/Card";
+import { DataField } from "../components/DataField";
 import { AYANAMSAS, DEFAULT_AYANAMSA, VARGAS, DEFAULT_VARGA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 
@@ -153,191 +156,36 @@ export const BirthChartPage = () => {
 
         {/* Loading State */}
         {loading ? (
-          <div
-            style={{
-              background: "white",
-              borderRadius: "var(--radius-xl)",
-              padding: "var(--space-3xl)",
-              textAlign: "center",
-              boxShadow: "var(--shadow-lg)",
-              animation: "fadeIn 0.6s ease-out",
-            }}
-          >
-            <div className="spinner" style={{ margin: "0 auto var(--space-xl)" }}></div>
-            <h3 style={{ color: "var(--cosmic-indigo)", marginBottom: "var(--space-sm)" }}>
-              Calculating Birth Chart
-            </h3>
-            <p style={{ color: "var(--text-secondary)" }}>
-              Analyzing planetary positions and generating charts...
-            </p>
-          </div>
+          <Card>
+            <LoadingState message="Calculating Birth Chart — analyzing planetary positions…" />
+          </Card>
         ) : result ? (
           <div style={{ opacity: 0, animation: "fadeIn 0.6s ease-out forwards" }}>
             {/* Chart Details Card */}
-            <div
-              style={{
-                background: "white",
-                borderRadius: "var(--radius-xl)",
-                padding: "var(--space-xl)",
-                marginBottom: "var(--space-xl)",
-                boxShadow: "var(--shadow-lg)",
-                borderTop: "4px solid var(--saffron)",
-              }}
-            >
-              <h3
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-sm)",
-                  marginBottom: "var(--space-lg)",
-                  color: "var(--cosmic-indigo)",
-                  fontSize: "1.5rem",
-                }}
-              >
-                <Star size={24} style={{ color: "var(--saffron)" }} />
-                Chart Details
-              </h3>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                  gap: "var(--space-lg)",
-                }}
-              >
-                <div
-                  style={{
-                    padding: "var(--space-md)",
-                    background: "var(--sacred-white)",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--sandalwood)",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "var(--space-sm)",
-                      marginBottom: "var(--space-sm)",
-                      color: "var(--saffron)",
-                    }}
-                  >
-                    <User size={16} />
-                    <span
-                      style={{
-                        fontSize: "0.75rem",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Name
-                    </span>
-                  </div>
-                  <div style={{ fontSize: "1rem", fontWeight: 600, color: "var(--cosmic-indigo)" }}>
-                    {selectedProfile.birth_details.name || selectedProfile.profile_name}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    padding: "var(--space-md)",
-                    background: "var(--sacred-white)",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--sandalwood)",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "var(--space-sm)",
-                      marginBottom: "var(--space-sm)",
-                      color: "var(--saffron)",
-                    }}
-                  >
-                    <Calendar size={16} />
-                    <span
-                      style={{
-                        fontSize: "0.75rem",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Date of Birth
-                    </span>
-                  </div>
-                  <div style={{ fontSize: "1rem", fontWeight: 600, color: "var(--cosmic-indigo)" }}>
-                    {formatDate(selectedProfile.birth_details.dob)}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    padding: "var(--space-md)",
-                    background: "var(--sacred-white)",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--sandalwood)",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "var(--space-sm)",
-                      marginBottom: "var(--space-sm)",
-                      color: "var(--saffron)",
-                    }}
-                  >
-                    <Clock size={16} />
-                    <span
-                      style={{
-                        fontSize: "0.75rem",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Time of Birth
-                    </span>
-                  </div>
-                  <div style={{ fontSize: "1rem", fontWeight: 600, color: "var(--cosmic-indigo)" }}>
-                    {orDash(selectedProfile.birth_details.tob)}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    padding: "var(--space-md)",
-                    background: "var(--sacred-white)",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--sandalwood)",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "var(--space-sm)",
-                      marginBottom: "var(--space-sm)",
-                      color: "var(--saffron)",
-                    }}
-                  >
-                    <MapPin size={16} />
-                    <span
-                      style={{
-                        fontSize: "0.75rem",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Place
-                    </span>
-                  </div>
-                  <div style={{ fontSize: "1rem", fontWeight: 600, color: "var(--cosmic-indigo)" }}>
-                    {orDash(selectedProfile.birth_details.place)}
-                  </div>
-                </div>
+            <Card title="Chart Details" icon={<Star size={24} />}>
+              <div className="ui-field-grid">
+                <DataField
+                  label="Name"
+                  icon={<User size={16} />}
+                  value={selectedProfile.birth_details.name || selectedProfile.profile_name}
+                />
+                <DataField
+                  label="Date of Birth"
+                  icon={<Calendar size={16} />}
+                  value={formatDate(selectedProfile.birth_details.dob)}
+                />
+                <DataField
+                  label="Time of Birth"
+                  icon={<Clock size={16} />}
+                  value={orDash(selectedProfile.birth_details.tob)}
+                />
+                <DataField
+                  label="Place"
+                  icon={<MapPin size={16} />}
+                  value={orDash(selectedProfile.birth_details.place)}
+                />
               </div>
-            </div>
+            </Card>
 
             {/* Chart style toggle: North / South Indian */}
             {(() => {

@@ -8,6 +8,8 @@ import { SouthIndianChart } from "../components/SouthIndianChart";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
+import { LoadingState } from "../components/LoadingState";
+import { Card } from "../components/Card";
 import { PLANET_ABBR, DEFAULT_AYANAMSA, AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 
@@ -220,21 +222,9 @@ export const TransitPage = () => {
         <ErrorBanner message={error} />
 
         {loading ? (
-          <div
-            style={{
-              background: "white",
-              borderRadius: "var(--radius-xl)",
-              padding: "var(--space-3xl)",
-              textAlign: "center",
-              boxShadow: "var(--shadow-lg)",
-            }}
-          >
-            <div className="spinner" style={{ margin: "0 auto var(--space-xl)" }}></div>
-            <h3 style={{ color: "var(--cosmic-indigo)", marginBottom: "var(--space-sm)" }}>
-              Calculating transits
-            </h3>
-            <p style={{ color: "var(--text-secondary)" }}>Locating the grahas…</p>
-          </div>
+          <Card>
+            <LoadingState message="Calculating transits — locating the grahas…" />
+          </Card>
         ) : result ? (
           <div style={{ opacity: 0, animation: "fadeIn 0.6s ease-out forwards" }}>
             {/* Natal reference */}
