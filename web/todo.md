@@ -103,15 +103,24 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
       Dashboard, BirthChart, Dhasa, Transit, Compatibility, Ask. (No separate `<AppLayout>`/
       `<Navbar>` — `PageHeader` + the existing `.dashboard-container`/`.dashboard-content`
       cover it; Dashboard keeps its own brand+logout navbar.)
-- [x] **Shared primitives (started):** `<ErrorBanner>` and `<LoadingState>` added
-      (`components/ErrorBanner.js`, `LoadingState.js`, styled in `Shared.css`); ErrorBanner
-      now used on BirthChart/Dhasa/Transit/Compatibility. Still TODO: `<Card>`, `<Button>`,
-      `<DataField>` and routing every page's loading block through `<LoadingState>`.
+- [x] **Shared primitives.** DONE 2026-06-28: `<ErrorBanner>`, `<LoadingState>`, plus
+      `<Card>`/`<Button>`/`<DataField>` (`components/*.js`, `ui-*` classes in `Shared.css`)
+      in the saffron Vedic style with accent variants. Full-page spinner blocks on
+      BirthChart/Transit/Dhasa/Compatibility now render `<Card><LoadingState/></Card>`;
+      BirthChart's "Chart Details" rebuilt as `<Card>` + `<DataField>` grid (~140 inline-
+      style lines removed) as the exemplar. `<Button>` is available but not yet adopted
+      everywhere. Remaining: route the rest of the per-page loading/content blocks through
+      these (incremental).
 - [x] Centralize the planet/rasi constants — `src/constants/jyotish.js` (PLANET_ABBR,
       RASI_NAMES, RASI_ABBR); used by both chart components. (2026-06-27)
-- [ ] Add an ESLint/Prettier pass; CRA is fine for now but note migration to Vite
-      as a future option (faster dev, smaller config).
-- [ ] Add a `.env.example`-driven config check so a missing API base URL fails loudly.
+- [x] Add an ESLint/Prettier pass. DONE 2026-06-28: added `prettier` (devDep) +
+      `.prettierrc`/`.prettierignore`, `lint`/`format`/`format:check` npm scripts, and ran
+      prettier over all of `src/` (also cleared a pre-existing `no-useless-concat`). CI=true
+      build (warnings-as-errors) passes. Vite migration still noted as a future option.
+- [x] Add a `.env.example`-driven config check so a missing API base URL fails loudly.
+      DONE 2026-06-28: `api.js` throws at startup in production builds when
+      `REACT_APP_API_URL` is unset (was a silent localhost fallback → confusing CORS
+      errors); warns in dev. Documented both vars in `web/frontend/.env.example`.
 
 ## 3. Visual redesign (P1) — REVERTED, keep the original look
 
@@ -193,9 +202,15 @@ web exposes. High-value additions:
       separate P2 below. Also fixed `getDhasa`/`getTransits` in api.js to pass
       `dhasa_type`/`current_date` as query params (they were sent in the body and
       silently ignored).
-- [ ] **More dasha systems** (P2): Ashtottari, Narayana, Kalachakra, Yogini, etc.
-      (engine has ~10 under `dhasa/`).
-- [ ] **Ashtakavarga** (P2): Bhinna + Sarva tables/heatmap.
+- [x] **More dasha systems** (P2). DONE 2026-06-28: `get_dasha_periods` + `SUPPORTED_DASHAS`
+      add Ashtottari, Yogini (graha) and Narayana, Kalachakra (raasi), normalized to a flat
+      maha-period list (graha lords vs rasi signs) with ISO start/end dates. Endpoints
+      `GET /dasha-systems`, `POST /dasha-periods`. DhasaPage gained an "Other Dasha Systems"
+      picker + period table (current period highlighted). (Engine has more under `dhasa/` if
+      we want to expand the list.)
+- [x] **Ashtakavarga** (P2). DONE 2026-06-28: `get_ashtakavarga` returns Bhinna (8×12) +
+      Sarva (12, total 337). `POST /ashtakavarga`. Shown on the new Advanced page as a SAV
+      heatmap row + BAV table.
 - [x] **Yogas & Doshas surfaced as cards** (P1). DONE 2026-06-28: both compute paths
       were stubs — implemented `get_doshas` (8 doshas, present/absent + descriptions)
       and `get_yogas` (via PyJHora `yoga.get_yoga_details`, ~34/284 present for a sample
@@ -203,8 +218,12 @@ web exposes. High-value additions:
       Birth Chart page shows a Yogas card grid (golden accent, count header) and a
       Doshas card grid (present = vermillion); both refetch on ayanamsa change and
       load independently so a failure won't blank the chart.
-- [ ] **Arudha Padas, Karakas, Special Lagnas, Upagrahas** (P2): engine supports;
-      add to an "advanced" chart details section.
+- [x] **Arudha Padas, Karakas, Special Lagnas, Upagrahas** (P2). DONE 2026-06-28:
+      `get_chart_details` returns Arudha padas (A1..A12, AL/UL labelled), Chara karakas
+      (8, Jaimini), Special lagnas (Sree/Indu/Bhrigu Bindu/Pranapada/Kunda) and Upagrahas
+      (Gulika/Maandi + the 5 solar: Dhuma/Vyatipata/Parivesha/Indrachapa/Upaketu).
+      `POST /chart-details`. Rendered as DataField grids in the Advanced page's "Chart
+      Factors" card.
 - [x] **Transits / Gochara** (P1). DONE 2026-06-28: implemented `get_transits` (was a
       stub) — current graha positions (sign/deg/nakshatra+pada/retrograde) for today or
       a chosen date, each with the house counted from the natal Lagna AND natal Moon
@@ -217,7 +236,10 @@ web exposes. High-value additions:
       picker and a graha table. `POST /api/astrology/transit` now takes `ayanamsa` and
       validates the result. NOTE: transit positions are computed at local noon for a
       stable daily snapshot.
-- [ ] **Strength tables** (P2): Shadbala / planetary & rasi strength.
+- [x] **Strength tables** (P2). DONE 2026-06-28: `get_shadbala` returns the six-fold
+      strength (sthana/kaala/dig/cheshta/naisargika/drik) plus total rupa, required rupa,
+      ratio and rank for Sun..Saturn. `POST /shadbala`. Shown as a table in the Advanced
+      page (ratio ≥ 1.0 highlighted). (Rasi-strength not included yet.)
 - [ ] **Export / share** (P1): download chart as PNG/PDF, shareable read-only link.
 - [ ] **Compare two profiles side by side** beyond compatibility (P2).
 - [ ] **AI astrologer upgrades** (P1): see the dedicated plan in **§8** below
@@ -356,8 +378,10 @@ workspace. **Decisions captured 2026-06-28** (owner answered the clarifying roun
       listing dasha chain / yogas / doshas / transits.
 - [x] Rendered prompt measured at ~2.1k tokens with all sections on — comfortably
       within model context windows.
-- [ ] **Ashtakavarga / house strengths**: still a §5 P2 — not yet computed, so not
-      in the context. Add a `sections["ashtakavarga"]` block once Bhinna+Sarva exist.
+- [ ] **Ashtakavarga / house strengths in AI context**: Bhinna+Sarva + Shadbala now
+      exist (§5, 2026-06-28) but aren't fed to the AI yet. Add a `sections["ashtakavarga"]`
+      (and optionally shadbala) block in `chart_context.build_chart_context` calling
+      `get_ashtakavarga`/`get_shadbala`.
 - [x] Strengthen the **system prompt**: DONE 2026-06-28: `SYSTEM_PROMPT` now encodes
       classical Parashari reasoning rules — house significations (1–12), natural karakas,
       dignity (exalt/debil/own/moolatrikona), graha drishti (incl. Mars/Jupiter/Saturn
