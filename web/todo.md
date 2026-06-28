@@ -302,24 +302,35 @@ workspace. **Decisions captured 2026-06-28** (owner answered the clarifying roun
 - [ ] Suggest relevant vargas per question category (career→D10, marriage→D9/D7,
       wealth→D2/D11-equiv, etc.) as a one-click hint — still user-overridable.
 
-### 8.3 Richer astrological context (P1)
+### 8.3 Richer astrological context (P1) — MOSTLY DONE 2026-06-28
 
-- [ ] **Full dasha tree**: reuse `get_dasha_children` to send Maha→Antar→Pratyantar
-      for the *currently running* chain (not just one antardasha level). Clearly mark
-      which node is active as of TODAY.
-- [ ] **Yogas & Doshas**: include the present yogas/doshas (reuse `get_yogas` /
-      `get_doshas`) so the model reasons from real detections, not guesses.
-- [ ] **Transits (Gochara)**: include `get_transits` output (current grahas, house
-      from natal Lagna & Moon, Sade-Sati / Jupiter-Saturn ingress highlights).
-- [ ] **Ashtakavarga / house strengths**: implement/compute Bhinna + Sarva bindus
-      (currently a §5 P2) and include a compact strength summary; if Shadbala is
-      cheap, add planetary strength too. (Gate on availability — skip if not ready.)
-- [ ] Centralize prompt assembly into a `ChartContextBuilder` so all of the above
-      compose into one structured, token-budgeted context block. Make each section
-      toggleable from the request (so the UI can show "what's included").
+- [x] Centralized prompt assembly into a `ChartContextBuilder` (`chart_context.py`,
+      `build_chart_context`). Returns one structured, token-budgeted context dict;
+      each section is toggleable via a `sections` map on the request. `/ask` now
+      calls it (replacing the old inline D1+partial-dasha assembly) and returns the
+      full `context` + `sections` so the UI can show exactly what was sent.
+- [x] **Full dasha tree**: `_running_dasha_chain` reuses `get_dasha_children` to send
+      the *currently running* chain Maha→Bhukti→Antara→Sookshma (each level
+      recomputed at full precision), labeled and dated, marked active as of TODAY.
+      (Verified live: Rahu Maha / Moon Bhukti / Moon Antara / Rahu Sookshma.)
+- [x] **Yogas & Doshas**: includes present yogas (name + description, capped at
+      ~140 chars each) and doshas (present with detail, absent name-only) via
+      `get_yogas`/`get_doshas`. (Sample chart: 35 yogas, 3 doshas present.)
+- [x] **Transits (Gochara)**: includes `get_transits` (each graha's sign/deg/
+      nakshatra, house from natal Lagna & Moon, retrograde flag) + Jupiter/Saturn
+      sign-ingress highlights.
+- [x] Frontend "what was sent to AI" modal now shows the **real** server-assembled
+      context after a question (was a stale client-side approximation), with a note
+      listing dasha chain / yogas / doshas / transits.
+- [x] Rendered prompt measured at ~2.1k tokens with all sections on — comfortably
+      within model context windows.
+- [ ] **Ashtakavarga / house strengths**: still a §5 P2 — not yet computed, so not
+      in the context. Add a `sections["ashtakavarga"]` block once Bhinna+Sarva exist.
 - [ ] Strengthen the **system prompt**: encode classical reasoning rules (house
       significations, karakas, dignity/exaltation, aspect rules) so answers cite the
-      chart factors behind a claim instead of generic horoscope text.
+      chart factors behind a claim. (Current system prompt is still generic.)
+- [ ] FOLLOW-UP: thread the same `ChartContextBuilder` into `/predict` (still uses
+      the stubbed `get_horoscope_predictions`, which returns "Not implemented yet").
 
 ### 8.4 Save responses + history (P1)
 

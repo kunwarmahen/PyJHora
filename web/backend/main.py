@@ -11,6 +11,7 @@ from database import connect_to_mongo, close_mongo_connection
 from auth import create_access_token, decode_token, get_password_hash, verify_password, Token
 from database import User, BirthDetails, ChartData, Prediction
 from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, SUPPORTED_VARGAS
+from chart_context import build_chart_context
 from qwen_predictor import QwenPredictor
 from llm_service import llm_service, LLMProvider
 
@@ -33,6 +34,9 @@ class AskQuestionRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Context controls (optional)
+    ayanamsa: Optional[str] = None
+    sections: Optional[dict] = None  # toggle dasha_tree/yogas/doshas/transits
 
 class PredictionRequest(BaseModel):
     birth_details: BirthDetails
@@ -563,55 +567,13 @@ async def ask_question(
 ):
     """Ask a question about the birth chart using AI"""
     try:
-        # Calculate birth chart
-        birth_chart = AstrologyCompute.calculate_birth_chart(
-            dob=request.birth_details.dob,
-            tob=request.birth_details.tob,
-            place=request.birth_details.place,
-            lat=request.birth_details.latitude,
-            lon=request.birth_details.longitude,
-            tz=request.birth_details.timezone or 5.5
+        # Build the rich, structured chart context (D1 + running dasha chain +
+        # yogas + doshas + transits), token-budgeted and section-toggleable.
+        chart_data = build_chart_context(
+            birth_details=request.birth_details.model_dump(),
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+            sections=request.sections,
         )
-
-        # Calculate Dashas
-        dashas = AstrologyCompute.get_dashas(
-            dob=request.birth_details.dob,
-            tob=request.birth_details.tob,
-            place=request.birth_details.place,
-            lat=request.birth_details.latitude,
-            lon=request.birth_details.longitude,
-            tz=request.birth_details.timezone or 5.5
-        )
-
-        # Combine chart data for LLM
-        moon_data = birth_chart.get("d1_chart", {}).get("Moon", {})
-        sun_data = birth_chart.get("d1_chart", {}).get("Sun", {})
-
-        chart_data = {
-            "birth_details": {
-                "dob": request.birth_details.dob,
-                "tob": request.birth_details.tob,
-                "place": request.birth_details.place
-            },
-            "lagna": birth_chart.get("lagna", {}),
-            "moon_sign": {
-                "sign_name": moon_data.get("sign_name", "Unknown"),
-                "rasi": moon_data.get("rasi", 0),
-                "nakshatra": moon_data.get("nakshatra", "Unknown"),
-                "nakshatra_pada": moon_data.get("nakshatra_pada", 0)
-            },
-            "sun_sign": {
-                "sign_name": sun_data.get("sign_name", "Unknown"),
-                "rasi": sun_data.get("rasi", 0),
-                "nakshatra": sun_data.get("nakshatra", "Unknown"),
-                "nakshatra_pada": sun_data.get("nakshatra_pada", 0)
-            },
-            "planetary_positions": birth_chart.get("d1_chart", {}),
-            "current_dasha": dashas.get("current_dasha", {}),
-            "next_dasha": dashas.get("next_dasha", {}),
-            "current_bhukthi": dashas.get("current_bhukthi", {}),
-            "dasha_sequence": dashas.get("dasha_sequence", [])
-        }
 
         # Resolve the model config (new fields take precedence, legacy string as fallback)
         cfg = llm_service.resolve_config(
@@ -634,6 +596,8 @@ async def ask_question(
             "answer": answer,
             "provider": cfg.provider_type.value,
             "model": cfg.model,
+            "sections": chart_data.get("_sections", {}),
+            "context": chart_data,  # full structured context (for the "what was sent" view)
             "chart_summary": {
                 "lagna": chart_data.get("lagna", {}),
                 "moon_sign": chart_data.get("moon_sign", {}),

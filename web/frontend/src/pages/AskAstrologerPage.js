@@ -44,6 +44,8 @@ export const AskAstrologerPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showInfoModal, setShowInfoModal] = useState(false);
+  // The actual structured context the backend assembled for the last answer
+  const [lastContext, setLastContext] = useState(null);
 
   // AI provider / model selection
   const [providers, setProviders] = useState([]);
@@ -240,6 +242,7 @@ export const AskAstrologerPage = () => {
         chartSummary: response.data.chart_summary,
       };
 
+      if (response.data.context) setLastContext(response.data.context);
       setMessages((prev) => [...prev, aiMessage]);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to get answer");
@@ -751,7 +754,9 @@ export const AskAstrologerPage = () => {
                   border: '1px solid var(--saffron)'
                 }}>
                   <p style={{ margin: 0, color: 'var(--cosmic-indigo)', fontWeight: 500 }}>
-                    This is the chart information that is being sent to the AI model to provide personalized astrological insights:
+                    {lastContext
+                      ? "This is the exact structured context the backend assembled and sent to the AI model for your last question:"
+                      : "This is the chart information that will be sent to the AI model. The backend also adds your full running dasha chain, yogas, doshas and current transits — visible here after you ask a question:"}
                   </p>
                 </div>
 
@@ -766,7 +771,7 @@ export const AskAstrologerPage = () => {
                   lineHeight: '1.8',
                   color: 'var(--cosmic-indigo)'
                 }}>
-{JSON.stringify(getChartDataForLLM(), null, 2)}
+{JSON.stringify(lastContext || getChartDataForLLM(), null, 2)}
                 </pre>
 
                 <div style={{
@@ -781,7 +786,7 @@ export const AskAstrologerPage = () => {
                     📝 Note:
                   </p>
                   <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-                    The AI model receives this structured data along with your question to provide accurate and personalized astrological guidance based on your birth chart. This includes your Lagna (Ascendant), planetary positions, nakshatras, and other relevant astrological details.
+                    The AI model receives this structured data along with your question: your Lagna, planetary positions and nakshatras, the currently-active Vimsottari dasha chain (Maha → Bhukti → Antara → Sookshma), yogas and doshas present in the chart, and current planetary transits (Gochara).
                   </p>
                 </div>
               </div>

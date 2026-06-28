@@ -408,8 +408,17 @@ Planetary Positions (All 9 Grahas):"""
         current_dasha = chart_data.get("current_dasha", {})
         next_dasha = chart_data.get("next_dasha", {})
         current_bhukthi = chart_data.get("current_bhukthi", {})
+        dasha_tree = chart_data.get("dasha_tree", [])
 
-        if current_dasha:
+        if dasha_tree:
+            # Preferred: the precise running chain Maha -> Bhukti -> Antara -> Sookshma
+            chart_description += f"\n\nCurrently Active Vimsottari Dasha Chain (as of {current_date}):"
+            for node in dasha_tree:
+                chart_description += (
+                    f"\n- {node.get('level_name', 'Level')}: {node.get('lord', 'Unknown')} "
+                    f"({node.get('start_date', '?')} to {node.get('end_date', '?')})"
+                )
+        elif current_dasha:
             chart_description += f"\n\nCurrent Dasha (Vimsottari):"
             chart_description += f"\n- Maha Dasha: {current_dasha.get('lord', 'Unknown')} ({current_dasha.get('start_date', 'Unknown')} to {current_dasha.get('end_date', 'Unknown')})"
             chart_description += f"\n- Duration: {current_dasha.get('duration_years', 0)} years"
@@ -421,8 +430,55 @@ Planetary Positions (All 9 Grahas):"""
                 chart_description += f"\n- {period.get('lord', 'Unknown')}: {period.get('start_date', 'Unknown')} to {period.get('end_date', 'Unknown')} ({period.get('duration_months', 0)} months)"
 
         if next_dasha:
-            chart_description += f"\n\nNext Dasha:"
+            chart_description += f"\n\nNext Maha Dasha:"
             chart_description += f"\n- {next_dasha.get('lord', 'Unknown')} starting {next_dasha.get('start_date', 'Unknown')}"
+
+        # Yogas present in the chart (name + short description; token-budgeted)
+        yogas = chart_data.get("yogas", [])
+        if yogas:
+            chart_description += f"\n\nYogas Present in the Chart ({len(yogas)}):"
+            for y in yogas:
+                desc = (y.get("description") or "").strip()
+                if len(desc) > 140:
+                    desc = desc[:137].rstrip() + "..."
+                chart_description += f"\n- {y.get('name', 'Unknown')}" + (f": {desc}" if desc else "")
+
+        # Doshas — list present ones with detail, name-only for absent
+        doshas = chart_data.get("doshas", [])
+        if doshas:
+            present = [d for d in doshas if d.get("present")]
+            absent = [d for d in doshas if not d.get("present")]
+            chart_description += f"\n\nDoshas:"
+            if present:
+                chart_description += "\n- Present:"
+                for d in present:
+                    desc = (d.get("description") or "").strip()
+                    if len(desc) > 140:
+                        desc = desc[:137].rstrip() + "..."
+                    chart_description += f"\n  • {d.get('name', 'Unknown')}" + (f": {desc}" if desc else "")
+            else:
+                chart_description += "\n- Present: none"
+            if absent:
+                chart_description += "\n- Absent: " + ", ".join(d.get("name", "?") for d in absent)
+
+        # Current transits (Gochara) over the natal chart
+        transits = chart_data.get("transits", {})
+        t_planets = transits.get("planets", {}) if isinstance(transits, dict) else {}
+        if t_planets:
+            chart_description += f"\n\nCurrent Transits (Gochara) as of {transits.get('transit_date', current_date)}:"
+            chart_description += "\n(house counted from natal Lagna / natal Moon)"
+            for name, p in t_planets.items():
+                retro = " [Retrograde]" if p.get("retrograde") else ""
+                chart_description += (
+                    f"\n- {name}: {p.get('sign_name', '?')} {p.get('degrees', 0):.1f}° "
+                    f"({p.get('nakshatra', '?')}), house {p.get('house_from_lagna', '?')} "
+                    f"from Lagna / {p.get('house_from_moon', '?')} from Moon{retro}"
+                )
+            for u in transits.get("upcoming", []):
+                chart_description += (
+                    f"\n- Upcoming: {u.get('planet', '?')} enters {u.get('to_sign', '?')} "
+                    f"(from {u.get('from_sign', '?')}) on {u.get('date', '?')}"
+                )
 
         prompt = f"""You are an expert Vedic astrologer. Below is the COMPLETE BIRTH CHART DATA for this person, calculated using precise astronomical calculations from the PyJHora Vedic astrology software. This is REAL, VERIFIED CHART DATA - not hypothetical.
 
