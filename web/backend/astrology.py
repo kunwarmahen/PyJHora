@@ -67,6 +67,9 @@ PLANET_NAMES = {
     4: "Jupiter", 5: "Venus", 6: "Saturn", 7: "Rahu", 8: "Ketu",
 }
 
+# Reverse lookup (name -> index) for resolving a dasha lord-path sent by the UI.
+PLANET_INDICES = {v: k for k, v in PLANET_NAMES.items()}
+
 # Zodiac sign names, index 0 = Aries … 11 = Pisces.
 ZODIAC_NAMES = [
     "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
@@ -578,6 +581,116 @@ class AstrologyCompute:
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
 
+    @staticmethod
+    def get_dasha_children(dob: str, tob: str, place: str, lords_path: List[str],
+                           lat: Optional[float] = None, lon: Optional[float] = None,
+                           tz: Optional[float] = None) -> Dict:
+        """Lazily compute the immediate child periods of a Vimsottari node.
+
+        `lords_path` is the chain of planet names from the Maha Dasha down to the
+        node whose children we want, e.g. ["Venus"] -> Bhuktis, ["Venus","Saturn"]
+        -> Antaras, ["Venus","Saturn","Mercury"] -> Sookshmas. We walk the path
+        from the natal chart with PyJHora's `vimsottari_immediate_children` so every
+        level is recomputed at full (sub-day) precision rather than from rounded
+        dates. Levels: 1=Maha, 2=Bhukti, 3=Antara, 4=Sookshma (leaf)."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available"}
+
+        if not lords_path:
+            return {"error": "lords_path is required", "status": "failed"}
+
+        try:
+            year, month, day = map(int, dob.split("-"))
+            time_parts = tob.split(":")
+            hour = int(time_parts[0])
+            minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+            second = int(time_parts[2]) if len(time_parts) > 2 else 0
+
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707  # Chennai default
+            tz_offset = tz or 5.5
+
+            jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+
+            # Resolve the requested lord-path (names -> PyJHora indices).
+            try:
+                path_idx = [PLANET_INDICES[name] for name in lords_path]
+            except KeyError as bad:
+                return {"error": f"Unknown dasha lord: {bad}", "status": "failed"}
+
+            if len(path_idx) >= 4:
+                # Sookshma is the deepest level we expose — it has no children.
+                return {"status": "success", "level": len(path_idx) + 1, "children": []}
+
+            # Level 1: locate the Maha Dasha's precise span.
+            mahadashas = vimsottari.vimsottari_mahadasa(jd, place_obj)
+            sorted_md = sorted(mahadashas.items(), key=lambda x: x[1])
+            lords_list = [lord for lord, _ in sorted_md]
+
+            maha = path_idx[0]
+            if maha not in lords_list:
+                return {"error": "Invalid maha dasha lord", "status": "failed"}
+            mi = lords_list.index(maha)
+            start_jd = mahadashas[maha]
+            if mi + 1 < len(lords_list):
+                end_jd = mahadashas[lords_list[mi + 1]]
+            else:
+                end_jd = start_jd + vimsottari.vimsottari_dict[maha] * vimsottari.year_duration
+
+            cur_path = [maha]
+            cur_start = utils.jd_to_gregorian(start_jd)  # (y, m, d, fractional_hour)
+            cur_end = utils.jd_to_gregorian(end_jd)
+
+            # Walk down the path, recomputing each level so spans stay precise.
+            for next_lord in path_idx[1:]:
+                kids = vimsottari.vimsottari_immediate_children(
+                    cur_path, cur_start, parent_end=cur_end)
+                match = next((k for k in kids if k[0][-1] == next_lord), None)
+                if match is None:
+                    return {"error": "Invalid dasha path", "status": "failed"}
+                cur_path = list(match[0])
+                cur_start, cur_end = match[1], match[2]
+
+            # Children of the resolved node.
+            kids = vimsottari.vimsottari_immediate_children(
+                cur_path, cur_start, parent_end=cur_end)
+
+            def _tuple_to_jd(t):
+                y, m, d, fh = t
+                return utils.julian_day_number(drik.Date(y, m, d), (fh, 0, 0))
+
+            def _fmt(t):
+                return f"{t[0]:04d}-{t[1]:02d}-{t[2]:02d}"
+
+            child_level = len(cur_path) + 1  # 3=Antara, 4=Sookshma
+            children = []
+            for child_path, s_t, e_t in kids:
+                dur_years = (_tuple_to_jd(e_t) - _tuple_to_jd(s_t)) / vimsottari.year_duration
+                children.append({
+                    "lord": PLANET_NAMES.get(child_path[-1], str(child_path[-1])),
+                    "path": [PLANET_NAMES.get(p, str(p)) for p in child_path],
+                    "level": child_level,
+                    "start_date": _fmt(s_t),
+                    "end_date": _fmt(e_t),
+                    "duration_years": round(dur_years, 3),
+                    "duration_months": round(dur_years * 12, 2),
+                    "duration_days": round(dur_years * 365.25, 1),
+                })
+
+            return {
+                "status": "success",
+                "level": child_level,
+                "parent_path": [PLANET_NAMES.get(p, str(p)) for p in cur_path],
+                "children": children,
+            }
+
+        except Exception as e:
+            print(f"Dasha children error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+
     # Add placeholder methods for other required functions
     @staticmethod
     def get_horoscope_predictions(*args, **kwargs):
@@ -771,8 +884,134 @@ class AstrologyCompute:
             return {"error": str(e), "status": "failed"}
 
     @staticmethod
-    def get_transits(*args, **kwargs):
-        return {"error": "Not implemented yet"}
+    def get_transits(dob: str, tob: str, place: str,
+                     lat: Optional[float] = None, lon: Optional[float] = None,
+                     tz: Optional[float] = None, current_date: Optional[str] = None,
+                     ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Current planetary transits (Gochara) over the natal chart.
+
+        Computes where each graha sits *today* (or on `current_date`), the house it
+        occupies counted from the natal Lagna and from the natal Moon (the classic
+        gochara reference), whether it is retrograde, plus the next sign-ingress
+        dates for the slow movers (Jupiter/Saturn/Rahu/Ketu). Transit positions are
+        rendered against the natal Lagna so the frontend can draw them on the same
+        North/South Kundali component."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available"}
+
+        try:
+            _set_ayanamsa(ayanamsa)
+            from datetime import datetime
+
+            year, month, day = map(int, dob.split("-"))
+            time_parts = tob.split(":")
+            hour = int(time_parts[0])
+            minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707  # Chennai default
+            tz_offset = tz or 5.5
+
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+
+            # ── Natal reference (Lagna + Moon) ──────────────────────────────
+            natal_jd = swe.julday(year, month, day, hour + minute / 60.0)
+            natal = charts.rasi_chart(natal_jd, place_obj)
+            natal_lagna_rasi = natal[0][1][0]
+            natal_lagna_deg = natal[0][1][1]
+            natal_moon_rasi, natal_moon_deg = natal[2][1]  # row 2 = Moon (planet 1)
+
+            # ── Transit moment (local noon for a stable daily snapshot) ─────
+            if current_date:
+                ty, tm, td = map(int, current_date.split("-"))
+            else:
+                now = datetime.now()
+                ty, tm, td = now.year, now.month, now.day
+            transit_jd = swe.julday(ty, tm, td, 12.0)
+
+            transit = charts.rasi_chart(transit_jd, place_obj)
+            retro_ids = set(drik.planets_in_retrograde(transit_jd, place_obj))
+
+            nak_span = 360.0 / 27.0
+            pada_span = nak_span / 4.0
+
+            def house_from(ref_rasi, rasi):
+                return ((rasi - ref_rasi) % 12) + 1
+
+            planets = {}
+            for planet_index, (rasi, degrees) in transit[1:]:  # skip ascendant
+                name = PLANET_NAMES.get(planet_index, f"Planet_{planet_index}")
+                abs_long = rasi * 30.0 + degrees
+                nak_idx = int(abs_long / nak_span)
+                pada = int((abs_long % nak_span) / pada_span) + 1
+                planets[name] = {
+                    "house": rasi + 1,  # 1-based sign for the Kundali component
+                    "rasi": rasi,
+                    "degrees": round(degrees, 2),
+                    "sign_name": ZODIAC_NAMES[rasi],
+                    "nakshatra": NAKSHATRA_NAMES[nak_idx],
+                    "nakshatra_pada": pada,
+                    "retrograde": planet_index in retro_ids,
+                    "house_from_lagna": house_from(natal_lagna_rasi, rasi),
+                    "house_from_moon": house_from(natal_moon_rasi, rasi),
+                }
+
+            # ── Upcoming sign ingresses for the slow movers ─────────────────
+            # Only Jupiter & Saturn: these are the headline gochara events
+            # (Jupiter transit, Saturn Sade Sati). The lunar nodes are skipped —
+            # PyJHora's retrograde node-ingress search returns a full ~18yr nodal
+            # cycle rather than the next boundary, so its dates aren't trustworthy.
+            upcoming = []
+            for pidx in (4, 6):  # Jupiter, Saturn
+                try:
+                    cur_rasi = transit[pidx + 1][1][0]
+                    entry_jd, entry_long = drik.next_planet_entry_date(
+                        pidx, transit_jd, place_obj, increment_days=1, precision=0.1)
+                    ey, em, ed, _ = utils.jd_to_gregorian(entry_jd)
+                    to_rasi = int(entry_long // 30) % 12
+                    upcoming.append({
+                        "planet": PLANET_NAMES[pidx],
+                        "from_sign": ZODIAC_NAMES[cur_rasi],
+                        "to_sign": ZODIAC_NAMES[to_rasi],
+                        "date": f"{ey:04d}-{em:02d}-{ed:02d}",
+                    })
+                except Exception as ie:
+                    print(f"Transit ingress error for planet {pidx}: {ie}")
+
+            upcoming.sort(key=lambda x: x["date"])
+
+            return {
+                "status": "success",
+                "transit_date": f"{ty:04d}-{tm:02d}-{td:02d}",
+                "natal": {
+                    "lagna": {
+                        "house": natal_lagna_rasi + 1,
+                        "degrees": round(natal_lagna_deg, 2),
+                        "sign_name": ZODIAC_NAMES[natal_lagna_rasi],
+                    },
+                    "moon": {
+                        "house": natal_moon_rasi + 1,
+                        "degrees": round(natal_moon_deg, 2),
+                        "sign_name": ZODIAC_NAMES[natal_moon_rasi],
+                    },
+                },
+                # Natal lagna drives the Kundali houses; planets are the transits.
+                "lagna": {
+                    "house": natal_lagna_rasi + 1,
+                    "degrees": round(natal_lagna_deg, 2),
+                    "sign_name": ZODIAC_NAMES[natal_lagna_rasi],
+                },
+                "planets": planets,
+                "upcoming": upcoming,
+            }
+
+        except Exception as e:
+            print(f"Transit calculation error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
     def get_compatibility(*args, **kwargs):

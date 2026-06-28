@@ -10,6 +10,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { BirthChartPage } from './pages/BirthChartPage';
 import { CompatibilityPage } from './pages/CompatibilityPage';
 import { DhasaPage } from './pages/DhasaPage';
+import { TransitPage } from './pages/TransitPage';
 import { PredictionsPage } from './pages/PredictionsPage';
 import { AskAstrologerPage } from './pages/AskAstrologerPage';
 import './App.css';
@@ -64,6 +65,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DhasaPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/transit"
+              element={
+                <ProtectedRoute>
+                  <TransitPage />
                 </ProtectedRoute>
               }
             />

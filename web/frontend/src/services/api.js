@@ -61,14 +61,18 @@ export const astrologyService = {
   getYogas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/yogas", birthDetails, { params: { ayanamsa } }),
   getDhasa: (birthDetails, dashaType = "vimsottari") =>
-    api.post("/api/astrology/dhasa", {
-      ...birthDetails,
-      dhasa_type: dashaType,
+    api.post("/api/astrology/dhasa", birthDetails, {
+      params: { dhasa_type: dashaType },
     }),
-  getTransits: (birthDetails, currentDate = null) =>
-    api.post("/api/astrology/transit", {
-      ...birthDetails,
-      current_date: currentDate,
+  // Lazily fetch the immediate children of a Vimsottari node. `lordsPath` is the
+  // chain of lord names from the Maha Dasha down, e.g. ["Venus", "Saturn"].
+  getDhasaChildren: (birthDetails, lordsPath = []) =>
+    api.post("/api/astrology/dhasa/children", birthDetails, {
+      params: { lords: lordsPath.join(",") },
+    }),
+  getTransits: (birthDetails, currentDate = null, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/transit", birthDetails, {
+      params: { current_date: currentDate, ayanamsa },
     }),
   getCompatibility: (maleBirthDetails, femaleBirthDetails, useQwen = false) =>
     api.post("/api/astrology/compatibility", {

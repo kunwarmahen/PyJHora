@@ -237,15 +237,20 @@ REACT_APP_API_TIMEOUT=30000
 - Detailed compatibility breakdown
 - Optional AI analysis with Qwen
 
-### 5. Dhasa Periods
-- Calculate planetary periods
-- Support multiple Dhasa types:
-  - Vimsottari (default)
-  - Ashtottari
-  - Yogini
-  - Shodasottari
+### 5. Vimsottari Dhasa Periods
+- Full drill-down tree: Maha Dasha → Bhukti → Antara → Sookshma
+- Maha + Bhukti load up front; deeper levels lazy-load on expand (computed at
+  full precision from the natal chart)
+- The currently running period auto-expands the whole live chain and is highlighted
+- (Other dasha systems — Ashtottari, Yogini, etc. — are on the roadmap; see `todo.md`)
 
-### 6. Qwen LLM Integration (Optional)
+### 6. Transits (Gochara)
+- Current planetary positions for today or a chosen date, drawn over the natal chart
+- House counted from both the natal Lagna and natal Moon, retrograde flagged
+- Key upcoming sign-ingress dates for Jupiter and Saturn
+- North / South Indian chart styles, respects the selected ayanamsa
+
+### 7. Qwen LLM Integration (Optional)
 - Enhanced predictions with local Qwen model
 - Contextual astrological interpretations
 - Personalized analysis
@@ -328,8 +333,10 @@ Users can select their preferred AI model directly in the frontend:
 - `POST /api/astrology/horoscope` - Get horoscope predictions
 - `POST /api/astrology/doshas` - Calculate doshas
 - `POST /api/astrology/yogas` - Get yogas
-- `POST /api/astrology/dhasa` - Calculate Dhasa periods
-- `POST /api/astrology/transit` - Get current transits
+- `POST /api/astrology/dhasa` - Calculate Vimsottari Dhasa periods (Maha + Bhukti)
+- `POST /api/astrology/dhasa/children?lords=Venus,Saturn` - Lazily fetch the child
+  periods (Antara/Sookshma) of a Vimsottari node for the drill-down tree
+- `POST /api/astrology/transit?current_date=&ayanamsa=` - Current transits (Gochara)
 - `POST /api/astrology/compatibility` - Check marriage compatibility
 
 ### AI Q&A (New) 🆕
@@ -351,7 +358,8 @@ Users can select their preferred AI model directly in the frontend:
 - `/birth-chart` - Birth chart calculator
 - `/ask-astrologer` - **NEW**: Interactive AI chat for personalized astrology insights 🆕
 - `/compatibility` - Marriage compatibility checker
-- `/dhasa` - Dhasa periods calculator
+- `/dhasa` - Vimsottari Dhasa drill-down tree (Maha → Bhukti → Antara → Sookshma)
+- `/transit` - Transits (Gochara) over the natal chart
 - `/predictions` - Horoscope and predictions generator
 
 ## Development Notes

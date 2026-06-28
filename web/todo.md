@@ -161,8 +161,20 @@ web exposes. High-value additions:
       fallback). Fixed a vaara bug exposed by western longitudes: reading the
       weekday exactly at sunrise hit a float boundary that flipped to the prior
       vedic day (NYC/London showed Sat for a Sun) — now read at local noon.
-- [ ] **Vimsottari Dasa with drill-down** (P1): the Dhasa page exists; add nested
-      Dasa→Bhukti→Antara→Sookshma tree with current-period highlighting.
+- [x] **Vimsottari Dasa with drill-down** (P1). DONE 2026-06-28: the Dhasa page is now
+      a nested Maha→Bhukti→Antara→Sookshma tree. Maha+Bhukti ship in the initial
+      `/dhasa` payload; deeper levels lazy-load via a new `get_dasha_children`
+      (`POST /api/astrology/dhasa/children?lords=Venus,Saturn`) which walks the lord-path
+      from the natal chart with PyJHora's `vimsottari_immediate_children` so every level
+      is recomputed at full sub-day precision (not from rounded dates). The current
+      period auto-expands the whole live chain (each node opens itself when it's the
+      running one, cascading the fetch down to Sookshma). Frontend rebuilt around a
+      recursive `DashaNode` (level-aware label/accent/indent). Scoped the page to
+      Vimsottari only — the old multi-system dropdown was misleading (`get_dashas`
+      ignored `dhasa_type` and always computed Vimsottari); other systems remain the
+      separate P2 below. Also fixed `getDhasa`/`getTransits` in api.js to pass
+      `dhasa_type`/`current_date` as query params (they were sent in the body and
+      silently ignored).
 - [ ] **More dasha systems** (P2): Ashtottari, Narayana, Kalachakra, Yogini, etc.
       (engine has ~10 under `dhasa/`).
 - [ ] **Ashtakavarga** (P2): Bhinna + Sarva tables/heatmap.
@@ -175,8 +187,18 @@ web exposes. High-value additions:
       load independently so a failure won't blank the chart.
 - [ ] **Arudha Padas, Karakas, Special Lagnas, Upagrahas** (P2): engine supports;
       add to an "advanced" chart details section.
-- [ ] **Transits / Gochara** (P1): backend `/transit` exists; add a current-transits
-      view over the natal chart + key upcoming transits.
+- [x] **Transits / Gochara** (P1). DONE 2026-06-28: implemented `get_transits` (was a
+      stub) — current graha positions (sign/deg/nakshatra+pada/retrograde) for today or
+      a chosen date, each with the house counted from the natal Lagna AND natal Moon
+      (classic gochara reference), plus the next sign-ingress dates for Jupiter & Saturn
+      (the headline Sade-Sati/Jupiter-transit events). Lunar-node ingresses are skipped:
+      PyJHora's retrograde node-entry search returns a full ~18yr nodal cycle, not the
+      next boundary, so its dates aren't trustworthy. New `TransitPage` (route `/transit`,
+      dashboard card) renders transits on the natal Lagna via the shared North/South
+      `Kundali`, respecting the chart-style toggle + selected ayanamsa, with a date
+      picker and a graha table. `POST /api/astrology/transit` now takes `ayanamsa` and
+      validates the result. NOTE: transit positions are computed at local noon for a
+      stable daily snapshot.
 - [ ] **Strength tables** (P2): Shadbala / planetary & rasi strength.
 - [ ] **Export / share** (P1): download chart as PNG/PDF, shareable read-only link.
 - [ ] **Compare two profiles side by side** beyond compatibility (P2).

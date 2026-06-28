@@ -399,13 +399,41 @@ async def get_dhasa(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/astrology/dhasa/children")
+async def get_dhasa_children(
+    birth_details: BirthDetails,
+    lords: str = "",
+    current_user: str = Depends(get_current_user)
+):
+    """Lazily fetch the immediate child periods (Antara/Sookshma) of a Vimsottari
+    node. `lords` is a comma-separated lord-path, e.g. `Venus,Saturn`."""
+    try:
+        lords_path = [p.strip() for p in lords.split(",") if p.strip()]
+        result = AstrologyCompute.get_dasha_children(
+            dob=birth_details.dob,
+            tob=birth_details.tob,
+            place=birth_details.place,
+            lat=birth_details.latitude,
+            lon=birth_details.longitude,
+            tz=birth_details.timezone,
+            lords_path=lords_path,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/astrology/transit")
 async def get_transits(
     birth_details: BirthDetails,
     current_date: Optional[str] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user)
 ):
-    """Get current transits"""
+    """Get current transits (Gochara) over the natal chart"""
     try:
         transits = AstrologyCompute.get_transits(
             dob=birth_details.dob,
@@ -414,9 +442,14 @@ async def get_transits(
             lat=birth_details.latitude,
             lon=birth_details.longitude,
             tz=birth_details.timezone,
-            current_date=current_date
+            current_date=current_date,
+            ayanamsa=ayanamsa
         )
+        if transits.get("status") != "success":
+            raise HTTPException(status_code=400, detail=transits.get("error", "Calculation failed"))
         return transits
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
