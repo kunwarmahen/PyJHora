@@ -88,7 +88,9 @@ export const DashboardPage = () => {
 
         <div className="section-header fade-in">
           <h3>Explore Your Cosmic Journey</h3>
-          <p className="section-subtitle">Choose a service to dive deeper into your Vedic astrology insights</p>
+          <p className="section-subtitle">
+            Choose a service to dive deeper into your Vedic astrology insights
+          </p>
         </div>
 
         <div className="features-grid">
@@ -106,7 +108,13 @@ export const DashboardPage = () => {
               <div className="feature-arrow">
                 <span>Explore</span>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path
+                    d="M6 3L11 8L6 13"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </div>
             </Link>

@@ -97,8 +97,12 @@ export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
   const limbs = data && [
     { label: "Tithi", value: data.tithi?.name, ends: data.tithi?.ends },
     { label: "Vaara", value: data.vaara?.name },
-    { label: "Nakshatra", value: data.nakshatra?.name, ends: data.nakshatra?.ends,
-      sub: data.nakshatra?.pada ? `Pada ${data.nakshatra.pada}` : null },
+    {
+      label: "Nakshatra",
+      value: data.nakshatra?.name,
+      ends: data.nakshatra?.ends,
+      sub: data.nakshatra?.pada ? `Pada ${data.nakshatra.pada}` : null,
+    },
     { label: "Yoga", value: data.yoga?.name, ends: data.yoga?.ends },
     { label: "Karana", value: data.karana?.name, ends: data.karana?.ends },
   ];
@@ -160,8 +164,12 @@ export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
           </div>
 
           <div className="panchanga-suntimes">
-            <span><Sunrise size={16} /> Sunrise {data.sunrise}</span>
-            <span><Sunset size={16} /> Sunset {data.sunset}</span>
+            <span>
+              <Sunrise size={16} /> Sunrise {data.sunrise}
+            </span>
+            <span>
+              <Sunset size={16} /> Sunset {data.sunset}
+            </span>
           </div>
 
           <div className="panchanga-periods">

@@ -14,15 +14,22 @@ export const PLANET_ABBR = {
 
 // Rasi / sign names, index 0 = Aries … 11 = Pisces
 export const RASI_NAMES = [
-  "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-  "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
+  "Aries",
+  "Taurus",
+  "Gemini",
+  "Cancer",
+  "Leo",
+  "Virgo",
+  "Libra",
+  "Scorpio",
+  "Sagittarius",
+  "Capricorn",
+  "Aquarius",
+  "Pisces",
 ];
 
 // Two-letter sign abbreviations, same order as RASI_NAMES
-export const RASI_ABBR = [
-  "Ar", "Ta", "Ge", "Cn", "Le", "Vi",
-  "Li", "Sc", "Sg", "Cp", "Aq", "Pi",
-];
+export const RASI_ABBR = ["Ar", "Ta", "Ge", "Cn", "Le", "Vi", "Li", "Sc", "Sg", "Cp", "Aq", "Pi"];
 
 // Divisional (varga) charts for the picker (must mirror the backend's
 // SUPPORTED_VARGAS). `value` is the divisional-chart factor.

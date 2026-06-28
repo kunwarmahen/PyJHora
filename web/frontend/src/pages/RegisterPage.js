@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { Mail, Lock, User, AlertCircle } from 'lucide-react';
-import '../styles/Auth.css';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { Mail, Lock, User, AlertCircle } from "lucide-react";
+import "../styles/Auth.css";
 
 export const RegisterPage = () => {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { register, error } = useAuth();
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ export const RegisterPage = () => {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      alert('Passwords do not match');
+      alert("Passwords do not match");
       return;
     }
 
@@ -25,7 +25,7 @@ export const RegisterPage = () => {
     const success = await register(username, email, password);
     setIsLoading(false);
     if (success) {
-      navigate('/profile-selection');
+      navigate("/profile-selection");
     }
   };
 
@@ -100,7 +100,7 @@ export const RegisterPage = () => {
           </div>
 
           <button type="submit" className="submit-btn" disabled={isLoading}>
-            {isLoading ? 'Registering...' : 'Register'}
+            {isLoading ? "Registering..." : "Register"}
           </button>
         </form>
 

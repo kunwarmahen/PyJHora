@@ -210,7 +210,7 @@
 }
 
 .feature-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -355,7 +355,11 @@
   gap: var(--space-sm);
   margin-bottom: var(--space-sm);
 }
-.dosha-name { font-weight: 700; color: var(--cosmic-indigo); font-size: 1rem; }
+.dosha-name {
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  font-size: 1rem;
+}
 .dosha-badge {
   font-size: 0.68rem;
   font-weight: 700;
@@ -365,9 +369,19 @@
   border-radius: var(--radius-full);
   white-space: nowrap;
 }
-.dosha-badge.yes { background: var(--vermillion); color: white; }
-.dosha-badge.no { background: rgba(45, 53, 97, 0.08); color: var(--text-secondary); }
-.dosha-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+.dosha-badge.yes {
+  background: var(--vermillion);
+  color: white;
+}
+.dosha-badge.no {
+  background: rgba(45, 53, 97, 0.08);
+  color: var(--text-secondary);
+}
+.dosha-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
 
 /* ===== Yoga cards (Birth Chart page) ===== */
 .yoga-grid {
@@ -382,9 +396,23 @@
   border-left: 3px solid var(--temple-gold);
   background: var(--sacred-white);
 }
-.yoga-name { font-weight: 700; color: var(--cosmic-indigo); font-size: 1rem; margin-bottom: var(--space-xs); }
-.yoga-desc { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: var(--space-sm); }
-.yoga-benefit { font-size: 0.82rem; color: var(--cosmic-indigo); line-height: 1.5; }
+.yoga-name {
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  font-size: 1rem;
+  margin-bottom: var(--space-xs);
+}
+.yoga-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: var(--space-sm);
+}
+.yoga-benefit {
+  font-size: 0.82rem;
+  color: var(--cosmic-indigo);
+  line-height: 1.5;
+}
 .yoga-benefit-label {
   display: block;
   font-size: 0.64rem;
@@ -394,7 +422,11 @@
   color: var(--temple-gold);
   margin-bottom: 2px;
 }
-.section-count { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
+.section-count {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
 
 /* ===== Panchanga (daily almanac) panel ===== */
 .panchanga-panel {
@@ -427,7 +459,9 @@
   gap: var(--space-md);
   flex-wrap: wrap;
 }
-.panchanga-controls .chart-style-toggle { margin-bottom: 0; }
+.panchanga-controls .chart-style-toggle {
+  margin-bottom: 0;
+}
 .panchanga-date {
   padding: var(--space-xs) var(--space-md);
   border: 1px solid var(--sandalwood);
@@ -445,7 +479,9 @@
   font-weight: 600;
   color: var(--text-secondary);
 }
-.panchanga-place svg { color: var(--saffron); }
+.panchanga-place svg {
+  color: var(--saffron);
+}
 .panchanga-status {
   color: var(--text-secondary);
   font-size: 0.9rem;
@@ -474,8 +510,15 @@
   font-weight: 700;
   color: var(--temple-gold);
 }
-.panchanga-limb-value { font-weight: 700; color: var(--cosmic-indigo); font-size: 0.98rem; }
-.panchanga-limb-sub { font-size: 0.72rem; color: var(--text-muted); }
+.panchanga-limb-value {
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  font-size: 0.98rem;
+}
+.panchanga-limb-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
 .panchanga-suntimes {
   display: flex;
   flex-wrap: wrap;
@@ -490,7 +533,9 @@
   align-items: center;
   gap: var(--space-xs);
 }
-.panchanga-suntimes svg { color: var(--saffron); }
+.panchanga-suntimes svg {
+  color: var(--saffron);
+}
 .panchanga-periods {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -505,8 +550,12 @@
   background: var(--sacred-white);
   border: 1px solid var(--sandalwood);
 }
-.panchanga-period.inauspicious { border-left: 3px solid var(--vermillion); }
-.panchanga-period.auspicious { border-left: 3px solid var(--temple-gold); }
+.panchanga-period.inauspicious {
+  border-left: 3px solid var(--vermillion);
+}
+.panchanga-period.auspicious {
+  border-left: 3px solid var(--temple-gold);
+}
 .panchanga-period-label {
   font-size: 0.64rem;
   text-transform: uppercase;
@@ -514,7 +563,11 @@
   font-weight: 700;
   color: var(--text-muted);
 }
-.panchanga-period-time { font-weight: 700; color: var(--cosmic-indigo); font-size: 0.95rem; }
+.panchanga-period-time {
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  font-size: 0.95rem;
+}
 .panchanga-durmuhurtam {
   display: flex;
   align-items: center;

@@ -16,8 +16,7 @@ export const ProfileBanner = ({ profile, onChangeProfile, changeIcon, actions })
   const navigate = useNavigate();
   if (!profile) return null;
 
-  const handleChange =
-    onChangeProfile || (() => navigate("/profile-selection"));
+  const handleChange = onChangeProfile || (() => navigate("/profile-selection"));
   const details = profile.birth_details || {};
 
   return (

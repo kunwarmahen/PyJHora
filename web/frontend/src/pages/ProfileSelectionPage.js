@@ -1,27 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useProfile } from '../contexts/ProfileContext';
-import { formatDate, orDash } from '../utils/format';
-import { User, Plus, Calendar, MapPin, Clock, Trash2, ChevronRight, Star, Edit2 } from 'lucide-react';
-import LocationSearch from '../components/LocationSearch';
-import '../styles/ProfileSelection.css';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useProfile } from "../contexts/ProfileContext";
+import { formatDate, orDash } from "../utils/format";
+import {
+  User,
+  Plus,
+  Calendar,
+  MapPin,
+  Clock,
+  Trash2,
+  ChevronRight,
+  Star,
+  Edit2,
+} from "lucide-react";
+import LocationSearch from "../components/LocationSearch";
+import "../styles/ProfileSelection.css";
 
 export const ProfileSelectionPage = () => {
   const navigate = useNavigate();
-  const { profiles, loading, loadProfiles, saveProfile, updateProfile, deleteProfile, selectProfile } = useProfile();
+  const {
+    profiles,
+    loading,
+    loadProfiles,
+    saveProfile,
+    updateProfile,
+    deleteProfile,
+    selectProfile,
+  } = useProfile();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
   const [formData, setFormData] = useState({
-    profile_name: '',
-    name: '',
-    dob: '',
-    tob: '',
-    place: '',
+    profile_name: "",
+    name: "",
+    dob: "",
+    tob: "",
+    place: "",
     latitude: null,
     longitude: null,
-    timezone: '5.5'
+    timezone: "5.5",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -31,19 +49,19 @@ export const ProfileSelectionPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleLocationSelect = (location) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       place: location.place,
       latitude: location.latitude,
       longitude: location.longitude,
-      timezone: location.timezone
+      timezone: location.timezone,
     }));
   };
 
@@ -58,7 +76,7 @@ export const ProfileSelectionPage = () => {
       place: profile.birth_details.place,
       latitude: profile.birth_details.latitude,
       longitude: profile.birth_details.longitude,
-      timezone: profile.birth_details.timezone
+      timezone: profile.birth_details.timezone,
     });
     setShowCreateForm(true);
   };
@@ -66,17 +84,23 @@ export const ProfileSelectionPage = () => {
   const handleCreateProfile = async (e) => {
     e.preventDefault();
     if (!formData.profile_name.trim()) {
-      setError('Please enter a profile name');
+      setError("Please enter a profile name");
       return;
     }
-    if (formData.latitude == null || formData.longitude == null ||
-        formData.latitude === '' || formData.longitude === '') {
-      setError('Please search and select a place of birth (this sets the coordinates and timezone).');
+    if (
+      formData.latitude == null ||
+      formData.longitude == null ||
+      formData.latitude === "" ||
+      formData.longitude === ""
+    ) {
+      setError(
+        "Please search and select a place of birth (this sets the coordinates and timezone)."
+      );
       return;
     }
 
     setSaving(true);
-    setError('');
+    setError("");
 
     const birthDetails = {
       name: formData.name,
@@ -85,7 +109,7 @@ export const ProfileSelectionPage = () => {
       place: formData.place,
       latitude: formData.latitude ? parseFloat(formData.latitude) : null,
       longitude: formData.longitude ? parseFloat(formData.longitude) : null,
-      timezone: parseFloat(formData.timezone)
+      timezone: parseFloat(formData.timezone),
     };
 
     let result;
@@ -100,43 +124,43 @@ export const ProfileSelectionPage = () => {
       setShowCreateForm(false);
       setEditingProfile(null);
       setFormData({
-        profile_name: '',
-        name: '',
-        dob: '',
-        tob: '',
-        place: '',
+        profile_name: "",
+        name: "",
+        dob: "",
+        tob: "",
+        place: "",
         latitude: null,
         longitude: null,
-        timezone: '5.5'
+        timezone: "5.5",
       });
     } else {
-      setError(result.error || 'Failed to save profile');
+      setError(result.error || "Failed to save profile");
     }
   };
 
   const handleSelectProfile = (profile) => {
     selectProfile(profile);
-    navigate('/dashboard');
+    navigate("/dashboard");
   };
 
   const handleDeleteProfile = async (e, profileId) => {
     e.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this profile?')) {
+    if (window.confirm("Are you sure you want to delete this profile?")) {
       await deleteProfile(profileId);
     }
   };
 
   const timezones = [
-    { value: '-12', label: 'UTC-12 (Baker Island)' },
-    { value: '-11', label: 'UTC-11 (Samoa)' },
-    { value: '-10', label: 'UTC-10 (Hawaii)' },
-    { value: '-8', label: 'UTC-8 (PST)' },
-    { value: '-5', label: 'UTC-5 (EST)' },
-    { value: '0', label: 'UTC-0 (GMT)' },
-    { value: '1', label: 'UTC+1 (CET)' },
-    { value: '5.5', label: 'UTC+5:30 (IST - India)' },
-    { value: '8', label: 'UTC+8 (CST - China)' },
-    { value: '9', label: 'UTC+9 (JST)' }
+    { value: "-12", label: "UTC-12 (Baker Island)" },
+    { value: "-11", label: "UTC-11 (Samoa)" },
+    { value: "-10", label: "UTC-10 (Hawaii)" },
+    { value: "-8", label: "UTC-8 (PST)" },
+    { value: "-5", label: "UTC-5 (EST)" },
+    { value: "0", label: "UTC-0 (GMT)" },
+    { value: "1", label: "UTC+1 (CET)" },
+    { value: "5.5", label: "UTC+5:30 (IST - India)" },
+    { value: "8", label: "UTC+8 (CST - China)" },
+    { value: "9", label: "UTC+9 (JST)" },
   ];
 
   return (
@@ -147,7 +171,9 @@ export const ProfileSelectionPage = () => {
             <Star size={48} />
           </div>
           <h1 className="text-gradient">Select Your Chart</h1>
-          <p className="subtitle">Choose an existing profile or create a new one to explore your cosmic journey</p>
+          <p className="subtitle">
+            Choose an existing profile or create a new one to explore your cosmic journey
+          </p>
         </div>
 
         {!showCreateForm ? (
@@ -170,7 +196,7 @@ export const ProfileSelectionPage = () => {
                         <div className="profile-avatar">
                           <User size={24} />
                         </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div style={{ display: "flex", gap: "8px" }}>
                           <button
                             className="edit-btn"
                             onClick={(e) => handleEditProfile(e, profile)}
@@ -191,7 +217,7 @@ export const ProfileSelectionPage = () => {
                       <div className="profile-details">
                         <div className="detail-item">
                           <User size={14} />
-                          <span>{profile.birth_details.name || 'Anonymous'}</span>
+                          <span>{profile.birth_details.name || "Anonymous"}</span>
                         </div>
                         <div className="detail-item">
                           <Calendar size={14} />
@@ -230,21 +256,21 @@ export const ProfileSelectionPage = () => {
         ) : (
           <div className="create-profile-form fade-in">
             <div className="form-header">
-              <h2>{editingProfile ? 'Edit Chart Profile' : 'Create New Chart Profile'}</h2>
+              <h2>{editingProfile ? "Edit Chart Profile" : "Create New Chart Profile"}</h2>
               <button
                 className="back-btn"
                 onClick={() => {
                   setShowCreateForm(false);
                   setEditingProfile(null);
                   setFormData({
-                    profile_name: '',
-                    name: '',
-                    dob: '',
-                    tob: '',
-                    place: '',
+                    profile_name: "",
+                    name: "",
+                    dob: "",
+                    tob: "",
+                    place: "",
                     latitude: null,
                     longitude: null,
-                    timezone: '5.5'
+                    timezone: "5.5",
                   });
                 }}
               >
@@ -327,7 +353,8 @@ export const ProfileSelectionPage = () => {
                       <strong>{formData.place}</strong>
                       <br />
                       <small>
-                        Lat: {formData.latitude}°, Lon: {formData.longitude}°, TZ: UTC+{formData.timezone}
+                        Lat: {formData.latitude}°, Lon: {formData.longitude}°, TZ: UTC+
+                        {formData.timezone}
                       </small>
                     </div>
                   </div>
@@ -344,7 +371,7 @@ export const ProfileSelectionPage = () => {
                     <input
                       type="number"
                       name="latitude"
-                      value={formData.latitude ?? ''}
+                      value={formData.latitude ?? ""}
                       onChange={handleInputChange}
                       placeholder="Auto-filled from place"
                       step="0.0001"
@@ -356,7 +383,7 @@ export const ProfileSelectionPage = () => {
                     <input
                       type="number"
                       name="longitude"
-                      value={formData.longitude ?? ''}
+                      value={formData.longitude ?? ""}
                       onChange={handleInputChange}
                       placeholder="Auto-filled from place"
                       step="0.0001"
@@ -366,12 +393,8 @@ export const ProfileSelectionPage = () => {
 
                 <div className="form-group">
                   <label>Timezone (UTC offset)</label>
-                  <select
-                    name="timezone"
-                    value={formData.timezone}
-                    onChange={handleInputChange}
-                  >
-                    {timezones.map(tz => (
+                  <select name="timezone" value={formData.timezone} onChange={handleInputChange}>
+                    {timezones.map((tz) => (
                       <option key={tz.value} value={tz.value}>
                         {tz.label}
                       </option>
@@ -380,17 +403,16 @@ export const ProfileSelectionPage = () => {
                 </div>
               </details>
 
-              {error && (
-                <div className="error-message">
-                  {error}
-                </div>
-              )}
+              {error && <div className="error-message">{error}</div>}
 
               <button type="submit" className="submit-btn" disabled={saving}>
                 {saving
-                  ? (editingProfile ? 'Updating Profile...' : 'Creating Profile...')
-                  : (editingProfile ? 'Update Profile' : 'Create Profile')
-                }
+                  ? editingProfile
+                    ? "Updating Profile..."
+                    : "Creating Profile..."
+                  : editingProfile
+                    ? "Update Profile"
+                    : "Create Profile"}
               </button>
             </form>
           </div>

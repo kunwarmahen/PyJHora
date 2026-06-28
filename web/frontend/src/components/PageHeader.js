@@ -29,9 +29,7 @@ export const PageHeader = ({
           </button>
         )}
         <div className="page-header-title">
-          {icon && (
-            <div className={`page-header-icon page-header-icon--${accent}`}>{icon}</div>
-          )}
+          {icon && <div className={`page-header-icon page-header-icon--${accent}`}>{icon}</div>}
           <div>
             <h1>{title}</h1>
             {subtitle && <p>{subtitle}</p>}

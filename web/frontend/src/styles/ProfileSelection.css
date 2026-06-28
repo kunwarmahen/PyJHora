@@ -5,7 +5,12 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-xl);
-  background: linear-gradient(135deg, var(--sandalwood) 0%, var(--sacred-white) 50%, var(--sandalwood) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--sandalwood) 0%,
+    var(--sacred-white) 50%,
+    var(--sandalwood) 100%
+  );
 }
 
 .profile-selection-container {
@@ -78,7 +83,7 @@
 }
 
 .profile-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -382,7 +387,7 @@
 }
 
 .submit-btn::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -100%;
@@ -428,7 +433,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-state p {

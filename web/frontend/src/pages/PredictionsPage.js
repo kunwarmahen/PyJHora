@@ -1,30 +1,30 @@
-import React, { useState } from 'react';
-import { AlertCircle, CheckCircle, MapPin } from 'lucide-react';
-import { astrologyService } from '../services/api';
-import LocationSearch from '../components/LocationSearch';
-import '../styles/Forms.css';
+import React, { useState } from "react";
+import { AlertCircle, CheckCircle, MapPin } from "lucide-react";
+import { astrologyService } from "../services/api";
+import LocationSearch from "../components/LocationSearch";
+import "../styles/Forms.css";
 
 export const PredictionsPage = () => {
   const [formData, setFormData] = useState({
-    name: '',
-    dob: '',
-    tob: '',
-    place: '',
+    name: "",
+    dob: "",
+    tob: "",
+    place: "",
     latitude: null,
     longitude: null,
     timezone: null,
   });
-  const [predictionType, setPredictionType] = useState('horoscope');
+  const [predictionType, setPredictionType] = useState("horoscope");
   const [useQwen, setUseQwen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [result, setResult] = useState(null);
 
   const predictionTypes = [
-    { value: 'horoscope', label: 'Horoscope & General Predictions' },
-    { value: 'health', label: 'Health Predictions' },
-    { value: 'career', label: 'Career Predictions' },
-    { value: 'transit', label: 'Current Transits' },
+    { value: "horoscope", label: "Horoscope & General Predictions" },
+    { value: "health", label: "Health Predictions" },
+    { value: "career", label: "Career Predictions" },
+    { value: "transit", label: "Current Transits" },
   ];
 
   const handleInputChange = (e) => {
@@ -50,12 +50,12 @@ export const PredictionsPage = () => {
 
     // Validate location data
     if (!formData.latitude || !formData.longitude || !formData.timezone) {
-      setError('Please search for a location using the location search above');
+      setError("Please search for a location using the location search above");
       return;
     }
 
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       let response;
@@ -70,10 +70,10 @@ export const PredictionsPage = () => {
       };
 
       switch (predictionType) {
-        case 'horoscope':
+        case "horoscope":
           response = await astrologyService.getHoroscope(birthDetails, useQwen);
           break;
-        case 'transit':
+        case "transit":
           response = await astrologyService.getTransits(birthDetails);
           break;
         default:
@@ -82,7 +82,7 @@ export const PredictionsPage = () => {
 
       setResult(response.data);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to generate predictions');
+      setError(err.response?.data?.detail || "Failed to generate predictions");
     } finally {
       setLoading(false);
     }
@@ -152,7 +152,8 @@ export const PredictionsPage = () => {
                     <strong>{formData.place}</strong>
                     <br />
                     <small>
-                      Lat: {formData.latitude}°, Lon: {formData.longitude}°, TZ: UTC+{formData.timezone}
+                      Lat: {formData.latitude}°, Lon: {formData.longitude}°, TZ: UTC+
+                      {formData.timezone}
                     </small>
                   </div>
                 </div>
@@ -184,7 +185,7 @@ export const PredictionsPage = () => {
           </div>
 
           <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? 'Generating...' : 'Generate Predictions'}
+            {loading ? "Generating..." : "Generate Predictions"}
           </button>
         </form>
 
@@ -201,8 +202,9 @@ export const PredictionsPage = () => {
                   <div className="info-item">
                     <strong>Lagna (Ascendant):</strong>
                     <span>
-                      {typeof result.lagna === 'object'
-                        ? result.lagna.sign_name || `Rasi ${result.lagna.house || result.lagna.rasi || ''}`
+                      {typeof result.lagna === "object"
+                        ? result.lagna.sign_name ||
+                          `Rasi ${result.lagna.house || result.lagna.rasi || ""}`
                         : result.lagna}
                     </span>
                   </div>
@@ -211,7 +213,7 @@ export const PredictionsPage = () => {
                   <div className="info-item">
                     <strong>Moon Sign:</strong>
                     <span>
-                      {typeof result.moon_sign === 'object'
+                      {typeof result.moon_sign === "object"
                         ? result.moon_sign.sign_name || result.moon_sign
                         : result.moon_sign}
                     </span>
@@ -221,7 +223,7 @@ export const PredictionsPage = () => {
                   <div className="info-item">
                     <strong>Sun Sign:</strong>
                     <span>
-                      {typeof result.sun_sign === 'object'
+                      {typeof result.sun_sign === "object"
                         ? result.sun_sign.sign_name || result.sun_sign
                         : result.sun_sign}
                     </span>
@@ -238,7 +240,9 @@ export const PredictionsPage = () => {
                       <p>
                         {data.sign_name} - {data.nakshatra} (Pada {data.pada})
                         <br />
-                        <small style={{color: '#888'}}>Longitude: {data.longitude?.toFixed(2)}°</small>
+                        <small style={{ color: "#888" }}>
+                          Longitude: {data.longitude?.toFixed(2)}°
+                        </small>
                       </p>
                     </div>
                   ))}
@@ -260,10 +264,10 @@ export const PredictionsPage = () => {
               {result.ai_prediction && (
                 <div className="ai-prediction">
                   <h3>Astrological Predictions</h3>
-                  <div style={{ whiteSpace: 'pre-line' }}>
-                    {result.ai_prediction.split('**').map((part, i) =>
-                      i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-                    )}
+                  <div style={{ whiteSpace: "pre-line" }}>
+                    {result.ai_prediction
+                      .split("**")
+                      .map((part, i) => (i % 2 === 1 ? <strong key={i}>{part}</strong> : part))}
                   </div>
                 </div>
               )}

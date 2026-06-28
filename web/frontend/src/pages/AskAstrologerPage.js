@@ -110,12 +110,8 @@ export const AskAstrologerPage = () => {
   const [providerType, setProviderType] = useState(
     () => localStorage.getItem("ai_provider_type") || "ollama"
   );
-  const [model, setModel] = useState(
-    () => localStorage.getItem("ai_model") || ""
-  );
-  const [baseUrl, setBaseUrl] = useState(
-    () => localStorage.getItem("ai_base_url") || ""
-  );
+  const [model, setModel] = useState(() => localStorage.getItem("ai_model") || "");
+  const [baseUrl, setBaseUrl] = useState(() => localStorage.getItem("ai_base_url") || "");
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Divisional charts to include in the AI context (D1 is always the natal base)
@@ -148,8 +144,7 @@ export const AskAstrologerPage = () => {
     openai: "🧠",
   };
 
-  const selectedProvider =
-    providers.find((p) => p.type === providerType) || null;
+  const selectedProvider = providers.find((p) => p.type === providerType) || null;
 
   // Persist choices
   useEffect(() => {
@@ -175,8 +170,7 @@ export const AskAstrologerPage = () => {
 
         // Pick a sensible provider: keep saved choice if it exists, else first available
         const saved = list.find((p) => p.type === providerType);
-        const target =
-          saved || list.find((p) => p.available) || list[0] || null;
+        const target = saved || list.find((p) => p.available) || list[0] || null;
         if (target) {
           if (target.type !== providerType) setProviderType(target.type);
           // Pick a model: keep saved if valid for this provider, else default/first
@@ -228,7 +222,7 @@ export const AskAstrologerPage = () => {
   // Redirect if no profile selected
   useEffect(() => {
     if (!selectedProfile) {
-      navigate('/profile-selection');
+      navigate("/profile-selection");
       return;
     }
 
@@ -258,13 +252,13 @@ export const AskAstrologerPage = () => {
       // Fetch both chart data and dasha data
       const [chartResponse, dashaResponse] = await Promise.all([
         astrologyService.calculateBirthChart(birthDetails),
-        astrologyService.getDhasa(birthDetails, "vimsottari")
+        astrologyService.getDhasa(birthDetails, "vimsottari"),
       ]);
 
       // Combine chart data with dasha data
       setChartData({
         ...chartResponse.data,
-        dashas: dashaResponse.data
+        dashas: dashaResponse.data,
       });
       setMessages([
         {
@@ -332,8 +326,7 @@ export const AskAstrologerPage = () => {
             sections: m.sections || msg.sections,
           }));
         },
-        onToken: (t) =>
-          updateLastAi((msg) => ({ ...msg, content: msg.content + t })),
+        onToken: (t) => updateLastAi((msg) => ({ ...msg, content: msg.content + t })),
         onDone: (d) => {
           if (d.conversation_id) setConversationId(d.conversation_id);
           updateLastAi((msg) => ({
@@ -423,9 +416,7 @@ export const AskAstrologerPage = () => {
 
   // Backend stores only user/assistant messages; map a UI index to that array.
   const backendIndexFor = (uiIndex) =>
-    messages
-      .slice(0, uiIndex + 1)
-      .filter((m) => m.type === "user" || m.type === "ai").length - 1;
+    messages.slice(0, uiIndex + 1).filter((m) => m.type === "user" || m.type === "ai").length - 1;
 
   const handleFeedback = async (uiIndex, rating) => {
     if (!conversationId) return;
@@ -438,11 +429,7 @@ export const AskAstrologerPage = () => {
       return copy;
     });
     try {
-      await astrologyService.submitFeedback(
-        conversationId,
-        backendIndexFor(uiIndex),
-        next
-      );
+      await astrologyService.submitFeedback(conversationId, backendIndexFor(uiIndex), next);
     } catch (e) {
       /* non-fatal; leave optimistic state */
     }
@@ -450,10 +437,7 @@ export const AskAstrologerPage = () => {
 
   // Export the current conversation as a Markdown file.
   const handleExport = () => {
-    const name =
-      selectedProfile?.birth_details?.name ||
-      selectedProfile?.profile_name ||
-      "chart";
+    const name = selectedProfile?.birth_details?.name || selectedProfile?.profile_name || "chart";
     const lines = [
       `# AI Astrologer — ${name}`,
       "",
@@ -530,9 +514,7 @@ export const AskAstrologerPage = () => {
             }
       );
       setMessages(
-        msgs.length
-          ? msgs
-          : [{ type: "system", content: "This conversation is empty." }]
+        msgs.length ? msgs : [{ type: "system", content: "This conversation is empty." }]
       );
       setConversationId(id);
       setShowHistory(false);
@@ -635,7 +617,7 @@ export const AskAstrologerPage = () => {
       current_dasha: chartData.dashas?.current_dasha || {},
       next_dasha: chartData.dashas?.next_dasha || {},
       current_bhukthi: chartData.dashas?.current_bhukthi || {},
-      dasha_sequence: chartData.dashas?.dasha_sequence || []
+      dasha_sequence: chartData.dashas?.dasha_sequence || [],
     };
   };
 
@@ -644,10 +626,7 @@ export const AskAstrologerPage = () => {
   }
 
   // Index of the most recent AI message (only it can be regenerated).
-  const lastAiIndex = messages.reduce(
-    (acc, m, i) => (m.type === "ai" ? i : acc),
-    -1
-  );
+  const lastAiIndex = messages.reduce((acc, m, i) => (m.type === "ai" ? i : acc), -1);
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -663,13 +642,16 @@ export const AskAstrologerPage = () => {
         <ProfileBanner
           profile={selectedProfile}
           actions={
-            <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+            <div style={{ display: "flex", gap: "var(--space-sm)", flexWrap: "wrap" }}>
               <button onClick={startNewConversation} className="change-profile-btn">
                 <Plus size={16} />
                 <span>New Chat</span>
               </button>
               <button
-                onClick={() => { setShowHistory((v) => !v); refreshConversations(); }}
+                onClick={() => {
+                  setShowHistory((v) => !v);
+                  refreshConversations();
+                }}
                 className="change-profile-btn"
               >
                 <History size={16} />
@@ -684,11 +666,15 @@ export const AskAstrologerPage = () => {
                 <Download size={16} />
                 <span>Export</span>
               </button>
-              <button onClick={openKeysModal} className="change-profile-btn" title="Manage your API keys">
+              <button
+                onClick={openKeysModal}
+                className="change-profile-btn"
+                title="Manage your API keys"
+              >
                 <KeyRound size={16} />
                 <span>API Keys</span>
               </button>
-              <button onClick={() => navigate('/profile-selection')} className="change-profile-btn">
+              <button onClick={() => navigate("/profile-selection")} className="change-profile-btn">
                 <Star size={16} />
                 <span>Change Chart</span>
               </button>
@@ -698,48 +684,66 @@ export const AskAstrologerPage = () => {
 
         {/* History panel */}
         {showHistory && (
-          <div style={{
-            background: 'white',
-            borderRadius: 'var(--radius-xl)',
-            padding: 'var(--space-xl)',
-            boxShadow: 'var(--shadow-lg)',
-            borderTop: '4px solid var(--saffron)',
-            marginBottom: 'var(--space-xl)',
-          }}>
-            <h3 style={{
-              display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
-              marginBottom: 'var(--space-lg)', color: 'var(--cosmic-indigo)',
-              fontSize: '1.25rem', fontWeight: 700,
-            }}>
-              <History size={20} style={{ color: 'var(--saffron)' }} />
+          <div
+            style={{
+              background: "white",
+              borderRadius: "var(--radius-xl)",
+              padding: "var(--space-xl)",
+              boxShadow: "var(--shadow-lg)",
+              borderTop: "4px solid var(--saffron)",
+              marginBottom: "var(--space-xl)",
+            }}
+          >
+            <h3
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-sm)",
+                marginBottom: "var(--space-lg)",
+                color: "var(--cosmic-indigo)",
+                fontSize: "1.25rem",
+                fontWeight: 700,
+              }}
+            >
+              <History size={20} style={{ color: "var(--saffron)" }} />
               Saved Conversations
             </h3>
             {conversations.length === 0 ? (
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: 0 }}>
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", margin: 0 }}>
                 No saved conversations yet. Ask a question to start one.
               </p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
                 {conversations.map((c) => (
                   <div
                     key={c.id}
                     onClick={() => loadConversation(c.id)}
                     style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      gap: 'var(--space-md)', padding: 'var(--space-md)',
-                      borderRadius: 'var(--radius-md)', cursor: 'pointer',
-                      border: `1px solid ${c.id === conversationId ? 'var(--saffron)' : 'var(--sandalwood)'}`,
-                      background: c.id === conversationId ? 'rgba(255, 153, 51, 0.08)' : 'white',
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "var(--space-md)",
+                      padding: "var(--space-md)",
+                      borderRadius: "var(--radius-md)",
+                      cursor: "pointer",
+                      border: `1px solid ${c.id === conversationId ? "var(--saffron)" : "var(--sandalwood)"}`,
+                      background: c.id === conversationId ? "rgba(255, 153, 51, 0.08)" : "white",
                     }}
                   >
                     <div style={{ minWidth: 0 }}>
-                      <div style={{
-                        fontWeight: 600, color: 'var(--cosmic-indigo)', fontSize: '0.9375rem',
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          color: "var(--cosmic-indigo)",
+                          fontSize: "0.9375rem",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
                         {c.title}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
                         {Math.floor((c.message_count || 0) / 2)} Q&A
                         {c.last_model ? ` · ${c.last_model}` : ""}
                         {c.updated_at ? ` · ${formatDate(c.updated_at)}` : ""}
@@ -749,12 +753,16 @@ export const AskAstrologerPage = () => {
                       onClick={(e) => handleDeleteConversation(c.id, e)}
                       title="Delete conversation"
                       style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        color: 'var(--text-secondary)', padding: 'var(--space-xs)',
-                        display: 'flex', flexShrink: 0,
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "var(--text-secondary)",
+                        padding: "var(--space-xs)",
+                        display: "flex",
+                        flexShrink: 0,
                       }}
-                      onMouseOver={(e) => (e.currentTarget.style.color = 'var(--vermillion)')}
-                      onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                      onMouseOver={(e) => (e.currentTarget.style.color = "var(--vermillion)")}
+                      onMouseOut={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -767,71 +775,83 @@ export const AskAstrologerPage = () => {
 
         {/* Display Birth Chart */}
         {chartData && (
-          <div style={{ opacity: 0, animation: 'fadeIn 0.6s ease-out 0.2s forwards' }}>
+          <div style={{ opacity: 0, animation: "fadeIn 0.6s ease-out 0.2s forwards" }}>
             <NorthIndianChart chartData={chartData} />
           </div>
         )}
 
         {/* AI Model Selector and Examples */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: 'var(--space-lg)',
-          marginBottom: 'var(--space-xl)',
-          opacity: 0,
-          animation: 'fadeIn 0.6s ease-out 0.4s forwards'
-        }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+            gap: "var(--space-lg)",
+            marginBottom: "var(--space-xl)",
+            opacity: 0,
+            animation: "fadeIn 0.6s ease-out 0.4s forwards",
+          }}
+        >
           {/* LLM Selector Card */}
-          <div style={{
-            background: 'white',
-            borderRadius: 'var(--radius-xl)',
-            padding: 'var(--space-xl)',
-            boxShadow: 'var(--shadow-lg)',
-            borderTop: '4px solid var(--saffron)'
-          }}>
-            <h3 style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-sm)',
-              marginBottom: 'var(--space-lg)',
-              color: 'var(--cosmic-indigo)',
-              fontSize: '1.25rem',
-              fontWeight: 700
-            }}>
-              <Bot size={20} style={{ color: 'var(--saffron)' }} />
+          <div
+            style={{
+              background: "white",
+              borderRadius: "var(--radius-xl)",
+              padding: "var(--space-xl)",
+              boxShadow: "var(--shadow-lg)",
+              borderTop: "4px solid var(--saffron)",
+            }}
+          >
+            <h3
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-sm)",
+                marginBottom: "var(--space-lg)",
+                color: "var(--cosmic-indigo)",
+                fontSize: "1.25rem",
+                fontWeight: 700,
+              }}
+            >
+              <Bot size={20} style={{ color: "var(--saffron)" }} />
               AI Model
               <button
                 onClick={() => openInfo(lastContext)}
                 style={{
-                  marginLeft: 'auto',
-                  background: 'rgba(255, 153, 51, 0.1)',
-                  border: '1px solid var(--saffron)',
-                  cursor: 'pointer',
-                  color: 'var(--saffron)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-xs)',
-                  padding: 'var(--space-xs) var(--space-sm)',
-                  borderRadius: 'var(--radius-sm)',
-                  transition: 'all 0.3s ease'
+                  marginLeft: "auto",
+                  background: "rgba(255, 153, 51, 0.1)",
+                  border: "1px solid var(--saffron)",
+                  cursor: "pointer",
+                  color: "var(--saffron)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-xs)",
+                  padding: "var(--space-xs) var(--space-sm)",
+                  borderRadius: "var(--radius-sm)",
+                  transition: "all 0.3s ease",
                 }}
-                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 153, 51, 0.2)'}
-                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 153, 51, 0.1)'}
+                onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255, 153, 51, 0.2)")}
+                onMouseOut={(e) => (e.currentTarget.style.background = "rgba(255, 153, 51, 0.1)")}
                 title="See the exact chart data sent to the AI"
               >
                 <Info size={18} />
-                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>View data sent</span>
+                <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>View data sent</span>
               </button>
             </h3>
             {providersLoading ? (
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+              <div style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
                 Detecting available models…
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
                 {/* Provider */}
-                <label style={{ display: 'block' }}>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                <label style={{ display: "block" }}>
+                  <span
+                    style={{
+                      fontSize: "0.8125rem",
+                      fontWeight: 600,
+                      color: "var(--text-secondary)",
+                    }}
+                  >
                     Provider
                   </span>
                   <select
@@ -849,8 +869,14 @@ export const AskAstrologerPage = () => {
                 </label>
 
                 {/* Model */}
-                <label style={{ display: 'block' }}>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                <label style={{ display: "block" }}>
+                  <span
+                    style={{
+                      fontSize: "0.8125rem",
+                      fontWeight: 600,
+                      color: "var(--text-secondary)",
+                    }}
+                  >
                     Model
                   </span>
                   {selectedProvider && selectedProvider.models.length > 0 ? (
@@ -863,7 +889,9 @@ export const AskAstrologerPage = () => {
                         <option value={model}>{model} (custom)</option>
                       )}
                       {selectedProvider.models.map((m) => (
-                        <option key={m} value={m}>{m}</option>
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
                       ))}
                     </select>
                   ) : (
@@ -879,14 +907,16 @@ export const AskAstrologerPage = () => {
 
                 {/* Availability note */}
                 {selectedProvider && !selectedProvider.available && (
-                  <div style={{
-                    fontSize: '0.8125rem',
-                    color: 'var(--vermillion)',
-                    background: 'rgba(229, 57, 53, 0.08)',
-                    border: '1px solid rgba(229, 57, 53, 0.25)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: 'var(--space-sm) var(--space-md)',
-                  }}>
+                  <div
+                    style={{
+                      fontSize: "0.8125rem",
+                      color: "var(--vermillion)",
+                      background: "rgba(229, 57, 53, 0.08)",
+                      border: "1px solid rgba(229, 57, 53, 0.25)",
+                      borderRadius: "var(--radius-md)",
+                      padding: "var(--space-sm) var(--space-md)",
+                    }}
+                  >
                     ⚠ {selectedProvider.reason || "This provider is not reachable."}
                   </div>
                 )}
@@ -898,8 +928,12 @@ export const AskAstrologerPage = () => {
                       type="button"
                       onClick={() => setShowAdvanced((v) => !v)}
                       style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        color: 'var(--saffron)', fontSize: '0.8125rem', fontWeight: 600,
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "var(--saffron)",
+                        fontSize: "0.8125rem",
+                        fontWeight: 600,
                         padding: 0,
                       }}
                     >
@@ -911,7 +945,7 @@ export const AskAstrologerPage = () => {
                         value={baseUrl}
                         onChange={(e) => setBaseUrl(e.target.value)}
                         placeholder={selectedProvider.base_url}
-                        style={{ ...selectStyle, marginTop: 'var(--space-sm)' }}
+                        style={{ ...selectStyle, marginTop: "var(--space-sm)" }}
                       />
                     )}
                   </div>
@@ -921,23 +955,27 @@ export const AskAstrologerPage = () => {
           </div>
 
           {/* Examples Card */}
-          <div style={{
-            background: 'white',
-            borderRadius: 'var(--radius-xl)',
-            padding: 'var(--space-xl)',
-            boxShadow: 'var(--shadow-lg)',
-            borderTop: '4px solid var(--saffron)'
-          }}>
-            <h3 style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-sm)',
-              marginBottom: 'var(--space-lg)',
-              color: 'var(--cosmic-indigo)',
-              fontSize: '1.25rem',
-              fontWeight: 700
-            }}>
-              <MessageCircle size={20} style={{ color: 'var(--saffron)' }} />
+          <div
+            style={{
+              background: "white",
+              borderRadius: "var(--radius-xl)",
+              padding: "var(--space-xl)",
+              boxShadow: "var(--shadow-lg)",
+              borderTop: "4px solid var(--saffron)",
+            }}
+          >
+            <h3
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-sm)",
+                marginBottom: "var(--space-lg)",
+                color: "var(--cosmic-indigo)",
+                fontSize: "1.25rem",
+                fontWeight: 700,
+              }}
+            >
+              <MessageCircle size={20} style={{ color: "var(--saffron)" }} />
               Example Questions
             </h3>
             {exampleQuestions.map((q, index) => (
@@ -953,29 +991,39 @@ export const AskAstrologerPage = () => {
           </div>
 
           {/* Divisional Charts (Vargas) Card */}
-          <div style={{
-            background: 'white',
-            borderRadius: 'var(--radius-xl)',
-            padding: 'var(--space-xl)',
-            boxShadow: 'var(--shadow-lg)',
-            borderTop: '4px solid var(--saffron)'
-          }}>
-            <h3 style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-sm)',
-              marginBottom: 'var(--space-xs)',
-              color: 'var(--cosmic-indigo)',
-              fontSize: '1.25rem',
-              fontWeight: 700
-            }}>
-              <Star size={20} style={{ color: 'var(--saffron)' }} />
+          <div
+            style={{
+              background: "white",
+              borderRadius: "var(--radius-xl)",
+              padding: "var(--space-xl)",
+              boxShadow: "var(--shadow-lg)",
+              borderTop: "4px solid var(--saffron)",
+            }}
+          >
+            <h3
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-sm)",
+                marginBottom: "var(--space-xs)",
+                color: "var(--cosmic-indigo)",
+                fontSize: "1.25rem",
+                fontWeight: 700,
+              }}
+            >
+              <Star size={20} style={{ color: "var(--saffron)" }} />
               Charts to Consult
             </h3>
-            <p style={{ margin: '0 0 var(--space-md)', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+            <p
+              style={{
+                margin: "0 0 var(--space-md)",
+                fontSize: "0.8125rem",
+                color: "var(--text-secondary)",
+              }}
+            >
               Pick which divisional charts the AI should weigh. D1 (Rasi) is always included.
             </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-sm)" }}>
               {VARGAS.map((v) => {
                 const active = selectedVargas.includes(v.value);
                 const isD1 = v.value === 1;
@@ -987,14 +1035,14 @@ export const AskAstrologerPage = () => {
                     disabled={isD1}
                     title={`${v.name} — ${v.significance}`}
                     style={{
-                      cursor: isD1 ? 'default' : 'pointer',
-                      padding: 'var(--space-xs) var(--space-md)',
-                      borderRadius: 'var(--radius-md)',
-                      fontSize: '0.8125rem',
+                      cursor: isD1 ? "default" : "pointer",
+                      padding: "var(--space-xs) var(--space-md)",
+                      borderRadius: "var(--radius-md)",
+                      fontSize: "0.8125rem",
                       fontWeight: 600,
-                      border: `1px solid ${active ? 'var(--saffron)' : 'var(--sandalwood)'}`,
-                      background: active ? 'rgba(255, 153, 51, 0.12)' : 'white',
-                      color: active ? 'var(--vermillion)' : 'var(--text-secondary)',
+                      border: `1px solid ${active ? "var(--saffron)" : "var(--sandalwood)"}`,
+                      background: active ? "rgba(255, 153, 51, 0.12)" : "white",
+                      color: active ? "var(--vermillion)" : "var(--text-secondary)",
                       opacity: isD1 ? 0.8 : 1,
                     }}
                   >
@@ -1010,19 +1058,29 @@ export const AskAstrologerPage = () => {
         {error && (
           <div
             style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              gap: 'var(--space-md)', marginBottom: 'var(--space-lg)',
-              padding: 'var(--space-md) var(--space-lg)',
-              background: 'rgba(229, 57, 53, 0.08)',
-              border: '1px solid rgba(229, 57, 53, 0.3)',
-              borderRadius: 'var(--radius-md)', color: 'var(--vermillion)',
-              fontSize: '0.875rem',
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "var(--space-md)",
+              marginBottom: "var(--space-lg)",
+              padding: "var(--space-md) var(--space-lg)",
+              background: "rgba(229, 57, 53, 0.08)",
+              border: "1px solid rgba(229, 57, 53, 0.3)",
+              borderRadius: "var(--radius-md)",
+              color: "var(--vermillion)",
+              fontSize: "0.875rem",
             }}
           >
             <span>⚠ {error}</span>
             <button
               onClick={() => setError("")}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--vermillion)', display: 'flex' }}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--vermillion)",
+                display: "flex",
+              }}
               title="Dismiss"
             >
               <X size={16} />
@@ -1031,27 +1089,32 @@ export const AskAstrologerPage = () => {
         )}
 
         {/* Chat Area */}
-        <div style={{
-          background: 'white',
-          borderRadius: 'var(--radius-xl)',
-          boxShadow: 'var(--shadow-lg)',
-          borderTop: '4px solid var(--saffron)',
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: '500px',
-          maxHeight: '700px',
-          opacity: 0,
-          animation: 'fadeIn 0.6s ease-out 0.6s forwards'
-        }}>
-          <div className="messages-container" style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: 'var(--space-xl)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--space-lg)',
-            background: 'var(--sacred-white)'
-          }}>
+        <div
+          style={{
+            background: "white",
+            borderRadius: "var(--radius-xl)",
+            boxShadow: "var(--shadow-lg)",
+            borderTop: "4px solid var(--saffron)",
+            display: "flex",
+            flexDirection: "column",
+            minHeight: "500px",
+            maxHeight: "700px",
+            opacity: 0,
+            animation: "fadeIn 0.6s ease-out 0.6s forwards",
+          }}
+        >
+          <div
+            className="messages-container"
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "var(--space-xl)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--space-lg)",
+              background: "var(--sacred-white)",
+            }}
+          >
             {messages.map((message, index) => (
               <div key={index} className={`message ${message.type}`}>
                 {message.type === "user" && (
@@ -1069,12 +1132,10 @@ export const AskAstrologerPage = () => {
                       {message.model
                         ? ` · ${message.model}`
                         : message.provider
-                        ? ` (${message.provider})`
-                        : ""}
+                          ? ` (${message.provider})`
+                          : ""}
                     </span>
-                    {message.timestamp && (
-                      <span className="timestamp">{message.timestamp}</span>
-                    )}
+                    {message.timestamp && <span className="timestamp">{message.timestamp}</span>}
                     {!message.streaming && message.elapsed_ms != null && (
                       <span className="timestamp" title="Generation time">
                         {(message.elapsed_ms / 1000).toFixed(1)}s
@@ -1085,15 +1146,15 @@ export const AskAstrologerPage = () => {
                         onClick={() => openInfo(messageInfo(message))}
                         title="See the chart data used for this answer"
                         style={{
-                          marginLeft: 'auto',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: 'var(--saffron)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          padding: '2px',
-                          borderRadius: 'var(--radius-sm)',
+                          marginLeft: "auto",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "var(--saffron)",
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "2px",
+                          borderRadius: "var(--radius-sm)",
                         }}
                       >
                         <Info size={15} />
@@ -1121,9 +1182,7 @@ export const AskAstrologerPage = () => {
                     ) : (
                       <>
                         <ReactMarkdown>{message.content}</ReactMarkdown>
-                        {message.streaming && (
-                          <span className="stream-cursor">▍</span>
-                        )}
+                        {message.streaming && <span className="stream-cursor">▍</span>}
                       </>
                     )
                   ) : (
@@ -1132,58 +1191,64 @@ export const AskAstrologerPage = () => {
                 </div>
 
                 {/* Answer affordances: copy / regenerate / feedback */}
-                {message.type === "ai" && !message.streaming && message.content && !message.error && (
-                  <div className="msg-actions">
-                    <button
-                      className="msg-action-btn"
-                      onClick={() => handleCopy(message.content, index)}
-                      title="Copy answer"
-                    >
-                      {copiedIdx === index ? <Check size={13} /> : <Copy size={13} />}
-                      {copiedIdx === index ? "Copied" : "Copy"}
-                    </button>
-                    {index === lastAiIndex && message.question && (
+                {message.type === "ai" &&
+                  !message.streaming &&
+                  message.content &&
+                  !message.error && (
+                    <div className="msg-actions">
                       <button
                         className="msg-action-btn"
-                        onClick={() => handleRegenerate(message)}
-                        disabled={loading}
-                        title="Regenerate this answer"
+                        onClick={() => handleCopy(message.content, index)}
+                        title="Copy answer"
                       >
-                        <RefreshCw size={13} />
-                        Regenerate
+                        {copiedIdx === index ? <Check size={13} /> : <Copy size={13} />}
+                        {copiedIdx === index ? "Copied" : "Copy"}
                       </button>
-                    )}
-                    {conversationId && (
-                      <>
+                      {index === lastAiIndex && message.question && (
                         <button
-                          className={`msg-action-btn${message.feedback === "up" ? " active-up" : ""}`}
-                          onClick={() => handleFeedback(index, "up")}
-                          title="Helpful"
+                          className="msg-action-btn"
+                          onClick={() => handleRegenerate(message)}
+                          disabled={loading}
+                          title="Regenerate this answer"
                         >
-                          <ThumbsUp size={13} />
+                          <RefreshCw size={13} />
+                          Regenerate
                         </button>
-                        <button
-                          className={`msg-action-btn${message.feedback === "down" ? " active-down" : ""}`}
-                          onClick={() => handleFeedback(index, "down")}
-                          title="Not helpful"
-                        >
-                          <ThumbsDown size={13} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
+                      )}
+                      {conversationId && (
+                        <>
+                          <button
+                            className={`msg-action-btn${message.feedback === "up" ? " active-up" : ""}`}
+                            onClick={() => handleFeedback(index, "up")}
+                            title="Helpful"
+                          >
+                            <ThumbsUp size={13} />
+                          </button>
+                          <button
+                            className={`msg-action-btn${message.feedback === "down" ? " active-down" : ""}`}
+                            onClick={() => handleFeedback(index, "down")}
+                            title="Not helpful"
+                          >
+                            <ThumbsDown size={13} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
               </div>
             ))}
           </div>
 
-          <div className="chat-input-container" style={{
-            display: 'flex',
-            gap: 'var(--space-sm)',
-            padding: 'var(--space-lg)',
-            borderTop: '2px solid var(--sandalwood)',
-            background: 'white'
-          }}>
+          <div
+            className="chat-input-container"
+            style={{
+              display: "flex",
+              gap: "var(--space-sm)",
+              padding: "var(--space-lg)",
+              borderTop: "2px solid var(--sandalwood)",
+              background: "white",
+            }}
+          >
             <input
               type="text"
               className="chat-input"
@@ -1198,11 +1263,7 @@ export const AskAstrologerPage = () => {
               disabled={loading}
             />
             {loading ? (
-              <button
-                className="btn-stop"
-                onClick={handleStop}
-                title="Stop generating"
-              >
+              <button className="btn-stop" onClick={handleStop} title="Stop generating">
                 <Square size={16} fill="currentColor" />
                 <span>Stop</span>
               </button>
@@ -1219,81 +1280,89 @@ export const AskAstrologerPage = () => {
 
           {/* Safety / disclaimer footer */}
           <div className="ai-disclaimer">
-            ⚠ AI-generated astrological guidance for reflection and entertainment
-            only — not a substitute for professional medical, financial, legal, or
-            psychological advice. Verify important decisions independently.
+            ⚠ AI-generated astrological guidance for reflection and entertainment only — not a
+            substitute for professional medical, financial, legal, or psychological advice. Verify
+            important decisions independently.
           </div>
         </div>
 
         {/* Info Modal */}
         {showInfoModal && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: 'var(--space-lg)',
-            animation: 'fadeIn 0.3s ease-out'
-          }}
-          onClick={() => setShowInfoModal(false)}>
-            <div style={{
-              background: 'white',
-              borderRadius: 'var(--radius-xl)',
-              maxWidth: '800px',
-              width: '100%',
-              maxHeight: '80vh',
-              overflow: 'auto',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-              animation: 'slideIn 0.3s ease-out'
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: "var(--space-lg)",
+              animation: "fadeIn 0.3s ease-out",
             }}
-            onClick={(e) => e.stopPropagation()}>
+            onClick={() => setShowInfoModal(false)}
+          >
+            <div
+              style={{
+                background: "white",
+                borderRadius: "var(--radius-xl)",
+                maxWidth: "800px",
+                width: "100%",
+                maxHeight: "80vh",
+                overflow: "auto",
+                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+                animation: "slideIn 0.3s ease-out",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
               {/* Modal Header */}
-              <div style={{
-                padding: 'var(--space-xl)',
-                borderBottom: '2px solid var(--sandalwood)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                position: 'sticky',
-                top: 0,
-                background: 'white',
-                zIndex: 1
-              }}>
-                <h3 style={{
-                  margin: 0,
-                  fontSize: '1.5rem',
-                  color: 'var(--cosmic-indigo)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-sm)'
-                }}>
-                  <Info size={24} style={{ color: 'var(--saffron)' }} />
+              <div
+                style={{
+                  padding: "var(--space-xl)",
+                  borderBottom: "2px solid var(--sandalwood)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  position: "sticky",
+                  top: 0,
+                  background: "white",
+                  zIndex: 1,
+                }}
+              >
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: "1.5rem",
+                    color: "var(--cosmic-indigo)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--space-sm)",
+                  }}
+                >
+                  <Info size={24} style={{ color: "var(--saffron)" }} />
                   Chart Data Sent to AI
                 </h3>
                 <button
                   onClick={() => setShowInfoModal(false)}
                   style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--text-secondary)',
-                    padding: 'var(--space-sm)',
-                    borderRadius: 'var(--radius-md)',
-                    transition: 'all 0.3s ease'
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--text-secondary)",
+                    padding: "var(--space-sm)",
+                    borderRadius: "var(--radius-md)",
+                    transition: "all 0.3s ease",
                   }}
                   onMouseOver={(e) => {
-                    e.currentTarget.style.background = 'var(--sandalwood)';
-                    e.currentTarget.style.color = 'var(--vermillion)';
+                    e.currentTarget.style.background = "var(--sandalwood)";
+                    e.currentTarget.style.color = "var(--vermillion)";
                   }}
                   onMouseOut={(e) => {
-                    e.currentTarget.style.background = 'none';
-                    e.currentTarget.style.color = 'var(--text-secondary)';
+                    e.currentTarget.style.background = "none";
+                    e.currentTarget.style.color = "var(--text-secondary)";
                   }}
                 >
                   <X size={24} />
@@ -1301,52 +1370,70 @@ export const AskAstrologerPage = () => {
               </div>
 
               {/* Modal Content */}
-              <div style={{
-                padding: 'var(--space-xl)',
-                fontSize: '0.875rem',
-                lineHeight: '1.6'
-              }}>
-                <div style={{
-                  background: 'linear-gradient(135deg, rgba(255, 153, 51, 0.05) 0%, rgba(255, 153, 51, 0.1) 100%)',
-                  padding: 'var(--space-lg)',
-                  borderRadius: 'var(--radius-lg)',
-                  marginBottom: 'var(--space-lg)',
-                  border: '1px solid var(--saffron)'
-                }}>
-                  <p style={{ margin: 0, color: 'var(--cosmic-indigo)', fontWeight: 500 }}>
+              <div
+                style={{
+                  padding: "var(--space-xl)",
+                  fontSize: "0.875rem",
+                  lineHeight: "1.6",
+                }}
+              >
+                <div
+                  style={{
+                    background:
+                      "linear-gradient(135deg, rgba(255, 153, 51, 0.05) 0%, rgba(255, 153, 51, 0.1) 100%)",
+                    padding: "var(--space-lg)",
+                    borderRadius: "var(--radius-lg)",
+                    marginBottom: "var(--space-lg)",
+                    border: "1px solid var(--saffron)",
+                  }}
+                >
+                  <p style={{ margin: 0, color: "var(--cosmic-indigo)", fontWeight: 500 }}>
                     {modalData
                       ? "This is the exact structured context the backend assembled and sent to the AI model:"
                       : "This is the chart information that will be sent to the AI model. The backend also adds your full running dasha chain, yogas, doshas and current transits — visible here after you ask a question:"}
                   </p>
                 </div>
 
-                <pre style={{
-                  background: 'var(--sacred-white)',
-                  padding: 'var(--space-lg)',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--sandalwood)',
-                  overflow: 'auto',
-                  fontFamily: 'monospace',
-                  fontSize: '0.8125rem',
-                  lineHeight: '1.8',
-                  color: 'var(--cosmic-indigo)'
-                }}>
-{JSON.stringify(modalData || getChartDataForLLM(), null, 2)}
+                <pre
+                  style={{
+                    background: "var(--sacred-white)",
+                    padding: "var(--space-lg)",
+                    borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--sandalwood)",
+                    overflow: "auto",
+                    fontFamily: "monospace",
+                    fontSize: "0.8125rem",
+                    lineHeight: "1.8",
+                    color: "var(--cosmic-indigo)",
+                  }}
+                >
+                  {JSON.stringify(modalData || getChartDataForLLM(), null, 2)}
                 </pre>
 
-                <div style={{
-                  marginTop: 'var(--space-lg)',
-                  padding: 'var(--space-md)',
-                  background: 'rgba(52, 73, 94, 0.05)',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--cosmic-indigo)',
-                  fontSize: '0.8125rem'
-                }}>
-                  <p style={{ margin: '0 0 var(--space-sm) 0', color: 'var(--cosmic-indigo)', fontWeight: 600 }}>
+                <div
+                  style={{
+                    marginTop: "var(--space-lg)",
+                    padding: "var(--space-md)",
+                    background: "rgba(52, 73, 94, 0.05)",
+                    borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--cosmic-indigo)",
+                    fontSize: "0.8125rem",
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: "0 0 var(--space-sm) 0",
+                      color: "var(--cosmic-indigo)",
+                      fontWeight: 600,
+                    }}
+                  >
                     📝 Note:
                   </p>
-                  <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
-                    The AI model receives this structured data along with your question: your Lagna, planetary positions and nakshatras, the currently-active Vimsottari dasha chain (Maha → Bhukti → Antara → Sookshma), yogas and doshas present in the chart, and current planetary transits (Gochara).
+                  <p style={{ margin: 0, color: "var(--text-secondary)" }}>
+                    The AI model receives this structured data along with your question: your Lagna,
+                    planetary positions and nakshatras, the currently-active Vimsottari dasha chain
+                    (Maha → Bhukti → Antara → Sookshma), yogas and doshas present in the chart, and
+                    current planetary transits (Gochara).
                   </p>
                 </div>
               </div>
@@ -1358,51 +1445,83 @@ export const AskAstrologerPage = () => {
         {showKeysModal && (
           <div
             style={{
-              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-              background: 'rgba(0, 0, 0, 0.5)', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-              padding: 'var(--space-lg)', animation: 'fadeIn 0.3s ease-out',
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: "var(--space-lg)",
+              animation: "fadeIn 0.3s ease-out",
             }}
             onClick={() => setShowKeysModal(false)}
           >
             <div
               style={{
-                background: 'white', borderRadius: 'var(--radius-xl)',
-                maxWidth: '560px', width: '100%', maxHeight: '85vh', overflow: 'auto',
-                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)', animation: 'slideIn 0.3s ease-out',
+                background: "white",
+                borderRadius: "var(--radius-xl)",
+                maxWidth: "560px",
+                width: "100%",
+                maxHeight: "85vh",
+                overflow: "auto",
+                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+                animation: "slideIn 0.3s ease-out",
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div style={{
-                padding: 'var(--space-xl)', borderBottom: '2px solid var(--sandalwood)',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              }}>
-                <h3 style={{
-                  margin: 0, fontSize: '1.5rem', color: 'var(--cosmic-indigo)',
-                  display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
-                }}>
-                  <KeyRound size={24} style={{ color: 'var(--saffron)' }} />
+              <div
+                style={{
+                  padding: "var(--space-xl)",
+                  borderBottom: "2px solid var(--sandalwood)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: "1.5rem",
+                    color: "var(--cosmic-indigo)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--space-sm)",
+                  }}
+                >
+                  <KeyRound size={24} style={{ color: "var(--saffron)" }} />
                   Your API Keys
                 </h3>
                 <button
                   onClick={() => setShowKeysModal(false)}
                   style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--text-secondary)', padding: 'var(--space-sm)',
-                    borderRadius: 'var(--radius-md)', display: 'flex',
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--text-secondary)",
+                    padding: "var(--space-sm)",
+                    borderRadius: "var(--radius-md)",
+                    display: "flex",
                   }}
                 >
                   <X size={24} />
                 </button>
               </div>
 
-              <div style={{ padding: 'var(--space-xl)' }}>
-                <p style={{
-                  margin: '0 0 var(--space-lg)', fontSize: '0.8125rem',
-                  color: 'var(--text-secondary)', lineHeight: 1.6,
-                }}>
-                  Keys are stored encrypted on the server and used only for your own
-                  requests. They're never shown back in full. Ollama (local) needs no key.
+              <div style={{ padding: "var(--space-xl)" }}>
+                <p
+                  style={{
+                    margin: "0 0 var(--space-lg)",
+                    fontSize: "0.8125rem",
+                    color: "var(--text-secondary)",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Keys are stored encrypted on the server and used only for your own requests.
+                  They're never shown back in full. Ollama (local) needs no key.
                 </p>
 
                 {KEY_PROVIDERS.map((p) => {
@@ -1411,19 +1530,27 @@ export const AskAstrologerPage = () => {
                   return (
                     <div key={p.id} className="key-row">
                       <div className="key-row-head">
-                        <span style={{ fontWeight: 700, color: 'var(--cosmic-indigo)', fontSize: '0.9375rem' }}>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            color: "var(--cosmic-indigo)",
+                            fontSize: "0.9375rem",
+                          }}
+                        >
                           {p.label}
                         </span>
-                        <span className={`key-pill ${status.has_key ? 'set' : 'unset'}`}>
-                          {status.has_key ? `Saved ${status.masked || ''}` : 'Not set'}
+                        <span className={`key-pill ${status.has_key ? "set" : "unset"}`}>
+                          {status.has_key ? `Saved ${status.masked || ""}` : "Not set"}
                         </span>
                       </div>
                       <div className="key-row-controls">
                         <input
                           type="password"
                           className="key-input"
-                          placeholder={status.has_key ? 'Enter a new key to replace' : 'Paste API key'}
-                          value={keyInputs[p.id] || ''}
+                          placeholder={
+                            status.has_key ? "Enter a new key to replace" : "Paste API key"
+                          }
+                          value={keyInputs[p.id] || ""}
                           onChange={(e) =>
                             setKeyInputs((prev) => ({ ...prev, [p.id]: e.target.value }))
                           }
@@ -1431,16 +1558,16 @@ export const AskAstrologerPage = () => {
                         />
                         <button
                           className="msg-action-btn"
-                          style={{ padding: '0 var(--space-md)' }}
+                          style={{ padding: "0 var(--space-md)" }}
                           onClick={() => handleSaveKey(p.id)}
-                          disabled={busy || !(keyInputs[p.id] || '').trim()}
+                          disabled={busy || !(keyInputs[p.id] || "").trim()}
                         >
-                          {busy ? '…' : 'Save'}
+                          {busy ? "…" : "Save"}
                         </button>
                         {status.has_key && (
                           <button
                             className="msg-action-btn"
-                            style={{ padding: '0 var(--space-md)' }}
+                            style={{ padding: "0 var(--space-md)" }}
                             onClick={() => handleClearKey(p.id)}
                             disabled={busy}
                             title="Remove stored key"
@@ -1449,7 +1576,7 @@ export const AskAstrologerPage = () => {
                           </button>
                         )}
                       </div>
-                      <span style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>
+                      <span style={{ fontSize: "0.6875rem", color: "var(--text-secondary)" }}>
                         {p.hint}
                       </span>
                     </div>

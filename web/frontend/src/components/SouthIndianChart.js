@@ -6,10 +6,18 @@ import "../styles/NorthIndianChart.css";
 // Map sign number (1=Aries … 12=Pisces) -> grid column/row. Aries is top row, 2nd cell,
 // then clockwise. The inner 2x2 is the label area.
 const SIGN_POS = {
-  1: { col: 2, row: 1 }, 2: { col: 3, row: 1 }, 3: { col: 4, row: 1 },
-  4: { col: 4, row: 2 }, 5: { col: 4, row: 3 }, 6: { col: 4, row: 4 },
-  7: { col: 3, row: 4 }, 8: { col: 2, row: 4 }, 9: { col: 1, row: 4 },
-  10: { col: 1, row: 3 }, 11: { col: 1, row: 2 }, 12: { col: 1, row: 1 },
+  1: { col: 2, row: 1 },
+  2: { col: 3, row: 1 },
+  3: { col: 4, row: 1 },
+  4: { col: 4, row: 2 },
+  5: { col: 4, row: 3 },
+  6: { col: 4, row: 4 },
+  7: { col: 3, row: 4 },
+  8: { col: 2, row: 4 },
+  9: { col: 1, row: 4 },
+  10: { col: 1, row: 3 },
+  11: { col: 1, row: 2 },
+  12: { col: 1, row: 1 },
 };
 
 /**

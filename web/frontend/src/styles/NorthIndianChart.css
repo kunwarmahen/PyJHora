@@ -34,8 +34,12 @@
 }
 
 @media (max-width: 768px) {
-  .chart-card { padding: var(--space-lg); }
-  .chart-card-title { font-size: 1.25rem; }
+  .chart-card {
+    padding: var(--space-lg);
+  }
+  .chart-card-title {
+    font-size: 1.25rem;
+  }
 }
 
 /* ===== Chart style toggle (North / South) ===== */
@@ -114,13 +118,17 @@
   line-height: 1.1;
   white-space: nowrap;
 }
-.si-pl-lagna { color: var(--saffron); }
+.si-pl-lagna {
+  color: var(--saffron);
+}
 .si-deg {
   font-style: normal;
   font-size: 0.6rem;
   color: var(--text-secondary);
 }
-.si-lagna { background: rgba(255, 153, 51, 0.08); }
+.si-lagna {
+  background: rgba(255, 153, 51, 0.08);
+}
 .si-lagna::after {
   content: "";
   position: absolute;
@@ -150,8 +158,12 @@
 }
 
 @media (max-width: 768px) {
-  .si-pl { font-size: 0.72rem; }
-  .si-sign { font-size: 0.55rem; }
+  .si-pl {
+    font-size: 0.72rem;
+  }
+  .si-sign {
+    font-size: 0.55rem;
+  }
 }
 
 /* ===== Chart controls row (style toggle + ayanamsa) ===== */
@@ -163,7 +175,9 @@
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
 }
-.chart-controls .chart-style-toggle { margin-bottom: 0; }
+.chart-controls .chart-style-toggle {
+  margin-bottom: 0;
+}
 .ayanamsa-select {
   display: inline-flex;
   align-items: center;
@@ -182,7 +196,10 @@
   font-weight: 600;
   cursor: pointer;
 }
-.ayanamsa-select select:focus { outline: 2px solid var(--saffron); outline-offset: 1px; }
+.ayanamsa-select select:focus {
+  outline: 2px solid var(--saffron);
+  outline-offset: 1px;
+}
 
 /* ===== Divisional (varga) chart section ===== */
 .varga-section {

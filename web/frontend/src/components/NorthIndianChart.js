@@ -90,16 +90,52 @@ export const NorthIndianChart = ({
   };
 
   const housePolygons = [
-    getCentroid([topMid, { x: topLeft.x + size * 0.25, y: topLeft.y + size * 0.25 }, center, { x: topRight.x - size * 0.25, y: topRight.y + size * 0.25 }]),
+    getCentroid([
+      topMid,
+      { x: topLeft.x + size * 0.25, y: topLeft.y + size * 0.25 },
+      center,
+      { x: topRight.x - size * 0.25, y: topRight.y + size * 0.25 },
+    ]),
     getCentroid([topLeft, topMid, { x: topLeft.x + size * 0.25, y: topLeft.y + size * 0.25 }]),
     getCentroid([topLeft, { x: topLeft.x + size * 0.25, y: topLeft.y + size * 0.25 }, leftMid]),
-    getCentroid([leftMid, { x: leftMid.x + size * 0.25, y: topLeft.y + size * 0.25 }, center, { x: leftMid.x + size * 0.25, y: bottomLeft.y - size * 0.25 }]),
-    getCentroid([leftMid, { x: leftMid.x + size * 0.25, y: bottomLeft.y - size * 0.25 }, bottomLeft]),
-    getCentroid([bottomLeft, { x: leftMid.x + size * 0.25, y: bottomLeft.y - size * 0.25 }, bottomMid]),
-    getCentroid([bottomMid, { x: bottomLeft.x + size * 0.25, y: bottomLeft.y - size * 0.25 }, center, { x: bottomRight.x - size * 0.25, y: bottomRight.y - size * 0.25 }]),
-    getCentroid([bottomMid, { x: bottomRight.x - size * 0.25, y: bottomRight.y - size * 0.25 }, bottomRight]),
-    getCentroid([bottomRight, { x: bottomRight.x - size * 0.25, y: bottomRight.y - size * 0.25 }, rightMid]),
-    getCentroid([rightMid, { x: rightMid.x - size * 0.25, y: bottomRight.y - size * 0.25 }, center, { x: rightMid.x - size * 0.25, y: topRight.y + size * 0.25 }]),
+    getCentroid([
+      leftMid,
+      { x: leftMid.x + size * 0.25, y: topLeft.y + size * 0.25 },
+      center,
+      { x: leftMid.x + size * 0.25, y: bottomLeft.y - size * 0.25 },
+    ]),
+    getCentroid([
+      leftMid,
+      { x: leftMid.x + size * 0.25, y: bottomLeft.y - size * 0.25 },
+      bottomLeft,
+    ]),
+    getCentroid([
+      bottomLeft,
+      { x: leftMid.x + size * 0.25, y: bottomLeft.y - size * 0.25 },
+      bottomMid,
+    ]),
+    getCentroid([
+      bottomMid,
+      { x: bottomLeft.x + size * 0.25, y: bottomLeft.y - size * 0.25 },
+      center,
+      { x: bottomRight.x - size * 0.25, y: bottomRight.y - size * 0.25 },
+    ]),
+    getCentroid([
+      bottomMid,
+      { x: bottomRight.x - size * 0.25, y: bottomRight.y - size * 0.25 },
+      bottomRight,
+    ]),
+    getCentroid([
+      bottomRight,
+      { x: bottomRight.x - size * 0.25, y: bottomRight.y - size * 0.25 },
+      rightMid,
+    ]),
+    getCentroid([
+      rightMid,
+      { x: rightMid.x - size * 0.25, y: bottomRight.y - size * 0.25 },
+      center,
+      { x: rightMid.x - size * 0.25, y: topRight.y + size * 0.25 },
+    ]),
     getCentroid([rightMid, { x: rightMid.x - size * 0.25, y: topRight.y + size * 0.25 }, topRight]),
     getCentroid([topRight, { x: topRight.x - size * 0.25, y: topRight.y + size * 0.25 }, topMid]),
   ];
@@ -133,17 +169,67 @@ export const NorthIndianChart = ({
           </defs>
 
           {/* Outer square */}
-          <rect x={squareX} y={squareY} width={size} height={size} fill="white" stroke="url(#chartGradient)" strokeWidth="3" />
+          <rect
+            x={squareX}
+            y={squareY}
+            width={size}
+            height={size}
+            fill="white"
+            stroke="url(#chartGradient)"
+            strokeWidth="3"
+          />
 
           {/* Diagonals */}
-          <line x1={topLeft.x} y1={topLeft.y} x2={bottomRight.x} y2={bottomRight.y} stroke={indigo} strokeWidth="2" />
-          <line x1={topRight.x} y1={topRight.y} x2={bottomLeft.x} y2={bottomLeft.y} stroke={indigo} strokeWidth="2" />
+          <line
+            x1={topLeft.x}
+            y1={topLeft.y}
+            x2={bottomRight.x}
+            y2={bottomRight.y}
+            stroke={indigo}
+            strokeWidth="2"
+          />
+          <line
+            x1={topRight.x}
+            y1={topRight.y}
+            x2={bottomLeft.x}
+            y2={bottomLeft.y}
+            stroke={indigo}
+            strokeWidth="2"
+          />
 
           {/* Inner diamond */}
-          <line x1={topMid.x} y1={topMid.y} x2={rightMid.x} y2={rightMid.y} stroke={indigo} strokeWidth="2" />
-          <line x1={rightMid.x} y1={rightMid.y} x2={bottomMid.x} y2={bottomMid.y} stroke={indigo} strokeWidth="2" />
-          <line x1={bottomMid.x} y1={bottomMid.y} x2={leftMid.x} y2={leftMid.y} stroke={indigo} strokeWidth="2" />
-          <line x1={leftMid.x} y1={leftMid.y} x2={topMid.x} y2={topMid.y} stroke={indigo} strokeWidth="2" />
+          <line
+            x1={topMid.x}
+            y1={topMid.y}
+            x2={rightMid.x}
+            y2={rightMid.y}
+            stroke={indigo}
+            strokeWidth="2"
+          />
+          <line
+            x1={rightMid.x}
+            y1={rightMid.y}
+            x2={bottomMid.x}
+            y2={bottomMid.y}
+            stroke={indigo}
+            strokeWidth="2"
+          />
+          <line
+            x1={bottomMid.x}
+            y1={bottomMid.y}
+            x2={leftMid.x}
+            y2={leftMid.y}
+            stroke={indigo}
+            strokeWidth="2"
+          />
+          <line
+            x1={leftMid.x}
+            y1={leftMid.y}
+            x2={topMid.x}
+            y2={topMid.y}
+            stroke={indigo}
+            strokeWidth="2"
+          />
 
           {houses.map((house) => {
             const planetsInHouse = getPlanetsInHouse(house.num);
@@ -152,7 +238,14 @@ export const NorthIndianChart = ({
             return (
               <g key={house.num}>
                 {/* House number */}
-                <text x={house.cx} y={house.cy - 25} textAnchor="middle" fill={muted} fontSize="11" fontWeight="600">
+                <text
+                  x={house.cx}
+                  y={house.cy - 25}
+                  textAnchor="middle"
+                  fill={muted}
+                  fontSize="11"
+                  fontWeight="600"
+                >
                   {house.num}
                 </text>
 
@@ -213,7 +306,14 @@ export const NorthIndianChart = ({
           })}
 
           {/* Center label */}
-          <text x={center.x} y={center.y - 5} textAnchor="middle" fill={indigo} fontSize="12" fontWeight="700">
+          <text
+            x={center.x}
+            y={center.y - 5}
+            textAnchor="middle"
+            fill={indigo}
+            fontSize="12"
+            fontWeight="700"
+          >
             {title}
           </text>
           <text x={center.x} y={center.y + 10} textAnchor="middle" fill={muted} fontSize="10">

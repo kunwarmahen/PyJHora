@@ -367,8 +367,8 @@
   padding: 15px;
   margin-top: 15px;
   background: #e8f5e9;
-  border: 1px solid #4CAF50;
-  border-left: 4px solid #4CAF50;
+  border: 1px solid #4caf50;
+  border-left: 4px solid #4caf50;
   border-radius: 8px;
   animation: slideIn 0.3s ease;
 }

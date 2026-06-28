@@ -1,7 +1,21 @@
 import axios from "axios";
 import { DEFAULT_AYANAMSA } from "../constants/jyotish";
 
+// Fail loudly when the API base URL isn't configured. In a production build a
+// missing REACT_APP_API_URL silently points the app at localhost, which then
+// fails with confusing CORS/connection errors — so make it a hard error there,
+// and a visible warning in development (where the localhost default is fine).
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+
+if (!process.env.REACT_APP_API_URL) {
+  const msg =
+    "REACT_APP_API_URL is not set. Configure it in web/frontend/.env (see .env.example).";
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(`[config] ${msg} A production build must have REACT_APP_API_URL set.`);
+  }
+  // eslint-disable-next-line no-console
+  console.warn(`[config] ${msg} Falling back to ${API_URL}.`);
+}
 
 const api = axios.create({
   baseURL: API_URL,
@@ -35,8 +49,7 @@ api.interceptors.response.use(
 export const authService = {
   register: (username, email, password) =>
     api.post("/api/auth/register", { username, email, password }),
-  login: (username, password) =>
-    api.post("/api/auth/login", { username, password }),
+  login: (username, password) => api.post("/api/auth/login", { username, password }),
   getProfile: () => api.get("/api/user/profile"),
 };
 
@@ -50,7 +63,7 @@ export const astrologyService = {
     }),
   getHoroscope: (birthDetails, useQwen = false) =>
     api.post("/api/astrology/horoscope", birthDetails, {
-      params: { use_qwen: useQwen }
+      params: { use_qwen: useQwen },
     }),
   getPanchanga: ({ place, latitude, longitude, timezone, date } = {}) =>
     api.get("/api/astrology/panchanga", {
@@ -130,8 +143,7 @@ export const astrologyService = {
 
   // Per-user API keys (encrypted server-side; status returns masked values only)
   getApiKeys: () => api.get("/api/user/api-keys"),
-  setApiKey: (provider, apiKey) =>
-    api.put(`/api/user/api-keys/${provider}`, { api_key: apiKey }),
+  setApiKey: (provider, apiKey) => api.put(`/api/user/api-keys/${provider}`, { api_key: apiKey }),
   deleteApiKey: (provider) => api.delete(`/api/user/api-keys/${provider}`),
 
   generatePrediction: (birthDetails, predictionType = "general", model = {}) =>
@@ -205,8 +217,7 @@ export const streamAskQuestion = (birthDetails, question, model = {}, callbacks 
 
       if (resp.status === 429) {
         const detail =
-          (await resp.json().catch(() => null))?.detail ||
-          "Rate limit reached. Please slow down.";
+          (await resp.json().catch(() => null))?.detail || "Rate limit reached. Please slow down.";
         throw new Error(detail);
       }
 

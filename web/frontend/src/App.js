@@ -1,19 +1,19 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import { ProfileProvider } from './contexts/ProfileContext';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { ProfileSelectionPage } from './pages/ProfileSelectionPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { BirthChartPage } from './pages/BirthChartPage';
-import { CompatibilityPage } from './pages/CompatibilityPage';
-import { DhasaPage } from './pages/DhasaPage';
-import { TransitPage } from './pages/TransitPage';
-import { PredictionsPage } from './pages/PredictionsPage';
-import { AskAstrologerPage } from './pages/AskAstrologerPage';
-import './App.css';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ProfileProvider } from "./contexts/ProfileContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { LoginPage } from "./pages/LoginPage";
+import { RegisterPage } from "./pages/RegisterPage";
+import { ProfileSelectionPage } from "./pages/ProfileSelectionPage";
+import { DashboardPage } from "./pages/DashboardPage";
+import { BirthChartPage } from "./pages/BirthChartPage";
+import { CompatibilityPage } from "./pages/CompatibilityPage";
+import { DhasaPage } from "./pages/DhasaPage";
+import { TransitPage } from "./pages/TransitPage";
+import { PredictionsPage } from "./pages/PredictionsPage";
+import { AskAstrologerPage } from "./pages/AskAstrologerPage";
+import "./App.css";
 
 function App() {
   return (

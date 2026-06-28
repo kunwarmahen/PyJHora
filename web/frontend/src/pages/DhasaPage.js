@@ -220,13 +220,29 @@ function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
           }}
         >
           {loading && (
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)", color: "var(--text-secondary)", fontSize: "0.875rem" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-sm)",
+                color: "var(--text-secondary)",
+                fontSize: "0.875rem",
+              }}
+            >
               <div className="spinner" style={{ width: 18, height: 18 }}></div>
               Loading {LEVELS[level + 1]?.label || "sub"}-periods…
             </div>
           )}
           {error && (
-            <div style={{ color: "var(--vermillion)", fontSize: "0.875rem", display: "flex", alignItems: "center", gap: "var(--space-sm)" }}>
+            <div
+              style={{
+                color: "var(--vermillion)",
+                fontSize: "0.875rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-sm)",
+              }}
+            >
               <AlertCircle size={16} /> {error}
             </div>
           )}
@@ -354,7 +370,9 @@ export const DhasaPage = () => {
           >
             <Clock size={18} style={{ color: "var(--saffron)" }} />
             Vimsottari System
-            <span style={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--text-muted)" }}>120-year cycle</span>
+            <span style={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--text-muted)" }}>
+              120-year cycle
+            </span>
           </div>
           <div
             style={{
@@ -370,7 +388,8 @@ export const DhasaPage = () => {
             }}
           >
             <Calendar size={16} />
-            Today: {NOW.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+            Today:{" "}
+            {NOW.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
           </div>
         </div>
 
@@ -385,7 +404,9 @@ export const DhasaPage = () => {
             }}
           >
             <div className="spinner" style={{ margin: "0 auto var(--space-xl)" }}></div>
-            <h3 style={{ color: "var(--cosmic-indigo)", marginBottom: "var(--space-sm)" }}>Calculating Vimsottari Dasha</h3>
+            <h3 style={{ color: "var(--cosmic-indigo)", marginBottom: "var(--space-sm)" }}>
+              Calculating Vimsottari Dasha
+            </h3>
             <p style={{ color: "var(--text-secondary)" }}>Analyzing planetary periods…</p>
           </div>
         ) : result ? (
@@ -394,7 +415,8 @@ export const DhasaPage = () => {
             {currentMahaDasha && (
               <div
                 style={{
-                  background: "linear-gradient(135deg, rgba(255, 153, 51, 0.1) 0%, rgba(226, 123, 90, 0.1) 100%)",
+                  background:
+                    "linear-gradient(135deg, rgba(255, 153, 51, 0.1) 0%, rgba(226, 123, 90, 0.1) 100%)",
                   border: "3px solid var(--saffron)",
                   borderRadius: "var(--radius-xl)",
                   padding: "var(--space-xl)",
@@ -402,12 +424,20 @@ export const DhasaPage = () => {
                   boxShadow: "0 0 24px rgba(255, 153, 51, 0.2)",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)", marginBottom: "var(--space-md)" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--space-sm)",
+                    marginBottom: "var(--space-md)",
+                  }}
+                >
                   <div
                     style={{
                       width: "40px",
                       height: "40px",
-                      background: "linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%)",
+                      background:
+                        "linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%)",
                       borderRadius: "50%",
                       display: "flex",
                       alignItems: "center",
@@ -417,7 +447,9 @@ export const DhasaPage = () => {
                   >
                     <Clock size={20} />
                   </div>
-                  <h3 style={{ margin: 0, color: "var(--cosmic-indigo)", fontSize: "1.5rem" }}>Current Period</h3>
+                  <h3 style={{ margin: 0, color: "var(--cosmic-indigo)", fontSize: "1.5rem" }}>
+                    Current Period
+                  </h3>
                 </div>
                 <div
                   style={{
@@ -428,33 +460,88 @@ export const DhasaPage = () => {
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", marginBottom: "var(--space-xs)" }}>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                        color: "var(--text-muted)",
+                        marginBottom: "var(--space-xs)",
+                      }}
+                    >
                       Maha Dasha
                     </div>
-                    <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--saffron)" }}>{currentMahaDasha.lord}</div>
+                    <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--saffron)" }}>
+                      {currentMahaDasha.lord}
+                    </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", marginBottom: "var(--space-xs)" }}>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                        color: "var(--text-muted)",
+                        marginBottom: "var(--space-xs)",
+                      }}
+                    >
                       Period
                     </div>
-                    <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--cosmic-indigo)" }}>
-                      {formatDate(currentMahaDasha.start_date)} - {formatDate(currentMahaDasha.end_date)}
+                    <div
+                      style={{
+                        fontSize: "0.875rem",
+                        fontWeight: 600,
+                        color: "var(--cosmic-indigo)",
+                      }}
+                    >
+                      {formatDate(currentMahaDasha.start_date)} -{" "}
+                      {formatDate(currentMahaDasha.end_date)}
                     </div>
                   </div>
                   {currentSubPeriod && (
                     <div>
-                      <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", marginBottom: "var(--space-xs)" }}>
+                      <div
+                        style={{
+                          fontSize: "0.75rem",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                          color: "var(--text-muted)",
+                          marginBottom: "var(--space-xs)",
+                        }}
+                      >
                         Current Bhukti
                       </div>
-                      <div style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--vermillion)" }}>{currentSubPeriod.lord}</div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "var(--space-xs)" }}>
-                        {formatDate(currentSubPeriod.start_date)} - {formatDate(currentSubPeriod.end_date)}
+                      <div
+                        style={{
+                          fontSize: "1.125rem",
+                          fontWeight: 600,
+                          color: "var(--vermillion)",
+                        }}
+                      >
+                        {currentSubPeriod.lord}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.75rem",
+                          color: "var(--text-secondary)",
+                          marginTop: "var(--space-xs)",
+                        }}
+                      >
+                        {formatDate(currentSubPeriod.start_date)} -{" "}
+                        {formatDate(currentSubPeriod.end_date)}
                       </div>
                     </div>
                   )}
                 </div>
-                <p style={{ margin: "var(--space-lg) 0 0", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-                  The live period is expanded below — keep drilling to see the running Antara and Sookshma.
+                <p
+                  style={{
+                    margin: "var(--space-lg) 0 0",
+                    fontSize: "0.8125rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  The live period is expanded below — keep drilling to see the running Antara and
+                  Sookshma.
                 </p>
               </div>
             )}

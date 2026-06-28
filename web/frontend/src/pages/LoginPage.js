@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { Mail, Lock, AlertCircle } from 'lucide-react';
-import '../styles/Auth.css';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { Mail, Lock, AlertCircle } from "lucide-react";
+import "../styles/Auth.css";
 
 export const LoginPage = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login, error } = useAuth();
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ export const LoginPage = () => {
     const success = await login(username, password);
     setIsLoading(false);
     if (success) {
-      navigate('/profile-selection');
+      navigate("/profile-selection");
     }
   };
 
@@ -64,7 +64,7 @@ export const LoginPage = () => {
           </div>
 
           <button type="submit" className="submit-btn" disabled={isLoading}>
-            {isLoading ? 'Logging in...' : 'Login'}
+            {isLoading ? "Logging in..." : "Login"}
           </button>
         </form>
 

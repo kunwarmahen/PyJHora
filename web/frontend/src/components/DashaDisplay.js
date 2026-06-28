@@ -6,8 +6,7 @@ export const DashaDisplay = ({ dashaData }) => {
     return <div className="error-message">Unable to calculate Dasha</div>;
   }
 
-  const { current_dasha, next_dasha, dasha_sequence, current_bhukthi } =
-    dashaData;
+  const { current_dasha, next_dasha, dasha_sequence, current_bhukthi } = dashaData;
 
   return (
     <div className="dasha-container">
@@ -68,9 +67,7 @@ export const DashaDisplay = ({ dashaData }) => {
             {current_bhukthi.periods.map((period, index) => (
               <div key={index} className="bhukthi-card">
                 <div className="bhukthi-lord">{period.lord}</div>
-                <div className="bhukthi-duration">
-                  {period.duration_months} months
-                </div>
+                <div className="bhukthi-duration">{period.duration_months} months</div>
               </div>
             ))}
           </div>

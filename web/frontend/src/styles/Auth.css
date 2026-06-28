@@ -4,14 +4,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--sandalwood) 0%, var(--sacred-white) 50%, var(--sandalwood) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--sandalwood) 0%,
+    var(--sacred-white) 50%,
+    var(--sandalwood) 100%
+  );
   padding: var(--space-xl);
   position: relative;
   overflow: hidden;
 }
 
 .auth-container::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -140,7 +145,7 @@
 }
 
 .submit-btn::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -100%;

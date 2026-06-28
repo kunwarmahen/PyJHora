@@ -1,29 +1,29 @@
 /* Vedic Astrology Design System */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Mulish:wght@300;400;500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Mulish:wght@300;400;500;600;700;800&display=swap");
 
 :root {
   /* Vedic Color Palette */
-  --saffron: #FF9933;
-  --saffron-light: #FFB366;
-  --saffron-dark: #E67300;
-  --marigold: #FFB347;
-  --marigold-light: #FFC870;
-  --vermillion: #E34234;
-  --cosmic-indigo: #2D3561;
-  --cosmic-indigo-light: #3D4571;
-  --terracotta: #E27B5A;
-  --sandalwood: #F4E4C1;
-  --sandalwood-dark: #E8D4A5;
-  --temple-gold: #D4AF37;
-  --sacred-white: #FFFEF9;
-  --night-sky: #1A1F3A;
+  --saffron: #ff9933;
+  --saffron-light: #ffb366;
+  --saffron-dark: #e67300;
+  --marigold: #ffb347;
+  --marigold-light: #ffc870;
+  --vermillion: #e34234;
+  --cosmic-indigo: #2d3561;
+  --cosmic-indigo-light: #3d4571;
+  --terracotta: #e27b5a;
+  --sandalwood: #f4e4c1;
+  --sandalwood-dark: #e8d4a5;
+  --temple-gold: #d4af37;
+  --sacred-white: #fffef9;
+  --night-sky: #1a1f3a;
 
   /* Functional Colors */
-  --bg-primary: #FFFEF9;
-  --bg-secondary: #F4E4C1;
-  --text-primary: #2D3561;
-  --text-secondary: #5A5F7A;
-  --text-muted: #8B8FA8;
+  --bg-primary: #fffef9;
+  --bg-secondary: #f4e4c1;
+  --text-primary: #2d3561;
+  --text-secondary: #5a5f7a;
+  --text-muted: #8b8fa8;
 
   /* Shadows */
   --shadow-sm: 0 2px 8px rgba(45, 53, 97, 0.08);
@@ -33,8 +33,8 @@
   --shadow-glow: 0 0 24px rgba(255, 153, 51, 0.3);
 
   /* Typography */
-  --font-display: 'Cormorant Garamond', serif;
-  --font-body: 'Mulish', sans-serif;
+  --font-display: "Cormorant Garamond", serif;
+  --font-body: "Mulish", sans-serif;
 
   /* Spacing */
   --space-xs: 4px;
@@ -77,19 +77,36 @@ body,
 }
 
 /* Typography Hierarchy */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-display);
   font-weight: 600;
   line-height: 1.2;
   color: var(--cosmic-indigo);
 }
 
-h1 { font-size: 3rem; }
-h2 { font-size: 2.25rem; }
-h3 { font-size: 1.75rem; }
-h4 { font-size: 1.5rem; }
-h5 { font-size: 1.25rem; }
-h6 { font-size: 1rem; }
+h1 {
+  font-size: 3rem;
+}
+h2 {
+  font-size: 2.25rem;
+}
+h3 {
+  font-size: 1.75rem;
+}
+h4 {
+  font-size: 1.5rem;
+}
+h5 {
+  font-size: 1.25rem;
+}
+h6 {
+  font-size: 1rem;
+}
 
 a {
   color: inherit;
@@ -143,7 +160,7 @@ textarea {
 
 /* Sacred Geometry Background Pattern */
 body::before {
-  content: '';
+  content: "";
   position: fixed;
   top: 0;
   left: 0;
@@ -164,7 +181,7 @@ body::before {
 }
 
 .mandala-bg::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 50%;
@@ -180,8 +197,12 @@ body::before {
 }
 
 @keyframes rotate-mandala {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 /* Glow Effect */
@@ -191,8 +212,13 @@ body::before {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(255, 153, 51, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(255, 153, 51, 0.5); }
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(255, 153, 51, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(255, 153, 51, 0.5);
+  }
 }
 
 /* Utility Classes */
@@ -233,8 +259,18 @@ body::before {
 }
 
 /* Stagger animation delays */
-.stagger-1 { animation-delay: 0.1s; }
-.stagger-2 { animation-delay: 0.2s; }
-.stagger-3 { animation-delay: 0.3s; }
-.stagger-4 { animation-delay: 0.4s; }
-.stagger-5 { animation-delay: 0.5s; }
+.stagger-1 {
+  animation-delay: 0.1s;
+}
+.stagger-2 {
+  animation-delay: 0.2s;
+}
+.stagger-3 {
+  animation-delay: 0.3s;
+}
+.stagger-4 {
+  animation-delay: 0.4s;
+}
+.stagger-5 {
+  animation-delay: 0.5s;
+}

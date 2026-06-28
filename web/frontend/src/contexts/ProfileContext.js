@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 const ProfileContext = createContext();
 
 export const useProfile = () => {
   const context = useContext(ProfileContext);
   if (!context) {
-    throw new Error('useProfile must be used within a ProfileProvider');
+    throw new Error("useProfile must be used within a ProfileProvider");
   }
   return context;
 };
@@ -15,7 +15,7 @@ export const ProfileProvider = ({ children }) => {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
   // Load profiles from server
   const loadProfiles = async () => {
@@ -23,15 +23,15 @@ export const ProfileProvider = ({ children }) => {
     try {
       const response = await fetch(`${API_URL}/api/profiles/list`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
       });
       const data = await response.json();
       if (data.success) {
         setProfiles(data.profiles);
       }
     } catch (err) {
-      console.error('Failed to load profiles:', err);
+      console.error("Failed to load profiles:", err);
     } finally {
       setLoading(false);
     }
@@ -41,15 +41,15 @@ export const ProfileProvider = ({ children }) => {
   const saveProfile = async (profileName, birthDetails) => {
     try {
       const response = await fetch(`${API_URL}/api/profiles/save`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
         body: JSON.stringify({
           profile_name: profileName,
-          birth_details: birthDetails
-        })
+          birth_details: birthDetails,
+        }),
       });
 
       const data = await response.json();
@@ -59,7 +59,7 @@ export const ProfileProvider = ({ children }) => {
       }
       return { success: false, error: data.message };
     } catch (err) {
-      return { success: false, error: 'Failed to save profile' };
+      return { success: false, error: "Failed to save profile" };
     }
   };
 
@@ -67,15 +67,15 @@ export const ProfileProvider = ({ children }) => {
   const updateProfile = async (profileId, profileName, birthDetails) => {
     try {
       const response = await fetch(`${API_URL}/api/profiles/${profileId}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
         body: JSON.stringify({
           profile_name: profileName,
-          birth_details: birthDetails
-        })
+          birth_details: birthDetails,
+        }),
       });
 
       const data = await response.json();
@@ -86,16 +86,16 @@ export const ProfileProvider = ({ children }) => {
           const updatedProfile = {
             ...selectedProfile,
             profile_name: profileName,
-            birth_details: birthDetails
+            birth_details: birthDetails,
           };
           setSelectedProfile(updatedProfile);
-          localStorage.setItem('selectedProfile', JSON.stringify(updatedProfile));
+          localStorage.setItem("selectedProfile", JSON.stringify(updatedProfile));
         }
         return { success: true };
       }
       return { success: false, error: data.message };
     } catch (err) {
-      return { success: false, error: 'Failed to update profile' };
+      return { success: false, error: "Failed to update profile" };
     }
   };
 
@@ -103,10 +103,10 @@ export const ProfileProvider = ({ children }) => {
   const deleteProfile = async (profileId) => {
     try {
       const response = await fetch(`${API_URL}/api/profiles/${profileId}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
       });
 
       const data = await response.json();
@@ -120,7 +120,7 @@ export const ProfileProvider = ({ children }) => {
       }
       return { success: false, error: data.message };
     } catch (err) {
-      return { success: false, error: 'Failed to delete profile' };
+      return { success: false, error: "Failed to delete profile" };
     }
   };
 
@@ -128,23 +128,23 @@ export const ProfileProvider = ({ children }) => {
   const selectProfile = (profile) => {
     setSelectedProfile(profile);
     // Store in localStorage for persistence
-    localStorage.setItem('selectedProfile', JSON.stringify(profile));
+    localStorage.setItem("selectedProfile", JSON.stringify(profile));
   };
 
   // Clear selected profile
   const clearProfile = () => {
     setSelectedProfile(null);
-    localStorage.removeItem('selectedProfile');
+    localStorage.removeItem("selectedProfile");
   };
 
   // Load selected profile from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem('selectedProfile');
+    const stored = localStorage.getItem("selectedProfile");
     if (stored) {
       try {
         setSelectedProfile(JSON.parse(stored));
       } catch (err) {
-        console.error('Failed to parse stored profile:', err);
+        console.error("Failed to parse stored profile:", err);
       }
     }
   }, []);
@@ -158,12 +158,8 @@ export const ProfileProvider = ({ children }) => {
     updateProfile,
     deleteProfile,
     selectProfile,
-    clearProfile
+    clearProfile,
   };
 
-  return (
-    <ProfileContext.Provider value={value}>
-      {children}
-    </ProfileContext.Provider>
-  );
+  return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;
 };

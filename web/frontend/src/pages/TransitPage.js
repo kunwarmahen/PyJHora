@@ -16,14 +16,28 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 const formatDate = (dateStr) => {
   if (!dateStr) return "N/A";
   try {
-    return new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   } catch (e) {
     return "N/A";
   }
 };
 
 // Order grahas the traditional way for the table.
-const PLANET_ORDER = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
+const PLANET_ORDER = [
+  "Sun",
+  "Moon",
+  "Mars",
+  "Mercury",
+  "Jupiter",
+  "Venus",
+  "Saturn",
+  "Rahu",
+  "Ketu",
+];
 
 const ordinal = (n) => {
   const s = ["th", "st", "nd", "rd"];
@@ -116,8 +130,23 @@ export const TransitPage = () => {
             marginBottom: "var(--space-xl)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)", flexWrap: "wrap" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)", fontWeight: 600, color: "var(--cosmic-indigo)" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--space-sm)",
+              flexWrap: "wrap",
+            }}
+          >
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-sm)",
+                fontWeight: 600,
+                color: "var(--cosmic-indigo)",
+              }}
+            >
               <Calendar size={18} style={{ color: "var(--saffron)" }} />
               Transit date
             </label>
@@ -156,7 +185,16 @@ export const TransitPage = () => {
           </div>
 
           {/* Chart style toggle */}
-          <div style={{ display: "flex", gap: "4px", background: "white", padding: "4px", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-sm)" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "4px",
+              background: "white",
+              padding: "4px",
+              borderRadius: "var(--radius-md)",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
             {["north", "south"].map((style) => (
               <button
                 key={style}
@@ -182,9 +220,19 @@ export const TransitPage = () => {
         <ErrorBanner message={error} />
 
         {loading ? (
-          <div style={{ background: "white", borderRadius: "var(--radius-xl)", padding: "var(--space-3xl)", textAlign: "center", boxShadow: "var(--shadow-lg)" }}>
+          <div
+            style={{
+              background: "white",
+              borderRadius: "var(--radius-xl)",
+              padding: "var(--space-3xl)",
+              textAlign: "center",
+              boxShadow: "var(--shadow-lg)",
+            }}
+          >
             <div className="spinner" style={{ margin: "0 auto var(--space-xl)" }}></div>
-            <h3 style={{ color: "var(--cosmic-indigo)", marginBottom: "var(--space-sm)" }}>Calculating transits</h3>
+            <h3 style={{ color: "var(--cosmic-indigo)", marginBottom: "var(--space-sm)" }}>
+              Calculating transits
+            </h3>
             <p style={{ color: "var(--text-secondary)" }}>Locating the grahas…</p>
           </div>
         ) : result ? (
@@ -200,18 +248,52 @@ export const TransitPage = () => {
                 color: "var(--text-secondary)",
               }}
             >
-              <span style={{ padding: "var(--space-xs) var(--space-md)", background: "white", borderRadius: "var(--radius-full)", boxShadow: "var(--shadow-sm)" }}>
-                Natal Lagna: <strong style={{ color: "var(--saffron)" }}>{result.natal?.lagna?.sign_name}</strong>
+              <span
+                style={{
+                  padding: "var(--space-xs) var(--space-md)",
+                  background: "white",
+                  borderRadius: "var(--radius-full)",
+                  boxShadow: "var(--shadow-sm)",
+                }}
+              >
+                Natal Lagna:{" "}
+                <strong style={{ color: "var(--saffron)" }}>
+                  {result.natal?.lagna?.sign_name}
+                </strong>
               </span>
-              <span style={{ padding: "var(--space-xs) var(--space-md)", background: "white", borderRadius: "var(--radius-full)", boxShadow: "var(--shadow-sm)" }}>
-                Natal Moon: <strong style={{ color: "var(--cosmic-indigo)" }}>{result.natal?.moon?.sign_name}</strong>
+              <span
+                style={{
+                  padding: "var(--space-xs) var(--space-md)",
+                  background: "white",
+                  borderRadius: "var(--radius-full)",
+                  boxShadow: "var(--shadow-sm)",
+                }}
+              >
+                Natal Moon:{" "}
+                <strong style={{ color: "var(--cosmic-indigo)" }}>
+                  {result.natal?.moon?.sign_name}
+                </strong>
               </span>
-              <span style={{ padding: "var(--space-xs) var(--space-md)", background: "white", borderRadius: "var(--radius-full)", boxShadow: "var(--shadow-sm)" }}>
+              <span
+                style={{
+                  padding: "var(--space-xs) var(--space-md)",
+                  background: "white",
+                  borderRadius: "var(--radius-full)",
+                  boxShadow: "var(--shadow-sm)",
+                }}
+              >
                 Ayanamsa: <strong style={{ color: "var(--cosmic-indigo)" }}>{ayanamsaLabel}</strong>
               </span>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-xl)", alignItems: "start" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                gap: "var(--space-xl)",
+                alignItems: "start",
+              }}
+            >
               {/* Transit chart over natal lagna */}
               <Kundali
                 planets={planets}
@@ -230,26 +312,59 @@ export const TransitPage = () => {
                   borderTop: "4px solid var(--cosmic-indigo)",
                 }}
               >
-                <h3 style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)", marginTop: 0, marginBottom: "var(--space-md)", color: "var(--cosmic-indigo)", fontSize: "1.125rem" }}>
+                <h3
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--space-sm)",
+                    marginTop: 0,
+                    marginBottom: "var(--space-md)",
+                    color: "var(--cosmic-indigo)",
+                    fontSize: "1.125rem",
+                  }}
+                >
                   <Orbit size={18} style={{ color: "var(--saffron)" }} />
                   Transiting Grahas
                 </h3>
                 <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" }}>
+                  <table
+                    style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" }}
+                  >
                     <thead>
-                      <tr style={{ textAlign: "left", color: "var(--text-muted)", textTransform: "uppercase", fontSize: "0.6875rem", letterSpacing: "0.5px" }}>
+                      <tr
+                        style={{
+                          textAlign: "left",
+                          color: "var(--text-muted)",
+                          textTransform: "uppercase",
+                          fontSize: "0.6875rem",
+                          letterSpacing: "0.5px",
+                        }}
+                      >
                         <th style={{ padding: "var(--space-xs)" }}>Planet</th>
                         <th style={{ padding: "var(--space-xs)" }}>Sign</th>
                         <th style={{ padding: "var(--space-xs)" }}>Nakshatra</th>
-                        <th style={{ padding: "var(--space-xs)", textAlign: "center" }}>From Lagna</th>
-                        <th style={{ padding: "var(--space-xs)", textAlign: "center" }}>From Moon</th>
+                        <th style={{ padding: "var(--space-xs)", textAlign: "center" }}>
+                          From Lagna
+                        </th>
+                        <th style={{ padding: "var(--space-xs)", textAlign: "center" }}>
+                          From Moon
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {orderedPlanets.map(([name, p]) => (
                         <tr key={name} style={{ borderTop: "1px solid var(--sandalwood)" }}>
-                          <td style={{ padding: "var(--space-sm) var(--space-xs)", fontWeight: 700, color: "var(--cosmic-indigo)" }}>
-                            {PLANET_ABBR[name] || name} <span style={{ fontWeight: 400, color: "var(--text-secondary)" }}>{name}</span>
+                          <td
+                            style={{
+                              padding: "var(--space-sm) var(--space-xs)",
+                              fontWeight: 700,
+                              color: "var(--cosmic-indigo)",
+                            }}
+                          >
+                            {PLANET_ABBR[name] || name}{" "}
+                            <span style={{ fontWeight: 400, color: "var(--text-secondary)" }}>
+                              {name}
+                            </span>
                             {p.retrograde && (
                               <span
                                 title="Retrograde"
@@ -268,21 +383,54 @@ export const TransitPage = () => {
                             )}
                           </td>
                           <td style={{ padding: "var(--space-sm) var(--space-xs)" }}>
-                            {p.sign_name} <span style={{ color: "var(--text-muted)" }}>{p.degrees != null ? `${p.degrees.toFixed(1)}°` : ""}</span>
+                            {p.sign_name}{" "}
+                            <span style={{ color: "var(--text-muted)" }}>
+                              {p.degrees != null ? `${p.degrees.toFixed(1)}°` : ""}
+                            </span>
                           </td>
-                          <td style={{ padding: "var(--space-sm) var(--space-xs)", color: "var(--text-secondary)" }}>
+                          <td
+                            style={{
+                              padding: "var(--space-sm) var(--space-xs)",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
                             {p.nakshatra}
                             {p.nakshatra_pada ? ` (${p.nakshatra_pada})` : ""}
                           </td>
-                          <td style={{ padding: "var(--space-sm) var(--space-xs)", textAlign: "center", fontWeight: 600, color: "var(--saffron)" }}>{ordinal(p.house_from_lagna)}</td>
-                          <td style={{ padding: "var(--space-sm) var(--space-xs)", textAlign: "center", fontWeight: 600, color: "var(--vermillion)" }}>{ordinal(p.house_from_moon)}</td>
+                          <td
+                            style={{
+                              padding: "var(--space-sm) var(--space-xs)",
+                              textAlign: "center",
+                              fontWeight: 600,
+                              color: "var(--saffron)",
+                            }}
+                          >
+                            {ordinal(p.house_from_lagna)}
+                          </td>
+                          <td
+                            style={{
+                              padding: "var(--space-sm) var(--space-xs)",
+                              textAlign: "center",
+                              fontWeight: 600,
+                              color: "var(--vermillion)",
+                            }}
+                          >
+                            {ordinal(p.house_from_moon)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <p style={{ margin: "var(--space-md) 0 0", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                  House counted inclusively from the natal Lagna and natal Moon. Moon-based houses drive classic gochara results.
+                <p
+                  style={{
+                    margin: "var(--space-md) 0 0",
+                    fontSize: "0.75rem",
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  House counted inclusively from the natal Lagna and natal Moon. Moon-based houses
+                  drive classic gochara results.
                 </p>
               </div>
             </div>
@@ -299,11 +447,27 @@ export const TransitPage = () => {
                   borderTop: "4px solid var(--saffron)",
                 }}
               >
-                <h3 style={{ display: "flex", alignItems: "center", gap: "var(--space-sm)", marginTop: 0, marginBottom: "var(--space-md)", color: "var(--cosmic-indigo)", fontSize: "1.25rem" }}>
+                <h3
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--space-sm)",
+                    marginTop: 0,
+                    marginBottom: "var(--space-md)",
+                    color: "var(--cosmic-indigo)",
+                    fontSize: "1.25rem",
+                  }}
+                >
                   <TrendingUp size={20} style={{ color: "var(--saffron)" }} />
                   Key Upcoming Transits
                 </h3>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-md)" }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: "var(--space-md)",
+                  }}
+                >
                   {result.upcoming.map((u, i) => (
                     <div
                       key={i}
@@ -314,11 +478,27 @@ export const TransitPage = () => {
                         background: "var(--sacred-white)",
                       }}
                     >
-                      <div style={{ fontSize: "1rem", fontWeight: 700, color: "var(--saffron)" }}>{u.planet}</div>
-                      <div style={{ fontSize: "0.875rem", color: "var(--text-primary)", marginTop: "var(--space-xs)" }}>
+                      <div style={{ fontSize: "1rem", fontWeight: 700, color: "var(--saffron)" }}>
+                        {u.planet}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.875rem",
+                          color: "var(--text-primary)",
+                          marginTop: "var(--space-xs)",
+                        }}
+                      >
                         {u.from_sign} → <strong>{u.to_sign}</strong>
                       </div>
-                      <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "2px" }}>{formatDate(u.date)}</div>
+                      <div
+                        style={{
+                          fontSize: "0.8125rem",
+                          color: "var(--text-secondary)",
+                          marginTop: "2px",
+                        }}
+                      >
+                        {formatDate(u.date)}
+                      </div>
                     </div>
                   ))}
                 </div>
