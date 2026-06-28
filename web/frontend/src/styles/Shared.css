@@ -243,3 +243,40 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--space-lg);
 }
+
+/* ---- Advanced data tables (Ashtakavarga / Shadbala) ---- */
+.adv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.adv-table th,
+.adv-table td {
+  border: 1px solid var(--sandalwood);
+  padding: var(--space-sm) var(--space-md);
+  text-align: center;
+  white-space: nowrap;
+}
+.adv-table thead th {
+  background: var(--cosmic-indigo);
+  color: white;
+  font-weight: 600;
+}
+.adv-table tbody td:first-child,
+.adv-table tbody th:first-child {
+  text-align: left;
+  color: var(--cosmic-indigo);
+}
+.adv-table tbody tr:nth-child(even) td {
+  background: var(--sacred-white);
+}
+
+.adv-subhead {
+  margin: var(--space-xl) 0 var(--space-md);
+  color: var(--cosmic-indigo);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.adv-subhead:first-of-type {
+  margin-top: 0;
+}

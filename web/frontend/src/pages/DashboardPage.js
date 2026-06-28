@@ -58,6 +58,13 @@ export const DashboardPage = () => {
       path: "/transit",
       gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
     },
+    {
+      icon: <Sparkles size={32} />,
+      title: "Advanced Details",
+      description: "Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas & Shadbala",
+      path: "/advanced",
+      gradient: "linear-gradient(135deg, #D4AF37 0%, #E27B5A 100%)",
+    },
   ];
 
   return (
