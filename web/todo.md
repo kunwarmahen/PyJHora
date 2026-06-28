@@ -11,6 +11,14 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
 
 ## 1. Bugs & correctness (P0 — fix first)
 
+- [x] **Wrong ayanamsa (planets one house off vs JHora).** FIXED 2026-06-27: PyJHora
+      defaults to `TRUE_PUSHYA`; the backend now sets `LAHIRI` (Jagannatha Hora's
+      default) at import in `astrology.py`. The ~0.9° difference was flipping fast
+      bodies (esp. the Moon) near a sign cusp into the wrong rasi/house. Affects all
+      computations (charts, dashas, compatibility). TODO: make ayanamsa configurable.
+- [x] **North Indian chart clutter.** FIXED 2026-06-27: crowded houses now use a
+      compact one-line-per-planet layout (name + inline degree) with adaptive
+      spacing/size, instead of two stacked lines that overflowed the triangles.
 - [x] **Timezone hardcoded to IST.** ~~`/api/astrology/birth-chart` passes `tz=5.5`~~
       FIXED 2026-06-27: birth-chart, predict, and compatibility-analysis now pass the
       profile's `timezone` (compute layer falls back to 5.5 only when it's None).

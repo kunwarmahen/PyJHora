@@ -170,28 +170,32 @@ export const NorthIndianChart = ({
                   {RASI_NAMES[getSignForVisualHouse(house.num) - 1]}
                 </text>
 
-                {/* Planets */}
-                {planetsInHouse.map((item, idx) => {
-                  const totalItems = planetsInHouse.length;
-                  const startY = totalItems > 1 ? house.cy - (totalItems - 1) * 10 : house.cy;
-                  return (
-                    <g key={idx}>
-                      <text
-                        x={house.cx}
-                        y={startY + 10 + idx * 20}
-                        textAnchor="middle"
-                        fill={item.type === "lagna" ? accent : indigo}
-                        fontSize="13"
-                        fontWeight="700"
-                      >
-                        {item.name}
-                      </text>
-                      <text x={house.cx} y={startY + 22 + idx * 20} textAnchor="middle" fill={muted} fontSize="8">
-                        {item.degrees?.toFixed(1)}°
-                      </text>
-                    </g>
-                  );
-                })}
+                {/* Planets — one compact line each (name + inline degree),
+                    spacing/size tightens when a house is crowded */}
+                {(() => {
+                  const total = planetsInHouse.length;
+                  const step = total > 3 ? 14 : 18;
+                  const fs = total > 3 ? 11 : 13;
+                  const startY = house.cy - ((total - 1) * step) / 2 + 4;
+                  return planetsInHouse.map((item, idx) => (
+                    <text
+                      key={idx}
+                      x={house.cx}
+                      y={startY + idx * step}
+                      textAnchor="middle"
+                      fill={item.type === "lagna" ? accent : indigo}
+                      fontSize={fs}
+                      fontWeight="700"
+                    >
+                      {item.name}
+                      {item.degrees != null && (
+                        <tspan dx="3" fontSize={fs - 4} fontWeight="400" fill={muted}>
+                          {item.degrees.toFixed(1)}°
+                        </tspan>
+                      )}
+                    </text>
+                  ));
+                })()}
 
                 {/* Hit area drives hover/tap state */}
                 <circle

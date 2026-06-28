@@ -14,6 +14,13 @@ try:
     from jhora.horoscope.dhasa.graha import vimsottari
     from jhora import utils, const
     import swisseph as swe
+
+    # Match Jagannatha Hora's default ayanamsa (Lahiri). PyJHora defaults to
+    # TRUE_PUSHYA, which differs from Lahiri by ~0.9° and can flip a fast body
+    # (esp. the Moon) near a sign cusp into the wrong rasi/house.
+    const._DEFAULT_AYANAMSA_MODE = 'LAHIRI'
+    drik.set_ayanamsa_mode('LAHIRI')
+
     PYJHORA_AVAILABLE = True
 except ImportError as e:
     print(f"PyJHora import error: {e}")
