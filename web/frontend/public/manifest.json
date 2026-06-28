@@ -1,0 +1,31 @@
+{
+  "short_name": "PyJHora",
+  "name": "PyJHora — Vedic Astrology",
+  "description": "Birth charts, dashas, transits, panchanga and an AI astrologer.",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#FF9933",
+  "background_color": "#FFFEF9"
+}

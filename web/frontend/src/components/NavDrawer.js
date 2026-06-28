@@ -11,6 +11,7 @@ import {
   Heart,
   MessageCircle,
   Star,
+  GitCompareArrows,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
@@ -23,6 +24,7 @@ const LINKS = [
   { to: "/dhasa", label: "Dhasa Periods", icon: <Clock size={20} /> },
   { to: "/transit", label: "Transits", icon: <Orbit size={20} /> },
   { to: "/advanced", label: "Advanced Details", icon: <Sparkles size={20} /> },
+  { to: "/compare", label: "Compare Charts", icon: <GitCompareArrows size={20} /> },
   { to: "/compatibility", label: "Compatibility", icon: <Heart size={20} /> },
   { to: "/ask-astrologer", label: "Ask AI Astrologer", icon: <MessageCircle size={20} /> },
 ];

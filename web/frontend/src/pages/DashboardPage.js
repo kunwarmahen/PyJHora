@@ -2,7 +2,17 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
-import { Calendar, Heart, Clock, MessageCircle, LogOut, Star, Sparkles, Orbit } from "lucide-react";
+import {
+  Calendar,
+  Heart,
+  Clock,
+  MessageCircle,
+  LogOut,
+  Star,
+  Sparkles,
+  Orbit,
+  GitCompareArrows,
+} from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
 import "../styles/Dashboard.css";
@@ -65,6 +75,13 @@ export const DashboardPage = () => {
       description: "Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas & Shadbala",
       path: "/advanced",
       gradient: "linear-gradient(135deg, #D4AF37 0%, #E27B5A 100%)",
+    },
+    {
+      icon: <GitCompareArrows size={32} />,
+      title: "Compare Charts",
+      description: "Put two profiles side by side and compare their placements",
+      path: "/compare",
+      gradient: "linear-gradient(135deg, #2D3561 0%, #E27B5A 100%)",
     },
   ];
 

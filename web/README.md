@@ -26,7 +26,8 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   local server (LM Studio / llama.cpp / vLLM), Google Gemini, or OpenAI — pick the exact model
 - **Streaming answers**: responses stream token-by-token (SSE) with a **Stop** button
 - **Rich, transparent context**: D1 + chosen divisional charts (vargas), the running
-  Vimsottari dasha chain, yogas, doshas and current transits — view the exact data sent
+  Vimsottari dasha chain, yogas, doshas, current transits, Sarva Ashtakavarga and
+  Shadbala strengths — view the exact data sent
 - **Saved history**: every Q&A is stored per profile and can be revisited or deleted
 - **Answer affordances**: copy, regenerate, thumbs up/down, export a conversation to Markdown
 - **Per-user API keys (encrypted)**: each user stores their own provider keys via the
@@ -441,6 +442,7 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `/dhasa` - Dhasa periods: Vimsottari drill-down tree + other systems
 - `/transit` - Transits (Gochara) over the natal chart
 - `/advanced` - Advanced details: Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala
+- `/compare` - Compare two saved profiles side by side
 - `/predictions` - Horoscope and predictions generator
 
 ## Development Notes
@@ -466,7 +468,12 @@ The frontend uses React with:
 - **Responsive CSS**: Mobile-friendly design
 - **Protected Routes**: Authentication checks
 - **Shared primitives**: `PageHeader`, `ProfileBanner`, `Card`, `Button`, `DataField`,
-  `ErrorBanner`, `LoadingState` (in `src/components/`, styled in `src/styles/Shared.css`)
+  `ErrorBanner`, `LoadingState`, `NavDrawer` (mobile feature drawer), `GlossaryTerm`
+  (Sanskrit-term tooltips, data in `src/constants/glossary.js`) — in `src/components/`,
+  styled in `src/styles/Shared.css`
+- **Mobile/PWA**: responsive rules in `src/styles/Responsive.css`; installable PWA via
+  `public/manifest.json` + icons + `public/sw.js` (registered in production only; the
+  service worker never caches `/api`)
 - **Tooling**: `npm run lint` (ESLint) and `npm run format` / `format:check` (Prettier).
   `REACT_APP_API_URL` is required for production builds — `src/services/api.js` throws at
   startup if it's unset (in dev it falls back to `http://localhost:8000` with a warning).

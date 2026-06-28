@@ -701,6 +701,30 @@ Planetary Positions (All 9 Grahas):"""
                     f"(from {u.get('from_sign', '?')}) on {u.get('date', '?')}"
                 )
 
+        # Ashtakavarga — Sarva (combined) bindus per sign (higher = more supportive)
+        ashtakavarga = chart_data.get("ashtakavarga", {})
+        sav = ashtakavarga.get("sarva") if isinstance(ashtakavarga, dict) else None
+        if sav:
+            signs = ashtakavarga.get("signs", [])
+            pairs = ", ".join(
+                f"{signs[i] if i < len(signs) else i}: {v}" for i, v in enumerate(sav)
+            )
+            chart_description += (
+                f"\n\nSarva Ashtakavarga (bindus per sign, total "
+                f"{ashtakavarga.get('sarva_total', sum(sav))}/337):\n- {pairs}"
+            )
+
+        # Shadbala — per-planet strength (ratio >= 1.0 means sufficiently strong)
+        shadbala = chart_data.get("shadbala", [])
+        if shadbala:
+            chart_description += "\n\nShadbala (planetary strength, rupas):"
+            for p in shadbala:
+                flag = "" if p.get("sufficient") else " (below required)"
+                chart_description += (
+                    f"\n- {p.get('planet', '?')}: {p.get('total_rupa', '?')} rupa, "
+                    f"ratio {p.get('strength_ratio', '?')}, rank {p.get('rank', '?')}{flag}"
+                )
+
         context_block = f"""Below is the COMPLETE BIRTH CHART DATA for this person, calculated using precise astronomical calculations from the PyJHora Vedic astrology software. This is REAL, VERIFIED CHART DATA - not hypothetical.
 
 === COMPLETE BIRTH CHART ===

@@ -1390,7 +1390,7 @@ export const AskAstrologerPage = () => {
                   <p style={{ margin: 0, color: "var(--cosmic-indigo)", fontWeight: 500 }}>
                     {modalData
                       ? "This is the exact structured context the backend assembled and sent to the AI model:"
-                      : "This is the chart information that will be sent to the AI model. The backend also adds your full running dasha chain, yogas, doshas and current transits — visible here after you ask a question:"}
+                      : "This is the chart information that will be sent to the AI model. The backend also adds your full running dasha chain, yogas, doshas, current transits, Sarva Ashtakavarga and Shadbala — visible here after you ask a question:"}
                   </p>
                 </div>
 
@@ -1432,8 +1432,8 @@ export const AskAstrologerPage = () => {
                   <p style={{ margin: 0, color: "var(--text-secondary)" }}>
                     The AI model receives this structured data along with your question: your Lagna,
                     planetary positions and nakshatras, the currently-active Vimsottari dasha chain
-                    (Maha → Bhukti → Antara → Sookshma), yogas and doshas present in the chart, and
-                    current planetary transits (Gochara).
+                    (Maha → Bhukti → Antara → Sookshma), yogas and doshas present in the chart,
+                    current planetary transits (Gochara), Sarva Ashtakavarga and Shadbala strengths.
                   </p>
                 </div>
               </div>

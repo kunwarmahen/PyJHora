@@ -9,6 +9,7 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { DataField } from "../components/DataField";
+import { GlossaryTerm } from "../components/GlossaryTerm";
 import { AYANAMSAS, DEFAULT_AYANAMSA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 
@@ -146,7 +147,11 @@ export const AdvancedPage = () => {
           <>
             {/* Ashtakavarga */}
             {av && (
-              <Card title="Ashtakavarga" icon={<Grid3x3 size={24} />} accent="saffron">
+              <Card
+                title={<GlossaryTerm>Ashtakavarga</GlossaryTerm>}
+                icon={<Grid3x3 size={24} />}
+                accent="saffron"
+              >
                 <p style={{ color: "var(--text-secondary)", marginBottom: "var(--space-md)" }}>
                   Sarva Ashtakavarga (total bindus per sign — higher is more supportive). Grand
                   total: <strong>{av.sarva_total}</strong>.
@@ -163,7 +168,9 @@ export const AdvancedPage = () => {
                     </thead>
                     <tbody>
                       <tr>
-                        <td style={{ fontWeight: 700 }}>Sarva (SAV)</td>
+                        <td style={{ fontWeight: 700 }}>
+                          <GlossaryTerm term="Sarva">Sarva (SAV)</GlossaryTerm>
+                        </td>
                         {av.sarva.map((v, i) => (
                           <td key={i} style={{ background: savColor(v), fontWeight: 700 }}>
                             {v}
@@ -187,28 +194,36 @@ export const AdvancedPage = () => {
             {/* Advanced chart details */}
             {details && (
               <Card title="Chart Factors" icon={<Compass size={24} />} accent="indigo">
-                <h4 className="adv-subhead">Arudha Padas</h4>
+                <h4 className="adv-subhead">
+                  <GlossaryTerm term="Arudha">Arudha</GlossaryTerm> Padas
+                </h4>
                 <div className="ui-field-grid">
                   {details.arudha_padas.map((a) => (
                     <DataField key={a.bhava} label={a.label} value={a.sign_name} />
                   ))}
                 </div>
 
-                <h4 className="adv-subhead">Chara Karakas (Jaimini)</h4>
+                <h4 className="adv-subhead">
+                  Chara <GlossaryTerm term="Karaka">Karakas</GlossaryTerm> (Jaimini)
+                </h4>
                 <div className="ui-field-grid">
                   {details.chara_karakas.map((k) => (
                     <DataField key={k.karaka} label={k.karaka} value={k.planet} />
                   ))}
                 </div>
 
-                <h4 className="adv-subhead">Special Lagnas</h4>
+                <h4 className="adv-subhead">
+                  Special <GlossaryTerm term="Lagna">Lagnas</GlossaryTerm>
+                </h4>
                 <div className="ui-field-grid">
                   {details.special_lagnas.map((s) => (
                     <DataField key={s.name} label={s.name} value={`${s.sign_name} ${s.degrees}°`} />
                   ))}
                 </div>
 
-                <h4 className="adv-subhead">Upagrahas (Sub-planets)</h4>
+                <h4 className="adv-subhead">
+                  <GlossaryTerm term="Upagraha">Upagrahas</GlossaryTerm> (Sub-planets)
+                </h4>
                 <div className="ui-field-grid">
                   {details.upagrahas.map((u) => (
                     <DataField key={u.name} label={u.name} value={`${u.sign_name} ${u.degrees}°`} />
@@ -220,7 +235,11 @@ export const AdvancedPage = () => {
             {/* Shadbala */}
             {shadbala && (
               <Card
-                title="Shadbala (Planetary Strength)"
+                title={
+                  <>
+                    <GlossaryTerm>Shadbala</GlossaryTerm> (Planetary Strength)
+                  </>
+                }
                 icon={<Gauge size={24} />}
                 accent="vermillion"
               >

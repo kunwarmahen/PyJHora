@@ -24,6 +24,8 @@ DEFAULT_SECTIONS = {
     "yogas": True,
     "doshas": True,
     "transits": True,
+    "ashtakavarga": True,
+    "shadbala": True,
 }
 
 # Divisional charts included by default: D1 (natal), D9 (Navamsa), D10 (Dasamsa).
@@ -186,6 +188,28 @@ def build_chart_context(birth_details: Dict[str, Any],
                 "planets": t.get("planets", {}),
                 "upcoming": t.get("upcoming", []),
             }
+
+    if sections.get("ashtakavarga"):
+        av = AstrologyCompute.get_ashtakavarga(ayanamsa=ayanamsa, **args)
+        if av.get("status") == "success":
+            # Sarva is the high-signal summary; Bhinna is large, so omit it here.
+            ctx["ashtakavarga"] = {
+                "signs": av.get("signs", []),
+                "sarva": av.get("sarva", []),
+                "sarva_total": av.get("sarva_total"),
+            }
+
+    if sections.get("shadbala"):
+        sb = AstrologyCompute.get_shadbala(ayanamsa=ayanamsa, **args)
+        if sb.get("status") == "success":
+            # Keep only the per-planet totals/ratio/rank (drop the six components
+            # for token economy).
+            ctx["shadbala"] = [
+                {"planet": p["planet"], "total_rupa": p["total_rupa"],
+                 "strength_ratio": p["strength_ratio"], "rank": p["rank"],
+                 "sufficient": p["sufficient"]}
+                for p in sb.get("planets", [])
+            ]
 
     # Divisional charts (vargas). D1 is already the natal `planetary_positions`,
     # so only the extra factors are computed into their own section.

@@ -165,7 +165,11 @@ identity. Don't reintroduce a wholesale new theme unless the owner asks.
 - [x] **AI chat on mobile.** `.chat-main` becomes a `72vh` panel so messages scroll
       internally and the input stays reachable; chat input is 16px; input bar respects the
       iOS home-indicator safe area; messages go full-width on very small screens.
-- [x] `<meta viewport>` already present. PWA/installable still a stretch goal (not done).
+- [x] `<meta viewport>` already present. **PWA/installable DONE 2026-06-28**: added
+      `public/manifest.json` (standalone, saffron theme), generated saffron app icons
+      (192/512 + maskable + apple-touch), linked them + theme-color/apple meta in
+      `index.html`, and a conservative `public/sw.js` (network-first navigations, SWR for
+      static assets, **never caches `/api`**) registered in `index.js` for production builds.
 
 ## 5. New features (P1/P2) — grounded in what the PyJHora engine already supports
 
@@ -253,11 +257,19 @@ web exposes. High-value additions:
       ratio and rank for Sun..Saturn. `POST /shadbala`. Shown as a table in the Advanced
       page (ratio ≥ 1.0 highlighted). (Rasi-strength not included yet.)
 - [ ] **Export / share** (P1): download chart as PNG/PDF, shareable read-only link.
-- [ ] **Compare two profiles side by side** beyond compatibility (P2).
+- [x] **Compare two profiles side by side** (P2). DONE 2026-06-28: new `ComparePage`
+      (route `/compare`, dashboard card + drawer link). Person 1 = selected profile,
+      Person 2 picked from a dropdown; computes both charts (reusing `calculateBirthChart`
+      at the selected ayanamsa) and shows the two Kundalis side by side + a placements
+      table (Lagna/Moon/Sun + all 9 grahas) with shared-sign rows highlighted.
 - [ ] **AI astrologer upgrades** (P1): see the dedicated plan in **§8** below
       (model selection, varga context, saved history, full dasha tree, streaming,
       multi-turn, richer context). Supersedes this one-liner.
-- [ ] **Multi-language / Sanskrit term glossary tooltips** (P2).
+- [~] **Multi-language / Sanskrit term glossary tooltips** (P2). Glossary tooltips DONE
+      2026-06-28: `constants/glossary.js` (~30 Jyotish terms) + a reusable `<GlossaryTerm>`
+      (dotted underline, hover/tap/focus popover, case-insensitive lookup, renders plainly
+      if unknown). Wired into the Advanced page's section titles/labels; reusable anywhere.
+      Full UI multi-language (i18n) is still open.
 
 ## 6. Suggested execution order
 
@@ -390,10 +402,11 @@ workspace. **Decisions captured 2026-06-28** (owner answered the clarifying roun
       listing dasha chain / yogas / doshas / transits.
 - [x] Rendered prompt measured at ~2.1k tokens with all sections on — comfortably
       within model context windows.
-- [ ] **Ashtakavarga / house strengths in AI context**: Bhinna+Sarva + Shadbala now
-      exist (§5, 2026-06-28) but aren't fed to the AI yet. Add a `sections["ashtakavarga"]`
-      (and optionally shadbala) block in `chart_context.build_chart_context` calling
-      `get_ashtakavarga`/`get_shadbala`.
+- [x] **Ashtakavarga / house strengths in AI context**: DONE 2026-06-28.
+      `build_chart_context` now has `sections["ashtakavarga"]` + `sections["shadbala"]`
+      (both default-on) calling `get_ashtakavarga`/`get_shadbala`; the prompt renders the
+      Sarva Ashtakavarga (bindus/sign, /337) and per-planet Shadbala (rupa, ratio, rank).
+      Full context measures ~2.2k tokens. The Ask "what was sent" note lists them too.
 - [x] Strengthen the **system prompt**: DONE 2026-06-28: `SYSTEM_PROMPT` now encodes
       classical Parashari reasoning rules — house significations (1–12), natural karakas,
       dignity (exalt/debil/own/moolatrikona), graha drishti (incl. Mars/Jupiter/Saturn

@@ -12,6 +12,7 @@ import { CompatibilityPage } from "./pages/CompatibilityPage";
 import { DhasaPage } from "./pages/DhasaPage";
 import { TransitPage } from "./pages/TransitPage";
 import { AdvancedPage } from "./pages/AdvancedPage";
+import { ComparePage } from "./pages/ComparePage";
 import { PredictionsPage } from "./pages/PredictionsPage";
 import { AskAstrologerPage } from "./pages/AskAstrologerPage";
 import "./App.css";
@@ -85,6 +86,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AdvancedPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/compare"
+              element={
+                <ProtectedRoute>
+                  <ComparePage />
                 </ProtectedRoute>
               }
             />
