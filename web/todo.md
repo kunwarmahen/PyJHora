@@ -58,10 +58,14 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
       the **repo root** (`web/docker-compose.yml`: `context: ..`, `dockerfile:
       web/backend/Dockerfile`) so the image can vendor the PyJHora library. The Dockerfile
       `COPY src /src` lands it exactly where `astrology.py`'s `../../src` import resolves
-      inside the container (`/app/../../src` → `/src`, verified), so `from jhora...` works
-      with zero code changes. Added a repo-root `.dockerignore` (excludes the ~712MB `.git`,
-      node_modules, venvs, `*.log`, `.env`) to keep the context lean. Docker isn't installed
-      on the dev box, so verified the path-resolution logic rather than a full image build.
+      inside the container (`/app/../../src` → `/src`), so `from jhora...` works with zero
+      code changes. Added a repo-root `.dockerignore` (excludes the ~712MB `.git`,
+      node_modules, venvs, `*.log`, `.env`) to keep the context lean. VERIFIED with podman:
+      image builds, container imports jhora (`PYJHORA_AVAILABLE: True`), computes a chart,
+      and `/health` returns `pyjhora_available:true` (run on an isolated port against the
+      host Mongo). The build also surfaced a **dependency conflict** that only bit on a
+      clean install: `pymongo==4.6.0` vs `motor==3.7.1` (needs pymongo>=4.9) — bumped
+      `requirements.txt` to `pymongo==4.15.4` (the version the working venv already had).
 - [x] **Bump PyJHora to latest (4.8.7).** DONE 2026-06-27: overlaid upstream `src/` +
       `pyproject.toml` (we had zero local `src/` edits, so no conflicts). Verified the
       backend imports it and computes Rasi/D9/dashas correctly with the right timezone.

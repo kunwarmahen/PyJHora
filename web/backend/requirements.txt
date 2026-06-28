@@ -2,7 +2,7 @@
 fastapi==0.104.1
 uvicorn==0.24.0
 python-dotenv==1.0.0
-pymongo==4.6.0
+pymongo==4.15.4  # must be >=4.9 for motor 3.7.1 (matches the tested venv)
 pydantic==2.5.0
 pydantic-settings==2.1.0
 python-jose[cryptography]==3.3.0
