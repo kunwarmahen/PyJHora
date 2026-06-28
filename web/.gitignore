@@ -51,6 +51,7 @@ mongodb_data/
 
 # Misc
 *.log
+.run/
 .cache/
 .coverage
 htmlcov/
