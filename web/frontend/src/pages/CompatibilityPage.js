@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, AlertCircle, ArrowLeft, User, Star, Users, Sparkles } from 'lucide-react';
+import { Heart, AlertCircle, ArrowLeft, User, Users, Sparkles } from 'lucide-react';
 import { useProfile } from '../contexts/ProfileContext';
 import { formatDate, orDash } from '../utils/format';
 import { astrologyService } from '../services/api';
@@ -24,6 +24,7 @@ export const CompatibilityPage = () => {
     }
 
     loadProfiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfile, navigate]);
 
   const handleCalculate = async () => {
