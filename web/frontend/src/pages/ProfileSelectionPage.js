@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../contexts/ProfileContext';
+import { formatDate, orDash } from '../utils/format';
 import { User, Plus, Calendar, MapPin, Clock, Trash2, ChevronRight, Star, Edit2 } from 'lucide-react';
 import LocationSearch from '../components/LocationSearch';
 import '../styles/ProfileSelection.css';
@@ -25,6 +26,7 @@ export const ProfileSelectionPage = () => {
 
   useEffect(() => {
     loadProfiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleInputChange = (e) => {
@@ -65,6 +67,11 @@ export const ProfileSelectionPage = () => {
     e.preventDefault();
     if (!formData.profile_name.trim()) {
       setError('Please enter a profile name');
+      return;
+    }
+    if (formData.latitude == null || formData.longitude == null ||
+        formData.latitude === '' || formData.longitude === '') {
+      setError('Please search and select a place of birth (this sets the coordinates and timezone).');
       return;
     }
 
@@ -188,15 +195,15 @@ export const ProfileSelectionPage = () => {
                         </div>
                         <div className="detail-item">
                           <Calendar size={14} />
-                          <span>{profile.birth_details.dob.split('T')[0]}</span>
+                          <span>{formatDate(profile.birth_details.dob)}</span>
                         </div>
                         <div className="detail-item">
                           <Clock size={14} />
-                          <span>{profile.birth_details.tob}</span>
+                          <span>{orDash(profile.birth_details.tob)}</span>
                         </div>
                         <div className="detail-item">
                           <MapPin size={14} />
-                          <span>{profile.birth_details.place}</span>
+                          <span>{orDash(profile.birth_details.place)}</span>
                         </div>
                       </div>
                       <div className="select-indicator">
@@ -327,48 +334,51 @@ export const ProfileSelectionPage = () => {
                 )}
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Latitude *</label>
-                  <input
-                    type="number"
-                    name="latitude"
-                    value={formData.latitude || ''}
-                    onChange={handleInputChange}
-                    placeholder="e.g., 28.6139"
-                    step="0.0001"
-                    required
-                  />
+              {/* Coordinates & timezone are auto-filled from the location search above.
+                  These fields are an optional manual override for advanced users. */}
+              <details className="advanced-coordinates">
+                <summary>Advanced: adjust coordinates &amp; timezone</summary>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Latitude</label>
+                    <input
+                      type="number"
+                      name="latitude"
+                      value={formData.latitude ?? ''}
+                      onChange={handleInputChange}
+                      placeholder="Auto-filled from place"
+                      step="0.0001"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Longitude</label>
+                    <input
+                      type="number"
+                      name="longitude"
+                      value={formData.longitude ?? ''}
+                      onChange={handleInputChange}
+                      placeholder="Auto-filled from place"
+                      step="0.0001"
+                    />
+                  </div>
                 </div>
 
                 <div className="form-group">
-                  <label>Longitude *</label>
-                  <input
-                    type="number"
-                    name="longitude"
-                    value={formData.longitude || ''}
+                  <label>Timezone (UTC offset)</label>
+                  <select
+                    name="timezone"
+                    value={formData.timezone}
                     onChange={handleInputChange}
-                    placeholder="e.g., 77.2090"
-                    step="0.0001"
-                    required
-                  />
+                  >
+                    {timezones.map(tz => (
+                      <option key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </div>
-
-              <div className="form-group">
-                <label>Timezone</label>
-                <select
-                  name="timezone"
-                  value={formData.timezone}
-                  onChange={handleInputChange}
-                >
-                  {timezones.map(tz => (
-                    <option key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              </details>
 
               {error && (
                 <div className="error-message">

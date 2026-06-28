@@ -796,8 +796,9 @@ class EastIndianChart(QWidget):
                 center_cell = row==1 and col==1
                 cell = data[row][col]
                 arudha = '/'
-                if self.arudha_lagna_data:
+                if self.arudha_lagna_data and self.arudha_lagna_data[row][col].strip() != '':
                     arudha = self.arudha_lagna_data[row][col]
+                if arudha.strip() =='': arudha = '/'
                 zodiac_symbol = self._zodiac_symbols[row][col]
                 cell_x = round(self.x + col * cell_width)
                 cell_y = round(self.y + row * cell_height)
@@ -1213,9 +1214,10 @@ class SouthIndianChart(QWidget):
                 cell_y = round(self.y + row * cell_height)
                 cell_rect = QtCore.QRect(cell_x,cell_y,cell_width,cell_height)
                 if row==0 or row==row_count-1 or col==0 or col==col_count-1:
-                    if self.arudha_lagna_data:
+                    if self.arudha_lagna_data and self.arudha_lagna_data[row][col].strip() != '':
+                        arudha_text = self.arudha_lagna_data[row][col].strip()
                         painter.setPen(QColor(_arudha_color))
-                        painter.drawText(cell_rect,Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignBottom,self.arudha_lagna_data[row][col].strip())
+                        painter.drawText(cell_rect,Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignBottom,arudha_text)
                     painter.setPen(QPen())
                     painter.drawRect(cell_rect)
                     painter.setPen(QColor(_planet_color))
@@ -1573,7 +1575,7 @@ class NorthIndianChart(QWidget):
             label_text = str(self.data[l])
             label_x = round(self.x + x*chart_width)
             label_y = round(self.y + y*chart_height)
-            print(l,pos,label_x,label_y,label_text)
+            #print(l,pos,label_x,label_y,label_text)
             cell_height = round(chart_height / self.row_count)
             cell_width = round(chart_width / self.col_count)
             cell_rect = QtCore.QRect(label_x,label_y,cell_width,cell_height)

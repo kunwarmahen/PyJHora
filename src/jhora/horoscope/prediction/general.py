@@ -35,7 +35,8 @@ def get_prediction_resources(language='en'):
     msgs = json.load(f)
     return msgs
 
-def _get_general_lagna_rasi_prediction(jd,place,prediction_msgs,language=const._DEFAULT_LANGUAGE):
+def _get_general_lagna_rasi_prediction(jd,place,prediction_msgs,language=None):
+    if language is None: language=const._DEFAULT_LANGUAGE
     janma_rasi = drik.raasi(jd, place)[0]-1
     results = {}
     source_count = 2
@@ -57,7 +58,7 @@ def _get_planets_in_houses_prediction(planet_positions,prediction_msgs):
     #results[ks] += "<b>"+utils.resource_strings['general_prediction_caution']+"</b><br>"
     planet_msgs = prediction_msgs['planets_in_houses']
     #print('planet msgs',planet_msgs)
-    for planet in [*range(9)]:
+    for planet in const.SUN_TO_KETU:
         planet_house = house.get_relative_house_of_planet(lagna_house,p_to_h[planet])
         pl_msg = planet_msgs[str(planet_house)][planet]
         #print(planet,planet_house,pl_msg)
@@ -81,7 +82,8 @@ def _get_lords_in_houses_prediction(planet_positions,prediction_msgs):
         pl_msg = planet_msgs[str(h+1)][house_of_lord-1]
         results[ks] += "<b>"+key+"</b><br>"+pl_msg+"<br>"
     return results
-def get_prediction_details(jd_at_dob,place,language=const._DEFAULT_LANGUAGE):
+def get_prediction_details(jd_at_dob,place,language=None):
+    if language is None: language=const._DEFAULT_LANGUAGE
     prediction_msgs = get_prediction_resources(language=language)
     #print('prediction keys',prediction_msgs.keys())
     results = {}

@@ -1,4 +1,4 @@
-JHora 4.5.8 (Development Version)
+JHora 4.8.7
 =================
 Python package containing almost all the features described in the book
 
@@ -14,7 +14,7 @@ the free astrology software `Jagannatha Hora V8.0 software` by the same author.
 
 This python library was inspired by his book and software. Almost all the results have been verified against the examples and exercises provided in the book. Also the features that are outside of his book but in his JHora software were collected from various internet sources and have been verified closest to results obtained using JHora software. 
 
-There is a test module (`jhora.tests.pvr_tests`) containing about 6300 tests that can be run to verify the same. Please note the tests assume `const._DEFAULT_AYANAMSA_MODE='LAHIRI'`.
+There is a test module (`jhora.tests.pvr_tests`) containing about 6800 tests that can be run to verify the same. Please note the tests assume `const._DEFAULT_AYANAMSA_MODE='LAHIRI'`.
 
 Having said that, if you find this package useful, all the credits go to Shri. P.V.R Narasimha Rao for such a wonderful book and the software and to the other internet sources.
 
@@ -49,7 +49,7 @@ Run the file: `jhora.ui.panchanga.py` in your Eclipse IDE
 Or
 
 ```
-	from jhora.ui.panchangam import Panchanga
+	from jhora.ui.panchangam import PanchangaWidget
 	from jhora import utils
 	import sys
 	from _datetime import datetime
@@ -59,12 +59,29 @@ Or
 	    sys.__excepthook__(cls, exception, traceback)
 	sys.excepthook = except_hook
 	App = QApplication(sys.argv)
-   chart = Panchanga()
+   chart = PanchangaWidget()
    chart.language('Tamil')
    chart.compute_horoscope()
    chart.show()
    sys.exit(App.exec())
 ```
+
+If you have installed PyQt6 installed you can have Tabbed UI with almost all features.
+
+```
+	from jhora.ui.horo_chart_tabs import ChartTabbed
+    def except_hook(cls, exception, traceback):
+        print('exception called')
+        sys.__excepthook__(cls, exception, traceback)
+    sys.excepthook = except_hook
+    App = QApplication(sys.argv)
+    chart = ChartTabbed()
+    chart.language('Tamil')
+    chart.compute_horoscope()
+    chart.show()
+    sys.exit(App.exec())
+```
+
 Using the GUI
 -------------
 
@@ -82,397 +99,95 @@ Click Show Chart to display the birth (Raasi and Navamsam) charts (every time an
 
 Click Show PDF to save the screen as a PDF file
 
+Changes since 4.8.6
+===================
+* `charts.py` - planet retrogression method removed.
+* `yoga.py` - fixed a few errors from the mostly AI generated yoga code. removed 'L' from planets found in a rasi calculation. 
+* `drik.py` changes:
+    - Handling Rahu/Ketu retrograde/stationary/speed-info for true/mean nodes revised
+    - graha yudh logic revised. removed Rahu/Ketu from calculations
+    - dhasavarga - set_planet_list no longer set inside this anymore.
+    - next_planet_entry_date_general - speed factor default changed to 0.001
+    - removed rounding from speed-info
+    - stationary planets now show 'S' symbol. Rahu/Ketu stationary/direct/retro only if True Nodes.
+* `pvr_tests.py` - added `stationary_planets_tests`
+* `config.py` - calls `drik.set_planet_list`, `utils.set_flags_for_planet_positions` and `utils.set_flags_for_rise_set`.
+* `chart_styles.py` and `horo_chart_tabs.py` - Fixed caching errors from AI generated code and arudha lagna data errors.
+* `const.py` - changed planet flag defaults to match JHora defaults.
+* `pvr_tests.py` - added stationary planet tests.
+
+Changes since 4.8.5
+===================
+* `charts.py` - utils.count_rasis dir argument changed to direction
+* `house.py` -  Error in rudra(planet_positions) fixed.
+* `ashtottari.py` - dhasa start state for Rahu lord fixed
+* `dhasas` - configuration default added for various dhasa like aayu, etc which have more than one method.
+* `info.py` - added call to drik.get_planet_speed_sign - to show show stationay/retrograde planets
+* `drik.py` - get_planet_speed_sign, planets_in_stationary and next_planet_stationary_duration, added to getting stationary planets. next_planet_retrograde_change_date updated
+* `configuration` - Moved hardcoded settings from this file to factory/user settings. Added more data engine options. added configuration planet calculation options (nutation gravitation etc)
+* `utils.py` - count_stars, count_rasis - dir changed direction argument. Revised set_flags_for_planet_positions.added validate_raasi_index and validate_star_index
+* `yoga.py` - data validation and some fixes.
+
+Changes since 4.8.0
+===================
+* MAJOR CHANGE: Corrected `arudhas.bhava_arudhas_from_planet_positions` to match JHora V8.0 which is based on his paper. Now this method will return arudha lagna longitudes (0 to 360) as list. With this change, now arudha lagnas more are less match jaganath hora V8.0 results. Available bhava madhya methods added as constants in `const.BHAVA_METHODS`.
+* Added options to select place database engine (CSV, Pickle or SQLite). If database file, for the selected engine, is not present in data folder, you can either manually download database from github or set to auto download first time. By default, 2 CSV files containing (1) all countries less than 5000 population (CSV_5K) and (2) all countries less than 5000 population AND all cities in India irrespective of population (CSV_5K_IN) - are included in data folder. Other database files can be downloaded from github data repository. Note CSV files are slower but contain more cities while pickle and sqlite files are faster but consume disk space in the order of 100 MB to 2GB. Also added `jhora.place_db.py` to support engines and their file along `jhora.ui.place_widget` to support UI with engines. These files can support using files from `jhora.data` local folder or from `github.com/naturalstupid/JHora_World_Data/releases/tag/world-places-data-v1` release assets. Also `drik.Place` now uses elevation from these data files. The database now automatically applies `daylight savings` for depending on the date/time and place.
+* Corrections made to `jhora.horoscope.chart.strength` and `jhora.horoscope.chart.yoga` to not use western planets. This fixes errors reported by users on these modules which occured due to use of western planets.
+* Errors in `drik` fixed. It no longer calls `set_ayanamsa_mode` each time inside `sidereal_longitude`. Data validation added in `compatability.py`. This fixes the error reported by an user.
+* `drik.vedic_date` now include islamic calendar options. `jhora.panchanga.hijri` module provides various options of islamic calendar.
+* `drik.dhasa_year_duration` function added to get year durations true/mean sidereal, true/mean tropical, true/mean lunar, savana and gregorian years. All dhasas can now accept one of these as dhasa year definition. Note: Mean_sidereal year dhasa values are close to JHora V8.0 values. But other year duration values cannot be guaranteed to match - because JHora algorithm is unknown.
+* All 50+ dhasas now have `xxx_immediate_children` and `get_running_dhasa_for_given_date` methods. with this one can get current running dhasa at a given current JD.
+* Also added `config.py` to configure various `const` constants and settings. Also added `jhora.ui.config_dialog` to set the configuration using a UI - to load and save UI configurations. configuration data are saved under `data/user_settings.ini` and `data/advanced_settings.json`.
+* Performance of `horo_chart_tabs.py` improved using ChatGPT's help.
+* More festivals added for `vedic_calendar` and `vratha.get_festivals_of_the_day` function.
+* Save as PDF - improved. Added option to save (default) only certain tabs expanded.
+
+Changes since 4.7.0
+===================
+* MAJOR CHANGE: NOTE: ALL DHASA NOW RETURN IN THE FORMAT: [ [(LORDS), DHASA_START, DURATION]...]. DHASA_START IS NO LONGER A DATE STRING (1997-01-01 13:04:50 AM) BUT DATE TUPLE (Y,M,D,FH).
+* Added `jhora.horoscope.dhasa.graha.rashmi` Rashmi Dhasa Bhukthi. It provides 3 methods based on order dhasa progression: 1=Highest Ray (BPHS), 2=Natural (Naisargika Sun to Saturn order), 3=Vimshottari Order (you can choose seed star as well).
+* Added `jhora.horoscope.dhasa.raasi.raashiyanka` dhasa. It provides 2 methods: 1=BPHS (Tara Chand Shastri), 2=BPHS (Ganesh Dutt Pathak).
+* Added `jhora.horoscope.dhasa.graha.ashtaka_varga` and ``jhora.horoscope.dhasa.raasi.ashtaka_varga` as both graha and raasi dhasa based on 2 references: 
+[AstroSutras using BAV](https://astrosutras.in/index.php/2025/03/04/ashtakavarga-dasha-system/) and 
+[Astronidan using SAV](https://astronidan.com/dashas/ashtakavarga-dasha).
+Since I could not find algorithmic details I have used CoPilot to calculate this dhasa. Provided combinations of choosing BAV,SAV or shodhaya Pindas to decide dhasa lords, start_rule using strength,user defined planet/zodiac, dhasa order using strength or zodiacal etc. This is an experimental dhasa since I dont know real algorithm. Let me know if there are any concrete algorithm for this.
+* Added `jhora.horoscope.dhasa.panchasvara` and `jhora.horoscope.dhasa.sudharsana_chakra` dhasa
+* Added `jhora.horoscope.dhasa.raasi.chathuvidha_utthara` dhasa with four methods (Lagna, Kendra, Trikona and Dasha).
+* Eclipse module has been updated. Option given to show maximum eclipse location. Requires `import reverse_geocode`.
+* Added Nakshathra Dhasa Progression to graha dhasas as `nakshathra_dhasa_progression`. Also added an argument `dhasa_progression_correction` to every planet, subplanet, special lagna calculations. Added this as an option in the `horo_chart_tabs` UI. 
+* Added 2 functions to each dhasa `xxxx_immediate_children` to get immediate child level dhasa for a given parent dhasa, and `get_running_dhasa_for_given_date` function to get running dhasa for given julian day number and dhasa_periods. Added this as right click menu on the dhasa bhukthi tab of `horo_chart_tabs` UI.
+* Added `house.order_of_raasis_by_strength` function. 
+* removed global variables _ayanamsa_mode and _ayanamsa_value and set_ayanamsa_mode and reset_ayanamsa_mode that were repeatedly called were also removed - as requested by a user.
+* few minor fixes to yoga.py
+
+Changes since 4.6.0
+===================
+* **MAJOR CHANGES**: RAHU AND KETU HAVE BEEN CHANGED TO "TRUE NODES" AND `const._DEFAULT_AYANAMSA` changed to `TRUE_PUSHYA`. With this Rahu/Ketu planet positions match with JHora software. But the unit tests were created with them to be "Mean Nodes". To pass them you have to change `const.use_rahu_ketu_as_true_nodes` to False. Similarly HINDU FLAGS added to `drik.ascendant` function - now ascendant and planets match in longitudes with JHora software (with `TRUE_PUSHYA` ayanamsa). Unit tests will be checked with these changes in a future version. They are still valid with `LAHIRI` and `MEAN NODES`.
+* Use `drik.set_planet_list(set_rahu_ketu_as_true_nodes=False)` to use Mean Modes and `True` to use True Nodes. From V4.7.0 onwards default will be True Nodes and default Ayanamsa will be `TRUE_PUSHYA` to match with JHora software.
+* Earlier versions planet longitudes and ascendant were not matching with JHora with same ayanamsa. This was fixed by using same ephemeris parameters for nutation, aberration, reflection etc. Also added 3 functions in `utils` module namely `set_flags_for_planet_positions`, `set_flags_for_rise_set` and `set_flag_for_calendar` that sets the default as in JHora software.
+* Some reported bugs have been fixed. Thanks to the users who reported them.
+* New implementation for `jhora.horoscope.dhasa.graha` `drig` and `padhanadhamsa`. Drig dhasa now matches with JHora software (but you have to set `const.scorpio_owner_for_dhasa_calculations=const.KETU_ID` and `const.aquarius_owner_for_dhasa_calculations=const.RAHU_ID` or whatever default in JHora software. Drig dasa offers 2 methods, 1. PVR (his drig dasa 2007 paper) (default) and 2.  PVR per book. Similarly, Padhanadhamsa offers 3 methods: 1. Iranganti Rangacharya 2. Sanjay Rath and 3. PVR. Of these only PVR can be used for all varga charts while other two are restricted to navamsa.
+* Added 3 new methods to `jhora.horoscope.chart.dhasa.raasi.chara` 2 Male chart methods using Iranganti Rangacharya and Mind Sutra method.
+* All dhasas now support generating upto Dehaantara dhasa. New argument `dhasa_level_index=const.MAHA_DHASA_DEPTH.ANTARA` has been added to all dhasa functions. You can choose upto `const.MAHA_DHASA_DEPTH.DEHA` for all dhasa functions. Previous version argument `include_antardhasa` has been removed from all dhasa functions.
+* Added bhava chart/madhya options: KN Rao, Parashari/PVR, KP, Raman, Sripathi (PVR), Sripathi (Astrodienst) and other western systems (Placidus, Koch, Porphyrius, Regiomontanus, Campanus', Vehlow, axial rotation system, azimuthal or horizontal system, Polich/Page - topocentric system, Alcabitus and Morinus). Errors in Bhava Chart calculations fixed. Results match with JHora now.
+* Added `strength.planet_aspect_relationship_table_pvr` function to more or less match JHora's relationship table. There are are still minor differences though.
+* Added a few more functions in `drik` module: Improved `next_conjunction_of_planet_pair`, `ardra_pravesha_date`, `next_planet_nakshathra_pravesha_date`, `ascendant_speed`, `next_planet_entry_date_general` functions. NOTE: RAHU/KETU ENTRY DATES STILL DONT MATCH WITH JHORA VALUES ESPECIALLY FOR DIRECTION=-1 (PREVIOUS DATE). Also the _general function is still experimental and requires tweaking the increment_speed_factor (to .001 for Saturn/Lahiri).
+* Added tests for all newly added functions. Almost all of them close to JHora software values. Also added a `jhora.tests.test_helper` (using CoPilot's help). Using this helper - expected results are saved in JSON files for each test baseline you may want to create. I have created 2 baselines one for existing `LAHIRI` and one for `TRUE_PUSHYA`. Helper supports `record` mode to save actual/expected values, `compare` mode to test against baseline files and `none` mode to test against hard-coded expected results inside the `pvr_tests` module.
+* Added `jhora.panchanga.eclipse` module. Moved `next_solar_eclipse_date` and `next_lunar_eclipse_date` to the eclipse module. Now you can specify Local/Global or Eclipse Types (Total, Partial, Annular, Penumbral). Constants defined to add these such as `SolarEclipseType.TOTAL, SolarEclipseType.ANY` or `LunarEclipseType.PENUMBRAL` or `EclipseLocation.LOCAL or EclipseLocation.GLOBAL`. The functions can optionally return global location of maximum eclipse.
+* REMOVED PANDAS AS REQUIREMENT AND REPLACED IT WITH CSV TO AVOID MEMORY ISSUES.
+
+Changes since 4.5.5
+===================
+* Some reported bugs have been fixed. Thanks to the users who reported them.
+* ayanamsa_mode argument has been removed as an argument from all functions.  Use only `drik.set_ayanamsa_mode(ayanamsa_mode)` to set ayanamsa mode
+* 186 more yogas added from BV Raman's book. Total we have now support for 284 yogas. See `jhora.horoscope.chart.yoga` for details.
+* Some extra functions have been added to `jhora.horoscope.chart.house`. Example: `are_planets_in_quadrants`, `get_planets_in_quadrants`.
+* introduced 2 new constants in `const` namely `const.force_saturn_as_owner_of_aquarius` and `force_mars_as_owner_of_scorpio`. By default these are `False`. These can be used in  `house.stronger_planet_from_planet_positions` and `house.stronger_planet` functions if required. Also removed Uranus/Neptune/Pluto from `associations_of_the_planet`. 
+* Added constants for planets `SUN_ID=0` to `KETU_ID=8`. Similarly constants for zodiacs and houses.
+* more functions added `utils`. Example: `is_planet_in_moolatrikona`, `is_planet_in_exalation`, `is_planet_strong`, `is_planet_in_debilitation`, `is_planet_weak`, `remove_tropical_planets_from_chart`, `get_amsa_ruler_from_planet_longitude`, `is_cruel_shashtiamsa_ruler` and `is_soumya_shashtiamsa_ruler`
+* Now we have about 7678 tests verifying the features of this software. Includes tests for each BV.Raman yoga added as well.
 
-#### List of Features
-* `jhora.ui.horo_chart_tabs`: 
 
-This is the complex user interface PyQt tabbed Widget that can be used to get most of the features offered by this library. Language of UI can be dynamically changed. Various chart/panchanga/divisional chart/dhasa choices can be changed. Results can be saved as a PDF (about 100+ pages). Varnada Lagna and Sphuta to chart information.
-
-Added right-click-context menu for all the chart widgets. Right click to view Arudhas, Upagrahas, Special Lagnas, Arudha Lagnas, Varnada Lagnas and Sphutas.
-
-Added Chakra tab with choice varga chart to plot chakras such as 'kota', 'kaala', 'sarvatobadra', 'surya_kalanala', 'chandra_kalanala', 'shoola', 'tripataki'.
-
-Added right-click menu "Prasna Lagnam" on Rasi/Varga Kundali Chart. Will show a dialog to select either Prasna Lagna 108 method or KP's 249 method or Naadi Prasna (1800). Choice to enter a number or random. Will show the Prasna Lagna Rasi in the chart.
-
-Added KP-Adhibathi Tab to display KP No, Nakshathra Lord, Sub Lord, Pratyanthara Lord, Sookshma Lord, Praana Lord and Deha Lord.
-
-Added chakras: Kaala and Kota, Sarvatobadra, Shoola, Tripataki, Surya Kalanala, Chandra Kalanala, Saptha Shalaka (aka Rahu Kalanala), Pancha Shalaka.
-
-Added right-click menu Sahams.
-
-Added color codes for Planets, Rasi, context menu items.
-
-Added Paachaka Sambandha as right-click menu
-
-Added Brahma, Rudra, Trishoola Rasi, Maheshwara as - right click menu
-
-Added WidgetDialog to UI. Added Rasi/Graha Drishti to right-click menu
-
-Added Saham Tab to UI.
-
-Added Planet Speed info as right click menu
-
-Added Pushkara Amsa/Bhaga info as right click menu
-
-Added Graha Yudh and Mrityu Bhaga as right click menus (menu will appear only if applicable)
-
-Added Planet Aspect Relationship table in UI and right click menu
-
-Added Marana Karaka Sthana Planets as right click menu
-
-Added Next/Prev lagna entry timing as right click menu
-
-Added Lagna as one of the planets in `jhora.panchanga.drik` `previous_conjunction_of_planet_pair` and `next_conjunction_of_planet_pair` functions. Which means we can check conjunction between Lagna and any planets.
-
-Added `next_planet_entry_date_divisional_chart`, `previous_planet_entry_date_divisional_chart`, `next_planet_entry_date_mixed_chart`, `previous_planet_entry_date_mixed_chart` to `jhora.horoscope.chart.charts` module.
-
-Added Lattha Nakshathra as context menu
-
-Added NadiAmsha (D-150) to Amsha Rulers List.
-
-Added context menu to show 64th navamsa and 22nd drekkana (raasi and adhipathi)
-
-Added planetary drekkana context menu for raasi chart
-
-Added Sathyanarayana Puja, Durgashtami and Kaalashtami to the vratha list.
-
-Added Sahasra Chandrodhayam to Panchangam page.
-
-Added Pancha Pakshi Sastra Tab.
-
-Fixed Gauri Chogadhiya function in `jhora.panchanga.drik`. Added gauri chogadhiya information in panchanga tab.
-
-Added Nakshathra Amrtha Gadiya and Varjyam (Thyajyam) in panchanga tab.
-
-Added Anandhaadhi Yoga to Panchanga tab.
-
-Added Day/Night length to Panchanga tab.
-
-Added `triguna` function to `jhora.panchanga.drik` and panchanga tab.
-
-Added vivaha chakra palan
-
-Added Shubha Hora to panchanga
-
-Added Tamil Yogam, Brahma Muhurtha, Godhuli Muhurtha, Sandhya Kaala, Vijaya Muhurtha, Nishitha Kaala, Nishitha Muhurtha, Tamil Jaamams, Thaarabalam, Chandrabalam, Udhaya Lagna Muhurtham, Panchaka Rahitha functions to Panchanga
-
-Added Nava/Special Thaara functions to `drik` and UI
-
-Added Karaka tithi/yoga functions to `drik` and UI. Also Shiva Vaasa, Agni Vaasa, Pushkara/Aadal/Vidaal yogas, yogini vaasa, disha shool features added.
-
-Added Vedic Clock feature (both VedicDigitalClock and VedicAnalogClock)
-
-Added Vedic Calendar Widget
-
-More ways of calculating `tamil_month_and_date` added. Default can be chosen from `const.tamil_month_method`
-
-Added `drik.lunar_month_date(jd, place,use_purnimanta_system=False)`. This function can provide lunar month with Amantha and Purnimantha systems.
-
-Added `drik.next_lunar_month`, `drik.next_lunar_year`, `drik.previous_lunar_month` and `drik.previous_lunar_year` functions.
-
-* `jhora.ui.panchangam.vedic_valendar`: 
-
-This is new since V4.4.0. UI Widget that provides Calendar for the month.
-
-* `jhora.ui.panchangam`: 
-
-This is new since V4.2.5. UI Widget that provides one page of all panchangam features. V4.4.0: Provides separate panchangam UI widgets `PanchangaInfoDialog` and `PanchangaWidget`.
-
-* `jhora.ui.vedic_clock`: This widget provides Vedic Clock (`VedicDigitalClock` and `VedicAnalogClock`) and new since V4.3.5. `VedicDigitalClock` has class options: `show_local_clock=False, show_clock_caption=False, show_clock_label=True, horizontal_clocks=False`. Both also have `force_equal_day_night_ghati` option which if set to True - will force 30 ghatis each for day and night. This is an experimental feature, not sure if correct for a clock (while may be useful to to dive dinamaana or raathrimaana). By default it is False and ghati speed is calculated from today (day+night) duration divided by 60.
-
-* `jhora.ui.pancha_pakshi_sastra_widget`: This module provides UI widget for Pancha Pakshi Sastra.
-
-* `jhora.ui.chart_styles`: 
-
-This module provides basic PyQt user interface Widgets for South, North, East Indian, Sudharshana Chakra and Western charts. Added WidgetDialog to UI.
-
-* `jhora.ui.conjunction_dialog`: 
-
-This module provides an independent user interface widget to calculate planet conjunctions.
-* `jhora.ui.dhasa_bhkthi_options_dialog`: 
-
-This module provides an independent user interface widget provide options for each dhasa type.
-* `jhora.ui.mixed_chart_dialog`: 
-
-This module provides an independent user interface widget to options of mixed charts.
-* `jhora.ui.options_dialog`: 
-
-This module provides an independent generic user interface widget provide chart/varnada options.
-Added WidgetDialog to UI.
-
-*`jhora.ui.chakra`:
-
-This module provides Widgets for various types of chakras: Kaala and Kota, Sarvatobadra, Shoola, Tripataki, Surya Kalanala, Chandra Kalanala, Saptha Shalaka (aka Rahu Kalanala), Pancha Shalaka.
-
-* `jhora.ui.match_ui`: 
-
-This module provides an independent user interface widget to calculate marriage compatibility of boy/girl
-* `jhora.ui.vakra_gathi`: 
-
-This is just a fun plot widget to show how retrogression of a planet will appear as seen from the earth.
-* `jhora.ui.vratha_finder`: 
-
-This module provides an independent interface widget to find the vratha dates based on combination of inputs such as tithi, nakshathra, yogam, karana, tamil month.
-
-* `jhora.panchanga.drik`: 
-
-This is the basic module that offers functions for: setting one of 20 ayanamsa modes (Lahiri, KP, True Chitra etc), sunrise/set, moonrise/set, midday/night, day/night length, tithi,karana, yogam, raasi, nakshatra padha, vaara, lunar month, tamil month/date, elapsed year, new moon, samvasatra, ritu, gauri chogadiya, trikalam, durmuhurtham, abhijit muhurta, sidereal longitude of planets, dhasavarga longitude of planets, bhaava madhya, ascendant, declination of planets, longitudes of upagrahas (such as dhuma, vyatipaata, parivesha, indrachapa and upakethu, kaala, mrithyu, artha praharaka, yama ghantaka, gulika and maandi), special lagnas (such as bhava, hora, ghati, vighati, pranapada, indu, bhrigu bindhu, kunda, sree lagna), previous/next sankranti dates, previous/next solar entry dates, previous/next solar/lunar eclipse, birth rectification (BV Raman - experimental work - accuracy not guaranteed though), previous/next occurrence of planet pairs, previous/next planet entry into specified rasi, previous/next retrogression of planets and nisheka (does not match JHora values). 
-
-Added `planets_speed_info` function to get Planets' latitude/longitude/distance and their speed information.
-
-Added Graha Yudh calculation function `planets_in_graha_yudh` to find pairs of planets if in graha yudh
-
-Added `next_ascendant_entry_date` abd `previous_ascendant_entry_date` functions to find lagna's entry to  next/previous raasi.
-
-Added Lagna as one of the planets in `jhora.panchanga.drik` `previous_conjunction_of_planet_pair` and `next_conjunction_of_planet_pair` functions. Which means we can check conjunction between Lagna and any planet.
-
-Added `graha_drekkana` function to calculate planetary drekkana for rasi chart.
-
-Added Sahasra Chandrodhayam function `sahasra_chandrodayam(dob,tob,place)`
-
-Fixed Gauri Chogadhiya function in `jhora.panchanga.drik`. Added gauri chogadhiya information in panchanga tab.
-
-Added `amrita_gadiya` and `varjyam` functions to calculate respectively Amritha Gadiya and Varjya (Thyajya).
-
-Added `anandhaadhi_yoga` function to calculate Anandhaadhi Yogam
-
-Added `triguna` function to `jhora.panchanga.drik` and panchanga tab.
-
-Added `vivaha_chakra_palan` to `jhora.panchanga.drik` and panchanga tab
-
-added `shubha_hora` to `jhora.panchanga.drik` and panchanga tab
-
-added `tamil_yogam(jd, place,check_special_yogas=True,use_sringeri_panchanga_version=False)` function to calculate 4 Tamil Yogama (Siddha, Amirth, MaraNa, Prabalarishta). It will also check for additional tamil yogams such as Amitha Siddha, Savaartha Siddha, Mrityu, Daghda, Yamaghata and Uthpatha. Please note Most panchangas don't specify additional category of the basic four yogas. Also some panchangas dont have Prabalarishta yogam (They are replaced with Marana yogam - e.g. Sringeri Panchangam)
-
-Added `brahma_muhurtha(jd, place)`, `godhuli_muhurtha(jd, place)`, `sandhya_periods(jd,place)`, `vijaya_muhurtha(jd,place)`, `nishita_kaala(jd,place)`, `tamil_jaamam(jd,place)`, `nishita_muhurtha(jd,place)`, `thaaraabalam(jd,place,return_only_good_stars=True)`, `muhurthas(jd, place)`, `udhaya_lagna_muhurtha(jd,place)`, `chandrabalam(jd,place)`, and `panchaka_rahitha(jd,place)` functions.
-
-Added `next_panchaka_days(jd,place)`, `chandrashtama(jd, place)`, `nava_thaara(jd,place,from_lagna_or_moon=0)`, `special_thaara(jd,place,from_lagna_or_moon=0)`, `karaka_tithi(jd,place)`, `karaka_yogam(jd,place)` and `fraction_moon_yet_to_traverse(jd,place,round_to_digits=5)` functions.
-
-Added `shiva_vaasa(jd,place,method=2)` or `shiva_vaasa(jd,place,method=1)`, `agni_vaasa(jd,place)` functions.
-
-Added `pushkara_yoga(jd, place)`, `aadal_yoga(jd, place)`, `vidaal_yoga(jd, place)`, `disha_shool(jd)` and `yogini_vaasa(jd,place)` features.
-
-Added `lunar_month_date(jd, place,use_purnimanta_system=False)`. This function can provide lunar month with Amantha and Purnimantha systems.
-
-Added `drik.next_lunar_month`, `drik.next_lunar_year`, `drik.previous_lunar_month` and `drik.previous_lunar_year` functions.
-
-`drik.lunar_month_date(jd, place, use_purnimanta_system=False)` revised to return in addition lunar year index as last argument depending on whether the lunar month is amantha or purnimantha argument.
-
-Added `vedic_date(jd,place,calendar_type)` to get solar/lunar month/day/year
-
-Updated `tithi(jd,place)` to return adhik tithi of the day if it exists. Update `vedic_date(jd,place,calendar_type)` to include Adhik and Nija maasa booleans. Introduced an experimental function `next_tithi` to calculate next particular tithi occuring date/time. Added ayanamsa while calculating `declination_of_planets`. Added a lambda function `special_tithis(jd,place)` to compute all special tithis as a list.
-
-* `jhora.panchanga.pancha_paksha`:
-
-This module calculates pancha pakshi sastra.
-NOTE: From V4.2.5 onwards UI widget (`PanchaPakshiSastraWidget`) has been moved to UI module.
- 
-* `jhora.horoscope.chart.arudhas`: 
-
-Module to find Bhava and graha arudhas
-* `jhora.horoscope.chart.ashtakavarga`: 
-
-Module to find Ashtakavarga (Binna, Prastara and Samudhaya), Sodhaya Pinda
-* `jhora.horoscope.chart.charts`: 
-
-Module to find planet longitudes for rasi and each divisional charts(hora, drekkana, chaturthamsa, panchamsa, shashthamsa_chart, saptamsa, ashtamsa, navamsa, dasamsa, rudramsa, dwadasamsa, shodasamsa, vimsamsa, chaturvimsamsa, nakshatramsa, trimsamsa, khavedamsa, akshavedamsa, shashtyamsa, nava navamsa, ashtotharamsa and dwadas dwadasamsa), bhava chart, bhava houses [17 ways of calculating bhava houses such as equal housing, KP, Sripathi, Placidus, Koch, Porphyrius, Regiomontanus, Campanus, Equal (cusp 1 is Ascendant), Vehlow equal (Asc. in middle of house 1), axial rotation system, azimuthal or horizontal system, Polich/Page (topocentric system), Alcabitus and Morinus], get list of planets in retrogression/combustion, vaiseshikamsa (dhasavarga, shadvarga, sapthavarga, shodhasavarga), vimsopaka (dhasavarga, shadvarga, sapthavarga, shodhasavarga), varnadha lagna (using any of BV Raman, Sharma, Santhanam, Sanjay Rath/PVR Rao, Sitaram Jha/Prof. Ramachandra Pandey methods), malefics, benefics, planets in the order of kendras, amsa rulers (for each divisional chart).
-
-Also added a function get mixed chart (for example D-9 followed by another D-9), customized kundali chart for any varga number in the range 1 to 300 (D-N is generated only for those vargas that are not tranditional such D-9, D144 etc)
-
-Also added a function `planets_in_pushkara_navamsa_bhaga` to get list of planets that are in (i) pushkara amsa and (ii) in pushkara bhaga
-
-Added `divisional_positions_from_rasi_positions` and `planets_in_mrityu_bhaga` functions
-
-Added `get_planets_in_marana_karaka_sthana` function to calculate marana karaka sthana planets that returns list of [(planet,house),..]
-
-Added `next_planet_entry_date_divisional_chart`, `previous_planet_entry_date_divisional_chart`, `next_planet_entry_date_mixed_chart`, `previous_planet_entry_date_mixed_chart` to `jhora.horoscope.chart.charts` module.
-
-Added `lattha_stars_planets` function to find Lattha stars of the planets.
-
-Added `get_64th_navamsa(navamsa_planet_positions)` and `get_22nd_drekkana(drekkana_planet_positions)` functions.
-
-Hora chart default method (`chart_method`) changed to traditional Parasara.
-
-Method `benefics_and_malefics` modified to consider Waxing/Waning moon and association of Mars with benefics/malefics. This is used in `strength.py` to calculate shadbala. 
-
-* `jhora.horoscope.chart.dosha`: 
-
-8 types of dosha (kala sarpa, manglik, pitru, guru chandala, ganda moola, kalathra, ghata, shrapit)
-* `jhora.horoscope.chart.house`: 
-
-Module to find trikonas, dushthanas, quadrants, kendras, chathsras, panaphras, apoklimas, aspected planets/rasis, upachayas, chara karakas, raasi/graha drishti, argala, virodhargala, stronger planet (from any two planets as arguments checking 7 rules), stronger rasi (from any two rasis as arguments checking 7 rules), natural/temporary friends/enemies, house owners (including Kethu/Saturn, Mars/Rahu combination), compound relation of planets, marakas, rudra, brahma, maheshwara, trishoola raasis, longevity type, associations of planets/raasis, baadhakas, aspecting planets/rasis and order of planets by strength from their positions/longitudes.
-* `jhora.horoscope.chart.raja_yoga`: 
-
-dharma_karmadhipati_raja_yoga, vipareetha_raja_yoga, neecha_bhanga_raja_yoga and a few other raja yogas.
-* `jhora.horoscope.chart.sphuta`: 
-
-Module to find sphutas such as tri, chathur, pancha, prana, deha, mrityu, sooshma tri, bheeja, kshetra, tithi, yoga, yogi, avayogi and rahu tithi.
-* `jhora.horoscope.chart.strength`: 
-
-Module to find various balas/strnegths of planet such as harsha bala, kshetra, sapthavargaja, sthana, ojayugama, kendra, dreshkon, uccha, uccha rashmi, hadda, drekkana, navamsa, pancha vargeeya, dwadhasa_vargeeya, dig, divaratri, nathonnath, paksha, tribhaga, abda, masa, vaara, hora, ayana, yuddha, kaala, ishta, subha, cheshta, cheshta rashmi, naisargika, drik, shad, bhava adhipathi, bhava dig, bhava drik, bhava drishti.
-
-Modified shadbala calculations to match that of BVRaman and VPJain calculations. Added to tests to verify we get same results as theirs. Since each do calculations differently (different ayanamsa etc, different epoch), appropriate changes made. Please note that these calculations (with same date as theirs) will give different results in Jagannath Hora software. We are unware of the alogirithm used in JHora. Added `get_planet_mean_longitude(jd,place,planet_index=0)` to calculated planet mean longitude for calculating Cheshta bala.
-
-
-Added `planet_aspect_relationship_table` function to get planet aspect relationship table based Parasara's Drik bala calculations.
-
-Updated Shadbala calculations to fix the errors. Now the results match the calculations of VP Jain and BV Raman examples in their respective books. However, it is important to note, shadbala calculations does not match with JHora (even for these examples).
-
-* `jhora.horoscope.chart.yoga`: 
-
-Module to find about 100 yogas such as vesi, vosi, ubhayachara, nipuna, sunaphaa, anaphaa, duradhara, kemadruma, chandra_mangala, adhi, ruchaka, bhadra, sasa, maalavya, hamsa, rajju, musala, nala, maalaa, sarpa, gadaa, sakata, sringaataka, hala, vajra, yava, kamala, vaapi, yoopa, sara, sakti, danda, naukaa, koota, chatra, chaapa, ardha_chandra, chakra, samudra, veenaa, daama, paasa, kedaara, soola, yuga, gola, subha, asubha, gaja_kesari, guru_mangala, amala, parvata, kaahala, chaamara, sankha, bheri, mridanga, sreenaatha, matsya, koorma, khadga, kusuma, kalaanidhi, kalpadruma, lagnaadhi, hari, brahma, vishnu, siva, trilochana, gouri, chandikaa, lakshmi, saarada, bhaarathi, saraswathi, amsaavatara, devendra, indra, ravi, bhaaskara, kulavardhana, vasumati, gandharva, go, vidyut, chapa, pushkala, makuta, jaya, harsha, sarala and vimala.
-* `jhora.horoscope.chart.dhasa.annual`: 
-
-Module to find annual dhasas: (mudda, patyayini, varsha vimsottari, varsha narayana)
-* `jhora.horoscope.chart.dhasa.graha`: 
-
-Module to find 22 types of graha dhasas such as aayu, ashtottari, buddhi_gathi, chathuraaseethi_sama, dwadasottari, dwisatpathi, kaala, karaka, karana_chathuraaseethi_sama, naisargika, panchottari, saptharishi_nakshathra, sataatbika, shastihayani, shattrimsa_sama, shodasottari, tara, tithi_ashtottari, tithi_yogini, vimsottari, yoga_vimsottari, yogini. Each of these comes up applicable variations such as with/without antardhasa, with/without tribhagi variation, choice of starting nakshatra, choice of starting planet/lagna/special lagna/upagraha, choice of antardhasa sequence, choice of divisional chart etc. There is an `applicability` function to compute which of conditional dhasas are applicable for a given chart.
-* `jhora.horoscope.chart.dhasa.raasi`: 
-
-Module to find 22 types of raasi dhasas such as brahma, chakra, chara, drig, kalachakra, kendradhi_rasi, lagnamsaka, mandooka, moola, narayana, navamsa, nirayana, padhanadhamsa, paryaaya, sandhya, shoola, sthira, sudasa, tara_lagna, trikona, varnada, yogardha. Each of these comes up applicable variations such as with/without antardhasa, with/without tribhagi variation, choice of starting nakshatra, choice of starting planet/lagna/special lagna/upagraha, choice of antardhasa sequence, choice of divisional chart  etc.
-* `jhora.horoscope.chart.dhasa.sudharsana_chakra`: 
-
-Module to calculate sudharsana chakra dhasa with choice of divisional chart.
-* `jhora.horoscope.chart.dhasa.match.compatibility`: 
-
-Module to calculate marriage compatibility between boy/girl stars, with south/north indian variations.
-* `jhora.horoscope.chart.prediction.general`: 
-
-Module to calculate general predictions based on lagna rasi, planets in houses, lords in houses
-* `jhora.horoscope.chart.prediction.longevity`: 
-
-Module to calculate longevity range (baladrishta, alpayu, madhyayu and pooranyu checks - THIS IS UNDER EXPERIMENT - PLEASE DO NOT USE IT YET)
-* `jhora.horoscope.chart.prediction.naadi_marriage`: 
-
-Module to calculate marriage yogas using naadi approach - THIS IS UNDER EXPERIMENT - PLEASE DO NOT USE IT YET)
-* `jhora.horoscope.transit.saham`: 
-
-Module to find 36 sahams such as punya, vidya, yasas, mitra, mahatmaya, asha, samartha, bhrartri, gaurava, pitri, rajya, mathri, puthra, jeeva, karma, roga, kali, sastra, bandhu, mrithyu, pardesa, artha, paradara, vanika, karyasiddhi, vivaha, santapa, sraddha, preethi, jadya, vyaapaarasathru, jalapatna, bandhana, apamrithyu, and laabha.
-* `jhora.horoscope.transit.tajaka_yoga`: 
-
-Module to find various tajaka (annual) yogams such as ishkavala, induvara, ithasala, eesarpha, nakta, yamaya, manahoo, kamboola, radda and duhphali_kutta. 
-* `jhora.horoscope.transit.tajaka`: 
-
-Module to find various tajaka aspects such as: munda,trinal/square/sextile/semi-sextile aspects of raasi/planet,  neutral/benefic/malefic/opposition/conjunction aspects of raasi/planet, planets/raasis/houses with neutral/benefic/malefic aspects on planets/raasis/houses, varsha pravesh (aka annual chart), maasa pravesh (aka monthly chart), sixty_hour chart, lord of the year/month/sixty-hour, check if planets within their deeptamsa, check if planets are approaching.
-* `jhora.panchanga.khanda khaadyaka` and `jhora.panchanga.surya_sidhantha`: 
-
-Modules `khanda khaadyaka`, `surya_sidhantha` are attempts to implement ancient methodolgies of astrology  - THIS IS UNDER EXPERIMENT - PLEASE DO NOT USE IT YET)
-* `jhora.panchanga.vratha`: 
-
-Module to find various vratha dates such as pradosham, sankranti, amavasya, pournami, ekadhashi, sashti, sankatahara_chathurthi, vinayaka_chathurthi, shivarathri, chandra_dharshan, moondraam_pirai, srartha, ashtaka, manvaadhi, yugadhi, mahalaya_paksha. There is also a `search` function to find dates matching any combination of tithi, nakshathra, yogam, karana, tamil month.
-
-Added Sathyanarayana Puja function `sathyanarayana_puja_dates`, Durgashtami (`durgashtami_dates`) and Kaalashtami  (`kaalashtami_dates`) to the vratha list.
-
-
-Package Structure:
-
-```
-jhora
-   !- data       - contains program configuration data, world cities data, marriage compatibility table
-         !- ephe - contains swiss ephimeride compressed JPL data
-   !- images     - contains images
-   !- lang       - contains language resource files
-   !- panchanga  - panchanga module to calculate daily panchanga
-   		!- drik.py - all panchanga functions such as sunrise to planet positions
-   		!- drik1.py - panchanga functions through Calendar Class - !!! NOT FULLY IMPLEMENTED !!!
-   		!- khanda_khaadyaka.py - planet positions using khanda khaadyaka method - !!! NOT FULLY IMPLEMENTED !!!
-   		!- surya_sidhantha.py - planet positions using surya sidhantha method - !!! NOT FULLY IMPLEMENTED !!!
-   		!- vratha.py  - to find speacial vratha days such as amavasya, srartha etc
-   !- horoscope
-        !- main.py - horoscope package (used mainly by the UI programs)
-        !- chart  - chart package
-           !- arudhas.py     - arudhas, argala, virodhargal
-           !- ashtavarga.py  - ashtavarga, trikona sodhana, ekadhipatya_sodhana, sodhaya pinda
-           !- charts.py      - divisional charts, planet combustion, retrograde
-           !- dosha.py       - doshas
-           !- house.py       - aspects, drishti,stronger planets/raasi, kaarakas
-           !- raja_yoga.py   - raja_yoga and its sub-types
-           !- sphuta.py      - sphutas: tri, chatu, pancha, prana, deha, mrityu, sooshma tri, beeja, kshetra, tithi, yoga, rahu tithi.
-           !- strength.py    - Harsha, Pancha Vargeeya, Dwadhasa Vargeeya, Shad bala, Bhava bala
-           !- yoga.py        - 100+ yogas
-        !- dhasa  - dhasa package
-        	! sudharsan_chakra.py - Sudarshana Chakra dhasa-bhukthi
-              ! - annual - Annual Dhasa package
-                 !- mudda.py  	  - mudda dhasa-bhuthi
-                 !- patyayini.py   - patyayini dhasa-bhukthi
-              ! - graha - Graha Dhasa package
-              	!- aayu.py        - aayu dhasa-bhukthi
-                 !- ashtottari.py  - ashtottari dhasa-bhukthi
-                 !- buddhi_gathi.py - Buddhi Gathi dhasa bhukthi
-                 !- chathuraseethi_sama.py - chathura seethi sama dhasa
-                 !- dwadasottari.py - dwadasottari dhasa
-                 !- dwisapathi.py  - dwisatpathi dhasa
-                 !- kaala.py       - kaala dhasa
-                 !- karaka.py      - karaka dhasa
-                 !- karana_chathuraseethi_sama.py - karana chathura seethi sama dhasa
-                 !- naisargika.py  - naisargika dhasa
-                 !- panchottari.py - panchottari dhasa-bhukthi
-                 !- saptharishi_nakshathra.py - Saptharishi Nakshathra dhasa-bhukthi
-                 !- sataatbika.py  - sataatbika dhasa-bhukthi
-                 !- shastihayani.py - shastihayani dhasa-bhukthi (also called Shashti Sama dasa)
-                 !- shattrimsa_sama.py - shattrimsa sama dhasa-bhukthi
-                 !- shodasottari.py - shodasottari dhasa bhukthi
-                 !- tara.py        - tara dhasa-bhuthi
-                 !- tithi_ashtottari.py  - tithi ashtottari dhasa-bhuthi
-                 !- tithi_yogini.py  - tithi yogini dhasa-bhuthi
-                 !- vimsottari.py  - vimsottari dhasa-bhuthi
-                 !- yoga_vimsottari.py  - yoga vimsottari dhasa-bhuthi
-                 !- yogini.py      - yogini dhasa-bhuthi
-           ! - raasi - Raasi Dhasa Package
-                 !- brahma.py      - brahma dhasa
-                 !- chakra.py       - chakra dhasa
-                 !- chara.py       - chara dhasa
-                 !- drig.py        - drigdhasa-bhuthi
-                 !- kalachakra.py  - kalachakra dhasa-bhuthi
-                 !- kendradhi_rasi.py - kendradhi rasi dhasa
-                 !- lagnamsaka.py     - lagnamsaka dhasa
-                 !- mandooka.py      - mandooka dhasa
-                 !- moola.py       - moola dhasa-bhuthi (Also called Lagna Kendradi Rasi Dhasa)
-                 !- narayana.py    - narayana dhasa-bhuthi
-                 !- navamsa.py     - navamsa dhasa-bhuthi
-                 !- nirayana.py    - nirayana dhasa-bhuthi
-                 !- padhanadhamsa.py - padhanadhamsa dhasa-bhukthi
-                 !- paryaaya.py    - Paryaaya dhsasa-bhukthi
-                 !- shoola.py      - shoola dhasa-bhukthi
-                 !- sthira/py      - sthira dhasa bhukthi
-                 !- sudasa.py      - sudasa dhasa-bhuthi
-                 !- tara_lagna.py   - tara lagna dhasa-bhuthi
-                 !- trikona/py     - trikona dhasa-bhuthi
-                 !- varnada.py	  - varnada dhasa-bhuthi
-                 !- yogardha.py    - yogardha dhasa-bhuthi
-        !- match  - marriage compatibility package
-           !- compatibility.py  - marriage compatibility
-        !- prediction  - basic prediction package
-           !- general.py  - general prediction - experimental work
-           !- longevity.py - longevity predictions - experimental work
-           !- naadi_marriage.py - maadi marriage predictions - experimental work
-        !- transit  - tajaka package
-           !- tajaka.py      - annual, monthly and 60 hour charts, muntha, vargeeya balas, tajaka lord 
-           !- tajaka_yoga.py - tajaka yogas
-           !- saham.py       - 36 sahams
-   !- ui  - user interface package
-      !- chakra.py             - UI for chakras
-      !- dhasa_bhukthi_options.py	- UI for dhasa bhukthi options
-      !- mixed_chart_dialog.py - UI for mixed chart options
-      !- varga_chart_dialog.py - UI for Varga Chart options
-      !- horo_chart.py         - simple horoscope chart Raasi/Navamsa and calendar information
-      !- panchangam.py         - UI for panchangam information
-      !- pancha_pakshi_sastra_widget.py - UI for Pancha Pakshi Sastra
-      !- horo_chart_tabs.py    - horoscope with lot of details
-      !- match_ui.py           - ui for marriage compatibility
-      !- chart_styles.py       - Widget class for kundali chart style
-      !- label_grid.py         - Widget for custom table of QLabels
-      !- vakra_gathi_plot.py        - fun plot of retrogession of planet as seen from earth
-      !- vratha_finder.py      - Widget for finding vratha dates
-      !- conjunction_dialog.py - Widget for finding conjunction dates of planets
-      !  vedic_calendar.py     - Widget for Vedic Calendar-
-      !- vedic_clock.py        - Widget for Vedic Clock
-   !- utils.py             - utility functions
-   !- const.py             - constants related to PyHora package        
-   !- tests  - unit/integration tests
-      !- unit_tests.py           - unit tests for the features based on examples from the book
-      !- pvr_tests.py            - Exercise problems from book.
-```
 Changes since 4.5.0
 ===================
 * some error fixes (e.g. using planet positions to find maheshwara)
@@ -795,6 +510,396 @@ hours past midnight because the Hindu day (tithi) starts and ends with
 sunrise. If applicable, daylight savings (DST) are accounted for
 automatically based on the date and place entered in the textboxes.
 
+#### List of Features
+* `jhora.ui.horo_chart_tabs`: 
+
+This is the complex user interface PyQt tabbed Widget that can be used to get most of the features offered by this library. Language of UI can be dynamically changed. Various chart/panchanga/divisional chart/dhasa choices can be changed. Results can be saved as a PDF (about 100+ pages). Varnada Lagna and Sphuta to chart information.
+
+Added right-click-context menu for all the chart widgets. Right click to view Arudhas, Upagrahas, Special Lagnas, Arudha Lagnas, Varnada Lagnas and Sphutas.
+
+Added Chakra tab with choice varga chart to plot chakras such as 'kota', 'kaala', 'sarvatobadra', 'surya_kalanala', 'chandra_kalanala', 'shoola', 'tripataki'.
+
+Added right-click menu "Prasna Lagnam" on Rasi/Varga Kundali Chart. Will show a dialog to select either Prasna Lagna 108 method or KP's 249 method or Naadi Prasna (1800). Choice to enter a number or random. Will show the Prasna Lagna Rasi in the chart.
+
+Added KP-Adhibathi Tab to display KP No, Nakshathra Lord, Sub Lord, Pratyanthara Lord, Sookshma Lord, Praana Lord and Deha Lord.
+
+Added chakras: Kaala and Kota, Sarvatobadra, Shoola, Tripataki, Surya Kalanala, Chandra Kalanala, Saptha Shalaka (aka Rahu Kalanala), Pancha Shalaka.
+
+Added right-click menu Sahams.
+
+Added color codes for Planets, Rasi, context menu items.
+
+Added Paachaka Sambandha as right-click menu
+
+Added Brahma, Rudra, Trishoola Rasi, Maheshwara as - right click menu
+
+Added WidgetDialog to UI. Added Rasi/Graha Drishti to right-click menu
+
+Added Saham Tab to UI.
+
+Added Planet Speed info as right click menu
+
+Added Pushkara Amsa/Bhaga info as right click menu
+
+Added Graha Yudh and Mrityu Bhaga as right click menus (menu will appear only if applicable)
+
+Added Planet Aspect Relationship table in UI and right click menu
+
+Added Marana Karaka Sthana Planets as right click menu
+
+Added Next/Prev lagna entry timing as right click menu
+
+Added Lagna as one of the planets in `jhora.panchanga.drik` `previous_conjunction_of_planet_pair` and `next_conjunction_of_planet_pair` functions. Which means we can check conjunction between Lagna and any planets.
+
+Added `next_planet_entry_date_divisional_chart`, `previous_planet_entry_date_divisional_chart`, `next_planet_entry_date_mixed_chart`, `previous_planet_entry_date_mixed_chart` to `jhora.horoscope.chart.charts` module.
+
+Added Lattha Nakshathra as context menu
+
+Added NadiAmsha (D-150) to Amsha Rulers List.
+
+Added context menu to show 64th navamsa and 22nd drekkana (raasi and adhipathi)
+
+Added planetary drekkana context menu for raasi chart
+
+Added Sathyanarayana Puja, Durgashtami and Kaalashtami to the vratha list.
+
+Added Sahasra Chandrodhayam to Panchangam page.
+
+Added Pancha Pakshi Sastra Tab.
+
+Fixed Gauri Chogadhiya function in `jhora.panchanga.drik`. Added gauri chogadhiya information in panchanga tab.
+
+Added Nakshathra Amrtha Gadiya and Varjyam (Thyajyam) in panchanga tab.
+
+Added Anandhaadhi Yoga to Panchanga tab.
+
+Added Day/Night length to Panchanga tab.
+
+Added `triguna` function to `jhora.panchanga.drik` and panchanga tab.
+
+Added vivaha chakra palan
+
+Added Shubha Hora to panchanga
+
+Added Tamil Yogam, Brahma Muhurtha, Godhuli Muhurtha, Sandhya Kaala, Vijaya Muhurtha, Nishitha Kaala, Nishitha Muhurtha, Tamil Jaamams, Thaarabalam, Chandrabalam, Udhaya Lagna Muhurtham, Panchaka Rahitha functions to Panchanga
+
+Added Nava/Special Thaara functions to `drik` and UI
+
+Added Karaka tithi/yoga functions to `drik` and UI. Also Shiva Vaasa, Agni Vaasa, Pushkara/Aadal/Vidaal yogas, yogini vaasa, disha shool features added.
+
+Added Vedic Clock feature (both VedicDigitalClock and VedicAnalogClock)
+
+Added Vedic Calendar Widget
+
+More ways of calculating `tamil_month_and_date` added. Default can be chosen from `const.tamil_month_method`
+
+Added `drik.lunar_month_date(jd, place,use_purnimanta_system=False)`. This function can provide lunar month with Amantha and Purnimantha systems.
+
+Added `drik.next_lunar_month`, `drik.next_lunar_year`, `drik.previous_lunar_month` and `drik.previous_lunar_year` functions.
+
+* `jhora.ui.panchangam.vedic_valendar`: 
+
+This is new since V4.4.0. UI Widget that provides Calendar for the month.
+
+* `jhora.ui.panchangam`: 
+
+This is new since V4.2.5. UI Widget that provides one page of all panchangam features. V4.4.0: Provides separate panchangam UI widgets `PanchangaInfoDialog` and `PanchangaWidget`.
+
+* `jhora.ui.vedic_clock`: This widget provides Vedic Clock (`VedicDigitalClock` and `VedicAnalogClock`) and new since V4.3.5. `VedicDigitalClock` has class options: `show_local_clock=False, show_clock_caption=False, show_clock_label=True, horizontal_clocks=False`. Both also have `force_equal_day_night_ghati` option which if set to True - will force 30 ghatis each for day and night. This is an experimental feature, not sure if correct for a clock (while may be useful to to dive dinamaana or raathrimaana). By default it is False and ghati speed is calculated from today (day+night) duration divided by 60.
+
+* `jhora.ui.pancha_pakshi_sastra_widget`: This module provides UI widget for Pancha Pakshi Sastra.
+
+* `jhora.ui.chart_styles`: 
+
+This module provides basic PyQt user interface Widgets for South, North, East Indian, Sudharshana Chakra and Western charts. Added WidgetDialog to UI.
+
+* `jhora.ui.conjunction_dialog`: 
+
+This module provides an independent user interface widget to calculate planet conjunctions.
+* `jhora.ui.dhasa_bhkthi_options_dialog`: 
+
+This module provides an independent user interface widget provide options for each dhasa type.
+* `jhora.ui.mixed_chart_dialog`: 
+
+This module provides an independent user interface widget to options of mixed charts.
+* `jhora.ui.options_dialog`: 
+
+This module provides an independent generic user interface widget provide chart/varnada options.
+Added WidgetDialog to UI.
+
+*`jhora.ui.chakra`:
+
+This module provides Widgets for various types of chakras: Kaala and Kota, Sarvatobadra, Shoola, Tripataki, Surya Kalanala, Chandra Kalanala, Saptha Shalaka (aka Rahu Kalanala), Pancha Shalaka.
+
+* `jhora.ui.match_ui`: 
+
+This module provides an independent user interface widget to calculate marriage compatibility of boy/girl
+* `jhora.ui.vakra_gathi`: 
+
+This is just a fun plot widget to show how retrogression of a planet will appear as seen from the earth.
+* `jhora.ui.vratha_finder`: 
+
+This module provides an independent interface widget to find the vratha dates based on combination of inputs such as tithi, nakshathra, yogam, karana, tamil month.
+
+* `jhora.panchanga.drik`: 
+
+This is the basic module that offers functions for: setting one of 20 ayanamsa modes (Lahiri, KP, True Chitra etc), sunrise/set, moonrise/set, midday/night, day/night length, tithi,karana, yogam, raasi, nakshatra padha, vaara, lunar month, tamil month/date, elapsed year, new moon, samvasatra, ritu, gauri chogadiya, trikalam, durmuhurtham, abhijit muhurta, sidereal longitude of planets, dhasavarga longitude of planets, bhaava madhya, ascendant, declination of planets, longitudes of upagrahas (such as dhuma, vyatipaata, parivesha, indrachapa and upakethu, kaala, mrithyu, artha praharaka, yama ghantaka, gulika and maandi), special lagnas (such as bhava, hora, ghati, vighati, pranapada, indu, bhrigu bindhu, kunda, sree lagna), previous/next sankranti dates, previous/next solar entry dates, previous/next solar/lunar eclipse, birth rectification (BV Raman - experimental work - accuracy not guaranteed though), previous/next occurrence of planet pairs, previous/next planet entry into specified rasi, previous/next retrogression of planets and nisheka (does not match JHora values). 
+
+Added `planets_speed_info` function to get Planets' latitude/longitude/distance and their speed information.
+
+Added Graha Yudh calculation function `planets_in_graha_yudh` to find pairs of planets if in graha yudh
+
+Added `next_ascendant_entry_date` abd `previous_ascendant_entry_date` functions to find lagna's entry to  next/previous raasi.
+
+Added Lagna as one of the planets in `jhora.panchanga.drik` `previous_conjunction_of_planet_pair` and `next_conjunction_of_planet_pair` functions. Which means we can check conjunction between Lagna and any planet.
+
+Added `graha_drekkana` function to calculate planetary drekkana for rasi chart.
+
+Added Sahasra Chandrodhayam function `sahasra_chandrodayam(dob,tob,place)`
+
+Fixed Gauri Chogadhiya function in `jhora.panchanga.drik`. Added gauri chogadhiya information in panchanga tab.
+
+Added `amrita_gadiya` and `varjyam` functions to calculate respectively Amritha Gadiya and Varjya (Thyajya).
+
+Added `anandhaadhi_yoga` function to calculate Anandhaadhi Yogam
+
+Added `triguna` function to `jhora.panchanga.drik` and panchanga tab.
+
+Added `vivaha_chakra_palan` to `jhora.panchanga.drik` and panchanga tab
+
+added `shubha_hora` to `jhora.panchanga.drik` and panchanga tab
+
+added `tamil_yogam(jd, place,check_special_yogas=True,use_sringeri_panchanga_version=False)` function to calculate 4 Tamil Yogama (Siddha, Amirth, MaraNa, Prabalarishta). It will also check for additional tamil yogams such as Amitha Siddha, Savaartha Siddha, Mrityu, Daghda, Yamaghata and Uthpatha. Please note Most panchangas don't specify additional category of the basic four yogas. Also some panchangas dont have Prabalarishta yogam (They are replaced with Marana yogam - e.g. Sringeri Panchangam)
+
+Added `brahma_muhurtha(jd, place)`, `godhuli_muhurtha(jd, place)`, `sandhya_periods(jd,place)`, `vijaya_muhurtha(jd,place)`, `nishita_kaala(jd,place)`, `tamil_jaamam(jd,place)`, `nishita_muhurtha(jd,place)`, `thaaraabalam(jd,place,return_only_good_stars=True)`, `muhurthas(jd, place)`, `udhaya_lagna_muhurtha(jd,place)`, `chandrabalam(jd,place)`, and `panchaka_rahitha(jd,place)` functions.
+
+Added `next_panchaka_days(jd,place)`, `chandrashtama(jd, place)`, `nava_thaara(jd,place,from_lagna_or_moon=0)`, `special_thaara(jd,place,from_lagna_or_moon=0)`, `karaka_tithi(jd,place)`, `karaka_yogam(jd,place)` and `fraction_moon_yet_to_traverse(jd,place,round_to_digits=5)` functions.
+
+Added `shiva_vaasa(jd,place,method=2)` or `shiva_vaasa(jd,place,method=1)`, `agni_vaasa(jd,place)` functions.
+
+Added `pushkara_yoga(jd, place)`, `aadal_yoga(jd, place)`, `vidaal_yoga(jd, place)`, `disha_shool(jd)` and `yogini_vaasa(jd,place)` features.
+
+Added `lunar_month_date(jd, place,use_purnimanta_system=False)`. This function can provide lunar month with Amantha and Purnimantha systems.
+
+Added `drik.next_lunar_month`, `drik.next_lunar_year`, `drik.previous_lunar_month` and `drik.previous_lunar_year` functions.
+
+`drik.lunar_month_date(jd, place, use_purnimanta_system=False)` revised to return in addition lunar year index as last argument depending on whether the lunar month is amantha or purnimantha argument.
+
+Added `vedic_date(jd,place,calendar_type)` to get solar/lunar month/day/year
+
+Updated `tithi(jd,place)` to return adhik tithi of the day if it exists. Update `vedic_date(jd,place,calendar_type)` to include Adhik and Nija maasa booleans. Introduced an experimental function `next_tithi` to calculate next particular tithi occuring date/time. Added ayanamsa while calculating `declination_of_planets`. Added a lambda function `special_tithis(jd,place)` to compute all special tithis as a list.
+
+* `jhora.panchanga.pancha_paksha`:
+
+This module calculates pancha pakshi sastra.
+NOTE: From V4.2.5 onwards UI widget (`PanchaPakshiSastraWidget`) has been moved to UI module.
+ 
+* `jhora.horoscope.chart.arudhas`: 
+
+Module to find Bhava and graha arudhas
+* `jhora.horoscope.chart.ashtakavarga`: 
+
+Module to find Ashtakavarga (Binna, Prastara and Samudhaya), Sodhaya Pinda
+* `jhora.horoscope.chart.charts`: 
+
+Module to find planet longitudes for rasi and each divisional charts(hora, drekkana, chaturthamsa, panchamsa, shashthamsa_chart, saptamsa, ashtamsa, navamsa, dasamsa, rudramsa, dwadasamsa, shodasamsa, vimsamsa, chaturvimsamsa, nakshatramsa, trimsamsa, khavedamsa, akshavedamsa, shashtyamsa, nava navamsa, ashtotharamsa and dwadas dwadasamsa), bhava chart, bhava houses [17 ways of calculating bhava houses such as equal housing, KP, Sripathi, Placidus, Koch, Porphyrius, Regiomontanus, Campanus, Equal (cusp 1 is Ascendant), Vehlow equal (Asc. in middle of house 1), axial rotation system, azimuthal or horizontal system, Polich/Page (topocentric system), Alcabitus and Morinus], get list of planets in retrogression/combustion, vaiseshikamsa (dhasavarga, shadvarga, sapthavarga, shodhasavarga), vimsopaka (dhasavarga, shadvarga, sapthavarga, shodhasavarga), varnadha lagna (using any of BV Raman, Sharma, Santhanam, Sanjay Rath/PVR Rao, Sitaram Jha/Prof. Ramachandra Pandey methods), malefics, benefics, planets in the order of kendras, amsa rulers (for each divisional chart).
+
+Also added a function get mixed chart (for example D-9 followed by another D-9), customized kundali chart for any varga number in the range 1 to 300 (D-N is generated only for those vargas that are not tranditional such D-9, D144 etc)
+
+Also added a function `planets_in_pushkara_navamsa_bhaga` to get list of planets that are in (i) pushkara amsa and (ii) in pushkara bhaga
+
+Added `divisional_positions_from_rasi_positions` and `planets_in_mrityu_bhaga` functions
+
+Added `get_planets_in_marana_karaka_sthana` function to calculate marana karaka sthana planets that returns list of [(planet,house),..]
+
+Added `next_planet_entry_date_divisional_chart`, `previous_planet_entry_date_divisional_chart`, `next_planet_entry_date_mixed_chart`, `previous_planet_entry_date_mixed_chart` to `jhora.horoscope.chart.charts` module.
+
+Added `lattha_stars_planets` function to find Lattha stars of the planets.
+
+Added `get_64th_navamsa(navamsa_planet_positions)` and `get_22nd_drekkana(drekkana_planet_positions)` functions.
+
+Hora chart default method (`chart_method`) changed to traditional Parasara.
+
+Method `benefics_and_malefics` modified to consider Waxing/Waning moon and association of Mars with benefics/malefics. This is used in `strength.py` to calculate shadbala. 
+
+* `jhora.horoscope.chart.dosha`: 
+
+8 types of dosha (kala sarpa, manglik, pitru, guru chandala, ganda moola, kalathra, ghata, shrapit)
+* `jhora.horoscope.chart.house`: 
+
+Module to find trikonas, dushthanas, quadrants, kendras, chathsras, panaphras, apoklimas, aspected planets/rasis, upachayas, chara karakas, raasi/graha drishti, argala, virodhargala, stronger planet (from any two planets as arguments checking 7 rules), stronger rasi (from any two rasis as arguments checking 7 rules), natural/temporary friends/enemies, house owners (including Kethu/Saturn, Mars/Rahu combination), compound relation of planets, marakas, rudra, brahma, maheshwara, trishoola raasis, longevity type, associations of planets/raasis, baadhakas, aspecting planets/rasis and order of planets by strength from their positions/longitudes.
+* `jhora.horoscope.chart.raja_yoga`: 
+
+dharma_karmadhipati_raja_yoga, vipareetha_raja_yoga, neecha_bhanga_raja_yoga and a few other raja yogas.
+* `jhora.horoscope.chart.sphuta`: 
+
+Module to find sphutas such as tri, chathur, pancha, prana, deha, mrityu, sooshma tri, bheeja, kshetra, tithi, yoga, yogi, avayogi and rahu tithi.
+* `jhora.horoscope.chart.strength`: 
+
+Module to find various balas/strnegths of planet such as harsha bala, kshetra, sapthavargaja, sthana, ojayugama, kendra, dreshkon, uccha, uccha rashmi, hadda, drekkana, navamsa, pancha vargeeya, dwadhasa_vargeeya, dig, divaratri, nathonnath, paksha, tribhaga, abda, masa, vaara, hora, ayana, yuddha, kaala, ishta, subha, cheshta, cheshta rashmi, naisargika, drik, shad, bhava adhipathi, bhava dig, bhava drik, bhava drishti.
+
+Modified shadbala calculations to match that of BVRaman and VPJain calculations. Added to tests to verify we get same results as theirs. Since each do calculations differently (different ayanamsa etc, different epoch), appropriate changes made. Please note that these calculations (with same date as theirs) will give different results in Jagannath Hora software. We are unware of the alogirithm used in JHora. Added `get_planet_mean_longitude(jd,place,planet_index=0)` to calculated planet mean longitude for calculating Cheshta bala.
+
+
+Added `planet_aspect_relationship_table` function to get planet aspect relationship table based Parasara's Drik bala calculations.
+
+Updated Shadbala calculations to fix the errors. Now the results match the calculations of VP Jain and BV Raman examples in their respective books. However, it is important to note, shadbala calculations does not match with JHora (even for these examples).
+
+* `jhora.horoscope.chart.yoga`: 
+
+Module to find about 201 yogas such as vesi, vosi, ubhayachara, nipuna, sunaphaa, anaphaa, duradhara, kemadruma, chandra_mangala, adhi, ruchaka, bhadra, sasa, maalavya, hamsa, rajju, musala, nala, maalaa, sarpa, gadaa, sakata, sringaataka, hala, vajra, yava, kamala, vaapi, yoopa, sara, sakti, danda, naukaa, koota, chatra, chaapa, ardha_chandra, chakra, samudra, veenaa, daama, paasa, kedaara, soola, yuga, gola, subha, asubha, gaja_kesari, guru_mangala, amala, parvata, kaahala, chaamara, sankha, bheri, mridanga, sreenaatha, matsya, koorma, khadga, kusuma, kalaanidhi, kalpadruma, lagnaadhi, hari, brahma, vishnu, siva, trilochana, gouri, chandikaa, lakshmi, saarada, bhaarathi, saraswathi, amsaavatara, devendra, indra, ravi, bhaaskara, kulavardhana, vasumati, gandharva, go, vidyut, chapa, pushkala, makuta, jaya, harsha, sarala and vimala.
+* `jhora.horoscope.chart.dhasa.annual`: 
+
+Module to find annual dhasas: (mudda, patyayini, varsha vimsottari, varsha narayana)
+* `jhora.horoscope.chart.dhasa.graha`: 
+
+Module to find 22 types of graha dhasas such as aayu, ashtottari, buddhi_gathi, chathuraaseethi_sama, dwadasottari, dwisatpathi, kaala, karaka, karana_chathuraaseethi_sama, naisargika, panchottari, saptharishi_nakshathra, sataatbika, shastihayani, shattrimsa_sama, shodasottari, tara, tithi_ashtottari, tithi_yogini, vimsottari, yoga_vimsottari, yogini. Each of these comes up applicable variations such as with/without antardhasa, with/without tribhagi variation, choice of starting nakshatra, choice of starting planet/lagna/special lagna/upagraha, choice of antardhasa sequence, choice of divisional chart etc. There is an `applicability` function to compute which of conditional dhasas are applicable for a given chart.
+* `jhora.horoscope.chart.dhasa.raasi`: 
+
+Module to find 22 types of raasi dhasas such as brahma, chakra, chara, drig, kalachakra, kendradhi_rasi, lagnamsaka, mandooka, moola, narayana, navamsa, nirayana, padhanadhamsa, paryaaya, sandhya, shoola, sthira, sudasa, tara_lagna, trikona, varnada, yogardha. Each of these comes up applicable variations such as with/without antardhasa, with/without tribhagi variation, choice of starting nakshatra, choice of starting planet/lagna/special lagna/upagraha, choice of antardhasa sequence, choice of divisional chart  etc.
+* `jhora.horoscope.chart.dhasa.sudharsana_chakra`: 
+
+Module to calculate sudharsana chakra dhasa with choice of divisional chart.
+* `jhora.horoscope.chart.dhasa.match.compatibility`: 
+
+Module to calculate marriage compatibility between boy/girl stars, with south/north indian variations.
+* `jhora.horoscope.chart.prediction.general`: 
+
+Module to calculate general predictions based on lagna rasi, planets in houses, lords in houses
+* `jhora.horoscope.chart.prediction.longevity`: 
+
+Module to calculate longevity range (baladrishta, alpayu, madhyayu and pooranyu checks - THIS IS UNDER EXPERIMENT - PLEASE DO NOT USE IT YET)
+* `jhora.horoscope.chart.prediction.naadi_marriage`: 
+
+Module to calculate marriage yogas using naadi approach - THIS IS UNDER EXPERIMENT - PLEASE DO NOT USE IT YET)
+* `jhora.horoscope.transit.saham`: 
+
+Module to find 36 sahams such as punya, vidya, yasas, mitra, mahatmaya, asha, samartha, bhrartri, gaurava, pitri, rajya, mathri, puthra, jeeva, karma, roga, kali, sastra, bandhu, mrithyu, pardesa, artha, paradara, vanika, karyasiddhi, vivaha, santapa, sraddha, preethi, jadya, vyaapaarasathru, jalapatna, bandhana, apamrithyu, and laabha.
+* `jhora.horoscope.transit.tajaka_yoga`: 
+
+Module to find various tajaka (annual) yogams such as ishkavala, induvara, ithasala, eesarpha, nakta, yamaya, manahoo, kamboola, radda and duhphali_kutta. 
+* `jhora.horoscope.transit.tajaka`: 
+
+Module to find various tajaka aspects such as: munda,trinal/square/sextile/semi-sextile aspects of raasi/planet,  neutral/benefic/malefic/opposition/conjunction aspects of raasi/planet, planets/raasis/houses with neutral/benefic/malefic aspects on planets/raasis/houses, varsha pravesh (aka annual chart), maasa pravesh (aka monthly chart), sixty_hour chart, lord of the year/month/sixty-hour, check if planets within their deeptamsa, check if planets are approaching.
+* `jhora.panchanga.khanda khaadyaka` and `jhora.panchanga.surya_sidhantha`: 
+
+Modules `khanda khaadyaka`, `surya_sidhantha` are attempts to implement ancient methodolgies of astrology  - THIS IS UNDER EXPERIMENT - PLEASE DO NOT USE IT YET)
+* `jhora.panchanga.vratha`: 
+
+Module to find various vratha dates such as pradosham, sankranti, amavasya, pournami, ekadhashi, sashti, sankatahara_chathurthi, vinayaka_chathurthi, shivarathri, chandra_dharshan, moondraam_pirai, srartha, ashtaka, manvaadhi, yugadhi, mahalaya_paksha. There is also a `search` function to find dates matching any combination of tithi, nakshathra, yogam, karana, tamil month.
+
+Added Sathyanarayana Puja function `sathyanarayana_puja_dates`, Durgashtami (`durgashtami_dates`) and Kaalashtami  (`kaalashtami_dates`) to the vratha list.
+
+
+Package Structure:
+
+```
+jhora
+   !- data       - contains program configuration data, world cities data, marriage compatibility table
+         !- ephe - contains swiss ephimeride compressed JPL data
+   !- images     - contains images
+   !- lang       - contains language resource files
+   !- panchanga  - panchanga module to calculate daily panchanga
+   		!- drik.py - all panchanga functions such as sunrise to planet positions
+   		!- drik1.py - panchanga functions through Calendar Class - !!! NOT FULLY IMPLEMENTED !!!
+   		!- khanda_khaadyaka.py - planet positions using khanda khaadyaka method - !!! NOT FULLY IMPLEMENTED !!!
+   		!- surya_sidhantha.py - planet positions using surya sidhantha method - !!! NOT FULLY IMPLEMENTED !!!
+   		!- vratha.py  - to find speacial vratha days such as amavasya, srartha etc
+   !- horoscope
+        !- main.py - horoscope package (used mainly by the UI programs)
+        !- chart  - chart package
+           !- arudhas.py     - arudhas, argala, virodhargal
+           !- ashtavarga.py  - ashtavarga, trikona sodhana, ekadhipatya_sodhana, sodhaya pinda
+           !- charts.py      - divisional charts, planet combustion, retrograde
+           !- dosha.py       - doshas
+           !- house.py       - aspects, drishti,stronger planets/raasi, kaarakas
+           !- raja_yoga.py   - raja_yoga and its sub-types
+           !- sphuta.py      - sphutas: tri, chatu, pancha, prana, deha, mrityu, sooshma tri, beeja, kshetra, tithi, yoga, rahu tithi.
+           !- strength.py    - Harsha, Pancha Vargeeya, Dwadhasa Vargeeya, Shad bala, Bhava bala
+           !- yoga.py        - 284 yogas
+        !- dhasa  - dhasa package
+        	! sudharsan_chakra.py - Sudarshana Chakra dhasa-bhukthi
+              ! - annual - Annual Dhasa package
+                 !- mudda.py  	  - mudda dhasa-bhuthi
+                 !- patyayini.py   - patyayini dhasa-bhukthi
+              ! - graha - Graha Dhasa package
+              	!- aayu.py        - aayu dhasa-bhukthi
+                 !- ashtottari.py  - ashtottari dhasa-bhukthi
+                 !- buddhi_gathi.py - Buddhi Gathi dhasa bhukthi
+                 !- chathuraseethi_sama.py - chathura seethi sama dhasa
+                 !- dwadasottari.py - dwadasottari dhasa
+                 !- dwisapathi.py  - dwisatpathi dhasa
+                 !- kaala.py       - kaala dhasa
+                 !- karaka.py      - karaka dhasa
+                 !- karana_chathuraseethi_sama.py - karana chathura seethi sama dhasa
+                 !- naisargika.py  - naisargika dhasa
+                 !- panchottari.py - panchottari dhasa-bhukthi
+                 !- saptharishi_nakshathra.py - Saptharishi Nakshathra dhasa-bhukthi
+                 !- sataatbika.py  - sataatbika dhasa-bhukthi
+                 !- shastihayani.py - shastihayani dhasa-bhukthi (also called Shashti Sama dasa)
+                 !- shattrimsa_sama.py - shattrimsa sama dhasa-bhukthi
+                 !- shodasottari.py - shodasottari dhasa bhukthi
+                 !- tara.py        - tara dhasa-bhuthi
+                 !- tithi_ashtottari.py  - tithi ashtottari dhasa-bhuthi
+                 !- tithi_yogini.py  - tithi yogini dhasa-bhuthi
+                 !- vimsottari.py  - vimsottari dhasa-bhuthi
+                 !- yoga_vimsottari.py  - yoga vimsottari dhasa-bhuthi
+                 !- yogini.py      - yogini dhasa-bhuthi
+           ! - raasi - Raasi Dhasa Package
+                 !- brahma.py      - brahma dhasa
+                 !- chakra.py       - chakra dhasa
+                 !- chara.py       - chara dhasa
+                 !- drig.py        - drigdhasa-bhuthi
+                 !- kalachakra.py  - kalachakra dhasa-bhuthi
+                 !- kendradhi_rasi.py - kendradhi rasi dhasa
+                 !- lagnamsaka.py     - lagnamsaka dhasa
+                 !- mandooka.py      - mandooka dhasa
+                 !- moola.py       - moola dhasa-bhuthi (Also called Lagna Kendradi Rasi Dhasa)
+                 !- narayana.py    - narayana dhasa-bhuthi
+                 !- navamsa.py     - navamsa dhasa-bhuthi
+                 !- nirayana.py    - nirayana dhasa-bhuthi
+                 !- padhanadhamsa.py - padhanadhamsa dhasa-bhukthi
+                 !- paryaaya.py    - Paryaaya dhsasa-bhukthi
+                 !- shoola.py      - shoola dhasa-bhukthi
+                 !- sthira/py      - sthira dhasa bhukthi
+                 !- sudasa.py      - sudasa dhasa-bhuthi
+                 !- tara_lagna.py   - tara lagna dhasa-bhuthi
+                 !- trikona/py     - trikona dhasa-bhuthi
+                 !- varnada.py	  - varnada dhasa-bhuthi
+                 !- yogardha.py    - yogardha dhasa-bhuthi
+        !- match  - marriage compatibility package
+           !- compatibility.py  - marriage compatibility
+        !- prediction  - basic prediction package
+           !- general.py  - general prediction - experimental work
+           !- longevity.py - longevity predictions - experimental work
+           !- naadi_marriage.py - maadi marriage predictions - experimental work
+        !- transit  - tajaka package
+           !- tajaka.py      - annual, monthly and 60 hour charts, muntha, vargeeya balas, tajaka lord 
+           !- tajaka_yoga.py - tajaka yogas
+           !- saham.py       - 36 sahams
+   !- ui  - user interface package
+      !- chakra.py             - UI for chakras
+      !- dhasa_bhukthi_options.py	- UI for dhasa bhukthi options
+      !- mixed_chart_dialog.py - UI for mixed chart options
+      !- varga_chart_dialog.py - UI for Varga Chart options
+      !- horo_chart.py         - simple horoscope chart Raasi/Navamsa and calendar information
+      !- panchangam.py         - UI for panchangam information
+      !- pancha_pakshi_sastra_widget.py - UI for Pancha Pakshi Sastra
+      !- horo_chart_tabs.py    - horoscope with lot of details
+      !- match_ui.py           - ui for marriage compatibility
+      !- chart_styles.py       - Widget class for kundali chart style
+      !- label_grid.py         - Widget for custom table of QLabels
+      !- vakra_gathi_plot.py        - fun plot of retrogession of planet as seen from earth
+      !- vratha_finder.py      - Widget for finding vratha dates
+      !- conjunction_dialog.py - Widget for finding conjunction dates of planets
+      !  vedic_calendar.py     - Widget for Vedic Calendar-
+      !- vedic_clock.py        - Widget for Vedic Clock
+   !- utils.py             - utility functions
+   !- const.py             - constants related to PyHora package        
+   !- tests  - unit/integration tests
+      !- unit_tests.py           - unit tests for the features based on examples from the book
+      !- pvr_tests.py            - Exercise problems from book.
+```
 
 Accuracy
 --------
@@ -806,6 +911,10 @@ Overall size of these files is more than 100 MB. To reduce your application size
 API Documents
 -------------
 API are in README.md of respective folders.
+
+Integration
+-----------
+Model Context Protocol server wrapper around PyJHora - see https://github.com/chinmay-sh/pyjhora-mcp
 
 License
 -------

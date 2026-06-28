@@ -1,3 +1,4 @@
+# --- Web API stack ---
 fastapi==0.104.1
 uvicorn==0.24.0
 python-dotenv==1.0.0
@@ -9,4 +10,18 @@ passlib[bcrypt]==1.7.4
 PyJWT==2.8.0
 motor==3.7.1
 httpx==0.25.2
+
+# --- PyJHora runtime deps ---
+# The backend imports PyJHora 4.8.7 from ../../src (see astrology.py). These are the
+# library's runtime dependencies actually exercised by the chart/dasha/compatibility
+# code paths. GUI/PDF-only deps (PyQt6, img2pdf, Pillow, pyephem) are intentionally
+# omitted. Versions pinned to a known-good, tested set.
 pyswisseph==2.10.3.2
+numpy==2.3.5
+pandas==2.3.3
+geopy==2.4.1
+geocoder==1.38.1
+timezonefinder==8.1.0
+pytz==2025.2
+python-dateutil==2.9.0.post0
+requests==2.32.5

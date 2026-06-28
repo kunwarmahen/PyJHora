@@ -468,3 +468,29 @@
     padding: var(--space-lg);
   }
 }
+
+/* Advanced coordinates override (collapsible) */
+.advanced-coordinates {
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--sandalwood-dark);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--sacred-white);
+}
+
+.advanced-coordinates summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: var(--space-xs) 0;
+  user-select: none;
+}
+
+.advanced-coordinates summary:hover {
+  color: var(--saffron);
+}
+
+.advanced-coordinates[open] {
+  padding-bottom: var(--space-md);
+}

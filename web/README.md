@@ -7,18 +7,29 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Backend**: FastAPI with MongoDB for data persistence and JWT authentication
 - **Frontend**: React SPA with responsive UI
 - **Authentication**: User registration and login with JWT tokens
-- **Features**: Birth Chart, Horoscope, Compatibility, Dhasa, Transit predictions
+- **Features**: Birth Chart (Rasi D1 + Navamsa D9), Horoscope, Compatibility, Dhasa, Transit predictions
 - **AI Integration**: Multi-model LLM support (Qwen 2.5, Google Gemini, ChatGPT)
 - **Interactive Q&A**: Chat with AI Astrologer for personalized insights
+
+> **Modernization in progress.** See [`todo.md`](todo.md) for the redesign plan and
+> feature backlog. Charts are computed using the birth location's actual timezone,
+> and the Birth Chart page now renders both the Rasi (D1) and Navamsa (D9) charts.
 
 ## What's New - AI-Powered Features 🆕
 
 ### Ask AI Astrologer
-- **Interactive Chat Interface**: Have a conversation with AI about your birth chart
-- **Multiple AI Models**: Choose between Qwen 2.5 (local/free), Google Gemini, or ChatGPT
-- **Personalized Insights**: Get detailed answers to specific questions about your chart
-- **Example Questions**: Pre-built questions to get started quickly
-- **Real-time Analysis**: AI analyzes your complete chart data for accurate responses
+- **Interactive Chat Interface**: Multi-turn conversation with memory about your birth chart
+- **Provider & model selection**: Ollama (local, auto-detected models), any OpenAI-compatible
+  local server (LM Studio / llama.cpp / vLLM), Google Gemini, or OpenAI — pick the exact model
+- **Streaming answers**: responses stream token-by-token (SSE) with a **Stop** button
+- **Rich, transparent context**: D1 + chosen divisional charts (vargas), the running
+  Vimsottari dasha chain, yogas, doshas and current transits — view the exact data sent
+- **Saved history**: every Q&A is stored per profile and can be revisited or deleted
+- **Answer affordances**: copy, regenerate, thumbs up/down, export a conversation to Markdown
+- **Per-user API keys (encrypted)**: each user stores their own provider keys via the
+  in-app "API Keys" manager — no shared `.env` key required
+- **Rate limiting**: per-user per-minute + per-day quotas on the AI endpoints
+- **Safety disclaimer**: clear "guidance, not professional advice" footer
 
 ### Enhanced Predictions
 - **AI-Powered Analysis**: All prediction endpoints now support AI enhancement
@@ -35,7 +46,12 @@ pyjhora-web/
 │   ├── database.py          # MongoDB models and connection
 │   ├── auth.py              # Authentication utilities
 │   ├── astrology.py         # PyJHora wrapper
-│   ├── qwen_predictor.py    # Qwen LLM integration
+│   ├── llm_service.py       # Multi-provider LLM layer (Ollama/OpenAI-compatible/Gemini/OpenAI) + streaming
+│   ├── chart_context.py     # Builds the structured chart context sent to the AI
+│   ├── conversations.py     # Saved AI chat threads (per user + profile)
+│   ├── user_settings.py     # Per-user encrypted API keys
+│   ├── ratelimit.py         # Per-user rate limiting for AI endpoints
+│   ├── qwen_predictor.py    # Legacy Qwen LLM integration
 │   ├── requirements.txt     # Python dependencies
 │   ├── Dockerfile           # Docker image for backend
 │   └── .env.example         # Environment template
@@ -166,9 +182,21 @@ SECRET_KEY=your-secret-key-change-this
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-# Qwen LLM Integration
-QWEN_API_URL=http://localhost:5000
-USE_QWEN=false  # Set to true if running local Qwen server
+# LLM providers (endpoints + default models; keys are optional — users can also
+# store their own per-user keys in the app). See backend/.env.example for the full list.
+OLLAMA_URL=http://localhost:11434
+OLLAMA_DEFAULT_MODEL=qwen2.5:14b
+OPENAI_COMPATIBLE_URL=http://localhost:1234/v1
+GEMINI_API_KEY=         # optional global fallback
+OPENAI_API_KEY=         # optional global fallback
+
+# Per-user API-key encryption (keys users save in the UI are encrypted with this;
+# falls back to SECRET_KEY if unset — set a stable value in production)
+API_KEY_ENCRYPTION_KEY=change-this-to-a-long-random-string
+
+# Per-user rate limits on the AI endpoints
+AI_RATE_LIMIT_PER_MIN=20
+AI_RATE_LIMIT_PER_DAY=300
 
 # CORS
 CORS_ORIGINS=["http://localhost:3000","http://localhost:8000"]
@@ -210,7 +238,13 @@ REACT_APP_API_TIMEOUT=30000
 - Protected routes
 
 ### 2. Birth Chart Calculator
-- Calculate Rasi chart from birth details
+- Calculate Rasi (D1) and Navamsa (D9) charts from birth details
+- Divisional (varga) charts D1–D60 with a picker
+- North / South Indian chart styles, selectable ayanamsa
+- Yogas & Doshas surfaced as cards
+- Panchanga (daily almanac) panel: tithi, vaara, nakshatra, yoga, karana plus
+  sunrise/sunset and rahu kalam / yamaganda / gulika / abhijit / durmuhurtam,
+  with a date picker and a Birth-place / Current-location (geolocation) toggle
 - Store charts in MongoDB
 - Display planetary positions
 
@@ -227,15 +261,20 @@ REACT_APP_API_TIMEOUT=30000
 - Detailed compatibility breakdown
 - Optional AI analysis with Qwen
 
-### 5. Dhasa Periods
-- Calculate planetary periods
-- Support multiple Dhasa types:
-  - Vimsottari (default)
-  - Ashtottari
-  - Yogini
-  - Shodasottari
+### 5. Vimsottari Dhasa Periods
+- Full drill-down tree: Maha Dasha → Bhukti → Antara → Sookshma
+- Maha + Bhukti load up front; deeper levels lazy-load on expand (computed at
+  full precision from the natal chart)
+- The currently running period auto-expands the whole live chain and is highlighted
+- (Other dasha systems — Ashtottari, Yogini, etc. — are on the roadmap; see `todo.md`)
 
-### 6. Qwen LLM Integration (Optional)
+### 6. Transits (Gochara)
+- Current planetary positions for today or a chosen date, drawn over the natal chart
+- House counted from both the natal Lagna and natal Moon, retrograde flagged
+- Key upcoming sign-ingress dates for Jupiter and Saturn
+- North / South Indian chart styles, respects the selected ayanamsa
+
+### 7. Qwen LLM Integration (Optional)
 - Enhanced predictions with local Qwen model
 - Contextual astrological interpretations
 - Personalized analysis
@@ -296,10 +335,17 @@ OPENAI_API_KEY=your-openai-api-key-here
 
 ### Switching Between AI Models
 
-Users can select their preferred AI model directly in the frontend:
+Users can select their preferred provider **and model** directly in the frontend:
 - Go to "Ask AI Astrologer" page
-- Choose between Qwen, Gemini, or ChatGPT in the AI Model selector
+- Pick a provider (Ollama / OpenAI-compatible / Gemini / OpenAI) and a specific model
 - Each model will provide different perspectives on your chart
+
+### Per-user API keys (no shared `.env` key needed)
+
+Instead of (or in addition to) the global `.env` keys above, each user can store
+their own provider keys from the app: open **"API Keys"** on the Ask AI Astrologer
+page and paste a Gemini / OpenAI / OpenAI-compatible key. Keys are encrypted at rest,
+shown back only masked, and used ahead of any global env key for that user's requests.
 
 ## API Endpoints
 
@@ -311,20 +357,35 @@ Users can select their preferred AI model directly in the frontend:
 ### Astrology
 - `POST /api/astrology/birth-chart` - Calculate birth chart
 - `GET /api/astrology/birth-chart/{chart_id}` - Retrieve stored chart
+- `GET /api/astrology/vargas` - List supported divisional charts
+- `POST /api/astrology/divisional-chart?varga=N` - Calculate a divisional (varga) chart
+- `GET /api/astrology/ayanamsas` - List supported ayanamsa options
+- `GET /api/astrology/panchanga?date=&latitude=&longitude=&timezone=` - Daily almanac (panchanga)
 - `POST /api/astrology/horoscope` - Get horoscope predictions
 - `POST /api/astrology/doshas` - Calculate doshas
 - `POST /api/astrology/yogas` - Get yogas
-- `POST /api/astrology/dhasa` - Calculate Dhasa periods
-- `POST /api/astrology/transit` - Get current transits
+- `POST /api/astrology/dhasa` - Calculate Vimsottari Dhasa periods (Maha + Bhukti)
+- `POST /api/astrology/dhasa/children?lords=Venus,Saturn` - Lazily fetch the child
+  periods (Antara/Sookshma) of a Vimsottari node for the drill-down tree
+- `POST /api/astrology/transit?current_date=&ayanamsa=` - Current transits (Gochara)
 - `POST /api/astrology/compatibility` - Check marriage compatibility
 
 ### AI Q&A (New) 🆕
-- `POST /api/astrology/ask` - Ask a question about birth chart with AI
+- `GET /api/llm/providers` - List AI providers, reachability, and available models (reflects per-user keys)
+- `POST /api/astrology/ask` - Ask a question about the birth chart (multi-turn, rich context)
+- `POST /api/astrology/ask/stream` - Same, streamed token-by-token over SSE
+- `GET /api/ai/conversations?profile_id=` - List saved conversations for a profile
+- `GET /api/ai/conversations/{id}` - Fetch a full conversation thread
+- `DELETE /api/ai/conversations/{id}` - Delete a conversation
+- `POST /api/ai/conversations/{id}/feedback` - Thumbs up/down on an answer
 - `POST /api/astrology/predict` - Generate AI-powered predictions (general, health, career, relationships)
 - `POST /api/astrology/compatibility-analysis` - Get detailed AI compatibility analysis
 
 ### User
 - `GET /api/user/charts` - Get user's saved charts
+- `GET /api/user/api-keys` - Per-provider key status (masked; never the raw key)
+- `PUT /api/user/api-keys/{provider}` - Store (encrypted) your API key for a provider
+- `DELETE /api/user/api-keys/{provider}` - Remove a stored API key
 
 ### Health
 - `GET /health` - Health check endpoint
@@ -337,7 +398,8 @@ Users can select their preferred AI model directly in the frontend:
 - `/birth-chart` - Birth chart calculator
 - `/ask-astrologer` - **NEW**: Interactive AI chat for personalized astrology insights 🆕
 - `/compatibility` - Marriage compatibility checker
-- `/dhasa` - Dhasa periods calculator
+- `/dhasa` - Vimsottari Dhasa drill-down tree (Maha → Bhukti → Antara → Sookshma)
+- `/transit` - Transits (Gochara) over the natal chart
 - `/predictions` - Horoscope and predictions generator
 
 ## Development Notes

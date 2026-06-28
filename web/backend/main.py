@@ -1,18 +1,24 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import StreamingResponse
 from contextlib import asynccontextmanager
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
+import json
 from pydantic import BaseModel
 
 from config import settings
 from database import connect_to_mongo, close_mongo_connection
 from auth import create_access_token, decode_token, get_password_hash, verify_password, Token
 from database import User, BirthDetails, ChartData, Prediction
-from astrology import AstrologyCompute
+from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, SUPPORTED_VARGAS
+from chart_context import build_chart_context
 from qwen_predictor import QwenPredictor
 from llm_service import llm_service, LLMProvider
+import conversations as convo
+import user_settings
+import ratelimit
 
 # Request models
 class LoginRequest(BaseModel):
@@ -27,7 +33,21 @@ class RegisterRequest(BaseModel):
 class AskQuestionRequest(BaseModel):
     birth_details: BirthDetails
     question: str
-    llm_provider: str = "qwen"  # qwen, gemini, or chatgpt
+    llm_provider: str = "qwen"  # legacy: qwen, gemini, or chatgpt
+    # New model-selection fields (optional; fall back to llm_provider when absent)
+    provider_type: Optional[str] = None   # ollama | openai-compatible | gemini | openai
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    # Context controls (optional)
+    ayanamsa: Optional[str] = None
+    sections: Optional[dict] = None  # toggle dasha_tree/yogas/doshas/transits
+    vargas: Optional[list] = None    # divisional-chart factors, e.g. [1, 9, 10]
+    # Conversation (save + multi-turn)
+    conversation_id: Optional[str] = None
+    profile_id: Optional[str] = None
+    # When true, replace the last assistant answer instead of appending a new turn
+    regenerate: bool = False
 
 class PredictionRequest(BaseModel):
     birth_details: BirthDetails
@@ -138,21 +158,23 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 @app.post("/api/astrology/birth-chart")
 async def calculate_birth_chart(
     birth_details: BirthDetails,
+    ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user)
 ):
     """Calculate birth chart for given details"""
     try:
         from database import database
-        
+
         chart = AstrologyCompute.get_birth_chart(
             dob=birth_details.dob,
             tob=birth_details.tob,
             place=birth_details.place,
             lat=birth_details.latitude,
             lon=birth_details.longitude,
-            tz=5.5
+            tz=birth_details.timezone,
+            ayanamsa=ayanamsa
         )
-        
+
         charts_collection = database["charts"]
         chart_doc = {
             "user_id": current_user,
@@ -165,6 +187,78 @@ async def calculate_birth_chart(
         chart["_id"] = str(result.inserted_id)
         
         return chart
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/astrology/ayanamsas")
+async def list_ayanamsas():
+    """Supported ayanamsa options for chart calculation."""
+    return {
+        "default": DEFAULT_AYANAMSA,
+        "options": [{"value": k, "label": v} for k, v in SUPPORTED_AYANAMSAS.items()],
+    }
+
+@app.get("/api/astrology/vargas")
+async def list_vargas():
+    """Supported divisional (varga) charts for the varga picker."""
+    return {
+        "options": [
+            {"value": factor, "code": code, "name": name, "significance": significance}
+            for factor, (code, name, significance) in SUPPORTED_VARGAS.items()
+        ]
+    }
+
+@app.post("/api/astrology/divisional-chart")
+async def calculate_divisional_chart(
+    birth_details: BirthDetails,
+    varga: int = 9,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user)
+):
+    """Calculate a single divisional (varga) chart, e.g. varga=10 for Dasamsa."""
+    try:
+        chart = AstrologyCompute.calculate_divisional_chart(
+            dob=birth_details.dob,
+            tob=birth_details.tob,
+            place=birth_details.place,
+            varga_factor=varga,
+            lat=birth_details.latitude,
+            lon=birth_details.longitude,
+            tz=birth_details.timezone,
+            ayanamsa=ayanamsa,
+        )
+        if chart.get("status") != "success":
+            raise HTTPException(status_code=400, detail=chart.get("error", "Calculation failed"))
+        return chart
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/astrology/panchanga")
+async def get_panchanga(
+    date: Optional[str] = None,
+    place: str = "",
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    timezone: Optional[float] = None,
+    current_user: str = Depends(get_current_user),
+):
+    """Daily almanac (panchanga) for a place and optional date (defaults to
+    today at that place). Used by the 'Today' panel."""
+    try:
+        panchanga = AstrologyCompute.get_panchanga(
+            date=date,
+            place=place,
+            lat=latitude,
+            lon=longitude,
+            tz=timezone,
+        )
+        if panchanga.get("status") != "success":
+            raise HTTPException(status_code=400, detail=panchanga.get("error", "Calculation failed"))
+        return panchanga
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -265,6 +359,7 @@ def generate_basic_predictions(chart_data):
 @app.post("/api/astrology/doshas")
 async def get_doshas(
     birth_details: BirthDetails,
+    ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user)
 ):
     """Get doshas"""
@@ -275,7 +370,8 @@ async def get_doshas(
             place=birth_details.place,
             lat=birth_details.latitude,
             lon=birth_details.longitude,
-            tz=birth_details.timezone
+            tz=birth_details.timezone,
+            ayanamsa=ayanamsa
         )
         return doshas
     except Exception as e:
@@ -284,6 +380,7 @@ async def get_doshas(
 @app.post("/api/astrology/yogas")
 async def get_yogas(
     birth_details: BirthDetails,
+    ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user)
 ):
     """Get yogas"""
@@ -294,7 +391,8 @@ async def get_yogas(
             place=birth_details.place,
             lat=birth_details.latitude,
             lon=birth_details.longitude,
-            tz=birth_details.timezone
+            tz=birth_details.timezone,
+            ayanamsa=ayanamsa
         )
         return yogas
     except Exception as e:
@@ -321,13 +419,41 @@ async def get_dhasa(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/astrology/dhasa/children")
+async def get_dhasa_children(
+    birth_details: BirthDetails,
+    lords: str = "",
+    current_user: str = Depends(get_current_user)
+):
+    """Lazily fetch the immediate child periods (Antara/Sookshma) of a Vimsottari
+    node. `lords` is a comma-separated lord-path, e.g. `Venus,Saturn`."""
+    try:
+        lords_path = [p.strip() for p in lords.split(",") if p.strip()]
+        result = AstrologyCompute.get_dasha_children(
+            dob=birth_details.dob,
+            tob=birth_details.tob,
+            place=birth_details.place,
+            lat=birth_details.latitude,
+            lon=birth_details.longitude,
+            tz=birth_details.timezone,
+            lords_path=lords_path,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/astrology/transit")
 async def get_transits(
     birth_details: BirthDetails,
     current_date: Optional[str] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user)
 ):
-    """Get current transits"""
+    """Get current transits (Gochara) over the natal chart"""
     try:
         transits = AstrologyCompute.get_transits(
             dob=birth_details.dob,
@@ -336,9 +462,14 @@ async def get_transits(
             lat=birth_details.latitude,
             lon=birth_details.longitude,
             tz=birth_details.timezone,
-            current_date=current_date
+            current_date=current_date,
+            ayanamsa=ayanamsa
         )
+        if transits.get("status") != "success":
+            raise HTTPException(status_code=400, detail=transits.get("error", "Calculation failed"))
         return transits
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -431,80 +562,93 @@ async def get_user_charts(current_user: str = Depends(get_current_user)):
 
 # ============= LLM Q&A ROUTES =============
 
+@app.get("/api/llm/providers")
+async def list_llm_providers(current_user: str = Depends(get_current_user)):
+    """List available AI providers, their reachability, and installed/known models.
+
+    Availability also reflects the calling user's own stored API keys."""
+    try:
+        user_keys = await user_settings.get_user_keys(current_user)
+        providers = await llm_service.list_providers(user_keys)
+        return {"providers": providers}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def _resolve_cfg(current_user: str, request: "AskQuestionRequest"):
+    """Resolve the model config, falling back to the user's stored API key when
+    the request didn't carry an explicit key and no env key is configured."""
+    cfg = llm_service.resolve_config(
+        provider_type=request.provider_type,
+        model=request.model,
+        base_url=request.base_url,
+        api_key=request.api_key,
+        legacy_provider=request.llm_provider,
+    )
+    if not cfg.api_key and cfg.provider_type.value in user_settings.KEYED_PROVIDERS:
+        stored = await user_settings.get_api_key(current_user, cfg.provider_type.value)
+        if stored:
+            cfg.api_key = stored
+    return cfg
+
+
+def _enforce_rate_limit(current_user: str):
+    allowed, retry_after, reason = ratelimit.check(current_user)
+    if not allowed:
+        raise HTTPException(
+            status_code=429, detail=reason,
+            headers={"Retry-After": str(retry_after)},
+        )
+
 @app.post("/api/astrology/ask")
 async def ask_question(
     request: AskQuestionRequest,
     current_user: str = Depends(get_current_user)
 ):
     """Ask a question about the birth chart using AI"""
+    _enforce_rate_limit(current_user)
     try:
-        # Calculate birth chart
-        birth_chart = AstrologyCompute.calculate_birth_chart(
-            dob=request.birth_details.dob,
-            tob=request.birth_details.tob,
-            place=request.birth_details.place,
-            lat=request.birth_details.latitude,
-            lon=request.birth_details.longitude,
-            tz=request.birth_details.timezone or 5.5
+        # Build the rich, structured chart context (D1 + running dasha chain +
+        # yogas + doshas + transits), token-budgeted and section-toggleable.
+        chart_data = build_chart_context(
+            birth_details=request.birth_details.model_dump(),
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+            sections=request.sections,
+            vargas=request.vargas,
         )
 
-        # Calculate Dashas
-        dashas = AstrologyCompute.get_dashas(
-            dob=request.birth_details.dob,
-            tob=request.birth_details.tob,
-            place=request.birth_details.place,
-            lat=request.birth_details.latitude,
-            lon=request.birth_details.longitude,
-            tz=request.birth_details.timezone or 5.5
-        )
+        # Resolve the model config (request key → user's stored key → env key)
+        cfg = await _resolve_cfg(current_user, request)
 
-        # Combine chart data for LLM
-        moon_data = birth_chart.get("d1_chart", {}).get("Moon", {})
-        sun_data = birth_chart.get("d1_chart", {}).get("Sun", {})
-
-        chart_data = {
-            "birth_details": {
-                "dob": request.birth_details.dob,
-                "tob": request.birth_details.tob,
-                "place": request.birth_details.place
-            },
-            "lagna": birth_chart.get("lagna", {}),
-            "moon_sign": {
-                "sign_name": moon_data.get("sign_name", "Unknown"),
-                "rasi": moon_data.get("rasi", 0),
-                "nakshatra": moon_data.get("nakshatra", "Unknown"),
-                "nakshatra_pada": moon_data.get("nakshatra_pada", 0)
-            },
-            "sun_sign": {
-                "sign_name": sun_data.get("sign_name", "Unknown"),
-                "rasi": sun_data.get("rasi", 0),
-                "nakshatra": sun_data.get("nakshatra", "Unknown"),
-                "nakshatra_pada": sun_data.get("nakshatra_pada", 0)
-            },
-            "planetary_positions": birth_chart.get("d1_chart", {}),
-            "current_dasha": dashas.get("current_dasha", {}),
-            "next_dasha": dashas.get("next_dasha", {}),
-            "current_bhukthi": dashas.get("current_bhukthi", {}),
-            "dasha_sequence": dashas.get("dasha_sequence", [])
-        }
-
-        # Validate LLM provider
-        try:
-            provider = LLMProvider(request.llm_provider.lower())
-        except ValueError:
-            provider = LLMProvider.QWEN
+        # Multi-turn: load prior turns from the conversation (if any)
+        conv = await convo.get_conversation(current_user, request.conversation_id) \
+            if request.conversation_id else None
+        history = convo.history_for_model(conv)
 
         # Get AI response
+        started = datetime.now(timezone.utc)
         answer = await llm_service.ask_question(
             chart_data=chart_data,
             question=request.question,
-            provider=provider
+            config=cfg,
+            history=history,
         )
+        elapsed_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
+
+        # Persist the turn (create the conversation on first message)
+        conv_id = await _save_turn(current_user, request, cfg, chart_data, answer,
+                                   elapsed_ms=elapsed_ms)
 
         return {
             "question": request.question,
             "answer": answer,
-            "provider": request.llm_provider,
+            "provider": cfg.provider_type.value,
+            "model": cfg.model,
+            "elapsed_ms": elapsed_ms,
+            "conversation_id": conv_id,
+            "sections": chart_data.get("_sections", {}),
+            "vargas": chart_data.get("_vargas", []),
+            "context": chart_data,  # full structured context (for the "what was sent" view)
             "chart_summary": {
                 "lagna": chart_data.get("lagna", {}),
                 "moon_sign": chart_data.get("moon_sign", {}),
@@ -513,6 +657,194 @@ async def ask_question(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+async def _save_turn(user_id: str, request: "AskQuestionRequest", cfg, chart_data: dict,
+                     answer: str, elapsed_ms: Optional[int] = None) -> str:
+    """Persist a user question + assistant answer, creating the conversation if new.
+
+    When `request.regenerate` is set and a conversation exists, the previous
+    assistant answer is replaced in place (no duplicate question/answer turn)."""
+    conv_id = request.conversation_id
+    if not conv_id:
+        conv_id = await convo.create_conversation(
+            user_id, request.profile_id, request.question,
+            request.birth_details.model_dump(),
+        )
+    now = datetime.now(timezone.utc).isoformat()
+    ai_msg = {
+        "role": "assistant", "content": answer, "ts": now,
+        "provider": cfg.provider_type.value, "model": cfg.model,
+        "vargas": chart_data.get("_vargas", []),
+        "sections": chart_data.get("_sections", {}),
+        "elapsed_ms": elapsed_ms,
+    }
+    if request.regenerate and request.conversation_id:
+        await convo.replace_last_assistant(user_id, conv_id, ai_msg)
+    else:
+        user_msg = {"role": "user", "content": request.question, "ts": now}
+        await convo.append_messages(user_id, conv_id, [user_msg, ai_msg])
+    return conv_id
+
+
+@app.post("/api/astrology/ask/stream")
+async def ask_question_stream(
+    request: AskQuestionRequest,
+    current_user: str = Depends(get_current_user)
+):
+    """Stream an answer token-by-token (SSE), with multi-turn context, and persist
+    the completed turn. Frontend reads this with a fetch + ReadableStream."""
+    _enforce_rate_limit(current_user)
+    # Build context + resolve model up front so failures surface as HTTP errors.
+    chart_data = build_chart_context(
+        birth_details=request.birth_details.model_dump(),
+        ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+        sections=request.sections,
+        vargas=request.vargas,
+    )
+    cfg = await _resolve_cfg(current_user, request)
+    conv = await convo.get_conversation(current_user, request.conversation_id) \
+        if request.conversation_id else None
+    history = convo.history_for_model(conv)
+
+    async def event_gen():
+        # Tell the client which conversation + model up front.
+        meta = {
+            "type": "meta",
+            "conversation_id": request.conversation_id,
+            "provider": cfg.provider_type.value,
+            "model": cfg.model,
+            "sections": chart_data.get("_sections", {}),
+            "vargas": chart_data.get("_vargas", []),
+            "context": chart_data,  # exact structured context sent to the model
+        }
+        yield f"data: {json.dumps(meta)}\n\n"
+
+        parts = []
+        started = datetime.now(timezone.utc)
+        try:
+            async for chunk in llm_service.stream_answer(chart_data, request.question, history, cfg):
+                parts.append(chunk)
+                yield f"data: {json.dumps({'type': 'token', 'text': chunk})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            return
+
+        answer = "".join(parts)
+        elapsed_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
+        try:
+            conv_id = await _save_turn(current_user, request, cfg, chart_data, answer,
+                                       elapsed_ms=elapsed_ms)
+        except Exception as e:
+            conv_id = request.conversation_id
+            print(f"Failed to persist conversation: {e}")
+        yield f"data: {json.dumps({'type': 'done', 'conversation_id': conv_id, 'elapsed_ms': elapsed_ms})}\n\n"
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no",
+                 "Connection": "keep-alive"},
+    )
+
+
+@app.get("/api/ai/conversations")
+async def list_ai_conversations(
+    profile_id: Optional[str] = None,
+    current_user: str = Depends(get_current_user)
+):
+    """List the current user's saved AI conversations (optionally for one profile)."""
+    try:
+        return {"conversations": await convo.list_conversations(current_user, profile_id)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/ai/conversations/{conversation_id}")
+async def get_ai_conversation(
+    conversation_id: str,
+    current_user: str = Depends(get_current_user)
+):
+    """Fetch a full conversation thread."""
+    c = await convo.get_conversation(current_user, conversation_id)
+    if not c:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return convo.serialize_conversation(c)
+
+
+@app.delete("/api/ai/conversations/{conversation_id}")
+async def delete_ai_conversation(
+    conversation_id: str,
+    current_user: str = Depends(get_current_user)
+):
+    """Delete a conversation."""
+    ok = await convo.delete_conversation(current_user, conversation_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return {"success": True}
+
+
+class FeedbackRequest(BaseModel):
+    message_index: int
+    rating: Optional[str] = None  # "up" | "down" | null to clear
+
+
+@app.post("/api/ai/conversations/{conversation_id}/feedback")
+async def submit_feedback(
+    conversation_id: str,
+    request: FeedbackRequest,
+    current_user: str = Depends(get_current_user)
+):
+    """Store thumbs up/down on a specific assistant message in a conversation."""
+    if request.rating not in (None, "", "up", "down"):
+        raise HTTPException(status_code=400, detail="rating must be 'up', 'down', or null")
+    ok = await convo.set_feedback(current_user, conversation_id,
+                                  request.message_index, request.rating)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Message not found")
+    return {"success": True}
+
+
+# ============= PER-USER API KEYS =============
+
+class ApiKeyRequest(BaseModel):
+    api_key: str
+
+
+@app.get("/api/user/api-keys")
+async def get_api_keys(current_user: str = Depends(get_current_user)):
+    """Per-provider key status for the current user (masked — never the raw key)."""
+    return {"keys": await user_settings.get_key_status(current_user)}
+
+
+@app.put("/api/user/api-keys/{provider}")
+async def put_api_key(
+    provider: str,
+    request: ApiKeyRequest,
+    current_user: str = Depends(get_current_user)
+):
+    """Store (encrypted) the user's API key for one provider."""
+    if provider not in user_settings.KEYED_PROVIDERS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown provider '{provider}'. Expected one of {user_settings.KEYED_PROVIDERS}.",
+        )
+    if not request.api_key.strip():
+        raise HTTPException(status_code=400, detail="api_key cannot be empty")
+    await user_settings.set_api_key(current_user, provider, request.api_key)
+    return {"success": True, "provider": provider}
+
+
+@app.delete("/api/user/api-keys/{provider}")
+async def remove_api_key(
+    provider: str,
+    current_user: str = Depends(get_current_user)
+):
+    """Remove the user's stored API key for one provider."""
+    if provider not in user_settings.KEYED_PROVIDERS:
+        raise HTTPException(status_code=400, detail=f"Unknown provider '{provider}'.")
+    await user_settings.delete_api_key(current_user, provider)
+    return {"success": True, "provider": provider}
+
 
 @app.post("/api/astrology/predict")
 async def generate_prediction(
@@ -528,7 +860,7 @@ async def generate_prediction(
             place=request.birth_details.place,
             lat=request.birth_details.latitude,
             lon=request.birth_details.longitude,
-            tz=5.5
+            tz=request.birth_details.timezone
         )
 
         # Validate LLM provider
@@ -574,7 +906,7 @@ async def analyze_compatibility(
             male_lon=male_details.longitude,
             female_lat=female_details.latitude,
             female_lon=female_details.longitude,
-            tz=5.5
+            tz=male_details.timezone or female_details.timezone
         )
 
         # Get chart data for both
@@ -584,7 +916,7 @@ async def analyze_compatibility(
             place=male_details.place,
             lat=male_details.latitude,
             lon=male_details.longitude,
-            tz=5.5
+            tz=male_details.timezone
         )
 
         female_chart = AstrologyCompute.get_horoscope_predictions(
@@ -593,7 +925,7 @@ async def analyze_compatibility(
             place=female_details.place,
             lat=female_details.latitude,
             lon=female_details.longitude,
-            tz=5.5
+            tz=female_details.timezone
         )
 
         # Validate LLM provider

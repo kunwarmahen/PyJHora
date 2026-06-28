@@ -3,7 +3,6 @@
 # Copyright (C) Open Astro Technologies, USA.
 # Modified by Sundar Sundaresan, USA. carnaticmusicguru2015@comcast.net
 # Downloaded from https://github.com/naturalstupid/PyJHora
-
 # This file is part of the "PyJHora" Python library
 #
 # This program is free software: you can redistribute it and/or modify
@@ -22,6 +21,11 @@
     utils module
     contains common functions used by various PyJHora modules
 """
+"""
+    Release History:
+    V4.8.6 - count_stars, count_rasis - dir changed direction argument. Revised set_flags_for_planet_positions.
+            added validate_raasi_index and validate_star_index
+"""
 import os
 import codecs
 import warnings
@@ -34,34 +38,28 @@ import numpy as np
 import swisseph as swe
 from geopy.geocoders import Nominatim
 from jhora import const
-from jhora.panchanga import drik as drig_panchanga
-import json
-import datetime
-from dateutil import relativedelta
 
-world_cities_dict = {}
+import json
+import datetime as dt
+from dateutil import relativedelta
+from enum import Enum
+
 google_maps_url = "https://www.google.cl/maps/place/"#+' time zone'
-def use_database_for_world_cities(enable_database=False):
-    global world_cities_dict
-    if enable_database:
-        with open(const._world_city_csv_file, 'r', encoding='ISO-8859-1') as file:
-            world_cities_dict = {row[1].lower(): idx for idx, row in enumerate(csv.reader(file))}
-        const.check_database_for_world_cities = True
-    else:
-        world_cities_dict = {}
-        const.check_database_for_world_cities = False
 
 sort_tuple = lambda tup,tup_index,reverse=False: sorted(tup,key = lambda x: x[tup_index],reverse=reverse)
 
 def save_location_to_database_old(location_data):
+    columns = ['place_name','state','country','latitude','longitude','timezone_hours','altitude/elevation']
     global _world_city_db_df
-    print('writing ',location_data,' to ',const._world_city_csv_file)
+    print('writing ',location_data,' to ',const._place_database_file)
     _world_city_db_df.loc[len(_world_city_db_df.index)] = location_data
-    _world_city_db_df.to_csv(const._world_city_csv_file,mode='w',header=None,index=False)#,quoting=None)
+    _world_city_db_df.to_csv(const._place_database_file,mode='w',header=columns,index=False)#,quoting=None)
 def save_location_to_database(location_data):
+    print("Save Location to Database disabled for now. Requires New Implementation")
+    return
     global world_cities_dict
-    print('writing ',location_data,' to ',const._world_city_csv_file)
-    with open(const._world_city_csv_file, mode='a', newline='', encoding='ISO-8859-1') as csvfile:
+    print('writing ',location_data,' to ',const._place_database_file)
+    with open(const._place_database_file, mode='a', newline='', encoding='ISO-8859-1') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(location_data)
     world_cities_dict[location_data[1]] = len(world_cities_dict)
@@ -76,78 +74,115 @@ def _get_place_from_ipinfo():
     latitude,longitude = data['loc'].split(',')
     time_zone_offset = get_place_timezone_offset(latitude,longitude)
     return place,latitude,longitude,time_zone_offset
-def get_place_from_user_ip_address():
+from functools import lru_cache
+
+@lru_cache(maxsize=1)
+def _get_place_from_user_ip_address_cached():
     """
-        function to get place from user's IP address
-        @param - None
-        @return place,latitude,longitude,time_zone_offset
+    Internal cached function.
+    Returns a tuple:
+        (place, latitude, longitude, time_zone_offset, elevation)
+    or empty tuple on failure.
     """
-    g = ''
     try:
         print("Trying to get using IP Address of the user")
-        g = geocoder.ip('me') #ipinfo('me')
-        #print('g',g,g.city,g.country,g.latlng)
-        if g is None or g=='':
+        g = geocoder.ip('me')  # ipinfo('me')
+
+        if g is None or g == '' or not getattr(g, 'latlng', None):
             print('Trying using ipinfo website')
             try:
-                place,latitude,longitude,time_zone_offset = _get_place_from_ipinfo()
-                return place,latitude,longitude,time_zone_offset
-            except:
+                place, latitude, longitude, time_zone_offset = _get_place_from_ipinfo()
+                elevation = get_elevation(latitude, longitude) if const.get_place_elevation_from_internet else 0.0
+                print('Location obtained from IP Address:', place, [latitude, longitude, time_zone_offset, elevation])
+                return (
+                    place,
+                    float(latitude),
+                    float(longitude),
+                    float(time_zone_offset),
+                    float(elevation)
+                )
+            except Exception:
                 print('No latitude/longitude provided. Could not guess location from IP Address')
-                return []
-        else:
-            place,country,[latitude,longitude] = g.city,g.country, g.latlng
-            place += ','+country
-            #print('g',g.city,g.country,g.latlng)
-            time_zone_offset = get_place_timezone_offset(latitude,longitude)
-            print('Location obtained from IP Address:',place,[latitude,longitude,time_zone_offset])
-            return place,latitude,longitude,time_zone_offset
-    except:
-        print('No latitude/longitude provided. Could not guess location from IP Address')
-        return []
-def get_elevation(lat = None, long = None):
-    '''
-        script for returning elevation/altitude in meters from lat, long
-        It calls https://api.open-elevation.com/ website to get this information. 
-        This will work only until the website offers free api requests.
-        the elevation impacts sunrise and sunset timings 
-        For example: sunrise is earlier and sunset is later by 1 minute for every 1.5 km of elevation (approx)
-        But swiss ephemeris does not show this difference when elevation is passed into geopos argument (V2.10)
-    '''
-    if lat is None or long is None: return 0.0
-    
-    query = const._open_elevation_api_url(lat,long) 
-    
-    # Request with a timeout for slow responses
-    r = requests.get(query, timeout = 20)
+                return tuple()
 
-    # Only get the json response in case of 200 or 201
-    if r.status_code == 200 or r.status_code == 201:
-        elevation = pd.json_normalize(r.json(), 'results')['elevation'].values[0]
-    else: 
-        elevation = 0.0
-    return elevation
-def _validate_data(place,latitude,longitude,time_zone_offset,dob,tob,division_chart_factor):
+        city = g.city if getattr(g, 'city', None) else ''
+        country = g.country if getattr(g, 'country', None) else ''
+        latlng = g.latlng if getattr(g, 'latlng', None) else []
+
+        if len(latlng) < 2:
+            print('No latitude/longitude provided. Could not guess location from IP Address')
+            return tuple()
+
+        latitude, longitude = latlng
+        place = f"{city},{country}".strip(',')
+
+        time_zone_offset = get_place_timezone_offset(latitude, longitude)
+        elevation = get_elevation(latitude, longitude) if const.get_place_elevation_from_internet else 0.0
+
+        print('Location obtained from IP Address:', place, [latitude, longitude, time_zone_offset, elevation])
+        return (
+            place,
+            float(latitude),
+            float(longitude),
+            float(time_zone_offset),
+            float(elevation)
+        )
+
+    except Exception:
+        print('No latitude/longitude provided. Could not guess location from IP Address')
+        return tuple()
+
+
+def get_place_from_user_ip_address():
+    """
+    Public wrapper.
+    Returns:
+        [place, latitude, longitude, time_zone_offset, elevation]
+    or []
+    """
+    result = _get_place_from_user_ip_address_cached()
+    return list(result) if result else []
+import certifi
+import requests
+
+def get_elevation(lat=None, long=None):
+    if lat is None or long is None:
+        return 0.0
+
+    query = const._open_elevation_api_url(lat, long)
+    try:
+        r = requests.get(query, timeout=20, verify=certifi.where())
+        r.raise_for_status()
+        data = r.json()
+        results = data.get("results") or []
+        return float(results[0].get("elevation", 0.0)) if results else 0.0
+    except requests.RequestException as e:
+        print("Request failed:", e)
+        return 0.0
+    except (ValueError, TypeError, KeyError) as e:
+        print("Bad JSON/structure:", e)
+        return 0.0
+def _validate_data(place,latitude,longitude,time_zone_offset,dob,tob,divisional_chart_factor):
     country = ''
     if place  is not None and (latitude is None or longitude is None):
         city,latitude,longitude,time_zone_offset = get_location(place)
     if latitude is None or longitude is None:
         place,latitude,longitude,time_zone_offset = get_place_from_user_ip_address()
     if dob is None:
-        today = datetime.datetime.today()
+        today = dt.datetime.today()
         dob = (today.year,today.month,today.day)
         print("Today's Date:",dob,'assumed')
     if tob is None:
-        tob = tuple(str(datetime.datetime.now()).split()[1].split(':'))
+        tob = tuple(str(dt.datetime.now()).split()[1].split(':'))
         print('Current time:',tob,'assumed')
-    if division_chart_factor not in const.division_chart_factors:
+    if divisional_chart_factor not in const.division_chart_factors:
         str_dvf = ','.join([str(x) for x in const.division_chart_factors])
-        w_msg = '\nInvalid value for dhasa varga factor. '+str(division_chart_factor)+ \
+        w_msg = '\nInvalid value for dhasa varga factor. '+str(divisional_chart_factor)+ \
         '\nAllowed values '+ str_dvf +'\n' + 'division_chart_factor=1 (for Raasi) is assumed now '
         warnings.warn(w_msg)
         divisional_chart_factor = 1
-    return place,latitude,longitude,time_zone_offset,dob,tob,division_chart_factor
-def get_location(place_name=None):
+    return place,latitude,longitude,time_zone_offset,dob,tob,divisional_chart_factor
+def _get_location(place_name=None):
     """
         function to get place's latitude, longitude and timezone
         if will make call following functions one by one until location info is obtained
@@ -172,7 +207,7 @@ def get_location(place_name=None):
     if place_index is not None and place_index>=0:
         place_found = True
         #print(place_name,'in the database',place_index)
-        with open(const._world_city_csv_file, encoding='ISO-8859-1') as csvfile:
+        with open(const._place_database_file, encoding='ISO-8859-1') as csvfile:
             reader = csv.reader(csvfile)
             for idx, row in enumerate(reader):
                 if idx == place_index:
@@ -184,7 +219,7 @@ def get_location(place_name=None):
                     #print("RESULT:",result)
                     return result
     else:
-        print(place_name,'not in '+const._world_city_csv_file+'.Trying to get from Google')
+        print(place_name,'not in '+const._place_database_file+'.Trying to get from Google')
         result = _scrap_google_map_for_latlongtz_from_city_with_country(place_name)
         if result  is not None and len(result)==3:
             place_found = True
@@ -302,9 +337,9 @@ def _scrap_google_map_for_latlongtz_from_city_with_country(city_with_country):
 def _get_timezone_from_pytz(timezone_str_from_geocoder):
     print("Trying pytz to get timezone value")
     from pytz import timezone
-    tz = datetime.datetime.now(timezone(timezone_str_from_geocoder)).utcoffset().total_seconds()/60/60
+    tz = dt.datetime.now(timezone(timezone_str_from_geocoder)).utcoffset().total_seconds()/60/60
     return tz
-def get_place_timezone_offset(latitude, longitude):
+def get_place_timezone_offset(latitude, longitude,jd_local=None):
     """
         This can be used when latitude/longitude are known but not the time zone offset of the place.
         This is an internal function that returns a location's time zone offset from UTC in minutes - using latitude/longitude of the place.
@@ -314,7 +349,12 @@ def get_place_timezone_offset(latitude, longitude):
     """
     try:
         tf = TimezoneFinder()
-        today = datetime.datetime.now()
+        if jd_local is None:
+            today = dt.datetime.now()
+        else:
+            y,m,d,fh = jd_to_gregorian(jd_local); hh,mm,ss = to_dms(fh,as_string=False)
+            """ For BCE Dates for now it returns DST of current year and same month/day since datetime does not support BCE """
+            today = dt.datetime(y,m,d,hh,mm,ss) if y>0 else dt.datetime(dt.datetime.now().year,m,d,hh,mm,ss)
         tz_target = timezone(tf.timezone_at(lng=longitude, lat=latitude))
         # ATTENTION: tz_target could be None! handle error case
         today_target = tz_target.localize(today)
@@ -348,7 +388,7 @@ def get_planet_to_house_dict_from_chart(house_to_planet_list):
                 Example: {0:0, 1:1,2:1,...} Sun in Aries, Moon in Tarus, Mars in Gemini etc
                 Last element will be 'L' for Lagna
     """
-    p_to_h = {p:h for p in [*range(9)]+[const._ascendant_symbol] for h,planets in enumerate(house_to_planet_list) if str(p) in planets }
+    p_to_h = {p:h for p in const.SUN_TO_KETU+[const._ascendant_symbol] for h,planets in enumerate(house_to_planet_list) if str(p) in planets }
     return p_to_h
 def get_planet_house_dictionary_from_planet_positions(planet_positions):
     """ 
@@ -372,9 +412,11 @@ def get_house_planet_list_from_planet_positions(planet_positions):
         h_to_p[h] += str(p) + '/'
     h_to_p = [x[:-1] for x in h_to_p]
     return h_to_p
-def set_ephemeris_data_path(data_path=const._ephe_path):
+def set_ephemeris_data_path(data_path=None):
+    if data_path is None: data_path = const._ephe_path
     swe.set_ephe_path(data_path)
-def set_language(language=const._DEFAULT_LANGUAGE):
+def set_language(language=None):
+    if language is None: language=const._DEFAULT_LANGUAGE
     global resource_strings
     #print('language',language)
     if language in const.available_languages.values():
@@ -439,7 +481,7 @@ def get_resource_lists(language_list_file=const._LANGUAGE_PATH + const._DEFAULT_
             Defualt: ./lang/list_values_en.txt
         @return: [PLANET_NAMES,NAKSHATRA_LIST,NAKSHATRA_SHORT_LIST,TITHI_LIST,RAASI_LIST,KARANA_LIST,DAYS_LIST,PAKSHA_LIST,
                  YOGAM_LIST,MONTH_LIST,YEAR_LIST,DHASA_LIST,BHUKTHI_LIST,PLANET_SHORT_NAMES,RAASI_SHORT_LIST,
-                 SHADVARGAMSA_NAMES,SAPTAVARGAMSA_NAMES,DHASAVARGAMSA_NAMES,SHODASAVARGAMSA_NAMES]
+                 SHADVARGAMSA_NAMES,SAPTAVARGAMSA_NAMES,DHASAVARGAMSA_NAMES,SHODASAVARGAMSA_NAMES,ISLAMIC_MONTH_LIST]
     """
     _read_resource_lists_from_file(language_list_file)
 # Convert 23d 30' 30" to 23.508333 degrees
@@ -698,9 +740,9 @@ def julian_day_number(date_of_birth_as_tuple,time_of_birth_as_tuple):
 gregorian_to_jd = lambda date: swe.julday(date.year, date.month, date.day, 0.0)
 jd_to_gregorian = lambda jd: swe.revjul(jd, swe.GREG_CAL)   # returns (y, m, d, fh
 def jd_to_local(jd,place):
-    from jhora.panchanga import drik
+    from jhora.panchanga.drik import Date
     y, m, d,_  = jd_to_gregorian(jd)
-    jd_utc = gregorian_to_jd(drik.Date(y, m, d))
+    jd_utc = gregorian_to_jd(Date(y, m, d))
     fhl = (jd - jd_utc) * 24 + place.timezone
     return y,m,d,fhl
 def deeptaamsa_range_of_planet(planet,planet_longitude_within_raasi):
@@ -720,7 +762,7 @@ def local_time_to_jdut1(year, month, day, hour = 0, minutes = 0, seconds = 0, ti
   jd_et, jd_ut1 = swe.utc_to_jd(y, m, d, h, mnt, 0, flag = swe.GREG_CAL)
   return jd_ut1
 def _convert_to_tamil_date_and_time(panchanga_date,time_of_day_in_hours,place=None):
-    #print('before',panchanga_date,time_of_day_in_hours)
+    from jhora.panchanga.drik import sunset
     extra_days = 0
     sign = 1
     if time_of_day_in_hours < 0:
@@ -738,8 +780,8 @@ def _convert_to_tamil_date_and_time(panchanga_date,time_of_day_in_hours,place=No
     #print('panchanga data after',panchanga_date)
     if place  is not None: # if solar time > sunset time move to next day
         jd = gregorian_to_jd(panchanga_date)
-        sunset_jd = drig_panchanga.sunset(jd, place)[0] - (place.timezone/24.)
-        sunset_time = from_dms_str_to_degrees(drig_panchanga.sunset(sunset_jd,place)[1])
+        sunset_jd = sunset(jd, place)[0] - (place.timezone/24.)
+        sunset_time = from_dms_str_to_degrees(sunset(sunset_jd,place)[1])
         if sunset_time < time_of_day_in_hours:
             new_panchanga_date = next_panchanga_day(panchanga_date, add_days=1)
             #print(panchanga_date,'sunset_time < solar_hour1',sunset_time,time_of_day_in_hours,'new_panchanga_date',new_panchanga_date)
@@ -747,24 +789,26 @@ def _convert_to_tamil_date_and_time(panchanga_date,time_of_day_in_hours,place=No
     #print('panchanga data returned',panchanga_date)
     return panchanga_date,time_of_day_in_hours
 def previous_panchanga_day(panchanga_date,minus_days=1):
+    from jhora.panchanga.drik import Date
     np_date = np.datetime64(panchanga_date)
     prev_date = np_date - np.timedelta64(minus_days,"D")
     p_date_str = np.datetime_as_string(prev_date).split('-')
     if len(p_date_str) == 4:
-        p_date = drig_panchanga.Date(-int(p_date_str[1]),int(p_date_str[2]),int(p_date_str[3]))
+        p_date = Date(-int(p_date_str[1]),int(p_date_str[2]),int(p_date_str[3]))
     else:
-        p_date = drig_panchanga.Date(int(p_date_str[0]),int(p_date_str[1]),int(p_date_str[2]))
+        p_date = Date(int(p_date_str[0]),int(p_date_str[1]),int(p_date_str[2]))
     return p_date 
 def next_panchanga_day(panchanga_date,add_days=1):
+    from jhora.panchanga.drik import Date
     np_date = np.datetime64(panchanga_date)
     add_days_int = int(add_days)
     prev_date = np_date + np.timedelta64(int(add_days_int),"D")
     p_date_str = np.datetime_as_string(prev_date).split('-')
     #print('np_date',np_date,'add_days_int',add_days_int,'prev_date',prev_date,'p_date_str',p_date_str)
     if len(p_date_str) == 4:
-        p_date = drig_panchanga.Date(-int(p_date_str[1]),int(p_date_str[2]),int(p_date_str[3]))
+        p_date = Date(-int(p_date_str[1]),int(p_date_str[2]),int(p_date_str[3]))
     else:
-        p_date = drig_panchanga.Date(int(p_date_str[0]),int(p_date_str[1]),int(p_date_str[2]))
+        p_date = Date(int(p_date_str[0]),int(p_date_str[1]),int(p_date_str[2]))
     return p_date 
 def panchanga_date_diff(panchanga_date1,panchanga_date2):
     npdate1 = np.datetime64(panchanga_date1) ; npdate2 = np.datetime64(panchanga_date2)
@@ -781,13 +825,13 @@ def panchanga_time_delta(panchanga_date1, panchanga_date2):#,**kwargs=None):
 def panchanga_date_to_tuple(panchanga_date): #V2.3.0
     return panchanga_date[0],panchanga_date[1],panchanga_date[2]
 def date_diff_in_years_months_days(start_date_str,end_date_str,date_format_str='%Y-%m%-d'):
-    start_date = datetime.datetime.strptime(start_date_str,date_format_str)
-    end_date = datetime.datetime.strptime(end_date_str,date_format_str)
+    start_date = dt.datetime.strptime(start_date_str,date_format_str)
+    end_date = dt.datetime.strptime(end_date_str,date_format_str)
     delta = relativedelta.relativedelta(end_date, start_date)
     return delta.years,delta.months, delta.days
 def get_dob_years_months_60hrs_from_today(dob,tob):
     jd_dob = julian_day_number(dob, tob)
-    current_date_str,_ = datetime.datetime.now().strftime('%Y,%m,%d;%H:%M:%S').split(';')
+    current_date_str,_ = dt.datetime.now().strftime('%Y,%m,%d;%H:%M:%S').split(';')
     yt,mt,dt = map(int,current_date_str.split(','))
     jd_now = julian_day_number((yt,mt,dt), tob)
     if jd_now > jd_dob:
@@ -824,13 +868,14 @@ def _solar_mean_motion_since_1900(days_since_1900):
             lng = const.mean_solar_daily_motions_table_from_1900[c1-1][i]
             #print(i,c,'row',c1-1,'column',10**i,lng)
 def udhayadhi_nazhikai(jd,place):
+    from jhora.panchanga.drik import sunrise
     import math
     _,_,_,birth_time_hrs = jd_to_gregorian(jd)
-    sunrise_time_in_float_hours = drig_panchanga.sunrise(jd, place)[0]
+    sunrise_time_in_float_hours = sunrise(jd, place)[0]
     """ TODO If birthtime < sunrise then it is from previous day sun rise """
     time_diff = birth_time_hrs - sunrise_time_in_float_hours
     if birth_time_hrs < sunrise_time_in_float_hours:
-        sunrise_time_in_float_hours = drig_panchanga.sunrise(jd-1, place)[0]
+        sunrise_time_in_float_hours = sunrise(jd-1, place)[0]
         #print('birth time less than sunrise - previous day sunrise considered',sunrise_time_in_float_hours)
         time_diff = 24.0+birth_time_hrs-sunrise_time_in_float_hours
     hours,minutes,seconds = to_dms(time_diff,as_string=False)
@@ -857,8 +902,8 @@ def get_fraction_old(start_time_hrs,end_time_hrs,birth_time_hrs):
     #print('birth time',birth_time_hrs, 'tithi start',tithi_start_time_hrs,'tithi end',tithi_end_time_hrs,'tithi duration',tl,'tithi fraction',tf)
     return tf
 
-count_stars = lambda from_star,to_star,dir=1,total=27: ((to_star + total - from_star) % total)+1 if dir==1 else ((from_star + total - to_star) % total)+1
-count_rasis = lambda from_rasi,to_rasi,dir=1,total=12: ((to_rasi + total - from_rasi) % total)+1 if dir==1 else ((from_rasi + total - to_rasi) % total)+1
+count_stars = lambda from_star,to_star,direction=1,total=27: ((total + direction * (to_star - from_star)) % total)+1
+count_rasis = lambda from_rasi,to_rasi,direction=1,total=12: ((total + direction * (to_rasi - from_rasi)) % total)+1
 def parivritti_even_reverse(dcf,dirn=1):
     """
         generates parivritti tuple (rasi_sign, hora_portion_of_varga, varga_sign)
@@ -1051,8 +1096,8 @@ cyclic_count_of_stars_with_abhijit_in_22 = lambda lst, from_star, to_star: \
 cyclic_count_of_stars_with_abhijit = lambda from_star, count, direction=1,star_count=28: ((from_star - 1 + (count - 1) * direction) % star_count) + 1
 cyclic_count_of_stars = lambda from_star, count, direction=1:cyclic_count_of_stars_with_abhijit(from_star, count, direction,star_count=27)
 cyclic_count_of_stars_without_abhijit = lambda from_star, count, direction=1:cyclic_count_of_stars_with_abhijit(from_star, count, direction,star_count=27)
-cyclic_count_of_numbers = lambda from_number, to_number, dir=1,number_count=30: \
-    ((from_number - 1 + (to_number - 1) * dir) % number_count) + 1
+cyclic_count_of_numbers = lambda from_number, to_number, direction=1,number_count=30: \
+    ((from_number - 1 + (to_number - 1) * direction) % number_count) + 1
 def triguna_of_the_day_time(day_index, time_of_day):
     keys = sorted(const.triguna_days_dict.keys())
     
@@ -1061,10 +1106,23 @@ def triguna_of_the_day_time(day_index, time_of_day):
     next_key = min((k for k in keys if k > min_key), default=keys[0])
     
     return const.triguna_days_dict[min_key][day_index], min_key, next_key
+def date_time_string_to_date_time_tuple(date_time_string):
+    """ convert 1998-03-01 13:30:00 PM to (1998,3,1,13.5) """
+    date_time_string.replace("AM","").replace("PM","")
+    dstr,tstr = date_time_string.split(" ")
+    y,m,d = dstr.strip().split("-")
+    hh,mm,ss = tstr.strip().split(":")
+    t1 = int(hh)+int(mm)/60.0+int(ss)/3600.0
+    return (int(y),int(m),int(d),float(t1))
 def julian_day_to_date_time_string(jd):
-    jy,jm,jd,jfh = jd_to_gregorian(jd)
-    ret = "{:04d}-{:02d}-{:02d} {}".format(jy,jm,jd,to_dms(jfh,as_string=True))
-    return ret
+    y, m, d, h = jd_to_gregorian(jd)
+    t = to_dms(h, as_string=True,use_24hour_format=True)
+    ampm = "AM" if 0 <= h < 12 else "PM"
+    return f"{y:04d}-{m:02d}-{d:02d} {t} {ampm}"
+def date_time_tuple_to_date_time_string(y,m,d,h):
+    t = to_dms(h, as_string=True,use_24hour_format=True)
+    ampm = "AM" if 0 <= h < 12 else "PM"
+    return f"{y:04d}-{m:02d}-{d:02d} {t} {ampm}"
 def get_nakshathra_list_with_abhijith():
     return [NAKSHATRA_LIST[s] for s in range(20)]+[NAKSHATRA_LIST[27]]+[NAKSHATRA_LIST[s] for s in range(20,27)]
 karana_lord = lambda karana_index: [_karana_lord for _karana_lord,kar_list in const.karana_lords.items() if karana_index in kar_list[0]][0]
@@ -1104,7 +1162,7 @@ def get_year_month_day_from_date_format(date_text):
     # Try to parse the date using the defined formats
     for fmt in date_formats:
         try:
-            date_obj = datetime.datetime.strptime(date_text, fmt)
+            date_obj = dt.datetime.strptime(date_text, fmt)
             if is_bce:
                 date_obj = -date_obj.year,date_obj.month,date_obj.day
                 return date_obj
@@ -1170,7 +1228,7 @@ def vaakya_tamil_month(year, month_number):
     # January 1st of 1900 was Kali yuga's 1826555'th day
     # See how many days have elapsed since and add to English date.
     diff=kddays-1826555
-    month_birthday = datetime.datetime(1900,1,1,0,0,0)+datetime.timedelta(days=diff)
+    month_birthday = dt.datetime(1900,1,1,0,0,0)+dt.timedelta(days=diff)
     
     # Step 8: To calculate how many days in this month, find next month start.
     if month_number < 12:
@@ -1181,10 +1239,10 @@ def vaakya_tamil_month(year, month_number):
         next_mon_kd=int(next_mon_kd)+1
     else:
         next_mon_kd=int(next_mon_kd)
-    next_mon_birthday = datetime.datetime(1900,1,1,0,0,0)+datetime.timedelta(days=next_mon_kd-1826555)
+    next_mon_birthday = dt.datetime(1900,1,1,0,0,0)+dt.timedelta(days=next_mon_kd-1826555)
     num_days_in_this_month = (next_mon_birthday-month_birthday).days
     
-    return tamil_month_names[month_number-1], datetime.datetime.strftime(month_birthday, '%d-%m-%Y'), weekday, num_days_in_this_month, month_start_kd
+    return tamil_month_names[month_number-1], dt.datetime.strftime(month_birthday, '%d-%m-%Y'), weekday, num_days_in_this_month, month_start_kd
 def _validate_language_resources(lang):
     set_language(lang)
 def trim_info_list_lines(info_lines: list[str], skip_lines: int) -> list[str]:
@@ -1278,7 +1336,8 @@ def is_planet_strong(planet,planet_house,include_neutral_samam=False):
     else:
         return const.house_strengths_of_planets[planet][planet_house] >= const._FRIEND
 def is_planet_in_debilitation(planet,planet_house,planet_positions=None,enforce_deep_debilitation=True):
-    if planet_positions is not None and enforce_deep_debilitation:
+    if (planet_positions is not None and enforce_deep_debilitation and 
+            planet not in [const.KETU_ID, const.RAHU_ID, const._ascendant_symbol]): 
         sign_idx, lon_in_sign = planet_positions[planet + 1][1]
         abs_longitude = (sign_idx * 30) + lon_in_sign
         deep_ex_lon = const.planet_deep_debilitation_longitudes[planet]
@@ -1406,8 +1465,1318 @@ is_cruel_shashtiamsa_ruler = lambda deity_index : deity_index in const.shashti_a
 is_kroora_shashtiamsa_ruler = lambda deity_index : is_cruel_shashtiamsa_ruler(deity_index)
 is_soumya_shashtiamsa_ruler = lambda deity_index : deity_index in const.shashti_amsa_rulers_soumya
 is_good_shashtiamsa_ruler = lambda deity_index : is_soumya_shashtiamsa_ruler(deity_index)
+def show_exception(e: Exception, debug=True):
+    _DEBUG_APP = debug
+    import inspect, traceback
+    def print_outer_frames():
+        print('JHora: showing complete trace...')
+        frame = inspect.currentframe()
+        outer_frames = inspect.getouterframes(frame)
+        for i, f in enumerate(outer_frames):
+            print(f"JHora: [{i}] File: {os.path.basename(f.filename)}, Function: {f.function}, Line: {f.lineno}")
+    def print_full_traceback(e: Exception):
+        tb = traceback.extract_tb(e.__traceback__)
+        if _DEBUG_APP: print("JHora: Full traceback:\n")
+        for i, frame in enumerate(tb):
+            file_name = os.path.basename(frame.filename)
+            function_name = frame.name
+            line_number = frame.lineno
+            code_line = frame.line
+            print(f"JHora: [{i}] File: {file_name}, Function: {function_name}, Line: {line_number}\n")
+            print(f"JHora:     Code: {code_line}\n")
+    tb = traceback.extract_tb(e.__traceback__)
+    if tb:
+        last_trace = tb[-1]
+        file_name = os.path.basename(last_trace.filename)
+        function_name = last_trace.name
+        line_number = last_trace.lineno
+        outer_frames_list = []
+    else:
+        frame = inspect.currentframe()
+        outer_frames = inspect.getouterframes(frame)
+        file_name = os.path.basename(outer_frames[1].filename)
+        function_name = outer_frames[1].function
+        line_number = outer_frames[1].lineno
+        print_outer_frames()
+    log_message = f"JHora: [ERROR] {file_name}:{function_name}:{line_number} - {str(e)}\n outer_frames:{outer_frames_list}"
+    if _DEBUG_APP: print("JHora: ",log_message)
+    print_full_traceback(e)
 
+# --- Sign formatting helpers ---
+
+SIGN_ABBR = ["Ar", "Ta", "Ge", "Cn", "Le", "Vi", "Li", "Sc", "Sg", "Cp", "Aq", "Pi"]
+
+def norm360(x: float) -> float:
+    """Normalize any angle to [0, 360)."""
+    return x % 360.0
+
+def deg_to_sign_str(
+    lon_deg: float,
+    zero_pad_deg: bool = True,
+    include_seconds: bool = True,
+    sec_precision: int = 2
+) -> str:
+    """
+    Convert a ecliptic longitude in [0,360) to JHora-style string.
+
+    Examples:
+        89.5833  (≈ 29 Ge 35' ) -> '29Ge35'
+        75.5     (≈ 15 Ge 30' ) -> '15Ge30'
+        293.56816 (≈ 23 Cp 34' 05.38") with include_seconds=True -> '23Cp34\'05.38"'
+    """
+    lon = norm360(lon_deg)  # expects 0..360; norm handles anything
+
+    # Determine sign and within-sign longitude
+    sign_idx = int(lon // 30.0)
+    sign_abbr = SIGN_ABBR[sign_idx]
+    within = lon - sign_idx * 30.0  # 0..30
+
+    # Degrees within sign
+    d = int(within)  # 0..29
+
+    if include_seconds:
+        # Minutes & seconds (with carry handling)
+        minutes_exact = (within - d) * 60.0          # 0..60
+        m = int(minutes_exact)                       # 0..59
+        seconds_exact = (minutes_exact - m) * 60.0   # 0..60
+
+        # Round seconds and carry if needed
+        s = round(seconds_exact, sec_precision)
+        if s >= 60.0:
+            s = 0.0
+            m += 1
+
+        # Carry minutes to degrees if needed
+        if m >= 60:
+            m = 0
+            d += 1
+            if d >= 30:
+                d = 0
+                sign_idx = (sign_idx + 1) % 12
+                sign_abbr = SIGN_ABBR[sign_idx]
+
+        # Build components
+        d_str = f"{d:02d}" if zero_pad_deg else f"{d}"
+        m_str = f"{m:02d}"
+        # Seconds as fixed precision (e.g., 05.37 or 5.37). JHora typically shows 2-digit minutes;
+        # for seconds, it’s acceptable without leading zero on the seconds field. We’ll keep no leading zero.
+        s_str = f"{s:.{sec_precision}f}".rstrip('0').rstrip('.') if sec_precision > 0 else f"{int(s)}"
+
+        return f"{d_str}{sign_abbr}{m_str}'{s_str}\""
+
+    else:
+        # Minutes only (original behavior), with rounding and carry
+        m = int(round((within - d) * 60.0))  # 0..60 (may round up)
+        if m == 60:
+            m = 0
+            d += 1
+            if d == 30:
+                d = 0
+                sign_idx = (sign_idx + 1) % 12
+                sign_abbr = SIGN_ABBR[sign_idx]
+
+        d_str = f"{d:02d}" if zero_pad_deg else f"{d}"
+        return f"{d_str}{sign_abbr}{m:02d}"
+
+def format_triplet(triple, labels=("Start", "Cusp", "End")) -> str:
+    """
+    Given a (start, mid/cusp, end) triple in degrees, return a single formatted line.
+    """
+    s, c, e = triple
+    return f"{labels[0]}: {deg_to_sign_str(s)}, {labels[1]}: {deg_to_sign_str(c)}, {labels[2]}: {deg_to_sign_str(e)}"
+
+def print_bhava_houses(bhava_houses, start_label="Start", mid_label="Cusp", end_label="End"):
+    """
+    Pretty-print a list of 12 (start, mid, end) triples in JHora-like notation.
+    """
+    for i, triple in enumerate(bhava_houses, start=1):
+        s, m, e = triple
+        line = format_triplet((s, m, e), (start_label, mid_label, end_label))
+        print(f"House {i:02d}: {line}")
+
+""" KP Lord Calculation Functions Start here """
+from typing import Dict, List, Union
+
+# ---- Required constants (already in your env) ----
+# const.vimsottari_adhipati_list = [8, 5, 0, 1, 2, 7, 4, 6, 3]  # Ketu,Venus,Sun,Moon,Mars,Rahu,Jupiter,Saturn, Mercury
+# const.vimsottari_dict          = {8:7, 5:20, 0:6, 1:10, 2:7, 7:18, 4:16, 6:19, 3:17}
+# const._house_owners_list       = [...]  # sign lords for 0..11 (Ar..Pi) in your planet ID scheme
+
+VIMS_ORDER: List[int] = const.vimsottari_adhipati_list
+VIMS_YEARS: Dict[int, int] = const.vimsottari_dict
+ORDER_POS = {pid: i for i, pid in enumerate(VIMS_ORDER)}  # to avoid .index() calls
+
+NAK_MIN = 13 * 60 + 20  # 800 arc-minutes per Nakshatra
+
+def kp_lords_for_longitude(
+    planet_label: Union[int, str],
+    lon_deg: float,
+    include_sign_lord: bool = False,
+    include_kp_index: bool = True,
+    levels: int = 5  # 6 => Sub, Praty, Sookshma, Praana, Deha (+ star always returned)
+) -> Dict[Union[int, str], List[int]]:
+    """
+    Iterative KP micro-lord calculator (single function).
+    Returns {planet_label: [kp_index?, (sign_lord?), star, sub, praty, sookshma, praana, deha]}.
+    """
+    # --- normalize input ---
+    lon = lon_deg % 360.0
+
+    out: List[int] = []
+
+    # --- KP index (1..249) O(1) formula ---
+    if include_kp_index:
+        kp_index = int((lon * 249.0) // 360.0) + 1
+        if kp_index < 1: kp_index = 1
+        elif kp_index > 249: kp_index = 249
+        out.append(kp_index)
+
+    # --- optional sign lord ---
+    if include_sign_lord:
+        sign_idx = int(lon // 30.0)     # 0..11
+        out.append(const._house_owners_list[sign_idx])
+
+    # --- Nakshatra index (0..26) & offset minutes within that Nakshatra ---
+    total_min = lon * 60.0
+    nak_idx = int(total_min // NAK_MIN)             # 0..26
+    off_in_nak = total_min - nak_idx * NAK_MIN      # 0..800
+
+    # --- Star lord (9-cycle repeats) ---
+    star_lord = VIMS_ORDER[nak_idx % 9]
+    out.append(star_lord)
+
+    # --- Walk down the KP micro-levels iteratively ---
+    # Level 1: Sub (inside Nakshatra of length 800′, starting from star_lord)
+    # Then keep descending: parent_len, start_lord, and offset shrink each time.
+    parent_len = float(NAK_MIN)   # in arc-minutes (800.0)
+    start_lord = star_lord
+    offset = off_in_nak
+    eps = 1e-9
+
+    # guard: clamp levels to [1..6] if someone changes default
+    levels = max(1, min(6, int(levels)))
+
+    for lvl in range(levels):  # 6 → Sub, Praty, Sookshma, Praana, Deha
+        # Split parent into 9 KP parts, starting from 'start_lord'
+        one_year = parent_len / 120.0  # divide once; multiply by years for each segment
+        acc = 0.0
+
+        start_pos = ORDER_POS[start_lord]
+        chosen_lord = start_lord
+        chosen_len = parent_len
+        chosen_off = 0.0
+
+        for i in range(9):
+            pid = VIMS_ORDER[(start_pos + i) % 9]
+            seg_len = VIMS_YEARS[pid] * one_year
+            nxt = acc + seg_len
+            # inclusive last segment to avoid boundary flip-flop
+            if offset < (nxt + (eps if i < 8 else 10 * eps)):
+                chosen_lord = pid
+                chosen_len = seg_len
+                chosen_off = max(0.0, offset - acc)
+                break
+            acc = nxt
+        # append this level's lord
+        out.append(chosen_lord)
+        # descend into the chosen segment
+        start_lord = chosen_lord
+        parent_len = chosen_len
+        offset = chosen_off
+
+    return {planet_label: out}
+""" KP Lord Calculation Functions End here """
+def _set_flags_for_planet_positions(
+    *,
+    sidereal_positions: bool = True,          # False = tropical
+    geometric_positions: bool = True,         # False = topocentric (observer-based)
+    true_positions: bool = True,              # False = apparent
+    use_aberration_of_light: bool = True,     # False -> disable aberration
+    use_gravitational_deflection: bool = False, # True to include deflection; default Swiss Ephemeris includes it for apparent
+    use_nutation: bool = False,               # True to include nutation (true equator/ecliptic of date)
+    include_default_engine: bool = True,       # optionally include swe.FLG_SWIEPH here
+    include_speed = True, # required for planet speed calculations
+) -> int:
+    """
+    Return flags for swe_calc* (planetary positions).
+    """
+    flags = 0
+    if include_default_engine: flags |= swe.FLG_SWIEPH
+    if sidereal_positions: flags |= swe.FLG_SIDEREAL
+    if not geometric_positions: flags |= swe.FLG_TOPOCTR  # Remember to call swe.set_topo(lon, lat, alt) elsewhere
+    if true_positions: flags |= swe.FLG_TRUEPOS
+    if not use_aberration_of_light: flags |= swe.FLG_NOABERR
+    if not use_gravitational_deflection: flags |= swe.FLG_NOGDEFL
+    if not use_nutation: flags |= swe.FLG_NONUT
+    if include_speed: flags |= swe.FLG_SPEED
+    return flags
+
+def set_flags_for_planet_positions(
+    *,
+    sidereal_positions: bool = True,               # False = tropical
+    geocentric_positions: bool | None = None,      # preferred new name
+    geometric_positions: bool | None = None,       # backward-compatible alias
+    true_positions: bool | None = None,            # False = apparent, True = true
+    use_aberration_of_light: bool | None = None,   # False -> disable aberration
+    use_gravitational_deflection: bool | None = None,  # True to include deflection
+    use_nutation: bool | None = None,              # True to include nutation
+    include_default_engine: bool = True,
+    include_speed: bool = True,
+) -> int:
+    """
+    Return flags for swe_calc* (planetary positions).
+
+    Priority:
+      1. Explicit function argument
+      2. backward-compatible alias (geometric_positions)
+      3. jhora.const runtime setting
+      4. original historical default from PyJHora
+    """
+    flags = 0
+
+    # --------------------------------------------------
+    # Geo / Topo
+    # Original default: geometric_positions=True
+    # --------------------------------------------------
+    if geocentric_positions is None:
+        if geometric_positions is not None:
+            geocentric_positions = bool(geometric_positions)
+        else:
+            geocentric_positions = bool(
+                getattr(const, "PLANET_POSITIONS_GEOCENTRIC", True)
+            )
+    # --------------------------------------------------
+    # True / Apparent
+    # Original default: true_positions=True
+    # --------------------------------------------------
+    if true_positions is None:
+        true_positions = bool(
+            getattr(const, "PLANET_POSITIONS_TRUE", True)
+        )
+
+    # --------------------------------------------------
+    # Aberration
+    # Original default: use_aberration_of_light=True
+    # --------------------------------------------------
+    if use_aberration_of_light is None:
+        use_aberration_of_light = bool(
+            getattr(const, "PLANET_POSITIONS_USE_ABERRATION", True)
+        )
+
+    # --------------------------------------------------
+    # Gravitational deflection
+    # Original default: use_gravitational_deflection=False
+    # --------------------------------------------------
+    if use_gravitational_deflection is None:
+        use_gravitational_deflection = bool(
+            getattr(const, "PLANET_POSITIONS_USE_DEFLECTION", False)
+        )
+
+    # --------------------------------------------------
+    # Nutation
+    # Original default: use_nutation=False
+    # --------------------------------------------------
+    if use_nutation is None:
+        use_nutation = bool(
+            getattr(const, "PLANET_POSITIONS_USE_NUTATION", False)
+        )
+
+    # --------------------------------------------------
+    # Build flags
+    # --------------------------------------------------
+    if include_default_engine:
+        flags |= swe.FLG_SWIEPH
+
+    if sidereal_positions:
+        flags |= swe.FLG_SIDEREAL
+
+    if not geocentric_positions:
+        flags |= swe.FLG_TOPOCTR  # remember to call swe.set_topo(...)
+
+    if true_positions:
+        flags |= swe.FLG_TRUEPOS
+
+    # For true positions aberration and deflection flags are ignored by Swiss Ephemeris
+    if not use_aberration_of_light:
+        flags |= swe.FLG_NOABERR
+
+    # original semantics:
+    # if user says "do not use gravitational deflection", set NOGDEFL
+    if not use_gravitational_deflection:
+        flags |= swe.FLG_NOGDEFL
+
+    # original semantics:
+    # if user says "do not use nutation", set NONUT
+    if not use_nutation:
+        flags |= swe.FLG_NONUT
+
+    if include_speed:
+        flags |= swe.FLG_SPEED
+
+    return flags
+
+def apply_topocentric_observer_if_needed(longitude: float, latitude: float, altitude_m: float = 0.0) -> None:
+    """
+    Call swe.set_topo(...) only if current config requires topocentric positions.
+    altitude_m must be in meters.
+    """
+    if not bool(getattr(const, "PLANET_POSITIONS_GEOCENTRIC", True)):
+        swe.set_topo(longitude, latitude, altitude_m)
+
+def set_flags_for_rise_set(
+    *,
+    flags_for_rise: bool = True,                   # True -> rise, False -> set
+    use_disc_center_for_rising: bool | None = None,
+    use_refraction: bool | None = None,
+    hindu_rising: bool | None = None,
+) -> int:
+    """
+    Return flags for swe_rise_transit / swe_rise_transit_ex.
+
+    Two main user-controlled dimensions:
+      1. Disc reference:
+         - center
+         - bottom
+      2. Horizon model:
+         - with refraction (apparent horizon)
+         - without refraction (true horizon)
+
+    Plus optional Hindu rising convention.
+    """
+    if use_disc_center_for_rising is None:
+        use_disc_center_for_rising = bool(
+            getattr(const, "RISE_SET_USE_DISC_CENTER_FOR_RISING", True)
+        )
+
+    if use_refraction is None:
+        use_refraction = bool(
+            getattr(const, "RISE_SET_USE_REFRACTION", False)
+        )
+
+    if hindu_rising is None:
+        hindu_rising = bool(
+            getattr(const, "RISE_SET_HINDU_RISING", True)
+        )
+
+    flags = 0
+
+    if hindu_rising:
+        flags |= swe.BIT_HINDU_RISING
+
+    if not use_refraction:
+        flags |= swe.BIT_NO_REFRACTION
+    else:
+        flags &= ~swe.BIT_NO_REFRACTION
+
+    flags |= swe.BIT_DISC_CENTER if use_disc_center_for_rising else swe.BIT_DISC_BOTTOM
+
+    flags &= ~(swe.CALC_RISE | swe.CALC_SET | swe.CALC_MTRANSIT | swe.CALC_ITRANSIT)
+    flags |= swe.CALC_RISE if flags_for_rise else swe.CALC_SET
+
+    return flags
+
+
+set_flag_for_calendar = lambda jd: swe.GREG_CAL if jd >= const._JULIAN_TRANSITION_DAY else swe.JUL_CAL
+
+def secant_interpolation(x,y,y0):
+    x0 = 0
+    for i in range(len(y) - 1):
+        if y[i] * y[i+1] <= 0:  # Sign change found
+            # Safety check: if the movement is zero, don't divide!
+            denom = y[i+1] - y[i]
+            if abs(denom) < y0: 
+                x0 = x[i]
+            else:
+                fraction = -y[i] / denom
+                x0 = x[i] + fraction * (x[i+1] - x[i])
+            break
+    return x0
+
+angle_diff = lambda a,b: (a-b+180)%360-180
+def get_place_from_latitude_longitude(latitude, longitude):
+    geo_locator = Nominatim(user_agent="PyJHora")
+    coorindates = f"{latitude},{longitude}"
+    location = geo_locator.reverse(coorindates,exactly_one=True)
+    return location
+
+import bisect
+
+ONE_NAK = 360.0 / 27.0  # 13°20'
+
+def degrees_between_jds(jds, jd_birth, jd_current):
+    """Assumes both JDs are inside [jds[0], jds[-1])."""
+    def pos(t):
+        i = bisect.bisect_right(jds, t) - 1
+        i = max(0, min(i, len(jds) - 2))  # clamp
+        span = jds[i+1] - jds[i]
+        f = 0.0 if span <= 0 else (t - jds[i]) / span
+        return i + f
+    delta_segments = pos(jd_current) - pos(jd_birth)
+    mpl =  delta_segments * ONE_NAK
+    return mpl
+from typing import Sequence, Tuple
+
+ONE_NAK = 13.333333333333334  # 13°20′ in decimal degrees
+NUM_NAK = 27
+
+def degrees_between_jds_with_birth_star(
+    jds: Sequence[float],
+    jd_current: float,
+    birth_star_index: int,
+) -> Tuple[float, float]:
+    """
+    Compute the progressed longitude (Vimsottari progression) assuming `jds`
+    are MAHADASA boundaries (one full nakshatra per span).
+
+    Parameters
+    ----------
+    jds : ascending list of JD boundaries such that
+          jds[0] = start of the birth star's mahadasa (progressed pos at start of nakshatra),
+          jds[1] = start of next nakshatra, etc.
+    jd_current : JD timestamp of interest (must satisfy jds[0] <= jd_current < jds[-1])
+    birth_star_index : 0..26 index of the birth nakshatra (Aśvinī=0, Bharanī=1, ..., Revatī=26)
+                       used only if you want to sanity-check against anchor computations.
+    birth_star_anchor_long : absolute longitude (0..360) of the START of the birth star
+                             in your zodiac/ayanāṁśa (e.g., 0.0 if Aśvinī starts at 0° Aries).
+
+    Returns
+    -------
+    rel_arc_deg : float
+        Relative arc from the START of the birth star (0 at birth star start),
+        i.e., i*ONE_NAK + frac*ONE_NAK (can be >= 360 if you provide >27 spans).
+    abs_long_deg : float
+        Absolute ecliptic longitude (0..360) = (birth_star_anchor_long + rel_arc_deg) % 360
+    """
+    if len(jds) < 2:
+        raise ValueError("jds must contain at least two boundaries (start and end).")
+    # Find the segment i with jds[i] <= jd_current < jds[i+1]
+    i = bisect.bisect_right(jds, jd_current) - 1
+    i = max(0, min(i, len(jds) - 2))  # clamp
+
+    span = jds[i+1] - jds[i]
+    if span <= 0:
+        raise ValueError("jds must be strictly increasing.")
+
+    frac = (jd_current - jds[i]) / span  # fraction of the current nakshatra traversed
+
+    rel_arc_deg = (i * ONE_NAK) + (frac * ONE_NAK)
+    progressed_longitude = (birth_star_index*ONE_NAK + rel_arc_deg) % 360.0
+    return progressed_longitude
+
+ONE_NAK = 13.333333333333334  # 13°20′ in decimal degrees
+
+def progressed_abs_long_general(
+    jds_level: Sequence[float],
+    jd_current: float,
+    birth_star_index: int,
+    dhasa_level_index: int = const.MAHA_DHASA_DEPTH.ANTARA,
+    total_lords_in_dhasa=9, # 8 for yogini
+) -> Tuple[float, float]:
+    """
+    Compute the progressed absolute longitude using Vimśottarī-as-progression
+    at an arbitrary dasha level (L):
+        L=1 mahadasa, L=2 antardasa (default), L=3 pratyantardasa,
+        L=4 sookshma, L=5 praana, L=6 deha.
+
+    Assumptions
+    -----------
+    - `jds_level` is a COMPLETE, strictly increasing list of boundaries at level L,
+      starting at the *start of the birth-star mahadasa* (progressed arc = 0 there).
+      Each half-open span [jds_level[i], jds_level[i+1]) is one segment at level L.
+    - Standard 27 equal nakshatras: one mahadasa = ONE_NAK = 13°20′ of arc.
+      Each deeper level divides the *same arc* by 9, so segment_arc = ONE_NAK / 9**(L-1).
+      (Per P.V.R. Narasimha Rao’s method.)  # See citation below
+    - By default, we assume Aśvinī starts at 0°, so the birth-star anchor is:
+          birth_star_index * ONE_NAK
+    Parameters
+    ----------
+    jds_level : Sequence[float]
+        JD boundaries at the chosen level L (complete from birth-star MD start).
+    jd_current : float
+        JD timestamp to evaluate.
+    birth_star_index : int
+        0..26 (Aśvinī=0, Bharanī=1, ..., Revatī=26)
+    dhasa_level_index : int, default=2
+        Level index: 1=MD, 2=AD, 3=PD, 4=SD, 5=PAD, 6=DAD (deha).
+    Returns
+    -------
+    rel_arc_deg : float
+        Degrees progressed since the *start of the birth-star MD*.
+    abs_long_deg : float
+        Absolute ecliptic longitude (0..360) for aspect/transit/D-chart use.
+
+    Raises
+    ------
+    ValueError
+        If inputs are out of range or `jds_level` is not strictly increasing.
+    """
+    if len(jds_level) < 2:
+        raise ValueError("Need at least two boundaries at the chosen level.")
+    if not (const.MAHA_DHASA_DEPTH.MAHA_DHASA_ONLY <= dhasa_level_index <= const.MAHA_DHASA_DEPTH.DEHA):
+        raise ValueError("dhasa_level_index must be in 1..6 (1=MD ... 6=deha).")
+
+    # Locate the segment i: jds[i] <= jd_current < jds[i+1]
+    i = bisect.bisect_right(jds_level, jd_current) - 1
+    i = max(0, min(i, len(jds_level) - 2))  # clamp to a valid index
+
+    span = jds_level[i+1] - jds_level[i]
+    if span <= 0:
+        raise ValueError("`jds_level` must be a strictly increasing sequence.")
+
+    # Fraction within the current segment (0..1)
+    frac = (jd_current - jds_level[i]) / span
+
+    # Geometry: one MD = ONE_NAK; each deeper level divides by 9
+    seg_arc_deg = ONE_NAK / (total_lords_in_dhasa ** (dhasa_level_index - 1))
+
+    # Relative arc since birth-star MD start
+    rel_arc_deg = (i + frac) * seg_arc_deg
+
+    anchor = (birth_star_index * ONE_NAK) % 360.0
+    # Absolute longitude
+    abs_long_deg = (anchor + rel_arc_deg) % 360.0
+    return abs_long_deg
+def get_running_dhasa_for_given_date(jd_given, dhasa_periods):
+    """
+    Select the running daśā for jd_given from a list of periods.
+
+    Accepts rows in ANY of these shapes (mixed lists allowed):
+      - (lords, start_tuple)
+      - (lords, start_tuple, duration_years)
+      - (lords, start_tuple, end_tuple)
+
+    Returns:
+      (lords, start_tuple, end_tuple)  with half-open semantics [start, end).
+
+    Robust to zero-duration periods:
+      - Skips over runs of identical start times to find the next DISTINCT start
+        when an end is not provided.
+      - If there is no next distinct start, returns a zero-length interval (start, start)
+        for that row instead of raising.
+    """
+    if not dhasa_periods:
+        raise ValueError("Empty dhasa_periods.")
+
+    import bisect
+    from jhora import const
+    from jhora.panchanga.drik import Date
+
+    # --- Canonical tuple <-> JD helpers ---
+    def _tuple_to_jd(t):
+        y, m, d, fh = t
+        return julian_day_number(Date(y, m, d), (fh, 0, 0))
+
+    def _jd_to_tuple(jd):
+        # In your codebase this returns (Y, M, D, fractional_hour)
+        return jd_to_gregorian(jd)
+
+    # --- days per year basis for duration -> end  (sidereal) ---
+    DAYS_PER_YEAR = const.sidereal_year
+
+    # --- Normalize to a working list with parsed starts/ends ---
+    # Each item: (lords, start_tuple, start_jd, end_tuple_or_None, end_jd_or_None, src_row)
+    work = []
+    for row in dhasa_periods:
+        if not isinstance(row, (list, tuple)):
+            raise TypeError("Each period must be a list/tuple.")
+        if len(row) < 2:
+            raise ValueError("Each period must have at least (lords, start_tuple).")
+
+        lords = row[0]
+        start_tuple = tuple(row[1])
+        sjd = _tuple_to_jd(start_tuple)
+
+        end_tuple = None
+        ejd = None
+
+        if len(row) >= 3:
+            third = row[2]
+            # 3rd field can be duration_years (float) or end_tuple (tuple)
+            if isinstance(third, (int, float)):
+                # duration in YEARS -> end jd
+                ejd = sjd + float(third) * DAYS_PER_YEAR
+                end_tuple = _jd_to_tuple(ejd)
+            elif isinstance(third, (list, tuple)) and len(third) == 4:
+                end_tuple = tuple(third)
+                ejd = _tuple_to_jd(end_tuple)
+            else:
+                # ignore unknown 3rd field
+                pass
+
+        work.append((lords, start_tuple, sjd, end_tuple, ejd, row))
+
+    # --- Sort by start jd (stable) ---
+    work.sort(key=lambda x: x[2])
+    starts = [w[2] for w in work]
+    n = len(work)
+
+    # --- Locate the group whose start <= jd_given ---
+    i = bisect.bisect_right(starts, jd_given) - 1
+    if i < 0:
+        # Earlier than the very first start
+        raise ValueError("jd_given is earlier than the first period start.")
+
+    # Walk forward across groups until we find a containing interval or hit the end
+    idx = i
+    while idx < n:
+        sjd = work[idx][2]
+
+        # Find the contiguous block [g0..g1] of rows that share this same start
+        g0 = idx
+        while g0 > 0 and work[g0 - 1][2] == sjd:
+            g0 -= 1
+        g1 = idx
+        while g1 + 1 < n and work[g1 + 1][2] == sjd:
+            g1 += 1
+
+        # Compute the "next distinct start" jd (used to bound rows that lack an explicit end)
+        next_distinct_jd = None
+        g_next = g1 + 1
+        while g_next < n and work[g_next][2] == sjd:
+            g_next += 1
+        if g_next < n:
+            next_distinct_jd = work[g_next][2]
+
+        # Check rows in this group for containment
+        chosen = None
+        for k in range(g0, g1 + 1):
+            lords, start_t, sjd_k, end_t, ejd_k, _src = work[k]
+
+            # Determine effective end:
+            if ejd_k is not None:
+                end_jd_eff = ejd_k
+                end_t_eff = end_t
+            elif next_distinct_jd is not None:
+                end_jd_eff = next_distinct_jd
+                end_t_eff = _jd_to_tuple(end_jd_eff)
+            else:
+                # No next distinct start and no explicit end -> zero-length at start
+                end_jd_eff = sjd_k
+                end_t_eff = start_t
+
+            # Half-open containment [start, end)
+            if sjd_k <= jd_given < end_jd_eff:
+                chosen = (lords, start_t, end_t_eff)
+                break
+
+        if chosen is not None:
+            return chosen
+
+        # If nothing contained jd_given in this group:
+        if next_distinct_jd is None:
+            # We're at the terminal group with no bound; return zero-length for the last row
+            lords_last, start_last, _, _, _, _ = work[g1]
+            return lords_last, start_last, start_last
+
+        # If jd_given is before the next distinct start but wasn't contained,
+        # it means all rows here were zero-length AND jd_given == sjd (or floating issues).
+        # In that edge case, return a zero-length selection for the last row in this group.
+        if jd_given < next_distinct_jd and jd_given >= sjd:
+            lords_last, start_last, _, _, _, _ = work[g1]
+            return lords_last, start_last, start_last
+
+        # Otherwise advance to the next distinct group and try again
+        idx = g_next
+
+    # If we exit the loop without return, jd_given is beyond all known coverage
+    raise ValueError("jd_given is not covered by the provided periods.")
+
+def get_running_dhasa_at_all_levels_for_given_date(
+    jd_given,
+    dhasa_periods,             # [(lords_tuple, start) ] or [(lords_tuple, start, duration)] or [(lords_tuple, start, end)]
+    dhasa_level_index,         # d (deepest level for this list)
+    *,
+    dhasa_cycle_count = 1,
+    extract_running_period_for_all_levels=False,
+):
+    """
+    Return the running daśā at all levels (1..d) that contains jd_given.
+
+    Supports rows in any of these shapes (mixed allowed):
+        (lords_tuple, start)
+        (lords_tuple, start, duration_years)
+        (lords_tuple, start, end_tuple)
+
+    End for a block is inferred as:
+      • start of the next block, if available; else
+      • if the *last* block in the cycle and an explicit duration/end is available on the last leaf row of that block,
+        use start_last_leaf + duration_last_leaf (or end_tuple), else None.
+
+    Half-open semantics: [start, end).
+    """
+    from bisect import bisect_right
+    from jhora.panchanga.drik import Date
+    from jhora import const
+
+    # ---- Helper: convert to JD ----
+    def _to_jd(start):
+        if isinstance(start, (tuple, list)) and len(start) == 4:
+            y, m, d, fh = start
+            return julian_day_number(Date(y, m, d), (fh, 0, 0))
+        return float(start)
+
+    def _row_end_jd(row):
+        """
+        Try to get an end JD from a row's 3rd field:
+          - If duration (float), end = start + duration * sidereal_year
+          - If end tuple, use it
+          - Else None
+        """
+        if len(row) < 3:
+            return None
+        third = row[2]
+        if isinstance(third, (int, float)):
+            return _to_jd(row[1]) + float(third) * const.sidereal_year
+        if isinstance(third, (list, tuple)) and len(third) == 4:
+            return _to_jd(third)
+        return None
+
+    # ---- Basic checks ----
+    L = len(dhasa_periods)
+    if L < 2:
+        raise ValueError("dhasa_periods must have at least 2 rows.")
+    d = dhasa_level_index
+    if not (1 <= d <= 12):
+        raise ValueError("dhasa_level_index must be between 1 and 12.")
+
+    if dhasa_cycle_count < 1 or int(dhasa_cycle_count) != dhasa_cycle_count:
+        raise ValueError("dhasa_cycle_count must be a positive integer.")
+    dhasa_cycle_count = int(dhasa_cycle_count)
+
+    if L % dhasa_cycle_count != 0:
+        print("ValueError:",
+            f"len(dhasa_periods)={L} is not divisible by dhasa_cycle_count={dhasa_cycle_count}."
+        )
+        return None
+
+    base_len = L // dhasa_cycle_count  # rows per cycle; should be n**d
+
+    # ---- Robust integer nth-root ----
+    def _int_nth_root_exact(x, n_):
+        r = int(round(x ** (1.0 / n_)))
+        while r > 0 and r ** n_ > x:
+            r -= 1
+        while (r + 1) ** n_ <= x:
+            r += 1
+        return r
+
+    n = _int_nth_root_exact(base_len, d)
+    if n < 2 or n ** d != base_len:
+        print("ValueError:",
+            f"Per-cycle length {base_len} is not an exact {d}-th power; cannot infer n (got n={n})."
+        )
+        return None
+    M = n ** d
+
+    # ---- Global starts (non-decreasing) ----
+    starts_global = [_to_jd(p[1]) for p in dhasa_periods]
+
+    i_global = bisect_right(starts_global, jd_given) - 1
+    if i_global < 0:
+        i_global = 0
+    if i_global >= L:
+        i_global = L - 1
+
+    # ---- Cycle view ----
+    c = min(i_global // M, dhasa_cycle_count - 1)
+    base = c * M
+    i_in_cycle = i_global - base
+
+    segment = dhasa_periods[base : base + M]  # leaf rows for this cycle
+
+    def _start_of_row(rows, idx):
+        return rows[idx][1]
+
+    def _end_for_block(idx0, block_len):
+        """
+        Prefer next block's start. If not available (last block and no next cycle),
+        try to compute end from the *last leaf row's* duration/end if present.
+        Otherwise None.
+        """
+        idx1 = idx0 + block_len
+        if idx1 < M:
+            return segment[idx1][1]  # next block's first start (same cycle)
+        # no next block in this cycle -> try next cycle
+        next_cycle_base = base + M
+        if next_cycle_base < L:
+            return dhasa_periods[next_cycle_base][1]  # first of next cycle
+
+        # Final fallback: compute from last leaf row's duration/end if available
+        last_leaf_idx = min(M - 1, idx0 + block_len - 1)
+        end_jd = _row_end_jd(segment[last_leaf_idx])
+        if end_jd is not None:
+            # Convert end_jd back to tuple using your utils
+            return jd_to_gregorian(end_jd)
+        return None
+
+    def _bisect_interval(level_rows, *, k, stride):
+        lvl_starts_jd = [_to_jd(r[1]) for r in level_rows]
+        j = bisect_right(lvl_starts_jd, jd_given) - 1
+        if j < 0:
+            j = 0
+        if j >= len(level_rows):
+            j = len(level_rows) - 1
+
+        idx0 = j * stride
+
+        lords_tuple = segment[idx0][0]
+        lord_k = tuple(lords_tuple[:k]) if isinstance(lords_tuple, (tuple, list)) else lords_tuple
+
+        start_k = _start_of_row(segment, idx0)
+        end_k   = _end_for_block(idx0, stride)
+        return (lord_k, start_k, end_k)
+
+    if extract_running_period_for_all_levels:
+        out = []
+        for k in range(1, d + 1):
+            stride = n ** (d - k)
+            lvl = segment[::stride]
+            lord_k, start_k, end_k = _bisect_interval(lvl, k=k, stride=stride)
+            out.append((lord_k, start_k, end_k))
+        return out
+
+    k = d
+    stride = n ** (d - k)
+    lvl = segment[::stride]
+    lord_k, start_k, end_k = _bisect_interval(lvl, k=k, stride=stride)
+    return (lord_k, start_k, end_k)
+
+from typing import List, Tuple, Optional, Union
+def _fraction_traversed_deep_first(lords_path, order):
+    """
+    Nested fraction at the start of the final level (deep -> shallow),
+    as in the paper's worked example.  (DAD first, then PAD, then SD, ... up to AD)
+    Ref: https://vedicastrologer.org/articles/transit_vimso_prog.pdf
+    """
+    lords = list(lords_path)
+    N = len(order)
+    if len(lords) == 1:
+        return 0.0
+    pos = {lord: i for i, lord in enumerate(order)}
+    # overs shallow->deep
+    overs = [(pos[lords[i]] - pos[lords[i - 1]]) % N for i in range(1, len(lords))]
+    # fold deep->shallow
+    F = overs[-1] / N
+    for x in reversed(overs[:-1]):
+        F = (F + x) / N
+    return F
+
+def progressed_longitude_for_event_date(
+    period_tuple: Tuple[
+        Tuple[int, ...],                                # (MD, AD, ..., deepest)
+        Union[Tuple[int, int, int, float], float],      # start bound (tuple or JD)
+        Union[Tuple[int, int, int, float], float],      # end   bound (tuple or JD)
+    ],
+    adhipathi_list: List[int],
+    birth_star_index: int,
+    jd_event: Optional[Union[float, Tuple[int, int, int, float]]] = None,
+) -> float:
+    """
+    Returns ABSOLUTE progressed longitude (0..360°).
+      - If jd_event is None: longitude at START of deepest period (paper’s method).
+      - If jd_event is JD (float) or (y,m,d,fh): linearly INTERPOLATED inside deepest period.
+
+    period_tuple = ((lords_path), start_bound, end_bound)
+      - start_bound/end_bound can be JD floats or (y,m,d,fh) tuples (IST or your chosen scale).
+    """
+    from jhora.panchanga.drik import Date
+    lords_path, start_bound, end_bound = period_tuple
+    if not isinstance(lords_path,tuple):lords_path=[lords_path]
+    N = len(adhipathi_list)
+
+    # 1) MD's nakshatra index from birth seed + lord offset
+    birth_lord = adhipathi_list[(birth_star_index - 1) % N]
+    md_lord = lords_path[0]
+    pos = {lord: i for i, lord in enumerate(adhipathi_list)}
+    lord_offset = (pos[md_lord] - pos[birth_lord]) % N
+    md_star_index = ((birth_star_index - 1 + lord_offset) % 27) + 1
+
+    # 2) Fraction at start of deepest level (deep -> shallow)
+    F = _fraction_traversed_deep_first(lords_path, adhipathi_list)  # per Rao  [1](https://vedicastrologer.org/articles/transit_vimso_prog.pdf)
+
+    # 3) Start longitude & per-level span
+    md_star_start_deg = (md_star_index - 1) * ONE_NAK
+    start_deg = norm360(md_star_start_deg + F * ONE_NAK)
+    level_span = ONE_NAK / (N ** (len(lords_path) - 1))  # e.g., Deha in Vimśottari ≈ 0.8129″  [1](https://vedicastrologer.org/articles/transit_vimso_prog.pdf)
+
+    # 4) No interpolation requested -> return start-of-period (paper)
+    if jd_event is None:
+        return start_deg
+
+    # 5) Convert bounds and event to JD if needed
+    if isinstance(start_bound, (int, float)):
+        jd_start = float(start_bound)
+    else:
+        y, m, d, fh = start_bound
+        jd_start = julian_day_number(Date(y, m, d), (fh, 0, 0))
+
+    if isinstance(end_bound, (int, float)):
+        jd_end = float(end_bound)
+    else:
+        y, m, d, fh = end_bound
+        jd_end = julian_day_number(Date(y, m, d), (fh, 0, 0))
+
+    if isinstance(jd_event, (int, float)):
+        jd_e = float(jd_event)
+    else:
+        y, m, d, fh = jd_event
+        jd_e = julian_day_number(Date(y, m, d), (fh, 0, 0))
+
+    # 6) Interpolation (clamped): the one-liner you suggested
+    t = 0.0 if jd_end <= jd_start else max(0.0, min(1.0, (jd_e - jd_start) / (jd_end - jd_start)))
+
+    # 7) Absolute longitude at event
+    return norm360(start_deg + t * level_span)
+from typing import Dict, List, Tuple, Optional, Union
+STAR_LENGTH_DEG = 360.0 / 27.0  # 13°20′ per nakshatra
+
+def _deg_normalize(x: float) -> float:
+    x %= 360.0
+    return x if x >= 0 else x + 360.0
+
+def progressed_longitude_for_period(
+    period_tuple: Tuple[
+        Tuple[int, ...],                               # (MD, AD, ..., deepest)
+        Union[Tuple[int,int,int,float], float],        # start bound (tuple or JD)
+        Union[Tuple[int,int,int,float], float],        # end   bound (tuple or JD)
+    ],
+    adhipathi_dict: Dict[int, float],                  # {lord: duration}; **insertion order = cycle order**
+    birth_star_index: int,                             # 1..27 (seed star at birth)
+    jd_event: Optional[Union[float, Tuple[int,int,int,float]]] = None,
+) -> float:
+    """
+    Returns ABSOLUTE progressed longitude (0..360°).
+      - If jd_event is None: longitude at START of the deepest period (paper's method).
+      - If jd_event is JD (float) or (y,m,d,fh): linearly INTERPOLATED inside the deepest window.
+
+    Assumptions:
+      * The insertion order of `adhipathi_dict` keys is the forward cycle of lords.
+      * Each level (AD..deepest) starts from the parent lord and cycles forward.
+    """
+    from jhora.panchanga.drik import Date
+    print('period_tuple',period_tuple)
+    lords_path, start_bound, end_bound = period_tuple
+
+    # ---- derive order & basic maps from adhipathi_dict ----
+    order: List[int] = list(adhipathi_dict.keys())      # cycle order from insertion order
+    durations = adhipathi_dict                           # alias
+    N = len(order)
+    pos = {lord: i for i, lord in enumerate(order)}
+    H = sum(durations[l] for l in order)                 # total of one cycle (used for shares)
+
+    # ---- map current MD's nakshatra from birth seed + lord offset ----
+    birth_lord = order[(birth_star_index - 1) % N]
+    md_lord = lords_path[0]
+    lord_offset = (pos[md_lord] - pos[birth_lord]) % N
+    md_star_index = ((birth_star_index - 1 + lord_offset) % 27) + 1
+
+    # ---- time fraction inside deepest window (for interpolation) ----
+    if jd_event is None:
+        t_deep = 0.0
+        # JD bounds not needed if we only want start-of-period
+    else:
+        # convert bounds to JD if needed
+        if isinstance(start_bound, (int, float)):
+            jd_start = float(start_bound)
+        else:
+            y, m, d, fh = start_bound
+            jd_start = julian_day_number(Date(y, m, d), (fh, 0, 0))
+
+        if isinstance(end_bound, (int, float)):
+            jd_end = float(end_bound)
+        else:
+            y, m, d, fh = end_bound
+            jd_end = julian_day_number(Date(y, m, d), (fh, 0, 0))
+
+        if isinstance(jd_event, (int, float)):
+            jd_e = float(jd_event)
+        else:
+            y, m, d, fh = jd_event
+            jd_e = julian_day_number(Date(y, m, d), (fh, 0, 0))
+
+        # the one-liner, clamped
+        t_deep = 0.0 if jd_end <= jd_start else max(0.0, min(1.0, (jd_e - jd_start) / (jd_end - jd_start)))
+
+    # ---- compute fraction inside the MD star via recursive ascent (variable durations) ----
+    # Core recurrence (correct for equal or variable durations):
+    #   Given child fraction F_child in [0,1) inside child segment C of duration D_C,
+    #   the fraction in the parent cycle (starting at parent-lord P) is:
+    #       F_parent = (sum_{lords before C from P} dur(l)) / H  +  F_child * (D_C / H)
+    #
+    # Start from the deepest level (child fraction = t_deep) and fold upward till AD.
+    F = t_deep
+    for k in range(len(lords_path) - 1, 0, -1):
+        child  = lords_path[k]
+        parent = lords_path[k - 1]
+        i_parent = pos[parent]
+        i_child  = pos[child]
+        steps = (i_child - i_parent) % N  # lords passed before child (starting at parent)
+        over_sum = 0.0
+        for s in range(steps):
+            over_sum += durations[order[(i_parent + s) % N]]
+        F = (over_sum / H) + F * (durations[child] / H)
+
+    # F is now the fraction of the current MD's nakshatra covered at the event (or at start if jd_event=None)
+
+    # ---- absolute longitude ----
+    md_star_start_deg = (md_star_index - 1) * STAR_LENGTH_DEG
+    lon = _deg_normalize(md_star_start_deg + F * STAR_LENGTH_DEG)
+    return lon
+def build_main_planets():
+    if 'PLANET_NAMES' not in globals():
+        set_language(const._DEFAULT_LANGUAGE)
+    planets_upto = 12 if const._INCLUDE_URANUS_TO_PLUTO else 9
+    return {p: PLANET_NAMES[p] for p in range(planets_upto)}
+build_main_planets()
+_main_planets = {p:PLANET_NAMES[p] for p in range(12)}
+_ascendant = {const._ascendant_symbol:resource_strings['ascendant_str']}
+_drik_upagrahas = {'Kl':'kaala','Mr':'mrityu','Ap':'artha_praharaka','Yg':'yama_ghantaka','Gk':'gulika','Md':'maandi'}
+_chart_upagrahas = {'Dm':'dhuma','Vp':'vyatipaata','Pv':'parivesha','Ic':'indrachaapa','Uk':'upaketu'}
+_special_lagnas= {'BL':'bhava_lagna','HL':'hora_lagna','GL':'ghati_lagna','PL':'pranapada_lagna',
+                                 'VL':'vighati_lagna','KL':'kunda_lagna','BBL':'bhrigu_bindhu_lagna',
+                                 'SL':'sree_lagna','IL':'indu_lagna'}
+_arudha_lagnas = {"A"+str(k):'bhava_arudha_a'+str(k) for k in range(1,13)}
+_varnada_lagnas = {"V"+str(k):'varnada_lagna (V'+str(k)+")" for k in range(1,13)}
+_sphutas = {"S"+str(s+1):sp for s,sp in enumerate(const.sphuta_list)}
+all_chart_planets = (_ascendant | _main_planets | _drik_upagrahas | _chart_upagrahas | _special_lagnas 
+                        | _arudha_lagnas | _varnada_lagnas | _sphutas )
+
+def set_owner_overrides_for_dhasa(overrides=None):
+    """
+    Global dhasa override setter (JHora-like). Call once; persists until changed.
+
+    overrides: dict or None
+      If None -> resets to defaults (no owner forcing; clears stronger-pair rules).
+
+    Expected dict schema:
+      {
+        "owners": { const.SCORPIO: planet_id, const.AQUARIUS: planet_id },
+        "stronger_pairs": {
+            (signA, signB): {"stronger": signX, "exception": "NONE"|"KETU"|"SATURN"|"SATURN_KETU"},
+            ...
+        }
+      }
+
+    Notes:
+      - Owner overrides affect all PyJHora immediately because house_owner uses const.* globals.
+      - Stronger-pair overrides are stored globally and used by modules that consult them (DRIG does).
+    """
+    # Reset
+    if overrides is None:
+        const.scorpio_owner_for_dhasa_calculations = None
+        const.aquarius_owner_for_dhasa_calculations = None
+        const.DHASA_STRONGER_PAIR_RULES = {}
+        return
+
+    if not isinstance(overrides, dict):
+        raise TypeError("overrides must be a dict or None")
+
+    owners = overrides.get("owners", {}) or {}
+    pairs  = overrides.get("stronger_pairs", {}) or {}
+
+    # ---- owners
+    # Only accept valid owner choices if you want strictness; otherwise accept as-is.
+    if const.SCORPIO in owners:
+        const.scorpio_owner_for_dhasa_calculations = int(owners[const.SCORPIO])
+    if const.AQUARIUS in owners:
+        const.aquarius_owner_for_dhasa_calculations = int(owners[const.AQUARIUS])
+
+    # ---- stronger pair rules: normalize to (min,max) key
+    norm = {}
+    for k, v in dict(pairs).items():
+        if not (isinstance(k, (tuple, list)) and len(k) == 2):
+            raise ValueError(f"stronger_pairs key must be a 2-tuple (signA, signB). Got: {k}")
+        a, b = int(k[0]) % 12, int(k[1]) % 12
+        if not isinstance(v, dict) or "stronger" not in v:
+            raise ValueError(f"stronger_pairs[{k}] must be dict with 'stronger'. Got: {v}")
+
+        stronger = int(v["stronger"]) % 12
+        exception = str(v.get("exception", "NONE")).upper().strip()
+        if exception not in ("NONE", "KETU", "SATURN", "SATURN_KETU"):
+            raise ValueError(f"Invalid exception '{exception}' for pair {k}")
+
+        norm[(min(a, b), max(a, b))] = {"stronger": stronger, "exception": exception}
+
+    const.DHASA_STRONGER_PAIR_RULES = norm
+
+def get_dhasa_stronger_pair_rules():
+    """
+    Accessor for globally configured stronger-pair rules.
+    Returns dict: (min_sign,max_sign) -> {"stronger": sign, "exception": "..."}
+    """
+    return getattr(const, "DHASA_STRONGER_PAIR_RULES", {}) or {}
+def _get_import_dhasa_module(dhasa_name):
+    entry = const.SPECIAL_DASHA_OPTIONS.get(dhasa_name)
+    module_name = entry["module"] if entry else dhasa_name
+    defaults    = entry.get("defaults", {}) if entry else {}
+    preferred   = entry.get("domain") if entry else ""
+    try_paths = []
+    if preferred in ("graha", "raasi","annual"):
+        try_paths.append(f"jhora.horoscope.dhasa.{preferred}.{module_name}")
+    else:
+        try_paths.extend([f"jhora.horoscope.dhasa.graha.{module_name}",
+                          f"jhora.horoscope.dhasa.{module_name}",
+                          f"jhora.horoscope.dhasa.raasi.{module_name}",
+                          f"jhora.horoscope.dhasa.annual.{module_name}"])
+    module = None
+    import importlib
+    for mp in try_paths:
+        try:
+            module = importlib.import_module(mp)
+            break
+        except ImportError:
+            continue
+    if module is None:
+        raise ImportError(f"Could not import any of: {', '.join(try_paths)}")
+    return module, defaults
+def is_valid_option(arg, allowed) -> bool:
+    """
+    arg: raw value (e.g., 1, 'P') OR Enum member (e.g., BHAVA_METHODS.PARASHARI)
+    allowed: Enum class (e.g., BHAVA_METHODS) OR container/mapping of allowed raw values (e.g., dict)
+    """
+    value = getattr(arg, "value", arg)  # Enum member -> its .value, else unchanged
+
+    # If allowed is an Enum class
+    if isinstance(allowed, type) and issubclass(allowed, Enum):
+        if isinstance(arg, allowed):
+            return True
+        try:
+            allowed(value)  # lookup by enum value
+            return True
+        except (ValueError, TypeError):
+            return False
+
+    # Otherwise allowed is a container/mapping of raw values (dict/set/list/keys-view)
+    try:
+        return value in allowed  # dict checks keys; set/list checks elements
+    except TypeError:
+        return False
+next_index = lambda index, start, end, step=1, direction=1: \
+    ((index - start + direction * step) % (end - start + 1)) + start
+next_tithi_index = lambda index, start=1, end=30, step=1, direction=1: next_index(index,start,end,step,direction)
+
+""" PLACE DATABASE HELPERS """
+from jhora import place_db
+def use_database_for_world_cities(enable_database=False):
+    return place_db.use_database_for_world_cities(enable_database)
+
+def search_places_for_completer(query, limit=15):
+    return place_db.search_places_for_completer(query, limit)
+
+def search_places_contains(query, limit=30):
+    return place_db.search_places_contains(query, limit)
+
+def get_exact_alias_labels(query, limit=15):
+    return place_db.get_exact_alias_labels(query, limit)
+
+def get_location_record(place_name=None):
+    return place_db.get_location_record(place_name)
+
+def get_location(place_name=None):
+    return place_db.get_location(place_name)
+
+def get_place(place_name=None):
+    return place_db.get_place(place_name)
+
+def debug_trace_alias(query, limit=20):
+    return place_db.debug_trace_alias(query, limit)
+
+reverse_languages = getattr(const, "reverse_languages", {v: k for k, v in const.available_languages.items()})
+def _lang_to_display(language_value):
+    """
+    Accept either display name ('Tamil') or code ('ta') and return display name.
+    """
+    if language_value is None:
+        return reverse_languages.get(getattr(const, "_DEFAULT_LANGUAGE", "en"), "English")
+
+    # already display name
+    if language_value in const.available_languages:
+        return language_value
+
+    # language code
+    if language_value in reverse_languages:
+        return reverse_languages[language_value]
+
+    # fallback
+    return reverse_languages.get(getattr(const, "_DEFAULT_LANGUAGE", "en"), "English")
+
+
+def _lang_to_code(language_value):
+    """
+    Accept either display name ('Tamil') or code ('ta') and return language code.
+    """
+    if language_value is None:
+        return getattr(const, "_DEFAULT_LANGUAGE", "en")
+    # display name
+    if language_value in const.available_languages:
+        return const.available_languages[language_value]
+    # already code
+    if language_value in reverse_languages:
+        return language_value
+    # fallback
+    return getattr(const, "_DEFAULT_LANGUAGE", "en")
+class Profiler:
+    def __init__(self, enabled=True, prefix="[PROFILE]"):
+        self.enabled = enabled
+        self.prefix = prefix
+        self.marks = {}
+
+    def start(self, label="default"):
+        """
+        Start a profiling session or a named profiling section.
+        """
+        if not self.enabled: return
+        from time import perf_counter
+        if not hasattr(self, "marks") or not isinstance(self.marks, dict):
+            self.marks = {}
+        now = perf_counter()
+        self.marks[label] = {
+            "_start": now,
+            "_last": now,
+        }
+        print(f"[PROFILE] {label}: started")
+
+    def mark(self, phase_name, label="default"):
+        """
+        Mark a phase inside a profiling session/section.
+        """
+        if not self.enabled: return
+        from time import perf_counter
+        if not hasattr(self, "marks") or label not in self.marks: return
+        now = perf_counter()
+        last = self.marks[label]["_last"]
+        start = self.marks[label]["_start"]
+        delta_last = now - last
+        delta_total = now - start
+        print(f"[PROFILE][{label}] {phase_name}: +{delta_last:.3f}s | total {delta_total:.3f}s")
+        self.marks[label]["_last"] = now
+    
+    def end(self, label="default"):
+        """
+        End a profiling session or named profiling section.
+        """
+        if not self.enabled: return
+        from time import perf_counter
+        if not hasattr(self, "marks") or label not in self.marks:return
+        total = perf_counter() - self.marks[label]["_start"]
+        print(f"[PROFILE] {label}: finished in {total:.3f}s")
+        del self.marks[label]
+def validate_star_index(star,min_index=1,max_index=27):
+    if not (min_index <= star <= max_index):
+        raise ValueError(f"star must be in range of {min_index}..{max_index}")
+def validate_raasi_index(raasi,min_index=1,max_index=12):
+    if not (min_index <= raasi <= max_index):
+        raise ValueError(f"Raasi must be in range of {min_index}..{max_index}")
+        
 if __name__ == "__main__":
-    original_list = ['4/6', '1/2', 'L/0', '5', '9/3', '10', '11', '7', '8']
-    print(remove_tropical_planets_from_chart(original_list))
-    pass
+    import time
+    start_time = time.time()
+    from jhora.panchanga.drik import Date,Place
+    dob = Date(-1,1,1); tob = (8,30,0); place = Place('Chicago,US', 41.85, -87.65, -5.0)
+    jd_local = julian_day_number(dob, tob)
+    print(get_place_timezone_offset(41.85, -87.65, jd_local),time.time()-start_time)
+    exit()
+    use_database_for_world_cities(True)
+    print(get_location("Pune"))
+    print(search_places_contains("Vadalur", limit=10))
+    print(search_places_contains("Inverness", limit=10))

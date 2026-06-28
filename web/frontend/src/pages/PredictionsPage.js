@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Zap, AlertCircle, CheckCircle, MapPin } from 'lucide-react';
+import { AlertCircle, CheckCircle, MapPin } from 'lucide-react';
 import { astrologyService } from '../services/api';
 import LocationSearch from '../components/LocationSearch';
 import '../styles/Forms.css';

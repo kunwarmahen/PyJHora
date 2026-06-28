@@ -2,7 +2,8 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
-import { Calendar, Heart, Clock, MessageCircle, LogOut, User, Star, Sparkles } from "lucide-react";
+import { formatDate, orDash } from "../utils/format";
+import { Calendar, Heart, Clock, MessageCircle, LogOut, User, Star, Sparkles, Orbit } from "lucide-react";
 import "../styles/Dashboard.css";
 
 export const DashboardPage = () => {
@@ -50,6 +51,13 @@ export const DashboardPage = () => {
       path: "/dhasa",
       gradient: "linear-gradient(135deg, #2D3561 0%, #5A5F7A 100%)",
     },
+    {
+      icon: <Orbit size={32} />,
+      title: "Transits (Gochara)",
+      description: "See where the planets are moving today over your natal chart",
+      path: "/transit",
+      gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
+    },
   ];
 
   return (
@@ -83,9 +91,9 @@ export const DashboardPage = () => {
                 <div className="profile-meta">
                   <span>{selectedProfile.birth_details.name || 'Anonymous'}</span>
                   <span className="separator">•</span>
-                  <span>{selectedProfile.birth_details.dob.split('T')[0]}</span>
+                  <span>{formatDate(selectedProfile.birth_details.dob)}</span>
                   <span className="separator">•</span>
-                  <span>{selectedProfile.birth_details.place}</span>
+                  <span>{orDash(selectedProfile.birth_details.place)}</span>
                 </div>
               </div>
             </div>

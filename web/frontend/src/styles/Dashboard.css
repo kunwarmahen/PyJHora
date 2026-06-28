@@ -330,3 +330,204 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Dosha cards (Birth Chart page) ===== */
+.dosha-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-md);
+}
+.dosha-card {
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--sandalwood);
+  background: var(--sacred-white);
+  transition: all 0.25s ease;
+}
+.dosha-card.present {
+  border-color: var(--vermillion);
+  background: rgba(227, 66, 52, 0.04);
+}
+.dosha-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+.dosha-name { font-weight: 700; color: var(--cosmic-indigo); font-size: 1rem; }
+.dosha-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+.dosha-badge.yes { background: var(--vermillion); color: white; }
+.dosha-badge.no { background: rgba(45, 53, 97, 0.08); color: var(--text-secondary); }
+.dosha-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+
+/* ===== Yoga cards (Birth Chart page) ===== */
+.yoga-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-md);
+}
+.yoga-card {
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--sandalwood);
+  border-left: 3px solid var(--temple-gold);
+  background: var(--sacred-white);
+}
+.yoga-name { font-weight: 700; color: var(--cosmic-indigo); font-size: 1rem; margin-bottom: var(--space-xs); }
+.yoga-desc { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: var(--space-sm); }
+.yoga-benefit { font-size: 0.82rem; color: var(--cosmic-indigo); line-height: 1.5; }
+.yoga-benefit-label {
+  display: block;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--temple-gold);
+  margin-bottom: 2px;
+}
+.section-count { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
+
+/* ===== Panchanga (daily almanac) panel ===== */
+.panchanga-panel {
+  background: white;
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  margin-top: var(--space-xl);
+  box-shadow: var(--shadow-lg);
+  border-top: 4px solid var(--saffron);
+}
+.panchanga-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-lg);
+}
+.panchanga-header h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0;
+  color: var(--cosmic-indigo);
+  font-size: 1.5rem;
+}
+.panchanga-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+.panchanga-controls .chart-style-toggle { margin-bottom: 0; }
+.panchanga-date {
+  padding: var(--space-xs) var(--space-md);
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-md);
+  color: var(--cosmic-indigo);
+  font-size: 0.9rem;
+  background: var(--sacred-white);
+}
+.panchanga-place {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.panchanga-place svg { color: var(--saffron); }
+.panchanga-status {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  padding: var(--space-md) 0;
+}
+.panchanga-limbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+.panchanga-limb {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--sandalwood);
+  border-left: 3px solid var(--temple-gold);
+  background: var(--sacred-white);
+}
+.panchanga-limb-label {
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--temple-gold);
+}
+.panchanga-limb-value { font-weight: 700; color: var(--cosmic-indigo); font-size: 0.98rem; }
+.panchanga-limb-sub { font-size: 0.72rem; color: var(--text-muted); }
+.panchanga-suntimes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xl);
+  margin-bottom: var(--space-lg);
+  font-size: 0.9rem;
+  color: var(--cosmic-indigo);
+  font-weight: 600;
+}
+.panchanga-suntimes span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.panchanga-suntimes svg { color: var(--saffron); }
+.panchanga-periods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-md);
+}
+.panchanga-period {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--sacred-white);
+  border: 1px solid var(--sandalwood);
+}
+.panchanga-period.inauspicious { border-left: 3px solid var(--vermillion); }
+.panchanga-period.auspicious { border-left: 3px solid var(--temple-gold); }
+.panchanga-period-label {
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.panchanga-period-time { font-weight: 700; color: var(--cosmic-indigo); font-size: 0.95rem; }
+.panchanga-durmuhurtam {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px dashed var(--sandalwood);
+}
+.panchanga-durm-slot {
+  display: inline-block;
+  margin-right: var(--space-md);
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  font-size: 0.95rem;
+}

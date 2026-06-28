@@ -51,9 +51,12 @@ mongodb_data/
 
 # Misc
 *.log
+.run/
 .cache/
 .coverage
 htmlcov/
 dist/
 build/
 docs/
+# Design preview (throwaway)
+frontend/ledger-preview.html

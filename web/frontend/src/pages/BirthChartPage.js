@@ -10,8 +10,12 @@ import {
   Star,
 } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
+import { formatDate, orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
 import { NorthIndianChart } from "../components/NorthIndianChart";
+import { SouthIndianChart } from "../components/SouthIndianChart";
+import { PanchangaPanel } from "../components/PanchangaPanel";
+import { AYANAMSAS, DEFAULT_AYANAMSA, VARGAS, DEFAULT_VARGA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 
 export const BirthChartPage = () => {
@@ -21,8 +25,46 @@ export const BirthChartPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [doshas, setDoshas] = useState(null);
+  const [yogas, setYogas] = useState(null);
+  const [chartStyle, setChartStyle] = useState(
+    () => localStorage.getItem("chartStyle") || "north"
+  );
+  const [ayanamsa, setAyanamsa] = useState(
+    () => localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA
+  );
+  const [varga, setVarga] = useState(
+    () => Number(localStorage.getItem("varga")) || DEFAULT_VARGA
+  );
+  const [vargaChart, setVargaChart] = useState(null);
+  const [vargaLoading, setVargaLoading] = useState(false);
 
-  // Redirect if no profile selected, otherwise calculate chart
+  const changeChartStyle = (style) => {
+    setChartStyle(style);
+    localStorage.setItem("chartStyle", style);
+  };
+
+  const changeAyanamsa = (value) => {
+    setAyanamsa(value);
+    localStorage.setItem("ayanamsa", value);
+  };
+
+  const changeVarga = (value) => {
+    setVarga(value);
+    localStorage.setItem("varga", String(value));
+  };
+
+  const buildBirthDetails = () => ({
+    name: selectedProfile.birth_details.name,
+    dob: selectedProfile.birth_details.dob,
+    tob: selectedProfile.birth_details.tob,
+    place: selectedProfile.birth_details.place,
+    latitude: parseFloat(selectedProfile.birth_details.latitude),
+    longitude: parseFloat(selectedProfile.birth_details.longitude),
+    timezone: parseFloat(selectedProfile.birth_details.timezone),
+  });
+
+  // Redirect if no profile selected; (re)calculate when profile or ayanamsa changes
   useEffect(() => {
     if (!selectedProfile) {
       navigate('/profile-selection');
@@ -30,7 +72,44 @@ export const BirthChartPage = () => {
     }
 
     calculateChart();
-  }, [selectedProfile, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProfile, navigate, ayanamsa]);
+
+  // Load the selected divisional (varga) chart. The Rasi (D1) and Navamsa (D9)
+  // come back with the main birth-chart response, so reuse those instead of an
+  // extra request; everything else is fetched on demand.
+  useEffect(() => {
+    if (!result || !selectedProfile) return;
+
+    if (varga === 1) {
+      setVargaChart({ planets: result.planets, lagna: result.lagna });
+      return;
+    }
+    if (varga === 9 && result.d9_chart && result.d9_lagna) {
+      setVargaChart({ planets: result.d9_chart, lagna: result.d9_lagna });
+      return;
+    }
+
+    let cancelled = false;
+    setVargaLoading(true);
+    setVargaChart(null);
+    astrologyService
+      .getDivisionalChart(buildBirthDetails(), varga, ayanamsa)
+      .then((r) => {
+        if (!cancelled) setVargaChart(r.data);
+      })
+      .catch(() => {
+        if (!cancelled) setVargaChart(null);
+      })
+      .finally(() => {
+        if (!cancelled) setVargaLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result, varga, ayanamsa]);
 
   const calculateChart = async () => {
     if (!selectedProfile) return;
@@ -39,18 +118,22 @@ export const BirthChartPage = () => {
     setError("");
 
     try {
-      const birthDetails = {
-        name: selectedProfile.birth_details.name,
-        dob: selectedProfile.birth_details.dob,
-        tob: selectedProfile.birth_details.tob,
-        place: selectedProfile.birth_details.place,
-        latitude: parseFloat(selectedProfile.birth_details.latitude),
-        longitude: parseFloat(selectedProfile.birth_details.longitude),
-        timezone: parseFloat(selectedProfile.birth_details.timezone),
-      };
+      const birthDetails = buildBirthDetails();
 
-      const response = await astrologyService.calculateBirthChart(birthDetails);
+      const response = await astrologyService.calculateBirthChart(birthDetails, ayanamsa);
       setResult(response.data);
+
+      // Yogas & doshas load independently — a failure here shouldn't blank the chart.
+      setDoshas(null);
+      setYogas(null);
+      astrologyService
+        .getDoshas(birthDetails, ayanamsa)
+        .then((r) => setDoshas(r.data?.doshas || null))
+        .catch(() => setDoshas(null));
+      astrologyService
+        .getYogas(birthDetails, ayanamsa)
+        .then((r) => setYogas(r.data?.yogas || null))
+        .catch(() => setYogas(null));
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to calculate chart");
     } finally {
@@ -120,9 +203,9 @@ export const BirthChartPage = () => {
               <div className="profile-meta">
                 <span>{selectedProfile.birth_details.name || 'Anonymous'}</span>
                 <span className="separator">•</span>
-                <span>{selectedProfile.birth_details.dob.split('T')[0]}</span>
+                <span>{formatDate(selectedProfile.birth_details.dob)}</span>
                 <span className="separator">•</span>
-                <span>{selectedProfile.birth_details.place}</span>
+                <span>{orDash(selectedProfile.birth_details.place)}</span>
               </div>
             </div>
           </div>
@@ -237,7 +320,7 @@ export const BirthChartPage = () => {
                     </span>
                   </div>
                   <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--cosmic-indigo)' }}>
-                    {selectedProfile.birth_details.dob.split('T')[0]}
+                    {formatDate(selectedProfile.birth_details.dob)}
                   </div>
                 </div>
                 <div style={{
@@ -259,7 +342,7 @@ export const BirthChartPage = () => {
                     </span>
                   </div>
                   <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--cosmic-indigo)' }}>
-                    {selectedProfile.birth_details.tob}
+                    {orDash(selectedProfile.birth_details.tob)}
                   </div>
                 </div>
                 <div style={{
@@ -281,14 +364,87 @@ export const BirthChartPage = () => {
                     </span>
                   </div>
                   <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--cosmic-indigo)' }}>
-                    {selectedProfile.birth_details.place}
+                    {orDash(selectedProfile.birth_details.place)}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* North Indian Chart */}
-            <NorthIndianChart chartData={result} />
+            {/* Chart style toggle: North / South Indian */}
+            {(() => {
+              const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
+              const styleLabel = chartStyle === "south" ? "South Indian" : "North Indian";
+              return (
+                <>
+                  <div className="chart-controls">
+                    <div className="chart-style-toggle" role="group" aria-label="Chart style">
+                      <button
+                        className={chartStyle === "north" ? "active" : ""}
+                        onClick={() => changeChartStyle("north")}
+                      >
+                        North Indian
+                      </button>
+                      <button
+                        className={chartStyle === "south" ? "active" : ""}
+                        onClick={() => changeChartStyle("south")}
+                      >
+                        South Indian
+                      </button>
+                    </div>
+
+                    <label className="ayanamsa-select">
+                      <span>Ayanamsa</span>
+                      <select value={ayanamsa} onChange={(e) => changeAyanamsa(e.target.value)}>
+                        {AYANAMSAS.map((a) => (
+                          <option key={a.value} value={a.value}>{a.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <Kundali chartData={result} title="Rasi Chart" subtitle={`D1 · ${styleLabel}`} />
+
+                  {/* Divisional (varga) chart with picker */}
+                  {(() => {
+                    const vargaMeta = VARGAS.find((v) => v.value === varga) || VARGAS[0];
+                    return (
+                      <div className="varga-section">
+                        <label className="ayanamsa-select varga-picker">
+                          <span>Divisional Chart</span>
+                          <select
+                            value={varga}
+                            onChange={(e) => changeVarga(Number(e.target.value))}
+                          >
+                            {VARGAS.map((v) => (
+                              <option key={v.value} value={v.value}>
+                                {v.code} · {v.name}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="varga-significance">{vargaMeta.significance}</span>
+                        </label>
+
+                        {vargaLoading ? (
+                          <div className="varga-loading">
+                            <div className="spinner"></div>
+                            <span>Calculating {vargaMeta.code} chart…</span>
+                          </div>
+                        ) : vargaChart && vargaChart.planets ? (
+                          <Kundali
+                            planets={vargaChart.planets}
+                            lagna={vargaChart.lagna}
+                            title={`${vargaMeta.name} Chart`}
+                            subtitle={`${vargaMeta.code} · ${styleLabel}`}
+                          />
+                        ) : (
+                          <div className="varga-empty">Divisional chart unavailable.</div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </>
+              );
+            })()}
 
             {/* Nakshatra Information Section */}
             {result.lagna || result.d1_chart ? (
@@ -409,6 +565,82 @@ export const BirthChartPage = () => {
                 )}
               </div>
             ) : null}
+
+            {/* Panchanga (daily almanac) for the profile's location */}
+            <PanchangaPanel
+              place={selectedProfile.birth_details.place}
+              latitude={parseFloat(selectedProfile.birth_details.latitude)}
+              longitude={parseFloat(selectedProfile.birth_details.longitude)}
+              timezone={parseFloat(selectedProfile.birth_details.timezone)}
+            />
+
+            {/* Yogas */}
+            {yogas && yogas.length > 0 && (
+              <div style={{
+                background: 'white',
+                borderRadius: 'var(--radius-xl)',
+                padding: 'var(--space-xl)',
+                marginTop: 'var(--space-xl)',
+                boxShadow: 'var(--shadow-lg)',
+                borderTop: '4px solid var(--saffron)'
+              }}>
+                <h3 style={{
+                  display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
+                  marginBottom: 'var(--space-lg)', color: 'var(--cosmic-indigo)', fontSize: '1.5rem'
+                }}>
+                  <Star size={24} style={{ color: 'var(--saffron)' }} />
+                  Yogas
+                  <span className="section-count">{yogas.length} found</span>
+                </h3>
+                <div className="yoga-grid">
+                  {yogas.map((y) => (
+                    <div key={y.key} className="yoga-card">
+                      <div className="yoga-name">{y.name}</div>
+                      {y.description && <p className="yoga-desc">{y.description}</p>}
+                      {y.benefits && (
+                        <div className="yoga-benefit">
+                          <span className="yoga-benefit-label">Effects</span>
+                          {y.benefits}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Doshas */}
+            {doshas && doshas.length > 0 && (
+              <div style={{
+                background: 'white',
+                borderRadius: 'var(--radius-xl)',
+                padding: 'var(--space-xl)',
+                marginTop: 'var(--space-xl)',
+                boxShadow: 'var(--shadow-lg)',
+                borderTop: '4px solid var(--saffron)'
+              }}>
+                <h3 style={{
+                  display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
+                  marginBottom: 'var(--space-lg)', color: 'var(--cosmic-indigo)', fontSize: '1.5rem'
+                }}>
+                  <Star size={24} style={{ color: 'var(--saffron)' }} />
+                  Doshas
+                </h3>
+                <div className="dosha-grid">
+                  {doshas.map((d) => (
+                    <div key={d.key} className={`dosha-card${d.present ? ' present' : ''}`}>
+                      <div className="dosha-head">
+                        <span className="dosha-name">{d.name}</span>
+                        <span className={`dosha-badge ${d.present ? 'yes' : 'no'}`}>
+                          {d.present ? 'Present' : 'Absent'}
+                        </span>
+                      </div>
+                      <p className="dosha-desc">{d.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : null}
       </div>

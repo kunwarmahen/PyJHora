@@ -1,220 +1,544 @@
 """
-Unified LLM service supporting Qwen (Ollama), Gemini, and ChatGPT
+Unified LLM service supporting multiple providers and models:
+  - ollama            : local models served by Ollama (auto-discovered)
+  - openai-compatible : any local/remote server exposing the OpenAI /v1 schema
+                        (LM Studio, llama.cpp server, vLLM, text-generation-webui)
+  - gemini            : Google Gemini API
+  - openai            : OpenAI ChatGPT API
+
+Each request is described by a ModelConfig (provider_type + model + optional
+base_url + api_key). Legacy provider strings ("qwen"/"gemini"/"chatgpt") are
+still accepted and mapped onto the new model so older clients keep working.
 """
 import httpx
+import json
 import os
-from typing import Optional, Dict, Any
+from dataclasses import dataclass
+from typing import Optional, Dict, Any, List, AsyncGenerator
 from enum import Enum
 
+SYSTEM_PROMPT = (
+    "You are an expert Vedic astrologer with deep knowledge of planetary "
+    "positions, yogas, doshas, dashas, and their effects on human life. "
+    "Provide insightful, personalized, and accurate astrological guidance."
+)
+
+
+class ProviderType(str, Enum):
+    OLLAMA = "ollama"
+    OPENAI_COMPATIBLE = "openai-compatible"
+    GEMINI = "gemini"
+    OPENAI = "openai"
+
+
 class LLMProvider(str, Enum):
+    """Legacy provider identifiers kept for backward compatibility."""
     QWEN = "qwen"
     GEMINI = "gemini"
     CHATGPT = "chatgpt"
 
+
+# Legacy string -> new provider type
+_LEGACY_MAP = {
+    "qwen": ProviderType.OLLAMA,
+    "ollama": ProviderType.OLLAMA,
+    "gemini": ProviderType.GEMINI,
+    "chatgpt": ProviderType.OPENAI,
+    "openai": ProviderType.OPENAI,
+    "openai-compatible": ProviderType.OPENAI_COMPATIBLE,
+}
+
+
+@dataclass
+class ModelConfig:
+    provider_type: ProviderType
+    model: str
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+
+
 class LLMService:
-    """Unified interface for multiple LLM providers"""
+    """Unified interface for multiple LLM providers and models"""
 
     def __init__(self):
-        # API keys and endpoints from environment
+        # API keys
         self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
         self.openai_api_key = os.getenv("OPENAI_API_KEY", "")
-        self.qwen_url = os.getenv("QWEN_API_URL", "http://localhost:11434")  # Ollama default
+        self.openai_compat_key = os.getenv("OPENAI_COMPATIBLE_API_KEY", "")
 
+        # Endpoints (QWEN_API_URL kept as a fallback for older configs)
+        self.ollama_url = (
+            os.getenv("OLLAMA_URL")
+            or os.getenv("QWEN_API_URL")
+            or "http://localhost:11434"
+        )
+        self.openai_compat_url = os.getenv(
+            "OPENAI_COMPATIBLE_URL", "http://localhost:1234/v1"
+        )
+
+        # Default models per provider
+        self.ollama_default_model = os.getenv("OLLAMA_DEFAULT_MODEL", "qwen2.5:14b")
+        self.gemini_default_model = os.getenv("GEMINI_DEFAULT_MODEL", "gemini-1.5-flash")
+        self.openai_default_model = os.getenv("OPENAI_DEFAULT_MODEL", "gpt-4o-mini")
+        self.openai_compat_model = os.getenv("OPENAI_COMPATIBLE_MODEL", "")
+
+    # ------------------------------------------------------------------ #
+    # Config resolution
+    # ------------------------------------------------------------------ #
+    def resolve_config(self,
+                       provider_type: Optional[str] = None,
+                       model: Optional[str] = None,
+                       base_url: Optional[str] = None,
+                       api_key: Optional[str] = None,
+                       legacy_provider: Optional[str] = None) -> ModelConfig:
+        """Build a ModelConfig from explicit fields or a legacy provider string."""
+        # Determine provider type
+        raw = (provider_type or legacy_provider or "ollama").lower()
+        pt = _LEGACY_MAP.get(raw)
+        if pt is None:
+            try:
+                pt = ProviderType(raw)
+            except ValueError:
+                pt = ProviderType.OLLAMA
+
+        # Defaults per provider type
+        if pt == ProviderType.OLLAMA:
+            return ModelConfig(pt, model or self.ollama_default_model,
+                               base_url or self.ollama_url, None)
+        if pt == ProviderType.OPENAI_COMPATIBLE:
+            return ModelConfig(pt, model or self.openai_compat_model,
+                               base_url or self.openai_compat_url,
+                               api_key or self.openai_compat_key)
+        if pt == ProviderType.GEMINI:
+            return ModelConfig(pt, model or self.gemini_default_model,
+                               None, api_key or self.gemini_api_key)
+        # OPENAI
+        return ModelConfig(pt, model or self.openai_default_model,
+                           "https://api.openai.com/v1", api_key or self.openai_api_key)
+
+    # ------------------------------------------------------------------ #
+    # Provider / model discovery
+    # ------------------------------------------------------------------ #
+    async def list_providers(self, user_keys: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
+        """Return configured providers, their availability, and model lists.
+
+        `user_keys` is the calling user's stored per-provider keys; when present
+        they count toward availability (and are flagged so the UI can show the
+        source), so a user who saved their own key sees the provider as ready
+        even if no global env key is set.
+        """
+        user_keys = user_keys or {}
+        return [
+            await self._ollama_status(),
+            await self._openai_compat_status(user_keys.get("openai-compatible")),
+            self._gemini_status(user_keys.get("gemini")),
+            self._openai_status(user_keys.get("openai")),
+        ]
+
+    async def _ollama_status(self) -> Dict[str, Any]:
+        info = {
+            "type": ProviderType.OLLAMA.value,
+            "label": "Ollama (Local)",
+            "base_url": self.ollama_url,
+            "default_model": self.ollama_default_model,
+            "requires_key": False,
+            "editable_base_url": True,
+            "models": [],
+            "available": False,
+            "reason": None,
+        }
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"{self.ollama_url}/api/tags")
+                if resp.status_code == 200:
+                    models = [m.get("name") for m in resp.json().get("models", [])
+                              if m.get("name")]
+                    info["models"] = sorted(models)
+                    info["available"] = True
+                    if models and self.ollama_default_model not in models:
+                        info["default_model"] = models[0]
+                    if not models:
+                        info["reason"] = "Ollama is running but no models are installed (ollama pull <model>)."
+                else:
+                    info["reason"] = f"Ollama responded with status {resp.status_code}."
+        except Exception:
+            info["reason"] = "Cannot reach Ollama. Start it with 'ollama serve'."
+        return info
+
+    async def _openai_compat_status(self, user_key: Optional[str] = None) -> Dict[str, Any]:
+        info = {
+            "type": ProviderType.OPENAI_COMPATIBLE.value,
+            "label": "Local / OpenAI-compatible",
+            "base_url": self.openai_compat_url,
+            "default_model": self.openai_compat_model,
+            "requires_key": False,
+            "editable_base_url": True,
+            "models": [],
+            "available": False,
+            "reason": None,
+            "has_user_key": bool(user_key),
+        }
+        key = user_key or self.openai_compat_key
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                headers = {}
+                if key:
+                    headers["Authorization"] = f"Bearer {key}"
+                resp = await client.get(f"{self.openai_compat_url}/models", headers=headers)
+                if resp.status_code == 200:
+                    data = resp.json().get("data", [])
+                    models = [m.get("id") for m in data if m.get("id")]
+                    info["models"] = sorted(models)
+                    info["available"] = True
+                    if models and not info["default_model"]:
+                        info["default_model"] = models[0]
+                else:
+                    info["reason"] = f"Endpoint responded with status {resp.status_code}."
+        except Exception:
+            info["reason"] = (
+                f"No OpenAI-compatible server reachable at {self.openai_compat_url} "
+                "(e.g. LM Studio, llama.cpp, vLLM)."
+            )
+        return info
+
+    def _gemini_status(self, user_key: Optional[str] = None) -> Dict[str, Any]:
+        available = bool(user_key or self.gemini_api_key)
+        return {
+            "type": ProviderType.GEMINI.value,
+            "label": "Google Gemini",
+            "base_url": None,
+            "default_model": self.gemini_default_model,
+            "requires_key": True,
+            "editable_base_url": False,
+            "has_user_key": bool(user_key),
+            "models": [
+                "gemini-1.5-flash",
+                "gemini-1.5-pro",
+                "gemini-2.0-flash",
+                "gemini-2.0-flash-lite",
+            ],
+            "available": available,
+            "reason": None if available else "No Gemini API key. Add one in API Keys (or set GEMINI_API_KEY).",
+        }
+
+    def _openai_status(self, user_key: Optional[str] = None) -> Dict[str, Any]:
+        available = bool(user_key or self.openai_api_key)
+        return {
+            "type": ProviderType.OPENAI.value,
+            "label": "OpenAI (ChatGPT)",
+            "base_url": "https://api.openai.com/v1",
+            "default_model": self.openai_default_model,
+            "requires_key": True,
+            "editable_base_url": False,
+            "has_user_key": bool(user_key),
+            "models": ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "o1-mini"],
+            "available": available,
+            "reason": None if available else "No OpenAI API key. Add one in API Keys (or set OPENAI_API_KEY).",
+        }
+
+    # ------------------------------------------------------------------ #
+    # High-level tasks
+    # ------------------------------------------------------------------ #
     async def ask_question(self,
                           chart_data: Dict[str, Any],
                           question: str,
-                          provider: LLMProvider = LLMProvider.QWEN) -> str:
-        """
-        Ask a question about the chart using the specified LLM provider
-
-        Args:
-            chart_data: Complete chart data including planets, lagna, etc.
-            question: User's question about their chart
-            provider: Which LLM to use (qwen, gemini, or chatgpt)
-
-        Returns:
-            AI-generated response
-        """
-        prompt = self._build_chart_analysis_prompt(chart_data, question)
-
-        if provider == LLMProvider.QWEN:
-            return await self._call_qwen(prompt)
-        elif provider == LLMProvider.GEMINI:
-            return await self._call_gemini(prompt)
-        elif provider == LLMProvider.CHATGPT:
-            return await self._call_chatgpt(prompt)
+                          provider: LLMProvider = LLMProvider.QWEN,
+                          config: Optional[ModelConfig] = None,
+                          history: Optional[List[Dict[str, str]]] = None) -> str:
+        """Ask a question about the chart. Pass either a ModelConfig or a legacy
+        provider. `history` (prior {role, content} turns) enables multi-turn."""
+        cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        if history:
+            convo_text = "\n\n=== PRIOR CONVERSATION ===\n" + "\n".join(
+                f"{'User' if m.get('role') == 'user' else 'Astrologer'}: {m.get('content', '')}"
+                for m in history
+            ) + "\n=== END PRIOR CONVERSATION ==="
+            prompt = (
+                self._render_context_block(chart_data) + convo_text
+                + f"\n\nUser's Question: {question}\n\n"
+                + "Provide a detailed, personalized answer based on this specific birth chart."
+            )
         else:
-            return "Unsupported LLM provider"
+            prompt = self._build_chart_analysis_prompt(chart_data, question)
+        return await self._complete(prompt, cfg)
 
     async def generate_prediction(self,
                                  chart_data: Dict[str, Any],
                                  prediction_type: str = "general",
-                                 provider: LLMProvider = LLMProvider.QWEN) -> str:
-        """
-        Generate predictions based on chart data
-
-        Args:
-            chart_data: Complete chart data
-            prediction_type: Type of prediction (general, health, career, relationships)
-            provider: Which LLM to use
-
-        Returns:
-            AI-generated prediction
-        """
+                                 provider: LLMProvider = LLMProvider.QWEN,
+                                 config: Optional[ModelConfig] = None) -> str:
+        """Generate predictions based on chart data."""
         prompt = self._build_prediction_prompt(chart_data, prediction_type)
-
-        if provider == LLMProvider.QWEN:
-            return await self._call_qwen(prompt)
-        elif provider == LLMProvider.GEMINI:
-            return await self._call_gemini(prompt)
-        elif provider == LLMProvider.CHATGPT:
-            return await self._call_chatgpt(prompt)
-        else:
-            return "Unsupported LLM provider"
+        cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        return await self._complete(prompt, cfg)
 
     async def analyze_compatibility(self,
                                    male_chart: Dict[str, Any],
                                    female_chart: Dict[str, Any],
                                    koota_score: int,
-                                   provider: LLMProvider = LLMProvider.QWEN) -> str:
-        """
-        Generate compatibility analysis
-
-        Args:
-            male_chart: Male birth chart data
-            female_chart: Female birth chart data
-            koota_score: Ashta Koota compatibility score
-            provider: Which LLM to use
-
-        Returns:
-            AI-generated compatibility analysis
-        """
+                                   provider: LLMProvider = LLMProvider.QWEN,
+                                   config: Optional[ModelConfig] = None) -> str:
+        """Generate compatibility analysis."""
         prompt = self._build_compatibility_prompt(male_chart, female_chart, koota_score)
+        cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        return await self._complete(prompt, cfg)
 
-        if provider == LLMProvider.QWEN:
-            return await self._call_qwen(prompt)
-        elif provider == LLMProvider.GEMINI:
-            return await self._call_gemini(prompt)
-        elif provider == LLMProvider.CHATGPT:
-            return await self._call_chatgpt(prompt)
+    # ------------------------------------------------------------------ #
+    # Provider dispatch
+    # ------------------------------------------------------------------ #
+    async def _complete(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096) -> str:
+        if cfg.provider_type == ProviderType.OLLAMA:
+            return await self._call_ollama(prompt, cfg, max_tokens)
+        if cfg.provider_type in (ProviderType.OPENAI, ProviderType.OPENAI_COMPATIBLE):
+            return await self._call_openai_style(prompt, cfg, max_tokens)
+        if cfg.provider_type == ProviderType.GEMINI:
+            return await self._call_gemini(prompt, cfg, max_tokens)
+        return "Unsupported LLM provider"
+
+    # ------------------------------------------------------------------ #
+    # Streaming (chat) — yields text chunks as they arrive
+    # ------------------------------------------------------------------ #
+    async def stream_answer(self, chart_data: Dict[str, Any], question: str,
+                            history: Optional[List[Dict[str, str]]], cfg: ModelConfig,
+                            max_tokens: int = 4096) -> AsyncGenerator[str, None]:
+        """Stream an answer for a question, including chart context + prior turns."""
+        messages = self.build_chat_messages(chart_data, question, history)
+        if cfg.provider_type == ProviderType.OLLAMA:
+            gen = self._stream_ollama(messages, cfg, max_tokens)
+        elif cfg.provider_type in (ProviderType.OPENAI, ProviderType.OPENAI_COMPATIBLE):
+            gen = self._stream_openai_style(messages, cfg, max_tokens)
+        elif cfg.provider_type == ProviderType.GEMINI:
+            gen = self._stream_gemini(messages, cfg, max_tokens)
         else:
-            return "Unsupported LLM provider"
+            async def _unsupported():
+                yield "Unsupported LLM provider"
+            gen = _unsupported()
+        async for chunk in gen:
+            yield chunk
 
-    async def _call_qwen(self, prompt: str, max_tokens: int = 2000) -> str:
-        """
-        Call Qwen via Ollama
-        """
+    async def _stream_ollama(self, messages, cfg, max_tokens) -> AsyncGenerator[str, None]:
+        url = (cfg.base_url or self.ollama_url).rstrip("/")
+        model = cfg.model or self.ollama_default_model
+        payload = {
+            "model": model,
+            "messages": messages,
+            "stream": True,
+            "options": {"temperature": 0.7, "num_predict": max_tokens},
+        }
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                payload = {
-                    "model": "qwen2.5:14b",  # or whatever Qwen model is installed
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.7,
-                        "num_predict": max_tokens
-                    }
-                }
-
-                response = await client.post(
-                    f"{self.qwen_url}/api/generate",
-                    json=payload
-                )
-
-                if response.status_code == 200:
-                    result = response.json()
-                    return result.get("response", "No response from Qwen")
-                else:
-                    return f"Error from Qwen: {response.status_code} - {response.text}"
+            async with httpx.AsyncClient(timeout=300.0) as client:
+                async with client.stream("POST", f"{url}/api/chat", json=payload) as r:
+                    if r.status_code != 200:
+                        body = (await r.aread()).decode("utf-8", "ignore")
+                        yield f"Error from Ollama ({model}): {r.status_code} - {body}"
+                        return
+                    async for line in r.aiter_lines():
+                        if not line.strip():
+                            continue
+                        try:
+                            obj = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        chunk = obj.get("message", {}).get("content", "")
+                        if chunk:
+                            yield chunk
+                        if obj.get("done"):
+                            break
         except httpx.ConnectError:
-            return "Error: Cannot connect to Ollama. Please ensure Ollama is running (ollama serve) and Qwen model is installed (ollama pull qwen2.5)."
+            yield (f"Error: Cannot connect to Ollama. Ensure it is running and the "
+                   f"model is installed ('ollama pull {model}').")
         except Exception as e:
-            return f"Error calling Qwen: {str(e)}"
+            yield f"Error calling Ollama: {str(e)}"
 
-    async def _call_gemini(self, prompt: str, max_tokens: int = 2000) -> str:
-        """
-        Call Google Gemini API
-        """
-        if not self.gemini_api_key:
-            return "Error: GEMINI_API_KEY environment variable not set. Please add it to your .env file."
-
+    async def _stream_openai_style(self, messages, cfg, max_tokens) -> AsyncGenerator[str, None]:
+        base_url = (cfg.base_url or "").rstrip("/")
+        if not base_url:
+            yield "Error: no base URL configured for this provider."
+            return
+        if cfg.provider_type == ProviderType.OPENAI and not cfg.api_key:
+            yield "Error: OPENAI_API_KEY is not set. Add it to your .env file."
+            return
+        if not cfg.model:
+            yield "Error: no model specified for this provider."
+            return
+        headers = {"Content-Type": "application/json"}
+        if cfg.api_key:
+            headers["Authorization"] = f"Bearer {cfg.api_key}"
+        payload = {
+            "model": cfg.model,
+            "messages": messages,
+            "temperature": 0.7,
+            "max_tokens": max_tokens,
+            "stream": True,
+        }
+        timeout = 300.0 if cfg.provider_type == ProviderType.OPENAI_COMPATIBLE else 120.0
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                async with client.stream("POST", f"{base_url}/chat/completions",
+                                         json=payload, headers=headers) as r:
+                    if r.status_code != 200:
+                        body = (await r.aread()).decode("utf-8", "ignore")
+                        yield f"Error from {cfg.model}: {r.status_code} - {body}"
+                        return
+                    async for line in r.aiter_lines():
+                        if not line.startswith("data:"):
+                            continue
+                        data = line[len("data:"):].strip()
+                        if data == "[DONE]":
+                            break
+                        try:
+                            obj = json.loads(data)
+                        except json.JSONDecodeError:
+                            continue
+                        choices = obj.get("choices", [])
+                        if choices:
+                            delta = choices[0].get("delta", {}).get("content")
+                            if delta:
+                                yield delta
+        except httpx.ConnectError:
+            yield f"Error: Cannot connect to {base_url}. Is the server running?"
+        except Exception as e:
+            yield f"Error calling model: {str(e)}"
 
+    async def _stream_gemini(self, messages, cfg, max_tokens) -> AsyncGenerator[str, None]:
+        api_key = cfg.api_key or self.gemini_api_key
+        model = cfg.model or self.gemini_default_model
+        if not api_key:
+            yield "Error: GEMINI_API_KEY environment variable not set."
+            return
+        # Map chat messages -> Gemini contents (+ system_instruction)
+        system_text = next((m["content"] for m in messages if m["role"] == "system"), None)
+        contents = []
+        for m in messages:
+            if m["role"] == "system":
+                continue
+            role = "model" if m["role"] == "assistant" else "user"
+            contents.append({"role": role, "parts": [{"text": m["content"]}]})
+        payload = {
+            "contents": contents,
+            "generationConfig": {"temperature": 0.7, "maxOutputTokens": max_tokens},
+        }
+        if system_text:
+            payload["system_instruction"] = {"parts": [{"text": system_text}]}
+        url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+               f"{model}:streamGenerateContent?alt=sse&key={api_key}")
+        try:
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                async with client.stream("POST", url, json=payload) as r:
+                    if r.status_code != 200:
+                        body = (await r.aread()).decode("utf-8", "ignore")
+                        yield f"Error from Gemini ({model}): {r.status_code} - {body}"
+                        return
+                    async for line in r.aiter_lines():
+                        if not line.startswith("data:"):
+                            continue
+                        data = line[len("data:"):].strip()
+                        if not data:
+                            continue
+                        try:
+                            obj = json.loads(data)
+                        except json.JSONDecodeError:
+                            continue
+                        for cand in obj.get("candidates", []):
+                            for part in cand.get("content", {}).get("parts", []):
+                                text = part.get("text")
+                                if text:
+                                    yield text
+        except Exception as e:
+            yield f"Error calling Gemini: {str(e)}"
+
+    async def _call_ollama(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096) -> str:
+        url = cfg.base_url or self.ollama_url
+        model = cfg.model or self.ollama_default_model
+        try:
+            # Local models can be slow to cold-load + generate; allow up to 5 min
+            async with httpx.AsyncClient(timeout=300.0) as client:
                 payload = {
-                    "contents": [{
-                        "parts": [{
-                            "text": prompt
-                        }]
-                    }],
-                    "generationConfig": {
-                        "temperature": 0.7,
-                        "maxOutputTokens": max_tokens
-                    }
+                    "model": model,
+                    "prompt": prompt,
+                    "system": SYSTEM_PROMPT,
+                    "stream": False,
+                    "options": {"temperature": 0.7, "num_predict": max_tokens},
                 }
+                response = await client.post(f"{url}/api/generate", json=payload)
+                if response.status_code == 200:
+                    return response.json().get("response", "No response from model")
+                return f"Error from Ollama ({model}): {response.status_code} - {response.text}"
+        except httpx.ConnectError:
+            return ("Error: Cannot connect to Ollama. Ensure it is running "
+                    "('ollama serve') and the model is installed ('ollama pull " + model + "').")
+        except Exception as e:
+            return f"Error calling Ollama: {str(e)}"
 
-                response = await client.post(url, json=payload)
-
+    async def _call_openai_style(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096) -> str:
+        """OpenAI and any OpenAI-compatible server share the /chat/completions schema."""
+        base_url = (cfg.base_url or "").rstrip("/")
+        if not base_url:
+            return "Error: no base URL configured for this OpenAI-compatible provider."
+        if cfg.provider_type == ProviderType.OPENAI and not cfg.api_key:
+            return "Error: OPENAI_API_KEY is not set. Add it to your .env file."
+        if not cfg.model:
+            return "Error: no model specified for this provider."
+        # Local OpenAI-compatible servers can be slow; cloud OpenAI is fast
+        req_timeout = 300.0 if cfg.provider_type == ProviderType.OPENAI_COMPATIBLE else 120.0
+        try:
+            async with httpx.AsyncClient(timeout=req_timeout) as client:
+                headers = {"Content-Type": "application/json"}
+                if cfg.api_key:
+                    headers["Authorization"] = f"Bearer {cfg.api_key}"
+                payload = {
+                    "model": cfg.model,
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": prompt},
+                    ],
+                    "temperature": 0.7,
+                    "max_tokens": max_tokens,
+                }
+                response = await client.post(f"{base_url}/chat/completions",
+                                             json=payload, headers=headers)
                 if response.status_code == 200:
                     result = response.json()
-                    if "candidates" in result and len(result["candidates"]) > 0:
-                        content = result["candidates"][0].get("content", {})
-                        parts = content.get("parts", [])
+                    choices = result.get("choices", [])
+                    if choices:
+                        return choices[0].get("message", {}).get("content", "No response")
+                    return "No response from model"
+                return f"Error from {cfg.model}: {response.status_code} - {response.text}"
+        except httpx.ConnectError:
+            return f"Error: Cannot connect to {base_url}. Is the server running?"
+        except Exception as e:
+            return f"Error calling model: {str(e)}"
+
+    async def _call_gemini(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096) -> str:
+        api_key = cfg.api_key or self.gemini_api_key
+        model = cfg.model or self.gemini_default_model
+        if not api_key:
+            return "Error: GEMINI_API_KEY environment variable not set. Please add it to your .env file."
+        try:
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+                       f"{model}:generateContent?key={api_key}")
+                payload = {
+                    "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {"temperature": 0.7, "maxOutputTokens": max_tokens},
+                }
+                response = await client.post(url, json=payload)
+                if response.status_code == 200:
+                    result = response.json()
+                    candidates = result.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
                         if parts:
                             return parts[0].get("text", "No response from Gemini")
                     return "No valid response from Gemini"
-                else:
-                    return f"Error from Gemini: {response.status_code} - {response.text}"
+                return f"Error from Gemini ({model}): {response.status_code} - {response.text}"
         except Exception as e:
             return f"Error calling Gemini: {str(e)}"
 
-    async def _call_chatgpt(self, prompt: str, max_tokens: int = 2000) -> str:
-        """
-        Call OpenAI ChatGPT API
-        """
-        if not self.openai_api_key:
-            return "Error: OPENAI_API_KEY environment variable not set. Please add it to your .env file."
-
-        try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                url = "https://api.openai.com/v1/chat/completions"
-
-                headers = {
-                    "Authorization": f"Bearer {self.openai_api_key}",
-                    "Content-Type": "application/json"
-                }
-
-                payload = {
-                    "model": "gpt-4o-mini",  # Use gpt-4o or gpt-4o-mini for cost efficiency
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": "You are an expert Vedic astrologer with deep knowledge of planetary positions, yogas, doshas, and their effects on human life. Provide insightful, personalized, and accurate astrological guidance."
-                        },
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
-                    "temperature": 0.7,
-                    "max_tokens": max_tokens
-                }
-
-                response = await client.post(url, json=payload, headers=headers)
-
-                if response.status_code == 200:
-                    result = response.json()
-                    if "choices" in result and len(result["choices"]) > 0:
-                        return result["choices"][0]["message"]["content"]
-                    return "No response from ChatGPT"
-                else:
-                    return f"Error from ChatGPT: {response.status_code} - {response.text}"
-        except Exception as e:
-            return f"Error calling ChatGPT: {str(e)}"
-
-    def _build_chart_analysis_prompt(self, chart_data: Dict[str, Any], question: str) -> str:
-        """Build prompt for answering questions about a chart"""
+    def _render_context_block(self, chart_data: Dict[str, Any]) -> str:
+        """Render the full chart context (no question) — reused by the single-shot
+        prompt and as the system message for streaming/multi-turn chat."""
 
         from datetime import datetime
 
@@ -258,12 +582,36 @@ Planetary Positions (All 9 Grahas):"""
                 nakshatra_info = f", Nakshatra: {data.get('nakshatra', 'Unknown')} Pada {data.get('nakshatra_pada', 'Unknown')}"
             chart_description += f"\n- {planet}: {data.get('sign_name', 'Unknown')} sign (Rasi #{data.get('rasi', 'Unknown')}), {data.get('degrees', 0):.2f}°{nakshatra_info}"
 
+        # Divisional charts (vargas) — compact one line per chart for token economy
+        vargas = chart_data.get("vargas", [])
+        if vargas:
+            chart_description += "\n\nDivisional Charts (Vargas):"
+            for v in vargas:
+                lagna_sign = v.get("lagna", {}).get("sign_name", "?")
+                placements = ", ".join(
+                    f"{name} {p.get('sign_name', '?')}"
+                    for name, p in v.get("planets", {}).items()
+                )
+                chart_description += (
+                    f"\n- {v.get('code', '?')} {v.get('name', '')} "
+                    f"({v.get('significance', '')}): Asc {lagna_sign}; {placements}"
+                )
+
         # Add Dasha information
         current_dasha = chart_data.get("current_dasha", {})
         next_dasha = chart_data.get("next_dasha", {})
         current_bhukthi = chart_data.get("current_bhukthi", {})
+        dasha_tree = chart_data.get("dasha_tree", [])
 
-        if current_dasha:
+        if dasha_tree:
+            # Preferred: the precise running chain Maha -> Bhukti -> Antara -> Sookshma
+            chart_description += f"\n\nCurrently Active Vimsottari Dasha Chain (as of {current_date}):"
+            for node in dasha_tree:
+                chart_description += (
+                    f"\n- {node.get('level_name', 'Level')}: {node.get('lord', 'Unknown')} "
+                    f"({node.get('start_date', '?')} to {node.get('end_date', '?')})"
+                )
+        elif current_dasha:
             chart_description += f"\n\nCurrent Dasha (Vimsottari):"
             chart_description += f"\n- Maha Dasha: {current_dasha.get('lord', 'Unknown')} ({current_dasha.get('start_date', 'Unknown')} to {current_dasha.get('end_date', 'Unknown')})"
             chart_description += f"\n- Duration: {current_dasha.get('duration_years', 0)} years"
@@ -275,10 +623,57 @@ Planetary Positions (All 9 Grahas):"""
                 chart_description += f"\n- {period.get('lord', 'Unknown')}: {period.get('start_date', 'Unknown')} to {period.get('end_date', 'Unknown')} ({period.get('duration_months', 0)} months)"
 
         if next_dasha:
-            chart_description += f"\n\nNext Dasha:"
+            chart_description += f"\n\nNext Maha Dasha:"
             chart_description += f"\n- {next_dasha.get('lord', 'Unknown')} starting {next_dasha.get('start_date', 'Unknown')}"
 
-        prompt = f"""You are an expert Vedic astrologer. Below is the COMPLETE BIRTH CHART DATA for this person, calculated using precise astronomical calculations from the PyJHora Vedic astrology software. This is REAL, VERIFIED CHART DATA - not hypothetical.
+        # Yogas present in the chart (name + short description; token-budgeted)
+        yogas = chart_data.get("yogas", [])
+        if yogas:
+            chart_description += f"\n\nYogas Present in the Chart ({len(yogas)}):"
+            for y in yogas:
+                desc = (y.get("description") or "").strip()
+                if len(desc) > 140:
+                    desc = desc[:137].rstrip() + "..."
+                chart_description += f"\n- {y.get('name', 'Unknown')}" + (f": {desc}" if desc else "")
+
+        # Doshas — list present ones with detail, name-only for absent
+        doshas = chart_data.get("doshas", [])
+        if doshas:
+            present = [d for d in doshas if d.get("present")]
+            absent = [d for d in doshas if not d.get("present")]
+            chart_description += f"\n\nDoshas:"
+            if present:
+                chart_description += "\n- Present:"
+                for d in present:
+                    desc = (d.get("description") or "").strip()
+                    if len(desc) > 140:
+                        desc = desc[:137].rstrip() + "..."
+                    chart_description += f"\n  • {d.get('name', 'Unknown')}" + (f": {desc}" if desc else "")
+            else:
+                chart_description += "\n- Present: none"
+            if absent:
+                chart_description += "\n- Absent: " + ", ".join(d.get("name", "?") for d in absent)
+
+        # Current transits (Gochara) over the natal chart
+        transits = chart_data.get("transits", {})
+        t_planets = transits.get("planets", {}) if isinstance(transits, dict) else {}
+        if t_planets:
+            chart_description += f"\n\nCurrent Transits (Gochara) as of {transits.get('transit_date', current_date)}:"
+            chart_description += "\n(house counted from natal Lagna / natal Moon)"
+            for name, p in t_planets.items():
+                retro = " [Retrograde]" if p.get("retrograde") else ""
+                chart_description += (
+                    f"\n- {name}: {p.get('sign_name', '?')} {p.get('degrees', 0):.1f}° "
+                    f"({p.get('nakshatra', '?')}), house {p.get('house_from_lagna', '?')} "
+                    f"from Lagna / {p.get('house_from_moon', '?')} from Moon{retro}"
+                )
+            for u in transits.get("upcoming", []):
+                chart_description += (
+                    f"\n- Upcoming: {u.get('planet', '?')} enters {u.get('to_sign', '?')} "
+                    f"(from {u.get('from_sign', '?')}) on {u.get('date', '?')}"
+                )
+
+        context_block = f"""Below is the COMPLETE BIRTH CHART DATA for this person, calculated using precise astronomical calculations from the PyJHora Vedic astrology software. This is REAL, VERIFIED CHART DATA - not hypothetical.
 
 === COMPLETE BIRTH CHART ===
 
@@ -287,24 +682,35 @@ Planetary Positions (All 9 Grahas):"""
 === END OF CHART DATA ===
 
 IMPORTANT INSTRUCTIONS:
-1. TODAY'S DATE is {current_date} - Use this to determine which Dasha and sub-period is CURRENTLY active
-2. The above planetary positions, signs, houses, nakshatras, and Dasha periods have been calculated accurately based on the person's exact birth time and location
-3. When asked about "current dasha" or "current period", check which Dasha/sub-period TODAY'S DATE ({current_date}) falls within
-4. Use the complete chart data directly to answer their question
+1. TODAY'S DATE is {current_date} - use it to determine which Dasha/sub-period is CURRENTLY active.
+2. The planetary positions, signs, houses, nakshatras, divisional charts (vargas) and Dasha periods above were calculated accurately from the exact birth time and location.
+3. Be specific to THIS chart: cite the placements/dashas/yogas behind your reasoning rather than giving generic horoscope text.
+4. Give practical, actionable guidance. Do NOT ask for more information — you have the complete chart and today's date."""
 
-User's Question: {question}
+        return context_block
 
-Please provide a detailed, personalized answer based on THIS SPECIFIC BIRTH CHART. You have all the necessary information above. Analyze:
-1. TODAY'S DATE ({current_date}) to identify the current Dasha and sub-period
-2. The specific planetary positions in their chart
-3. Their lagna (ascendant) in {lagna_info.get('sign_name', 'Unknown')}
-4. Their moon sign in {moon_info.get('sign_name', 'Unknown')} and nakshatra {moon_info.get('nakshatra', 'Unknown')}
-5. How the planets in their chart relate to the question asked
-6. Practical, actionable guidance based on their specific placements
+    def _build_chart_analysis_prompt(self, chart_data: Dict[str, Any], question: str) -> str:
+        """Single-shot prompt: chart context block followed by the user's question."""
+        return (
+            self._render_context_block(chart_data)
+            + f"\n\nUser's Question: {question}\n\n"
+            + "Provide a detailed, personalized answer based on this specific birth chart."
+        )
 
-Do NOT ask for more information - you have the complete chart and today's date. Give a confident, detailed answer based on the data provided above."""
-
-        return prompt
+    def build_chat_messages(self, chart_data: Dict[str, Any], question: str,
+                            history: Optional[List[Dict[str, str]]] = None) -> List[Dict[str, str]]:
+        """Chat-format messages for streaming/multi-turn: a system message carrying
+        the chart context, then prior turns, then the new question."""
+        messages = [{
+            "role": "system",
+            "content": SYSTEM_PROMPT + "\n\n" + self._render_context_block(chart_data),
+        }]
+        for m in (history or []):
+            role = m.get("role")
+            if role in ("user", "assistant") and m.get("content"):
+                messages.append({"role": role, "content": m["content"]})
+        messages.append({"role": "user", "content": question})
+        return messages
 
     def _build_prediction_prompt(self, chart_data: Dict[str, Any], prediction_type: str) -> str:
         """Build prompt for general predictions"""
