@@ -15,6 +15,14 @@
 #   ./dev.sh logs             # tail both logs
 #   ./dev.sh logs backend     # tail one log
 #
+# Containers (docker / podman compose, auto-detected):
+#   ./dev.sh build            # build image(s)
+#   ./dev.sh up               # build + deploy containers (detached)
+#   ./dev.sh down             # stop & remove containers
+#   ./dev.sh ps               # container status
+#   ./dev.sh clogs [backend]  # follow container logs (optionally one service)
+#   DEV_COMPOSE="podman compose" ./dev.sh up   # force a specific engine
+#
 # Targets: backend | frontend | both (default: both)
 
 set -euo pipefail
@@ -33,6 +41,9 @@ FRONTEND_LOG="$RUN_DIR/frontend.log"
 
 BACKEND_PORT=8000
 FRONTEND_PORT=3000
+
+COMPOSE_FILE="$ROOT_DIR/docker-compose.yml"
+COMPOSE_BIN=""                    # resolved lazily by detect_compose
 
 # --- colours ------------------------------------------------------------
 if [ -t 1 ]; then
@@ -160,6 +171,50 @@ status_one() {  # status_one <name> <pidfile> <port>
   fi
 }
 
+# --- containers (docker / podman) ---------------------------------------
+# Resolve a compose command. Override with DEV_COMPOSE, e.g.
+#   DEV_COMPOSE="podman compose" ./dev.sh up
+detect_compose() {
+  [ -n "$COMPOSE_BIN" ] && return 0
+  if [ -n "${DEV_COMPOSE:-}" ]; then
+    COMPOSE_BIN="$DEV_COMPOSE"
+  elif docker compose version >/dev/null 2>&1; then
+    COMPOSE_BIN="docker compose"
+  elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_BIN="docker-compose"
+  elif podman compose version >/dev/null 2>&1; then
+    COMPOSE_BIN="podman compose"
+  elif command -v podman-compose >/dev/null 2>&1; then
+    COMPOSE_BIN="podman-compose"
+  else
+    err "no compose tool found — install docker compose or podman compose"
+    exit 1
+  fi
+  info "compose: $COMPOSE_BIN"
+}
+
+compose() {  # run from the web dir so the backend's 'context: ..' resolves to repo root
+  detect_compose
+  # shellcheck disable=SC2086
+  ( cd "$ROOT_DIR" && $COMPOSE_BIN -f "$COMPOSE_FILE" "$@" )
+}
+
+compose_services() {  # map dev target -> compose service name(s); empty = all
+  case "$TARGET" in
+    backend)  echo backend ;;
+    frontend) echo frontend ;;
+    both|"")  echo "" ;;
+    *) err "unknown target '$TARGET' (use: backend | frontend | both)"; exit 1 ;;
+  esac
+}
+
+# shellcheck disable=SC2046  # word-splitting of compose_services is intentional
+container_build() { info "building image(s) ...";   compose build $(compose_services); ok "build complete"; }
+container_up()    { info "deploying container(s) ..."; compose up -d --build $(compose_services); ok "containers up"; compose ps; }
+container_down()  { info "stopping container(s) ..."; compose down;                  ok "containers down"; }
+container_ps()    { compose ps; }
+container_clogs() { compose logs -f --tail=100 $(compose_services); }
+
 # --- dispatch -----------------------------------------------------------
 ACTION="${1:-}"
 TARGET="${2:-both}"
@@ -193,6 +248,11 @@ case "$ACTION" in
       *) err "unknown target '$TARGET'"; exit 1 ;;
     esac
     ;;
+  build)   container_build ;;
+  up)      container_up ;;
+  down)    container_down ;;
+  ps)      container_ps ;;
+  clogs)   container_clogs ;;
   ""|-h|--help|help)
     sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     ;;

@@ -171,6 +171,25 @@ To stop:
 docker-compose down
 ```
 
+#### Via `dev.sh` (auto-detects docker / podman)
+
+The `dev.sh` helper also drives the container workflow, so you don't have to
+remember the engine-specific commands:
+
+```bash
+./dev.sh build            # build image(s)
+./dev.sh up               # build + deploy (detached)
+./dev.sh ps               # container status
+./dev.sh clogs            # follow container logs (add a target: clogs backend)
+./dev.sh down             # stop & remove containers
+
+# build/deploy a single service
+./dev.sh up backend
+
+# force a specific engine (default order: docker compose → docker-compose → podman)
+DEV_COMPOSE="podman compose" ./dev.sh up
+```
+
 ## Configuration
 
 ### Backend (.env)
