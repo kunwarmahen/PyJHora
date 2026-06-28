@@ -93,12 +93,24 @@ export const astrologyService = {
   getUserCharts: () => api.get("/api/user/charts"),
 
   // New LLM Q&A endpoints
-  askQuestion: (birthDetails, question, llmProvider = "qwen") =>
-    api.post("/api/astrology/ask", {
-      birth_details: birthDetails,
-      question: question,
-      llm_provider: llmProvider,
-    }),
+  getLlmProviders: () => api.get("/api/llm/providers"),
+
+  askQuestion: (birthDetails, question, model = {}) =>
+    api.post(
+      "/api/astrology/ask",
+      {
+        birth_details: birthDetails,
+        question: question,
+        // Back-compat: still send llm_provider; new fields take precedence server-side
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+      },
+      // Local models can be slow to load + generate; allow up to 5 minutes
+      { timeout: 300000 }
+    ),
 
   generatePrediction: (birthDetails, predictionType = "general", llmProvider = "qwen") =>
     api.post("/api/astrology/predict", {

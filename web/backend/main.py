@@ -27,7 +27,12 @@ class RegisterRequest(BaseModel):
 class AskQuestionRequest(BaseModel):
     birth_details: BirthDetails
     question: str
-    llm_provider: str = "qwen"  # qwen, gemini, or chatgpt
+    llm_provider: str = "qwen"  # legacy: qwen, gemini, or chatgpt
+    # New model-selection fields (optional; fall back to llm_provider when absent)
+    provider_type: Optional[str] = None   # ollama | openai-compatible | gemini | openai
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
 
 class PredictionRequest(BaseModel):
     birth_details: BirthDetails
@@ -542,6 +547,15 @@ async def get_user_charts(current_user: str = Depends(get_current_user)):
 
 # ============= LLM Q&A ROUTES =============
 
+@app.get("/api/llm/providers")
+async def list_llm_providers(current_user: str = Depends(get_current_user)):
+    """List available AI providers, their reachability, and installed/known models."""
+    try:
+        providers = await llm_service.list_providers()
+        return {"providers": providers}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/astrology/ask")
 async def ask_question(
     request: AskQuestionRequest,
@@ -599,23 +613,27 @@ async def ask_question(
             "dasha_sequence": dashas.get("dasha_sequence", [])
         }
 
-        # Validate LLM provider
-        try:
-            provider = LLMProvider(request.llm_provider.lower())
-        except ValueError:
-            provider = LLMProvider.QWEN
+        # Resolve the model config (new fields take precedence, legacy string as fallback)
+        cfg = llm_service.resolve_config(
+            provider_type=request.provider_type,
+            model=request.model,
+            base_url=request.base_url,
+            api_key=request.api_key,
+            legacy_provider=request.llm_provider,
+        )
 
         # Get AI response
         answer = await llm_service.ask_question(
             chart_data=chart_data,
             question=request.question,
-            provider=provider
+            config=cfg
         )
 
         return {
             "question": request.question,
             "answer": answer,
-            "provider": request.llm_provider,
+            "provider": cfg.provider_type.value,
+            "model": cfg.model,
             "chart_summary": {
                 "lagna": chart_data.get("lagna", {}),
                 "moon_sign": chart_data.get("moon_sign", {}),

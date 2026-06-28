@@ -22,6 +22,18 @@ import { NorthIndianChart } from "../components/NorthIndianChart";
 import "../styles/Dashboard.css";
 import "../styles/Chat.css";
 
+const selectStyle = {
+  width: "100%",
+  marginTop: "var(--space-xs)",
+  padding: "var(--space-sm) var(--space-md)",
+  borderRadius: "var(--radius-md)",
+  border: "1px solid var(--sandalwood)",
+  background: "var(--sacred-white)",
+  color: "var(--cosmic-indigo)",
+  fontSize: "0.9375rem",
+  fontFamily: "inherit",
+};
+
 export const AskAstrologerPage = () => {
   const navigate = useNavigate();
   const { selectedProfile } = useProfile();
@@ -31,29 +43,96 @@ export const AskAstrologerPage = () => {
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [llmProvider, setLlmProvider] = useState("qwen");
   const [showInfoModal, setShowInfoModal] = useState(false);
 
-  const llmProviders = [
-    {
-      value: "qwen",
-      label: "Qwen 2.5 (Local)",
-      description: "Free, private, runs locally",
-      icon: "🤖",
-    },
-    {
-      value: "gemini",
-      label: "Google Gemini",
-      description: "Powered by Google AI",
-      icon: "✨",
-    },
-    {
-      value: "chatgpt",
-      label: "ChatGPT",
-      description: "OpenAI GPT-4",
-      icon: "🧠",
-    },
-  ];
+  // AI provider / model selection
+  const [providers, setProviders] = useState([]);
+  const [providersLoading, setProvidersLoading] = useState(true);
+  const [providerType, setProviderType] = useState(
+    () => localStorage.getItem("ai_provider_type") || "ollama"
+  );
+  const [model, setModel] = useState(
+    () => localStorage.getItem("ai_model") || ""
+  );
+  const [baseUrl, setBaseUrl] = useState(
+    () => localStorage.getItem("ai_base_url") || ""
+  );
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const PROVIDER_ICONS = {
+    ollama: "🤖",
+    "openai-compatible": "💻",
+    gemini: "✨",
+    openai: "🧠",
+  };
+
+  const selectedProvider =
+    providers.find((p) => p.type === providerType) || null;
+
+  // Persist choices
+  useEffect(() => {
+    localStorage.setItem("ai_provider_type", providerType);
+  }, [providerType]);
+  useEffect(() => {
+    localStorage.setItem("ai_model", model || "");
+  }, [model]);
+  useEffect(() => {
+    localStorage.setItem("ai_base_url", baseUrl || "");
+  }, [baseUrl]);
+
+  // Load available providers + models on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setProvidersLoading(true);
+      try {
+        const resp = await astrologyService.getLlmProviders();
+        if (cancelled) return;
+        const list = resp.data.providers || [];
+        setProviders(list);
+
+        // Pick a sensible provider: keep saved choice if it exists, else first available
+        const saved = list.find((p) => p.type === providerType);
+        const target =
+          saved || list.find((p) => p.available) || list[0] || null;
+        if (target) {
+          if (target.type !== providerType) setProviderType(target.type);
+          // Pick a model: keep saved if valid for this provider, else default/first
+          const validModel =
+            (target.type === providerType &&
+              model &&
+              (target.models.length === 0 || target.models.includes(model)) &&
+              model) ||
+            target.default_model ||
+            target.models[0] ||
+            "";
+          setModel(validModel);
+          setBaseUrl(target.editable_base_url ? target.base_url || "" : "");
+        }
+      } catch (e) {
+        if (!cancelled) setProviders([]);
+      } finally {
+        if (!cancelled) setProvidersLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // When the provider changes, reset model + base URL to that provider's defaults
+  const handleProviderChange = (newType) => {
+    setProviderType(newType);
+    const p = providers.find((x) => x.type === newType);
+    if (p) {
+      setModel(p.default_model || p.models[0] || "");
+      setBaseUrl(p.editable_base_url ? p.base_url || "" : "");
+    } else {
+      setModel("");
+      setBaseUrl("");
+    }
+  };
 
   const exampleQuestions = [
     "What are my strengths and weaknesses based on my chart?",
@@ -144,13 +223,19 @@ export const AskAstrologerPage = () => {
       const response = await astrologyService.askQuestion(
         birthDetails,
         question,
-        llmProvider
+        {
+          providerType,
+          model,
+          baseUrl: selectedProvider?.editable_base_url ? baseUrl : undefined,
+          legacyProvider: providerType === "ollama" ? "qwen" : providerType,
+        }
       );
 
       const aiMessage = {
         type: "ai",
         content: response.data.answer,
-        provider: llmProvider,
+        provider: response.data.provider || providerType,
+        model: response.data.model || model,
         timestamp: new Date().toLocaleTimeString(),
         chartSummary: response.data.chart_summary,
       };
@@ -338,31 +423,101 @@ export const AskAstrologerPage = () => {
                 <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>Info</span>
               </button>
             </h3>
-            <div className="llm-options">
-              {llmProviders.map((provider) => (
-                <label
-                  key={provider.value}
-                  className={`llm-option ${
-                    llmProvider === provider.value ? "active" : ""
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="llm"
-                    value={provider.value}
-                    checked={llmProvider === provider.value}
-                    onChange={(e) => setLlmProvider(e.target.value)}
-                  />
-                  <div className="llm-option-content">
-                    <div className="llm-icon">{provider.icon}</div>
-                    <div>
-                      <div className="llm-name">{provider.label}</div>
-                      <div className="llm-desc">{provider.description}</div>
-                    </div>
-                  </div>
+            {providersLoading ? (
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                Detecting available models…
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                {/* Provider */}
+                <label style={{ display: 'block' }}>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    Provider
+                  </span>
+                  <select
+                    value={providerType}
+                    onChange={(e) => handleProviderChange(e.target.value)}
+                    style={selectStyle}
+                  >
+                    {providers.map((p) => (
+                      <option key={p.type} value={p.type}>
+                        {PROVIDER_ICONS[p.type] || "•"} {p.label}
+                        {p.available ? "" : " — unavailable"}
+                      </option>
+                    ))}
+                  </select>
                 </label>
-              ))}
-            </div>
+
+                {/* Model */}
+                <label style={{ display: 'block' }}>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    Model
+                  </span>
+                  {selectedProvider && selectedProvider.models.length > 0 ? (
+                    <select
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
+                      style={selectStyle}
+                    >
+                      {!selectedProvider.models.includes(model) && model && (
+                        <option value={model}>{model} (custom)</option>
+                      )}
+                      {selectedProvider.models.map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
+                      placeholder="Enter model name (e.g. llama3.1:8b)"
+                      style={selectStyle}
+                    />
+                  )}
+                </label>
+
+                {/* Availability note */}
+                {selectedProvider && !selectedProvider.available && (
+                  <div style={{
+                    fontSize: '0.8125rem',
+                    color: 'var(--vermillion)',
+                    background: 'rgba(229, 57, 53, 0.08)',
+                    border: '1px solid rgba(229, 57, 53, 0.25)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: 'var(--space-sm) var(--space-md)',
+                  }}>
+                    ⚠ {selectedProvider.reason || "This provider is not reachable."}
+                  </div>
+                )}
+
+                {/* Advanced: editable base URL for local providers */}
+                {selectedProvider && selectedProvider.editable_base_url && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvanced((v) => !v)}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: 'var(--saffron)', fontSize: '0.8125rem', fontWeight: 600,
+                        padding: 0,
+                      }}
+                    >
+                      {showAdvanced ? "▾" : "▸"} Advanced (endpoint URL)
+                    </button>
+                    {showAdvanced && (
+                      <input
+                        type="text"
+                        value={baseUrl}
+                        onChange={(e) => setBaseUrl(e.target.value)}
+                        placeholder={selectedProvider.base_url}
+                        style={{ ...selectStyle, marginTop: 'var(--space-sm)' }}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Examples Card */}
@@ -433,7 +588,12 @@ export const AskAstrologerPage = () => {
                   <div className="message-header">
                     <Bot size={18} />
                     <span>
-                      AI Astrologer ({message.provider?.toUpperCase()})
+                      AI Astrologer
+                      {message.model
+                        ? ` · ${message.model}`
+                        : message.provider
+                        ? ` (${message.provider})`
+                        : ""}
                     </span>
                     <span className="timestamp">{message.timestamp}</span>
                   </div>

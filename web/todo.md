@@ -202,8 +202,9 @@ web exposes. High-value additions:
 - [ ] **Strength tables** (P2): Shadbala / planetary & rasi strength.
 - [ ] **Export / share** (P1): download chart as PNG/PDF, shareable read-only link.
 - [ ] **Compare two profiles side by side** beyond compatibility (P2).
-- [ ] **AI astrologer upgrades** (P1): stream responses, suggested prompts,
-      conversation history per profile, cite which chart factors informed an answer.
+- [ ] **AI astrologer upgrades** (P1): see the dedicated plan in **§8** below
+      (model selection, varga context, saved history, full dasha tree, streaming,
+      multi-turn, richer context). Supersedes this one-liner.
 - [ ] **Multi-language / Sanskrit term glossary tooltips** (P2).
 
 ## 6. Suggested execution order
@@ -223,3 +224,153 @@ web exposes. High-value additions:
 - Target devices: is this mobile-first, or desktop-primary with mobile support?
 - Auth/data: stick with current JWT + Mongo, or is that out of scope for now?
 - Any branding (name other than "PyJHora", logo, colors) you want for the public face?
+
+---
+
+## 8. Ask AI Astrologer — make it professional (P1)
+
+Goal: turn the current 3-button demo into a serious, configurable AI-prediction
+workspace. **Decisions captured 2026-06-28** (owner answered the clarifying round):
+
+- **Local models:** auto-detect installed Ollama models **+** support a generic
+  OpenAI-compatible local endpoint (LM Studio / llama.cpp / vLLM / text-gen-webui).
+- **Divisional charts:** **multi-select** vargas to include in the AI context.
+- **Saved responses:** save every Q&A to MongoDB tied to the profile, **with a
+  history view** to revisit past conversations.
+- **Context depth:** include the **full dasha tree** (Maha→Antar→Pratyantar),
+  **yogas & doshas**, **current transits (Gochara)**, and **Ashtakavarga / house
+  strengths**.
+- **Streaming:** yes — stream answers token-by-token (SSE).
+- **Multi-turn:** yes — conversation memory so follow-ups work.
+- **Scope:** multi-user / shareable — plan for per-user isolation, per-user API
+  keys, and rate limiting (not just personal/local).
+
+### Current state (audit, 2026-06-28)
+
+- `llm_service.py` hardcodes 3 providers and model IDs: Ollama `qwen2.5:14b`,
+  Gemini `gemini-1.5-flash`, OpenAI `gpt-4o-mini`. No per-model selection.
+- `/api/astrology/ask` ([main.py:545]) recomputes chart + dashas server-side
+  (frontend also computes them on the page — duplicated work) and sends only:
+  Lagna, Sun, Moon, **D1** planetary positions, and a **partial** dasha view
+  (current Maha + its Antardashas + next Maha). No Pratyantar, no other vargas,
+  no yogas/doshas/transits/ashtakavarga.
+- Nothing is persisted. `database.py` has an unused `Prediction` model.
+- No streaming, no conversation memory. Each question is single-shot.
+- Frontend `AskAstrologerPage.js` has a static 3-option radio list; provider
+  availability (is a key set? is Ollama up?) is not surfaced until a call fails.
+
+### 8.1 Provider & model selection (P1) — DONE 2026-06-28
+
+- [x] Generalized the LLM layer beyond the 3-value enum. `llm_service.py` now has a
+      `ProviderType` (`ollama` | `openai-compatible` | `gemini` | `openai`) + a
+      `ModelConfig` (provider_type + model + optional base_url + api_key).
+      `resolve_config()` builds it from explicit fields or a legacy provider string
+      (`qwen`/`gemini`/`chatgpt` still map correctly). Dispatch routes to
+      `_call_ollama` / `_call_openai_style` / `_call_gemini`.
+- [x] `GET /api/llm/providers` — returns all providers with `available`/`reason`,
+      `default_model`, and `models`. Ollama proxies `GET {url}/api/tags` (verified:
+      auto-listed 10 installed models locally); OpenAI-compatible proxies
+      `GET {base_url}/models`; Gemini/OpenAI report availability from the API key and
+      expose a curated model list.
+- [x] Generic **OpenAI-compatible endpoint** support (LM Studio/llama.cpp/vLLM/
+      text-gen-webui) via one `/v1/chat/completions` code path with configurable
+      base URL + key + model (shared with the real OpenAI path).
+- [x] `/api/astrology/ask` now accepts `{ provider_type, model, base_url?, api_key? }`
+      (new fields take precedence; `llm_provider` kept as fallback). Response echoes
+      the resolved `provider` + `model`.
+- [x] Frontend: provider dropdown → model dropdown (populated from
+      `/api/llm/providers`), availability warning, free-text model entry when a
+      provider lists none, and an "Advanced (endpoint URL)" override for local
+      providers. Choices persisted in localStorage; AI message header shows the model.
+- [x] Default model ids + endpoints moved to env (`OLLAMA_URL`,
+      `OLLAMA_DEFAULT_MODEL`, `OPENAI_COMPATIBLE_URL/MODEL/API_KEY`,
+      `GEMINI_DEFAULT_MODEL`, `OPENAI_DEFAULT_MODEL`); `.env.example` updated.
+      `config.py` now `load_dotenv()`s so `os.getenv` in `llm_service` sees `.env`.
+- [ ] FOLLOW-UP: thread the same model selection into `/predict` and
+      `/compatibility-analysis` (still take the legacy `llm_provider` only).
+- [ ] FOLLOW-UP: per-user API-key entry in the UI (currently keys come from `.env`;
+      full per-user key management is §8.6).
+
+### 8.2 Divisional-chart (varga) context selection (P1)
+
+- [ ] Multi-select varga picker on the Ask page (reuse `GET /api/astrology/vargas`
+      + the existing `SUPPORTED_VARGAS` list). Default sensible bundle: D1, D9, D10.
+- [ ] Backend builds the prompt from the **selected** vargas (compute each via the
+      existing `calculate_divisional_chart`), labeling each chart and its
+      significance (e.g. "D10 Dasamsa — career"). Token-budget aware: summarize
+      (sign + house per planet) rather than dumping every field.
+- [ ] Suggest relevant vargas per question category (career→D10, marriage→D9/D7,
+      wealth→D2/D11-equiv, etc.) as a one-click hint — still user-overridable.
+
+### 8.3 Richer astrological context (P1)
+
+- [ ] **Full dasha tree**: reuse `get_dasha_children` to send Maha→Antar→Pratyantar
+      for the *currently running* chain (not just one antardasha level). Clearly mark
+      which node is active as of TODAY.
+- [ ] **Yogas & Doshas**: include the present yogas/doshas (reuse `get_yogas` /
+      `get_doshas`) so the model reasons from real detections, not guesses.
+- [ ] **Transits (Gochara)**: include `get_transits` output (current grahas, house
+      from natal Lagna & Moon, Sade-Sati / Jupiter-Saturn ingress highlights).
+- [ ] **Ashtakavarga / house strengths**: implement/compute Bhinna + Sarva bindus
+      (currently a §5 P2) and include a compact strength summary; if Shadbala is
+      cheap, add planetary strength too. (Gate on availability — skip if not ready.)
+- [ ] Centralize prompt assembly into a `ChartContextBuilder` so all of the above
+      compose into one structured, token-budgeted context block. Make each section
+      toggleable from the request (so the UI can show "what's included").
+- [ ] Strengthen the **system prompt**: encode classical reasoning rules (house
+      significations, karakas, dignity/exaltation, aspect rules) so answers cite the
+      chart factors behind a claim instead of generic horoscope text.
+
+### 8.4 Save responses + history (P1)
+
+- [ ] New Mongo collection `ai_conversations` (per user + profile): conversation
+      doc with messages `[{role, content, ts}]`, plus metadata per AI answer
+      (provider/model, vargas + context sections included, dasha snapshot,
+      token usage, latency). Repurpose/replace the dead `Prediction` model.
+- [ ] Endpoints: `POST /api/astrology/ask` persists the turn; `GET
+      /api/ai/conversations?profile_id=` (list), `GET /api/ai/conversations/{id}`
+      (full thread), `DELETE` one. Auth-scoped to the current user.
+- [ ] Frontend: a **History** panel/page — list past conversations per profile,
+      open one to re-read, continue the thread, or delete. Show which model +
+      context produced each answer.
+
+### 8.5 Streaming + multi-turn (P1)
+
+- [ ] Streaming: SSE endpoint (`POST /api/astrology/ask/stream`) that proxies
+      token streams from Ollama (`stream:true`), OpenAI, OpenAI-compatible, and
+      Gemini (`streamGenerateContent`). Persist the full answer on completion.
+- [ ] Frontend: render the streamed answer progressively (replace the static
+      "Analyzing…" indicator); keep the markdown renderer.
+- [ ] Multi-turn: send prior turns as context (bounded window / summarized when
+      long) so follow-ups work. Chart/varga/dasha context is included once and
+      referenced, not re-sent every turn (token economy).
+
+### 8.6 Multi-user hardening (P1, since scope = shareable)
+
+- [ ] Per-user API-key storage (encrypted at rest) instead of one global `.env`
+      key — settings page to manage keys per provider.
+- [ ] Rate limiting / quotas per user on AI endpoints; sensible timeouts and
+      graceful errors (Ollama down, key invalid, model not pulled).
+- [ ] Ensure all AI data (conversations, keys) is strictly isolated per user.
+
+### 8.7 Professional polish (P1/P2)
+
+- [ ] "What was sent to the AI" modal already exists — extend it to show the new
+      structured context (vargas, dasha tree, yogas/doshas/transits/AV) and the
+      exact model/provider used (transparency = trust).
+- [ ] Answer affordances: copy, regenerate (same or different model), export a
+      conversation to PDF/MD, thumbs up/down feedback stored with the turn.
+- [ ] Loading/cost transparency: show model name, elapsed time, token usage.
+- [ ] Disclaimer/safety footer (astrology guidance, not medical/financial/legal
+      advice) — important for a "professional" public product.
+- [ ] Stop/cancel a streaming generation; retry on transient failures.
+
+### 8.8 Suggested build order
+
+1. 8.1 provider/model selection (backend `/api/llm/providers` + generalized
+   service) — unblocks everything and is the owner's first ask.
+2. 8.3 `ChartContextBuilder` (full dasha tree + yogas/doshas/transits) +
+   8.2 varga multi-select — the prediction-quality core.
+3. 8.4 save + history (DB + endpoints + panel).
+4. 8.5 streaming, then multi-turn.
+5. 8.6 multi-user hardening + 8.7 polish.
