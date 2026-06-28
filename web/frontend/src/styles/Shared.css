@@ -1,0 +1,119 @@
+/* Shared layout primitives — extracted from the per-page copy-paste.
+   Reuses the saffron/cream Vedic tokens from App.css. */
+
+/* ---- PageHeader (navbar with back button + icon + title) ---- */
+.page-back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--saffron);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  transition: all 0.3s ease;
+}
+
+.page-back-btn:hover {
+  background: rgba(255, 153, 51, 0.1);
+}
+
+.page-back-btn span {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.page-header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-left: var(--space-lg);
+}
+
+.page-header-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.page-header-icon--saffron {
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
+}
+.page-header-icon--indigo {
+  background: linear-gradient(135deg, var(--cosmic-indigo) 0%, var(--cosmic-indigo-light) 100%);
+}
+.page-header-icon--terracotta {
+  background: linear-gradient(135deg, var(--terracotta) 0%, var(--vermillion) 100%);
+}
+.page-header-icon--gold {
+  background: linear-gradient(135deg, var(--marigold) 0%, var(--saffron) 100%);
+}
+
+.page-header-title h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.page-header-title p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 600px) {
+  .page-header-title {
+    margin-left: var(--space-sm);
+    gap: var(--space-sm);
+  }
+  .page-header-title h1 {
+    font-size: 1.15rem;
+  }
+  .page-header-title p {
+    display: none;
+  }
+}
+
+/* ---- ErrorBanner ---- */
+.error-banner {
+  background: rgba(227, 66, 52, 0.1);
+  border: 2px solid rgba(227, 66, 52, 0.3);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  color: var(--vermillion);
+  margin-bottom: var(--space-xl);
+}
+
+/* ---- LoadingState ---- */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  padding: var(--space-3xl) var(--space-xl);
+  color: var(--text-secondary);
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--sandalwood);
+  border-top-color: var(--saffron);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

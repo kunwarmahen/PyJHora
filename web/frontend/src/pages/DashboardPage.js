@@ -2,8 +2,8 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
-import { formatDate, orDash } from "../utils/format";
-import { Calendar, Heart, Clock, MessageCircle, LogOut, User, Star, Sparkles, Orbit } from "lucide-react";
+import { Calendar, Heart, Clock, MessageCircle, LogOut, Star, Sparkles, Orbit } from "lucide-react";
+import { ProfileBanner } from "../components/ProfileBanner";
 import "../styles/Dashboard.css";
 
 export const DashboardPage = () => {
@@ -80,29 +80,11 @@ export const DashboardPage = () => {
       </nav>
 
       <div className="dashboard-content">
-        {selectedProfile && (
-          <div className="profile-banner fade-in">
-            <div className="profile-banner-left">
-              <div className="profile-avatar-large">
-                <User size={32} />
-              </div>
-              <div className="profile-info">
-                <h2>{selectedProfile.profile_name}</h2>
-                <div className="profile-meta">
-                  <span>{selectedProfile.birth_details.name || 'Anonymous'}</span>
-                  <span className="separator">•</span>
-                  <span>{formatDate(selectedProfile.birth_details.dob)}</span>
-                  <span className="separator">•</span>
-                  <span>{orDash(selectedProfile.birth_details.place)}</span>
-                </div>
-              </div>
-            </div>
-            <button onClick={handleChangeProfile} className="change-profile-btn">
-              <Sparkles size={16} />
-              <span>Change Chart</span>
-            </button>
-          </div>
-        )}
+        <ProfileBanner
+          profile={selectedProfile}
+          onChangeProfile={handleChangeProfile}
+          changeIcon={<Sparkles size={16} />}
+        />
 
         <div className="section-header fade-in">
           <h3>Explore Your Cosmic Journey</h3>

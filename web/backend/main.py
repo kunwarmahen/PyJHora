@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from config import settings
 from database import connect_to_mongo, close_mongo_connection
 from auth import create_access_token, decode_token, get_password_hash, verify_password, Token
-from database import User, BirthDetails, ChartData, Prediction
+from database import User, BirthDetails, ChartData
 from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, SUPPORTED_VARGAS
 from chart_context import build_chart_context
 from qwen_predictor import QwenPredictor
@@ -52,7 +52,28 @@ class AskQuestionRequest(BaseModel):
 class PredictionRequest(BaseModel):
     birth_details: BirthDetails
     prediction_type: str = "general"  # general, health, career, relationships
-    llm_provider: str = "qwen"
+    llm_provider: str = "qwen"  # legacy fallback
+    # New model-selection fields (optional; fall back to llm_provider when absent)
+    provider_type: Optional[str] = None   # ollama | openai-compatible | gemini | openai
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    # Context controls (optional)
+    ayanamsa: Optional[str] = None
+    sections: Optional[dict] = None  # toggle dasha_tree/yogas/doshas/transits
+    vargas: Optional[list] = None    # divisional-chart factors, e.g. [1, 9, 10]
+
+
+class CompatibilityAnalysisRequest(BaseModel):
+    male_details: BirthDetails
+    female_details: BirthDetails
+    llm_provider: str = "qwen"  # legacy fallback
+    # New model-selection fields (optional; fall back to llm_provider when absent)
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    ayanamsa: Optional[str] = None
 
 # Lifecycle events
 @asynccontextmanager
@@ -852,48 +873,48 @@ async def generate_prediction(
     current_user: str = Depends(get_current_user)
 ):
     """Generate AI-powered predictions"""
+    _enforce_rate_limit(current_user)
     try:
-        # Get full chart data
-        chart_data = AstrologyCompute.get_horoscope_predictions(
-            dob=request.birth_details.dob,
-            tob=request.birth_details.tob,
-            place=request.birth_details.place,
-            lat=request.birth_details.latitude,
-            lon=request.birth_details.longitude,
-            tz=request.birth_details.timezone
+        # Build the rich, structured chart context (same path as /ask):
+        # D1 + running dasha chain + yogas + doshas + transits + selected vargas.
+        chart_data = build_chart_context(
+            birth_details=request.birth_details.model_dump(),
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+            sections=request.sections,
+            vargas=request.vargas,
         )
 
-        # Validate LLM provider
-        try:
-            provider = LLMProvider(request.llm_provider.lower())
-        except ValueError:
-            provider = LLMProvider.QWEN
+        # Resolve the model config (request key → user's stored key → env key)
+        cfg = await _resolve_cfg(current_user, request)
 
         # Generate prediction
         prediction = await llm_service.generate_prediction(
             chart_data=chart_data,
             prediction_type=request.prediction_type,
-            provider=provider
+            config=cfg,
         )
 
         return {
             "prediction_type": request.prediction_type,
             "prediction": prediction,
-            "provider": request.llm_provider,
-            "chart_data": chart_data
+            "provider": cfg.provider_type.value,
+            "model": cfg.model,
+            "chart_data": chart_data,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/astrology/compatibility-analysis")
 async def analyze_compatibility(
-    male_details: BirthDetails,
-    female_details: BirthDetails,
-    llm_provider: str = "qwen",
+    request: CompatibilityAnalysisRequest,
     current_user: str = Depends(get_current_user)
 ):
     """Get detailed compatibility analysis with AI"""
+    _enforce_rate_limit(current_user)
     try:
+        male_details = request.male_details
+        female_details = request.female_details
+
         # Calculate compatibility score
         compatibility = AstrologyCompute.get_compatibility(
             male_dob=male_details.dob,
@@ -909,43 +930,35 @@ async def analyze_compatibility(
             tz=male_details.timezone or female_details.timezone
         )
 
-        # Get chart data for both
+        # Build the natal summary for both partners (lagna/moon/sun/planets).
+        ayanamsa = request.ayanamsa or DEFAULT_AYANAMSA
         male_chart = AstrologyCompute.get_horoscope_predictions(
-            dob=male_details.dob,
-            tob=male_details.tob,
-            place=male_details.place,
-            lat=male_details.latitude,
-            lon=male_details.longitude,
-            tz=male_details.timezone
+            dob=male_details.dob, tob=male_details.tob, place=male_details.place,
+            lat=male_details.latitude, lon=male_details.longitude,
+            tz=male_details.timezone, ayanamsa=ayanamsa,
         )
-
         female_chart = AstrologyCompute.get_horoscope_predictions(
-            dob=female_details.dob,
-            tob=female_details.tob,
-            place=female_details.place,
-            lat=female_details.latitude,
-            lon=female_details.longitude,
-            tz=female_details.timezone
+            dob=female_details.dob, tob=female_details.tob, place=female_details.place,
+            lat=female_details.latitude, lon=female_details.longitude,
+            tz=female_details.timezone, ayanamsa=ayanamsa,
         )
 
-        # Validate LLM provider
-        try:
-            provider = LLMProvider(llm_provider.lower())
-        except ValueError:
-            provider = LLMProvider.QWEN
+        # Resolve the model config (request key → user's stored key → env key)
+        cfg = await _resolve_cfg(current_user, request)
 
         # Get AI analysis
         ai_analysis = await llm_service.analyze_compatibility(
             male_chart=male_chart,
             female_chart=female_chart,
             koota_score=compatibility.get("total_score", 0),
-            provider=provider
+            config=cfg,
         )
 
         return {
             "compatibility_score": compatibility,
             "ai_analysis": ai_analysis,
-            "provider": llm_provider
+            "provider": cfg.provider_type.value,
+            "model": cfg.model,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

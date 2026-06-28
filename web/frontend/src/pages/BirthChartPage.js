@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  AlertCircle,
-  ArrowLeft,
   Calendar,
   User,
   MapPin,
@@ -15,6 +13,9 @@ import { astrologyService } from "../services/api";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
 import { PanchangaPanel } from "../components/PanchangaPanel";
+import { PageHeader } from "../components/PageHeader";
+import { ProfileBanner } from "../components/ProfileBanner";
+import { ErrorBanner } from "../components/ErrorBanner";
 import { AYANAMSAS, DEFAULT_AYANAMSA, VARGAS, DEFAULT_VARGA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 
@@ -147,92 +148,18 @@ export const BirthChartPage = () => {
 
   return (
     <div className="dashboard-container mandala-bg">
-      {/* Navbar */}
-      <nav className="navbar">
-        <div className="navbar-brand">
-          <button onClick={() => navigate('/dashboard')} style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-sm)',
-            color: 'var(--saffron)',
-            padding: 'var(--space-sm) var(--space-md)',
-            borderRadius: 'var(--radius-md)',
-            transition: 'all 0.3s ease'
-          }}
-          onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 153, 51, 0.1)'}
-          onMouseOut={(e) => e.currentTarget.style.background = 'none'}>
-            <ArrowLeft size={20} />
-            <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Back</span>
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', marginLeft: 'var(--space-lg)' }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              background: 'linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white'
-            }}>
-              <Calendar size={24} />
-            </div>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '1.5rem' }}>Birth Chart</h1>
-              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                Rasi & Navamsa Charts
-              </p>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <PageHeader
+        icon={<Calendar size={24} />}
+        title="Birth Chart"
+        subtitle="Rasi & Navamsa Charts"
+        accent="saffron"
+      />
 
       {/* Content */}
       <div className="dashboard-content">
-        {/* Profile Banner */}
-        <div className="profile-banner fade-in">
-          <div className="profile-banner-left">
-            <div className="profile-avatar-large">
-              <User size={32} />
-            </div>
-            <div className="profile-info">
-              <h2>{selectedProfile.profile_name}</h2>
-              <div className="profile-meta">
-                <span>{selectedProfile.birth_details.name || 'Anonymous'}</span>
-                <span className="separator">•</span>
-                <span>{formatDate(selectedProfile.birth_details.dob)}</span>
-                <span className="separator">•</span>
-                <span>{orDash(selectedProfile.birth_details.place)}</span>
-              </div>
-            </div>
-          </div>
-          <button onClick={() => navigate('/profile-selection')} className="change-profile-btn">
-            <Star size={16} />
-            <span>Change Chart</span>
-          </button>
-        </div>
+        <ProfileBanner profile={selectedProfile} />
 
-        {/* Error Message */}
-        {error && (
-          <div style={{
-            background: 'rgba(227, 66, 52, 0.1)',
-            border: '2px solid rgba(227, 66, 52, 0.3)',
-            borderRadius: 'var(--radius-lg)',
-            padding: 'var(--space-lg)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-md)',
-            color: 'var(--vermillion)',
-            marginBottom: 'var(--space-xl)',
-            animation: 'fadeIn 0.5s ease-out'
-          }}>
-            <AlertCircle size={24} />
-            <span style={{ fontWeight: 500 }}>{error}</span>
-          </div>
-        )}
+        <ErrorBanner message={error} />
 
         {/* Loading State */}
         {loading ? (

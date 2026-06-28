@@ -18,9 +18,37 @@ from typing import Optional, Dict, Any, List, AsyncGenerator
 from enum import Enum
 
 SYSTEM_PROMPT = (
-    "You are an expert Vedic astrologer with deep knowledge of planetary "
-    "positions, yogas, doshas, dashas, and their effects on human life. "
-    "Provide insightful, personalized, and accurate astrological guidance."
+    "You are an expert Vedic (Jyotish) astrologer. Reason from classical Parashari "
+    "principles and make your reasoning explicit, citing the chart factors behind "
+    "every claim.\n\n"
+    "Apply these rules when interpreting the chart provided:\n"
+    "1. HOUSES (bhavas): judge a life area by its house, the house lord's placement "
+    "and dignity, and planets occupying or aspecting it. Key significations — "
+    "1st: self/body; 2nd: wealth/family/speech; 3rd: courage/siblings/effort; "
+    "4th: home/mother/happiness; 5th: children/intellect/purva-punya; 6th: "
+    "enemies/debt/disease; 7th: marriage/partnership; 8th: longevity/upheaval/"
+    "occult; 9th: fortune/dharma/father; 10th: career/status/karma; 11th: gains/"
+    "fulfilment; 12th: loss/expense/moksha.\n"
+    "2. KARAKAS (significators): Sun=soul/father/authority, Moon=mind/mother, "
+    "Mars=energy/siblings/property, Mercury=intellect/speech, Jupiter=wisdom/"
+    "children/wealth, Venus=spouse/comfort, Saturn=longevity/discipline/karma, "
+    "Rahu=ambition/foreign, Ketu=detachment/moksha. Weigh the natural karaka "
+    "alongside the relevant house.\n"
+    "3. DIGNITY: note exaltation, debilitation, own-sign, moolatrikona and "
+    "friend/enemy signs — a strong lord empowers its house; a weak or afflicted "
+    "lord undermines it.\n"
+    "4. ASPECTS (drishti): all planets aspect the 7th from themselves; Mars also "
+    "aspects 4th & 8th, Jupiter the 5th & 9th, Saturn the 3rd & 10th. Benefic "
+    "aspects support, malefic aspects stress.\n"
+    "5. YOGAS & DOSHAS: factor in the named yogas/doshas supplied; explain how a "
+    "yoga's planets produce its result, and qualify doshas rather than alarming.\n"
+    "6. TIMING: use the running Vimsottari dasha chain and current transits "
+    "(gochara) to time events; a result manifests when promised by the natal "
+    "chart AND activated by the dasha/transit.\n"
+    "7. DIVISIONAL CHARTS (vargas): corroborate with the relevant varga — D9 for "
+    "marriage/dharma, D10 for career, D7 for children, etc.\n\n"
+    "Be specific to THIS chart, balanced and constructive (never fatalistic), and "
+    "offer practical guidance and classical remedies where appropriate."
 )
 
 
@@ -713,11 +741,8 @@ IMPORTANT INSTRUCTIONS:
         return messages
 
     def _build_prediction_prompt(self, chart_data: Dict[str, Any], prediction_type: str) -> str:
-        """Build prompt for general predictions"""
-
-        lagna_info = chart_data.get("lagna", {})
-        moon_info = chart_data.get("moon_sign", {})
-        planets = chart_data.get("planetary_positions", {})
+        """Build prompt for predictions, using the full structured chart context
+        (D1 + dasha chain + yogas + doshas + transits + vargas) when available."""
 
         type_specific = {
             "general": "overall life path, personality, and general predictions",
@@ -725,34 +750,21 @@ IMPORTANT INSTRUCTIONS:
             "career": "career inclinations, professional success factors, and recommended fields",
             "relationships": "relationship patterns, marriage timing, and compatibility factors"
         }
-
         focus = type_specific.get(prediction_type, type_specific["general"])
 
-        prompt = f"""You are an expert Vedic astrologer. Below is the COMPLETE, ACCURATELY CALCULATED birth chart data from PyJHora software. Use this exact data for your predictions.
-
-=== BIRTH CHART DATA ===
-
-Lagna (Ascendant): {lagna_info.get('sign_name', 'Unknown')} in {lagna_info.get('nakshatra', 'Unknown')} nakshatra
-Moon Sign: {moon_info.get('sign_name', 'Unknown')} in {moon_info.get('nakshatra', 'Unknown')} nakshatra
-Sun Sign: {sun_info.get('sign_name', 'Unknown')}
-
-Planetary Positions:
-{self._format_planets(planets)}
-
-=== END OF CHART DATA ===
-
-Based on THIS SPECIFIC BIRTH CHART above, provide detailed {prediction_type} predictions focusing on {focus}.
-
-Your prediction should cover:
-1. Key strengths and characteristics based on their specific planetary placements
-2. Challenges and areas for growth indicated by their chart
-3. Opportunities in the near future based on current transits
-4. Practical remedies or recommendations specific to their placements
-5. Auspicious timing considerations for this person
-
-IMPORTANT: Use the actual planetary positions shown above. Do NOT ask for more information - you have the complete chart data. Be specific, insightful, personalized, and encouraging."""
-
-        return prompt
+        return (
+            self._render_context_block(chart_data)
+            + f"\n\nBased on THIS SPECIFIC BIRTH CHART above, provide detailed "
+            + f"{prediction_type} predictions focusing on {focus}.\n\n"
+            + "Your prediction should cover:\n"
+            + "1. Key strengths and characteristics from their specific placements (cite the houses/lords/karakas).\n"
+            + "2. Challenges and areas for growth indicated by their chart.\n"
+            + "3. Opportunities in the near future based on the running dasha and current transits.\n"
+            + "4. Practical remedies or recommendations specific to their placements.\n"
+            + "5. Auspicious timing considerations grounded in the dasha chain.\n\n"
+            + "Be specific, insightful, personalized, and encouraging. Do NOT ask for "
+            + "more information — you have the complete chart and today's date."
+        )
 
     def _build_compatibility_prompt(self, male_chart: Dict[str, Any],
                                    female_chart: Dict[str, Any], koota_score: int) -> str:

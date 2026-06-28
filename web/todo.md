@@ -54,11 +54,14 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
       `tob`/`place` through them across Dashboard, ProfileSelection, BirthChart,
       AskAstrologer, Compatibility (DhasaPage already had a safe local `formatDate`).
       Missing values now show "—" instead of crashing on `.split` of undefined.
-- [ ] **Docker can't import PyJHora.** `backend/Dockerfile` build context is `./backend`
-      and compose mounts only `./backend:/app`, but `astrology.py` imports jhora from
-      `../../src` — that path doesn't exist in the container, so PyJHora fails in Docker
-      (works locally only). Fix: vendor/copy `src/` into the image, pip-install PyJHora,
-      or adjust the build context + mount. (Found 2026-06-27 during the 4.8.7 bump.)
+- [x] **Docker can't import PyJHora.** FIXED 2026-06-28: the backend build context is now
+      the **repo root** (`web/docker-compose.yml`: `context: ..`, `dockerfile:
+      web/backend/Dockerfile`) so the image can vendor the PyJHora library. The Dockerfile
+      `COPY src /src` lands it exactly where `astrology.py`'s `../../src` import resolves
+      inside the container (`/app/../../src` → `/src`, verified), so `from jhora...` works
+      with zero code changes. Added a repo-root `.dockerignore` (excludes the ~712MB `.git`,
+      node_modules, venvs, `*.log`, `.env`) to keep the context lean. Docker isn't installed
+      on the dev box, so verified the path-resolution logic rather than a full image build.
 - [x] **Bump PyJHora to latest (4.8.7).** DONE 2026-06-27: overlaid upstream `src/` +
       `pyproject.toml` (we had zero local `src/` edits, so no conflicts). Verified the
       backend imports it and computes Rasi/D9/dashas correctly with the right timezone.
@@ -82,13 +85,24 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
 - [x] **Health endpoint 500.** FIXED 2026-06-27: `/health` read `AstrologyCompute.PYJHORA_AVAILABLE`
       but the flag was module-level only → AttributeError → 500. Exposed it as a class
       attribute. Verified `/health` now returns 200 with `pyjhora_available: true`.
-- [~] **Kill inline styles.** DONE for `BirthChartPage.js` + `NorthIndianChart.js`
-      (rebuilt on `ledger.css`, zero inline styles). Remaining: the other pages still
-      use inline styles / legacy CSS — addressed during the §3 rollout.
-- [ ] **Shared `<AppLayout>` / `<Navbar>` / `<ProfileBanner>`.** These are copy-pasted
-      across Dashboard, BirthChart, Dhasa, Compatibility, etc. Extract once.
-- [ ] **Shared primitives:** `<Card>`, `<Button>`, `<PageHeader>`, `<DataField>`,
-      `<LoadingState>`, `<ErrorBanner>` to replace the repeated ad-hoc blocks.
+- [~] **Kill inline styles.** Reduced the worst offenders: the copy-pasted inline-styled
+      navbars + profile banners + error blocks across BirthChart/Dhasa/Transit/
+      Compatibility/Ask/Dashboard are gone (replaced by the shared components below, which
+      use CSS classes in `Shared.css`). Remaining: per-page content still has inline styles
+      (controls, cards) — incremental cleanup, no visual change intended.
+- [x] **Shared `<PageHeader>` / `<ProfileBanner>`.** DONE 2026-06-28: extracted the
+      copy-pasted navbar (back button + accent icon + title/subtitle) into
+      `components/PageHeader.js` (accent variants: saffron/indigo/terracotta/gold) and the
+      profile banner into `components/ProfileBanner.js` (renders nothing without a profile;
+      optional `actions` slot for the Ask page's New Chat/History/Export/Keys group, and
+      `onChangeProfile`/`changeIcon` for Dashboard's clear-then-navigate). Rolled across
+      Dashboard, BirthChart, Dhasa, Transit, Compatibility, Ask. (No separate `<AppLayout>`/
+      `<Navbar>` — `PageHeader` + the existing `.dashboard-container`/`.dashboard-content`
+      cover it; Dashboard keeps its own brand+logout navbar.)
+- [x] **Shared primitives (started):** `<ErrorBanner>` and `<LoadingState>` added
+      (`components/ErrorBanner.js`, `LoadingState.js`, styled in `Shared.css`); ErrorBanner
+      now used on BirthChart/Dhasa/Transit/Compatibility. Still TODO: `<Card>`, `<Button>`,
+      `<DataField>` and routing every page's loading block through `<LoadingState>`.
 - [x] Centralize the planet/rasi constants — `src/constants/jyotish.js` (PLANET_ABBR,
       RASI_NAMES, RASI_ABBR); used by both chart components. (2026-06-27)
 - [ ] Add an ESLint/Prettier pass; CRA is fine for now but note migration to Vite
@@ -286,8 +300,16 @@ workspace. **Decisions captured 2026-06-28** (owner answered the clarifying roun
       `OLLAMA_DEFAULT_MODEL`, `OPENAI_COMPATIBLE_URL/MODEL/API_KEY`,
       `GEMINI_DEFAULT_MODEL`, `OPENAI_DEFAULT_MODEL`); `.env.example` updated.
       `config.py` now `load_dotenv()`s so `os.getenv` in `llm_service` sees `.env`.
-- [ ] FOLLOW-UP: thread the same model selection into `/predict` and
-      `/compatibility-analysis` (still take the legacy `llm_provider` only).
+- [x] FOLLOW-UP: thread the same model selection into `/predict` and
+      `/compatibility-analysis`. DONE 2026-06-28: `PredictionRequest` +
+      new `CompatibilityAnalysisRequest` carry `provider_type/model/base_url/api_key`
+      (+ `ayanamsa`, and `sections/vargas` on predict); both endpoints resolve the model
+      via the shared `_resolve_cfg` (request key → user's stored key → env key), enforce
+      the AI rate limit, and echo the resolved `provider`+`model`. `/compatibility-analysis`
+      changed from loose `BirthDetails` params to a single request body so the body fields
+      are actually read (the old `llm_provider` in the body was silently ignored). api.js
+      `generatePrediction`/`analyzeCompatibilityAI` now accept a `model` object like
+      `askQuestion`.
 - [x] FOLLOW-UP: per-user API-key entry in the UI — DONE in §8.6 (encrypted
       per-user keys, "API Keys" modal, used ahead of env keys at ask-time).
 
@@ -332,11 +354,19 @@ workspace. **Decisions captured 2026-06-28** (owner answered the clarifying roun
       within model context windows.
 - [ ] **Ashtakavarga / house strengths**: still a §5 P2 — not yet computed, so not
       in the context. Add a `sections["ashtakavarga"]` block once Bhinna+Sarva exist.
-- [ ] Strengthen the **system prompt**: encode classical reasoning rules (house
-      significations, karakas, dignity/exaltation, aspect rules) so answers cite the
-      chart factors behind a claim. (Current system prompt is still generic.)
-- [ ] FOLLOW-UP: thread the same `ChartContextBuilder` into `/predict` (still uses
-      the stubbed `get_horoscope_predictions`, which returns "Not implemented yet").
+- [x] Strengthen the **system prompt**: DONE 2026-06-28: `SYSTEM_PROMPT` now encodes
+      classical Parashari reasoning rules — house significations (1–12), natural karakas,
+      dignity (exalt/debil/own/moolatrikona), graha drishti (incl. Mars/Jupiter/Saturn
+      special aspects), yoga/dosha handling, dasha+gochara timing, and varga corroboration
+      — instructing the model to cite the chart factors behind each claim. Applied to the
+      ask, predict, and compatibility paths (single-shot system + streaming system msg).
+- [x] FOLLOW-UP: thread the same `ChartContextBuilder` into `/predict`. DONE 2026-06-28:
+      `/predict` now calls `build_chart_context` (D1 + running dasha chain + yogas + doshas
+      + transits + selected vargas), and `_build_prediction_prompt` renders the full
+      `_render_context_block` (was the thin lagna/moon/sun-only prompt, which also had a
+      `sun_info` NameError). Implemented the real `AstrologyCompute.get_horoscope_predictions`
+      (was the "Not implemented yet" stub) as the lightweight natal summary used by
+      `/horoscope`, the basic-prediction fallback, and the compatibility-analysis charts.
 
 ### 8.4 Save responses + history (P1) — DONE 2026-06-28
 
@@ -351,8 +381,9 @@ workspace. **Decisions captured 2026-06-28** (owner answered the clarifying roun
 - [x] Frontend: **History** panel on the Ask page — lists saved conversations for
       the profile (title, Q&A count, model, date), click to reload a thread,
       delete inline, plus a **New Chat** button. Verified list/get/delete live.
-- [ ] FOLLOW-UP: token usage + latency metadata per answer (not captured yet).
-      The dead `Prediction` model in database.py can be removed.
+- [~] FOLLOW-UP: token usage + latency metadata per answer (latency captured via
+      `elapsed_ms`; token usage still not captured). The dead `Prediction` model in
+      database.py was removed 2026-06-28 (also dropped its now-unused import in main.py).
 
 ### 8.5 Streaming + multi-turn (P1) — DONE 2026-06-28
 

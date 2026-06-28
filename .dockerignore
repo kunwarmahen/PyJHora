@@ -1,0 +1,18 @@
+# Build-context excludes for the backend image (web/docker-compose.yml builds it with
+# the repo root as context). Keeps the ~700MB .git and dev junk out of the image.
+.git
+.gitignore
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/venv
+**/.venv
+**/node_modules
+web/frontend/build
+**/.env
+**/*.log
+.idea
+.vscode
+*.egg-info
+build
+dist

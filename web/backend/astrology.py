@@ -691,10 +691,46 @@ class AstrologyCompute:
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
 
-    # Add placeholder methods for other required functions
     @staticmethod
-    def get_horoscope_predictions(*args, **kwargs):
-        return {"error": "Not implemented yet"}
+    def get_horoscope_predictions(dob: str, tob: str, place: str,
+                                  lat: Optional[float] = None, lon: Optional[float] = None,
+                                  tz: Optional[float] = None,
+                                  ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Return a compact, prediction-ready chart summary.
+
+        Reshapes `calculate_birth_chart` into the lagna / moon_sign / sun_sign /
+        planetary_positions structure consumed by the LLM prompt builders and the
+        basic-prediction fallback. This is the lightweight natal summary; the AI
+        endpoints layer the richer dasha/yoga/dosha/transit context on top via
+        `chart_context.build_chart_context`.
+        """
+        chart = AstrologyCompute.calculate_birth_chart(
+            dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz, ayanamsa=ayanamsa
+        )
+        if chart.get("error"):
+            return chart
+
+        d1 = chart.get("d1_chart", {})
+        moon = d1.get("Moon", {})
+        sun = d1.get("Sun", {})
+        return {
+            "status": "success",
+            "birth_details": {"dob": dob, "tob": tob, "place": place},
+            "lagna": chart.get("lagna", {}),
+            "moon_sign": {
+                "sign_name": moon.get("sign_name", "Unknown"),
+                "rasi": moon.get("rasi", 0),
+                "nakshatra": moon.get("nakshatra", "Unknown"),
+                "nakshatra_pada": moon.get("nakshatra_pada", 0),
+            },
+            "sun_sign": {
+                "sign_name": sun.get("sign_name", "Unknown"),
+                "rasi": sun.get("rasi", 0),
+                "nakshatra": sun.get("nakshatra", "Unknown"),
+                "nakshatra_pada": sun.get("nakshatra_pada", 0),
+            },
+            "planetary_positions": d1,
+        }
 
     @staticmethod
     def get_doshas(dob: str, tob: str, place: str,

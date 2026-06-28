@@ -16,8 +16,10 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      # Context is the repo root so the image can vendor the PyJHora library `src/`
+      # (astrology.py imports jhora from ../../src). See web/backend/Dockerfile.
+      context: ..
+      dockerfile: web/backend/Dockerfile
     container_name: pyjhora-backend
     environment:
       MONGODB_URL: mongodb://admin:admin123@mongodb:27017

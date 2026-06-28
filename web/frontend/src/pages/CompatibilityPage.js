@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, AlertCircle, ArrowLeft, User, Users, Sparkles } from 'lucide-react';
+import { Heart, User, Users, Sparkles } from 'lucide-react';
 import { useProfile } from '../contexts/ProfileContext';
 import { formatDate, orDash } from '../utils/format';
 import { astrologyService } from '../services/api';
+import { PageHeader } from '../components/PageHeader';
+import { ErrorBanner } from '../components/ErrorBanner';
 import '../styles/Dashboard.css';
 
 export const CompatibilityPage = () => {
@@ -70,69 +72,16 @@ export const CompatibilityPage = () => {
 
   return (
     <div className="dashboard-container mandala-bg">
-      {/* Navbar */}
-      <nav className="navbar">
-        <div className="navbar-brand">
-          <button onClick={() => navigate('/dashboard')} style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-sm)',
-            color: 'var(--saffron)',
-            padding: 'var(--space-sm) var(--space-md)',
-            borderRadius: 'var(--radius-md)',
-            transition: 'all 0.3s ease'
-          }}
-          onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 153, 51, 0.1)'}
-          onMouseOut={(e) => e.currentTarget.style.background = 'none'}>
-            <ArrowLeft size={20} />
-            <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Back</span>
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', marginLeft: 'var(--space-lg)' }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              background: 'linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white'
-            }}>
-              <Heart size={24} />
-            </div>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '1.5rem' }}>Compatibility Check</h1>
-              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                Ashtakoot Matching System
-              </p>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <PageHeader
+        icon={<Heart size={24} />}
+        title="Compatibility Check"
+        subtitle="Ashtakoot Matching System"
+        accent="saffron"
+      />
 
       {/* Content */}
       <div className="dashboard-content">
-        {/* Error Message */}
-        {error && (
-          <div style={{
-            background: 'rgba(227, 66, 52, 0.1)',
-            border: '2px solid rgba(227, 66, 52, 0.3)',
-            borderRadius: 'var(--radius-lg)',
-            padding: 'var(--space-lg)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-md)',
-            color: 'var(--vermillion)',
-            marginBottom: 'var(--space-xl)',
-            animation: 'fadeIn 0.5s ease-out'
-          }}>
-            <AlertCircle size={24} />
-            <span style={{ fontWeight: 500 }}>{error}</span>
-          </div>
-        )}
+        <ErrorBanner message={error} />
 
         {/* Profile Selection Card */}
         <div style={{

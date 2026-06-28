@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, AlertCircle, ArrowLeft, User, Star, ChevronDown, Calendar } from "lucide-react";
+import { Clock, AlertCircle, Star, ChevronDown, Calendar } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
-import { orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
+import { PageHeader } from "../components/PageHeader";
+import { ProfileBanner } from "../components/ProfileBanner";
+import { ErrorBanner } from "../components/ErrorBanner";
 import "../styles/Dashboard.css";
 
 // ── Shared helpers ──────────────────────────────────────────────────────────
@@ -313,94 +315,17 @@ export const DhasaPage = () => {
 
   return (
     <div className="dashboard-container mandala-bg">
-      {/* Navbar */}
-      <nav className="navbar">
-        <div className="navbar-brand">
-          <button
-            onClick={() => navigate("/dashboard")}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-sm)",
-              color: "var(--saffron)",
-              padding: "var(--space-sm) var(--space-md)",
-              borderRadius: "var(--radius-md)",
-            }}
-          >
-            <ArrowLeft size={20} />
-            <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>Back</span>
-          </button>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-md)", marginLeft: "var(--space-lg)" }}>
-            <div
-              style={{
-                width: "48px",
-                height: "48px",
-                background: "linear-gradient(135deg, var(--cosmic-indigo) 0%, var(--cosmic-indigo-light) 100%)",
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "white",
-              }}
-            >
-              <Clock size={24} />
-            </div>
-            <div>
-              <h1 style={{ margin: 0, fontSize: "1.5rem" }}>Vimsottari Dasha</h1>
-              <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--text-secondary)" }}>
-                Planetary periods — drill down Maha → Bhukti → Antara → Sookshma
-              </p>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <PageHeader
+        icon={<Clock size={24} />}
+        title="Vimsottari Dasha"
+        subtitle="Planetary periods — drill down Maha → Bhukti → Antara → Sookshma"
+        accent="indigo"
+      />
 
       <div className="dashboard-content">
-        {/* Profile Banner */}
-        <div className="profile-banner fade-in">
-          <div className="profile-banner-left">
-            <div className="profile-avatar-large">
-              <User size={32} />
-            </div>
-            <div className="profile-info">
-              <h2>{selectedProfile.profile_name}</h2>
-              <div className="profile-meta">
-                <span>{selectedProfile.birth_details.name || "Anonymous"}</span>
-                <span className="separator">•</span>
-                <span>{formatDate(selectedProfile.birth_details.dob)}</span>
-                <span className="separator">•</span>
-                <span>{orDash(selectedProfile.birth_details.place)}</span>
-              </div>
-            </div>
-          </div>
-          <button onClick={() => navigate("/profile-selection")} className="change-profile-btn">
-            <Star size={16} />
-            <span>Change Chart</span>
-          </button>
-        </div>
+        <ProfileBanner profile={selectedProfile} />
 
-        {/* Error */}
-        {error && (
-          <div
-            style={{
-              background: "rgba(227, 66, 52, 0.1)",
-              border: "2px solid rgba(227, 66, 52, 0.3)",
-              borderRadius: "var(--radius-lg)",
-              padding: "var(--space-lg)",
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-md)",
-              color: "var(--vermillion)",
-              marginBottom: "var(--space-xl)",
-            }}
-          >
-            <AlertCircle size={24} />
-            <span style={{ fontWeight: 500 }}>{error}</span>
-          </div>
-        )}
+        <ErrorBanner message={error} />
 
         {/* System badge + today */}
         <div

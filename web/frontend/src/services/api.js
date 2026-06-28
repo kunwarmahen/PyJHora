@@ -134,19 +134,39 @@ export const astrologyService = {
     api.put(`/api/user/api-keys/${provider}`, { api_key: apiKey }),
   deleteApiKey: (provider) => api.delete(`/api/user/api-keys/${provider}`),
 
-  generatePrediction: (birthDetails, predictionType = "general", llmProvider = "qwen") =>
-    api.post("/api/astrology/predict", {
-      birth_details: birthDetails,
-      prediction_type: predictionType,
-      llm_provider: llmProvider,
-    }),
+  generatePrediction: (birthDetails, predictionType = "general", model = {}) =>
+    api.post(
+      "/api/astrology/predict",
+      {
+        birth_details: birthDetails,
+        prediction_type: predictionType,
+        // Back-compat: still send llm_provider; new fields take precedence server-side
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        vargas: model.vargas,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
 
-  analyzeCompatibilityAI: (maleBirthDetails, femaleBirthDetails, llmProvider = "qwen") =>
-    api.post("/api/astrology/compatibility-analysis", {
-      male_details: maleBirthDetails,
-      female_details: femaleBirthDetails,
-      llm_provider: llmProvider,
-    }),
+  analyzeCompatibilityAI: (maleBirthDetails, femaleBirthDetails, model = {}) =>
+    api.post(
+      "/api/astrology/compatibility-analysis",
+      {
+        male_details: maleBirthDetails,
+        female_details: femaleBirthDetails,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
 };
 
 /**

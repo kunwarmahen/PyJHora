@@ -7,7 +7,6 @@ import {
   Bot,
   User,
   Sparkles,
-  ArrowLeft,
   Star,
   Info,
   X,
@@ -24,10 +23,12 @@ import {
   KeyRound,
 } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
-import { formatDate, orDash } from "../utils/format";
+import { formatDate } from "../utils/format";
 import { VARGAS } from "../constants/jyotish";
 import { astrologyService, streamAskQuestion } from "../services/api";
 import { NorthIndianChart } from "../components/NorthIndianChart";
+import { PageHeader } from "../components/PageHeader";
+import { ProfileBanner } from "../components/ProfileBanner";
 import "../styles/Dashboard.css";
 import "../styles/Chat.css";
 
@@ -650,99 +651,50 @@ export const AskAstrologerPage = () => {
 
   return (
     <div className="dashboard-container mandala-bg">
-      {/* Navbar */}
-      <nav className="navbar">
-        <div className="navbar-brand">
-          <button onClick={() => navigate('/dashboard')} style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-sm)',
-            color: 'var(--saffron)',
-            padding: 'var(--space-sm) var(--space-md)',
-            borderRadius: 'var(--radius-md)',
-            transition: 'all 0.3s ease'
-          }}
-          onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 153, 51, 0.1)'}
-          onMouseOut={(e) => e.currentTarget.style.background = 'none'}>
-            <ArrowLeft size={20} />
-            <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Back</span>
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', marginLeft: 'var(--space-lg)' }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              background: 'linear-gradient(135deg, var(--terracotta) 0%, var(--vermillion) 100%)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white'
-            }}>
-              <MessageCircle size={24} />
-            </div>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '1.5rem' }}>Ask AI Astrologer</h1>
-              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                Get personalized insights from AI
-              </p>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <PageHeader
+        icon={<MessageCircle size={24} />}
+        title="Ask AI Astrologer"
+        subtitle="Get personalized insights from AI"
+        accent="terracotta"
+      />
 
       {/* Content */}
       <div className="dashboard-content">
-        {/* Profile Banner */}
-        <div className="profile-banner fade-in">
-          <div className="profile-banner-left">
-            <div className="profile-avatar-large">
-              <User size={32} />
+        <ProfileBanner
+          profile={selectedProfile}
+          actions={
+            <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+              <button onClick={startNewConversation} className="change-profile-btn">
+                <Plus size={16} />
+                <span>New Chat</span>
+              </button>
+              <button
+                onClick={() => { setShowHistory((v) => !v); refreshConversations(); }}
+                className="change-profile-btn"
+              >
+                <History size={16} />
+                <span>History{conversations.length ? ` (${conversations.length})` : ""}</span>
+              </button>
+              <button
+                onClick={handleExport}
+                className="change-profile-btn"
+                disabled={!messages.some((m) => m.type === "ai" && m.content)}
+                title="Export this conversation as Markdown"
+              >
+                <Download size={16} />
+                <span>Export</span>
+              </button>
+              <button onClick={openKeysModal} className="change-profile-btn" title="Manage your API keys">
+                <KeyRound size={16} />
+                <span>API Keys</span>
+              </button>
+              <button onClick={() => navigate('/profile-selection')} className="change-profile-btn">
+                <Star size={16} />
+                <span>Change Chart</span>
+              </button>
             </div>
-            <div className="profile-info">
-              <h2>{selectedProfile.profile_name}</h2>
-              <div className="profile-meta">
-                <span>{selectedProfile.birth_details.name || 'Anonymous'}</span>
-                <span className="separator">•</span>
-                <span>{formatDate(selectedProfile.birth_details.dob)}</span>
-                <span className="separator">•</span>
-                <span>{orDash(selectedProfile.birth_details.place)}</span>
-              </div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
-            <button onClick={startNewConversation} className="change-profile-btn">
-              <Plus size={16} />
-              <span>New Chat</span>
-            </button>
-            <button
-              onClick={() => { setShowHistory((v) => !v); refreshConversations(); }}
-              className="change-profile-btn"
-            >
-              <History size={16} />
-              <span>History{conversations.length ? ` (${conversations.length})` : ""}</span>
-            </button>
-            <button
-              onClick={handleExport}
-              className="change-profile-btn"
-              disabled={!messages.some((m) => m.type === "ai" && m.content)}
-              title="Export this conversation as Markdown"
-            >
-              <Download size={16} />
-              <span>Export</span>
-            </button>
-            <button onClick={openKeysModal} className="change-profile-btn" title="Manage your API keys">
-              <KeyRound size={16} />
-              <span>API Keys</span>
-            </button>
-            <button onClick={() => navigate('/profile-selection')} className="change-profile-btn">
-              <Star size={16} />
-              <span>Change Chart</span>
-            </button>
-          </div>
-        </div>
+          }
+        />
 
         {/* History panel */}
         {showHistory && (

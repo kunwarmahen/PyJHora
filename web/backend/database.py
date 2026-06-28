@@ -86,20 +86,6 @@ class User(BaseModel):
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 
-class Prediction(BaseModel):
-    id: Optional[PyObjectId] = Field(alias="_id")
-    user_id: str
-    chart_id: str
-    prediction_type: str  # "horoscope", "compatibility", etc
-    prediction_text: str
-    generated_by: str  # "rule_based" or "qwen"
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
-    class Config:
-        populate_by_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
-
 class SavedProfile(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
     user_id: str
