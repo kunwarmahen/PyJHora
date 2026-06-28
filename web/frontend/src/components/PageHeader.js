@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { NavDrawer } from "./NavDrawer";
 import "../styles/Shared.css";
 
 /**
@@ -36,7 +37,10 @@ export const PageHeader = ({
           </div>
         </div>
       </div>
-      {right && <div className="nav-right">{right}</div>}
+      <div className="nav-right">
+        {right}
+        <NavDrawer />
+      </div>
     </nav>
   );
 };

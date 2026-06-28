@@ -1,0 +1,134 @@
+/* Mobile feature drawer. The toggle is hidden on desktop (navigation stays via
+   the dashboard cards); the drawer itself slides in from the left on phones. */
+
+.nav-drawer-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--saffron);
+  cursor: pointer;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+}
+.nav-drawer-toggle:hover {
+  background: rgba(255, 153, 51, 0.1);
+}
+
+.nav-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(45, 53, 97, 0.45);
+  z-index: 200;
+  animation: nav-fade 0.2s ease;
+}
+@keyframes nav-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.nav-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 80%;
+  max-width: 300px;
+  background: white;
+  box-shadow: var(--shadow-lg);
+  border-right: 4px solid var(--saffron);
+  z-index: 201;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.nav-drawer.open {
+  transform: translateX(0);
+}
+
+.nav-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--sandalwood);
+}
+.nav-drawer-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--saffron);
+}
+.nav-drawer-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--space-xs);
+}
+
+.nav-drawer-links {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-drawer-footer {
+  padding: var(--space-md);
+  border-top: 1px solid var(--sandalwood);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-drawer-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-md);
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--cosmic-indigo);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  min-height: 48px;
+}
+.nav-drawer-link svg {
+  color: var(--saffron);
+  flex-shrink: 0;
+}
+.nav-drawer-link:hover {
+  background: rgba(255, 153, 51, 0.08);
+}
+.nav-drawer-link.active {
+  background: rgba(255, 153, 51, 0.14);
+}
+.nav-drawer-link.logout {
+  color: var(--vermillion);
+}
+.nav-drawer-link.logout svg {
+  color: var(--vermillion);
+}
+
+/* Show the hamburger only on phones/tablets. */
+@media (max-width: 768px) {
+  .nav-drawer-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

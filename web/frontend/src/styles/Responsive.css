@@ -1,0 +1,80 @@
+/* Mobile / small-screen polish — loaded last so it can refine the per-page styles.
+   The chart SVGs already scale (viewBox + width:100%), grids use auto-fit, and the
+   Dashboard navbar/profile-banner already reflow; this fills the remaining gaps:
+   tap targets, iOS input-zoom, the AI chat on phones, and heading/overflow tuning. */
+
+/* Never let a stray wide element cause horizontal scrolling of the page. */
+img,
+svg,
+table {
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  /* 16px form fields prevent iOS Safari from zooming in on focus, and give a
+     comfortable tap target. Applies to the many ad-hoc inputs/selects too. */
+  input,
+  select,
+  textarea,
+  .chat-input,
+  .key-input,
+  .ayanamsa-select select {
+    font-size: 16px !important;
+  }
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
+
+  /* Icon-only buttons: ensure a ≥40px touch target. */
+  .edit-btn,
+  .delete-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* On phones the per-chart controls read better stacked full-width. */
+  .ayanamsa-select,
+  .ayanamsa-select select {
+    width: 100%;
+  }
+  .chart-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Tighten oversized display headings so they don't wrap awkwardly. */
+  h1 {
+    font-size: 2rem;
+  }
+  h2 {
+    font-size: 1.6rem;
+  }
+}
+
+/* AI chat: keep the conversation scrolling inside a viewport-sized panel so the
+   input stays reachable without scrolling the whole page. */
+@media (max-width: 968px) {
+  .chat-main {
+    height: 72vh;
+    min-height: 420px;
+  }
+  .messages-container {
+    padding: var(--space-md);
+  }
+  /* Respect the iOS home-indicator safe area under the input bar. */
+  .chat-input-container {
+    padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Answer-affordance buttons stay usable but compact on phones. */
+@media (max-width: 480px) {
+  .msg-action-btn {
+    padding: 6px 10px;
+  }
+  .message {
+    max-width: 100%;
+  }
+}

@@ -15,6 +15,7 @@ import { AdvancedPage } from "./pages/AdvancedPage";
 import { PredictionsPage } from "./pages/PredictionsPage";
 import { AskAstrologerPage } from "./pages/AskAstrologerPage";
 import "./App.css";
+import "./styles/Responsive.css";
 
 function App() {
   return (

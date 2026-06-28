@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
 import { Calendar, Heart, Clock, MessageCircle, LogOut, Star, Sparkles, Orbit } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
+import { NavDrawer } from "../components/NavDrawer";
 import "../styles/Dashboard.css";
 
 export const DashboardPage = () => {
@@ -83,6 +84,7 @@ export const DashboardPage = () => {
             <LogOut size={18} />
             <span>Logout</span>
           </button>
+          <NavDrawer />
         </div>
       </nav>
 

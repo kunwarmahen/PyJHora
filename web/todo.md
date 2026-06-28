@@ -145,15 +145,27 @@ identity. Don't reintroduce a wholesale new theme unless the owner asks.
 > Lesson learned: the owner likes the existing saffron/cream Vedic identity — modernize
 > by cleaning it up, not replacing it.
 
-## 4. Mobile / responsive (P1)
+## 4. Mobile / responsive (P1) — DONE 2026-06-28
 
-- [ ] Audit every page at 360px / 768px. The SVG chart (fixed 600px viewBox) needs
-      to scale and stay legible; planet labels currently crowd on small screens.
-- [ ] Hamburger/drawer nav instead of the desktop navbar on phones.
-- [ ] Profile cards, feature grid, and the two-column forms need single-column
-      reflow + larger tap targets (edit/delete buttons are 16px icons — too small).
-- [ ] Make the AI chat (`AskAstrologerPage`) usable on mobile (sticky input, scroll).
-- [ ] Add `<meta viewport>` + test; PWA/installable as a stretch goal.
+- [x] **Audit + SVG charts.** The chart SVGs already scale (`viewBox` + `width:100%` +
+      `max-width:600px; height:auto`), so labels scale proportionally and stay legible.
+      `<meta viewport>` was already present. Added a global `Responsive.css` (loaded last)
+      so stray wide elements (`img/svg/table`) can't cause horizontal scroll.
+- [x] **Hamburger/drawer nav.** New `components/NavDrawer.js` (+ `NavDrawer.css`): a
+      slide-in drawer with links to every feature (Dashboard/Birth Chart/Dhasa/Transit/
+      Advanced/Compatibility/Ask) + Change Chart + Logout. The hamburger shows only on
+      ≤768px (desktop still navigates via dashboard cards); wired into `PageHeader`
+      (every inner page) and the Dashboard navbar. (The app has no link-heavy desktop
+      navbar to "collapse", so the drawer is an *additive* mobile convenience.)
+- [x] **Single-column reflow + tap targets.** Feature grid / cards / forms already use
+      `auto-fit` + the existing 768px queries (single-column, profile-banner stacks).
+      Added: edit/delete icon buttons → 44px touch targets; form inputs/selects → 16px
+      font (stops iOS focus-zoom) + 44px min-height; per-chart controls stack full-width;
+      display headings tuned down.
+- [x] **AI chat on mobile.** `.chat-main` becomes a `72vh` panel so messages scroll
+      internally and the input stays reachable; chat input is 16px; input bar respects the
+      iOS home-indicator safe area; messages go full-width on very small screens.
+- [x] `<meta viewport>` already present. PWA/installable still a stretch goal (not done).
 
 ## 5. New features (P1/P2) — grounded in what the PyJHora engine already supports
 
