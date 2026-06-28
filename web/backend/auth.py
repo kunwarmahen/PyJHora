@@ -1,11 +1,15 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from pydantic import BaseModel
+import bcrypt
 from config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# We use the `bcrypt` library directly rather than passlib: passlib 1.7.4 is
+# unmaintained and breaks with bcrypt >= 4.1 (it reads bcrypt.__about__.__version__,
+# which was removed, and bcrypt 5.x now *raises* on >72-byte inputs instead of
+# silently truncating). Produced hashes are standard `$2b$...`, so any existing
+# passlib-created hashes remain verifiable.
 
 class TokenData(BaseModel):
     username: Optional[str] = None
@@ -14,13 +18,19 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+def _to_bcrypt_bytes(password: str) -> bytes:
+    """bcrypt only considers the first 72 BYTES of the password. Encode to UTF-8
+    and truncate to 72 bytes (not characters — multibyte chars can exceed it)."""
+    return password.encode("utf-8")[:72]
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    plain_password = plain_password[:72]
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(_to_bcrypt_bytes(plain_password), hashed_password.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
 
 def get_password_hash(password: str) -> str:
-    password = password[:72]
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(_to_bcrypt_bytes(password), bcrypt.gensalt()).decode("utf-8")
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
