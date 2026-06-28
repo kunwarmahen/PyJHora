@@ -109,10 +109,18 @@ export const astrologyService = {
         api_key: model.apiKey,
         vargas: model.vargas,
         ayanamsa: model.ayanamsa,
+        conversation_id: model.conversationId,
+        profile_id: model.profileId,
       },
       // Local models can be slow to load + generate; allow up to 5 minutes
       { timeout: 300000 }
     ),
+
+  // Conversation history (saved Q&A per profile)
+  listConversations: (profileId) =>
+    api.get("/api/ai/conversations", { params: { profile_id: profileId } }),
+  getConversation: (id) => api.get(`/api/ai/conversations/${id}`),
+  deleteConversation: (id) => api.delete(`/api/ai/conversations/${id}`),
 
   generatePrediction: (birthDetails, predictionType = "general", llmProvider = "qwen") =>
     api.post("/api/astrology/predict", {
@@ -127,6 +135,80 @@ export const astrologyService = {
       female_details: femaleBirthDetails,
       llm_provider: llmProvider,
     }),
+};
+
+/**
+ * Stream an AI answer over SSE (fetch + ReadableStream — axios can't stream in
+ * the browser). Calls callbacks as events arrive. Returns a function to abort.
+ *   callbacks: { onMeta, onToken, onDone, onError }
+ */
+export const streamAskQuestion = (birthDetails, question, model = {}, callbacks = {}) => {
+  const controller = new AbortController();
+  const { onMeta, onToken, onDone, onError } = callbacks;
+
+  (async () => {
+    try {
+      const resp = await fetch(`${API_URL}/api/astrology/ask/stream`, {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body: JSON.stringify({
+          birth_details: birthDetails,
+          question,
+          llm_provider: model.legacyProvider || "qwen",
+          provider_type: model.providerType,
+          model: model.model,
+          base_url: model.baseUrl,
+          api_key: model.apiKey,
+          vargas: model.vargas,
+          ayanamsa: model.ayanamsa,
+          conversation_id: model.conversationId,
+          profile_id: model.profileId,
+        }),
+      });
+
+      if (!resp.ok || !resp.body) {
+        const text = await resp.text().catch(() => "");
+        throw new Error(text || `Request failed (${resp.status})`);
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // SSE frames are separated by a blank line
+        let idx;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const frame = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          const dataLine = frame.split("\n").find((l) => l.startsWith("data:"));
+          if (!dataLine) continue;
+          let evt;
+          try {
+            evt = JSON.parse(dataLine.slice(5).trim());
+          } catch (e) {
+            continue;
+          }
+          if (evt.type === "meta") onMeta && onMeta(evt);
+          else if (evt.type === "token") onToken && onToken(evt.text);
+          else if (evt.type === "done") onDone && onDone(evt);
+          else if (evt.type === "error") onError && onError(new Error(evt.message));
+        }
+      }
+    } catch (err) {
+      if (err.name !== "AbortError") onError && onError(err);
+    }
+  })();
+
+  return () => controller.abort();
 };
 
 export default api;

@@ -510,3 +510,18 @@
     max-width: 90%;
   }
 }
+
+/* Streaming cursor shown while an answer is being generated */
+.stream-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  color: var(--saffron);
+  font-weight: 700;
+  animation: stream-blink 1s steps(2, start) infinite;
+}
+
+@keyframes stream-blink {
+  to {
+    visibility: hidden;
+  }
+}

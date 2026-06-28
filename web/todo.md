@@ -338,29 +338,39 @@ workspace. **Decisions captured 2026-06-28** (owner answered the clarifying roun
 - [ ] FOLLOW-UP: thread the same `ChartContextBuilder` into `/predict` (still uses
       the stubbed `get_horoscope_predictions`, which returns "Not implemented yet").
 
-### 8.4 Save responses + history (P1)
+### 8.4 Save responses + history (P1) — DONE 2026-06-28
 
-- [ ] New Mongo collection `ai_conversations` (per user + profile): conversation
-      doc with messages `[{role, content, ts}]`, plus metadata per AI answer
-      (provider/model, vargas + context sections included, dasha snapshot,
-      token usage, latency). Repurpose/replace the dead `Prediction` model.
-- [ ] Endpoints: `POST /api/astrology/ask` persists the turn; `GET
-      /api/ai/conversations?profile_id=` (list), `GET /api/ai/conversations/{id}`
-      (full thread), `DELETE` one. Auth-scoped to the current user.
-- [ ] Frontend: a **History** panel/page — list past conversations per profile,
-      open one to re-read, continue the thread, or delete. Show which model +
-      context produced each answer.
+- [x] New Mongo collection `ai_conversations` (per user + profile) via
+      `conversations.py`: each doc holds `messages [{role, content, ts, model,
+      provider, vargas, sections}]` + title/created_at/updated_at, scoped to
+      `user_id` on every query.
+- [x] Endpoints: both `/api/astrology/ask` and `.../ask/stream` persist the turn
+      (creating the conversation on first message, returning `conversation_id`);
+      `GET /api/ai/conversations?profile_id=` (list), `GET /api/ai/conversations/{id}`
+      (full thread), `DELETE /api/ai/conversations/{id}`. All auth-scoped.
+- [x] Frontend: **History** panel on the Ask page — lists saved conversations for
+      the profile (title, Q&A count, model, date), click to reload a thread,
+      delete inline, plus a **New Chat** button. Verified list/get/delete live.
+- [ ] FOLLOW-UP: token usage + latency metadata per answer (not captured yet).
+      The dead `Prediction` model in database.py can be removed.
 
-### 8.5 Streaming + multi-turn (P1)
+### 8.5 Streaming + multi-turn (P1) — DONE 2026-06-28
 
-- [ ] Streaming: SSE endpoint (`POST /api/astrology/ask/stream`) that proxies
-      token streams from Ollama (`stream:true`), OpenAI, OpenAI-compatible, and
-      Gemini (`streamGenerateContent`). Persist the full answer on completion.
-- [ ] Frontend: render the streamed answer progressively (replace the static
-      "Analyzing…" indicator); keep the markdown renderer.
-- [ ] Multi-turn: send prior turns as context (bounded window / summarized when
-      long) so follow-ups work. Chart/varga/dasha context is included once and
-      referenced, not re-sent every turn (token economy).
+- [x] Streaming SSE endpoint `POST /api/astrology/ask/stream` that proxies token
+      streams from Ollama (`/api/chat` stream), OpenAI + OpenAI-compatible
+      (`/chat/completions` stream), and Gemini (`streamGenerateContent?alt=sse`).
+      Emits `meta` / `token` / `done` / `error` events; persists the full answer
+      on completion. `llm_service.stream_answer` + per-provider `_stream_*`.
+- [x] Frontend renders the streamed answer progressively (fetch + ReadableStream
+      SSE parser in `streamAskQuestion`; axios can't stream in-browser), with a
+      blinking cursor while generating; markdown renderer kept.
+- [x] Multi-turn: prior turns (last `HISTORY_WINDOW`=8 msgs) are loaded from the
+      saved conversation and fed back; the chart/varga/dasha context is sent once
+      as the system message (chat path) or prepended once (single-shot), not
+      re-sent per turn. Verified: a follow-up resolved "that ascendant" → Virgo
+      from the prior turn.
+- [ ] FOLLOW-UP: a Stop/cancel button for an in-flight stream (the abort handle
+      is already returned by `streamAskQuestion`, just not wired to a button).
 
 ### 8.6 Multi-user hardening (P1, since scope = shareable)
 

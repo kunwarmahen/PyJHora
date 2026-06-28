@@ -9,16 +9,16 @@ import {
   Sparkles,
   ArrowLeft,
   Star,
-  Calendar,
-  Clock,
-  MapPin,
   Info,
   X,
+  History,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash } from "../utils/format";
 import { VARGAS } from "../constants/jyotish";
-import { astrologyService } from "../services/api";
+import { astrologyService, streamAskQuestion } from "../services/api";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import "../styles/Dashboard.css";
 import "../styles/Chat.css";
@@ -47,6 +47,11 @@ export const AskAstrologerPage = () => {
   const [showInfoModal, setShowInfoModal] = useState(false);
   // The actual structured context the backend assembled for the last answer
   const [lastContext, setLastContext] = useState(null);
+
+  // Conversation persistence + multi-turn
+  const [conversationId, setConversationId] = useState(null);
+  const [conversations, setConversations] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   // AI provider / model selection
   const [providers, setProviders] = useState([]);
@@ -176,8 +181,10 @@ export const AskAstrologerPage = () => {
       return;
     }
 
-    // Auto-calculate chart on mount
+    // Auto-calculate chart + load saved conversations on mount
     calculateChart();
+    refreshConversations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfile, navigate]);
 
   const calculateChart = async () => {
@@ -221,69 +228,149 @@ export const AskAstrologerPage = () => {
     }
   };
 
-  const handleAskQuestion = async (question) => {
-    if (!question.trim() || !selectedProfile) return;
+  const buildBirthDetails = () => ({
+    name: selectedProfile.birth_details.name,
+    dob: selectedProfile.birth_details.dob,
+    tob: selectedProfile.birth_details.tob,
+    place: selectedProfile.birth_details.place,
+    latitude: parseFloat(selectedProfile.birth_details.latitude),
+    longitude: parseFloat(selectedProfile.birth_details.longitude),
+    timezone: parseFloat(selectedProfile.birth_details.timezone),
+  });
 
-    const userMessage = {
-      type: "user",
-      content: question,
-      timestamp: new Date().toLocaleTimeString(),
-    };
+  // Update the most recent AI message in place (used while streaming)
+  const updateLastAi = (updater) =>
+    setMessages((prev) => {
+      const next = [...prev];
+      for (let i = next.length - 1; i >= 0; i--) {
+        if (next[i].type === "ai") {
+          next[i] = updater(next[i]);
+          break;
+        }
+      }
+      return next;
+    });
 
-    setMessages((prev) => [...prev, userMessage]);
+  const handleAskQuestion = (question) => {
+    if (!question.trim() || !selectedProfile || loading) return;
+
+    const now = new Date().toLocaleTimeString();
+    setMessages((prev) => [
+      ...prev,
+      { type: "user", content: question, timestamp: now },
+      {
+        type: "ai",
+        content: "",
+        streaming: true,
+        provider: providerType,
+        model,
+        timestamp: new Date().toLocaleTimeString(),
+      },
+    ]);
     setCurrentQuestion("");
     setLoading(true);
     setError("");
 
-    try {
-      const birthDetails = {
-        name: selectedProfile.birth_details.name,
-        dob: selectedProfile.birth_details.dob,
-        tob: selectedProfile.birth_details.tob,
-        place: selectedProfile.birth_details.place,
-        latitude: parseFloat(selectedProfile.birth_details.latitude),
-        longitude: parseFloat(selectedProfile.birth_details.longitude),
-        timezone: parseFloat(selectedProfile.birth_details.timezone),
-      };
-
-      const response = await astrologyService.askQuestion(
-        birthDetails,
-        question,
-        {
-          providerType,
-          model,
-          baseUrl: selectedProvider?.editable_base_url ? baseUrl : undefined,
-          legacyProvider: providerType === "ollama" ? "qwen" : providerType,
-          vargas: selectedVargas,
-        }
-      );
-
-      const aiMessage = {
-        type: "ai",
-        content: response.data.answer,
-        provider: response.data.provider || providerType,
-        model: response.data.model || model,
-        timestamp: new Date().toLocaleTimeString(),
-        chartSummary: response.data.chart_summary,
-      };
-
-      if (response.data.context) setLastContext(response.data.context);
-      setMessages((prev) => [...prev, aiMessage]);
-    } catch (err) {
-      setError(err.response?.data?.detail || "Failed to get answer");
-      const errorMessage = {
-        type: "error",
-        content: err.response?.data?.detail || "Failed to get answer from AI",
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setLoading(false);
-    }
+    streamAskQuestion(
+      buildBirthDetails(),
+      question,
+      {
+        providerType,
+        model,
+        baseUrl: selectedProvider?.editable_base_url ? baseUrl : undefined,
+        legacyProvider: providerType === "ollama" ? "qwen" : providerType,
+        vargas: selectedVargas,
+        conversationId,
+        profileId: selectedProfile._id,
+      },
+      {
+        onMeta: (m) =>
+          updateLastAi((msg) => ({
+            ...msg,
+            provider: m.provider || msg.provider,
+            model: m.model || msg.model,
+          })),
+        onToken: (t) =>
+          updateLastAi((msg) => ({ ...msg, content: msg.content + t })),
+        onDone: (d) => {
+          if (d.conversation_id) setConversationId(d.conversation_id);
+          updateLastAi((msg) => ({ ...msg, streaming: false }));
+          setLoading(false);
+          refreshConversations();
+        },
+        onError: (e) => {
+          updateLastAi((msg) => ({
+            ...msg,
+            streaming: false,
+            error: !msg.content,
+            content: msg.content || `Error: ${e.message}`,
+          }));
+          setError(e.message || "Failed to get answer from AI");
+          setLoading(false);
+        },
+      }
+    );
   };
 
   const handleExampleClick = (question) => {
     handleAskQuestion(question);
+  };
+
+  // ── Conversation history ────────────────────────────────────────────
+  const refreshConversations = async () => {
+    if (!selectedProfile?._id) return;
+    try {
+      const resp = await astrologyService.listConversations(selectedProfile._id);
+      setConversations(resp.data.conversations || []);
+    } catch (e) {
+      /* non-fatal */
+    }
+  };
+
+  const startNewConversation = () => {
+    setConversationId(null);
+    setLastContext(null);
+    setMessages([
+      {
+        type: "system",
+        content: `New conversation for ${
+          selectedProfile.birth_details.name || selectedProfile.profile_name
+        }. Ask me anything about this birth chart!`,
+      },
+    ]);
+    setShowHistory(false);
+  };
+
+  const loadConversation = async (id) => {
+    try {
+      const resp = await astrologyService.getConversation(id);
+      const conv = resp.data;
+      const msgs = (conv.messages || []).map((m) =>
+        m.role === "user"
+          ? { type: "user", content: m.content }
+          : { type: "ai", content: m.content, provider: m.provider, model: m.model }
+      );
+      setMessages(
+        msgs.length
+          ? msgs
+          : [{ type: "system", content: "This conversation is empty." }]
+      );
+      setConversationId(id);
+      setShowHistory(false);
+    } catch (e) {
+      setError("Failed to load conversation");
+    }
+  };
+
+  const handleDeleteConversation = async (id, e) => {
+    e.stopPropagation();
+    try {
+      await astrologyService.deleteConversation(id);
+      if (id === conversationId) startNewConversation();
+      refreshConversations();
+    } catch (err) {
+      /* non-fatal */
+    }
   };
 
   const getChartDataForLLM = () => {
@@ -387,11 +474,93 @@ export const AskAstrologerPage = () => {
               </div>
             </div>
           </div>
-          <button onClick={() => navigate('/profile-selection')} className="change-profile-btn">
-            <Star size={16} />
-            <span>Change Chart</span>
-          </button>
+          <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
+            <button onClick={startNewConversation} className="change-profile-btn">
+              <Plus size={16} />
+              <span>New Chat</span>
+            </button>
+            <button
+              onClick={() => { setShowHistory((v) => !v); refreshConversations(); }}
+              className="change-profile-btn"
+            >
+              <History size={16} />
+              <span>History{conversations.length ? ` (${conversations.length})` : ""}</span>
+            </button>
+            <button onClick={() => navigate('/profile-selection')} className="change-profile-btn">
+              <Star size={16} />
+              <span>Change Chart</span>
+            </button>
+          </div>
         </div>
+
+        {/* History panel */}
+        {showHistory && (
+          <div style={{
+            background: 'white',
+            borderRadius: 'var(--radius-xl)',
+            padding: 'var(--space-xl)',
+            boxShadow: 'var(--shadow-lg)',
+            borderTop: '4px solid var(--saffron)',
+            marginBottom: 'var(--space-xl)',
+          }}>
+            <h3 style={{
+              display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
+              marginBottom: 'var(--space-lg)', color: 'var(--cosmic-indigo)',
+              fontSize: '1.25rem', fontWeight: 700,
+            }}>
+              <History size={20} style={{ color: 'var(--saffron)' }} />
+              Saved Conversations
+            </h3>
+            {conversations.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: 0 }}>
+                No saved conversations yet. Ask a question to start one.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+                {conversations.map((c) => (
+                  <div
+                    key={c.id}
+                    onClick={() => loadConversation(c.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      gap: 'var(--space-md)', padding: 'var(--space-md)',
+                      borderRadius: 'var(--radius-md)', cursor: 'pointer',
+                      border: `1px solid ${c.id === conversationId ? 'var(--saffron)' : 'var(--sandalwood)'}`,
+                      background: c.id === conversationId ? 'rgba(255, 153, 51, 0.08)' : 'white',
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{
+                        fontWeight: 600, color: 'var(--cosmic-indigo)', fontSize: '0.9375rem',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {c.title}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                        {Math.floor((c.message_count || 0) / 2)} Q&A
+                        {c.last_model ? ` · ${c.last_model}` : ""}
+                        {c.updated_at ? ` · ${formatDate(c.updated_at)}` : ""}
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => handleDeleteConversation(c.id, e)}
+                      title="Delete conversation"
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: 'var(--text-secondary)', padding: 'var(--space-xs)',
+                        display: 'flex', flexShrink: 0,
+                      }}
+                      onMouseOver={(e) => (e.currentTarget.style.color = 'var(--vermillion)')}
+                      onMouseOut={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Display Birth Chart */}
         {chartData && (
@@ -687,30 +856,29 @@ export const AskAstrologerPage = () => {
                 )}
                 <div className="message-content">
                   {message.type === "ai" ? (
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                    message.streaming && !message.content ? (
+                      <div className="loading">
+                        <div className="typing-indicator">
+                          <span></span>
+                          <span></span>
+                          <span></span>
+                        </div>
+                        Consulting the chart…
+                      </div>
+                    ) : (
+                      <>
+                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                        {message.streaming && (
+                          <span className="stream-cursor">▍</span>
+                        )}
+                      </>
+                    )
                   ) : (
                     message.content
                   )}
                 </div>
               </div>
             ))}
-
-            {loading && (
-              <div className="message ai">
-                <div className="message-header">
-                  <Bot size={18} />
-                  <span>AI Astrologer</span>
-                </div>
-                <div className="message-content loading">
-                  <div className="typing-indicator">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
-                  Analyzing your chart...
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="chat-input-container" style={{

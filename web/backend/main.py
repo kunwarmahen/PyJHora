@@ -1,9 +1,11 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import StreamingResponse
 from contextlib import asynccontextmanager
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
+import json
 from pydantic import BaseModel
 
 from config import settings
@@ -14,6 +16,7 @@ from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, S
 from chart_context import build_chart_context
 from qwen_predictor import QwenPredictor
 from llm_service import llm_service, LLMProvider
+import conversations as convo
 
 # Request models
 class LoginRequest(BaseModel):
@@ -38,6 +41,9 @@ class AskQuestionRequest(BaseModel):
     ayanamsa: Optional[str] = None
     sections: Optional[dict] = None  # toggle dasha_tree/yogas/doshas/transits
     vargas: Optional[list] = None    # divisional-chart factors, e.g. [1, 9, 10]
+    # Conversation (save + multi-turn)
+    conversation_id: Optional[str] = None
+    profile_id: Optional[str] = None
 
 class PredictionRequest(BaseModel):
     birth_details: BirthDetails
@@ -586,18 +592,28 @@ async def ask_question(
             legacy_provider=request.llm_provider,
         )
 
+        # Multi-turn: load prior turns from the conversation (if any)
+        conv = await convo.get_conversation(current_user, request.conversation_id) \
+            if request.conversation_id else None
+        history = convo.history_for_model(conv)
+
         # Get AI response
         answer = await llm_service.ask_question(
             chart_data=chart_data,
             question=request.question,
-            config=cfg
+            config=cfg,
+            history=history,
         )
+
+        # Persist the turn (create the conversation on first message)
+        conv_id = await _save_turn(current_user, request, cfg, chart_data, answer)
 
         return {
             "question": request.question,
             "answer": answer,
             "provider": cfg.provider_type.value,
             "model": cfg.model,
+            "conversation_id": conv_id,
             "sections": chart_data.get("_sections", {}),
             "vargas": chart_data.get("_vargas", []),
             "context": chart_data,  # full structured context (for the "what was sent" view)
@@ -609,6 +625,124 @@ async def ask_question(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+async def _save_turn(user_id: str, request: "AskQuestionRequest", cfg, chart_data: dict, answer: str) -> str:
+    """Persist a user question + assistant answer, creating the conversation if new."""
+    conv_id = request.conversation_id
+    if not conv_id:
+        conv_id = await convo.create_conversation(
+            user_id, request.profile_id, request.question,
+            request.birth_details.model_dump(),
+        )
+    now = datetime.now(timezone.utc).isoformat()
+    user_msg = {"role": "user", "content": request.question, "ts": now}
+    ai_msg = {
+        "role": "assistant", "content": answer, "ts": now,
+        "provider": cfg.provider_type.value, "model": cfg.model,
+        "vargas": chart_data.get("_vargas", []),
+        "sections": chart_data.get("_sections", {}),
+    }
+    await convo.append_messages(user_id, conv_id, [user_msg, ai_msg])
+    return conv_id
+
+
+@app.post("/api/astrology/ask/stream")
+async def ask_question_stream(
+    request: AskQuestionRequest,
+    current_user: str = Depends(get_current_user)
+):
+    """Stream an answer token-by-token (SSE), with multi-turn context, and persist
+    the completed turn. Frontend reads this with a fetch + ReadableStream."""
+    # Build context + resolve model up front so failures surface as HTTP errors.
+    chart_data = build_chart_context(
+        birth_details=request.birth_details.model_dump(),
+        ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+        sections=request.sections,
+        vargas=request.vargas,
+    )
+    cfg = llm_service.resolve_config(
+        provider_type=request.provider_type,
+        model=request.model,
+        base_url=request.base_url,
+        api_key=request.api_key,
+        legacy_provider=request.llm_provider,
+    )
+    conv = await convo.get_conversation(current_user, request.conversation_id) \
+        if request.conversation_id else None
+    history = convo.history_for_model(conv)
+
+    async def event_gen():
+        # Tell the client which conversation + model up front.
+        meta = {
+            "type": "meta",
+            "conversation_id": request.conversation_id,
+            "provider": cfg.provider_type.value,
+            "model": cfg.model,
+            "sections": chart_data.get("_sections", {}),
+            "vargas": chart_data.get("_vargas", []),
+        }
+        yield f"data: {json.dumps(meta)}\n\n"
+
+        parts = []
+        try:
+            async for chunk in llm_service.stream_answer(chart_data, request.question, history, cfg):
+                parts.append(chunk)
+                yield f"data: {json.dumps({'type': 'token', 'text': chunk})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            return
+
+        answer = "".join(parts)
+        try:
+            conv_id = await _save_turn(current_user, request, cfg, chart_data, answer)
+        except Exception as e:
+            conv_id = request.conversation_id
+            print(f"Failed to persist conversation: {e}")
+        yield f"data: {json.dumps({'type': 'done', 'conversation_id': conv_id})}\n\n"
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no",
+                 "Connection": "keep-alive"},
+    )
+
+
+@app.get("/api/ai/conversations")
+async def list_ai_conversations(
+    profile_id: Optional[str] = None,
+    current_user: str = Depends(get_current_user)
+):
+    """List the current user's saved AI conversations (optionally for one profile)."""
+    try:
+        return {"conversations": await convo.list_conversations(current_user, profile_id)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/ai/conversations/{conversation_id}")
+async def get_ai_conversation(
+    conversation_id: str,
+    current_user: str = Depends(get_current_user)
+):
+    """Fetch a full conversation thread."""
+    c = await convo.get_conversation(current_user, conversation_id)
+    if not c:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return convo.serialize_conversation(c)
+
+
+@app.delete("/api/ai/conversations/{conversation_id}")
+async def delete_ai_conversation(
+    conversation_id: str,
+    current_user: str = Depends(get_current_user)
+):
+    """Delete a conversation."""
+    ok = await convo.delete_conversation(current_user, conversation_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return {"success": True}
+
 
 @app.post("/api/astrology/predict")
 async def generate_prediction(
