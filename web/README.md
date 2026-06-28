@@ -214,7 +214,13 @@ REACT_APP_API_TIMEOUT=30000
 - Protected routes
 
 ### 2. Birth Chart Calculator
-- Calculate Rasi chart from birth details
+- Calculate Rasi (D1) and Navamsa (D9) charts from birth details
+- Divisional (varga) charts D1–D60 with a picker
+- North / South Indian chart styles, selectable ayanamsa
+- Yogas & Doshas surfaced as cards
+- Panchanga (daily almanac) panel: tithi, vaara, nakshatra, yoga, karana plus
+  sunrise/sunset and rahu kalam / yamaganda / gulika / abhijit / durmuhurtam,
+  with a date picker
 - Store charts in MongoDB
 - Display planetary positions
 
@@ -315,6 +321,10 @@ Users can select their preferred AI model directly in the frontend:
 ### Astrology
 - `POST /api/astrology/birth-chart` - Calculate birth chart
 - `GET /api/astrology/birth-chart/{chart_id}` - Retrieve stored chart
+- `GET /api/astrology/vargas` - List supported divisional charts
+- `POST /api/astrology/divisional-chart?varga=N` - Calculate a divisional (varga) chart
+- `GET /api/astrology/ayanamsas` - List supported ayanamsa options
+- `GET /api/astrology/panchanga?date=&latitude=&longitude=&timezone=` - Daily almanac (panchanga)
 - `POST /api/astrology/horoscope` - Get horoscope predictions
 - `POST /api/astrology/doshas` - Calculate doshas
 - `POST /api/astrology/yogas` - Get yogas

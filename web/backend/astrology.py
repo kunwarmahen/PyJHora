@@ -95,6 +95,74 @@ SUPPORTED_VARGAS = {
     60: ("D60", "Shashtiamsa",     "Past karma, overall refinement"),
 }
 
+# ── Panchanga (daily almanac) name tables ──────────────────────────────────
+# Standard Sanskrit names, kept consistent with the chart's nakshatra naming.
+NAKSHATRA_NAMES = [
+    "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra",
+    "Punarvasu", "Pushya", "Ashlesha", "Magha", "Purva Phalguni", "Uttara Phalguni",
+    "Hasta", "Chitra", "Swati", "Vishakha", "Anuradha", "Jyeshtha",
+    "Mula", "Purva Ashadha", "Uttara Ashadha", "Shravana", "Dhanishta", "Shatabhisha",
+    "Purva Bhadrapada", "Uttara Bhadrapada", "Revati",
+]
+
+# 15 tithi names within a paksha; the 15th differs by paksha (Purnima/Amavasya).
+TITHI_NAMES_15 = [
+    "Pratipada", "Dwitiya", "Tritiya", "Chaturthi", "Panchami", "Shashthi",
+    "Saptami", "Ashtami", "Navami", "Dashami", "Ekadashi", "Dwadashi",
+    "Trayodashi", "Chaturdashi", "Purnima",
+]
+
+# 27 yogas, index 0 = Vishkambha … 26 = Vaidhriti.
+YOGA_NAMES = [
+    "Vishkambha", "Priti", "Ayushman", "Saubhagya", "Shobhana", "Atiganda",
+    "Sukarma", "Dhriti", "Shula", "Ganda", "Vriddhi", "Dhruva", "Vyaghata",
+    "Harshana", "Vajra", "Siddhi", "Vyatipata", "Variyana", "Parigha", "Shiva",
+    "Siddha", "Sadhya", "Shubha", "Shukla", "Brahma", "Indra", "Vaidhriti",
+]
+
+# 7 movable (chara) karanas cycle through tithi-halves 2..57.
+KARANA_CHARA = ["Bava", "Balava", "Kaulava", "Taitila", "Gara", "Vanija", "Vishti"]
+WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+
+def _tithi_name(n):
+    """Map a 1..30 tithi index to '<Paksha> <Name>'."""
+    paksha = "Shukla" if n <= 15 else "Krishna"
+    within = n if n <= 15 else n - 15
+    name = TITHI_NAMES_15[within - 1]
+    if within == 15:
+        name = "Purnima" if paksha == "Shukla" else "Amavasya"
+    return f"{paksha} {name}", paksha
+
+
+def _karana_name(k):
+    """Map a 1..60 karana index to its name (1 fixed + 7×8 movable + 3 fixed)."""
+    if k <= 1:
+        return "Kimstughna"
+    if k >= 58:
+        return ["Shakuni", "Chatushpada", "Naga"][k - 58]
+    return KARANA_CHARA[(k - 2) % 7]
+
+
+def _fmt_hours(h):
+    """Format a local-time float-hours value as 'HH:MM', tagging the day roll
+    when the panchanga element starts the previous / ends the next day."""
+    if h is None:
+        return None
+    suffix = ""
+    if h < 0:
+        h = -h
+        suffix = " (prev)"
+    elif h >= 24:
+        h -= 24
+        suffix = " (next)"
+    hh = int(h) % 24
+    mm = int(round((h - int(h)) * 60))
+    if mm == 60:
+        mm = 0
+        hh = (hh + 1) % 24
+    return f"{hh:02d}:{mm:02d}{suffix}"
+
 
 class AstrologyCompute:
     """Core astrology calculations using PyJHora"""
@@ -617,6 +685,86 @@ class AstrologyCompute:
             return {"error": str(e), "status": "failed"}
         finally:
             _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_panchanga(date: Optional[str] = None, place: str = "",
+                      lat: Optional[float] = None, lon: Optional[float] = None,
+                      tz: Optional[float] = None) -> Dict:
+        """Daily almanac (panchanga) for a date + place: the five limbs
+        (tithi, vaara, nakshatra, yoga, karana) plus sunrise/sunset and the
+        inauspicious/auspicious periods (rahu kalam, yamaganda, gulika,
+        durmuhurtam, abhijit). Elements are resolved at sunrise of the day,
+        the traditional reference point. `date` defaults to today at `place`."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available"}
+        try:
+            from datetime import datetime, timezone as _utc, timedelta
+
+            tz_offset = tz if tz is not None else 5.5
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            if date:
+                year, month, day = map(int, date.split("-"))
+            else:
+                # "Today" in the place's local time, not the server's.
+                local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+                year, month, day = local_now.year, local_now.month, local_now.day
+
+            place_obj = drik.Place(place or "", lat, lon, tz_offset)
+
+            # Anchor at local noon, then resolve sunrise/sunset; the panchanga
+            # limbs are read at sunrise (the prevailing element for the day).
+            jd_noon = swe.julday(year, month, day, 12)
+            sr = drik.sunrise(jd_noon, place_obj)
+            ss = drik.sunset(jd_noon, place_obj)
+            jd = sr[2]  # sunrise julian day
+
+            ti = drik.tithi(jd, place_obj)
+            tithi_name, paksha = _tithi_name(ti[0])
+
+            nak = drik.nakshatra(jd, place_obj)
+
+            yog = drik.yogam(jd, place_obj)
+
+            kar = drik.karana(jd, place_obj)
+
+            weekday = drik.vaara(jd, place_obj)
+
+            def _period(option):
+                s, e = drik.trikalam(jd_noon, place_obj, option)
+                return {"start": s[:5] if isinstance(s, str) else s,
+                        "end": e[:5] if isinstance(e, str) else e}
+
+            durmuhurtam = drik.durmuhurtam(jd_noon, place_obj)  # flat [s,e,(s,e)]
+            durm = [{"start": durmuhurtam[i][:5], "end": durmuhurtam[i + 1][:5]}
+                    for i in range(0, len(durmuhurtam) - 1, 2)]
+            abh = drik.abhijit_muhurta(jd_noon, place_obj)
+
+            return {
+                "status": "success",
+                "date": f"{year:04d}-{month:02d}-{day:02d}",
+                "place": place,
+                "tithi": {"index": ti[0], "name": tithi_name, "paksha": paksha,
+                          "ends": _fmt_hours(ti[2])},
+                "nakshatra": {"index": nak[0], "name": NAKSHATRA_NAMES[nak[0] - 1],
+                              "pada": nak[1], "ends": _fmt_hours(nak[3])},
+                "yoga": {"index": yog[0], "name": YOGA_NAMES[yog[0] - 1],
+                         "ends": _fmt_hours(yog[2])},
+                "karana": {"index": kar[0], "name": _karana_name(kar[0]),
+                           "ends": _fmt_hours(kar[2])},
+                "vaara": {"index": weekday, "name": WEEKDAY_NAMES[weekday]},
+                "sunrise": sr[1][:5] if isinstance(sr[1], str) else _fmt_hours(sr[0]),
+                "sunset": ss[1][:5] if isinstance(ss[1], str) else _fmt_hours(ss[0]),
+                "rahu_kalam": _period("raahu kaalam"),
+                "yamaganda": _period("yamagandam"),
+                "gulika": _period("gulikai"),
+                "durmuhurtam": durm,
+                "abhijit": {"start": abh[0][:5], "end": abh[1][:5]} if abh else None,
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
 
     @staticmethod
     def get_transits(*args, **kwargs):

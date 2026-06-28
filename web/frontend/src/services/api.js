@@ -52,6 +52,10 @@ export const astrologyService = {
     api.post("/api/astrology/horoscope", birthDetails, {
       params: { use_qwen: useQwen }
     }),
+  getPanchanga: ({ place, latitude, longitude, timezone, date } = {}) =>
+    api.get("/api/astrology/panchanga", {
+      params: { place, latitude, longitude, timezone, date },
+    }),
   getDoshas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/doshas", birthDetails, { params: { ayanamsa } }),
   getYogas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>

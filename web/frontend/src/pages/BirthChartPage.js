@@ -14,6 +14,7 @@ import { formatDate, orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
+import { PanchangaPanel } from "../components/PanchangaPanel";
 import { AYANAMSAS, DEFAULT_AYANAMSA, VARGAS, DEFAULT_VARGA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 
@@ -564,6 +565,14 @@ export const BirthChartPage = () => {
                 )}
               </div>
             ) : null}
+
+            {/* Panchanga (daily almanac) for the profile's location */}
+            <PanchangaPanel
+              place={selectedProfile.birth_details.place}
+              latitude={parseFloat(selectedProfile.birth_details.latitude)}
+              longitude={parseFloat(selectedProfile.birth_details.longitude)}
+              timezone={parseFloat(selectedProfile.birth_details.timezone)}
+            />
 
             {/* Yogas */}
             {yogas && yogas.length > 0 && (

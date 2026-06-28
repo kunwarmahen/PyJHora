@@ -215,6 +215,33 @@ async def calculate_divisional_chart(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/astrology/panchanga")
+async def get_panchanga(
+    date: Optional[str] = None,
+    place: str = "",
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    timezone: Optional[float] = None,
+    current_user: str = Depends(get_current_user),
+):
+    """Daily almanac (panchanga) for a place and optional date (defaults to
+    today at that place). Used by the 'Today' panel."""
+    try:
+        panchanga = AstrologyCompute.get_panchanga(
+            date=date,
+            place=place,
+            lat=latitude,
+            lon=longitude,
+            tz=timezone,
+        )
+        if panchanga.get("status") != "success":
+            raise HTTPException(status_code=400, detail=panchanga.get("error", "Calculation failed"))
+        return panchanga
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/astrology/birth-chart/{chart_id}")
 async def get_birth_chart(chart_id: str, current_user: str = Depends(get_current_user)):
     """Retrieve stored birth chart"""

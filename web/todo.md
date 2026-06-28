@@ -136,8 +136,17 @@ web exposes. High-value additions:
       Rasi chart (default D9); Rasi/Navamsa reuse the main birth-chart response, others
       fetch on demand. Renders through the same North/South `Kundali` component, respects
       the chart-style toggle + selected ayanamsa, choice persisted in localStorage.
-- [ ] **Panchanga / daily almanac** (P1): tithi, nakshatra, yoga, karana, vaara,
-      sunrise/sunset, rahu kalam — a "today" panel.
+- [x] **Panchanga / daily almanac** (P1). DONE 2026-06-28: backend
+      `AstrologyCompute.get_panchanga(date, place, lat, lon, tz)` resolves the five
+      limbs at sunrise (tithi w/ paksha, vaara, nakshatra+pada, yoga, karana — each
+      with end time), plus sunrise/sunset and the day's periods (rahu kalam, yamaganda,
+      gulika, abhijit muhurta, durmuhurtam). Standard Sanskrit name tables + helpers
+      (`_tithi_name`, `_karana_name`, `_fmt_hours`) live in `astrology.py`; `date`
+      defaults to "today" in the place's own timezone. `GET /api/astrology/panchanga`
+      (query params, auth-protected). Frontend: self-contained `PanchangaPanel`
+      component (own fetch, won't blank the page on failure) with a date picker,
+      rendered on the Birth Chart page using the profile's location; styled in
+      `Dashboard.css` in the original saffron/gold identity.
 - [ ] **Vimsottari Dasa with drill-down** (P1): the Dhasa page exists; add nested
       Dasa→Bhukti→Antara→Sookshma tree with current-period highlighting.
 - [ ] **More dasha systems** (P2): Ashtottari, Narayana, Kalachakra, Yogini, etc.
