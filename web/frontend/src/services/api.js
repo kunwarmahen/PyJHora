@@ -49,7 +49,8 @@ export const astrologyService = {
     }),
   getDoshas: (birthDetails, ayanamsa = "LAHIRI") =>
     api.post("/api/astrology/doshas", birthDetails, { params: { ayanamsa } }),
-  getYogas: (birthDetails) => api.post("/api/astrology/yogas", birthDetails),
+  getYogas: (birthDetails, ayanamsa = "LAHIRI") =>
+    api.post("/api/astrology/yogas", birthDetails, { params: { ayanamsa } }),
   getDhasa: (birthDetails, dashaType = "vimsottari") =>
     api.post("/api/astrology/dhasa", {
       ...birthDetails,

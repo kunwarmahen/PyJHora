@@ -25,6 +25,7 @@ export const BirthChartPage = () => {
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [doshas, setDoshas] = useState(null);
+  const [yogas, setYogas] = useState(null);
   const [chartStyle, setChartStyle] = useState(
     () => localStorage.getItem("chartStyle") || "north"
   );
@@ -73,12 +74,17 @@ export const BirthChartPage = () => {
       const response = await astrologyService.calculateBirthChart(birthDetails, ayanamsa);
       setResult(response.data);
 
-      // Doshas load independently — a failure here shouldn't blank the chart.
+      // Yogas & doshas load independently — a failure here shouldn't blank the chart.
       setDoshas(null);
+      setYogas(null);
       astrologyService
         .getDoshas(birthDetails, ayanamsa)
         .then((r) => setDoshas(r.data?.doshas || null))
         .catch(() => setDoshas(null));
+      astrologyService
+        .getYogas(birthDetails, ayanamsa)
+        .then((r) => setYogas(r.data?.yogas || null))
+        .catch(() => setYogas(null));
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to calculate chart");
     } finally {
@@ -479,6 +485,41 @@ export const BirthChartPage = () => {
                 )}
               </div>
             ) : null}
+
+            {/* Yogas */}
+            {yogas && yogas.length > 0 && (
+              <div style={{
+                background: 'white',
+                borderRadius: 'var(--radius-xl)',
+                padding: 'var(--space-xl)',
+                marginTop: 'var(--space-xl)',
+                boxShadow: 'var(--shadow-lg)',
+                borderTop: '4px solid var(--saffron)'
+              }}>
+                <h3 style={{
+                  display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
+                  marginBottom: 'var(--space-lg)', color: 'var(--cosmic-indigo)', fontSize: '1.5rem'
+                }}>
+                  <Star size={24} style={{ color: 'var(--saffron)' }} />
+                  Yogas
+                  <span className="section-count">{yogas.length} found</span>
+                </h3>
+                <div className="yoga-grid">
+                  {yogas.map((y) => (
+                    <div key={y.key} className="yoga-card">
+                      <div className="yoga-name">{y.name}</div>
+                      {y.description && <p className="yoga-desc">{y.description}</p>}
+                      {y.benefits && (
+                        <div className="yoga-benefit">
+                          <span className="yoga-benefit-label">Effects</span>
+                          {y.benefits}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Doshas */}
             {doshas && doshas.length > 0 && (

@@ -469,8 +469,43 @@ class AstrologyCompute:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
-    def get_yogas(*args, **kwargs):
-        return {"error": "Not implemented yet"}
+    def get_yogas(dob: str, tob: str, place: str,
+                  lat: Optional[float] = None, lon: Optional[float] = None,
+                  tz: Optional[float] = None, ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Detect the yogas present in the Rasi chart (name + description + benefits)."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz or 5.5
+            jd = swe.julday(year, month, day, hour + minute / 60)
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+
+            results, found, total = yoga.get_yoga_details(
+                jd, place_obj, divisional_chart_factor=1, language="en"
+            )
+            yogas = []
+            for key, details in results.items():
+                # details = [chartID, name, description, benefits]
+                yogas.append({
+                    "key": key,
+                    "name": details[1] if len(details) > 1 else key,
+                    "description": details[2] if len(details) > 2 else "",
+                    "benefits": details[3] if len(details) > 3 else "",
+                })
+            yogas.sort(key=lambda y: y["name"])
+            return {"status": "success", "yogas": yogas, "found": found, "total": total}
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
     def get_transits(*args, **kwargs):

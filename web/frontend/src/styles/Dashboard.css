@@ -368,3 +368,30 @@
 .dosha-badge.yes { background: var(--vermillion); color: white; }
 .dosha-badge.no { background: rgba(45, 53, 97, 0.08); color: var(--text-secondary); }
 .dosha-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+
+/* ===== Yoga cards (Birth Chart page) ===== */
+.yoga-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-md);
+}
+.yoga-card {
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--sandalwood);
+  border-left: 3px solid var(--temple-gold);
+  background: var(--sacred-white);
+}
+.yoga-name { font-weight: 700; color: var(--cosmic-indigo); font-size: 1rem; margin-bottom: var(--space-xs); }
+.yoga-desc { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: var(--space-sm); }
+.yoga-benefit { font-size: 0.82rem; color: var(--cosmic-indigo); line-height: 1.5; }
+.yoga-benefit-label {
+  display: block;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--temple-gold);
+  margin-bottom: 2px;
+}
+.section-count { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
