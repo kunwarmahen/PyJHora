@@ -267,6 +267,119 @@ function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
   );
 }
 
+// ── Other (non-Vimsottari) dasha systems: a picker + a flat maha-period table ──
+function OtherDashaSystems({ birthDetails }) {
+  const [systems, setSystems] = useState([]);
+  const [selected, setSelected] = useState("");
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    astrologyService
+      .getDashaSystems()
+      .then((r) => {
+        if (!cancelled) setSystems(r.data.systems || []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const load = useCallback(
+    (key) => {
+      if (!key || !birthDetails) return;
+      setLoading(true);
+      setError("");
+      setData(null);
+      astrologyService
+        .getDashaPeriods(birthDetails, key)
+        .then((r) => setData(r.data))
+        .catch((e) => setError(e.response?.data?.detail || "Failed to load dasha"))
+        .finally(() => setLoading(false));
+    },
+    [birthDetails]
+  );
+
+  const onChange = (key) => {
+    setSelected(key);
+    load(key);
+  };
+
+  return (
+    <Card title="Other Dasha Systems" icon={<Clock size={24} />}>
+      <label className="ayanamsa-select" style={{ marginBottom: "var(--space-lg)" }}>
+        <span>System</span>
+        <select value={selected} onChange={(e) => onChange(e.target.value)}>
+          <option value="">Choose a dasha system…</option>
+          {systems.map((s) => (
+            <option key={s.key} value={s.key}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {selected && systems.find((s) => s.key === selected)?.description && (
+        <p style={{ color: "var(--text-secondary)", marginBottom: "var(--space-lg)" }}>
+          {systems.find((s) => s.key === selected).description}
+        </p>
+      )}
+
+      <ErrorBanner message={error} />
+      {loading && <LoadingState message="Calculating periods…" />}
+
+      {data?.periods?.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+          {data.periods.map((p, i) => {
+            const current = isCurrentPeriod(p.start_date, p.end_date);
+            return (
+              <div
+                key={`${p.lord}-${i}`}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto auto",
+                  gap: "var(--space-md)",
+                  alignItems: "center",
+                  padding: "var(--space-md)",
+                  borderRadius: "var(--radius-md)",
+                  border: current ? "2px solid var(--saffron)" : "1px solid var(--sandalwood)",
+                  background: current ? "rgba(255, 153, 51, 0.06)" : "var(--sacred-white)",
+                }}
+              >
+                <span style={{ fontWeight: 700, color: "var(--cosmic-indigo)" }}>
+                  {p.lord}
+                  {current && (
+                    <span
+                      style={{
+                        marginLeft: "var(--space-sm)",
+                        fontSize: "0.625rem",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        color: "var(--saffron)",
+                      }}
+                    >
+                      Now
+                    </span>
+                  )}
+                </span>
+                <span style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                  {formatDate(p.start_date)} – {formatDate(p.end_date)}
+                </span>
+                <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
+                  {p.duration_years}y
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export const DhasaPage = () => {
   const navigate = useNavigate();
   const { selectedProfile } = useProfile();
@@ -577,6 +690,8 @@ export const DhasaPage = () => {
             </div>
           </div>
         ) : null}
+
+        {!loading && result && <OtherDashaSystems birthDetails={birthDetails} />}
       </div>
     </div>
   );

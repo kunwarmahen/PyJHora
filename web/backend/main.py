@@ -12,7 +12,7 @@ from config import settings
 from database import connect_to_mongo, close_mongo_connection
 from auth import create_access_token, decode_token, get_password_hash, verify_password, Token
 from database import User, BirthDetails, ChartData
-from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, SUPPORTED_VARGAS
+from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, SUPPORTED_VARGAS, SUPPORTED_DASHAS
 from chart_context import build_chart_context
 from qwen_predictor import QwenPredictor
 from llm_service import llm_service, LLMProvider
@@ -458,6 +458,106 @@ async def get_dhasa_children(
             lon=birth_details.longitude,
             tz=birth_details.timezone,
             lords_path=lords_path,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/astrology/dasha-systems")
+async def list_dasha_systems(current_user: str = Depends(get_current_user)):
+    """List the supported non-Vimsottari dasha systems."""
+    return {
+        "systems": [
+            {"key": k, "name": v["name"], "lord_type": v["lord_type"],
+             "description": v["description"]}
+            for k, v in SUPPORTED_DASHAS.items()
+        ]
+    }
+
+@app.post("/api/astrology/dasha-periods")
+async def get_dasha_periods(
+    birth_details: BirthDetails,
+    dhasa_type: str,
+    current_user: str = Depends(get_current_user)
+):
+    """Maha-level periods for one of the non-Vimsottari dasha systems
+    (ashtottari/yogini/narayana/kalachakra)."""
+    try:
+        result = AstrologyCompute.get_dasha_periods(
+            dhasa_type=dhasa_type,
+            dob=birth_details.dob,
+            tob=birth_details.tob,
+            place=birth_details.place,
+            lat=birth_details.latitude,
+            lon=birth_details.longitude,
+            tz=birth_details.timezone,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/ashtakavarga")
+async def get_ashtakavarga(
+    birth_details: BirthDetails,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user)
+):
+    """Bhinna + Sarva Ashtakavarga bindu tables."""
+    try:
+        result = AstrologyCompute.get_ashtakavarga(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, ayanamsa=ayanamsa,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/chart-details")
+async def get_chart_details(
+    birth_details: BirthDetails,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user)
+):
+    """Advanced chart factors: Arudha padas, Chara karakas, Special lagnas, Upagrahas."""
+    try:
+        result = AstrologyCompute.get_chart_details(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, ayanamsa=ayanamsa,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/shadbala")
+async def get_shadbala(
+    birth_details: BirthDetails,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user)
+):
+    """Shadbala (six-fold planetary strength) for Sun..Saturn."""
+    try:
+        result = AstrologyCompute.get_shadbala(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, ayanamsa=ayanamsa,
         )
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))

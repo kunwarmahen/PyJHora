@@ -9,9 +9,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 try:
     from jhora.panchanga import drik
-    from jhora.horoscope.chart import charts, house, strength, yoga, dosha
+    from jhora.horoscope.chart import charts, house, strength, yoga, dosha, arudhas, ashtakavarga
     from jhora.horoscope.match import compatibility as compat_module
-    from jhora.horoscope.dhasa.graha import vimsottari
+    from jhora.horoscope.dhasa.graha import vimsottari, ashtottari, yogini
+    from jhora.horoscope.dhasa.raasi import narayana, kalachakra
     from jhora import utils, const
     import swisseph as swe
 
@@ -96,6 +97,27 @@ SUPPORTED_VARGAS = {
     40: ("D40", "Khavedamsa",      "Auspicious & inauspicious effects"),
     45: ("D45", "Akshavedamsa",    "General character, conduct"),
     60: ("D60", "Shashtiamsa",     "Past karma, overall refinement"),
+}
+
+# Additional dasha systems beyond Vimsottari (which has its own drill-down page).
+# `lord_type` graha => periods are ruled by planets; raasi => ruled by signs.
+SUPPORTED_DASHAS = {
+    "ashtottari": {
+        "name": "Ashtottari Dasha", "lord_type": "graha",
+        "description": "108-year conditional nakshatra dasha (graha periods).",
+    },
+    "yogini": {
+        "name": "Yogini Dasha", "lord_type": "graha",
+        "description": "36-year nakshatra dasha of the eight Yoginis (graha periods).",
+    },
+    "narayana": {
+        "name": "Narayana Dasha", "lord_type": "raasi",
+        "description": "Rasi (sign) dasha from the lagna, key for life-area timing.",
+    },
+    "kalachakra": {
+        "name": "Kalachakra Dasha", "lord_type": "raasi",
+        "description": "Wheel-of-time rasi dasha seeded from the Moon's navamsa.",
+    },
 }
 
 # ── Panchanga (daily almanac) name tables ──────────────────────────────────
@@ -690,6 +712,282 @@ class AstrologyCompute:
             import traceback
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
+
+    @staticmethod
+    def get_dasha_periods(dhasa_type: str, dob: str, tob: str, place: str,
+                          lat: Optional[float] = None, lon: Optional[float] = None,
+                          tz: Optional[float] = None) -> Dict:
+        """Maha-level periods for one of the non-Vimsottari dasha systems.
+
+        `dhasa_type` is a key in SUPPORTED_DASHAS. Graha systems (yogini,
+        ashtottari) return planet lords; raasi systems (narayana, kalachakra)
+        return rasi signs. Output is normalized to a flat list of periods with
+        ISO start/end dates so the frontend can render any system uniformly.
+        """
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        meta = SUPPORTED_DASHAS.get(dhasa_type)
+        if not meta:
+            return {"error": f"Unsupported dhasa type: {dhasa_type}", "status": "failed"}
+        try:
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            second = int(tp[2]) if len(tp) > 2 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz or 5.5
+            dob_t = (year, month, day)
+            tob_t = (hour, minute, second)
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+            jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
+
+            # Each branch returns rows shaped [lord_or_(lord,), (Y,M,D,frac), dur_years]
+            if dhasa_type == "yogini":
+                rows = yogini.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            elif dhasa_type == "ashtottari":
+                rows = ashtottari.get_ashtottari_dhasa_bhukthi(jd, place_obj, dhasa_level_index=1)
+            elif dhasa_type == "narayana":
+                rows = narayana.narayana_dhasa_for_rasi_chart(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            elif dhasa_type == "kalachakra":
+                rows = kalachakra.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            else:
+                return {"error": f"Unsupported dhasa type: {dhasa_type}", "status": "failed"}
+
+            names = ZODIAC_NAMES if meta["lord_type"] == "raasi" else None
+
+            def _lord_name(raw):
+                idx = raw[0] if isinstance(raw, (tuple, list)) else raw
+                if names is not None:
+                    return names[idx % 12]
+                return PLANET_NAMES.get(idx, str(idx))
+
+            def _fmt(t):
+                return f"{int(t[0]):04d}-{int(t[1]):02d}-{int(t[2]):02d}"
+
+            def _to_jd(t):
+                return swe.julday(int(t[0]), int(t[1]), int(t[2]), float(t[3]))
+
+            # Dedupe to maha-level rows (depth=1 already, but guard) and order.
+            periods = []
+            for i, row in enumerate(rows):
+                lord_raw, start_t, dur = row[0], row[1], row[2]
+                start_jd = _to_jd(start_t)
+                if i + 1 < len(rows):
+                    end_t = rows[i + 1][1]
+                else:
+                    end_jd = start_jd + float(dur) * 365.25
+                    y2, m2, d2, _h2 = swe.revjul(end_jd)
+                    end_t = (y2, m2, d2, 0)
+                periods.append({
+                    "lord": _lord_name(lord_raw),
+                    "start_date": _fmt(start_t),
+                    "end_date": _fmt(end_t),
+                    "duration_years": round(float(dur), 2),
+                })
+
+            return {
+                "status": "success",
+                "dhasa_type": dhasa_type,
+                "name": meta["name"],
+                "lord_type": meta["lord_type"],
+                "description": meta["description"],
+                "periods": periods,
+            }
+        except Exception as e:
+            print(f"Dasha periods error ({dhasa_type}): {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+
+    @staticmethod
+    def get_ashtakavarga(dob: str, tob: str, place: str,
+                         lat: Optional[float] = None, lon: Optional[float] = None,
+                         tz: Optional[float] = None,
+                         ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Bhinna (per-contributor) + Sarva (combined) Ashtakavarga bindu tables."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd = swe.julday(year, month, day, hour + minute / 60.0)
+            pp = charts.rasi_chart(jd, place_obj)
+            h2p = utils.get_house_planet_list_from_planet_positions(pp)
+            bav, sav, _ = ashtakavarga.get_ashtaka_varga(h2p)
+            # The 8 BAV contributors, in PyJHora's order.
+            contributors = ["Sun", "Moon", "Mars", "Mercury", "Jupiter",
+                            "Venus", "Saturn", "Ascendant"]
+            bhinna = {
+                contributors[i]: [int(x) for x in row]
+                for i, row in enumerate(bav)
+            }
+            return {
+                "status": "success",
+                "signs": ZODIAC_NAMES,
+                "bhinna": bhinna,
+                "sarva": [int(x) for x in sav],
+                "sarva_total": int(sum(sav)),
+            }
+        except Exception as e:
+            print(f"Ashtakavarga error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_chart_details(dob: str, tob: str, place: str,
+                          lat: Optional[float] = None, lon: Optional[float] = None,
+                          tz: Optional[float] = None,
+                          ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Advanced chart factors: Arudha padas, Chara karakas, Special lagnas, Upagrahas."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            second = int(tp[2]) if len(tp) > 2 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
+            dob_d = drik.Date(year, month, day)
+            tob_t = (hour, minute, second)
+            pp = charts.rasi_chart(jd, place_obj)
+
+            def _sign_deg(pair):
+                # functions return [sign_index, longitude_within_sign]
+                s, d = int(pair[0]), float(pair[1])
+                return {"sign_name": ZODIAC_NAMES[s % 12], "degrees": round(d, 2)}
+
+            # Arudha padas A1..A12 (bhava arudhas), each a sign index.
+            ba = arudhas.bhava_arudhas_from_planet_positions(pp)
+            arudha_labels = {0: "AL (Arudha Lagna)", 11: "UL (Upapada)"}
+            arudha_padas = [
+                {"bhava": i + 1,
+                 "label": arudha_labels.get(i, f"A{i + 1}"),
+                 "sign_name": ZODIAC_NAMES[int(s) % 12]}
+                for i, s in enumerate(ba)
+            ]
+
+            # Chara karakas (Jaimini), 8 planets ordered by longitude.
+            karaka_names = ["Atma (AK)", "Amatya (AmK)", "Bhratri (BK)", "Matri (MK)",
+                            "Pitri (PiK)", "Putra (PK)", "Jnati (GK)", "Dara (DK)"]
+            ck = house.chara_karakas(pp)
+            chara_karakas = [
+                {"karaka": karaka_names[i], "planet": PLANET_NAMES.get(idx, str(idx))}
+                for i, idx in enumerate(ck) if i < len(karaka_names)
+            ]
+
+            # Special lagnas (each [sign, deg]).
+            special_lagnas = []
+            for label, fn in [("Sree Lagna", drik.sree_lagna),
+                              ("Indu Lagna", drik.indu_lagna),
+                              ("Bhrigu Bindu", drik.bhrigu_bindhu_lagna),
+                              ("Pranapada Lagna", drik.pranapada_lagna),
+                              ("Kunda Lagna", drik.kunda_lagna)]:
+                try:
+                    special_lagnas.append({"name": label, **_sign_deg(fn(jd, place_obj))})
+                except Exception:
+                    pass
+
+            # Upagrahas: Gulika/Maandi (kaala-velas) + the five solar upagrahas.
+            upagrahas = []
+            for label, fn in [("Gulika", drik.gulika_longitude), ("Maandi", drik.maandi_longitude)]:
+                try:
+                    upagrahas.append({"name": label, **_sign_deg(fn(dob_d, tob_t, place_obj))})
+                except Exception:
+                    pass
+            try:
+                sun_long = swe.calc_ut(jd, 0)[0][0]
+                solar_names = {"dhuma": "Dhuma", "vyatipaata": "Vyatipata",
+                               "parivesha": "Parivesha", "indrachaapa": "Indrachapa",
+                               "upaketu": "Upaketu"}
+                for key, label in solar_names.items():
+                    upagrahas.append({"name": label,
+                                      **_sign_deg(drik.solar_upagraha_longitudes(sun_long, key))})
+            except Exception:
+                pass
+
+            return {
+                "status": "success",
+                "arudha_padas": arudha_padas,
+                "chara_karakas": chara_karakas,
+                "special_lagnas": special_lagnas,
+                "upagrahas": upagrahas,
+            }
+        except Exception as e:
+            print(f"Chart details error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_shadbala(dob: str, tob: str, place: str,
+                     lat: Optional[float] = None, lon: Optional[float] = None,
+                     tz: Optional[float] = None,
+                     ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Shadbala (six-fold strength) for the seven planets Sun..Saturn."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd = swe.julday(year, month, day, hour + minute / 60.0)
+
+            sb = strength.shad_bala(jd, place_obj)
+            # shad_bala returns [sthana, kaala, dig, cheshta, naisargika, drik,
+            #                    total_shashtiamsa, total_rupa, strength_ratio]
+            sthana, kaala, dig, cheshta, naisargika, drik_b = sb[0], sb[1], sb[2], sb[3], sb[4], sb[5]
+            total_rupa, ratio = sb[7], sb[8]
+            required = list(const.shad_bala_factors)
+            planets = []
+            for p in range(7):  # Sun..Saturn
+                planets.append({
+                    "planet": PLANET_NAMES[p],
+                    "sthana": round(float(sthana[p]), 1),
+                    "kaala": round(float(kaala[p]), 1),
+                    "dig": round(float(dig[p]), 1),
+                    "cheshta": round(float(cheshta[p]), 1),
+                    "naisargika": round(float(naisargika[p]), 1),
+                    "drik": round(float(drik_b[p]), 1),
+                    "total_rupa": round(float(total_rupa[p]), 2),
+                    "required_rupa": round(float(required[p]), 2),
+                    "strength_ratio": round(float(ratio[p]), 2),
+                    "sufficient": float(ratio[p]) >= 1.0,
+                })
+            # Rank by total rupa (strongest first).
+            ranked = sorted(range(len(planets)), key=lambda i: planets[i]["total_rupa"], reverse=True)
+            for rank, i in enumerate(ranked, start=1):
+                planets[i]["rank"] = rank
+            return {
+                "status": "success",
+                "components": ["sthana", "kaala", "dig", "cheshta", "naisargika", "drik"],
+                "planets": planets,
+            }
+        except Exception as e:
+            print(f"Shadbala error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
     def get_horoscope_predictions(dob: str, tob: str, place: str,

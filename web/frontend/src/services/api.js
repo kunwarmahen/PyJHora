@@ -8,8 +8,7 @@ import { DEFAULT_AYANAMSA } from "../constants/jyotish";
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 if (!process.env.REACT_APP_API_URL) {
-  const msg =
-    "REACT_APP_API_URL is not set. Configure it in web/frontend/.env (see .env.example).";
+  const msg = "REACT_APP_API_URL is not set. Configure it in web/frontend/.env (see .env.example).";
   if (process.env.NODE_ENV === "production") {
     throw new Error(`[config] ${msg} A production build must have REACT_APP_API_URL set.`);
   }
@@ -87,6 +86,21 @@ export const astrologyService = {
     api.post("/api/astrology/transit", birthDetails, {
       params: { current_date: currentDate, ayanamsa },
     }),
+  // Other (non-Vimsottari) dasha systems.
+  getDashaSystems: () => api.get("/api/astrology/dasha-systems"),
+  getDashaPeriods: (birthDetails, dhasaType) =>
+    api.post("/api/astrology/dasha-periods", birthDetails, {
+      params: { dhasa_type: dhasaType },
+    }),
+  // Ashtakavarga (Bhinna + Sarva).
+  getAshtakavarga: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/ashtakavarga", birthDetails, { params: { ayanamsa } }),
+  // Advanced chart details: arudha padas, karakas, special lagnas, upagrahas.
+  getChartDetails: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/chart-details", birthDetails, { params: { ayanamsa } }),
+  // Shadbala / planetary strength.
+  getShadbala: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/shadbala", birthDetails, { params: { ayanamsa } }),
   getCompatibility: (maleBirthDetails, femaleBirthDetails, useQwen = false) =>
     api.post("/api/astrology/compatibility", {
       male_dob: maleBirthDetails.dob,
