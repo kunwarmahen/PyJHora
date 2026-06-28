@@ -7,8 +7,11 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Backend**: FastAPI with MongoDB for data persistence and JWT authentication
 - **Frontend**: React SPA with responsive UI
 - **Authentication**: User registration and login with JWT tokens
-- **Features**: Birth Chart (Rasi D1 + Navamsa D9), Horoscope, Compatibility, Dhasa, Transit predictions
-- **AI Integration**: Multi-model LLM support (Qwen 2.5, Google Gemini, ChatGPT)
+- **Features**: Birth Chart (Rasi D1 + Navamsa D9), divisional charts D1–D60, Panchanga,
+  Yogas/Doshas, Vimsottari Dhasa (+ Ashtottari/Yogini/Narayana/Kalachakra), Transits,
+  Compatibility, and an Advanced page (Ashtakavarga, Arudha, Karakas, Special Lagnas,
+  Upagrahas, Shadbala)
+- **AI Integration**: Multi-model LLM support (Ollama/local, OpenAI-compatible, Gemini, ChatGPT)
 - **Interactive Q&A**: Chat with AI Astrologer for personalized insights
 
 > **Modernization in progress.** See [`todo.md`](todo.md) for the redesign plan and
@@ -261,12 +264,13 @@ REACT_APP_API_TIMEOUT=30000
 - Detailed compatibility breakdown
 - Optional AI analysis with Qwen
 
-### 5. Vimsottari Dhasa Periods
-- Full drill-down tree: Maha Dasha → Bhukti → Antara → Sookshma
-- Maha + Bhukti load up front; deeper levels lazy-load on expand (computed at
-  full precision from the natal chart)
-- The currently running period auto-expands the whole live chain and is highlighted
-- (Other dasha systems — Ashtottari, Yogini, etc. — are on the roadmap; see `todo.md`)
+### 5. Dhasa Periods
+- **Vimsottari**: full drill-down tree Maha Dasha → Bhukti → Antara → Sookshma.
+  Maha + Bhukti load up front; deeper levels lazy-load on expand (computed at full
+  precision from the natal chart). The currently running period auto-expands the
+  whole live chain and is highlighted.
+- **Other systems**: Ashtottari, Yogini (graha), Narayana, Kalachakra (raasi) —
+  pick one from the "Other Dasha Systems" card for a maha-period table.
 
 ### 6. Transits (Gochara)
 - Current planetary positions for today or a chosen date, drawn over the natal chart
@@ -274,8 +278,17 @@ REACT_APP_API_TIMEOUT=30000
 - Key upcoming sign-ingress dates for Jupiter and Saturn
 - North / South Indian chart styles, respects the selected ayanamsa
 
-### 7. Qwen LLM Integration (Optional)
-- Enhanced predictions with local Qwen model
+### 7. Advanced Details (`/advanced`)
+- **Ashtakavarga**: Bhinna (per-contributor) + Sarva (combined) bindu tables, with
+  a Sarva heatmap (grand total 337)
+- **Chart factors**: Arudha padas (A1–A12), Chara karakas (Jaimini), Special lagnas
+  (Sree/Indu/Bhrigu Bindu/Pranapada/Kunda), Upagrahas (Gulika/Maandi + the 5 solar)
+- **Shadbala**: six-fold planetary strength (sthana/kaala/dig/cheshta/naisargika/drik)
+  with total rupa, required rupa, ratio and rank for Sun–Saturn
+- Each section loads independently and respects the selected ayanamsa
+
+### 8. LLM Integration (Optional)
+- Enhanced predictions with a local Ollama model or any configured provider
 - Contextual astrological interpretations
 - Personalized analysis
 
@@ -295,8 +308,9 @@ ollama serve
 # 3. Pull Qwen 2.5 model
 ollama pull qwen2.5
 
-# 4. Update backend/.env
-QWEN_API_URL=http://localhost:11434
+# 4. Update backend/.env (QWEN_API_URL is still honored as a fallback)
+OLLAMA_URL=http://localhost:11434
+OLLAMA_DEFAULT_MODEL=qwen2.5:14b
 
 # 5. Restart backend
 ```
@@ -367,7 +381,14 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `POST /api/astrology/dhasa` - Calculate Vimsottari Dhasa periods (Maha + Bhukti)
 - `POST /api/astrology/dhasa/children?lords=Venus,Saturn` - Lazily fetch the child
   periods (Antara/Sookshma) of a Vimsottari node for the drill-down tree
+- `GET /api/astrology/dasha-systems` - List the other (non-Vimsottari) dasha systems
+- `POST /api/astrology/dasha-periods?dhasa_type=` - Maha-level periods for ashtottari/
+  yogini/narayana/kalachakra
 - `POST /api/astrology/transit?current_date=&ayanamsa=` - Current transits (Gochara)
+- `POST /api/astrology/ashtakavarga?ayanamsa=` - Bhinna + Sarva Ashtakavarga tables
+- `POST /api/astrology/chart-details?ayanamsa=` - Arudha padas, Chara karakas,
+  Special lagnas, Upagrahas
+- `POST /api/astrology/shadbala?ayanamsa=` - Six-fold planetary strength (Shadbala)
 - `POST /api/astrology/compatibility` - Check marriage compatibility
 
 ### AI Q&A (New) 🆕
@@ -398,8 +419,9 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `/birth-chart` - Birth chart calculator
 - `/ask-astrologer` - **NEW**: Interactive AI chat for personalized astrology insights 🆕
 - `/compatibility` - Marriage compatibility checker
-- `/dhasa` - Vimsottari Dhasa drill-down tree (Maha → Bhukti → Antara → Sookshma)
+- `/dhasa` - Dhasa periods: Vimsottari drill-down tree + other systems
 - `/transit` - Transits (Gochara) over the natal chart
+- `/advanced` - Advanced details: Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala
 - `/predictions` - Horoscope and predictions generator
 
 ## Development Notes
@@ -424,16 +446,24 @@ The frontend uses React with:
 - **Axios**: HTTP client for API calls
 - **Responsive CSS**: Mobile-friendly design
 - **Protected Routes**: Authentication checks
+- **Shared primitives**: `PageHeader`, `ProfileBanner`, `Card`, `Button`, `DataField`,
+  `ErrorBanner`, `LoadingState` (in `src/components/`, styled in `src/styles/Shared.css`)
+- **Tooling**: `npm run lint` (ESLint) and `npm run format` / `format:check` (Prettier).
+  `REACT_APP_API_URL` is required for production builds — `src/services/api.js` throws at
+  startup if it's unset (in dev it falls back to `http://localhost:8000` with a warning).
 
 ### Important: PyJHora Installation
 
-The PyJHora package needs to be installed from Mahen's fork:
+For **local development**, the backend imports the PyJHora library directly from the
+repo's `../../src` (relative to `web/backend/`), so a clone is enough — no separate
+install needed. (You can alternatively `pip install git+https://github.com/kunwarmahen/PyJHora.git`.)
 
-```bash
-pip install git+https://github.com/kunwarmahen/PyJHora.git
-```
-
-For Docker, this is already included in the backend requirements.
+For **Docker/Podman**, the backend image's build context is the **repository root**
+(`docker-compose.yml`: `context: ..`, `dockerfile: web/backend/Dockerfile`) so the
+image can vendor `src/` to `/src` — exactly where `astrology.py`'s `../../src` import
+resolves inside the container. A repo-root `.dockerignore` keeps the `.git` dir and dev
+junk out of the build context. No code changes are needed for the container to import
+PyJHora. The stack also builds and runs under **Podman** (`podman compose up --build`).
 
 ## Testing
 
