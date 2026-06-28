@@ -14,7 +14,7 @@ import { formatDate, orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
-import { AYANAMSAS, DEFAULT_AYANAMSA } from "../constants/jyotish";
+import { AYANAMSAS, DEFAULT_AYANAMSA, VARGAS, DEFAULT_VARGA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 
 export const BirthChartPage = () => {
@@ -32,6 +32,11 @@ export const BirthChartPage = () => {
   const [ayanamsa, setAyanamsa] = useState(
     () => localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA
   );
+  const [varga, setVarga] = useState(
+    () => Number(localStorage.getItem("varga")) || DEFAULT_VARGA
+  );
+  const [vargaChart, setVargaChart] = useState(null);
+  const [vargaLoading, setVargaLoading] = useState(false);
 
   const changeChartStyle = (style) => {
     setChartStyle(style);
@@ -42,6 +47,21 @@ export const BirthChartPage = () => {
     setAyanamsa(value);
     localStorage.setItem("ayanamsa", value);
   };
+
+  const changeVarga = (value) => {
+    setVarga(value);
+    localStorage.setItem("varga", String(value));
+  };
+
+  const buildBirthDetails = () => ({
+    name: selectedProfile.birth_details.name,
+    dob: selectedProfile.birth_details.dob,
+    tob: selectedProfile.birth_details.tob,
+    place: selectedProfile.birth_details.place,
+    latitude: parseFloat(selectedProfile.birth_details.latitude),
+    longitude: parseFloat(selectedProfile.birth_details.longitude),
+    timezone: parseFloat(selectedProfile.birth_details.timezone),
+  });
 
   // Redirect if no profile selected; (re)calculate when profile or ayanamsa changes
   useEffect(() => {
@@ -54,6 +74,42 @@ export const BirthChartPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfile, navigate, ayanamsa]);
 
+  // Load the selected divisional (varga) chart. The Rasi (D1) and Navamsa (D9)
+  // come back with the main birth-chart response, so reuse those instead of an
+  // extra request; everything else is fetched on demand.
+  useEffect(() => {
+    if (!result || !selectedProfile) return;
+
+    if (varga === 1) {
+      setVargaChart({ planets: result.planets, lagna: result.lagna });
+      return;
+    }
+    if (varga === 9 && result.d9_chart && result.d9_lagna) {
+      setVargaChart({ planets: result.d9_chart, lagna: result.d9_lagna });
+      return;
+    }
+
+    let cancelled = false;
+    setVargaLoading(true);
+    setVargaChart(null);
+    astrologyService
+      .getDivisionalChart(buildBirthDetails(), varga, ayanamsa)
+      .then((r) => {
+        if (!cancelled) setVargaChart(r.data);
+      })
+      .catch(() => {
+        if (!cancelled) setVargaChart(null);
+      })
+      .finally(() => {
+        if (!cancelled) setVargaLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result, varga, ayanamsa]);
+
   const calculateChart = async () => {
     if (!selectedProfile) return;
 
@@ -61,15 +117,7 @@ export const BirthChartPage = () => {
     setError("");
 
     try {
-      const birthDetails = {
-        name: selectedProfile.birth_details.name,
-        dob: selectedProfile.birth_details.dob,
-        tob: selectedProfile.birth_details.tob,
-        place: selectedProfile.birth_details.place,
-        latitude: parseFloat(selectedProfile.birth_details.latitude),
-        longitude: parseFloat(selectedProfile.birth_details.longitude),
-        timezone: parseFloat(selectedProfile.birth_details.timezone),
-      };
+      const birthDetails = buildBirthDetails();
 
       const response = await astrologyService.calculateBirthChart(birthDetails, ayanamsa);
       setResult(response.data);
@@ -353,15 +401,46 @@ export const BirthChartPage = () => {
                     </label>
                   </div>
 
-                  <Kundali chartData={result} title="Rasi Chart" subtitle={styleLabel} />
-                  {result.d9_chart && result.d9_lagna && (
-                    <Kundali
-                      planets={result.d9_chart}
-                      lagna={result.d9_lagna}
-                      title="Navamsa Chart"
-                      subtitle={`D9 · ${styleLabel}`}
-                    />
-                  )}
+                  <Kundali chartData={result} title="Rasi Chart" subtitle={`D1 · ${styleLabel}`} />
+
+                  {/* Divisional (varga) chart with picker */}
+                  {(() => {
+                    const vargaMeta = VARGAS.find((v) => v.value === varga) || VARGAS[0];
+                    return (
+                      <div className="varga-section">
+                        <label className="ayanamsa-select varga-picker">
+                          <span>Divisional Chart</span>
+                          <select
+                            value={varga}
+                            onChange={(e) => changeVarga(Number(e.target.value))}
+                          >
+                            {VARGAS.map((v) => (
+                              <option key={v.value} value={v.value}>
+                                {v.code} · {v.name}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="varga-significance">{vargaMeta.significance}</span>
+                        </label>
+
+                        {vargaLoading ? (
+                          <div className="varga-loading">
+                            <div className="spinner"></div>
+                            <span>Calculating {vargaMeta.code} chart…</span>
+                          </div>
+                        ) : vargaChart && vargaChart.planets ? (
+                          <Kundali
+                            planets={vargaChart.planets}
+                            lagna={vargaChart.lagna}
+                            title={`${vargaMeta.name} Chart`}
+                            subtitle={`${vargaMeta.code} · ${styleLabel}`}
+                          />
+                        ) : (
+                          <div className="varga-empty">Divisional chart unavailable.</div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </>
               );
             })()}

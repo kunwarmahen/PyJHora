@@ -15,24 +15,33 @@ try:
     from jhora import utils, const
     import swisseph as swe
 
-    # Match Jagannatha Hora's default ayanamsa (Lahiri). PyJHora defaults to
-    # TRUE_PUSHYA, which differs from Lahiri by ~0.9° and can flip a fast body
-    # (esp. the Moon) near a sign cusp into the wrong rasi/house.
-    const._DEFAULT_AYANAMSA_MODE = 'LAHIRI'
-    drik.set_ayanamsa_mode('LAHIRI')
+    # Match Jagannatha Hora's default ayanamsa: True Chitra Paksha (Spica fixed
+    # at 180°). PyJHora defaults to TRUE_PUSHYA. Note True Chitra differs from
+    # traditional Lahiri by only ~1', but that's enough to flip a body sitting on
+    # a navamsa/varga cusp into the next division vs JHora.
+    const._DEFAULT_AYANAMSA_MODE = 'TRUE_CITRA'
+    drik.set_ayanamsa_mode('TRUE_CITRA')
+
+    # Match Jagannatha Hora's default lunar nodes (Mean). PyJHora defaults to
+    # True nodes, which differ from Mean by up to ~1.6°. In wide D1 signs this is
+    # invisible, but in finer vargas (e.g. D10's 3° divisions) it flips Rahu/Ketu
+    # one division/house off vs JHora. set_planet_list rebuilds the swe planet
+    # mapping the chart code actually iterates (const.set_node_mode alone won't).
+    drik.set_planet_list(set_rahu_ketu_as_true_nodes=False)
 
     PYJHORA_AVAILABLE = True
 except ImportError as e:
     print(f"PyJHora import error: {e}")
     PYJHORA_AVAILABLE = False
 
-DEFAULT_AYANAMSA = "LAHIRI"
+DEFAULT_AYANAMSA = "TRUE_CITRA"
 
 # Curated, user-facing ayanamsa options (value -> label). Values must exist in
-# PyJHora's const.available_ayanamsa_modes.
+# PyJHora's const.available_ayanamsa_modes. True Chitra is listed first as the
+# default (matches Jagannatha Hora's "True Lahiri/Chitrapaksha").
 SUPPORTED_AYANAMSAS = {
-    "LAHIRI": "Lahiri (Chitrapaksha)",
-    "TRUE_CITRA": "True Chitra Paksha",
+    "TRUE_CITRA": "True Chitra Paksha (Lahiri)",
+    "LAHIRI": "Lahiri (traditional)",
     "KP": "Krishnamurti (KP)",
     "RAMAN": "B. V. Raman",
     "YUKTESHWAR": "Sri Yukteshwar",
@@ -50,6 +59,41 @@ def _set_ayanamsa(name):
     if PYJHORA_AVAILABLE:
         drik.set_ayanamsa_mode(key)
     return key
+
+
+# PyJHora planet indexing: 0=Sun … 8=Ketu.
+PLANET_NAMES = {
+    0: "Sun", 1: "Moon", 2: "Mars", 3: "Mercury",
+    4: "Jupiter", 5: "Venus", 6: "Saturn", 7: "Rahu", 8: "Ketu",
+}
+
+# Zodiac sign names, index 0 = Aries … 11 = Pisces.
+ZODIAC_NAMES = [
+    "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+    "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
+]
+
+# Curated divisional charts (Parashara's Shodasavarga). Each entry:
+#   factor -> (code, name, significance). The factor is passed straight to
+#   PyJHora's charts.divisional_chart(divisional_chart_factor=...).
+SUPPORTED_VARGAS = {
+    1:  ("D1",  "Rasi",            "Body, overall life"),
+    2:  ("D2",  "Hora",            "Wealth, prosperity"),
+    3:  ("D3",  "Drekkana",        "Siblings, courage"),
+    4:  ("D4",  "Chaturthamsa",    "Fortune, property, home"),
+    7:  ("D7",  "Saptamsa",        "Children, progeny"),
+    9:  ("D9",  "Navamsa",         "Spouse, dharma, fortune"),
+    10: ("D10", "Dasamsa",         "Career, status, achievements"),
+    12: ("D12", "Dwadasamsa",      "Parents, ancestry"),
+    16: ("D16", "Shodasamsa",      "Vehicles, comforts, luxuries"),
+    20: ("D20", "Vimsamsa",        "Spiritual pursuits, worship"),
+    24: ("D24", "Chaturvimsamsa",  "Education, learning"),
+    27: ("D27", "Bhamsa",          "Strengths and weaknesses"),
+    30: ("D30", "Trimsamsa",       "Misfortunes, adversity"),
+    40: ("D40", "Khavedamsa",      "Auspicious & inauspicious effects"),
+    45: ("D45", "Akshavedamsa",    "General character, conduct"),
+    60: ("D60", "Shashtiamsa",     "Past karma, overall refinement"),
+}
 
 
 class AstrologyCompute:
@@ -217,6 +261,73 @@ class AstrologyCompute:
 
     # Alias for backwards compatibility
     get_birth_chart = calculate_birth_chart
+
+    @staticmethod
+    def calculate_divisional_chart(dob: str, tob: str, place: str,
+                                   varga_factor: int = 9,
+                                   lat: Optional[float] = None, lon: Optional[float] = None,
+                                   tz: Optional[float] = None,
+                                   ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Compute a single divisional (varga) chart, formatted for the frontend
+        Kundali component (planets keyed by name with a 1-based `house`, plus a
+        `lagna`). `varga_factor` must be one of SUPPORTED_VARGAS."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available"}
+
+        if varga_factor not in SUPPORTED_VARGAS:
+            return {"error": f"Unsupported varga factor: {varga_factor}", "status": "failed"}
+
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            time_parts = tob.split(":")
+            hour = int(time_parts[0])
+            minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707  # Chennai default
+            tz_offset = tz or 5.5  # IST default
+
+            jd = swe.julday(year, month, day, hour + minute / 60)
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+
+            chart = charts.divisional_chart(jd, place_obj, divisional_chart_factor=varga_factor)
+
+            # Ascendant / lagna is index 0; planets follow.
+            asc_rasi, asc_deg = chart[0][1]
+            lagna = {
+                "house": asc_rasi + 1,  # 1-based for the frontend
+                "degrees": round(asc_deg, 2),
+                "sign_name": ZODIAC_NAMES[asc_rasi],
+            }
+
+            planets = {}
+            for planet_index, (rasi, degrees) in chart[1:]:
+                name = PLANET_NAMES.get(planet_index, f"Planet_{planet_index}")
+                planets[name] = {
+                    "rasi": rasi,
+                    "house": rasi + 1,  # 1-based for the frontend
+                    "degrees": round(degrees, 2),
+                    "sign_name": ZODIAC_NAMES[rasi],
+                }
+
+            code, name, significance = SUPPORTED_VARGAS[varga_factor]
+            return {
+                "status": "success",
+                "varga": varga_factor,
+                "code": code,
+                "name": name,
+                "significance": significance,
+                "lagna": lagna,
+                "planets": planets,
+            }
+        except Exception as e:
+            print(f"Divisional chart calculation error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
     def get_dashas(dob: str, tob: str, place: str, dhasa_type: str = "vimsottari",

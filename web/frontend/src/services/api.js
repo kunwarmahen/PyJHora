@@ -1,4 +1,5 @@
 import axios from "axios";
+import { DEFAULT_AYANAMSA } from "../constants/jyotish";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
@@ -40,16 +41,20 @@ export const authService = {
 };
 
 export const astrologyService = {
-  calculateBirthChart: (birthDetails, ayanamsa = "LAHIRI") =>
+  calculateBirthChart: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/birth-chart", birthDetails, { params: { ayanamsa } }),
   getBirthChart: (chartId) => api.get(`/api/astrology/birth-chart/${chartId}`),
+  getDivisionalChart: (birthDetails, varga = 9, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/divisional-chart", birthDetails, {
+      params: { varga, ayanamsa },
+    }),
   getHoroscope: (birthDetails, useQwen = false) =>
     api.post("/api/astrology/horoscope", birthDetails, {
       params: { use_qwen: useQwen }
     }),
-  getDoshas: (birthDetails, ayanamsa = "LAHIRI") =>
+  getDoshas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/doshas", birthDetails, { params: { ayanamsa } }),
-  getYogas: (birthDetails, ayanamsa = "LAHIRI") =>
+  getYogas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/yogas", birthDetails, { params: { ayanamsa } }),
   getDhasa: (birthDetails, dashaType = "vimsottari") =>
     api.post("/api/astrology/dhasa", {

@@ -183,3 +183,38 @@
   cursor: pointer;
 }
 .ayanamsa-select select:focus { outline: 2px solid var(--saffron); outline-offset: 1px; }
+
+/* ===== Divisional (varga) chart section ===== */
+.varga-section {
+  margin-top: var(--space-lg);
+}
+.varga-picker {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+.varga-picker .varga-significance {
+  font-weight: 500;
+  font-style: italic;
+  color: var(--text-muted, var(--text-secondary));
+}
+.varga-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-2xl) var(--space-lg);
+  background: white;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.varga-empty {
+  padding: var(--space-xl);
+  text-align: center;
+  color: var(--text-secondary);
+  background: white;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}

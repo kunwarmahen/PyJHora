@@ -11,10 +11,13 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
 
 ## 1. Bugs & correctness (P0 — fix first)
 
-- [x] **Wrong ayanamsa (planets one house off vs JHora).** FIXED 2026-06-27: PyJHora
-      defaults to `TRUE_PUSHYA`; the backend now defaults to `LAHIRI` (Jagannatha Hora's
-      default). The ~0.9° difference was flipping fast bodies (esp. the Moon) near a sign
-      cusp into the wrong rasi/house.
+- [x] **Wrong ayanamsa (planets one house off vs JHora).** FIXED 2026-06-27 (default set
+      to `LAHIRI`), REVISED 2026-06-28: the real JHora default is **True Chitra Paksha**
+      ("Spica in middle of Chitra always" = swe `TRUE_CITRA`), not traditional Lahiri.
+      PyJHora defaults to `TRUE_PUSHYA`. Backend + frontend defaults are now `TRUE_CITRA`,
+      which matches a verified JHora chart to ~0.02 arc-min on every body. Traditional
+      Lahiri differs by only ~1', but that flips a body sitting on a navamsa/varga cusp
+      (e.g. this chart's Sun at Taurus ~20°00' → Gemini vs Cancer navamsa).
 - [x] **User-selectable ayanamsa.** DONE 2026-06-28: backend `calculate_birth_chart`
       takes an `ayanamsa` arg (default Lahiri) + resets after each request so endpoints
       don't leak; `GET /api/astrology/ayanamsas` lists the curated options; Birth Chart
@@ -57,6 +60,13 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
       already gitignored), dead `backend/astrology_fixed.py`, and `ChartTestPage.js`
       + its `/chart-test` route/import. Stale div-based CSS in `NorthIndianChart.css`
       replaced with the SVG card styles actually in use.
+
+- [x] **Rahu/Ketu off by one house in vargas vs JHora.** FIXED 2026-06-28: PyJHora
+      defaults to TRUE nodes; Jagannatha Hora defaults to MEAN. The ~1.6° true/mean gap
+      is invisible in wide D1 signs but straddles a 3° Dasamsa (D10) cusp, flipping
+      Rahu/Ketu one house off (slower planets unaffected). Backend now calls
+      `drik.set_planet_list(set_rahu_ketu_as_true_nodes=False)` once at import to match
+      JHora. (Aligns nodes everywhere, same spirit as the Lahiri ayanamsa default.)
 
 ## 2. Code quality / refactor (P1)
 
@@ -118,8 +128,14 @@ web exposes. High-value additions:
       `SouthIndianChart.js` (fixed-sign 4x4 grid); toggle on Birth Chart page switches
       both Rasi + Navamsa, preference saved to localStorage. Lagna cell marked with a
       saffron corner. Reuses the same data (planet `house` = sign number).
-- [ ] **Divisional charts D1–D60** (P1): at minimum D9 (Navamsa), D10 (Dasamsa,
-      career), D7, D12, D24 with a varga picker.
+- [x] **Divisional charts D1–D60** (P1). DONE 2026-06-28: backend
+      `calculate_divisional_chart(varga_factor=N)` + `SUPPORTED_VARGAS` (Parashara's
+      16 Shodasavarga: D1/2/3/4/7/9/10/12/16/20/24/27/30/40/45/60, each with
+      code/name/significance); `POST /api/astrology/divisional-chart?varga=N&ayanamsa=X`
+      and `GET /api/astrology/vargas`. Birth Chart page now has a varga picker below the
+      Rasi chart (default D9); Rasi/Navamsa reuse the main birth-chart response, others
+      fetch on demand. Renders through the same North/South `Kundali` component, respects
+      the chart-style toggle + selected ayanamsa, choice persisted in localStorage.
 - [ ] **Panchanga / daily almanac** (P1): tithi, nakshatra, yoga, karana, vaara,
       sunrise/sunset, rahu kalam — a "today" panel.
 - [ ] **Vimsottari Dasa with drill-down** (P1): the Dhasa page exists; add nested

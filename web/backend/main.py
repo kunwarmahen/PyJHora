@@ -10,7 +10,7 @@ from config import settings
 from database import connect_to_mongo, close_mongo_connection
 from auth import create_access_token, decode_token, get_password_hash, verify_password, Token
 from database import User, BirthDetails, ChartData, Prediction
-from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA
+from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, SUPPORTED_VARGAS
 from qwen_predictor import QwenPredictor
 from llm_service import llm_service, LLMProvider
 
@@ -138,7 +138,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 @app.post("/api/astrology/birth-chart")
 async def calculate_birth_chart(
     birth_details: BirthDetails,
-    ayanamsa: str = "LAHIRI",
+    ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user)
 ):
     """Calculate birth chart for given details"""
@@ -177,6 +177,43 @@ async def list_ayanamsas():
         "default": DEFAULT_AYANAMSA,
         "options": [{"value": k, "label": v} for k, v in SUPPORTED_AYANAMSAS.items()],
     }
+
+@app.get("/api/astrology/vargas")
+async def list_vargas():
+    """Supported divisional (varga) charts for the varga picker."""
+    return {
+        "options": [
+            {"value": factor, "code": code, "name": name, "significance": significance}
+            for factor, (code, name, significance) in SUPPORTED_VARGAS.items()
+        ]
+    }
+
+@app.post("/api/astrology/divisional-chart")
+async def calculate_divisional_chart(
+    birth_details: BirthDetails,
+    varga: int = 9,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user)
+):
+    """Calculate a single divisional (varga) chart, e.g. varga=10 for Dasamsa."""
+    try:
+        chart = AstrologyCompute.calculate_divisional_chart(
+            dob=birth_details.dob,
+            tob=birth_details.tob,
+            place=birth_details.place,
+            varga_factor=varga,
+            lat=birth_details.latitude,
+            lon=birth_details.longitude,
+            tz=birth_details.timezone,
+            ayanamsa=ayanamsa,
+        )
+        if chart.get("status") != "success":
+            raise HTTPException(status_code=400, detail=chart.get("error", "Calculation failed"))
+        return chart
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/astrology/birth-chart/{chart_id}")
 async def get_birth_chart(chart_id: str, current_user: str = Depends(get_current_user)):
@@ -275,7 +312,7 @@ def generate_basic_predictions(chart_data):
 @app.post("/api/astrology/doshas")
 async def get_doshas(
     birth_details: BirthDetails,
-    ayanamsa: str = "LAHIRI",
+    ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user)
 ):
     """Get doshas"""
@@ -296,7 +333,7 @@ async def get_doshas(
 @app.post("/api/astrology/yogas")
 async def get_yogas(
     birth_details: BirthDetails,
-    ayanamsa: str = "LAHIRI",
+    ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user)
 ):
     """Get yogas"""
