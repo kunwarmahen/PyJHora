@@ -61,6 +61,56 @@ async def append_messages(user_id: str, conv_id: str,
     )
 
 
+async def replace_last_assistant(user_id: str, conv_id: str,
+                                 assistant_msg: Dict[str, Any]) -> None:
+    """Swap the conversation's final assistant message (used for 'Regenerate' so
+    the saved thread isn't polluted with a duplicate question/answer pair)."""
+    db = get_database()
+    try:
+        oid = ObjectId(conv_id)
+    except Exception:
+        return
+    conv = await db[COLLECTION].find_one({"_id": oid, "user_id": user_id})
+    if not conv:
+        return
+    msgs = conv.get("messages", [])
+    for i in range(len(msgs) - 1, -1, -1):
+        if msgs[i].get("role") == "assistant":
+            msgs[i] = assistant_msg
+            break
+    else:
+        msgs.append(assistant_msg)
+    await db[COLLECTION].update_one(
+        {"_id": oid, "user_id": user_id},
+        {"$set": {"messages": msgs, "updated_at": _now_iso()}},
+    )
+
+
+async def set_feedback(user_id: str, conv_id: str, message_index: int,
+                       rating: Optional[str]) -> bool:
+    """Store thumbs up/down (or clear it) on one assistant message by index."""
+    db = get_database()
+    try:
+        oid = ObjectId(conv_id)
+    except Exception:
+        return False
+    conv = await db[COLLECTION].find_one({"_id": oid, "user_id": user_id})
+    if not conv:
+        return False
+    msgs = conv.get("messages", [])
+    if not (0 <= message_index < len(msgs)):
+        return False
+    if rating in (None, ""):
+        msgs[message_index].pop("feedback", None)
+    else:
+        msgs[message_index]["feedback"] = rating
+    await db[COLLECTION].update_one(
+        {"_id": oid, "user_id": user_id},
+        {"$set": {"messages": msgs, "updated_at": _now_iso()}},
+    )
+    return True
+
+
 async def list_conversations(user_id: str,
                              profile_id: Optional[str] = None) -> List[Dict[str, Any]]:
     db = get_database()

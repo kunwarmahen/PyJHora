@@ -288,8 +288,8 @@ workspace. **Decisions captured 2026-06-28** (owner answered the clarifying roun
       `config.py` now `load_dotenv()`s so `os.getenv` in `llm_service` sees `.env`.
 - [ ] FOLLOW-UP: thread the same model selection into `/predict` and
       `/compatibility-analysis` (still take the legacy `llm_provider` only).
-- [ ] FOLLOW-UP: per-user API-key entry in the UI (currently keys come from `.env`;
-      full per-user key management is §8.6).
+- [x] FOLLOW-UP: per-user API-key entry in the UI — DONE in §8.6 (encrypted
+      per-user keys, "API Keys" modal, used ahead of env keys at ask-time).
 
 ### 8.2 Divisional-chart (varga) context selection (P1) — DONE 2026-06-28
 
@@ -369,28 +369,54 @@ workspace. **Decisions captured 2026-06-28** (owner answered the clarifying roun
       as the system message (chat path) or prepended once (single-shot), not
       re-sent per turn. Verified: a follow-up resolved "that ascendant" → Virgo
       from the prior turn.
-- [ ] FOLLOW-UP: a Stop/cancel button for an in-flight stream (the abort handle
-      is already returned by `streamAskQuestion`, just not wired to a button).
+- [x] FOLLOW-UP: a Stop/cancel button for an in-flight stream — DONE in §8.7
+      (abort handle wired to a Stop button that replaces Send while generating).
 
-### 8.6 Multi-user hardening (P1, since scope = shareable)
+### 8.6 Multi-user hardening (P1, since scope = shareable) — DONE 2026-06-28
 
-- [ ] Per-user API-key storage (encrypted at rest) instead of one global `.env`
-      key — settings page to manage keys per provider.
-- [ ] Rate limiting / quotas per user on AI endpoints; sensible timeouts and
-      graceful errors (Ollama down, key invalid, model not pulled).
-- [ ] Ensure all AI data (conversations, keys) is strictly isolated per user.
+- [x] Per-user API-key storage (encrypted at rest). New `user_settings.py`:
+      one `user_settings` doc per user, `api_keys: {provider: <fernet-encrypted>}`,
+      symmetric key derived from `API_KEY_ENCRYPTION_KEY` (falls back to
+      `SECRET_KEY`). Endpoints `GET/PUT/DELETE /api/user/api-keys[/{provider}]`
+      return only masked status (`••••••1234`), never the raw key. Resolution
+      order at ask-time: request key → user's stored key → env key
+      (`_resolve_cfg`). `/api/llm/providers` now reflects per-user keys, so a user
+      who saved a Gemini/OpenAI key sees it as available even with no env key
+      (`has_user_key` flag). Frontend: "API Keys" modal on the Ask page (set/
+      replace/clear per provider, masked status pill), refreshes providers on save.
+      Verified live: set→masked status→provider flips available→delete; bad
+      provider rejected (400).
+- [x] Rate limiting / quotas per user on AI endpoints. New `ratelimit.py`:
+      in-process sliding window, per-minute burst + per-day quota, configurable via
+      `AI_RATE_LIMIT_PER_MIN` (20) / `AI_RATE_LIMIT_PER_DAY` (300). `/ask` and
+      `/ask/stream` call `_enforce_rate_limit` → HTTP 429 + `Retry-After` and a
+      friendly message; frontend surfaces the 429 detail. (In-memory: resets on
+      restart, not shared across workers — move to Redis if scaled out.) Graceful
+      errors already surface per-provider reasons (Ollama down / key missing /
+      model not pulled) via `list_providers` + the stream `error` event.
+- [x] Per-user isolation: API keys and conversations are scoped to `user_id` on
+      every query (verified another user reads `None` for a conversation).
 
-### 8.7 Professional polish (P1/P2)
+### 8.7 Professional polish (P1/P2) — DONE 2026-06-28
 
-- [ ] "What was sent to the AI" modal already exists — extend it to show the new
-      structured context (vargas, dasha tree, yogas/doshas/transits/AV) and the
-      exact model/provider used (transparency = trust).
-- [ ] Answer affordances: copy, regenerate (same or different model), export a
-      conversation to PDF/MD, thumbs up/down feedback stored with the turn.
-- [ ] Loading/cost transparency: show model name, elapsed time, token usage.
-- [ ] Disclaimer/safety footer (astrology guidance, not medical/financial/legal
-      advice) — important for a "professional" public product.
-- [ ] Stop/cancel a streaming generation; retry on transient failures.
+- [x] "What was sent to the AI" modal shows the real server-assembled structured
+      context (vargas, dasha tree, yogas/doshas/transits) + the exact model/provider
+      (done in 8.3; per-answer inspector in place).
+- [x] Answer affordances under each AI message: **Copy** (clipboard), **Regenerate**
+      (replays the prompt behind the last answer; backend `replace_last_assistant`
+      swaps it in place so history isn't polluted with a duplicate turn), and
+      **thumbs up/down** persisted on the message (`POST /api/ai/conversations/{id}/
+      feedback`, toggleable). **Export** the whole conversation to Markdown
+      (client-side download). (PDF left as browser-print; MD covers the ask.)
+- [x] Loading/cost transparency: AI message header shows model name + generation
+      time (`elapsed_ms` measured server-side, sent in the `done`/response and
+      persisted). (Token usage not captured — providers vary; elapsed is reliable.)
+- [x] Disclaimer/safety footer pinned under the chat (astrology guidance, not
+      medical/financial/legal/psychological advice).
+- [x] Stop/cancel a streaming generation: the abort handle from `streamAskQuestion`
+      is wired to a **Stop** button shown while generating (replaces Send).
+- [ ] FOLLOW-UP: token usage per answer; "regenerate with a *different* model";
+      automatic retry on transient stream failures; export to PDF.
 
 ### 8.8 Suggested build order
 

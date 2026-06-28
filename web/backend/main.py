@@ -17,6 +17,8 @@ from chart_context import build_chart_context
 from qwen_predictor import QwenPredictor
 from llm_service import llm_service, LLMProvider
 import conversations as convo
+import user_settings
+import ratelimit
 
 # Request models
 class LoginRequest(BaseModel):
@@ -44,6 +46,8 @@ class AskQuestionRequest(BaseModel):
     # Conversation (save + multi-turn)
     conversation_id: Optional[str] = None
     profile_id: Optional[str] = None
+    # When true, replace the last assistant answer instead of appending a new turn
+    regenerate: bool = False
 
 class PredictionRequest(BaseModel):
     birth_details: BirthDetails
@@ -560,12 +564,41 @@ async def get_user_charts(current_user: str = Depends(get_current_user)):
 
 @app.get("/api/llm/providers")
 async def list_llm_providers(current_user: str = Depends(get_current_user)):
-    """List available AI providers, their reachability, and installed/known models."""
+    """List available AI providers, their reachability, and installed/known models.
+
+    Availability also reflects the calling user's own stored API keys."""
     try:
-        providers = await llm_service.list_providers()
+        user_keys = await user_settings.get_user_keys(current_user)
+        providers = await llm_service.list_providers(user_keys)
         return {"providers": providers}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+async def _resolve_cfg(current_user: str, request: "AskQuestionRequest"):
+    """Resolve the model config, falling back to the user's stored API key when
+    the request didn't carry an explicit key and no env key is configured."""
+    cfg = llm_service.resolve_config(
+        provider_type=request.provider_type,
+        model=request.model,
+        base_url=request.base_url,
+        api_key=request.api_key,
+        legacy_provider=request.llm_provider,
+    )
+    if not cfg.api_key and cfg.provider_type.value in user_settings.KEYED_PROVIDERS:
+        stored = await user_settings.get_api_key(current_user, cfg.provider_type.value)
+        if stored:
+            cfg.api_key = stored
+    return cfg
+
+
+def _enforce_rate_limit(current_user: str):
+    allowed, retry_after, reason = ratelimit.check(current_user)
+    if not allowed:
+        raise HTTPException(
+            status_code=429, detail=reason,
+            headers={"Retry-After": str(retry_after)},
+        )
 
 @app.post("/api/astrology/ask")
 async def ask_question(
@@ -573,6 +606,7 @@ async def ask_question(
     current_user: str = Depends(get_current_user)
 ):
     """Ask a question about the birth chart using AI"""
+    _enforce_rate_limit(current_user)
     try:
         # Build the rich, structured chart context (D1 + running dasha chain +
         # yogas + doshas + transits), token-budgeted and section-toggleable.
@@ -583,14 +617,8 @@ async def ask_question(
             vargas=request.vargas,
         )
 
-        # Resolve the model config (new fields take precedence, legacy string as fallback)
-        cfg = llm_service.resolve_config(
-            provider_type=request.provider_type,
-            model=request.model,
-            base_url=request.base_url,
-            api_key=request.api_key,
-            legacy_provider=request.llm_provider,
-        )
+        # Resolve the model config (request key → user's stored key → env key)
+        cfg = await _resolve_cfg(current_user, request)
 
         # Multi-turn: load prior turns from the conversation (if any)
         conv = await convo.get_conversation(current_user, request.conversation_id) \
@@ -598,21 +626,25 @@ async def ask_question(
         history = convo.history_for_model(conv)
 
         # Get AI response
+        started = datetime.now(timezone.utc)
         answer = await llm_service.ask_question(
             chart_data=chart_data,
             question=request.question,
             config=cfg,
             history=history,
         )
+        elapsed_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
 
         # Persist the turn (create the conversation on first message)
-        conv_id = await _save_turn(current_user, request, cfg, chart_data, answer)
+        conv_id = await _save_turn(current_user, request, cfg, chart_data, answer,
+                                   elapsed_ms=elapsed_ms)
 
         return {
             "question": request.question,
             "answer": answer,
             "provider": cfg.provider_type.value,
             "model": cfg.model,
+            "elapsed_ms": elapsed_ms,
             "conversation_id": conv_id,
             "sections": chart_data.get("_sections", {}),
             "vargas": chart_data.get("_vargas", []),
@@ -626,8 +658,12 @@ async def ask_question(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-async def _save_turn(user_id: str, request: "AskQuestionRequest", cfg, chart_data: dict, answer: str) -> str:
-    """Persist a user question + assistant answer, creating the conversation if new."""
+async def _save_turn(user_id: str, request: "AskQuestionRequest", cfg, chart_data: dict,
+                     answer: str, elapsed_ms: Optional[int] = None) -> str:
+    """Persist a user question + assistant answer, creating the conversation if new.
+
+    When `request.regenerate` is set and a conversation exists, the previous
+    assistant answer is replaced in place (no duplicate question/answer turn)."""
     conv_id = request.conversation_id
     if not conv_id:
         conv_id = await convo.create_conversation(
@@ -635,14 +671,18 @@ async def _save_turn(user_id: str, request: "AskQuestionRequest", cfg, chart_dat
             request.birth_details.model_dump(),
         )
     now = datetime.now(timezone.utc).isoformat()
-    user_msg = {"role": "user", "content": request.question, "ts": now}
     ai_msg = {
         "role": "assistant", "content": answer, "ts": now,
         "provider": cfg.provider_type.value, "model": cfg.model,
         "vargas": chart_data.get("_vargas", []),
         "sections": chart_data.get("_sections", {}),
+        "elapsed_ms": elapsed_ms,
     }
-    await convo.append_messages(user_id, conv_id, [user_msg, ai_msg])
+    if request.regenerate and request.conversation_id:
+        await convo.replace_last_assistant(user_id, conv_id, ai_msg)
+    else:
+        user_msg = {"role": "user", "content": request.question, "ts": now}
+        await convo.append_messages(user_id, conv_id, [user_msg, ai_msg])
     return conv_id
 
 
@@ -653,6 +693,7 @@ async def ask_question_stream(
 ):
     """Stream an answer token-by-token (SSE), with multi-turn context, and persist
     the completed turn. Frontend reads this with a fetch + ReadableStream."""
+    _enforce_rate_limit(current_user)
     # Build context + resolve model up front so failures surface as HTTP errors.
     chart_data = build_chart_context(
         birth_details=request.birth_details.model_dump(),
@@ -660,13 +701,7 @@ async def ask_question_stream(
         sections=request.sections,
         vargas=request.vargas,
     )
-    cfg = llm_service.resolve_config(
-        provider_type=request.provider_type,
-        model=request.model,
-        base_url=request.base_url,
-        api_key=request.api_key,
-        legacy_provider=request.llm_provider,
-    )
+    cfg = await _resolve_cfg(current_user, request)
     conv = await convo.get_conversation(current_user, request.conversation_id) \
         if request.conversation_id else None
     history = convo.history_for_model(conv)
@@ -685,6 +720,7 @@ async def ask_question_stream(
         yield f"data: {json.dumps(meta)}\n\n"
 
         parts = []
+        started = datetime.now(timezone.utc)
         try:
             async for chunk in llm_service.stream_answer(chart_data, request.question, history, cfg):
                 parts.append(chunk)
@@ -694,12 +730,14 @@ async def ask_question_stream(
             return
 
         answer = "".join(parts)
+        elapsed_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
         try:
-            conv_id = await _save_turn(current_user, request, cfg, chart_data, answer)
+            conv_id = await _save_turn(current_user, request, cfg, chart_data, answer,
+                                       elapsed_ms=elapsed_ms)
         except Exception as e:
             conv_id = request.conversation_id
             print(f"Failed to persist conversation: {e}")
-        yield f"data: {json.dumps({'type': 'done', 'conversation_id': conv_id})}\n\n"
+        yield f"data: {json.dumps({'type': 'done', 'conversation_id': conv_id, 'elapsed_ms': elapsed_ms})}\n\n"
 
     return StreamingResponse(
         event_gen(),
@@ -743,6 +781,69 @@ async def delete_ai_conversation(
     if not ok:
         raise HTTPException(status_code=404, detail="Conversation not found")
     return {"success": True}
+
+
+class FeedbackRequest(BaseModel):
+    message_index: int
+    rating: Optional[str] = None  # "up" | "down" | null to clear
+
+
+@app.post("/api/ai/conversations/{conversation_id}/feedback")
+async def submit_feedback(
+    conversation_id: str,
+    request: FeedbackRequest,
+    current_user: str = Depends(get_current_user)
+):
+    """Store thumbs up/down on a specific assistant message in a conversation."""
+    if request.rating not in (None, "", "up", "down"):
+        raise HTTPException(status_code=400, detail="rating must be 'up', 'down', or null")
+    ok = await convo.set_feedback(current_user, conversation_id,
+                                  request.message_index, request.rating)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Message not found")
+    return {"success": True}
+
+
+# ============= PER-USER API KEYS =============
+
+class ApiKeyRequest(BaseModel):
+    api_key: str
+
+
+@app.get("/api/user/api-keys")
+async def get_api_keys(current_user: str = Depends(get_current_user)):
+    """Per-provider key status for the current user (masked — never the raw key)."""
+    return {"keys": await user_settings.get_key_status(current_user)}
+
+
+@app.put("/api/user/api-keys/{provider}")
+async def put_api_key(
+    provider: str,
+    request: ApiKeyRequest,
+    current_user: str = Depends(get_current_user)
+):
+    """Store (encrypted) the user's API key for one provider."""
+    if provider not in user_settings.KEYED_PROVIDERS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown provider '{provider}'. Expected one of {user_settings.KEYED_PROVIDERS}.",
+        )
+    if not request.api_key.strip():
+        raise HTTPException(status_code=400, detail="api_key cannot be empty")
+    await user_settings.set_api_key(current_user, provider, request.api_key)
+    return {"success": True, "provider": provider}
+
+
+@app.delete("/api/user/api-keys/{provider}")
+async def remove_api_key(
+    provider: str,
+    current_user: str = Depends(get_current_user)
+):
+    """Remove the user's stored API key for one provider."""
+    if provider not in user_settings.KEYED_PROVIDERS:
+        raise HTTPException(status_code=400, detail=f"Unknown provider '{provider}'.")
+    await user_settings.delete_api_key(current_user, provider)
+    return {"success": True, "provider": provider}
 
 
 @app.post("/api/astrology/predict")

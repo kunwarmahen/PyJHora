@@ -18,11 +18,18 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 ## What's New - AI-Powered Features 🆕
 
 ### Ask AI Astrologer
-- **Interactive Chat Interface**: Have a conversation with AI about your birth chart
-- **Multiple AI Models**: Choose between Qwen 2.5 (local/free), Google Gemini, or ChatGPT
-- **Personalized Insights**: Get detailed answers to specific questions about your chart
-- **Example Questions**: Pre-built questions to get started quickly
-- **Real-time Analysis**: AI analyzes your complete chart data for accurate responses
+- **Interactive Chat Interface**: Multi-turn conversation with memory about your birth chart
+- **Provider & model selection**: Ollama (local, auto-detected models), any OpenAI-compatible
+  local server (LM Studio / llama.cpp / vLLM), Google Gemini, or OpenAI — pick the exact model
+- **Streaming answers**: responses stream token-by-token (SSE) with a **Stop** button
+- **Rich, transparent context**: D1 + chosen divisional charts (vargas), the running
+  Vimsottari dasha chain, yogas, doshas and current transits — view the exact data sent
+- **Saved history**: every Q&A is stored per profile and can be revisited or deleted
+- **Answer affordances**: copy, regenerate, thumbs up/down, export a conversation to Markdown
+- **Per-user API keys (encrypted)**: each user stores their own provider keys via the
+  in-app "API Keys" manager — no shared `.env` key required
+- **Rate limiting**: per-user per-minute + per-day quotas on the AI endpoints
+- **Safety disclaimer**: clear "guidance, not professional advice" footer
 
 ### Enhanced Predictions
 - **AI-Powered Analysis**: All prediction endpoints now support AI enhancement
@@ -39,7 +46,12 @@ pyjhora-web/
 │   ├── database.py          # MongoDB models and connection
 │   ├── auth.py              # Authentication utilities
 │   ├── astrology.py         # PyJHora wrapper
-│   ├── qwen_predictor.py    # Qwen LLM integration
+│   ├── llm_service.py       # Multi-provider LLM layer (Ollama/OpenAI-compatible/Gemini/OpenAI) + streaming
+│   ├── chart_context.py     # Builds the structured chart context sent to the AI
+│   ├── conversations.py     # Saved AI chat threads (per user + profile)
+│   ├── user_settings.py     # Per-user encrypted API keys
+│   ├── ratelimit.py         # Per-user rate limiting for AI endpoints
+│   ├── qwen_predictor.py    # Legacy Qwen LLM integration
 │   ├── requirements.txt     # Python dependencies
 │   ├── Dockerfile           # Docker image for backend
 │   └── .env.example         # Environment template
@@ -170,9 +182,21 @@ SECRET_KEY=your-secret-key-change-this
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-# Qwen LLM Integration
-QWEN_API_URL=http://localhost:5000
-USE_QWEN=false  # Set to true if running local Qwen server
+# LLM providers (endpoints + default models; keys are optional — users can also
+# store their own per-user keys in the app). See backend/.env.example for the full list.
+OLLAMA_URL=http://localhost:11434
+OLLAMA_DEFAULT_MODEL=qwen2.5:14b
+OPENAI_COMPATIBLE_URL=http://localhost:1234/v1
+GEMINI_API_KEY=         # optional global fallback
+OPENAI_API_KEY=         # optional global fallback
+
+# Per-user API-key encryption (keys users save in the UI are encrypted with this;
+# falls back to SECRET_KEY if unset — set a stable value in production)
+API_KEY_ENCRYPTION_KEY=change-this-to-a-long-random-string
+
+# Per-user rate limits on the AI endpoints
+AI_RATE_LIMIT_PER_MIN=20
+AI_RATE_LIMIT_PER_DAY=300
 
 # CORS
 CORS_ORIGINS=["http://localhost:3000","http://localhost:8000"]
@@ -311,10 +335,17 @@ OPENAI_API_KEY=your-openai-api-key-here
 
 ### Switching Between AI Models
 
-Users can select their preferred AI model directly in the frontend:
+Users can select their preferred provider **and model** directly in the frontend:
 - Go to "Ask AI Astrologer" page
-- Choose between Qwen, Gemini, or ChatGPT in the AI Model selector
+- Pick a provider (Ollama / OpenAI-compatible / Gemini / OpenAI) and a specific model
 - Each model will provide different perspectives on your chart
+
+### Per-user API keys (no shared `.env` key needed)
+
+Instead of (or in addition to) the global `.env` keys above, each user can store
+their own provider keys from the app: open **"API Keys"** on the Ask AI Astrologer
+page and paste a Gemini / OpenAI / OpenAI-compatible key. Keys are encrypted at rest,
+shown back only masked, and used ahead of any global env key for that user's requests.
 
 ## API Endpoints
 
@@ -340,12 +371,21 @@ Users can select their preferred AI model directly in the frontend:
 - `POST /api/astrology/compatibility` - Check marriage compatibility
 
 ### AI Q&A (New) 🆕
-- `POST /api/astrology/ask` - Ask a question about birth chart with AI
+- `GET /api/llm/providers` - List AI providers, reachability, and available models (reflects per-user keys)
+- `POST /api/astrology/ask` - Ask a question about the birth chart (multi-turn, rich context)
+- `POST /api/astrology/ask/stream` - Same, streamed token-by-token over SSE
+- `GET /api/ai/conversations?profile_id=` - List saved conversations for a profile
+- `GET /api/ai/conversations/{id}` - Fetch a full conversation thread
+- `DELETE /api/ai/conversations/{id}` - Delete a conversation
+- `POST /api/ai/conversations/{id}/feedback` - Thumbs up/down on an answer
 - `POST /api/astrology/predict` - Generate AI-powered predictions (general, health, career, relationships)
 - `POST /api/astrology/compatibility-analysis` - Get detailed AI compatibility analysis
 
 ### User
 - `GET /api/user/charts` - Get user's saved charts
+- `GET /api/user/api-keys` - Per-provider key status (masked; never the raw key)
+- `PUT /api/user/api-keys/{provider}` - Store (encrypted) your API key for a provider
+- `DELETE /api/user/api-keys/{provider}` - Remove a stored API key
 
 ### Health
 - `GET /health` - Health check endpoint

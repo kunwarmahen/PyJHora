@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import {
@@ -14,6 +14,14 @@ import {
   History,
   Plus,
   Trash2,
+  Copy,
+  Check,
+  RefreshCw,
+  ThumbsUp,
+  ThumbsDown,
+  Square,
+  Download,
+  KeyRound,
 } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash } from "../utils/format";
@@ -70,6 +78,30 @@ export const AskAstrologerPage = () => {
   const [conversationId, setConversationId] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+
+  // 8.7 polish: in-flight stream control + per-answer affordances
+  const abortRef = useRef(null);
+  const [copiedIdx, setCopiedIdx] = useState(null);
+  // conversationId stays current across turns via a ref so callbacks see it
+  const conversationIdRef = useRef(null);
+  useEffect(() => {
+    conversationIdRef.current = conversationId;
+  }, [conversationId]);
+
+  // 8.6 per-user API keys
+  const [showKeysModal, setShowKeysModal] = useState(false);
+  const [keyStatus, setKeyStatus] = useState({});
+  const [keyInputs, setKeyInputs] = useState({});
+  const [keySaving, setKeySaving] = useState("");
+  const KEY_PROVIDERS = [
+    { id: "gemini", label: "Google Gemini", hint: "aistudio.google.com/app/apikey" },
+    { id: "openai", label: "OpenAI (ChatGPT)", hint: "platform.openai.com/api-keys" },
+    {
+      id: "openai-compatible",
+      label: "Local / OpenAI-compatible",
+      hint: "Optional — only if your endpoint needs a key",
+    },
+  ];
 
   // AI provider / model selection
   const [providers, setProviders] = useState([]);
@@ -269,27 +301,12 @@ export const AskAstrologerPage = () => {
       return next;
     });
 
-  const handleAskQuestion = (question) => {
-    if (!question.trim() || !selectedProfile || loading) return;
-
-    const now = new Date().toLocaleTimeString();
-    setMessages((prev) => [
-      ...prev,
-      { type: "user", content: question, timestamp: now },
-      {
-        type: "ai",
-        content: "",
-        streaming: true,
-        provider: providerType,
-        model,
-        timestamp: new Date().toLocaleTimeString(),
-      },
-    ]);
-    setCurrentQuestion("");
+  // Core streaming call — used by both a fresh question and "Regenerate".
+  const runStream = (question, { regenerate = false } = {}) => {
     setLoading(true);
     setError("");
 
-    streamAskQuestion(
+    abortRef.current = streamAskQuestion(
       buildBirthDetails(),
       question,
       {
@@ -298,8 +315,9 @@ export const AskAstrologerPage = () => {
         baseUrl: selectedProvider?.editable_base_url ? baseUrl : undefined,
         legacyProvider: providerType === "ollama" ? "qwen" : providerType,
         vargas: selectedVargas,
-        conversationId,
+        conversationId: conversationIdRef.current,
         profileId: selectedProfile._id,
+        regenerate,
       },
       {
         onMeta: (m) => {
@@ -317,8 +335,14 @@ export const AskAstrologerPage = () => {
           updateLastAi((msg) => ({ ...msg, content: msg.content + t })),
         onDone: (d) => {
           if (d.conversation_id) setConversationId(d.conversation_id);
-          updateLastAi((msg) => ({ ...msg, streaming: false }));
+          updateLastAi((msg) => ({
+            ...msg,
+            streaming: false,
+            elapsed_ms: d.elapsed_ms ?? msg.elapsed_ms,
+            question, // remember the prompt so Regenerate can replay it
+          }));
           setLoading(false);
+          abortRef.current = null;
           refreshConversations();
         },
         onError: (e) => {
@@ -330,9 +354,128 @@ export const AskAstrologerPage = () => {
           }));
           setError(e.message || "Failed to get answer from AI");
           setLoading(false);
+          abortRef.current = null;
         },
       }
     );
+  };
+
+  const handleAskQuestion = (question) => {
+    if (!question.trim() || !selectedProfile || loading) return;
+
+    const now = new Date().toLocaleTimeString();
+    setMessages((prev) => [
+      ...prev,
+      { type: "user", content: question, timestamp: now },
+      {
+        type: "ai",
+        content: "",
+        streaming: true,
+        provider: providerType,
+        model,
+        question,
+        timestamp: new Date().toLocaleTimeString(),
+      },
+    ]);
+    setCurrentQuestion("");
+    runStream(question, { regenerate: false });
+  };
+
+  // Re-ask the prompt behind the last AI answer; replaces it server-side too.
+  const handleRegenerate = (message) => {
+    const question = message?.question;
+    if (!question || loading) return;
+    updateLastAi((msg) => ({
+      ...msg,
+      content: "",
+      streaming: true,
+      error: false,
+      elapsed_ms: undefined,
+      feedback: undefined,
+      provider: providerType,
+      model,
+      timestamp: new Date().toLocaleTimeString(),
+    }));
+    runStream(question, { regenerate: true });
+  };
+
+  // Stop an in-flight generation (aborts the SSE fetch).
+  const handleStop = () => {
+    if (abortRef.current) {
+      abortRef.current();
+      abortRef.current = null;
+    }
+    updateLastAi((msg) => ({ ...msg, streaming: false }));
+    setLoading(false);
+  };
+
+  // Copy an answer to the clipboard.
+  const handleCopy = async (text, idx) => {
+    try {
+      await navigator.clipboard.writeText(text || "");
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx((c) => (c === idx ? null : c)), 1500);
+    } catch (e) {
+      /* clipboard unavailable */
+    }
+  };
+
+  // Backend stores only user/assistant messages; map a UI index to that array.
+  const backendIndexFor = (uiIndex) =>
+    messages
+      .slice(0, uiIndex + 1)
+      .filter((m) => m.type === "user" || m.type === "ai").length - 1;
+
+  const handleFeedback = async (uiIndex, rating) => {
+    if (!conversationId) return;
+    const current = messages[uiIndex]?.feedback;
+    const next = current === rating ? null : rating; // toggle off if same
+    // optimistic UI
+    setMessages((prev) => {
+      const copy = [...prev];
+      copy[uiIndex] = { ...copy[uiIndex], feedback: next };
+      return copy;
+    });
+    try {
+      await astrologyService.submitFeedback(
+        conversationId,
+        backendIndexFor(uiIndex),
+        next
+      );
+    } catch (e) {
+      /* non-fatal; leave optimistic state */
+    }
+  };
+
+  // Export the current conversation as a Markdown file.
+  const handleExport = () => {
+    const name =
+      selectedProfile?.birth_details?.name ||
+      selectedProfile?.profile_name ||
+      "chart";
+    const lines = [
+      `# AI Astrologer — ${name}`,
+      "",
+      `_Exported ${new Date().toLocaleString()}_`,
+      "",
+      "> Astrological guidance for reflection only — not medical, financial, or legal advice.",
+      "",
+    ];
+    messages.forEach((m) => {
+      if (m.type === "user") {
+        lines.push(`## ❓ ${m.content}`, "");
+      } else if (m.type === "ai" && m.content) {
+        const tag = m.model ? ` _(${m.model})_` : "";
+        lines.push(`### 🔮 Astrologer${tag}`, "", m.content, "");
+      }
+    });
+    const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `astrologer-${name.replace(/\s+/g, "-").toLowerCase()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleExampleClick = (question) => {
@@ -368,7 +511,8 @@ export const AskAstrologerPage = () => {
     try {
       const resp = await astrologyService.getConversation(id);
       const conv = resp.data;
-      const msgs = (conv.messages || []).map((m) =>
+      const raw = conv.messages || [];
+      const msgs = raw.map((m, i) =>
         m.role === "user"
           ? { type: "user", content: m.content }
           : {
@@ -378,6 +522,10 @@ export const AskAstrologerPage = () => {
               model: m.model,
               vargas: m.vargas,
               sections: m.sections,
+              elapsed_ms: m.elapsed_ms,
+              feedback: m.feedback,
+              // remember the prompt behind this answer (for Regenerate)
+              question: raw[i - 1]?.role === "user" ? raw[i - 1].content : undefined,
             }
       );
       setMessages(
@@ -400,6 +548,60 @@ export const AskAstrologerPage = () => {
       refreshConversations();
     } catch (err) {
       /* non-fatal */
+    }
+  };
+
+  // ── Per-user API keys (8.6) ─────────────────────────────────────────
+  const refreshKeyStatus = async () => {
+    try {
+      const resp = await astrologyService.getApiKeys();
+      setKeyStatus(resp.data.keys || {});
+    } catch (e) {
+      /* non-fatal */
+    }
+  };
+
+  const refreshProviders = async () => {
+    try {
+      const resp = await astrologyService.getLlmProviders();
+      setProviders(resp.data.providers || []);
+    } catch (e) {
+      /* non-fatal */
+    }
+  };
+
+  const openKeysModal = () => {
+    setKeyInputs({});
+    refreshKeyStatus();
+    setShowKeysModal(true);
+  };
+
+  const handleSaveKey = async (provider) => {
+    const value = (keyInputs[provider] || "").trim();
+    if (!value) return;
+    setKeySaving(provider);
+    try {
+      await astrologyService.setApiKey(provider, value);
+      setKeyInputs((prev) => ({ ...prev, [provider]: "" }));
+      await refreshKeyStatus();
+      await refreshProviders(); // availability may have flipped to "ready"
+    } catch (e) {
+      setError(e.response?.data?.detail || "Failed to save API key");
+    } finally {
+      setKeySaving("");
+    }
+  };
+
+  const handleClearKey = async (provider) => {
+    setKeySaving(provider);
+    try {
+      await astrologyService.deleteApiKey(provider);
+      await refreshKeyStatus();
+      await refreshProviders();
+    } catch (e) {
+      /* non-fatal */
+    } finally {
+      setKeySaving("");
     }
   };
 
@@ -439,6 +641,12 @@ export const AskAstrologerPage = () => {
   if (!selectedProfile) {
     return null;
   }
+
+  // Index of the most recent AI message (only it can be regenerated).
+  const lastAiIndex = messages.reduce(
+    (acc, m, i) => (m.type === "ai" ? i : acc),
+    -1
+  );
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -515,6 +723,19 @@ export const AskAstrologerPage = () => {
             >
               <History size={16} />
               <span>History{conversations.length ? ` (${conversations.length})` : ""}</span>
+            </button>
+            <button
+              onClick={handleExport}
+              className="change-profile-btn"
+              disabled={!messages.some((m) => m.type === "ai" && m.content)}
+              title="Export this conversation as Markdown"
+            >
+              <Download size={16} />
+              <span>Export</span>
+            </button>
+            <button onClick={openKeysModal} className="change-profile-btn" title="Manage your API keys">
+              <KeyRound size={16} />
+              <span>API Keys</span>
             </button>
             <button onClick={() => navigate('/profile-selection')} className="change-profile-btn">
               <Star size={16} />
@@ -902,6 +1123,11 @@ export const AskAstrologerPage = () => {
                     {message.timestamp && (
                       <span className="timestamp">{message.timestamp}</span>
                     )}
+                    {!message.streaming && message.elapsed_ms != null && (
+                      <span className="timestamp" title="Generation time">
+                        {(message.elapsed_ms / 1000).toFixed(1)}s
+                      </span>
+                    )}
                     {!message.streaming && (message.context || message.model) && (
                       <button
                         onClick={() => openInfo(messageInfo(message))}
@@ -952,6 +1178,49 @@ export const AskAstrologerPage = () => {
                     message.content
                   )}
                 </div>
+
+                {/* Answer affordances: copy / regenerate / feedback */}
+                {message.type === "ai" && !message.streaming && message.content && !message.error && (
+                  <div className="msg-actions">
+                    <button
+                      className="msg-action-btn"
+                      onClick={() => handleCopy(message.content, index)}
+                      title="Copy answer"
+                    >
+                      {copiedIdx === index ? <Check size={13} /> : <Copy size={13} />}
+                      {copiedIdx === index ? "Copied" : "Copy"}
+                    </button>
+                    {index === lastAiIndex && message.question && (
+                      <button
+                        className="msg-action-btn"
+                        onClick={() => handleRegenerate(message)}
+                        disabled={loading}
+                        title="Regenerate this answer"
+                      >
+                        <RefreshCw size={13} />
+                        Regenerate
+                      </button>
+                    )}
+                    {conversationId && (
+                      <>
+                        <button
+                          className={`msg-action-btn${message.feedback === "up" ? " active-up" : ""}`}
+                          onClick={() => handleFeedback(index, "up")}
+                          title="Helpful"
+                        >
+                          <ThumbsUp size={13} />
+                        </button>
+                        <button
+                          className={`msg-action-btn${message.feedback === "down" ? " active-down" : ""}`}
+                          onClick={() => handleFeedback(index, "down")}
+                          title="Not helpful"
+                        >
+                          <ThumbsDown size={13} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -976,13 +1245,31 @@ export const AskAstrologerPage = () => {
               }}
               disabled={loading}
             />
-            <button
-              className="btn-send"
-              onClick={() => handleAskQuestion(currentQuestion)}
-              disabled={loading || !currentQuestion.trim()}
-            >
-              <Send size={20} />
-            </button>
+            {loading ? (
+              <button
+                className="btn-stop"
+                onClick={handleStop}
+                title="Stop generating"
+              >
+                <Square size={16} fill="currentColor" />
+                <span>Stop</span>
+              </button>
+            ) : (
+              <button
+                className="btn-send"
+                onClick={() => handleAskQuestion(currentQuestion)}
+                disabled={!currentQuestion.trim()}
+              >
+                <Send size={20} />
+              </button>
+            )}
+          </div>
+
+          {/* Safety / disclaimer footer */}
+          <div className="ai-disclaimer">
+            ⚠ AI-generated astrological guidance for reflection and entertainment
+            only — not a substitute for professional medical, financial, legal, or
+            psychological advice. Verify important decisions independently.
           </div>
         </div>
 
@@ -1110,6 +1397,112 @@ export const AskAstrologerPage = () => {
                     The AI model receives this structured data along with your question: your Lagna, planetary positions and nakshatras, the currently-active Vimsottari dasha chain (Maha → Bhukti → Antara → Sookshma), yogas and doshas present in the chart, and current planetary transits (Gochara).
                   </p>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* API Keys Modal (8.6 — per-user, encrypted server-side) */}
+        {showKeysModal && (
+          <div
+            style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0, 0, 0, 0.5)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+              padding: 'var(--space-lg)', animation: 'fadeIn 0.3s ease-out',
+            }}
+            onClick={() => setShowKeysModal(false)}
+          >
+            <div
+              style={{
+                background: 'white', borderRadius: 'var(--radius-xl)',
+                maxWidth: '560px', width: '100%', maxHeight: '85vh', overflow: 'auto',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)', animation: 'slideIn 0.3s ease-out',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{
+                padding: 'var(--space-xl)', borderBottom: '2px solid var(--sandalwood)',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
+                <h3 style={{
+                  margin: 0, fontSize: '1.5rem', color: 'var(--cosmic-indigo)',
+                  display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
+                }}>
+                  <KeyRound size={24} style={{ color: 'var(--saffron)' }} />
+                  Your API Keys
+                </h3>
+                <button
+                  onClick={() => setShowKeysModal(false)}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--text-secondary)', padding: 'var(--space-sm)',
+                    borderRadius: 'var(--radius-md)', display: 'flex',
+                  }}
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div style={{ padding: 'var(--space-xl)' }}>
+                <p style={{
+                  margin: '0 0 var(--space-lg)', fontSize: '0.8125rem',
+                  color: 'var(--text-secondary)', lineHeight: 1.6,
+                }}>
+                  Keys are stored encrypted on the server and used only for your own
+                  requests. They're never shown back in full. Ollama (local) needs no key.
+                </p>
+
+                {KEY_PROVIDERS.map((p) => {
+                  const status = keyStatus[p.id] || {};
+                  const busy = keySaving === p.id;
+                  return (
+                    <div key={p.id} className="key-row">
+                      <div className="key-row-head">
+                        <span style={{ fontWeight: 700, color: 'var(--cosmic-indigo)', fontSize: '0.9375rem' }}>
+                          {p.label}
+                        </span>
+                        <span className={`key-pill ${status.has_key ? 'set' : 'unset'}`}>
+                          {status.has_key ? `Saved ${status.masked || ''}` : 'Not set'}
+                        </span>
+                      </div>
+                      <div className="key-row-controls">
+                        <input
+                          type="password"
+                          className="key-input"
+                          placeholder={status.has_key ? 'Enter a new key to replace' : 'Paste API key'}
+                          value={keyInputs[p.id] || ''}
+                          onChange={(e) =>
+                            setKeyInputs((prev) => ({ ...prev, [p.id]: e.target.value }))
+                          }
+                          autoComplete="off"
+                        />
+                        <button
+                          className="msg-action-btn"
+                          style={{ padding: '0 var(--space-md)' }}
+                          onClick={() => handleSaveKey(p.id)}
+                          disabled={busy || !(keyInputs[p.id] || '').trim()}
+                        >
+                          {busy ? '…' : 'Save'}
+                        </button>
+                        {status.has_key && (
+                          <button
+                            className="msg-action-btn"
+                            style={{ padding: '0 var(--space-md)' }}
+                            onClick={() => handleClearKey(p.id)}
+                            disabled={busy}
+                            title="Remove stored key"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)' }}>
+                        {p.hint}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

@@ -121,6 +121,18 @@ export const astrologyService = {
     api.get("/api/ai/conversations", { params: { profile_id: profileId } }),
   getConversation: (id) => api.get(`/api/ai/conversations/${id}`),
   deleteConversation: (id) => api.delete(`/api/ai/conversations/${id}`),
+  // Thumbs up/down on a specific assistant message (rating: "up"|"down"|null)
+  submitFeedback: (conversationId, messageIndex, rating) =>
+    api.post(`/api/ai/conversations/${conversationId}/feedback`, {
+      message_index: messageIndex,
+      rating,
+    }),
+
+  // Per-user API keys (encrypted server-side; status returns masked values only)
+  getApiKeys: () => api.get("/api/user/api-keys"),
+  setApiKey: (provider, apiKey) =>
+    api.put(`/api/user/api-keys/${provider}`, { api_key: apiKey }),
+  deleteApiKey: (provider) => api.delete(`/api/user/api-keys/${provider}`),
 
   generatePrediction: (birthDetails, predictionType = "general", llmProvider = "qwen") =>
     api.post("/api/astrology/predict", {
@@ -167,8 +179,16 @@ export const streamAskQuestion = (birthDetails, question, model = {}, callbacks 
           ayanamsa: model.ayanamsa,
           conversation_id: model.conversationId,
           profile_id: model.profileId,
+          regenerate: model.regenerate || false,
         }),
       });
+
+      if (resp.status === 429) {
+        const detail =
+          (await resp.json().catch(() => null))?.detail ||
+          "Rate limit reached. Please slow down.";
+        throw new Error(detail);
+      }
 
       if (!resp.ok || !resp.body) {
         const text = await resp.text().catch(() => "");

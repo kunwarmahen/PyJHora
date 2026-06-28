@@ -119,13 +119,20 @@ class LLMService:
     # ------------------------------------------------------------------ #
     # Provider / model discovery
     # ------------------------------------------------------------------ #
-    async def list_providers(self) -> List[Dict[str, Any]]:
-        """Return configured providers, their availability, and model lists."""
+    async def list_providers(self, user_keys: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
+        """Return configured providers, their availability, and model lists.
+
+        `user_keys` is the calling user's stored per-provider keys; when present
+        they count toward availability (and are flagged so the UI can show the
+        source), so a user who saved their own key sees the provider as ready
+        even if no global env key is set.
+        """
+        user_keys = user_keys or {}
         return [
             await self._ollama_status(),
-            await self._openai_compat_status(),
-            self._gemini_status(),
-            self._openai_status(),
+            await self._openai_compat_status(user_keys.get("openai-compatible")),
+            self._gemini_status(user_keys.get("gemini")),
+            self._openai_status(user_keys.get("openai")),
         ]
 
     async def _ollama_status(self) -> Dict[str, Any]:
@@ -158,7 +165,7 @@ class LLMService:
             info["reason"] = "Cannot reach Ollama. Start it with 'ollama serve'."
         return info
 
-    async def _openai_compat_status(self) -> Dict[str, Any]:
+    async def _openai_compat_status(self, user_key: Optional[str] = None) -> Dict[str, Any]:
         info = {
             "type": ProviderType.OPENAI_COMPATIBLE.value,
             "label": "Local / OpenAI-compatible",
@@ -169,12 +176,14 @@ class LLMService:
             "models": [],
             "available": False,
             "reason": None,
+            "has_user_key": bool(user_key),
         }
+        key = user_key or self.openai_compat_key
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 headers = {}
-                if self.openai_compat_key:
-                    headers["Authorization"] = f"Bearer {self.openai_compat_key}"
+                if key:
+                    headers["Authorization"] = f"Bearer {key}"
                 resp = await client.get(f"{self.openai_compat_url}/models", headers=headers)
                 if resp.status_code == 200:
                     data = resp.json().get("data", [])
@@ -192,8 +201,8 @@ class LLMService:
             )
         return info
 
-    def _gemini_status(self) -> Dict[str, Any]:
-        available = bool(self.gemini_api_key)
+    def _gemini_status(self, user_key: Optional[str] = None) -> Dict[str, Any]:
+        available = bool(user_key or self.gemini_api_key)
         return {
             "type": ProviderType.GEMINI.value,
             "label": "Google Gemini",
@@ -201,6 +210,7 @@ class LLMService:
             "default_model": self.gemini_default_model,
             "requires_key": True,
             "editable_base_url": False,
+            "has_user_key": bool(user_key),
             "models": [
                 "gemini-1.5-flash",
                 "gemini-1.5-pro",
@@ -208,11 +218,11 @@ class LLMService:
                 "gemini-2.0-flash-lite",
             ],
             "available": available,
-            "reason": None if available else "GEMINI_API_KEY is not set.",
+            "reason": None if available else "No Gemini API key. Add one in API Keys (or set GEMINI_API_KEY).",
         }
 
-    def _openai_status(self) -> Dict[str, Any]:
-        available = bool(self.openai_api_key)
+    def _openai_status(self, user_key: Optional[str] = None) -> Dict[str, Any]:
+        available = bool(user_key or self.openai_api_key)
         return {
             "type": ProviderType.OPENAI.value,
             "label": "OpenAI (ChatGPT)",
@@ -220,9 +230,10 @@ class LLMService:
             "default_model": self.openai_default_model,
             "requires_key": True,
             "editable_base_url": False,
+            "has_user_key": bool(user_key),
             "models": ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "o1-mini"],
             "available": available,
-            "reason": None if available else "OPENAI_API_KEY is not set.",
+            "reason": None if available else "No OpenAI API key. Add one in API Keys (or set OPENAI_API_KEY).",
         }
 
     # ------------------------------------------------------------------ #
