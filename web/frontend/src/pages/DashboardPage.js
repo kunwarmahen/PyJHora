@@ -13,6 +13,7 @@ import {
   Sparkles,
   Orbit,
   GitCompareArrows,
+  Wrench,
 } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
@@ -80,6 +81,12 @@ export const DashboardPage = () => {
       icon: <GitCompareArrows size={32} />,
       path: "/compare",
       gradient: "linear-gradient(135deg, #2D3561 0%, #E27B5A 100%)",
+    },
+    {
+      key: "aiTools",
+      icon: <Wrench size={32} />,
+      path: "/ai-tools",
+      gradient: "linear-gradient(135deg, #3D4571 0%, #5A5F7A 100%)",
     },
   ];
 

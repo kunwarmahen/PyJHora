@@ -45,6 +45,15 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Rate limiting**: per-user per-minute + per-day quotas on the AI endpoints
 - **Safety disclaimer**: clear "guidance, not professional advice" footer
 
+### AI Capabilities page
+- **Tool catalog / capability disclosure**: a dedicated **AI Capabilities** page (nav drawer
+  on mobile, dashboard card on desktop, or `/ai-tools`) lists every tool the AI astrologer
+  can call while answering — grouped by Core chart / Timing / Strengths & afflictions, each
+  with a plain-language description and an optional **Show technical schema** toggle for its
+  inputs
+- **Always in sync**: rendered live from `GET /api/ai/tools`, which is derived from the same
+  `tools.py` registry the model actually uses, so it never drifts from the real toolset
+
 ### Transit chat (in-context gochara reading)
 - **Ask about *these* transits, right on the Transits page**: an embedded chat below
   the gochara chart, seeded with *only* the current transits + your running dasha
@@ -74,7 +83,7 @@ pyjhora-web/
 │   ├── astrology.py         # PyJHora wrapper
 │   ├── llm_service.py       # Multi-provider LLM layer (Ollama/OpenAI-compatible/Gemini/OpenAI) + streaming
 │   ├── chart_context.py     # Builds the structured chart context sent to the AI
-│   ├── tools.py             # Tool registry for agentic mode (wraps AstrologyCompute)
+│   ├── tools.py             # Tool registry for agentic mode (wraps AstrologyCompute) + GET /api/ai/tools catalog
 │   ├── tool_traces.py       # Lazy side-storage for smart-lookup tool results
 │   ├── conversations.py     # Saved AI chat threads (per user + profile)
 │   ├── user_settings.py     # Per-user encrypted API keys

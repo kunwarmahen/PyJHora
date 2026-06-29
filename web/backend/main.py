@@ -16,6 +16,7 @@ from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, S
 from chart_context import build_chart_context
 from qwen_predictor import QwenPredictor
 from llm_service import llm_service, LLMProvider
+import tools as tool_registry
 import conversations as convo
 import tool_traces
 import user_settings
@@ -761,6 +762,13 @@ async def list_llm_providers(current_user: str = Depends(get_current_user)):
         return {"providers": providers}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/ai/tools")
+async def list_ai_tools():
+    """The catalog of tools the AI astrologer can call while answering. Static,
+    user-independent capability disclosure for the 'What the AI can do' page."""
+    return {"tools": tool_registry.tool_catalog()}
 
 
 async def _resolve_cfg(current_user: str, request: "AskQuestionRequest"):

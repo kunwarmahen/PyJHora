@@ -160,6 +160,14 @@ telling the model it may call tools for anything not shown.
 The conversation doc gains a `mode` field (default `pass_all`) plus, per assistant
 message, the light `tool_trace` + `trace_id`.
 
+### 4.5 Capability disclosure (`GET /api/ai/tools`)
+A read-only, user-independent endpoint exposes the toolset to users for transparency.
+`tools.tool_catalog()` enriches each registry entry with a human-friendly `label` +
+`category` (the model never sees these) and the raw JSON-schema `parameters`; the
+catalog is derived from the same `TOOLS` registry the loop calls, so it can't drift.
+The frontend **AI Capabilities** page (`pages/AiToolsPage.js`, route `/ai-tools`)
+renders it grouped by category, with a per-tool "Show technical schema" toggle.
+
 ## 5. Frontend
 
 - **Per-conversation mode toggle** on `AskAstrologerPage` (set at new-conversation

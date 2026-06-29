@@ -316,6 +316,46 @@ def tool_specs(names: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     } for n in selected if n in TOOLS]
 
 
+# Friendly display metadata for the human-facing "AI capabilities" page. The
+# model never sees `label`/`category`; they only shape how the catalog reads to
+# a person. Tools are listed here in the order they should appear.
+_DISPLAY: Dict[str, Dict[str, str]] = {
+    "get_natal_chart":      {"label": "Natal chart",            "category": "Core chart"},
+    "get_chart_details":    {"label": "House-by-house detail",  "category": "Core chart"},
+    "get_divisional_chart": {"label": "Divisional (varga) charts", "category": "Core chart"},
+    "get_dasha_chain":      {"label": "Running dasha periods",  "category": "Timing"},
+    "get_dasha_children":   {"label": "Dasha sub-periods",      "category": "Timing"},
+    "get_transits":         {"label": "Current transits (Gochara)", "category": "Timing"},
+    "get_panchanga":        {"label": "Panchanga almanac",      "category": "Timing"},
+    "get_yogas":            {"label": "Yogas",                  "category": "Strengths & afflictions"},
+    "get_doshas":           {"label": "Doshas",                 "category": "Strengths & afflictions"},
+    "get_ashtakavarga":     {"label": "Ashtakavarga",          "category": "Strengths & afflictions"},
+    "get_shadbala":         {"label": "Shadbala strength",      "category": "Strengths & afflictions"},
+}
+
+
+def tool_catalog() -> List[Dict[str, Any]]:
+    """Human-facing catalog of every tool the model may call, each with a
+    friendly label, a category for grouping, the model-facing description, and
+    its raw JSON-schema parameters. Backs the read-only /api/ai/tools endpoint.
+    Ordered by `_DISPLAY`, with any tool missing from it appended at the end."""
+    ordered = list(_DISPLAY) + [n for n in TOOLS if n not in _DISPLAY]
+    out: List[Dict[str, Any]] = []
+    for n in ordered:
+        t = TOOLS.get(n)
+        if t is None:
+            continue
+        meta = _DISPLAY.get(n, {})
+        out.append({
+            "name": t.name,
+            "label": meta.get("label", n.replace("get_", "").replace("_", " ").title()),
+            "category": meta.get("category", "Other"),
+            "description": t.description,
+            "parameters": t.parameters,
+        })
+    return out
+
+
 def dispatch(name: str, model_args: Optional[Dict[str, Any]],
              birth_details: Dict[str, Any],
              ayanamsa: str = DEFAULT_AYANAMSA) -> Dict[str, Any]:

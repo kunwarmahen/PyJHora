@@ -141,6 +141,9 @@ export const astrologyService = {
   // New LLM Q&A endpoints
   getLlmProviders: () => api.get("/api/llm/providers"),
 
+  // Catalog of tools the AI astrologer can call (capability disclosure page)
+  getAiTools: () => api.get("/api/ai/tools"),
+
   askQuestion: (birthDetails, question, model = {}) =>
     api.post(
       "/api/astrology/ask",

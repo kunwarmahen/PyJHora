@@ -11,6 +11,7 @@ import {
   Sparkles,
   Heart,
   MessageCircle,
+  Wrench,
   Star,
   GitCompareArrows,
   LogOut,
@@ -30,6 +31,7 @@ const LINKS = [
   { to: "/compare", labelKey: "nav.compare", icon: <GitCompareArrows size={20} /> },
   { to: "/compatibility", labelKey: "nav.compatibility", icon: <Heart size={20} /> },
   { to: "/ask-astrologer", labelKey: "nav.ask", icon: <MessageCircle size={20} /> },
+  { to: "/ai-tools", labelKey: "nav.aiTools", icon: <Wrench size={20} /> },
 ];
 
 /** Hamburger button + slide-in feature drawer. The button only shows on phones

@@ -783,3 +783,25 @@ usage capture).
 - [ ] FOLLOW-UP: refactor — extract a shared message-bubble/streaming-input component
       so `TransitChat` and the 2.2k-line `AskAstrologerPage` share one chat UI instead
       of two. Deferred to keep this change low-risk.
+
+---
+
+## AI Capabilities page — tool catalog / capability disclosure (DONE 2026-06-29)
+
+- [x] DONE 2026-06-29: **a dedicated page that lists every tool the AI astrologer can
+      call**, surfaced *outside* the Ask page (owner ask). Backend: `tools.tool_catalog()`
+      enriches the existing registry with a human-friendly `label` + `category` (the model
+      never sees these — single source of truth is still the `TOOLS` registry, so the page
+      can't drift from the real toolset) and a read-only `GET /api/ai/tools` (static,
+      user-independent, no auth dependency) returns it. Frontend: `pages/AiToolsPage.js`
+      groups the 11 tools into **Core chart / Timing / Strengths & afflictions** cards;
+      each tool shows its friendly name, the model-facing description, and a **Show
+      technical schema** toggle that reveals the inputs (name/type/required/description)
+      only on demand — the "human-friendly + optional schema" presentation the owner chose.
+      Wired via `getAiTools()` (`services/api.js`), a `/ai-tools` route (`App.js`), a
+      **Wrench** nav entry (`NavDrawer.js`) **and** a dashboard feature card
+      (`DashboardPage.js`) — the latter matters because the hamburger drawer is hidden on
+      desktop (>768px), where navigation is via dashboard cards. i18n: `nav.aiTools`,
+      `aiTools.*` page strings, and `dashboard.features.aiTools` in en/hi/sa. Verified:
+      backend compiles + endpoint returns 11 tools in 3 categories; lint clean; locale
+      JSON valid.

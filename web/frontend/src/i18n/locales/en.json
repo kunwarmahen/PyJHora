@@ -136,9 +136,22 @@
     "compare": "Compare Charts",
     "compatibility": "Compatibility",
     "ask": "Ask AI Astrologer",
+    "aiTools": "AI Capabilities",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "language": "Language"
+  },
+  "aiTools": {
+    "title": "AI Capabilities",
+    "subtitle": "What the AI astrologer can look up before answering",
+    "intro": "When you ask a question, the AI astrologer doesn't guess. It calls these tools on demand to pull real calculations from your chart, then reasons over what they return. Below is every tool it can use.",
+    "toolCount_one": "{{count}} tool",
+    "toolCount_other": "{{count}} tools",
+    "showSchema": "Show technical schema",
+    "hideSchema": "Hide technical schema",
+    "noParams": "Takes no inputs.",
+    "parameters": "Inputs",
+    "loadError": "Couldn't load the tool catalog."
   },
   "dashboard": {
     "welcome": "Welcome,",
@@ -173,6 +186,10 @@
       "compare": {
         "title": "Compare Charts",
         "description": "Put two profiles side by side and compare their placements"
+      },
+      "aiTools": {
+        "title": "AI Capabilities",
+        "description": "See every tool the AI astrologer can call to read your chart"
       }
     }
   },

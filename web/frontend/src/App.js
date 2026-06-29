@@ -16,6 +16,7 @@ import { ComparePage } from "./pages/ComparePage";
 import { SharedChartPage } from "./pages/SharedChartPage";
 import { PredictionsPage } from "./pages/PredictionsPage";
 import { AskAstrologerPage } from "./pages/AskAstrologerPage";
+import { AiToolsPage } from "./pages/AiToolsPage";
 import "./App.css";
 import "./styles/Responsive.css";
 
@@ -115,6 +116,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AskAstrologerPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/ai-tools"
+              element={
+                <ProtectedRoute>
+                  <AiToolsPage />
                 </ProtectedRoute>
               }
             />
