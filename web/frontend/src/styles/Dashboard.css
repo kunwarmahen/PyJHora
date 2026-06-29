@@ -107,6 +107,10 @@
   border-top: 4px solid var(--saffron);
   opacity: 0;
   animation-fill-mode: forwards;
+  /* Sit above the fade-in cards below (their forwards-filled transform creates a
+     stacking context), so action dropdowns like Export aren't painted behind them. */
+  position: relative;
+  z-index: 30;
 }
 
 .profile-banner-left {

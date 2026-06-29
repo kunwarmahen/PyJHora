@@ -512,8 +512,28 @@ workspace. **Decisions captured 2026-06-28** (owner answered the clarifying roun
       medical/financial/legal/psychological advice).
 - [x] Stop/cancel a streaming generation: the abort handle from `streamAskQuestion`
       is wired to a **Stop** button shown while generating (replaces Send).
-- [ ] FOLLOW-UP: token usage per answer; "regenerate with a *different* model";
-      automatic retry on transient stream failures; export to PDF.
+- [x] FOLLOW-UP (DONE 2026-06-28): **token usage per answer** — the streaming
+      path now captures provider-reported token counts (Ollama `prompt_eval_count`/
+      `eval_count`; OpenAI/-compatible via `stream_options.include_usage`; Gemini
+      `usageMetadata`), threads a mutable `usage` dict through `stream_answer`,
+      persists it on the assistant message and emits it in the `done` SSE event;
+      the AI message header shows a compact `N tokens` with a prompt+completion
+      breakdown tooltip. **Regenerate with a *different* model** — the Regenerate
+      button is now a split button; its caret opens a menu of every available
+      provider/model, and picking one regenerates against it (and makes it the
+      active selection). **Export to PDF** — the Export button is a menu
+      (Markdown / PDF); PDF is rendered client-side with jsPDF (lazy-loaded) via
+      `utils/exportConversation.js`, stripping markdown to paginated plain text
+      with model/token meta + the safety disclaimer.
+      FIX (same day): the Export/Regenerate dropdowns were invisible — the chart
+      cards below the profile banner animate in with `fadeIn`, whose `forwards`
+      fill leaves a non-`none` `transform` that creates a stacking context, so an
+      in-flow menu was painted *behind* them. Both menus now render through a
+      React portal on `document.body` (`PortalMenu`, `position: fixed`,
+      z-index 1101 like the modals), anchored to the trigger via
+      `getBoundingClientRect()`, re-positioned on scroll/resize and auto-flipping
+      upward when there's no room below.
+- [ ] FOLLOW-UP: automatic retry on transient stream failures.
 
 ### 8.8 Suggested build order
 

@@ -25,11 +25,16 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Provider & model selection**: Ollama (local, auto-detected models), any OpenAI-compatible
   local server (LM Studio / llama.cpp / vLLM), Google Gemini, or OpenAI — pick the exact model
 - **Streaming answers**: responses stream token-by-token (SSE) with a **Stop** button
+- **Per-answer token usage**: each answer shows the provider-reported token count
+  (prompt + completion breakdown on hover), captured from Ollama, OpenAI/-compatible
+  and Gemini streams
 - **Rich, transparent context**: D1 + chosen divisional charts (vargas), the running
   Vimsottari dasha chain, yogas, doshas, current transits, Sarva Ashtakavarga and
   Shadbala strengths — view the exact data sent
 - **Saved history**: every Q&A is stored per profile and can be revisited or deleted
-- **Answer affordances**: copy, regenerate, thumbs up/down, export a conversation to Markdown
+- **Answer affordances**: copy, **regenerate** (with the same model, or pick a
+  *different* provider/model from the split-button menu), thumbs up/down, and
+  **export the whole conversation to Markdown or PDF**
 - **Per-user API keys (encrypted)**: each user stores their own provider keys via the
   in-app "API Keys" manager — no shared `.env` key required
 - **Rate limiting**: per-user per-minute + per-day quotas on the AI endpoints

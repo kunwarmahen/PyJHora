@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import {
@@ -21,11 +22,15 @@ import {
   Square,
   Download,
   KeyRound,
+  ChevronDown,
+  FileText,
+  FileType,
 } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate } from "../utils/format";
 import { VARGAS } from "../constants/jyotish";
 import { astrologyService, streamAskQuestion } from "../services/api";
+import { exportConversationPdf } from "../utils/exportConversation";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
@@ -42,6 +47,55 @@ const selectStyle = {
   color: "var(--cosmic-indigo)",
   fontSize: "0.9375rem",
   fontFamily: "inherit",
+};
+
+/**
+ * A dropdown menu rendered in a portal on document.body with fixed positioning,
+ * anchored to a trigger element. This escapes every ancestor stacking context /
+ * overflow on the page (the chart cards below the banner create stacking
+ * contexts via their fade-in transform, which otherwise hide an in-flow menu).
+ * Auto-flips above the anchor when there isn't room below.
+ */
+const PortalMenu = ({ anchorRef, open, onClose, align = "left", width = 220, children }) => {
+  const [pos, setPos] = useState(null);
+
+  useLayoutEffect(() => {
+    if (!open || !anchorRef.current) {
+      setPos(null);
+      return;
+    }
+    const place = () => {
+      const r = anchorRef.current.getBoundingClientRect();
+      const openUp = window.innerHeight - r.bottom < 300;
+      setPos({
+        left: Math.max(8, align === "right" ? r.right - width : r.left),
+        top: openUp ? undefined : r.bottom + 4,
+        bottom: openUp ? window.innerHeight - r.top + 4 : undefined,
+      });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open, align, width, anchorRef]);
+
+  if (!open || !pos) return null;
+  return createPortal(
+    <>
+      <div className="menu-backdrop" onClick={onClose} />
+      <div
+        className="portal-menu"
+        role="menu"
+        style={{ top: pos.top, bottom: pos.bottom, left: pos.left, minWidth: width }}
+      >
+        {children}
+      </div>
+    </>,
+    document.body
+  );
 };
 
 export const AskAstrologerPage = () => {
@@ -64,6 +118,23 @@ export const AskAstrologerPage = () => {
     setShowInfoModal(true);
   };
 
+  // Compact "1.2k" style token count; full breakdown goes in the tooltip.
+  const formatTokens = (n) =>
+    n == null ? "" : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
+
+  const usageLabel = (u) => {
+    if (!u) return null;
+    const total = u.total_tokens ?? ((u.prompt_tokens || 0) + (u.completion_tokens || 0));
+    if (!total) return null;
+    const parts = [];
+    if (u.prompt_tokens != null) parts.push(`${u.prompt_tokens} prompt`);
+    if (u.completion_tokens != null) parts.push(`${u.completion_tokens} completion`);
+    return {
+      short: `${formatTokens(total)} tokens`,
+      title: parts.length ? `${parts.join(" + ")} = ${total} tokens` : `${total} tokens`,
+    };
+  };
+
   // What to show for a single AI message: its own context snapshot if we have it
   // (answers from this session), else the metadata stored with the message.
   const messageInfo = (m) =>
@@ -83,6 +154,12 @@ export const AskAstrologerPage = () => {
   // 8.7 polish: in-flight stream control + per-answer affordances
   const abortRef = useRef(null);
   const [copiedIdx, setCopiedIdx] = useState(null);
+  // "Regenerate with a different model" dropdown
+  const [regenMenuOpen, setRegenMenuOpen] = useState(false);
+  const regenBtnRef = useRef(null);
+  // Export menu (Markdown / PDF)
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const exportBtnRef = useRef(null);
   // conversationId stays current across turns via a ref so callbacks see it
   const conversationIdRef = useRef(null);
   useEffect(() => {
@@ -297,18 +374,27 @@ export const AskAstrologerPage = () => {
     });
 
   // Core streaming call — used by both a fresh question and "Regenerate".
-  const runStream = (question, { regenerate = false } = {}) => {
+  // `override` lets Regenerate run against a different provider/model than the
+  // one currently selected in the picker.
+  const runStream = (question, { regenerate = false, override = null } = {}) => {
     setLoading(true);
     setError("");
+
+    const useType = override?.providerType || providerType;
+    const useModel = override?.model || model;
+    const useProvider = providers.find((p) => p.type === useType) || selectedProvider;
+    const useBaseUrl = useProvider?.editable_base_url
+      ? override?.baseUrl ?? baseUrl
+      : undefined;
 
     abortRef.current = streamAskQuestion(
       buildBirthDetails(),
       question,
       {
-        providerType,
-        model,
-        baseUrl: selectedProvider?.editable_base_url ? baseUrl : undefined,
-        legacyProvider: providerType === "ollama" ? "qwen" : providerType,
+        providerType: useType,
+        model: useModel,
+        baseUrl: useBaseUrl,
+        legacyProvider: useType === "ollama" ? "qwen" : useType,
         vargas: selectedVargas,
         conversationId: conversationIdRef.current,
         profileId: selectedProfile._id,
@@ -333,6 +419,7 @@ export const AskAstrologerPage = () => {
             ...msg,
             streaming: false,
             elapsed_ms: d.elapsed_ms ?? msg.elapsed_ms,
+            usage: d.usage || msg.usage,
             question, // remember the prompt so Regenerate can replay it
           }));
           setLoading(false);
@@ -376,21 +463,33 @@ export const AskAstrologerPage = () => {
   };
 
   // Re-ask the prompt behind the last AI answer; replaces it server-side too.
-  const handleRegenerate = (message) => {
+  // `override` ({ providerType, model }) regenerates with a different model and
+  // makes it the active selection going forward.
+  const handleRegenerate = (message, override = null) => {
     const question = message?.question;
     if (!question || loading) return;
+    setRegenMenuOpen(false);
+    const useType = override?.providerType || providerType;
+    const useModel = override?.model || model;
+    if (override) {
+      setProviderType(useType);
+      setModel(useModel);
+      const p = providers.find((x) => x.type === useType);
+      if (p) setBaseUrl(p.editable_base_url ? p.base_url || "" : "");
+    }
     updateLastAi((msg) => ({
       ...msg,
       content: "",
       streaming: true,
       error: false,
       elapsed_ms: undefined,
+      usage: undefined,
       feedback: undefined,
-      provider: providerType,
-      model,
+      provider: useType,
+      model: useModel,
       timestamp: new Date().toLocaleTimeString(),
     }));
-    runStream(question, { regenerate: true });
+    runStream(question, { regenerate: true, override });
   };
 
   // Stop an in-flight generation (aborts the SSE fetch).
@@ -435,9 +534,13 @@ export const AskAstrologerPage = () => {
     }
   };
 
+  const conversationName = () =>
+    selectedProfile?.birth_details?.name || selectedProfile?.profile_name || "chart";
+
   // Export the current conversation as a Markdown file.
   const handleExport = () => {
-    const name = selectedProfile?.birth_details?.name || selectedProfile?.profile_name || "chart";
+    setExportMenuOpen(false);
+    const name = conversationName();
     const lines = [
       `# AI Astrologer — ${name}`,
       "",
@@ -461,6 +564,20 @@ export const AskAstrologerPage = () => {
     a.download = `astrologer-${name.replace(/\s+/g, "-").toLowerCase()}.md`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  // Export the current conversation as a PDF.
+  const handleExportPdf = async () => {
+    setExportMenuOpen(false);
+    const totalTokens = messages.reduce(
+      (sum, m) => sum + (m.type === "ai" && m.usage?.total_tokens ? m.usage.total_tokens : 0),
+      0
+    );
+    try {
+      await exportConversationPdf(messages, conversationName(), { totalTokens });
+    } catch (e) {
+      setError("Failed to export PDF");
+    }
   };
 
   const handleExampleClick = (question) => {
@@ -508,6 +625,7 @@ export const AskAstrologerPage = () => {
               vargas: m.vargas,
               sections: m.sections,
               elapsed_ms: m.elapsed_ms,
+              usage: m.usage,
               feedback: m.feedback,
               // remember the prompt behind this answer (for Regenerate)
               question: raw[i - 1]?.role === "user" ? raw[i - 1].content : undefined,
@@ -628,6 +746,19 @@ export const AskAstrologerPage = () => {
   // Index of the most recent AI message (only it can be regenerated).
   const lastAiIndex = messages.reduce((acc, m, i) => (m.type === "ai" ? i : acc), -1);
 
+  // Flat list of pickable models across available providers (for "Regenerate
+  // with a different model").
+  const modelOptions = providers
+    .filter((p) => p.available)
+    .flatMap((p) => {
+      const ms = p.models && p.models.length ? p.models : p.default_model ? [p.default_model] : [];
+      return ms.map((m) => ({
+        providerType: p.type,
+        model: m,
+        providerLabel: p.label,
+      }));
+    });
+
   return (
     <div className="dashboard-container mandala-bg">
       <PageHeader
@@ -658,14 +789,32 @@ export const AskAstrologerPage = () => {
                 <span>History{conversations.length ? ` (${conversations.length})` : ""}</span>
               </button>
               <button
-                onClick={handleExport}
+                ref={exportBtnRef}
+                onClick={() => setExportMenuOpen((v) => !v)}
                 className="change-profile-btn"
                 disabled={!messages.some((m) => m.type === "ai" && m.content)}
-                title="Export this conversation as Markdown"
+                title="Export this conversation"
               >
                 <Download size={16} />
                 <span>Export</span>
+                <ChevronDown size={14} />
               </button>
+              <PortalMenu
+                anchorRef={exportBtnRef}
+                open={exportMenuOpen}
+                onClose={() => setExportMenuOpen(false)}
+                align="left"
+                width={200}
+              >
+                <button className="export-menu-item" onClick={handleExport}>
+                  <FileText size={15} />
+                  <span>Markdown (.md)</span>
+                </button>
+                <button className="export-menu-item" onClick={handleExportPdf}>
+                  <FileType size={15} />
+                  <span>PDF (.pdf)</span>
+                </button>
+              </PortalMenu>
               <button
                 onClick={openKeysModal}
                 className="change-profile-btn"
@@ -1141,6 +1290,15 @@ export const AskAstrologerPage = () => {
                         {(message.elapsed_ms / 1000).toFixed(1)}s
                       </span>
                     )}
+                    {!message.streaming &&
+                      (() => {
+                        const u = usageLabel(message.usage);
+                        return u ? (
+                          <span className="timestamp" title={u.title}>
+                            {u.short}
+                          </span>
+                        ) : null;
+                      })()}
                     {!message.streaming && (message.context || message.model) && (
                       <button
                         onClick={() => openInfo(messageInfo(message))}
@@ -1205,15 +1363,53 @@ export const AskAstrologerPage = () => {
                         {copiedIdx === index ? "Copied" : "Copy"}
                       </button>
                       {index === lastAiIndex && message.question && (
-                        <button
-                          className="msg-action-btn"
-                          onClick={() => handleRegenerate(message)}
-                          disabled={loading}
-                          title="Regenerate this answer"
-                        >
-                          <RefreshCw size={13} />
-                          Regenerate
-                        </button>
+                        <div className="regen-group">
+                          <button
+                            className="msg-action-btn regen-main"
+                            onClick={() => handleRegenerate(message)}
+                            disabled={loading}
+                            title="Regenerate this answer with the current model"
+                          >
+                            <RefreshCw size={13} />
+                            Regenerate
+                          </button>
+                          <button
+                            ref={regenBtnRef}
+                            className="msg-action-btn regen-caret"
+                            onClick={() => setRegenMenuOpen((v) => !v)}
+                            disabled={loading || modelOptions.length === 0}
+                            title="Regenerate with a different model"
+                            aria-label="Regenerate with a different model"
+                          >
+                            <ChevronDown size={13} />
+                          </button>
+                          <PortalMenu
+                            anchorRef={regenBtnRef}
+                            open={regenMenuOpen}
+                            onClose={() => setRegenMenuOpen(false)}
+                            align="left"
+                            width={220}
+                          >
+                            <div className="regen-menu-label">Regenerate with…</div>
+                            {modelOptions.map((opt) => {
+                              const isCurrent =
+                                opt.providerType === providerType && opt.model === model;
+                              return (
+                                <button
+                                  key={`${opt.providerType}:${opt.model}`}
+                                  className="regen-menu-item"
+                                  onClick={() => handleRegenerate(message, opt)}
+                                >
+                                  <span className="regen-menu-model">
+                                    {opt.model}
+                                    {isCurrent ? " ✓" : ""}
+                                  </span>
+                                  <span className="regen-menu-provider">{opt.providerLabel}</span>
+                                </button>
+                              );
+                            })}
+                          </PortalMenu>
+                        </div>
                       )}
                       {conversationId && (
                         <>

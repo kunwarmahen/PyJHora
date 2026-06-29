@@ -588,6 +588,95 @@
   white-space: nowrap;
 }
 
+/* Regenerate split button + "different model" dropdown */
+.regen-group {
+  position: relative;
+  display: inline-flex;
+}
+
+.regen-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.regen-caret {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: none;
+  padding: 3px 5px;
+}
+
+/* Click-away layer behind dropdown menus (portal-rendered on body) */
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+}
+
+/* Portal dropdown — fixed-positioned by JS, above all page stacking contexts */
+.portal-menu {
+  position: fixed;
+  z-index: 1101;
+  background: white;
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.regen-menu-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  padding: 4px 8px 6px;
+}
+
+.regen-menu-item,
+.export-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: var(--cosmic-indigo);
+}
+
+.regen-menu-item {
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+}
+
+.export-menu-item {
+  gap: 8px;
+  padding: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.regen-menu-item:hover,
+.export-menu-item:hover {
+  background: rgba(255, 153, 51, 0.1);
+}
+
+.regen-menu-model {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.regen-menu-provider {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+}
+
 /* Disclaimer footer */
 .ai-disclaimer {
   padding: var(--space-sm) var(--space-lg);

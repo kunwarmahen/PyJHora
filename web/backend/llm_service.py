@@ -328,15 +328,20 @@ class LLMService:
     # ------------------------------------------------------------------ #
     async def stream_answer(self, chart_data: Dict[str, Any], question: str,
                             history: Optional[List[Dict[str, str]]], cfg: ModelConfig,
-                            max_tokens: int = 4096) -> AsyncGenerator[str, None]:
-        """Stream an answer for a question, including chart context + prior turns."""
+                            max_tokens: int = 4096,
+                            usage: Optional[Dict[str, Any]] = None) -> AsyncGenerator[str, None]:
+        """Stream an answer for a question, including chart context + prior turns.
+
+        If a mutable `usage` dict is supplied it is populated in place with the
+        provider's reported token counts (prompt_tokens/completion_tokens/
+        total_tokens) once the stream completes, so the caller can persist/show it."""
         messages = self.build_chat_messages(chart_data, question, history)
         if cfg.provider_type == ProviderType.OLLAMA:
-            gen = self._stream_ollama(messages, cfg, max_tokens)
+            gen = self._stream_ollama(messages, cfg, max_tokens, usage)
         elif cfg.provider_type in (ProviderType.OPENAI, ProviderType.OPENAI_COMPATIBLE):
-            gen = self._stream_openai_style(messages, cfg, max_tokens)
+            gen = self._stream_openai_style(messages, cfg, max_tokens, usage)
         elif cfg.provider_type == ProviderType.GEMINI:
-            gen = self._stream_gemini(messages, cfg, max_tokens)
+            gen = self._stream_gemini(messages, cfg, max_tokens, usage)
         else:
             async def _unsupported():
                 yield "Unsupported LLM provider"
@@ -344,7 +349,7 @@ class LLMService:
         async for chunk in gen:
             yield chunk
 
-    async def _stream_ollama(self, messages, cfg, max_tokens) -> AsyncGenerator[str, None]:
+    async def _stream_ollama(self, messages, cfg, max_tokens, usage=None) -> AsyncGenerator[str, None]:
         url = (cfg.base_url or self.ollama_url).rstrip("/")
         model = cfg.model or self.ollama_default_model
         payload = {
@@ -371,6 +376,13 @@ class LLMService:
                         if chunk:
                             yield chunk
                         if obj.get("done"):
+                            if usage is not None:
+                                pt = obj.get("prompt_eval_count")
+                                ct = obj.get("eval_count")
+                                if pt is not None or ct is not None:
+                                    usage["prompt_tokens"] = pt
+                                    usage["completion_tokens"] = ct
+                                    usage["total_tokens"] = (pt or 0) + (ct or 0)
                             break
         except httpx.ConnectError:
             yield (f"Error: Cannot connect to Ollama. Ensure it is running and the "
@@ -378,7 +390,7 @@ class LLMService:
         except Exception as e:
             yield f"Error calling Ollama: {str(e)}"
 
-    async def _stream_openai_style(self, messages, cfg, max_tokens) -> AsyncGenerator[str, None]:
+    async def _stream_openai_style(self, messages, cfg, max_tokens, usage=None) -> AsyncGenerator[str, None]:
         base_url = (cfg.base_url or "").rstrip("/")
         if not base_url:
             yield "Error: no base URL configured for this provider."
@@ -398,6 +410,8 @@ class LLMService:
             "temperature": 0.7,
             "max_tokens": max_tokens,
             "stream": True,
+            # Ask for a final usage chunk; servers that don't support it ignore this.
+            "stream_options": {"include_usage": True},
         }
         timeout = 300.0 if cfg.provider_type == ProviderType.OPENAI_COMPATIBLE else 120.0
         try:
@@ -423,12 +437,17 @@ class LLMService:
                             delta = choices[0].get("delta", {}).get("content")
                             if delta:
                                 yield delta
+                        u = obj.get("usage")
+                        if u and usage is not None:
+                            usage["prompt_tokens"] = u.get("prompt_tokens")
+                            usage["completion_tokens"] = u.get("completion_tokens")
+                            usage["total_tokens"] = u.get("total_tokens")
         except httpx.ConnectError:
             yield f"Error: Cannot connect to {base_url}. Is the server running?"
         except Exception as e:
             yield f"Error calling model: {str(e)}"
 
-    async def _stream_gemini(self, messages, cfg, max_tokens) -> AsyncGenerator[str, None]:
+    async def _stream_gemini(self, messages, cfg, max_tokens, usage=None) -> AsyncGenerator[str, None]:
         api_key = cfg.api_key or self.gemini_api_key
         model = cfg.model or self.gemini_default_model
         if not api_key:
@@ -472,6 +491,11 @@ class LLMService:
                                 text = part.get("text")
                                 if text:
                                     yield text
+                        um = obj.get("usageMetadata")
+                        if um and usage is not None:
+                            usage["prompt_tokens"] = um.get("promptTokenCount")
+                            usage["completion_tokens"] = um.get("candidatesTokenCount")
+                            usage["total_tokens"] = um.get("totalTokenCount")
         except Exception as e:
             yield f"Error calling Gemini: {str(e)}"
 

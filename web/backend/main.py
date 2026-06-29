@@ -838,7 +838,8 @@ async def ask_question(
         raise HTTPException(status_code=500, detail=str(e))
 
 async def _save_turn(user_id: str, request: "AskQuestionRequest", cfg, chart_data: dict,
-                     answer: str, elapsed_ms: Optional[int] = None) -> str:
+                     answer: str, elapsed_ms: Optional[int] = None,
+                     usage: Optional[dict] = None) -> str:
     """Persist a user question + assistant answer, creating the conversation if new.
 
     When `request.regenerate` is set and a conversation exists, the previous
@@ -857,6 +858,8 @@ async def _save_turn(user_id: str, request: "AskQuestionRequest", cfg, chart_dat
         "sections": chart_data.get("_sections", {}),
         "elapsed_ms": elapsed_ms,
     }
+    if usage:
+        ai_msg["usage"] = usage
     if request.regenerate and request.conversation_id:
         await convo.replace_last_assistant(user_id, conv_id, ai_msg)
     else:
@@ -899,9 +902,11 @@ async def ask_question_stream(
         yield f"data: {json.dumps(meta)}\n\n"
 
         parts = []
+        usage: dict = {}
         started = datetime.now(timezone.utc)
         try:
-            async for chunk in llm_service.stream_answer(chart_data, request.question, history, cfg):
+            async for chunk in llm_service.stream_answer(chart_data, request.question,
+                                                         history, cfg, usage=usage):
                 parts.append(chunk)
                 yield f"data: {json.dumps({'type': 'token', 'text': chunk})}\n\n"
         except Exception as e:
@@ -910,13 +915,14 @@ async def ask_question_stream(
 
         answer = "".join(parts)
         elapsed_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
+        usage = usage or None
         try:
             conv_id = await _save_turn(current_user, request, cfg, chart_data, answer,
-                                       elapsed_ms=elapsed_ms)
+                                       elapsed_ms=elapsed_ms, usage=usage)
         except Exception as e:
             conv_id = request.conversation_id
             print(f"Failed to persist conversation: {e}")
-        yield f"data: {json.dumps({'type': 'done', 'conversation_id': conv_id, 'elapsed_ms': elapsed_ms})}\n\n"
+        yield f"data: {json.dumps({'type': 'done', 'conversation_id': conv_id, 'elapsed_ms': elapsed_ms, 'usage': usage})}\n\n"
 
     return StreamingResponse(
         event_gen(),
