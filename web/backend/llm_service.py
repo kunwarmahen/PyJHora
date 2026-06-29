@@ -1051,6 +1051,10 @@ IMPORTANT: Use the actual chart data provided above. Be balanced, specific to th
 
         agg = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
         have_usage = False
+        # Some models write their answer in a tool-calling round (as a preamble) and
+        # then return an empty final message — keep the last non-empty content as a
+        # fallback so we never end with a blank answer.
+        last_content = ""
 
         def _add_usage(u):
             nonlocal have_usage
@@ -1079,6 +1083,8 @@ IMPORTANT: Use the actual chart data provided above. Be balanced, specific to th
                 return
 
             _add_usage(res.get("usage"))
+            if res.get("content"):
+                last_content = res["content"]
             tool_calls = res.get("tool_calls") or []
             if use_json and not tool_calls:
                 parsed = self._parse_json_tool(res.get("content"))
@@ -1088,8 +1094,21 @@ IMPORTANT: Use the actual chart data provided above. Be balanced, specific to th
 
             if not tool_calls:
                 final = res.get("content") or ""
-                if final:
-                    yield {"type": "token", "text": final}
+                if not final:
+                    # Model stopped calling tools but returned no text. Force a plain
+                    # prose answer from the data gathered so far (never blank-box).
+                    messages.append({"role": "user", "content":
+                        "Now write your final answer for the user in prose, based on "
+                        "the data above. Do not call any more tools."})
+                    try:
+                        forced, u = await self._complete_chat(messages, cfg)
+                        _add_usage(u)
+                        final = forced or last_content
+                    except Exception:
+                        final = last_content
+                yield {"type": "token", "text": final or
+                       "[The model did not return an answer. Please try again, or "
+                       "switch to Full context mode.]"}
                 if usage is not None and have_usage:
                     usage.update(agg)
                 return
@@ -1117,9 +1136,9 @@ IMPORTANT: Use the actual chart data provided above. Be balanced, specific to th
         try:
             content, u = await self._complete_chat(messages, cfg)
             _add_usage(u)
-            yield {"type": "token", "text": content or "[No answer produced]"}
+            yield {"type": "token", "text": content or last_content or "[No answer produced]"}
         except Exception as e:
-            yield {"type": "token", "text": f"\n\n[Tool mode error: {e}]"}
+            yield {"type": "token", "text": last_content or f"\n\n[Tool mode error: {e}]"}
         if usage is not None and have_usage:
             usage.update(agg)
 
