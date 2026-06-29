@@ -719,8 +719,19 @@ clean status/dict — thin JSON-schema wrappers, minimal new surface.
       toggle that expands a panel listing every tool call in order with its args and the
       JSON data it returned — a readable trace of *how* the AI reasoned, not just
       *which* tools it used. (The "Tool calls" mode is surfaced to users as **"Smart
-      lookup"**.) FOLLOW-UP: a graphical timeline/diagram (today it's an expandable
-      list); trim very large persisted results if conversation docs grow.
+      lookup"**.) UPDATE 2026-06-29: the panel is now a **graphical vertical timeline**
+      (`TraceNode` — dot-on-a-connector-line) running seed → each tool call (with a
+      "view data" disclosure) → answer, with coloured/iconned nodes.
+- [ ] OPEN: **persisted-trace storage strategy** (replaces the earlier "trim large
+      results" note). Today the full tool results are stored inline on each saved
+      message — faithful but bloats the conversation doc and the list/load paths.
+      Better options under consideration: (a) **lazy side-collection** — store only the
+      light trace (name/args/ok) on the message, full result blobs in a separate
+      collection fetched when "Behind the scenes" is opened; (b) **recompute on
+      demand** — store only name/args/ok, re-run the tools on expand (caveat:
+      time-sensitive tools like transits/dasha/panchanga reproduce as-of-now, not
+      as-of-answer); (c) **keep inline + projection** — exclude message bodies from the
+      conversation-list query so listing stays fast, accept per-thread load cost.
 
 **Open risks:** weak local models loop/hallucinate tool names (cap max tool
 rounds, validate names, fall back to pass-all on repeated failure); streaming +

@@ -52,6 +52,60 @@ const selectStyle = {
 };
 
 /**
+ * One node in the "Behind the scenes" timeline: a coloured dot sitting on a
+ * vertical connector line, with its content to the right. `isFirst`/`isLast`
+ * trim the connector so it starts/ends at the first/last dot.
+ */
+const TraceNode = ({ icon, dotBg, dotBorder, isFirst, isLast, children }) => (
+  <div style={{ display: "flex", gap: "10px" }}>
+    <div style={{ position: "relative", width: "20px", flexShrink: 0 }}>
+      {!isFirst && (
+        <div
+          style={{
+            position: "absolute",
+            left: "9px",
+            top: 0,
+            height: "9px",
+            width: "2px",
+            background: "var(--sandalwood, #e7d9c5)",
+          }}
+        />
+      )}
+      {!isLast && (
+        <div
+          style={{
+            position: "absolute",
+            left: "9px",
+            top: "9px",
+            bottom: 0,
+            width: "2px",
+            background: "var(--sandalwood, #e7d9c5)",
+          }}
+        />
+      )}
+      <span
+        style={{
+          position: "relative",
+          zIndex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "18px",
+          height: "18px",
+          borderRadius: "50%",
+          background: dotBg,
+          border: `1px solid ${dotBorder}`,
+          color: "white",
+        }}
+      >
+        {icon}
+      </span>
+    </div>
+    <div style={{ flex: 1, paddingBottom: "14px", minWidth: 0 }}>{children}</div>
+  </div>
+);
+
+/**
  * A dropdown menu rendered in a portal on document.body with fixed positioning,
  * anchored to a trigger element. This escapes every ancestor stacking context /
  * overflow on the page (the chart cards below the banner create stacking
@@ -1541,83 +1595,168 @@ export const AskAstrologerPage = () => {
                           )}
                         </div>
 
-                        {/* Expanded: each tool call + the data it returned */}
+                        {/* Expanded: a vertical timeline of the whole call flow —
+                            seed → each tool call (+ the data it returned) → answer. */}
                         {openTrace[index] && realSteps.length > 0 && (
                           <div
                             style={{
                               marginTop: "var(--space-sm)",
                               border: "1px solid var(--sandalwood, #e7d9c5)",
                               borderRadius: "var(--radius-md)",
-                              padding: "var(--space-sm) var(--space-md)",
+                              padding: "var(--space-md)",
                               background: "var(--sacred-white, #fdfaf5)",
                             }}
                           >
-                            <div
-                              style={{
-                                fontSize: "11px",
-                                color: "var(--text-secondary)",
-                                marginBottom: "6px",
-                              }}
+                            {/* Start: the seed sent to the model */}
+                            <TraceNode
+                              isFirst
+                              icon={<Star size={11} />}
+                              dotBg="var(--saffron, #e08a2c)"
+                              dotBorder="var(--saffron, #e08a2c)"
                             >
-                              The AI fetched this data step by step, then reasoned over it
-                              to write the answer above.
-                            </div>
-                            {realSteps.map((s, si) => (
                               <div
-                                key={si}
                                 style={{
-                                  marginBottom:
-                                    si < realSteps.length - 1 ? "var(--space-sm)" : 0,
+                                  fontSize: "12px",
+                                  fontWeight: 600,
+                                  color: "var(--cosmic-indigo)",
                                 }}
                               >
-                                <div
+                                Starting summary sent to the AI
+                              </div>
+                              {(message.context || message.mode === "tools") && (
+                                <button
+                                  type="button"
+                                  onClick={() => openInfo(messageInfo(message))}
                                   style={{
-                                    fontSize: "12px",
+                                    marginTop: "2px",
+                                    background: "none",
+                                    border: "none",
+                                    padding: 0,
+                                    cursor: "pointer",
+                                    color: "var(--saffron, #e08a2c)",
+                                    fontSize: "11px",
                                     fontWeight: 600,
-                                    color: "var(--cosmic-indigo)",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "4px",
                                   }}
                                 >
-                                  <span style={{ opacity: 0.6 }}>{si + 1}.</span>
-                                  {s.ok === false ? (
-                                    <X size={12} color="#c0392b" />
-                                  ) : (
-                                    <Check size={12} color="var(--saffron, #e08a2c)" />
-                                  )}
-                                  {fmtTool(s.name)}
-                                  {s.args && Object.keys(s.args).length ? (
-                                    <span
-                                      style={{ fontWeight: 400, color: "var(--text-secondary)" }}
-                                    >
-                                      ({Object.entries(s.args)
-                                        .map(([k, v]) => `${k}: ${v}`)
-                                        .join(", ")})
-                                    </span>
-                                  ) : null}
-                                </div>
-                                {s.result !== undefined && (
-                                  <pre
+                                  view what was sent
+                                </button>
+                              )}
+                            </TraceNode>
+
+                            {/* Each tool call / notice, in order */}
+                            {message.toolSteps.map((s, si) =>
+                              s.notice ? (
+                                <TraceNode
+                                  key={si}
+                                  icon={<span style={{ fontSize: "9px" }}>•</span>}
+                                  dotBg="var(--ink-light, #999)"
+                                  dotBorder="var(--ink-light, #999)"
+                                >
+                                  <div
                                     style={{
-                                      margin: "4px 0 0",
-                                      fontSize: "11px",
-                                      lineHeight: 1.4,
-                                      maxHeight: "220px",
-                                      overflow: "auto",
-                                      background: "white",
-                                      border: "1px solid var(--sandalwood, #e7d9c5)",
-                                      borderRadius: "var(--radius-sm)",
-                                      padding: "6px 8px",
-                                      whiteSpace: "pre-wrap",
-                                      wordBreak: "break-word",
+                                      fontSize: "12px",
+                                      fontStyle: "italic",
+                                      color: "var(--text-secondary)",
                                     }}
                                   >
-                                    {JSON.stringify(s.result, null, 2)}
-                                  </pre>
-                                )}
+                                    {s.notice}
+                                  </div>
+                                </TraceNode>
+                              ) : (
+                                <TraceNode
+                                  key={si}
+                                  icon={
+                                    s.ok === false ? (
+                                      <X size={11} />
+                                    ) : s.ok === null ? (
+                                      <Wrench size={11} />
+                                    ) : (
+                                      <Check size={11} />
+                                    )
+                                  }
+                                  dotBg={
+                                    s.ok === false ? "#c0392b" : "var(--saffron, #e08a2c)"
+                                  }
+                                  dotBorder={
+                                    s.ok === false ? "#c0392b" : "var(--saffron, #e08a2c)"
+                                  }
+                                >
+                                  <div
+                                    style={{
+                                      fontSize: "12px",
+                                      fontWeight: 600,
+                                      color: "var(--cosmic-indigo)",
+                                    }}
+                                  >
+                                    Looked up {fmtTool(s.name)}
+                                    {s.args && Object.keys(s.args).length ? (
+                                      <span
+                                        style={{
+                                          fontWeight: 400,
+                                          color: "var(--text-secondary)",
+                                        }}
+                                      >
+                                        {" "}
+                                        ({Object.entries(s.args)
+                                          .map(([k, v]) => `${k}: ${v}`)
+                                          .join(", ")})
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  {s.result !== undefined && (
+                                    <details style={{ marginTop: "3px" }}>
+                                      <summary
+                                        style={{
+                                          cursor: "pointer",
+                                          fontSize: "11px",
+                                          fontWeight: 600,
+                                          color: "var(--saffron, #e08a2c)",
+                                        }}
+                                      >
+                                        view data
+                                      </summary>
+                                      <pre
+                                        style={{
+                                          margin: "4px 0 0",
+                                          fontSize: "11px",
+                                          lineHeight: 1.4,
+                                          maxHeight: "220px",
+                                          overflow: "auto",
+                                          background: "white",
+                                          border: "1px solid var(--sandalwood, #e7d9c5)",
+                                          borderRadius: "var(--radius-sm)",
+                                          padding: "6px 8px",
+                                          whiteSpace: "pre-wrap",
+                                          wordBreak: "break-word",
+                                        }}
+                                      >
+                                        {JSON.stringify(s.result, null, 2)}
+                                      </pre>
+                                    </details>
+                                  )}
+                                </TraceNode>
+                              )
+                            )}
+
+                            {/* End: the written answer */}
+                            <TraceNode
+                              isLast
+                              icon={<Sparkles size={11} />}
+                              dotBg="var(--vermillion, #c0392b)"
+                              dotBorder="var(--vermillion, #c0392b)"
+                            >
+                              <div
+                                style={{
+                                  fontSize: "12px",
+                                  fontWeight: 600,
+                                  color: "var(--cosmic-indigo)",
+                                }}
+                              >
+                                {message.streaming
+                                  ? "Writing the answer…"
+                                  : "Wrote the answer above"}
                               </div>
-                            ))}
+                            </TraceNode>
                           </div>
                         )}
                       </div>
