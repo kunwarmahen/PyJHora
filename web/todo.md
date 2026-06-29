@@ -256,7 +256,20 @@ web exposes. High-value additions:
       strength (sthana/kaala/dig/cheshta/naisargika/drik) plus total rupa, required rupa,
       ratio and rank for Sun..Saturn. `POST /shadbala`. Shown as a table in the Advanced
       page (ratio ≥ 1.0 highlighted). (Rasi-strength not included yet.)
-- [ ] **Export / share** (P1): download chart as PNG/PDF, shareable read-only link.
+- [x] **Export / share** (P1). DONE 2026-06-28:
+      - **Export**: `utils/exportChart.js` rasterizes a chart to PNG (SVG charts are
+        serialized with computed styles inlined so `var(--…)` paints resolve; the South
+        Indian DOM-grid falls back to html2canvas) and to PDF (jsPDF). Both libs are
+        dynamically imported so they stay out of the main bundle (separate chunks).
+        `ChartExportButtons` (PNG/PDF) shows via an `exportable` prop on the North/South
+        chart components — enabled on Birth Chart (Rasi + varga), Compare, Transit, and
+        the shared view.
+      - **Share**: `shares.py` (`shared_charts` collection) + `POST /api/astrology/share`
+        (auth → token, idempotent per user+details+ayanamsa) and public, no-auth
+        `GET /api/astrology/share/{token}` (recomputes the chart). Frontend: a **Share**
+        button on Birth Chart creates the link + copies it; a public `/share/:token`
+        `SharedChartPage` renders the Rasi + Navamsa read-only with a "create a free
+        account" CTA. Verified create/get round-trip against Mongo.
 - [x] **Compare two profiles side by side** (P2). DONE 2026-06-28: new `ComparePage`
       (route `/compare`, dashboard card + drawer link). Person 1 = selected profile,
       Person 2 picked from a dropdown; computes both charts (reusing `calculateBirthChart`

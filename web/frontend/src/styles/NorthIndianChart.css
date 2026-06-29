@@ -9,6 +9,15 @@
   border-top: 4px solid var(--saffron);
 }
 
+.chart-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
+}
+
 .chart-card-title {
   display: flex;
   align-items: center;
@@ -16,6 +25,37 @@
   margin-bottom: var(--space-lg);
   color: var(--cosmic-indigo);
   font-size: 1.5rem;
+}
+/* When inside the head flex row, the title's own margin is redundant. */
+.chart-card-head .chart-card-title {
+  margin-bottom: 0;
+}
+
+.chart-export-btns {
+  display: flex;
+  gap: var(--space-xs);
+}
+.chart-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--saffron);
+  background: rgba(255, 153, 51, 0.1);
+  border: 1px solid rgba(255, 153, 51, 0.25);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.chart-export-btn:hover:not(:disabled) {
+  background: var(--saffron);
+  color: white;
+}
+.chart-export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .chart-card-svg-wrap {

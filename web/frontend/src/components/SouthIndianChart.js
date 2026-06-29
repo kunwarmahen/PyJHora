@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useRef } from "react";
 import { PLANET_ABBR, RASI_ABBR } from "../constants/jyotish";
+import { ChartExportButtons } from "./ChartExportButtons";
 import "../styles/NorthIndianChart.css";
 
 // South Indian chart: signs sit in FIXED cells of a 4x4 grid (houses rotate, not signs).
@@ -31,7 +32,9 @@ export const SouthIndianChart = ({
   lagna: lagnaProp,
   title = "Rasi Chart",
   subtitle = "South Indian",
+  exportable = false,
 }) => {
+  const gridRef = useRef(null);
   const planets = planetsProp || chartData?.planets;
   const lagna = lagnaProp || chartData?.lagna;
 
@@ -55,8 +58,11 @@ export const SouthIndianChart = ({
 
   return (
     <div className="chart-card">
-      <h3 className="chart-card-title">{title}</h3>
-      <div className="si-grid" role="img" aria-label={`${title} (${subtitle})`}>
+      <div className="chart-card-head">
+        <h3 className="chart-card-title">{title}</h3>
+        {exportable && <ChartExportButtons targetRef={gridRef} title={`${title} ${subtitle}`} />}
+      </div>
+      <div className="si-grid" ref={gridRef} role="img" aria-label={`${title} (${subtitle})`}>
         {Object.keys(SIGN_POS).map((key) => {
           const signNum = Number(key);
           const { col, row } = SIGN_POS[signNum];

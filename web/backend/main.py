@@ -19,6 +19,7 @@ from llm_service import llm_service, LLMProvider
 import conversations as convo
 import user_settings
 import ratelimit
+import shares
 
 # Request models
 class LoginRequest(BaseModel):
@@ -62,6 +63,12 @@ class PredictionRequest(BaseModel):
     ayanamsa: Optional[str] = None
     sections: Optional[dict] = None  # toggle dasha_tree/yogas/doshas/transits
     vargas: Optional[list] = None    # divisional-chart factors, e.g. [1, 9, 10]
+
+
+class ShareRequest(BaseModel):
+    birth_details: BirthDetails
+    ayanamsa: Optional[str] = None
+    profile_name: Optional[str] = None
 
 
 class CompatibilityAnalysisRequest(BaseModel):
@@ -566,6 +573,57 @@ async def get_shadbala(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/share")
+async def create_share_link(
+    request: ShareRequest,
+    current_user: str = Depends(get_current_user)
+):
+    """Create a read-only share token for a chart (birth details + ayanamsa)."""
+    try:
+        token = await shares.create_share(
+            user_id=current_user,
+            profile_name=request.profile_name,
+            birth_details=request.birth_details.model_dump(),
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+        )
+        return {"token": token, "path": f"/share/{token}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/astrology/share/{token}")
+async def get_shared_chart(token: str):
+    """Public, read-only: recompute and return the shared chart. No auth."""
+    try:
+        share = await shares.get_share(token)
+        if not share:
+            raise HTTPException(status_code=404, detail="Shared chart not found")
+        bd = share.get("birth_details", {})
+        ayanamsa = share.get("ayanamsa", DEFAULT_AYANAMSA)
+        chart = AstrologyCompute.calculate_birth_chart(
+            dob=bd.get("dob"), tob=bd.get("tob"), place=bd.get("place"),
+            lat=bd.get("latitude"), lon=bd.get("longitude"),
+            tz=bd.get("timezone"), ayanamsa=ayanamsa,
+        )
+        if chart.get("error"):
+            raise HTTPException(status_code=400, detail=chart.get("error"))
+        return {
+            "profile_name": share.get("profile_name"),
+            "ayanamsa": ayanamsa,
+            "birth_details": {
+                "name": bd.get("name"),
+                "dob": bd.get("dob"),
+                "tob": bd.get("tob"),
+                "place": bd.get("place"),
+            },
+            "chart": chart,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/api/astrology/transit")
 async def get_transits(

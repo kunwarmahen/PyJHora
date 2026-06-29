@@ -55,6 +55,7 @@ pyjhora-web/
 │   ├── conversations.py     # Saved AI chat threads (per user + profile)
 │   ├── user_settings.py     # Per-user encrypted API keys
 │   ├── ratelimit.py         # Per-user rate limiting for AI endpoints
+│   ├── shares.py            # Read-only shareable chart links
 │   ├── qwen_predictor.py    # Legacy Qwen LLM integration
 │   ├── requirements.txt     # Python dependencies
 │   ├── Dockerfile           # Docker image for backend
@@ -307,7 +308,13 @@ REACT_APP_API_TIMEOUT=30000
   with total rupa, required rupa, ratio and rank for Sun–Saturn
 - Each section loads independently and respects the selected ayanamsa
 
-### 8. LLM Integration (Optional)
+### 8. Export & Share
+- **Export** any chart as **PNG** or **PDF** (buttons on each chart card) — on Birth
+  Chart, Compare, Transit and the shared view
+- **Share** a chart as a **public, read-only link** (`/share/:token`) — no login needed
+  to view; offers a "create a free account" CTA
+
+### 9. LLM Integration (Optional)
 - Enhanced predictions with a local Ollama model or any configured provider
 - Contextual astrological interpretations
 - Personalized analysis
@@ -409,6 +416,8 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `POST /api/astrology/chart-details?ayanamsa=` - Arudha padas, Chara karakas,
   Special lagnas, Upagrahas
 - `POST /api/astrology/shadbala?ayanamsa=` - Six-fold planetary strength (Shadbala)
+- `POST /api/astrology/share` - Create a read-only share token for a chart
+- `GET /api/astrology/share/{token}` - **Public** (no auth): recompute a shared chart
 - `POST /api/astrology/compatibility` - Check marriage compatibility
 
 ### AI Q&A (New) 🆕
@@ -443,6 +452,7 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `/transit` - Transits (Gochara) over the natal chart
 - `/advanced` - Advanced details: Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala
 - `/compare` - Compare two saved profiles side by side
+- `/share/:token` - **Public, read-only** shared chart view (no login required)
 - `/predictions` - Horoscope and predictions generator
 
 ## Development Notes

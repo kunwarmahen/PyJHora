@@ -13,6 +13,7 @@ import { DhasaPage } from "./pages/DhasaPage";
 import { TransitPage } from "./pages/TransitPage";
 import { AdvancedPage } from "./pages/AdvancedPage";
 import { ComparePage } from "./pages/ComparePage";
+import { SharedChartPage } from "./pages/SharedChartPage";
 import { PredictionsPage } from "./pages/PredictionsPage";
 import { AskAstrologerPage } from "./pages/AskAstrologerPage";
 import "./App.css";
@@ -26,6 +27,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/share/:token" element={<SharedChartPage />} />
 
             <Route
               path="/profile-selection"

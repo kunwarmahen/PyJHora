@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { PLANET_ABBR, RASI_NAMES } from "../constants/jyotish";
+import { ChartExportButtons } from "./ChartExportButtons";
 import "../styles/NorthIndianChart.css";
 
 /**
@@ -17,8 +18,10 @@ export const NorthIndianChart = ({
   lagna: lagnaProp,
   title = "Rasi Chart",
   subtitle = "North Indian",
+  exportable = false,
 }) => {
   const [hoveredHouse, setHoveredHouse] = useState(null);
+  const svgRef = useRef(null);
 
   const planets = planetsProp || chartData?.planets;
   const lagna = lagnaProp || chartData?.lagna;
@@ -152,9 +155,13 @@ export const NorthIndianChart = ({
 
   return (
     <div className="chart-card">
-      <h3 className="chart-card-title">{title}</h3>
+      <div className="chart-card-head">
+        <h3 className="chart-card-title">{title}</h3>
+        {exportable && <ChartExportButtons targetRef={svgRef} title={`${title} ${subtitle}`} />}
+      </div>
       <div className="chart-card-svg-wrap">
         <svg
+          ref={svgRef}
           viewBox={`0 0 ${width} ${height}`}
           width="100%"
           style={{ maxWidth: "600px", height: "auto" }}

@@ -101,6 +101,14 @@ export const astrologyService = {
   // Shadbala / planetary strength.
   getShadbala: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/shadbala", birthDetails, { params: { ayanamsa } }),
+  // Shareable read-only chart link.
+  createShare: (birthDetails, ayanamsa = DEFAULT_AYANAMSA, profileName = null) =>
+    api.post("/api/astrology/share", {
+      birth_details: birthDetails,
+      ayanamsa,
+      profile_name: profileName,
+    }),
+  getSharedChart: (token) => api.get(`/api/astrology/share/${token}`),
   getCompatibility: (maleBirthDetails, femaleBirthDetails, useQwen = false) =>
     api.post("/api/astrology/compatibility", {
       male_dob: maleBirthDetails.dob,

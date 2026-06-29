@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, User, MapPin, Clock, Star } from "lucide-react";
+import { Calendar, User, MapPin, Clock, Star, Share2, Copy, Check } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
@@ -32,6 +32,9 @@ export const BirthChartPage = () => {
   const [varga, setVarga] = useState(() => Number(localStorage.getItem("varga")) || DEFAULT_VARGA);
   const [vargaChart, setVargaChart] = useState(null);
   const [vargaLoading, setVargaLoading] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const changeChartStyle = (style) => {
     setChartStyle(style);
@@ -57,6 +60,30 @@ export const BirthChartPage = () => {
     longitude: parseFloat(selectedProfile.birth_details.longitude),
     timezone: parseFloat(selectedProfile.birth_details.timezone),
   });
+
+  const handleShare = async () => {
+    setShareBusy(true);
+    try {
+      const res = await astrologyService.createShare(
+        buildBirthDetails(),
+        ayanamsa,
+        selectedProfile.profile_name
+      );
+      const url = `${window.location.origin}${res.data.path}`;
+      setShareUrl(url);
+      try {
+        await navigator.clipboard.writeText(url);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2500);
+      } catch {
+        /* clipboard may be blocked; the link is still shown to copy manually */
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to create share link");
+    } finally {
+      setShareBusy(false);
+    }
+  };
 
   // Redirect if no profile selected; (re)calculate when profile or ayanamsa changes
   useEffect(() => {
@@ -162,7 +189,22 @@ export const BirthChartPage = () => {
         ) : result ? (
           <div style={{ opacity: 0, animation: "fadeIn 0.6s ease-out forwards" }}>
             {/* Chart Details Card */}
-            <Card title="Chart Details" icon={<Star size={24} />}>
+            <Card
+              title="Chart Details"
+              icon={<Star size={24} />}
+              actions={
+                <button
+                  className="chart-export-btn"
+                  onClick={handleShare}
+                  disabled={shareBusy}
+                  title="Create a read-only share link"
+                  style={{ marginLeft: "auto", padding: "6px 12px", fontSize: "0.8125rem" }}
+                >
+                  {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
+                  <span>{shareBusy ? "…" : shareCopied ? "Link copied" : "Share"}</span>
+                </button>
+              }
+            >
               <div className="ui-field-grid">
                 <DataField
                   label="Name"
@@ -185,6 +227,34 @@ export const BirthChartPage = () => {
                   value={orDash(selectedProfile.birth_details.place)}
                 />
               </div>
+              {shareUrl && (
+                <div
+                  style={{
+                    marginTop: "var(--space-lg)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--space-sm)",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Copy size={14} style={{ color: "var(--saffron)", flexShrink: 0 }} />
+                  <input
+                    readOnly
+                    value={shareUrl}
+                    onFocus={(e) => e.target.select()}
+                    style={{
+                      flex: 1,
+                      minWidth: "220px",
+                      padding: "var(--space-sm) var(--space-md)",
+                      border: "1px solid var(--sandalwood)",
+                      borderRadius: "var(--radius-md)",
+                      background: "var(--sacred-white)",
+                      color: "var(--cosmic-indigo)",
+                      fontSize: "0.8125rem",
+                    }}
+                  />
+                </div>
+              )}
             </Card>
 
             {/* Chart style toggle: North / South Indian */}
@@ -221,7 +291,12 @@ export const BirthChartPage = () => {
                     </label>
                   </div>
 
-                  <Kundali chartData={result} title="Rasi Chart" subtitle={`D1 · ${styleLabel}`} />
+                  <Kundali
+                    chartData={result}
+                    title="Rasi Chart"
+                    subtitle={`D1 · ${styleLabel}`}
+                    exportable
+                  />
 
                   {/* Divisional (varga) chart with picker */}
                   {(() => {
@@ -254,6 +329,7 @@ export const BirthChartPage = () => {
                             lagna={vargaChart.lagna}
                             title={`${vargaMeta.name} Chart`}
                             subtitle={`${vargaMeta.code} · ${styleLabel}`}
+                            exportable
                           />
                         ) : (
                           <div className="varga-empty">Divisional chart unavailable.</div>

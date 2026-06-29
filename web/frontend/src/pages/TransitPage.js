@@ -290,6 +290,7 @@ export const TransitPage = () => {
                 lagna={result.lagna}
                 title="Gochara"
                 subtitle={`Transits • ${formatDate(result.transit_date)}`}
+                exportable
               />
 
               {/* Transit table */}

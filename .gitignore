@@ -10,3 +10,4 @@ src/jhora/horoscope/prediction/marriage.py
 src/.settings/org.eclipse.core.resources.prefs
 src/jhora/data/geonames_places_5k.csv
 src/jhora/data/geonames_places_5k_IN.csv
+web/frontend/package-lock.json

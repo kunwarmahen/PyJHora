@@ -172,10 +172,10 @@ export const ComparePage = () => {
               }}
             >
               <Card title={nameA} accent="saffron">
-                <Kundali planets={chartA.planets} lagna={chartA.lagna} title={nameA} />
+                <Kundali planets={chartA.planets} lagna={chartA.lagna} title={nameA} exportable />
               </Card>
               <Card title={nameB} accent="vermillion">
-                <Kundali planets={chartB.planets} lagna={chartB.lagna} title={nameB} />
+                <Kundali planets={chartB.planets} lagna={chartB.lagna} title={nameB} exportable />
               </Card>
             </div>
 
