@@ -282,7 +282,22 @@ web exposes. High-value additions:
       2026-06-28: `constants/glossary.js` (~30 Jyotish terms) + a reusable `<GlossaryTerm>`
       (dotted underline, hover/tap/focus popover, case-insensitive lookup, renders plainly
       if unknown). Wired into the Advanced page's section titles/labels; reusable anywhere.
-      Full UI multi-language (i18n) is still open.
+      Full UI multi-language (i18n) INFRA + FIRST PAGES DONE 2026-06-28: added
+      `react-i18next`/`i18next`/`i18next-browser-languagedetector` (pinned i18next@23 /
+      react-i18next@14 — i18next@26 pulls a TS6 peer that conflicts with CRA's TS4.9),
+      `src/i18n/index.js` config + `locales/{en,hi,sa}.json` (English/Hindi/Sanskrit;
+      `escapeValue:false`, language persisted in localStorage key `lang` via the detector).
+      `<LanguageSwitcher>` (globe + native-name `<select>`, saffron-styled) added to the
+      Dashboard navbar and the shared `PageHeader` nav-right, so it shows on every inner
+      page. Fully translated: NavDrawer + PageHeader + ProfileBanner (nav chrome),
+      DashboardPage (feature cards via `dashboard.features.*` keys), BirthChartPage
+      (header, chart-details, controls, nakshatra/lagna labels, yogas/doshas, errors).
+      Interpolation used for `{{code}}`/`{{name}}`/`{{count}}`. CI build passes (+~22kB gz
+      for i18next + locale JSON). REMAINING (incremental, same pattern): the other 11 pages
+      (Dhasa/Transit/Advanced/Compatibility/Compare/Ask/Predictions/Profile/Login/Register/
+      Shared) + their shared primitives (Button/ErrorBanner/LoadingState text). Engine-side
+      data (planet/sign/nakshatra/yoga names from the backend) is still English — a later
+      pass could map those through the constants tables.
 
 ## 6. Suggested execution order
 

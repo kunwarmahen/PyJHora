@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Calendar, User, MapPin, Clock, Star, Share2, Copy, Check } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash } from "../utils/format";
@@ -18,6 +19,7 @@ import "../styles/Dashboard.css";
 
 export const BirthChartPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { selectedProfile } = useProfile();
 
   const [loading, setLoading] = useState(true);
@@ -79,7 +81,7 @@ export const BirthChartPage = () => {
         /* clipboard may be blocked; the link is still shown to copy manually */
       }
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to create share link");
+      setError(err.response?.data?.detail || t("birthChart.shareError"));
     } finally {
       setShareBusy(false);
     }
@@ -156,7 +158,7 @@ export const BirthChartPage = () => {
         .then((r) => setYogas(r.data?.yogas || null))
         .catch(() => setYogas(null));
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to calculate chart");
+      setError(err.response?.data?.detail || t("birthChart.calcError"));
     } finally {
       setLoading(false);
     }
@@ -170,8 +172,8 @@ export const BirthChartPage = () => {
     <div className="dashboard-container mandala-bg">
       <PageHeader
         icon={<Calendar size={24} />}
-        title="Birth Chart"
-        subtitle="Rasi & Navamsa Charts"
+        title={t("birthChart.title")}
+        subtitle={t("birthChart.subtitle")}
         accent="saffron"
       />
 
@@ -184,45 +186,51 @@ export const BirthChartPage = () => {
         {/* Loading State */}
         {loading ? (
           <Card>
-            <LoadingState message="Calculating Birth Chart — analyzing planetary positions…" />
+            <LoadingState message={t("birthChart.loading")} />
           </Card>
         ) : result ? (
           <div style={{ opacity: 0, animation: "fadeIn 0.6s ease-out forwards" }}>
             {/* Chart Details Card */}
             <Card
-              title="Chart Details"
+              title={t("birthChart.chartDetails")}
               icon={<Star size={24} />}
               actions={
                 <button
                   className="chart-export-btn"
                   onClick={handleShare}
                   disabled={shareBusy}
-                  title="Create a read-only share link"
+                  title={t("birthChart.shareTitle")}
                   style={{ marginLeft: "auto", padding: "6px 12px", fontSize: "0.8125rem" }}
                 >
                   {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
-                  <span>{shareBusy ? "…" : shareCopied ? "Link copied" : "Share"}</span>
+                  <span>
+                    {shareBusy
+                      ? "…"
+                      : shareCopied
+                        ? t("birthChart.linkCopied")
+                        : t("birthChart.share")}
+                  </span>
                 </button>
               }
             >
               <div className="ui-field-grid">
                 <DataField
-                  label="Name"
+                  label={t("common.name")}
                   icon={<User size={16} />}
                   value={selectedProfile.birth_details.name || selectedProfile.profile_name}
                 />
                 <DataField
-                  label="Date of Birth"
+                  label={t("common.dateOfBirth")}
                   icon={<Calendar size={16} />}
                   value={formatDate(selectedProfile.birth_details.dob)}
                 />
                 <DataField
-                  label="Time of Birth"
+                  label={t("common.timeOfBirth")}
                   icon={<Clock size={16} />}
                   value={orDash(selectedProfile.birth_details.tob)}
                 />
                 <DataField
-                  label="Place"
+                  label={t("common.place")}
                   icon={<MapPin size={16} />}
                   value={orDash(selectedProfile.birth_details.place)}
                 />
@@ -260,27 +268,32 @@ export const BirthChartPage = () => {
             {/* Chart style toggle: North / South Indian */}
             {(() => {
               const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
-              const styleLabel = chartStyle === "south" ? "South Indian" : "North Indian";
+              const styleLabel =
+                chartStyle === "south" ? t("birthChart.southIndian") : t("birthChart.northIndian");
               return (
                 <>
                   <div className="chart-controls">
-                    <div className="chart-style-toggle" role="group" aria-label="Chart style">
+                    <div
+                      className="chart-style-toggle"
+                      role="group"
+                      aria-label={t("birthChart.divisionalChart")}
+                    >
                       <button
                         className={chartStyle === "north" ? "active" : ""}
                         onClick={() => changeChartStyle("north")}
                       >
-                        North Indian
+                        {t("birthChart.northIndian")}
                       </button>
                       <button
                         className={chartStyle === "south" ? "active" : ""}
                         onClick={() => changeChartStyle("south")}
                       >
-                        South Indian
+                        {t("birthChart.southIndian")}
                       </button>
                     </div>
 
                     <label className="ayanamsa-select">
-                      <span>Ayanamsa</span>
+                      <span>{t("birthChart.ayanamsa")}</span>
                       <select value={ayanamsa} onChange={(e) => changeAyanamsa(e.target.value)}>
                         {AYANAMSAS.map((a) => (
                           <option key={a.value} value={a.value}>
@@ -293,7 +306,7 @@ export const BirthChartPage = () => {
 
                   <Kundali
                     chartData={result}
-                    title="Rasi Chart"
+                    title={t("birthChart.rasiChart")}
                     subtitle={`D1 · ${styleLabel}`}
                     exportable
                   />
@@ -304,7 +317,7 @@ export const BirthChartPage = () => {
                     return (
                       <div className="varga-section">
                         <label className="ayanamsa-select varga-picker">
-                          <span>Divisional Chart</span>
+                          <span>{t("birthChart.divisionalChart")}</span>
                           <select
                             value={varga}
                             onChange={(e) => changeVarga(Number(e.target.value))}
@@ -321,18 +334,20 @@ export const BirthChartPage = () => {
                         {vargaLoading ? (
                           <div className="varga-loading">
                             <div className="spinner"></div>
-                            <span>Calculating {vargaMeta.code} chart…</span>
+                            <span>
+                              {t("birthChart.calculatingChart", { code: vargaMeta.code })}
+                            </span>
                           </div>
                         ) : vargaChart && vargaChart.planets ? (
                           <Kundali
                             planets={vargaChart.planets}
                             lagna={vargaChart.lagna}
-                            title={`${vargaMeta.name} Chart`}
+                            title={t("birthChart.nameChart", { name: vargaMeta.name })}
                             subtitle={`${vargaMeta.code} · ${styleLabel}`}
                             exportable
                           />
                         ) : (
-                          <div className="varga-empty">Divisional chart unavailable.</div>
+                          <div className="varga-empty">{t("birthChart.chartUnavailable")}</div>
                         )}
                       </div>
                     );
@@ -364,7 +379,7 @@ export const BirthChartPage = () => {
                   }}
                 >
                   <Star size={24} style={{ color: "var(--saffron)" }} />
-                  Nakshatra Information
+                  {t("birthChart.nakshatraInfo")}
                 </h3>
 
                 {/* Lagna Nakshatra */}
@@ -387,7 +402,7 @@ export const BirthChartPage = () => {
                         fontWeight: 700,
                       }}
                     >
-                      Lagna (Ascendant)
+                      {t("birthChart.lagnaAscendant")}
                     </h4>
                     <div
                       style={{
@@ -398,7 +413,7 @@ export const BirthChartPage = () => {
                     >
                       <div>
                         <span style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                          Sign:{" "}
+                          {t("common.sign")}:{" "}
                         </span>
                         <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
                           {result.lagna.sign_name}
@@ -406,7 +421,7 @@ export const BirthChartPage = () => {
                       </div>
                       <div>
                         <span style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                          Nakshatra:{" "}
+                          {t("common.nakshatra")}:{" "}
                         </span>
                         <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
                           {result.lagna.nakshatra}
@@ -414,7 +429,7 @@ export const BirthChartPage = () => {
                       </div>
                       <div>
                         <span style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                          Pada:{" "}
+                          {t("common.pada")}:{" "}
                         </span>
                         <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
                           {result.lagna.nakshatra_pada}
@@ -422,7 +437,7 @@ export const BirthChartPage = () => {
                       </div>
                       <div>
                         <span style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                          Degrees:{" "}
+                          {t("common.degrees")}:{" "}
                         </span>
                         <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
                           {result.lagna.degrees}°
@@ -472,7 +487,9 @@ export const BirthChartPage = () => {
                         </h5>
                         <div style={{ fontSize: "0.875rem", lineHeight: "1.6" }}>
                           <div style={{ marginBottom: "var(--space-xs)" }}>
-                            <span style={{ color: "var(--text-secondary)" }}>Sign: </span>
+                            <span style={{ color: "var(--text-secondary)" }}>
+                              {t("common.sign")}:{" "}
+                            </span>
                             <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
                               {data.sign_name}
                             </span>
@@ -480,13 +497,17 @@ export const BirthChartPage = () => {
                           {data.nakshatra && (
                             <>
                               <div style={{ marginBottom: "var(--space-xs)" }}>
-                                <span style={{ color: "var(--text-secondary)" }}>Nakshatra: </span>
+                                <span style={{ color: "var(--text-secondary)" }}>
+                                  {t("common.nakshatra")}:{" "}
+                                </span>
                                 <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
                                   {data.nakshatra}
                                 </span>
                               </div>
                               <div style={{ marginBottom: "var(--space-xs)" }}>
-                                <span style={{ color: "var(--text-secondary)" }}>Pada: </span>
+                                <span style={{ color: "var(--text-secondary)" }}>
+                                  {t("common.pada")}:{" "}
+                                </span>
                                 <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
                                   {data.nakshatra_pada}
                                 </span>
@@ -494,7 +515,9 @@ export const BirthChartPage = () => {
                             </>
                           )}
                           <div>
-                            <span style={{ color: "var(--text-secondary)" }}>Degrees: </span>
+                            <span style={{ color: "var(--text-secondary)" }}>
+                              {t("common.degrees")}:{" "}
+                            </span>
                             <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
                               {data.degrees}°
                             </span>
@@ -538,8 +561,10 @@ export const BirthChartPage = () => {
                   }}
                 >
                   <Star size={24} style={{ color: "var(--saffron)" }} />
-                  Yogas
-                  <span className="section-count">{yogas.length} found</span>
+                  {t("birthChart.yogas")}
+                  <span className="section-count">
+                    {t("birthChart.yogasFound", { count: yogas.length })}
+                  </span>
                 </h3>
                 <div className="yoga-grid">
                   {yogas.map((y) => (
@@ -548,7 +573,7 @@ export const BirthChartPage = () => {
                       {y.description && <p className="yoga-desc">{y.description}</p>}
                       {y.benefits && (
                         <div className="yoga-benefit">
-                          <span className="yoga-benefit-label">Effects</span>
+                          <span className="yoga-benefit-label">{t("birthChart.effects")}</span>
                           {y.benefits}
                         </div>
                       )}
@@ -581,7 +606,7 @@ export const BirthChartPage = () => {
                   }}
                 >
                   <Star size={24} style={{ color: "var(--saffron)" }} />
-                  Doshas
+                  {t("birthChart.doshas")}
                 </h3>
                 <div className="dosha-grid">
                   {doshas.map((d) => (
@@ -589,7 +614,7 @@ export const BirthChartPage = () => {
                       <div className="dosha-head">
                         <span className="dosha-name">{d.name}</span>
                         <span className={`dosha-badge ${d.present ? "yes" : "no"}`}>
-                          {d.present ? "Present" : "Absent"}
+                          {d.present ? t("birthChart.present") : t("birthChart.absent")}
                         </span>
                       </div>
                       <p className="dosha-desc">{d.description}</p>

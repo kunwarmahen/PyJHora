@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { User, Star } from "lucide-react";
 import { formatDate, orDash } from "../utils/format";
 
@@ -14,6 +15,7 @@ import { formatDate, orDash } from "../utils/format";
  */
 export const ProfileBanner = ({ profile, onChangeProfile, changeIcon, actions }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   if (!profile) return null;
 
   const handleChange = onChangeProfile || (() => navigate("/profile-selection"));
@@ -28,7 +30,7 @@ export const ProfileBanner = ({ profile, onChangeProfile, changeIcon, actions })
         <div className="profile-info">
           <h2>{profile.profile_name}</h2>
           <div className="profile-meta">
-            <span>{details.name || "Anonymous"}</span>
+            <span>{details.name || t("common.anonymous")}</span>
             <span className="separator">•</span>
             <span>{formatDate(details.dob)}</span>
             <span className="separator">•</span>
@@ -39,7 +41,7 @@ export const ProfileBanner = ({ profile, onChangeProfile, changeIcon, actions })
       {actions || (
         <button onClick={handleChange} className="change-profile-btn">
           {changeIcon || <Star size={16} />}
-          <span>Change Chart</span>
+          <span>{t("common.changeChart")}</span>
         </button>
       )}
     </div>

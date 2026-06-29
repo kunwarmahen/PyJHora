@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Menu,
   X,
@@ -18,21 +19,24 @@ import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
 import "../styles/NavDrawer.css";
 
+// `labelKey` is resolved through i18next at render time so the drawer follows
+// the selected language.
 const LINKS = [
-  { to: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} /> },
-  { to: "/birth-chart", label: "Birth Chart", icon: <Calendar size={20} /> },
-  { to: "/dhasa", label: "Dhasa Periods", icon: <Clock size={20} /> },
-  { to: "/transit", label: "Transits", icon: <Orbit size={20} /> },
-  { to: "/advanced", label: "Advanced Details", icon: <Sparkles size={20} /> },
-  { to: "/compare", label: "Compare Charts", icon: <GitCompareArrows size={20} /> },
-  { to: "/compatibility", label: "Compatibility", icon: <Heart size={20} /> },
-  { to: "/ask-astrologer", label: "Ask AI Astrologer", icon: <MessageCircle size={20} /> },
+  { to: "/dashboard", labelKey: "nav.dashboard", icon: <LayoutDashboard size={20} /> },
+  { to: "/birth-chart", labelKey: "nav.birthChart", icon: <Calendar size={20} /> },
+  { to: "/dhasa", labelKey: "nav.dhasa", icon: <Clock size={20} /> },
+  { to: "/transit", labelKey: "nav.transit", icon: <Orbit size={20} /> },
+  { to: "/advanced", labelKey: "nav.advanced", icon: <Sparkles size={20} /> },
+  { to: "/compare", labelKey: "nav.compare", icon: <GitCompareArrows size={20} /> },
+  { to: "/compatibility", labelKey: "nav.compatibility", icon: <Heart size={20} /> },
+  { to: "/ask-astrologer", labelKey: "nav.ask", icon: <MessageCircle size={20} /> },
 ];
 
 /** Hamburger button + slide-in feature drawer. The button only shows on phones
  * (CSS); on larger screens navigation stays via the dashboard cards. */
 export const NavDrawer = () => {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
@@ -58,7 +62,11 @@ export const NavDrawer = () => {
 
   return (
     <>
-      <button className="nav-drawer-toggle" aria-label="Open menu" onClick={() => setOpen(true)}>
+      <button
+        className="nav-drawer-toggle"
+        aria-label={t("nav.openMenu")}
+        onClick={() => setOpen(true)}
+      >
         <Menu size={22} />
       </button>
 
@@ -72,7 +80,7 @@ export const NavDrawer = () => {
           </div>
           <button
             className="nav-drawer-close"
-            aria-label="Close menu"
+            aria-label={t("nav.closeMenu")}
             onClick={() => setOpen(false)}
           >
             <X size={22} />
@@ -87,7 +95,7 @@ export const NavDrawer = () => {
               onClick={() => go(l.to)}
             >
               {l.icon}
-              <span>{l.label}</span>
+              <span>{t(l.labelKey)}</span>
             </button>
           ))}
         </nav>
@@ -95,11 +103,11 @@ export const NavDrawer = () => {
         <div className="nav-drawer-footer">
           <button className="nav-drawer-link" onClick={handleChangeChart}>
             <Sparkles size={20} />
-            <span>Change Chart</span>
+            <span>{t("common.changeChart")}</span>
           </button>
           <button className="nav-drawer-link logout" onClick={handleLogout}>
             <LogOut size={20} />
-            <span>Logout</span>
+            <span>{t("common.logout")}</span>
           </button>
         </div>
       </aside>

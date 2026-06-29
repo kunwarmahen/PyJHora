@@ -1,0 +1,49 @@
+/* Compact language selector shown in the navbar / page header. Matches the
+   saffron Vedic styling of the surrounding nav controls. */
+.lang-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(255, 153, 51, 0.1);
+  color: var(--saffron);
+  border: 2px solid rgba(255, 153, 51, 0.2);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.lang-switcher:hover {
+  border-color: var(--saffron);
+}
+
+.lang-switcher select {
+  border: none;
+  background: transparent;
+  color: var(--cosmic-indigo);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  /* keep iOS from zooming on focus while staying compact */
+  min-height: 28px;
+}
+
+.lang-switcher-label {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.7rem;
+}
+
+/* The "Language" word is redundant next to the globe on small screens. */
+@media (max-width: 768px) {
+  .lang-switcher-label {
+    display: none;
+  }
+  .lang-switcher select {
+    font-size: 16px; /* prevent iOS focus-zoom */
+  }
+}

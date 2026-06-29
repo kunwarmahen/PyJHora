@@ -60,3 +60,4 @@ build/
 docs/
 # Design preview (throwaway)
 frontend/ledger-preview.html
+**/*/package-lock.json

@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
 import {
@@ -15,12 +16,14 @@ import {
 } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import "../styles/Dashboard.css";
 
 export const DashboardPage = () => {
   const { user, logout } = useAuth();
   const { selectedProfile, clearProfile } = useProfile();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleLogout = () => {
     logout();
@@ -33,53 +36,48 @@ export const DashboardPage = () => {
     navigate("/profile-selection");
   };
 
+  // `key` resolves the title/description from dashboard.features.* so the cards
+  // follow the selected language; icon/path/gradient stay code-side.
   const features = [
     {
+      key: "birthChart",
       icon: <Calendar size={32} />,
-      title: "Birth Chart",
-      description: "Explore your Rasi and Navamsa charts with detailed planetary positions",
       path: "/birth-chart",
       gradient: "linear-gradient(135deg, #FF9933 0%, #FFB347 100%)",
     },
     {
+      key: "ask",
       icon: <MessageCircle size={32} />,
-      title: "Ask AI Astrologer",
-      description: "Chat with AI to get personalized Vedic astrology insights and guidance",
       path: "/ask-astrologer",
       gradient: "linear-gradient(135deg, #E27B5A 0%, #E34234 100%)",
     },
     {
+      key: "compatibility",
       icon: <Heart size={32} />,
-      title: "Compatibility",
-      description: "Check marriage compatibility and relationship harmony analysis",
       path: "/compatibility",
       gradient: "linear-gradient(135deg, #D4AF37 0%, #FFB347 100%)",
     },
     {
+      key: "dhasa",
       icon: <Clock size={32} />,
-      title: "Dasha Periods",
-      description: "Explore your planetary periods and life timing predictions",
       path: "/dhasa",
       gradient: "linear-gradient(135deg, #2D3561 0%, #5A5F7A 100%)",
     },
     {
+      key: "transit",
       icon: <Orbit size={32} />,
-      title: "Transits (Gochara)",
-      description: "See where the planets are moving today over your natal chart",
       path: "/transit",
       gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
     },
     {
+      key: "advanced",
       icon: <Sparkles size={32} />,
-      title: "Advanced Details",
-      description: "Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas & Shadbala",
       path: "/advanced",
       gradient: "linear-gradient(135deg, #D4AF37 0%, #E27B5A 100%)",
     },
     {
+      key: "compare",
       icon: <GitCompareArrows size={32} />,
-      title: "Compare Charts",
-      description: "Put two profiles side by side and compare their placements",
       path: "/compare",
       gradient: "linear-gradient(135deg, #2D3561 0%, #E27B5A 100%)",
     },
@@ -94,12 +92,13 @@ export const DashboardPage = () => {
         </div>
         <div className="nav-right">
           <div className="user-info">
-            <span className="welcome-text">Welcome,</span>
+            <span className="welcome-text">{t("dashboard.welcome")}</span>
             <span className="username">{user?.username}</span>
           </div>
+          <LanguageSwitcher />
           <button onClick={handleLogout} className="logout-btn">
             <LogOut size={18} />
-            <span>Logout</span>
+            <span>{t("common.logout")}</span>
           </button>
           <NavDrawer />
         </div>
@@ -113,26 +112,24 @@ export const DashboardPage = () => {
         />
 
         <div className="section-header fade-in">
-          <h3>Explore Your Cosmic Journey</h3>
-          <p className="section-subtitle">
-            Choose a service to dive deeper into your Vedic astrology insights
-          </p>
+          <h3>{t("dashboard.sectionTitle")}</h3>
+          <p className="section-subtitle">{t("dashboard.sectionSubtitle")}</p>
         </div>
 
         <div className="features-grid">
           {features.map((feature, index) => (
             <Link
-              key={index}
+              key={feature.key}
               to={feature.path}
               className={`feature-card fade-in stagger-${index + 1}`}
             >
               <div className="feature-icon" style={{ background: feature.gradient }}>
                 {feature.icon}
               </div>
-              <h3>{feature.title}</h3>
-              <p>{feature.description}</p>
+              <h3>{t(`dashboard.features.${feature.key}.title`)}</h3>
+              <p>{t(`dashboard.features.${feature.key}.description`)}</p>
               <div className="feature-arrow">
-                <span>Explore</span>
+                <span>{t("dashboard.explore")}</span>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                   <path
                     d="M6 3L11 8L6 13"

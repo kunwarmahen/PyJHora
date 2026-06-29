@@ -1,0 +1,93 @@
+{
+  "common": {
+    "name": "Name",
+    "dateOfBirth": "Date of Birth",
+    "timeOfBirth": "Time of Birth",
+    "place": "Place",
+    "sign": "Sign",
+    "nakshatra": "Nakshatra",
+    "pada": "Pada",
+    "degrees": "Degrees",
+    "changeChart": "Change Chart",
+    "logout": "Logout",
+    "back": "Back",
+    "anonymous": "Anonymous",
+    "loading": "Loading…"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "birthChart": "Birth Chart",
+    "dhasa": "Dhasa Periods",
+    "transit": "Transits",
+    "advanced": "Advanced Details",
+    "compare": "Compare Charts",
+    "compatibility": "Compatibility",
+    "ask": "Ask AI Astrologer",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "language": "Language"
+  },
+  "dashboard": {
+    "welcome": "Welcome,",
+    "sectionTitle": "Explore Your Cosmic Journey",
+    "sectionSubtitle": "Choose a service to dive deeper into your Vedic astrology insights",
+    "explore": "Explore",
+    "features": {
+      "birthChart": {
+        "title": "Birth Chart",
+        "description": "Explore your Rasi and Navamsa charts with detailed planetary positions"
+      },
+      "ask": {
+        "title": "Ask AI Astrologer",
+        "description": "Chat with AI to get personalized Vedic astrology insights and guidance"
+      },
+      "compatibility": {
+        "title": "Compatibility",
+        "description": "Check marriage compatibility and relationship harmony analysis"
+      },
+      "dhasa": {
+        "title": "Dasha Periods",
+        "description": "Explore your planetary periods and life timing predictions"
+      },
+      "transit": {
+        "title": "Transits (Gochara)",
+        "description": "See where the planets are moving today over your natal chart"
+      },
+      "advanced": {
+        "title": "Advanced Details",
+        "description": "Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas & Shadbala"
+      },
+      "compare": {
+        "title": "Compare Charts",
+        "description": "Put two profiles side by side and compare their placements"
+      }
+    }
+  },
+  "birthChart": {
+    "title": "Birth Chart",
+    "subtitle": "Rasi & Navamsa Charts",
+    "loading": "Calculating Birth Chart — analyzing planetary positions…",
+    "chartDetails": "Chart Details",
+    "share": "Share",
+    "linkCopied": "Link copied",
+    "shareTitle": "Create a read-only share link",
+    "shareError": "Failed to create share link",
+    "calcError": "Failed to calculate chart",
+    "northIndian": "North Indian",
+    "southIndian": "South Indian",
+    "ayanamsa": "Ayanamsa",
+    "divisionalChart": "Divisional Chart",
+    "calculatingChart": "Calculating {{code}} chart…",
+    "chartUnavailable": "Divisional chart unavailable.",
+    "rasiChart": "Rasi Chart",
+    "nameChart": "{{name}} Chart",
+    "nakshatraInfo": "Nakshatra Information",
+    "lagnaAscendant": "Lagna (Ascendant)",
+    "yogas": "Yogas",
+    "yogasFound": "{{count}} found",
+    "effects": "Effects",
+    "doshas": "Doshas",
+    "present": "Present",
+    "absent": "Absent"
+  }
+}

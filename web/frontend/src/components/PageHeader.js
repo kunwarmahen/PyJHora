@@ -1,7 +1,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import { NavDrawer } from "./NavDrawer";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import "../styles/Shared.css";
 
 /**
@@ -20,13 +22,14 @@ export const PageHeader = ({
   right,
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   return (
     <nav className="navbar">
       <div className="navbar-brand">
         {backTo && (
           <button className="page-back-btn" onClick={() => navigate(backTo)}>
             <ArrowLeft size={20} />
-            <span>Back</span>
+            <span>{t("common.back")}</span>
           </button>
         )}
         <div className="page-header-title">
@@ -39,6 +42,7 @@ export const PageHeader = ({
       </div>
       <div className="nav-right">
         {right}
+        <LanguageSwitcher />
         <NavDrawer />
       </div>
     </nav>
