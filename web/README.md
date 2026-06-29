@@ -300,7 +300,9 @@ REACT_APP_API_TIMEOUT=30000
 
 ### 6. Transits (Gochara)
 - Current planetary positions for the present moment (anchored to the viewer's local
-  time and timezone) or a chosen date, drawn over the natal chart
+  time and timezone) or any chosen date/time, drawn over the natal chart
+- Date + time pickers plus ±1 steppers (minute / hour / day / year) and a "Now" reset
+  to walk the transit moment forwards or backwards
 - House counted from both the natal Lagna and natal Moon, retrograde flagged
 - Key upcoming sign-ingress dates for Jupiter and Saturn
 - North / South Indian chart styles, respects the selected ayanamsa

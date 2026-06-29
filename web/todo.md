@@ -260,8 +260,12 @@ web exposes. High-value additions:
     accepts `current_time` + `current_tz`; `get_transits` builds a separate
     `transit_place` carrying the viewer's tz and computes the JD at the actual time
     (falls back to local-noon + birth tz when absent, so older callers are unaffected).
-    A chosen (non-today) date still uses local noon as a stable daily snapshot. Response
-    includes `transit_time`; the page shows an "As of {date}, {time}" badge.
+    Response includes `transit_time`; the page shows an "As of {date}, {time}" badge.
+  - **Time-travel steppers** (DONE 2026-06-29): the page now tracks the full transit
+    *moment* (epoch ms, default = now) instead of just a date. Added a time input plus
+    ±1 steppers for minute / hour / day / year (DST- and rollover-aware via the JS
+    `Date` setters) and a "Now" reset. Every refresh sends the chosen `current_time` +
+    DST-correct `current_tz`, so nudging by an hour visibly moves the Moon.
 - [x] **Strength tables** (P2). DONE 2026-06-28: `get_shadbala` returns the six-fold
       strength (sthana/kaala/dig/cheshta/naisargika/drik) plus total rupa, required rupa,
       ratio and rank for Sun..Saturn. `POST /shadbala`. Shown as a table in the Advanced

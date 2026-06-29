@@ -34,7 +34,13 @@
     "houseNote": "House counted inclusively from the natal Lagna and natal Moon. Moon-based houses drive classic gochara results.",
     "upcoming": "Key Upcoming Transits",
     "calcError": "Failed to calculate transits",
-    "asOf": "As of {{moment}}"
+    "asOf": "As of {{moment}}",
+    "now": "Now",
+    "nowHint": "Jump back to the present moment",
+    "unitMinute": "Min",
+    "unitHour": "Hour",
+    "unitDay": "Day",
+    "unitYear": "Year"
   },
   "shared": {
     "notFound": "This shared chart was not found.",
