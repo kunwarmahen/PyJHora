@@ -166,6 +166,9 @@ export const astrologyService = {
   listConversations: (profileId) =>
     api.get("/api/ai/conversations", { params: { profile_id: profileId } }),
   getConversation: (id) => api.get(`/api/ai/conversations/${id}`),
+  // Lazy-load the full "Behind the scenes" tool results for one saved answer.
+  getConversationTrace: (conversationId, traceId) =>
+    api.get(`/api/ai/conversations/${conversationId}/traces/${traceId}`),
   deleteConversation: (id) => api.delete(`/api/ai/conversations/${id}`),
   // Thumbs up/down on a specific assistant message (rating: "up"|"down"|null)
   submitFeedback: (conversationId, messageIndex, rating) =>

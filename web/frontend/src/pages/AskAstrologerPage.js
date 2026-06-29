@@ -569,6 +569,41 @@ export const AskAstrologerPage = () => {
     runStream(question, { regenerate: false });
   };
 
+  // Toggle the "Behind the scenes" timeline. For a reopened answer the full per-call
+  // result data isn't loaded yet — fetch it lazily by trace_id on first expand and
+  // merge it onto the steps (in order; reopened steps carry no transient notices).
+  const toggleTrace = async (index, message) => {
+    const willOpen = !openTrace[index];
+    setOpenTrace((p) => ({ ...p, [index]: willOpen }));
+    if (!willOpen) return;
+    const steps = message.toolSteps || [];
+    const needs =
+      message.trace_id && steps.some((s) => !s.notice && s.result === undefined);
+    if (!needs) return;
+    try {
+      const resp = await astrologyService.getConversationTrace(
+        conversationId,
+        message.trace_id
+      );
+      const results = resp.data?.results || [];
+      setMessages((prev) => {
+        const next = [...prev];
+        const msg = next[index];
+        if (!msg || !msg.toolSteps) return prev;
+        let ri = 0;
+        const merged = msg.toolSteps.map((s) => {
+          if (s.notice) return s;
+          const r = results[ri++];
+          return r ? { ...s, result: r.result, ok: r.ok ?? s.ok } : s;
+        });
+        next[index] = { ...msg, toolSteps: merged };
+        return next;
+      });
+    } catch (e) {
+      /* non-fatal: the timeline still shows the flow, just without the data blobs */
+    }
+  };
+
   // Re-ask the prompt behind the last AI answer; replaces it server-side too.
   // `override` ({ providerType, model }) regenerates with a different model and
   // makes it the active selection going forward.
@@ -736,7 +771,9 @@ export const AskAstrologerPage = () => {
               elapsed_ms: m.elapsed_ms,
               usage: m.usage,
               feedback: m.feedback,
-              // rebuild the tool-call steps from the persisted trace
+              // rebuild the tool-call steps from the light persisted trace; the full
+              // per-call result data is loaded lazily (by trace_id) on first expand
+              trace_id: m.trace_id,
               toolSteps: (m.tool_trace || []).map((tc) => ({
                 name: tc.name,
                 args: tc.args,
@@ -1577,9 +1614,7 @@ export const AskAstrologerPage = () => {
                           {realSteps.length > 0 && (
                             <button
                               type="button"
-                              onClick={() =>
-                                setOpenTrace((p) => ({ ...p, [index]: !p[index] }))
-                              }
+                              onClick={() => toggleTrace(index, message)}
                               style={{
                                 background: "none",
                                 border: "none",

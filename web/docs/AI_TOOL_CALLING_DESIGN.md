@@ -8,10 +8,12 @@ the implementation differs it is noted inline.
 
 **Key files:** `web/backend/tools.py` (registry), `web/backend/llm_service.py`
 (`run_tool_loop` + per-provider `_chat_once_*` / `_complete_chat`),
-`web/backend/main.py` (`/ask` + `/ask/stream` mode branch, `_resolve_mode`),
-`web/backend/conversations.py` (`mode` field), `web/frontend/src/services/api.js`
-(`streamAskQuestion` events), `web/frontend/src/pages/AskAstrologerPage.js`
-(Answer-mode toggle, step pills, inspector).
+`web/backend/main.py` (`/ask` + `/ask/stream` mode branch, `_resolve_mode`,
+trace-fetch endpoint), `web/backend/conversations.py` (`mode` field),
+`web/backend/tool_traces.py` (lazy full-result side-collection),
+`web/frontend/src/services/api.js` (`streamAskQuestion` events + `getConversationTrace`),
+`web/frontend/src/pages/AskAstrologerPage.js` (Answer-mode toggle, step pills,
+`TraceNode` timeline, lazy `toggleTrace`).
 
 ## 1. Motivation
 
@@ -141,11 +143,17 @@ telling the model it may call tools for anything not shown.
   - `tool_call` `{name, args}` — "🔧 looking up your dasha…"
   - `tool_result` `{name, ok, result}` — carries the **full returned data** so the
     transcript can show what each call fetched (not just that it ran).
-  Persist the **tool trace** (name, args, ok, result) on the assistant message so
-  the trace survives reload and the inspector/panel can replay it.
+  Persistence uses a **lazy side-collection** so threads stay light: the assistant
+  message keeps only the *light* trace (`tool_trace` = name/args/ok) plus an opaque
+  `trace_id`; the **full per-call results** go in a separate `ai_tool_traces`
+  collection (`tool_traces.py`), keyed by `trace_id`, fetched lazily via
+  `GET /api/ai/conversations/{id}/traces/{trace_id}` only when the user expands
+  "Behind the scenes" on a reopened answer. Live answers show full data straight
+  from the SSE stream (no extra storage). Traces are user-scoped and deleted with
+  their conversation.
 
-The conversation doc gains a `mode` field (default `pass_all`) plus a per-message
-`tool_trace`.
+The conversation doc gains a `mode` field (default `pass_all`) plus, per assistant
+message, the light `tool_trace` + `trace_id`.
 
 ## 5. Frontend
 

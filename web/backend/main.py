@@ -17,9 +17,11 @@ from chart_context import build_chart_context
 from qwen_predictor import QwenPredictor
 from llm_service import llm_service, LLMProvider
 import conversations as convo
+import tool_traces
 import user_settings
 import ratelimit
 import shares
+import uuid
 
 # Request models
 class LoginRequest(BaseModel):
@@ -905,7 +907,18 @@ async def _save_turn(user_id: str, request: "AskQuestionRequest", cfg, chart_dat
     if usage:
         ai_msg["usage"] = usage
     if tool_trace:
-        ai_msg["tool_trace"] = tool_trace
+        # Keep only the light trace (name/args/ok) on the message so listing/loading
+        # stays fast; stash the full per-call results in the side collection keyed by
+        # an opaque trace_id, fetched lazily when the user opens "Behind the scenes".
+        trace_id = uuid.uuid4().hex
+        ai_msg["trace_id"] = trace_id
+        ai_msg["tool_trace"] = [
+            {"name": e.get("name"), "args": e.get("args", {}), "ok": e.get("ok")}
+            for e in tool_trace
+        ]
+        full = [e for e in tool_trace if e.get("result") is not None]
+        if full:
+            await tool_traces.save_trace(user_id, conv_id, trace_id, full)
     if request.regenerate and request.conversation_id:
         await convo.replace_last_assistant(user_id, conv_id, ai_msg)
     else:
@@ -1026,15 +1039,30 @@ async def get_ai_conversation(
     return convo.serialize_conversation(c)
 
 
+@app.get("/api/ai/conversations/{conversation_id}/traces/{trace_id}")
+async def get_ai_trace(
+    conversation_id: str,
+    trace_id: str,
+    current_user: str = Depends(get_current_user)
+):
+    """Fetch the full per-call tool results for one smart-lookup answer (the
+    "Behind the scenes" data), loaded lazily so threads stay light."""
+    doc = await tool_traces.get_trace(current_user, trace_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Trace not found")
+    return doc
+
+
 @app.delete("/api/ai/conversations/{conversation_id}")
 async def delete_ai_conversation(
     conversation_id: str,
     current_user: str = Depends(get_current_user)
 ):
-    """Delete a conversation."""
+    """Delete a conversation (and any stored tool traces)."""
     ok = await convo.delete_conversation(current_user, conversation_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Conversation not found")
+    await tool_traces.delete_for_conversation(current_user, conversation_id)
     return {"success": True}
 
 

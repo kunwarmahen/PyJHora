@@ -722,16 +722,16 @@ clean status/dict — thin JSON-schema wrappers, minimal new surface.
       lookup"**.) UPDATE 2026-06-29: the panel is now a **graphical vertical timeline**
       (`TraceNode` — dot-on-a-connector-line) running seed → each tool call (with a
       "view data" disclosure) → answer, with coloured/iconned nodes.
-- [ ] OPEN: **persisted-trace storage strategy** (replaces the earlier "trim large
-      results" note). Today the full tool results are stored inline on each saved
-      message — faithful but bloats the conversation doc and the list/load paths.
-      Better options under consideration: (a) **lazy side-collection** — store only the
-      light trace (name/args/ok) on the message, full result blobs in a separate
-      collection fetched when "Behind the scenes" is opened; (b) **recompute on
-      demand** — store only name/args/ok, re-run the tools on expand (caveat:
-      time-sensitive tools like transits/dasha/panchanga reproduce as-of-now, not
-      as-of-answer); (c) **keep inline + projection** — exclude message bodies from the
-      conversation-list query so listing stays fast, accept per-thread load cost.
+- [x] DONE 2026-06-29: **persisted-trace storage strategy** — chose the **lazy
+      side-collection** (owner pick). The assistant message now keeps only the *light*
+      trace (`tool_trace` = name/args/ok) plus an opaque `trace_id`, so listing/loading
+      threads stays fast. The full per-call results live in a separate
+      `ai_tool_traces` collection (`tool_traces.py`), keyed by `trace_id`, written in
+      `_save_turn` and fetched lazily via `GET /api/ai/conversations/{id}/traces/
+      {trace_id}` only when the user expands "Behind the scenes" on a reopened answer.
+      Live answers still show full data from the SSE stream (zero extra storage).
+      Traces are user-scoped and deleted with their conversation. Verified end-to-end
+      against Mongo (save/fetch/isolation/delete).
 
 **Open risks:** weak local models loop/hallucinate tool names (cap max tool
 rounds, validate names, fall back to pass-all on repeated failure); streaming +

@@ -63,6 +63,7 @@ pyjhora-web/
 │   ├── llm_service.py       # Multi-provider LLM layer (Ollama/OpenAI-compatible/Gemini/OpenAI) + streaming
 │   ├── chart_context.py     # Builds the structured chart context sent to the AI
 │   ├── tools.py             # Tool registry for agentic mode (wraps AstrologyCompute)
+│   ├── tool_traces.py       # Lazy side-storage for smart-lookup tool results
 │   ├── conversations.py     # Saved AI chat threads (per user + profile)
 │   ├── user_settings.py     # Per-user encrypted API keys
 │   ├── ratelimit.py         # Per-user rate limiting for AI endpoints
