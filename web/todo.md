@@ -250,8 +250,18 @@ web exposes. High-value additions:
       dashboard card) renders transits on the natal Lagna via the shared North/South
       `Kundali`, respecting the chart-style toggle + selected ayanamsa, with a date
       picker and a graha table. `POST /api/astrology/transit` now takes `ayanamsa` and
-      validates the result. NOTE: transit positions are computed at local noon for a
-      stable daily snapshot.
+      validates the result.
+  - **Live "now" anchoring** (DONE 2026-06-29): the default snapshot now uses the
+    *viewer's* current wall-clock and timezone instead of birthplace noon. Fixed two
+    bugs: (1) the frontend "today" default used `toISOString()` (UTC), rolling over to
+    tomorrow for users west of UTC — now uses local calendar fields; (2) the backend
+    hardcoded `swe.julday(..., 12.0)` against the birth `Place`, so the Moon (~0.5°/hr)
+    was placed at birthplace noon rather than the present instant. The endpoint now
+    accepts `current_time` + `current_tz`; `get_transits` builds a separate
+    `transit_place` carrying the viewer's tz and computes the JD at the actual time
+    (falls back to local-noon + birth tz when absent, so older callers are unaffected).
+    A chosen (non-today) date still uses local noon as a stable daily snapshot. Response
+    includes `transit_time`; the page shows an "As of {date}, {time}" badge.
 - [x] **Strength tables** (P2). DONE 2026-06-28: `get_shadbala` returns the six-fold
       strength (sthana/kaala/dig/cheshta/naisargika/drik) plus total rupa, required rupa,
       ratio and rank for Sun..Saturn. `POST /shadbala`. Shown as a table in the Advanced

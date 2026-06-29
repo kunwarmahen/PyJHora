@@ -82,9 +82,20 @@ export const astrologyService = {
     api.post("/api/astrology/dhasa/children", birthDetails, {
       params: { lords: lordsPath.join(",") },
     }),
-  getTransits: (birthDetails, currentDate = null, ayanamsa = DEFAULT_AYANAMSA) =>
+  getTransits: (
+    birthDetails,
+    currentDate = null,
+    ayanamsa = DEFAULT_AYANAMSA,
+    currentTime = null,
+    currentTz = null
+  ) =>
     api.post("/api/astrology/transit", birthDetails, {
-      params: { current_date: currentDate, ayanamsa },
+      params: {
+        current_date: currentDate,
+        current_time: currentTime,
+        current_tz: currentTz,
+        ayanamsa,
+      },
     }),
   // Other (non-Vimsottari) dasha systems.
   getDashaSystems: () => api.get("/api/astrology/dasha-systems"),

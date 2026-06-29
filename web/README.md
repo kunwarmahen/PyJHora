@@ -299,7 +299,8 @@ REACT_APP_API_TIMEOUT=30000
   pick one from the "Other Dasha Systems" card for a maha-period table.
 
 ### 6. Transits (Gochara)
-- Current planetary positions for today or a chosen date, drawn over the natal chart
+- Current planetary positions for the present moment (anchored to the viewer's local
+  time and timezone) or a chosen date, drawn over the natal chart
 - House counted from both the natal Lagna and natal Moon, retrograde flagged
 - Key upcoming sign-ingress dates for Jupiter and Saturn
 - North / South Indian chart styles, respects the selected ayanamsa
@@ -416,7 +417,7 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `GET /api/astrology/dasha-systems` - List the other (non-Vimsottari) dasha systems
 - `POST /api/astrology/dasha-periods?dhasa_type=` - Maha-level periods for ashtottari/
   yogini/narayana/kalachakra
-- `POST /api/astrology/transit?current_date=&ayanamsa=` - Current transits (Gochara)
+- `POST /api/astrology/transit?current_date=&current_time=&current_tz=&ayanamsa=` - Current transits (Gochara); `current_time`/`current_tz` anchor the snapshot to the viewer's present moment and timezone (default: their local now)
 - `POST /api/astrology/ashtakavarga?ayanamsa=` - Bhinna + Sarva Ashtakavarga tables
 - `POST /api/astrology/chart-details?ayanamsa=` - Arudha padas, Chara karakas,
   Special lagnas, Upagrahas

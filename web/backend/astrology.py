@@ -1221,6 +1221,7 @@ class AstrologyCompute:
     def get_transits(dob: str, tob: str, place: str,
                      lat: Optional[float] = None, lon: Optional[float] = None,
                      tz: Optional[float] = None, current_date: Optional[str] = None,
+                     current_time: Optional[str] = None, current_tz: Optional[float] = None,
                      ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """Current planetary transits (Gochara) over the natal chart.
 
@@ -1255,16 +1256,32 @@ class AstrologyCompute:
             natal_lagna_deg = natal[0][1][1]
             natal_moon_rasi, natal_moon_deg = natal[2][1]  # row 2 = Moon (planet 1)
 
-            # ── Transit moment (local noon for a stable daily snapshot) ─────
+            # ── Transit moment ──────────────────────────────────────────────
+            # Anchor to the *viewer's* current location: their wall-clock time and
+            # timezone, not the birthplace's. This keeps fast movers (especially the
+            # Moon, ~0.5°/hr) at the present instant rather than at birthplace noon.
             if current_date:
                 ty, tm, td = map(int, current_date.split("-"))
             else:
                 now = datetime.now()
                 ty, tm, td = now.year, now.month, now.day
-            transit_jd = swe.julday(ty, tm, td, 12.0)
 
-            transit = charts.rasi_chart(transit_jd, place_obj)
-            retro_ids = set(drik.planets_in_retrograde(transit_jd, place_obj))
+            if current_time:
+                tparts = current_time.split(":")
+                t_hour = int(tparts[0])
+                t_min = int(tparts[1]) if len(tparts) > 1 else 0
+            else:
+                t_hour, t_min = 12, 0  # local noon fallback (stable daily snapshot)
+
+            # PyJHora's drik functions take a *local* JD and subtract place.timezone
+            # to reach UT, so the transit place must carry the viewer's current tz for
+            # the local→UT conversion to land on the right instant.
+            transit_tz = current_tz if current_tz is not None else tz_offset
+            transit_place = drik.Place(place, lat, lon, transit_tz)
+            transit_jd = swe.julday(ty, tm, td, t_hour + t_min / 60.0)
+
+            transit = charts.rasi_chart(transit_jd, transit_place)
+            retro_ids = set(drik.planets_in_retrograde(transit_jd, transit_place))
 
             nak_span = 360.0 / 27.0
             pada_span = nak_span / 4.0
@@ -1300,7 +1317,7 @@ class AstrologyCompute:
                 try:
                     cur_rasi = transit[pidx + 1][1][0]
                     entry_jd, entry_long = drik.next_planet_entry_date(
-                        pidx, transit_jd, place_obj, increment_days=1, precision=0.1)
+                        pidx, transit_jd, transit_place, increment_days=1, precision=0.1)
                     ey, em, ed, _ = utils.jd_to_gregorian(entry_jd)
                     to_rasi = int(entry_long // 30) % 12
                     upcoming.append({
@@ -1317,6 +1334,7 @@ class AstrologyCompute:
             return {
                 "status": "success",
                 "transit_date": f"{ty:04d}-{tm:02d}-{td:02d}",
+                "transit_time": f"{t_hour:02d}:{t_min:02d}",
                 "natal": {
                     "lagna": {
                         "house": natal_lagna_rasi + 1,

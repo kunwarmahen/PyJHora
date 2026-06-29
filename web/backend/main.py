@@ -629,6 +629,8 @@ async def get_shared_chart(token: str):
 async def get_transits(
     birth_details: BirthDetails,
     current_date: Optional[str] = None,
+    current_time: Optional[str] = None,
+    current_tz: Optional[float] = None,
     ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user)
 ):
@@ -642,6 +644,8 @@ async def get_transits(
             lon=birth_details.longitude,
             tz=birth_details.timezone,
             current_date=current_date,
+            current_time=current_time,
+            current_tz=current_tz,
             ayanamsa=ayanamsa
         )
         if transits.get("status") != "success":

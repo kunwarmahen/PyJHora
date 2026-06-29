@@ -15,7 +15,20 @@ import { Card } from "../components/Card";
 import { PLANET_ABBR, DEFAULT_AYANAMSA, AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
+const pad2 = (n) => String(n).padStart(2, "0");
+
+// Local calendar date (NOT toISOString, which is UTC and can be off by a day).
+const todayISO = (d = new Date()) =>
+  `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+// The viewer's current wall-clock + UTC offset in float hours (e.g. 5.5 IST, -5 EST).
+const localNow = () => {
+  const d = new Date();
+  return {
+    time: `${pad2(d.getHours())}:${pad2(d.getMinutes())}`,
+    tz: -d.getTimezoneOffset() / 60,
+  };
+};
 
 const formatDate = (dateStr, locale = "en-US") => {
   if (!dateStr) return "—";
@@ -90,7 +103,18 @@ export const TransitPage = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await astrologyService.getTransits(birthDetails, transitDate, ayanamsa);
+      // For "today" use the viewer's actual wall-clock so fast movers (esp. the
+      // Moon) are placed at the present moment; for any other date use local noon
+      // as a stable daily snapshot. Either way anchor to the viewer's timezone.
+      const { time, tz } = localNow();
+      const isToday = transitDate === todayISO();
+      const res = await astrologyService.getTransits(
+        birthDetails,
+        transitDate,
+        ayanamsa,
+        isToday ? time : "12:00",
+        tz
+      );
       setResult(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || t("transit.calcError"));
@@ -112,6 +136,14 @@ export const TransitPage = () => {
   const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
   const planets = result?.planets || {};
   const orderedPlanets = PLANET_ORDER.filter((p) => planets[p]).map((p) => [p, planets[p]]);
+
+  // "Today" snapshots are anchored to the live wall-clock, so show the time too.
+  const isToday = transitDate === todayISO();
+  const transitMoment = result
+    ? isToday && result.transit_time
+      ? `${formatDate(result.transit_date, locale)}, ${result.transit_time}`
+      : formatDate(result.transit_date, locale)
+    : "";
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -242,6 +274,16 @@ export const TransitPage = () => {
                 color: "var(--text-secondary)",
               }}
             >
+              <span
+                style={{
+                  padding: "var(--space-xs) var(--space-md)",
+                  background: "white",
+                  borderRadius: "var(--radius-full)",
+                  boxShadow: "var(--shadow-sm)",
+                }}
+              >
+                {t("transit.asOf", { moment: transitMoment })}
+              </span>
               <span
                 style={{
                   padding: "var(--space-xs) var(--space-md)",
