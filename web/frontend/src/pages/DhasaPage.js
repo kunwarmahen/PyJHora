@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Clock, AlertCircle, Star, ChevronDown, Calendar } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
+import { intlLocale } from "../utils/format";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
@@ -22,40 +24,40 @@ const isCurrentPeriod = (startDate, endDate) => {
   }
 };
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return "N/A";
+const formatDate = (dateStr, locale = "en-US") => {
+  if (!dateStr) return "—";
   try {
-    return new Date(dateStr).toLocaleDateString("en-US", {
+    return new Date(dateStr).toLocaleDateString(locale, {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
   } catch (e) {
-    return "N/A";
+    return "—";
   }
 };
 
-// Vimsottari has four levels we expose; each gets its own label + accent so the
-// nested tree stays readable as you drill down.
+// Vimsottari has four levels we expose; each gets its own label key + accent so
+// the nested tree stays readable as you drill down.
 const LEVELS = {
-  1: { label: "Maha Dasha", accent: "var(--saffron)" },
-  2: { label: "Bhukti (Antar)", accent: "var(--cosmic-indigo)" },
-  3: { label: "Antara (Pratyantar)", accent: "var(--vermillion)" },
-  4: { label: "Sookshma", accent: "var(--terracotta)" },
+  1: { labelKey: "dhasa.mahaDasha", accent: "var(--saffron)" },
+  2: { labelKey: "dhasa.bhukti", accent: "var(--cosmic-indigo)" },
+  3: { labelKey: "dhasa.antara", accent: "var(--vermillion)" },
+  4: { labelKey: "dhasa.sookshma", accent: "var(--terracotta)" },
 };
 
-const formatDuration = (node, level) => {
+const formatDuration = (node, level, t) => {
   if (level === 1 && node.duration_years != null) {
-    return `${node.duration_years} years`;
+    return t("dhasa.years", { count: node.duration_years });
   }
   if (node.duration_months != null && node.duration_months >= 1) {
-    return `${Math.round(node.duration_months * 10) / 10} months`;
+    return t("dhasa.months", { count: Math.round(node.duration_months * 10) / 10 });
   }
   if (node.duration_days != null) {
-    return `${Math.round(node.duration_days)} days`;
+    return t("dhasa.days", { count: Math.round(node.duration_days) });
   }
   if (node.duration_months != null) {
-    return `${Math.round(node.duration_months * 30)} days`;
+    return t("dhasa.days", { count: Math.round(node.duration_months * 30) });
   }
   return "";
 };
@@ -64,6 +66,8 @@ const formatDuration = (node, level) => {
 // `eagerChildren` carries children already present in the payload (the Maha
 // Dasha ships its Bhuktis). Deeper levels are lazy-fetched on first expand.
 function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
+  const { t, i18n } = useTranslation();
+  const locale = intlLocale(i18n.language);
   const isCurrent = isCurrentPeriod(node.start_date, node.end_date);
   const canExpand = level < 4;
   const meta = LEVELS[level];
@@ -80,11 +84,11 @@ function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
       const res = await astrologyService.getDhasaChildren(birthDetails, path);
       setChildren(res.data.children || []);
     } catch (e) {
-      setError(e.response?.data?.detail || "Failed to load sub-periods");
+      setError(e.response?.data?.detail || t("dhasa.loadChildrenError"));
     } finally {
       setLoading(false);
     }
-  }, [birthDetails, path]);
+  }, [birthDetails, path, t]);
 
   // Auto-load children when a node opens (incl. the current-period cascade,
   // which expands the whole live Maha→Bhukti→Antara→Sookshma chain on mount).
@@ -163,15 +167,15 @@ function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
                 color: "var(--text-muted)",
               }}
             >
-              {meta.label}
+              {t(meta.labelKey)}
             </span>
           </div>
           <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "2px" }}>
-            {formatDuration(node, level)}
+            {formatDuration(node, level, t)}
             {node.start_date && node.end_date && (
               <span>
                 {" "}
-                • {formatDate(node.start_date)} to {formatDate(node.end_date)}
+                • {formatDate(node.start_date, locale)} to {formatDate(node.end_date, locale)}
               </span>
             )}
           </div>
@@ -191,7 +195,7 @@ function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
               whiteSpace: "nowrap",
             }}
           >
-            Now
+            {t("dhasa.now")}
           </div>
         )}
 
@@ -232,7 +236,7 @@ function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
               }}
             >
               <div className="spinner" style={{ width: 18, height: 18 }}></div>
-              Loading {LEVELS[level + 1]?.label || "sub"}-periods…
+              {t("dhasa.loadingChildren")}
             </div>
           )}
           {error && (
@@ -269,6 +273,8 @@ function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
 
 // ── Other (non-Vimsottari) dasha systems: a picker + a flat maha-period table ──
 function OtherDashaSystems({ birthDetails }) {
+  const { t, i18n } = useTranslation();
+  const locale = intlLocale(i18n.language);
   const [systems, setSystems] = useState([]);
   const [selected, setSelected] = useState("");
   const [data, setData] = useState(null);
@@ -297,10 +303,10 @@ function OtherDashaSystems({ birthDetails }) {
       astrologyService
         .getDashaPeriods(birthDetails, key)
         .then((r) => setData(r.data))
-        .catch((e) => setError(e.response?.data?.detail || "Failed to load dasha"))
+        .catch((e) => setError(e.response?.data?.detail || t("dhasa.loadDashaError")))
         .finally(() => setLoading(false));
     },
-    [birthDetails]
+    [birthDetails, t]
   );
 
   const onChange = (key) => {
@@ -309,11 +315,11 @@ function OtherDashaSystems({ birthDetails }) {
   };
 
   return (
-    <Card title="Other Dasha Systems" icon={<Clock size={24} />}>
+    <Card title={t("dhasa.otherSystems")} icon={<Clock size={24} />}>
       <label className="ayanamsa-select" style={{ marginBottom: "var(--space-lg)" }}>
-        <span>System</span>
+        <span>{t("dhasa.system")}</span>
         <select value={selected} onChange={(e) => onChange(e.target.value)}>
-          <option value="">Choose a dasha system…</option>
+          <option value="">{t("dhasa.chooseSystem")}</option>
           {systems.map((s) => (
             <option key={s.key} value={s.key}>
               {s.name}
@@ -329,7 +335,7 @@ function OtherDashaSystems({ birthDetails }) {
       )}
 
       <ErrorBanner message={error} />
-      {loading && <LoadingState message="Calculating periods…" />}
+      {loading && <LoadingState message={t("dhasa.calcPeriods")} />}
 
       {data?.periods?.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
@@ -361,12 +367,12 @@ function OtherDashaSystems({ birthDetails }) {
                         color: "var(--saffron)",
                       }}
                     >
-                      Now
+                      {t("dhasa.now")}
                     </span>
                   )}
                 </span>
                 <span style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-                  {formatDate(p.start_date)} – {formatDate(p.end_date)}
+                  {formatDate(p.start_date, locale)} – {formatDate(p.end_date, locale)}
                 </span>
                 <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
                   {p.duration_years}y
@@ -382,6 +388,8 @@ function OtherDashaSystems({ birthDetails }) {
 
 export const DhasaPage = () => {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
 
   const [loading, setLoading] = useState(true);
@@ -421,7 +429,7 @@ export const DhasaPage = () => {
       const response = await astrologyService.getDhasa(birthDetails, "vimsottari");
       setResult(response.data);
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to calculate Dasha");
+      setError(err.response?.data?.detail || t("dhasa.calcError"));
     } finally {
       setLoading(false);
     }
@@ -448,8 +456,8 @@ export const DhasaPage = () => {
     <div className="dashboard-container mandala-bg">
       <PageHeader
         icon={<Clock size={24} />}
-        title="Vimsottari Dasha"
-        subtitle="Planetary periods — drill down Maha → Bhukti → Antara → Sookshma"
+        title={t("dhasa.title")}
+        subtitle={t("dhasa.subtitle")}
         accent="indigo"
       />
 
@@ -484,9 +492,9 @@ export const DhasaPage = () => {
             }}
           >
             <Clock size={18} style={{ color: "var(--saffron)" }} />
-            Vimsottari System
+            {t("dhasa.vimsottariSystem")}
             <span style={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--text-muted)" }}>
-              120-year cycle
+              {t("dhasa.cycle120")}
             </span>
           </div>
           <div
@@ -503,14 +511,14 @@ export const DhasaPage = () => {
             }}
           >
             <Calendar size={16} />
-            Today:{" "}
-            {NOW.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+            {t("dhasa.today")}{" "}
+            {NOW.toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" })}
           </div>
         </div>
 
         {loading ? (
           <Card>
-            <LoadingState message="Calculating Vimsottari Dasha — analyzing planetary periods…" />
+            <LoadingState message={t("dhasa.loading")} />
           </Card>
         ) : result ? (
           <div style={{ opacity: 0, animation: "fadeIn 0.6s ease-out forwards" }}>
@@ -551,7 +559,7 @@ export const DhasaPage = () => {
                     <Clock size={20} />
                   </div>
                   <h3 style={{ margin: 0, color: "var(--cosmic-indigo)", fontSize: "1.5rem" }}>
-                    Current Period
+                    {t("dhasa.currentPeriod")}
                   </h3>
                 </div>
                 <div
@@ -572,7 +580,7 @@ export const DhasaPage = () => {
                         marginBottom: "var(--space-xs)",
                       }}
                     >
-                      Maha Dasha
+                      {t("dhasa.mahaDasha")}
                     </div>
                     <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--saffron)" }}>
                       {currentMahaDasha.lord}
@@ -588,7 +596,7 @@ export const DhasaPage = () => {
                         marginBottom: "var(--space-xs)",
                       }}
                     >
-                      Period
+                      {t("dhasa.period")}
                     </div>
                     <div
                       style={{
@@ -597,8 +605,8 @@ export const DhasaPage = () => {
                         color: "var(--cosmic-indigo)",
                       }}
                     >
-                      {formatDate(currentMahaDasha.start_date)} -{" "}
-                      {formatDate(currentMahaDasha.end_date)}
+                      {formatDate(currentMahaDasha.start_date, locale)} -{" "}
+                      {formatDate(currentMahaDasha.end_date, locale)}
                     </div>
                   </div>
                   {currentSubPeriod && (
@@ -612,7 +620,7 @@ export const DhasaPage = () => {
                           marginBottom: "var(--space-xs)",
                         }}
                       >
-                        Current Bhukti
+                        {t("dhasa.currentBhukti")}
                       </div>
                       <div
                         style={{
@@ -630,8 +638,8 @@ export const DhasaPage = () => {
                           marginTop: "var(--space-xs)",
                         }}
                       >
-                        {formatDate(currentSubPeriod.start_date)} -{" "}
-                        {formatDate(currentSubPeriod.end_date)}
+                        {formatDate(currentSubPeriod.start_date, locale)} -{" "}
+                        {formatDate(currentSubPeriod.end_date, locale)}
                       </div>
                     </div>
                   )}
@@ -643,8 +651,7 @@ export const DhasaPage = () => {
                     color: "var(--text-secondary)",
                   }}
                 >
-                  The live period is expanded below — keep drilling to see the running Antara and
-                  Sookshma.
+                  {t("dhasa.liveHint")}
                 </p>
               </div>
             )}
@@ -670,7 +677,7 @@ export const DhasaPage = () => {
                 }}
               >
                 <Star size={24} style={{ color: "var(--saffron)" }} />
-                All Maha Dasha Periods
+                {t("dhasa.allMaha")}
               </h3>
 
               {result.dasha_sequence && result.dasha_sequence.length > 0 && (

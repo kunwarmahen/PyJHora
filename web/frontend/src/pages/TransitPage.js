@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Orbit, Calendar, TrendingUp, RotateCcw } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
+import { intlLocale } from "../utils/format";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
 import { PageHeader } from "../components/PageHeader";
@@ -15,16 +17,16 @@ import "../styles/Dashboard.css";
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return "N/A";
+const formatDate = (dateStr, locale = "en-US") => {
+  if (!dateStr) return "—";
   try {
-    return new Date(dateStr).toLocaleDateString("en-US", {
+    return new Date(dateStr).toLocaleDateString(locale, {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
   } catch (e) {
-    return "N/A";
+    return "—";
   }
 };
 
@@ -49,6 +51,8 @@ const ordinal = (n) => {
 
 export const TransitPage = () => {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
 
   const [loading, setLoading] = useState(true);
@@ -89,11 +93,11 @@ export const TransitPage = () => {
       const res = await astrologyService.getTransits(birthDetails, transitDate, ayanamsa);
       setResult(res.data);
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to calculate transits");
+      setError(err.response?.data?.detail || t("transit.calcError"));
     } finally {
       setLoading(false);
     }
-  }, [birthDetails, transitDate, ayanamsa]);
+  }, [birthDetails, transitDate, ayanamsa, t]);
 
   useEffect(() => {
     if (!selectedProfile) {
@@ -113,8 +117,8 @@ export const TransitPage = () => {
     <div className="dashboard-container mandala-bg">
       <PageHeader
         icon={<Orbit size={24} />}
-        title="Transits (Gochara)"
-        subtitle="Where the grahas move today, over your natal chart"
+        title={t("transit.title")}
+        subtitle={t("transit.subtitle")}
         accent="indigo"
       />
 
@@ -150,7 +154,7 @@ export const TransitPage = () => {
               }}
             >
               <Calendar size={18} style={{ color: "var(--saffron)" }} />
-              Transit date
+              {t("transit.transitDate")}
             </label>
             <input
               type="date"
@@ -182,7 +186,7 @@ export const TransitPage = () => {
                 fontSize: "0.8125rem",
               }}
             >
-              <RotateCcw size={14} /> Today
+              <RotateCcw size={14} /> {t("transit.today")}
             </button>
           </div>
 
@@ -213,7 +217,7 @@ export const TransitPage = () => {
                   color: chartStyle === style ? "white" : "var(--text-secondary)",
                 }}
               >
-                {style} Indian
+                {style === "south" ? t("birthChart.southIndian") : t("birthChart.northIndian")}
               </button>
             ))}
           </div>
@@ -223,7 +227,7 @@ export const TransitPage = () => {
 
         {loading ? (
           <Card>
-            <LoadingState message="Calculating transits — locating the grahas…" />
+            <LoadingState message={t("transit.loading")} />
           </Card>
         ) : result ? (
           <div style={{ opacity: 0, animation: "fadeIn 0.6s ease-out forwards" }}>
@@ -246,7 +250,7 @@ export const TransitPage = () => {
                   boxShadow: "var(--shadow-sm)",
                 }}
               >
-                Natal Lagna:{" "}
+                {t("transit.natalLagna")}:{" "}
                 <strong style={{ color: "var(--saffron)" }}>
                   {result.natal?.lagna?.sign_name}
                 </strong>
@@ -259,7 +263,7 @@ export const TransitPage = () => {
                   boxShadow: "var(--shadow-sm)",
                 }}
               >
-                Natal Moon:{" "}
+                {t("transit.natalMoon")}:{" "}
                 <strong style={{ color: "var(--cosmic-indigo)" }}>
                   {result.natal?.moon?.sign_name}
                 </strong>
@@ -272,7 +276,8 @@ export const TransitPage = () => {
                   boxShadow: "var(--shadow-sm)",
                 }}
               >
-                Ayanamsa: <strong style={{ color: "var(--cosmic-indigo)" }}>{ayanamsaLabel}</strong>
+                {t("transit.ayanamsa")}:{" "}
+                <strong style={{ color: "var(--cosmic-indigo)" }}>{ayanamsaLabel}</strong>
               </span>
             </div>
 
@@ -288,8 +293,10 @@ export const TransitPage = () => {
               <Kundali
                 planets={planets}
                 lagna={result.lagna}
-                title="Gochara"
-                subtitle={`Transits • ${formatDate(result.transit_date)}`}
+                title={t("transit.gochara")}
+                subtitle={t("transit.transitsOn", {
+                  date: formatDate(result.transit_date, locale),
+                })}
                 exportable
               />
 
@@ -315,7 +322,7 @@ export const TransitPage = () => {
                   }}
                 >
                   <Orbit size={18} style={{ color: "var(--saffron)" }} />
-                  Transiting Grahas
+                  {t("transit.transitingGrahas")}
                 </h3>
                 <div style={{ overflowX: "auto" }}>
                   <table
@@ -331,14 +338,14 @@ export const TransitPage = () => {
                           letterSpacing: "0.5px",
                         }}
                       >
-                        <th style={{ padding: "var(--space-xs)" }}>Planet</th>
-                        <th style={{ padding: "var(--space-xs)" }}>Sign</th>
-                        <th style={{ padding: "var(--space-xs)" }}>Nakshatra</th>
+                        <th style={{ padding: "var(--space-xs)" }}>{t("common.planet")}</th>
+                        <th style={{ padding: "var(--space-xs)" }}>{t("common.sign")}</th>
+                        <th style={{ padding: "var(--space-xs)" }}>{t("common.nakshatra")}</th>
                         <th style={{ padding: "var(--space-xs)", textAlign: "center" }}>
-                          From Lagna
+                          {t("transit.fromLagna")}
                         </th>
                         <th style={{ padding: "var(--space-xs)", textAlign: "center" }}>
-                          From Moon
+                          {t("transit.fromMoon")}
                         </th>
                       </tr>
                     </thead>
@@ -358,7 +365,7 @@ export const TransitPage = () => {
                             </span>
                             {p.retrograde && (
                               <span
-                                title="Retrograde"
+                                title={t("transit.retrograde")}
                                 style={{
                                   marginLeft: "6px",
                                   padding: "1px 5px",
@@ -420,8 +427,7 @@ export const TransitPage = () => {
                     color: "var(--text-muted)",
                   }}
                 >
-                  House counted inclusively from the natal Lagna and natal Moon. Moon-based houses
-                  drive classic gochara results.
+                  {t("transit.houseNote")}
                 </p>
               </div>
             </div>
@@ -450,7 +456,7 @@ export const TransitPage = () => {
                   }}
                 >
                   <TrendingUp size={20} style={{ color: "var(--saffron)" }} />
-                  Key Upcoming Transits
+                  {t("transit.upcoming")}
                 </h3>
                 <div
                   style={{
@@ -488,7 +494,7 @@ export const TransitPage = () => {
                           marginTop: "2px",
                         }}
                       >
-                        {formatDate(u.date)}
+                        {formatDate(u.date, locale)}
                       </div>
                     </div>
                   ))}

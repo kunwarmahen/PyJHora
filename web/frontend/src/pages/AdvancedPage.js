@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Sparkles, Grid3x3, Compass, Gauge } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
@@ -26,6 +27,7 @@ const savColor = (v) => {
 
 export const AdvancedPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { selectedProfile } = useProfile();
 
   const [ayanamsa, setAyanamsa] = useState(
@@ -110,8 +112,8 @@ export const AdvancedPage = () => {
     <div className="dashboard-container mandala-bg">
       <PageHeader
         icon={<Sparkles size={24} />}
-        title="Advanced Details"
-        subtitle="Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas & Shadbala"
+        title={t("advanced.title")}
+        subtitle={t("advanced.subtitle")}
         accent="gold"
       />
 
@@ -126,7 +128,7 @@ export const AdvancedPage = () => {
           }}
         >
           <label className="ayanamsa-select">
-            <span>Ayanamsa</span>
+            <span>{t("birthChart.ayanamsa")}</span>
             <select value={ayanamsa} onChange={(e) => changeAyanamsa(e.target.value)}>
               {AYANAMSAS.map((a) => (
                 <option key={a.value} value={a.value}>
@@ -141,7 +143,7 @@ export const AdvancedPage = () => {
 
         {loading ? (
           <Card>
-            <LoadingState message="Computing advanced chart factors…" />
+            <LoadingState message={t("advanced.loading")} />
           </Card>
         ) : (
           <>
@@ -153,14 +155,13 @@ export const AdvancedPage = () => {
                 accent="saffron"
               >
                 <p style={{ color: "var(--text-secondary)", marginBottom: "var(--space-md)" }}>
-                  Sarva Ashtakavarga (total bindus per sign — higher is more supportive). Grand
-                  total: <strong>{av.sarva_total}</strong>.
+                  {t("advanced.savIntro")} <strong>{av.sarva_total}</strong>.
                 </p>
                 <div style={{ overflowX: "auto" }}>
                   <table className="adv-table">
                     <thead>
                       <tr>
-                        <th>Contributor</th>
+                        <th>{t("advanced.contributor")}</th>
                         {RASI_ABBR.map((r) => (
                           <th key={r}>{r}</th>
                         ))}
@@ -193,9 +194,9 @@ export const AdvancedPage = () => {
 
             {/* Advanced chart details */}
             {details && (
-              <Card title="Chart Factors" icon={<Compass size={24} />} accent="indigo">
+              <Card title={t("advanced.chartFactors")} icon={<Compass size={24} />} accent="indigo">
                 <h4 className="adv-subhead">
-                  <GlossaryTerm term="Arudha">Arudha</GlossaryTerm> Padas
+                  <GlossaryTerm term="Arudha">Arudha</GlossaryTerm> {t("advanced.padas")}
                 </h4>
                 <div className="ui-field-grid">
                   {details.arudha_padas.map((a) => (
@@ -204,7 +205,7 @@ export const AdvancedPage = () => {
                 </div>
 
                 <h4 className="adv-subhead">
-                  Chara <GlossaryTerm term="Karaka">Karakas</GlossaryTerm> (Jaimini)
+                  {t("advanced.chara")} <GlossaryTerm term="Karaka">Karakas</GlossaryTerm> (Jaimini)
                 </h4>
                 <div className="ui-field-grid">
                   {details.chara_karakas.map((k) => (
@@ -213,7 +214,7 @@ export const AdvancedPage = () => {
                 </div>
 
                 <h4 className="adv-subhead">
-                  Special <GlossaryTerm term="Lagna">Lagnas</GlossaryTerm>
+                  {t("advanced.special")} <GlossaryTerm term="Lagna">Lagnas</GlossaryTerm>
                 </h4>
                 <div className="ui-field-grid">
                   {details.special_lagnas.map((s) => (
@@ -222,7 +223,8 @@ export const AdvancedPage = () => {
                 </div>
 
                 <h4 className="adv-subhead">
-                  <GlossaryTerm term="Upagraha">Upagrahas</GlossaryTerm> (Sub-planets)
+                  <GlossaryTerm term="Upagraha">Upagrahas</GlossaryTerm> ({t("advanced.subPlanets")}
+                  )
                 </h4>
                 <div className="ui-field-grid">
                   {details.upagrahas.map((u) => (
@@ -244,24 +246,23 @@ export const AdvancedPage = () => {
                 accent="vermillion"
               >
                 <p style={{ color: "var(--text-secondary)", marginBottom: "var(--space-md)" }}>
-                  Six-fold strength in rupas. A planet is sufficiently strong when its total meets
-                  the required rupas (ratio ≥ 1.0).
+                  {t("advanced.shadbalaIntro")}
                 </p>
                 <div style={{ overflowX: "auto" }}>
                   <table className="adv-table">
                     <thead>
                       <tr>
-                        <th>Planet</th>
+                        <th>{t("common.planet")}</th>
                         <th>Sthana</th>
                         <th>Kaala</th>
                         <th>Dig</th>
                         <th>Cheshta</th>
                         <th>Naisargika</th>
                         <th>Drik</th>
-                        <th>Total (rupa)</th>
-                        <th>Required</th>
-                        <th>Ratio</th>
-                        <th>Rank</th>
+                        <th>{t("advanced.colTotal")}</th>
+                        <th>{t("advanced.colRequired")}</th>
+                        <th>{t("advanced.colRatio")}</th>
+                        <th>{t("advanced.colRank")}</th>
                       </tr>
                     </thead>
                     <tbody>
