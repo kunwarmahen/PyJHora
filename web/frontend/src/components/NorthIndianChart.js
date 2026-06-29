@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { PLANET_ABBR, RASI_NAMES } from "../constants/jyotish";
+import { PLANET_ABBR, RASI_NAMES, RASI_ABBR } from "../constants/jyotish";
 import { ChartExportButtons } from "./ChartExportButtons";
 import "../styles/NorthIndianChart.css";
 
@@ -62,10 +62,11 @@ export const NorthIndianChart = ({
     return items;
   };
 
-  // SVG geometry
+  // SVG geometry. The diamond fills nearly the whole viewBox (small inset only
+  // to keep the outer stroke from clipping) so it matches the South Indian grid.
   const width = 600;
   const height = 600;
-  const size = 480;
+  const size = 580;
   const offset = (width - size) / 2;
 
   const squareX = offset;
@@ -241,42 +242,37 @@ export const NorthIndianChart = ({
           {houses.map((house) => {
             const planetsInHouse = getPlanetsInHouse(house.num);
             const isHovered = hoveredHouse === house.num;
+            const sign = getSignForVisualHouse(house.num);
 
             return (
               <g key={house.num}>
-                {/* House number */}
-                <text
-                  x={house.cx}
-                  y={house.cy - 25}
-                  textAnchor="middle"
-                  fill={muted}
-                  fontSize="11"
-                  fontWeight="600"
-                >
-                  {house.num}
-                </text>
-
-                {/* Sign name — shown on hover/tap */}
-                <text
-                  x={house.cx}
-                  y={house.cy - 10}
-                  textAnchor="middle"
-                  fill={indigo}
-                  fontSize="10"
-                  fontWeight="500"
-                  opacity={isHovered ? 1 : 0}
-                  style={{ transition: "opacity 0.2s ease" }}
-                >
-                  {RASI_NAMES[getSignForVisualHouse(house.num) - 1]}
+                {/* Header line: house number + sign label. The sign abbreviation
+                    is always visible (parity with the South chart); on hover it
+                    expands to the full sign name. */}
+                <text x={house.cx} y={house.cy - 24} textAnchor="middle">
+                  <tspan fill={muted} fontSize="11" fontWeight="600">
+                    {house.num}
+                  </tspan>
+                  <tspan
+                    dx="5"
+                    fill={indigo}
+                    fontSize="10"
+                    fontWeight="500"
+                    opacity={isHovered ? 1 : 0.65}
+                  >
+                    {isHovered ? RASI_NAMES[sign - 1] : RASI_ABBR[sign - 1]}
+                  </tspan>
                 </text>
 
                 {/* Planets — one compact line each (name + inline degree),
-                    spacing/size tightens when a house is crowded */}
+                    spacing/size tightens in graduated steps as a house fills up,
+                    mirroring the South chart's crowded-cell handling. */}
                 {(() => {
                   const total = planetsInHouse.length;
-                  const step = total > 3 ? 14 : 18;
-                  const fs = total > 3 ? 11 : 13;
-                  const startY = house.cy - ((total - 1) * step) / 2 + 4;
+                  const fs = total <= 3 ? 13 : total <= 5 ? 11 : 10;
+                  const step = total <= 3 ? 18 : total <= 5 ? 14 : 12;
+                  const degFs = Math.max(fs - 3, 8);
+                  const startY = house.cy - ((total - 1) * step) / 2 + 6;
                   return planetsInHouse.map((item, idx) => (
                     <text
                       key={idx}
@@ -289,7 +285,7 @@ export const NorthIndianChart = ({
                     >
                       {item.name}
                       {item.degrees != null && (
-                        <tspan dx="3" fontSize={fs - 4} fontWeight="400" fill={muted}>
+                        <tspan dx="3" fontSize={degFs} fontWeight="400" fill={muted}>
                           {item.degrees.toFixed(1)}°
                         </tspan>
                       )}

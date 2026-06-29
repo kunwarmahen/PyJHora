@@ -68,10 +68,11 @@ export const SouthIndianChart = ({
           const { col, row } = SIGN_POS[signNum];
           const items = itemsForSign(signNum);
           const isLagna = lagna && lagna.house === signNum;
+          const isCrowded = items.length > 3;
           return (
             <div
               key={signNum}
-              className={`si-cell${isLagna ? " si-lagna" : ""}`}
+              className={`si-cell${isLagna ? " si-lagna" : ""}${isCrowded ? " si-crowded" : ""}`}
               style={{ gridColumn: col, gridRow: row }}
             >
               <span className="si-sign">{RASI_ABBR[signNum - 1]}</span>

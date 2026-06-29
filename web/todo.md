@@ -180,6 +180,15 @@ web exposes. High-value additions:
       `SouthIndianChart.js` (fixed-sign 4x4 grid); toggle on Birth Chart page switches
       both Rasi + Navamsa, preference saved to localStorage. Lagna cell marked with a
       saffron corner. Reuses the same data (planet `house` = sign number).
+- [x] **North/South chart visual parity** (P2). DONE 2026-06-29: North diamond now
+      drawn at `size=580` inside the 600 viewBox (was 480 — 60px of dead padding made
+      it render smaller than the South grid); South grid `max-width` 560→580 so both
+      render at the same ~580px. North houses gained an always-on rāśi abbreviation in
+      the header line (expands to the full sign name on hover), matching the South
+      cells. Typography unified (planets ~13px/700, degrees ~10px in `--text-secondary`,
+      lagna saffron). Crowded-house handling brought to parity: North uses graduated
+      sizing (≤3 / 4–5 / 6+ planets) with degree floored at 8px; South gains a
+      `si-crowded` class (4+ items) that tightens type + spacing to stay inside the cell.
 - [x] **Divisional charts D1–D60** (P1). DONE 2026-06-28: backend
       `calculate_divisional_chart(varga_factor=N)` + `SUPPORTED_VARGAS` (Parashara's
       16 Shodasavarga: D1/2/3/4/7/9/10/12/16/20/24/27/30/40/45/60, each with

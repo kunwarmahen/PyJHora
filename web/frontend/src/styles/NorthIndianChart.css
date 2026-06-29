@@ -116,7 +116,7 @@
   grid-template-rows: repeat(4, 1fr);
   aspect-ratio: 1 / 1;
   width: 100%;
-  max-width: 560px;
+  max-width: 580px;
   margin: 0 auto;
   border: 3px solid var(--saffron);
   background: white;
@@ -165,6 +165,18 @@
   font-style: normal;
   font-size: 0.6rem;
   color: var(--text-secondary);
+}
+/* Crowded cell (4+ items): tighten type and spacing so it stays inside the
+   cell, mirroring the North chart's graduated sizing. */
+.si-crowded .si-planets {
+  gap: 1px 4px;
+  margin-top: 8px;
+}
+.si-crowded .si-pl {
+  font-size: 0.68rem;
+}
+.si-crowded .si-deg {
+  font-size: 0.52rem;
 }
 .si-lagna {
   background: rgba(255, 153, 51, 0.08);
