@@ -32,7 +32,7 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   Vimsottari dasha chain, yogas, doshas, current transits, Sarva Ashtakavarga and
   Shadbala strengths — view the exact data sent
 - **Two answer modes** (per conversation): **Full context** pre-sends the whole chart,
-  or **Tool calls** sends a small seed and lets the model fetch what it needs on demand
+  or **Smart lookup** sends a small seed and lets the model fetch what it needs on demand
   (dasha, yogas, doshas, transits, vargas, ashtakavarga, shadbala, panchanga) — the
   tool-call steps show inline in the transcript. See
   [`docs/AI_TOOL_CALLING_DESIGN.md`](docs/AI_TOOL_CALLING_DESIGN.md)

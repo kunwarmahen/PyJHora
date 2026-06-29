@@ -1237,12 +1237,12 @@ export const AskAstrologerPage = () => {
             >
               {modeLocked
                 ? "This conversation's mode is fixed. Start a new conversation to switch."
-                : "Full context sends the whole chart up front. Tool calls send a seed (the charts selected below) and let the AI fetch the rest on demand."}
+                : "Full context sends the whole chart up front. Smart lookup sends a starting summary (the charts selected below) and lets the AI pull in extra details by itself as it answers."}
             </p>
             <div style={{ display: "flex", gap: "var(--space-sm)" }}>
               {[
                 { val: "pass_all", label: "Full context" },
-                { val: "tools", label: "Tool calls" },
+                { val: "tools", label: "Smart lookup" },
               ].map((o) => {
                 const active = mode === o.val;
                 return (

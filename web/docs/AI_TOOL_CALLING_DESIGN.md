@@ -150,8 +150,10 @@ The conversation doc gains a `mode` field (default `pass_all`) plus a per-messag
 ## 5. Frontend
 
 - **Per-conversation mode toggle** on `AskAstrologerPage` (set at new-conversation
-  time; shown read-only on existing threads). Persist last choice in
-  `localStorage` as the default for the next new conversation.
+  time; locked once the thread has an AI turn). Persist last choice in
+  `localStorage` as the default for the next new conversation. User-facing labels:
+  pass-all = **"Full context"**, tools = **"Smart lookup"** (the layman-friendly
+  name for tool-call mode).
 - In tool mode, render **tool-call steps** inline in the transcript (collapsible
   "Steps" affordance under the streaming answer), driven by the new SSE events.
 - The existing **section toggles + varga selector** are re-labelled in tool mode
