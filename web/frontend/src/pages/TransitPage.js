@@ -12,6 +12,7 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
+import { TransitChat } from "../components/TransitChat";
 import { PLANET_ABBR, DEFAULT_AYANAMSA, AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 
@@ -657,6 +658,14 @@ export const TransitPage = () => {
                 </div>
               </div>
             )}
+
+            {/* Interpret these transits with the AI astrologer (transit-scoped) */}
+            <TransitChat
+              birthDetails={birthDetails}
+              profile={selectedProfile}
+              result={result}
+              ayanamsa={ayanamsa}
+            />
           </div>
         ) : null}
       </div>

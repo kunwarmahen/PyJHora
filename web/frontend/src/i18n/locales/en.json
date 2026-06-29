@@ -42,6 +42,21 @@
     "unitDay": "Day",
     "unitYear": "Year"
   },
+  "transitChat": {
+    "title": "Ask about these transits",
+    "intro": "Ask the AI astrologer what this current sky means for you — it reads the gochara above alongside your running dasha.",
+    "placeholder": "e.g. Is Saturn going to make this year hard?",
+    "send": "Send",
+    "stop": "Stop",
+    "thinking": "Reading the transits…",
+    "error": "Error",
+    "disclaimer": "AI interpretation of your current transits. For reflection, not a substitute for professional advice.",
+    "chipSadeSati": "Am I in Sade Sati right now?",
+    "chipRetro": "What does retrograde {{planet}} mean for me?",
+    "chipIngress": "What will {{planet}} entering {{sign}} bring?",
+    "chipSummary": "Summarize my current transits",
+    "chipMostImportant": "Which transit matters most right now?"
+  },
   "shared": {
     "notFound": "This shared chart was not found.",
     "loadFailed": "Failed to load the shared chart.",

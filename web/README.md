@@ -45,6 +45,18 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Rate limiting**: per-user per-minute + per-day quotas on the AI endpoints
 - **Safety disclaimer**: clear "guidance, not professional advice" footer
 
+### Transit chat (in-context gochara reading)
+- **Ask about *these* transits, right on the Transits page**: an embedded chat below
+  the gochara chart, seeded with *only* the current transits + your running dasha
+  (`pass_all` mode) so the AI interprets exactly what you're looking at — no redundant
+  recompute, no drift from the displayed chart
+- **Smart suggestion chips from the live sky**: surfaces questions from what's actually
+  on screen — Sade Sati when Saturn transits the 12th/1st/2nd from your natal Moon,
+  retrograde grahas, and upcoming slow-mover ingresses
+- **Reuses the configured provider/model** from "Ask AI Astrologer" (keys resolved
+  server-side); streams token-by-token with a **Stop** button; keeps its own saved
+  conversation thread
+
 ### Enhanced Predictions
 - **AI-Powered Analysis**: All prediction endpoints now support AI enhancement
 - **Comprehensive Data**: Uses complete planetary positions, nakshatras, and chart details

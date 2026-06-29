@@ -755,3 +755,31 @@ rounds, validate names, fall back to pass-all on repeated failure); streaming +
 tool loop interleaving (stream → pause on tool call → execute → resume); token
 cost of multi-round tool results vs one pass-all block (measure with the existing
 usage capture).
+
+---
+
+## Transit chat — in-context gochara reading (DONE 2026-06-29)
+
+- [x] DONE 2026-06-29: **embedded AI chat on the Transits page**. New
+      `components/TransitChat.js` renders a collapsible "Ask about these transits"
+      card below the gochara chart on `TransitPage`. It reuses the existing
+      `streamAskQuestion` (`/api/astrology/ask/stream`) — **no backend changes** —
+      with `mode: "pass_all"` and `sections: { transits:true, dasha_tree:true, … rest
+      false }`, so the model interprets exactly the transits on screen (natal D1 is
+      always seeded) without a redundant `get_transits` recompute or drift from the
+      displayed chart. Keeps its **own** conversation thread (own `conversation_id`),
+      so the seed context stays transit-only and doesn't pollute the full astrologer
+      thread. Model/provider come from the same `localStorage` keys the Ask page
+      writes (`ai_provider_type` / `ai_model` / `ai_base_url`); API keys resolve
+      server-side. **Smart suggestion chips** are derived from the live data: Sade
+      Sati when Saturn is 12th/1st/2nd from natal Moon, retrograde grahas, upcoming
+      slow-mover ingresses, plus summary / "which matters most". Streams token-by-token
+      with a Stop button; ReactMarkdown render; i18n in en/hi/sa under `transitChat`.
+      Verified: lint clean + production build compiles.
+- [ ] FOLLOW-UP: this chat's thread isn't surfaced in the Ask page's conversation
+      switcher UI (it is saved + listable via `/api/ai/conversations`, just not shown
+      there). Consider a "Transit reading" label/filter so reopened threads are
+      findable.
+- [ ] FOLLOW-UP: refactor — extract a shared message-bubble/streaming-input component
+      so `TransitChat` and the 2.2k-line `AskAstrologerPage` share one chat UI instead
+      of two. Deferred to keep this change low-risk.
