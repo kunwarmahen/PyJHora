@@ -139,10 +139,10 @@ telling the model it may call tools for anything not shown.
 - `mode == "tools"`: run `run_tool_loop`. In the streaming endpoint, emit new SSE
   event types alongside `token`:
   - `tool_call` `{name, args}` — "🔧 looking up your dasha…"
-  - `tool_result` `{name, ok}` — minimal, for the step UI (full result goes to
-    the inspector, not the chat bubble).
-  Persist the **tool trace** on the assistant message so the "what was sent"
-  inspector can replay it instead of a static block.
+  - `tool_result` `{name, ok, result}` — carries the **full returned data** so the
+    transcript can show what each call fetched (not just that it ran).
+  Persist the **tool trace** (name, args, ok, result) on the assistant message so
+  the trace survives reload and the inspector/panel can replay it.
 
 The conversation doc gains a `mode` field (default `pass_all`) plus a per-message
 `tool_trace`.
@@ -154,8 +154,9 @@ The conversation doc gains a `mode` field (default `pass_all`) plus a per-messag
   `localStorage` as the default for the next new conversation. User-facing labels:
   pass-all = **"Full context"**, tools = **"Smart lookup"** (the layman-friendly
   name for tool-call mode).
-- In tool mode, render **tool-call steps** inline in the transcript (collapsible
-  "Steps" affordance under the streaming answer), driven by the new SSE events.
+- In tool mode, render **tool-call step pills** inline in the transcript, plus a
+  **"▸ Behind the scenes"** toggle that expands a panel listing every call in order
+  with its args and the JSON data it returned (live + rebuilt from the saved trace).
 - The existing **section toggles + varga selector** are re-labelled in tool mode
   as "seed vs. tool" controls (toggled-on = seeded; off = available as a tool).
 - The **"what was sent" inspector** shows the seed **and** the tool trace

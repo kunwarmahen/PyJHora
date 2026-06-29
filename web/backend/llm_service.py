@@ -1124,7 +1124,8 @@ IMPORTANT: Use the actual chart data provided above. Be balanced, specific to th
                 except tool_registry.ToolError as te:
                     result = {"error": str(te)}
                     ok = False
-                yield {"type": "tool_result", "name": c["name"], "ok": ok}
+                yield {"type": "tool_result", "name": c["name"], "ok": ok,
+                       "result": result}
                 messages.append({"role": "tool", "id": c.get("id"), "name": c["name"],
                                  "content": json.dumps(result, default=str)})
 

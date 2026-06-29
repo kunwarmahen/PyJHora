@@ -176,6 +176,8 @@ export const AskAstrologerPage = () => {
   // 8.7 polish: in-flight stream control + per-answer affordances
   const abortRef = useRef(null);
   const [copiedIdx, setCopiedIdx] = useState(null);
+  // Which messages' "behind the scenes" tool-call trace is expanded (by index).
+  const [openTrace, setOpenTrace] = useState({});
   // "Regenerate with a different model" dropdown
   const [regenMenuOpen, setRegenMenuOpen] = useState(false);
   const regenBtnRef = useRef(null);
@@ -453,7 +455,7 @@ export const AskAstrologerPage = () => {
             const steps = [...(msg.toolSteps || [])];
             for (let i = steps.length - 1; i >= 0; i--) {
               if (steps[i].name === e.name && steps[i].ok === null) {
-                steps[i] = { ...steps[i], ok: e.ok };
+                steps[i] = { ...steps[i], ok: e.ok, result: e.result };
                 break;
               }
             }
@@ -685,6 +687,7 @@ export const AskAstrologerPage = () => {
                 name: tc.name,
                 args: tc.args,
                 ok: tc.ok ?? true,
+                result: tc.result,
               })),
               // remember the prompt behind this answer (for Regenerate)
               question: raw[i - 1]?.role === "user" ? raw[i - 1].content : undefined,
@@ -1459,60 +1462,167 @@ export const AskAstrologerPage = () => {
                 )}
                 {message.type === "ai" &&
                   message.toolSteps &&
-                  message.toolSteps.length > 0 && (
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "6px",
-                        margin: "0 0 var(--space-sm)",
-                      }}
-                    >
-                      {message.toolSteps.map((s, si) =>
-                        s.notice ? (
-                          <span
-                            key={si}
-                            style={{
-                              fontSize: "12px",
-                              fontStyle: "italic",
-                              color: "var(--ink-light, #888)",
-                              alignSelf: "center",
-                            }}
-                          >
-                            {s.notice}
-                          </span>
-                        ) : (
-                          <span
-                            key={si}
-                            title={s.args ? JSON.stringify(s.args) : ""}
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              fontSize: "12px",
-                              padding: "2px 8px",
-                              borderRadius: "999px",
-                              border: "1px solid var(--saffron, #e08a2c)",
-                              color: s.ok === false ? "#c0392b" : "var(--saffron, #e08a2c)",
-                              background: "rgba(224,138,44,0.06)",
-                            }}
-                          >
-                            {s.ok === null ? (
-                              <Wrench size={12} />
-                            ) : s.ok ? (
-                              <Check size={12} />
+                  message.toolSteps.length > 0 &&
+                  (() => {
+                    const realSteps = message.toolSteps.filter((s) => !s.notice);
+                    return (
+                      <div style={{ margin: "0 0 var(--space-sm)" }}>
+                        {/* Pills timeline of the tool calls, in order */}
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "6px",
+                            alignItems: "center",
+                          }}
+                        >
+                          {message.toolSteps.map((s, si) =>
+                            s.notice ? (
+                              <span
+                                key={si}
+                                style={{
+                                  fontSize: "12px",
+                                  fontStyle: "italic",
+                                  color: "var(--ink-light, #888)",
+                                  alignSelf: "center",
+                                }}
+                              >
+                                {s.notice}
+                              </span>
                             ) : (
-                              <X size={12} />
-                            )}
-                            {fmtTool(s.name)}
-                            {s.args && Object.keys(s.args).length
-                              ? ` (${Object.values(s.args).join(", ")})`
-                              : ""}
-                          </span>
-                        )
-                      )}
-                    </div>
-                  )}
+                              <span
+                                key={si}
+                                title={s.args ? JSON.stringify(s.args) : ""}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  fontSize: "12px",
+                                  padding: "2px 8px",
+                                  borderRadius: "999px",
+                                  border: "1px solid var(--saffron, #e08a2c)",
+                                  color:
+                                    s.ok === false ? "#c0392b" : "var(--saffron, #e08a2c)",
+                                  background: "rgba(224,138,44,0.06)",
+                                }}
+                              >
+                                {s.ok === null ? (
+                                  <Wrench size={12} />
+                                ) : s.ok ? (
+                                  <Check size={12} />
+                                ) : (
+                                  <X size={12} />
+                                )}
+                                {fmtTool(s.name)}
+                                {s.args && Object.keys(s.args).length
+                                  ? ` (${Object.values(s.args).join(", ")})`
+                                  : ""}
+                              </span>
+                            )
+                          )}
+                          {realSteps.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setOpenTrace((p) => ({ ...p, [index]: !p[index] }))
+                              }
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                color: "var(--saffron, #e08a2c)",
+                                fontSize: "12px",
+                                fontWeight: 600,
+                                padding: "2px 4px",
+                              }}
+                            >
+                              {openTrace[index] ? "▾" : "▸"} Behind the scenes
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Expanded: each tool call + the data it returned */}
+                        {openTrace[index] && realSteps.length > 0 && (
+                          <div
+                            style={{
+                              marginTop: "var(--space-sm)",
+                              border: "1px solid var(--sandalwood, #e7d9c5)",
+                              borderRadius: "var(--radius-md)",
+                              padding: "var(--space-sm) var(--space-md)",
+                              background: "var(--sacred-white, #fdfaf5)",
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: "11px",
+                                color: "var(--text-secondary)",
+                                marginBottom: "6px",
+                              }}
+                            >
+                              The AI fetched this data step by step, then reasoned over it
+                              to write the answer above.
+                            </div>
+                            {realSteps.map((s, si) => (
+                              <div
+                                key={si}
+                                style={{
+                                  marginBottom:
+                                    si < realSteps.length - 1 ? "var(--space-sm)" : 0,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontSize: "12px",
+                                    fontWeight: 600,
+                                    color: "var(--cosmic-indigo)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                  }}
+                                >
+                                  <span style={{ opacity: 0.6 }}>{si + 1}.</span>
+                                  {s.ok === false ? (
+                                    <X size={12} color="#c0392b" />
+                                  ) : (
+                                    <Check size={12} color="var(--saffron, #e08a2c)" />
+                                  )}
+                                  {fmtTool(s.name)}
+                                  {s.args && Object.keys(s.args).length ? (
+                                    <span
+                                      style={{ fontWeight: 400, color: "var(--text-secondary)" }}
+                                    >
+                                      ({Object.entries(s.args)
+                                        .map(([k, v]) => `${k}: ${v}`)
+                                        .join(", ")})
+                                    </span>
+                                  ) : null}
+                                </div>
+                                {s.result !== undefined && (
+                                  <pre
+                                    style={{
+                                      margin: "4px 0 0",
+                                      fontSize: "11px",
+                                      lineHeight: 1.4,
+                                      maxHeight: "220px",
+                                      overflow: "auto",
+                                      background: "white",
+                                      border: "1px solid var(--sandalwood, #e7d9c5)",
+                                      borderRadius: "var(--radius-sm)",
+                                      padding: "6px 8px",
+                                      whiteSpace: "pre-wrap",
+                                      wordBreak: "break-word",
+                                    }}
+                                  >
+                                    {JSON.stringify(s.result, null, 2)}
+                                  </pre>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 <div className="message-content">
                   {message.type === "ai" ? (
                     message.streaming && !message.content ? (

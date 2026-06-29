@@ -711,12 +711,16 @@ clean status/dict — thin JSON-schema wrappers, minimal new surface.
 - [ ] FOLLOW-UP: explicit tri-state seed/tool/off per section (today: seeded if the
       section toggle is on, otherwise fetched via tool).
 - [ ] FOLLOW-UP: cache identical tool results within one answer; cap repeated calls.
-- [ ] FOLLOW-UP: **visualize the call flow** during a smart-lookup answer — instead of
-      just the inline step pills, show the round-by-round flow (model → tool call →
-      result → model → … → answer) as an expandable timeline/diagram, with each tool's
-      returned data viewable per step. Turns the `tool_trace` into a readable trace of
-      *how* the AI reasoned, not just *which* tools it used. (Note: the "Tool calls"
-      mode is surfaced to users as **"Smart lookup"**.)
+- [x] FOLLOW-UP (DONE 2026-06-29): **visualize the call flow** during a smart-lookup
+      answer. The tool result data now flows through: `run_tool_loop`'s `tool_result`
+      event carries the full `result`; the stream + `/ask` persist it into each
+      `tool_trace` entry; the frontend stores it on each step (live + rebuilt from the
+      saved trace). Under each answer the step pills now have a **"▸ Behind the scenes"**
+      toggle that expands a panel listing every tool call in order with its args and the
+      JSON data it returned — a readable trace of *how* the AI reasoned, not just
+      *which* tools it used. (The "Tool calls" mode is surfaced to users as **"Smart
+      lookup"**.) FOLLOW-UP: a graphical timeline/diagram (today it's an expandable
+      list); trim very large persisted results if conversation docs grow.
 
 **Open risks:** weak local models loop/hallucinate tool names (cap max tool
 rounds, validate names, fall back to pass-all on repeated failure); streaming +

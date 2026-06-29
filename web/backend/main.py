@@ -833,6 +833,7 @@ async def ask_question(
                     for tr in reversed(tool_trace):
                         if tr["name"] == ev["name"] and "ok" not in tr:
                             tr["ok"] = ev["ok"]
+                            tr["result"] = ev.get("result")
                             break
             answer = "".join(parts)
         else:
@@ -969,6 +970,7 @@ async def ask_question_stream(
                         for tr in reversed(tool_trace):
                             if tr["name"] == ev["name"] and "ok" not in tr:
                                 tr["ok"] = ev["ok"]
+                                tr["result"] = ev.get("result")
                                 break
                     yield f"data: {json.dumps(ev)}\n\n"
             else:
