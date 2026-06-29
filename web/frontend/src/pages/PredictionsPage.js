@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AlertCircle, CheckCircle, MapPin } from "lucide-react";
 import { astrologyService } from "../services/api";
 import LocationSearch from "../components/LocationSearch";
 import "../styles/Forms.css";
 
 export const PredictionsPage = () => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: "",
     dob: "",
@@ -21,10 +23,10 @@ export const PredictionsPage = () => {
   const [result, setResult] = useState(null);
 
   const predictionTypes = [
-    { value: "horoscope", label: "Horoscope & General Predictions" },
-    { value: "health", label: "Health Predictions" },
-    { value: "career", label: "Career Predictions" },
-    { value: "transit", label: "Current Transits" },
+    { value: "horoscope", label: t("predictions.typeHoroscope") },
+    { value: "health", label: t("predictions.typeHealth") },
+    { value: "career", label: t("predictions.typeCareer") },
+    { value: "transit", label: t("predictions.typeTransit") },
   ];
 
   const handleInputChange = (e) => {
@@ -50,7 +52,7 @@ export const PredictionsPage = () => {
 
     // Validate location data
     if (!formData.latitude || !formData.longitude || !formData.timezone) {
-      setError("Please search for a location using the location search above");
+      setError(t("predictions.errLocation"));
       return;
     }
 
@@ -82,7 +84,7 @@ export const PredictionsPage = () => {
 
       setResult(response.data);
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to generate predictions");
+      setError(err.response?.data?.detail || t("predictions.genError"));
     } finally {
       setLoading(false);
     }
@@ -91,8 +93,8 @@ export const PredictionsPage = () => {
   return (
     <div className="page-container">
       <div className="form-wrapper">
-        <h1>Predictions</h1>
-        <p className="subtitle">Get personalized astrological predictions</p>
+        <h1>{t("predictions.title")}</h1>
+        <p className="subtitle">{t("predictions.subtitle")}</p>
 
         {error && (
           <div className="error-box">
@@ -104,13 +106,13 @@ export const PredictionsPage = () => {
         <form onSubmit={handleSubmit} className="astrology-form">
           <div className="form-row">
             <div className="form-group">
-              <label>Name *</label>
+              <label>{t("predictions.name")} *</label>
               <input
                 type="text"
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="Your full name"
+                placeholder={t("predictions.namePlaceholder")}
                 required
               />
             </div>
@@ -118,7 +120,7 @@ export const PredictionsPage = () => {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Date of Birth (YYYY-MM-DD) *</label>
+              <label>{t("predictions.dobLabel")} *</label>
               <input
                 type="date"
                 name="dob"
@@ -129,7 +131,7 @@ export const PredictionsPage = () => {
             </div>
 
             <div className="form-group">
-              <label>Time of Birth (HH:MM:SS) *</label>
+              <label>{t("predictions.tobLabel")} *</label>
               <input
                 type="time"
                 name="tob"
@@ -142,7 +144,7 @@ export const PredictionsPage = () => {
 
           <div className="form-row">
             <div className="form-group full-width">
-              <label>📍 Place of Birth *</label>
+              <label>📍 {t("predictions.placeLabel")} *</label>
               <LocationSearch onLocationSelect={handleLocationSelect} />
 
               {formData.latitude && formData.longitude && (
@@ -163,7 +165,7 @@ export const PredictionsPage = () => {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Prediction Type *</label>
+              <label>{t("predictions.typeLabel")} *</label>
               <select value={predictionType} onChange={(e) => setPredictionType(e.target.value)}>
                 {predictionTypes.map((type) => (
                   <option key={type.value} value={type.value}>
@@ -181,11 +183,11 @@ export const PredictionsPage = () => {
               checked={useQwen}
               onChange={(e) => setUseQwen(e.target.checked)}
             />
-            <label htmlFor="useQwen">Use AI (Qwen) for enhanced predictions</label>
+            <label htmlFor="useQwen">{t("predictions.useAi")}</label>
           </div>
 
           <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? "Generating..." : "Generate Predictions"}
+            {loading ? t("predictions.generating") : t("predictions.generate")}
           </button>
         </form>
 
@@ -193,14 +195,14 @@ export const PredictionsPage = () => {
           <div className="result-box">
             <div className="result-header">
               <CheckCircle size={24} className="success" />
-              <h2>Predictions Generated</h2>
+              <h2>{t("predictions.generated")}</h2>
             </div>
 
             <div className="result-content">
               <div className="prediction-section">
                 {result.lagna && (
                   <div className="info-item">
-                    <strong>Lagna (Ascendant):</strong>
+                    <strong>{t("birthChart.lagnaAscendant")}:</strong>
                     <span>
                       {typeof result.lagna === "object"
                         ? result.lagna.sign_name ||
@@ -211,7 +213,7 @@ export const PredictionsPage = () => {
                 )}
                 {result.moon_sign && (
                   <div className="info-item">
-                    <strong>Moon Sign:</strong>
+                    <strong>{t("predictions.moonSign")}:</strong>
                     <span>
                       {typeof result.moon_sign === "object"
                         ? result.moon_sign.sign_name || result.moon_sign
@@ -221,7 +223,7 @@ export const PredictionsPage = () => {
                 )}
                 {result.sun_sign && (
                   <div className="info-item">
-                    <strong>Sun Sign:</strong>
+                    <strong>{t("predictions.sunSign")}:</strong>
                     <span>
                       {typeof result.sun_sign === "object"
                         ? result.sun_sign.sign_name || result.sun_sign
@@ -233,15 +235,15 @@ export const PredictionsPage = () => {
 
               {result.planetary_positions && Object.keys(result.planetary_positions).length > 0 && (
                 <div className="predictions-detail">
-                  <h3>Planetary Positions</h3>
+                  <h3>{t("predictions.planetaryPositions")}</h3>
                   {Object.entries(result.planetary_positions).map(([planet, data]) => (
                     <div key={planet} className="prediction-item">
                       <strong>{planet}:</strong>
                       <p>
-                        {data.sign_name} - {data.nakshatra} (Pada {data.pada})
+                        {data.sign_name} - {data.nakshatra} ({t("common.pada")} {data.pada})
                         <br />
                         <small style={{ color: "#888" }}>
-                          Longitude: {data.longitude?.toFixed(2)}°
+                          {t("predictions.longitude")}: {data.longitude?.toFixed(2)}°
                         </small>
                       </p>
                     </div>
@@ -251,7 +253,7 @@ export const PredictionsPage = () => {
 
               {result.predictions && Object.keys(result.predictions).length > 0 && (
                 <div className="predictions-detail">
-                  <h3>Detailed Predictions</h3>
+                  <h3>{t("predictions.detailed")}</h3>
                   {Object.entries(result.predictions).map(([key, value]) => (
                     <div key={key} className="prediction-item">
                       <strong className="capitalize">{key}:</strong>
@@ -263,7 +265,7 @@ export const PredictionsPage = () => {
 
               {result.ai_prediction && (
                 <div className="ai-prediction">
-                  <h3>Astrological Predictions</h3>
+                  <h3>{t("predictions.astrological")}</h3>
                   <div style={{ whiteSpace: "pre-line" }}>
                     {result.ai_prediction
                       .split("**")

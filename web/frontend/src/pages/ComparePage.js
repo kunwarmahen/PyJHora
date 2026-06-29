@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { GitCompareArrows, Users } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
@@ -44,6 +45,7 @@ const compareRows = (a, b) => {
 
 export const ComparePage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { selectedProfile, profiles, loadProfiles } = useProfile();
 
   const ayanamsa = localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA;
@@ -89,7 +91,7 @@ export const ComparePage = () => {
         setChartB(rb.data);
       })
       .catch((e) => {
-        if (!cancelled) setError(e.response?.data?.detail || "Failed to calculate charts");
+        if (!cancelled) setError(e.response?.data?.detail || t("compare.calcError"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -104,26 +106,26 @@ export const ComparePage = () => {
 
   const otherProfiles = (profiles || []).filter((p) => p._id !== selectedProfile._id);
   const nameA = selectedProfile.profile_name;
-  const nameB = secondProfile?.profile_name || "Person 2";
+  const nameB = secondProfile?.profile_name || t("compare.person2");
 
   return (
     <div className="dashboard-container mandala-bg">
       <PageHeader
         icon={<GitCompareArrows size={24} />}
-        title="Compare Charts"
-        subtitle="Two profiles side by side"
+        title={t("compare.title")}
+        subtitle={t("compare.subtitle")}
         accent="indigo"
       />
 
       <div className="dashboard-content">
-        <Card title="Select a second profile" icon={<Users size={24} />} accent="saffron">
+        <Card title={t("compare.selectSecond")} icon={<Users size={24} />} accent="saffron">
           <div className="ui-field-grid">
             <div className="ui-datafield">
-              <div className="ui-datafield-label">Person 1</div>
+              <div className="ui-datafield-label">{t("compare.person1")}</div>
               <div className="ui-datafield-value">{nameA}</div>
             </div>
             <label className="ui-datafield" style={{ cursor: "pointer" }}>
-              <div className="ui-datafield-label">Person 2</div>
+              <div className="ui-datafield-label">{t("compare.person2")}</div>
               <select
                 value={secondId}
                 onChange={(e) => setSecondId(e.target.value)}
@@ -138,7 +140,7 @@ export const ComparePage = () => {
                   fontWeight: 600,
                 }}
               >
-                <option value="">Choose a profile…</option>
+                <option value="">{t("compare.chooseProfile")}</option>
                 {otherProfiles.map((p) => (
                   <option key={p._id} value={p._id}>
                     {p.profile_name}
@@ -149,7 +151,7 @@ export const ComparePage = () => {
           </div>
           {otherProfiles.length === 0 && (
             <p style={{ color: "var(--text-secondary)", marginTop: "var(--space-md)" }}>
-              You need at least two saved profiles to compare. Add another from “Change Chart”.
+              {t("compare.needTwo")}
             </p>
           )}
         </Card>
@@ -158,7 +160,7 @@ export const ComparePage = () => {
 
         {loading && (
           <Card>
-            <LoadingState message="Calculating both charts…" />
+            <LoadingState message={t("compare.calcBoth")} />
           </Card>
         )}
 
@@ -180,7 +182,7 @@ export const ComparePage = () => {
             </div>
 
             <Card
-              title="Placements side by side"
+              title={t("compare.placements")}
               icon={<GitCompareArrows size={24} />}
               accent="indigo"
             >
@@ -188,7 +190,7 @@ export const ComparePage = () => {
                 <table className="adv-table">
                   <thead>
                     <tr>
-                      <th>Body</th>
+                      <th>{t("compare.body")}</th>
                       <th>{nameA}</th>
                       <th>{nameB}</th>
                     </tr>
@@ -223,7 +225,7 @@ export const ComparePage = () => {
                   fontSize: "0.85rem",
                 }}
               >
-                Highlighted rows share the same sign in both charts.
+                {t("compare.highlightNote")}
               </p>
             </Card>
           </>

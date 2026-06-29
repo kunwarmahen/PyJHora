@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Heart, User, Users, Sparkles } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash } from "../utils/format";
@@ -12,6 +13,7 @@ import "../styles/Dashboard.css";
 
 export const CompatibilityPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { selectedProfile, profiles, loadProfiles } = useProfile();
 
   const [secondProfile, setSecondProfile] = useState(null);
@@ -33,7 +35,7 @@ export const CompatibilityPage = () => {
 
   const handleCalculate = async () => {
     if (!secondProfile) {
-      setError("Please select a second profile for compatibility check");
+      setError(t("compat.errSelectSecond"));
       return;
     }
 
@@ -62,7 +64,7 @@ export const CompatibilityPage = () => {
       const response = await astrologyService.getCompatibility(person1Data, person2Data, useQwen);
       setResult(response.data);
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to calculate compatibility");
+      setError(err.response?.data?.detail || t("compat.calcError"));
     } finally {
       setLoading(false);
     }
@@ -76,8 +78,8 @@ export const CompatibilityPage = () => {
     <div className="dashboard-container mandala-bg">
       <PageHeader
         icon={<Heart size={24} />}
-        title="Compatibility Check"
-        subtitle="Ashtakoot Matching System"
+        title={t("compat.title")}
+        subtitle={t("compat.subtitle")}
         accent="saffron"
       />
 
@@ -108,7 +110,7 @@ export const CompatibilityPage = () => {
             }}
           >
             <Users size={24} style={{ color: "var(--saffron)" }} />
-            Select Profiles for Compatibility
+            {t("compat.selectProfiles")}
           </h3>
 
           <div
@@ -139,7 +141,7 @@ export const CompatibilityPage = () => {
                   gap: "var(--space-sm)",
                 }}
               >
-                <User size={20} /> Person 1
+                <User size={20} /> {t("compare.person1")}
               </h4>
               <div
                 style={{
@@ -167,16 +169,20 @@ export const CompatibilityPage = () => {
                   }}
                 >
                   <div style={{ marginBottom: "var(--space-xs)" }}>
-                    <strong>Name:</strong> {selectedProfile.birth_details.name || "Anonymous"}
+                    <strong>{t("common.name")}:</strong>{" "}
+                    {selectedProfile.birth_details.name || t("common.anonymous")}
                   </div>
                   <div style={{ marginBottom: "var(--space-xs)" }}>
-                    <strong>DOB:</strong> {formatDate(selectedProfile.birth_details.dob)}
+                    <strong>{t("common.dateOfBirth")}:</strong>{" "}
+                    {formatDate(selectedProfile.birth_details.dob)}
                   </div>
                   <div style={{ marginBottom: "var(--space-xs)" }}>
-                    <strong>Time:</strong> {orDash(selectedProfile.birth_details.tob)}
+                    <strong>{t("common.timeOfBirth")}:</strong>{" "}
+                    {orDash(selectedProfile.birth_details.tob)}
                   </div>
                   <div>
-                    <strong>Place:</strong> {orDash(selectedProfile.birth_details.place)}
+                    <strong>{t("common.place")}:</strong>{" "}
+                    {orDash(selectedProfile.birth_details.place)}
                   </div>
                 </div>
               </div>
@@ -203,7 +209,7 @@ export const CompatibilityPage = () => {
                   gap: "var(--space-sm)",
                 }}
               >
-                <User size={20} /> Person 2
+                <User size={20} /> {t("compare.person2")}
               </h4>
               <label
                 style={{
@@ -214,7 +220,7 @@ export const CompatibilityPage = () => {
                   fontSize: "0.875rem",
                 }}
               >
-                Select Profile to Compare:
+                {t("compat.selectToCompare")}
               </label>
               <select
                 value={secondProfile?._id || ""}
@@ -236,12 +242,12 @@ export const CompatibilityPage = () => {
                   transition: "all 0.3s ease",
                 }}
               >
-                <option value="">-- Select a profile --</option>
+                <option value="">{t("compat.selectPlaceholder")}</option>
                 {profiles
                   .filter((p) => p._id !== selectedProfile._id)
                   .map((profile) => (
                     <option key={profile._id} value={profile._id}>
-                      {profile.profile_name} ({profile.birth_details.name || "Anonymous"})
+                      {profile.profile_name} ({profile.birth_details.name || t("common.anonymous")})
                     </option>
                   ))}
               </select>
@@ -275,13 +281,16 @@ export const CompatibilityPage = () => {
                     }}
                   >
                     <div style={{ marginBottom: "var(--space-xs)" }}>
-                      <strong>Name:</strong> {secondProfile.birth_details.name || "Anonymous"}
+                      <strong>{t("common.name")}:</strong>{" "}
+                      {secondProfile.birth_details.name || t("common.anonymous")}
                     </div>
                     <div style={{ marginBottom: "var(--space-xs)" }}>
-                      <strong>DOB:</strong> {formatDate(secondProfile.birth_details.dob)}
+                      <strong>{t("common.dateOfBirth")}:</strong>{" "}
+                      {formatDate(secondProfile.birth_details.dob)}
                     </div>
                     <div style={{ marginBottom: "var(--space-xs)" }}>
-                      <strong>Time:</strong> {orDash(secondProfile.birth_details.tob)}
+                      <strong>{t("common.timeOfBirth")}:</strong>{" "}
+                      {orDash(secondProfile.birth_details.tob)}
                     </div>
                     <div>
                       <strong>Place:</strong> {orDash(secondProfile.birth_details.place)}
@@ -330,7 +339,7 @@ export const CompatibilityPage = () => {
               }}
             >
               <Sparkles size={18} style={{ color: "var(--saffron)" }} />
-              Use AI for detailed compatibility analysis
+              {t("compat.useAi")}
             </label>
           </div>
 
@@ -370,14 +379,14 @@ export const CompatibilityPage = () => {
             }}
           >
             <Heart size={20} />
-            {loading ? "Calculating Compatibility..." : "Check Compatibility"}
+            {loading ? t("compat.calculating") : t("compat.check")}
           </button>
         </div>
 
         {/* Loading State */}
         {loading && (
           <Card>
-            <LoadingState message="Calculating Compatibility — analyzing Ashtakoot matching between the two charts…" />
+            <LoadingState message={t("compat.loading")} />
           </Card>
         )}
 
@@ -404,7 +413,7 @@ export const CompatibilityPage = () => {
               }}
             >
               <Heart size={24} style={{ color: "var(--saffron)" }} />
-              Compatibility Results
+              {t("compat.results")}
             </h3>
 
             {/* Total Score Display */}
@@ -429,7 +438,7 @@ export const CompatibilityPage = () => {
                   fontWeight: 600,
                 }}
               >
-                Total Compatibility Score
+                {t("compat.totalScore")}
               </div>
               <div
                 style={{
@@ -456,7 +465,7 @@ export const CompatibilityPage = () => {
                 <span
                   style={{ fontWeight: 700, color: "var(--cosmic-indigo)", fontSize: "1.125rem" }}
                 >
-                  Status: {result.status}
+                  {t("compat.status")}: {result.status}
                 </span>
               </div>
             </div>
@@ -470,7 +479,7 @@ export const CompatibilityPage = () => {
                 fontWeight: 700,
               }}
             >
-              Ashtakoot (8 Kootas) Breakdown
+              {t("compat.breakdown")}
             </h4>
             <div
               style={{
@@ -534,7 +543,7 @@ export const CompatibilityPage = () => {
                     {koota.score}
                   </div>
                   <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                    out of {koota.max}
+                    {t("compat.outOf", { max: koota.max })}
                   </div>
                 </div>
               ))}
@@ -563,7 +572,7 @@ export const CompatibilityPage = () => {
                   }}
                 >
                   <Sparkles size={20} style={{ color: "var(--saffron)" }} />
-                  AI Analysis
+                  {t("compat.aiAnalysis")}
                 </h4>
                 <div
                   style={{
