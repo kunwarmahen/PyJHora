@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import {
   MessageCircle,
@@ -100,6 +101,7 @@ const PortalMenu = ({ anchorRef, open, onClose, align = "left", width = 220, chi
 
 export const AskAstrologerPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { selectedProfile } = useProfile();
 
   const [chartData, setChartData] = useState(null);
@@ -119,19 +121,22 @@ export const AskAstrologerPage = () => {
   };
 
   // Compact "1.2k" style token count; full breakdown goes in the tooltip.
-  const formatTokens = (n) =>
-    n == null ? "" : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
+  const formatTokens = (n) => (n == null ? "" : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`);
 
   const usageLabel = (u) => {
     if (!u) return null;
-    const total = u.total_tokens ?? ((u.prompt_tokens || 0) + (u.completion_tokens || 0));
+    const total = u.total_tokens ?? (u.prompt_tokens || 0) + (u.completion_tokens || 0);
     if (!total) return null;
     const parts = [];
-    if (u.prompt_tokens != null) parts.push(`${u.prompt_tokens} prompt`);
-    if (u.completion_tokens != null) parts.push(`${u.completion_tokens} completion`);
+    if (u.prompt_tokens != null) parts.push(`${u.prompt_tokens} ${t("ask.promptTokens")}`);
+    if (u.completion_tokens != null)
+      parts.push(`${u.completion_tokens} ${t("ask.completionTokens")}`);
+    const tokensWord = t("ask.tokens");
     return {
-      short: `${formatTokens(total)} tokens`,
-      title: parts.length ? `${parts.join(" + ")} = ${total} tokens` : `${total} tokens`,
+      short: `${formatTokens(total)} ${tokensWord}`,
+      title: parts.length
+        ? `${parts.join(" + ")} = ${total} ${tokensWord}`
+        : `${total} ${tokensWord}`,
     };
   };
 
@@ -143,7 +148,7 @@ export const AskAstrologerPage = () => {
       model: m.model,
       vargas: m.vargas,
       sections: m.sections,
-      note: "Full chart snapshot is only kept for answers generated in this session. Re-ask to see the complete data sent.",
+      note: t("ask.snapshotNote"),
     };
 
   // Conversation persistence + multi-turn
@@ -287,14 +292,7 @@ export const AskAstrologerPage = () => {
     }
   };
 
-  const exampleQuestions = [
-    "What are my strengths and weaknesses based on my chart?",
-    "When is a good time for marriage?",
-    "Which career path suits me best?",
-    "What remedies can help with current challenges?",
-    "How will the next 6 months be for me?",
-    "What does my moon sign reveal about my personality?",
-  ];
+  const exampleQuestions = t("ask.exampleQuestions", { returnObjects: true });
 
   // Redirect if no profile selected
   useEffect(() => {
@@ -344,7 +342,7 @@ export const AskAstrologerPage = () => {
         },
       ]);
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to calculate chart");
+      setError(err.response?.data?.detail || t("ask.errChart"));
     } finally {
       setLoading(false);
     }
@@ -383,9 +381,7 @@ export const AskAstrologerPage = () => {
     const useType = override?.providerType || providerType;
     const useModel = override?.model || model;
     const useProvider = providers.find((p) => p.type === useType) || selectedProvider;
-    const useBaseUrl = useProvider?.editable_base_url
-      ? override?.baseUrl ?? baseUrl
-      : undefined;
+    const useBaseUrl = useProvider?.editable_base_url ? (override?.baseUrl ?? baseUrl) : undefined;
 
     abortRef.current = streamAskQuestion(
       buildBirthDetails(),
@@ -433,7 +429,7 @@ export const AskAstrologerPage = () => {
             error: !msg.content,
             content: msg.content || `Error: ${e.message}`,
           }));
-          setError(e.message || "Failed to get answer from AI");
+          setError(e.message || t("ask.errAnswer"));
           setLoading(false);
           abortRef.current = null;
         },
@@ -576,7 +572,7 @@ export const AskAstrologerPage = () => {
     try {
       await exportConversationPdf(messages, conversationName(), { totalTokens });
     } catch (e) {
-      setError("Failed to export PDF");
+      setError(t("ask.errPdf"));
     }
   };
 
@@ -631,13 +627,11 @@ export const AskAstrologerPage = () => {
               question: raw[i - 1]?.role === "user" ? raw[i - 1].content : undefined,
             }
       );
-      setMessages(
-        msgs.length ? msgs : [{ type: "system", content: "This conversation is empty." }]
-      );
+      setMessages(msgs.length ? msgs : [{ type: "system", content: t("ask.emptyConversation") }]);
       setConversationId(id);
       setShowHistory(false);
     } catch (e) {
-      setError("Failed to load conversation");
+      setError(t("ask.errLoadConv"));
     }
   };
 
@@ -687,7 +681,7 @@ export const AskAstrologerPage = () => {
       await refreshKeyStatus();
       await refreshProviders(); // availability may have flipped to "ready"
     } catch (e) {
-      setError(e.response?.data?.detail || "Failed to save API key");
+      setError(e.response?.data?.detail || t("ask.errSaveKey"));
     } finally {
       setKeySaving("");
     }
@@ -763,8 +757,8 @@ export const AskAstrologerPage = () => {
     <div className="dashboard-container mandala-bg">
       <PageHeader
         icon={<MessageCircle size={24} />}
-        title="Ask AI Astrologer"
-        subtitle="Get personalized insights from AI"
+        title={t("ask.title")}
+        subtitle={t("ask.subtitle")}
         accent="terracotta"
       />
 
@@ -776,7 +770,7 @@ export const AskAstrologerPage = () => {
             <div style={{ display: "flex", gap: "var(--space-sm)", flexWrap: "wrap" }}>
               <button onClick={startNewConversation} className="change-profile-btn">
                 <Plus size={16} />
-                <span>New Chat</span>
+                <span>{t("ask.newChat")}</span>
               </button>
               <button
                 onClick={() => {
@@ -786,17 +780,20 @@ export const AskAstrologerPage = () => {
                 className="change-profile-btn"
               >
                 <History size={16} />
-                <span>History{conversations.length ? ` (${conversations.length})` : ""}</span>
+                <span>
+                  {t("ask.history")}
+                  {conversations.length ? ` (${conversations.length})` : ""}
+                </span>
               </button>
               <button
                 ref={exportBtnRef}
                 onClick={() => setExportMenuOpen((v) => !v)}
                 className="change-profile-btn"
                 disabled={!messages.some((m) => m.type === "ai" && m.content)}
-                title="Export this conversation"
+                title={t("ask.exportTitle")}
               >
                 <Download size={16} />
-                <span>Export</span>
+                <span>{t("ask.export")}</span>
                 <ChevronDown size={14} />
               </button>
               <PortalMenu
@@ -808,24 +805,24 @@ export const AskAstrologerPage = () => {
               >
                 <button className="export-menu-item" onClick={handleExport}>
                   <FileText size={15} />
-                  <span>Markdown (.md)</span>
+                  <span>{t("ask.markdown")}</span>
                 </button>
                 <button className="export-menu-item" onClick={handleExportPdf}>
                   <FileType size={15} />
-                  <span>PDF (.pdf)</span>
+                  <span>{t("ask.pdf")}</span>
                 </button>
               </PortalMenu>
               <button
                 onClick={openKeysModal}
                 className="change-profile-btn"
-                title="Manage your API keys"
+                title={t("ask.apiKeysTitle")}
               >
                 <KeyRound size={16} />
-                <span>API Keys</span>
+                <span>{t("ask.apiKeys")}</span>
               </button>
               <button onClick={() => navigate("/profile-selection")} className="change-profile-btn">
                 <Star size={16} />
-                <span>Change Chart</span>
+                <span>{t("common.changeChart")}</span>
               </button>
             </div>
           }
@@ -855,11 +852,11 @@ export const AskAstrologerPage = () => {
               }}
             >
               <History size={20} style={{ color: "var(--saffron)" }} />
-              Saved Conversations
+              {t("ask.savedConversations")}
             </h3>
             {conversations.length === 0 ? (
               <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", margin: 0 }}>
-                No saved conversations yet. Ask a question to start one.
+                {t("ask.noConversations")}
               </p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
@@ -893,14 +890,14 @@ export const AskAstrologerPage = () => {
                         {c.title}
                       </div>
                       <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                        {Math.floor((c.message_count || 0) / 2)} Q&A
+                        {Math.floor((c.message_count || 0) / 2)} {t("ask.qa")}
                         {c.last_model ? ` · ${c.last_model}` : ""}
                         {c.updated_at ? ` · ${formatDate(c.updated_at)}` : ""}
                       </div>
                     </div>
                     <button
                       onClick={(e) => handleDeleteConversation(c.id, e)}
-                      title="Delete conversation"
+                      title={t("ask.deleteConversation")}
                       style={{
                         background: "none",
                         border: "none",
@@ -962,7 +959,7 @@ export const AskAstrologerPage = () => {
               }}
             >
               <Bot size={20} style={{ color: "var(--saffron)" }} />
-              AI Model
+              {t("ask.aiModel")}
               <button
                 onClick={() => openInfo(lastContext)}
                 style={{
@@ -980,15 +977,17 @@ export const AskAstrologerPage = () => {
                 }}
                 onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255, 153, 51, 0.2)")}
                 onMouseOut={(e) => (e.currentTarget.style.background = "rgba(255, 153, 51, 0.1)")}
-                title="See the exact chart data sent to the AI"
+                title={t("ask.viewDataTitle")}
               >
                 <Info size={18} />
-                <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>View data sent</span>
+                <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>
+                  {t("ask.viewDataSent")}
+                </span>
               </button>
             </h3>
             {providersLoading ? (
               <div style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                Detecting available models…
+                {t("ask.detectingModels")}
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
@@ -1001,7 +1000,7 @@ export const AskAstrologerPage = () => {
                       color: "var(--text-secondary)",
                     }}
                   >
-                    Provider
+                    {t("ask.provider")}
                   </span>
                   <select
                     value={providerType}
@@ -1011,7 +1010,7 @@ export const AskAstrologerPage = () => {
                     {providers.map((p) => (
                       <option key={p.type} value={p.type}>
                         {PROVIDER_ICONS[p.type] || "•"} {p.label}
-                        {p.available ? "" : " — unavailable"}
+                        {p.available ? "" : ` — ${t("ask.unavailable")}`}
                       </option>
                     ))}
                   </select>
@@ -1026,7 +1025,7 @@ export const AskAstrologerPage = () => {
                       color: "var(--text-secondary)",
                     }}
                   >
-                    Model
+                    {t("ask.model")}
                   </span>
                   {selectedProvider && selectedProvider.models.length > 0 ? (
                     <select
@@ -1035,7 +1034,9 @@ export const AskAstrologerPage = () => {
                       style={selectStyle}
                     >
                       {!selectedProvider.models.includes(model) && model && (
-                        <option value={model}>{model} (custom)</option>
+                        <option value={model}>
+                          {model} ({t("ask.custom")})
+                        </option>
                       )}
                       {selectedProvider.models.map((m) => (
                         <option key={m} value={m}>
@@ -1048,7 +1049,7 @@ export const AskAstrologerPage = () => {
                       type="text"
                       value={model}
                       onChange={(e) => setModel(e.target.value)}
-                      placeholder="Enter model name (e.g. llama3.1:8b)"
+                      placeholder={t("ask.enterModel")}
                       style={selectStyle}
                     />
                   )}
@@ -1066,7 +1067,7 @@ export const AskAstrologerPage = () => {
                       padding: "var(--space-sm) var(--space-md)",
                     }}
                   >
-                    ⚠ {selectedProvider.reason || "This provider is not reachable."}
+                    ⚠ {selectedProvider.reason || t("ask.providerUnreachable")}
                   </div>
                 )}
 
@@ -1086,7 +1087,7 @@ export const AskAstrologerPage = () => {
                         padding: 0,
                       }}
                     >
-                      {showAdvanced ? "▾" : "▸"} Advanced (endpoint URL)
+                      {showAdvanced ? "▾" : "▸"} {t("ask.advancedEndpoint")}
                     </button>
                     {showAdvanced && (
                       <input
@@ -1125,7 +1126,7 @@ export const AskAstrologerPage = () => {
               }}
             >
               <MessageCircle size={20} style={{ color: "var(--saffron)" }} />
-              Example Questions
+              {t("ask.exampleTitle")}
             </h3>
             {exampleQuestions.map((q, index) => (
               <button
@@ -1161,7 +1162,7 @@ export const AskAstrologerPage = () => {
               }}
             >
               <Star size={20} style={{ color: "var(--saffron)" }} />
-              Charts to Consult
+              {t("ask.chartsToConsult")}
             </h3>
             <p
               style={{
@@ -1170,7 +1171,7 @@ export const AskAstrologerPage = () => {
                 color: "var(--text-secondary)",
               }}
             >
-              Pick which divisional charts the AI should weigh. D1 (Rasi) is always included.
+              {t("ask.chartsHint")}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-sm)" }}>
               {VARGAS.map((v) => {
@@ -1230,7 +1231,7 @@ export const AskAstrologerPage = () => {
                 color: "var(--vermillion)",
                 display: "flex",
               }}
-              title="Dismiss"
+              title={t("ask.dismiss")}
             >
               <X size={16} />
             </button>
@@ -1269,7 +1270,7 @@ export const AskAstrologerPage = () => {
                 {message.type === "user" && (
                   <div className="message-header">
                     <User size={18} />
-                    <span>You</span>
+                    <span>{t("ask.you")}</span>
                     <span className="timestamp">{message.timestamp}</span>
                   </div>
                 )}
@@ -1277,7 +1278,7 @@ export const AskAstrologerPage = () => {
                   <div className="message-header">
                     <Bot size={18} />
                     <span>
-                      AI Astrologer
+                      {t("ask.aiAstrologer")}
                       {message.model
                         ? ` · ${message.model}`
                         : message.provider
@@ -1286,7 +1287,7 @@ export const AskAstrologerPage = () => {
                     </span>
                     {message.timestamp && <span className="timestamp">{message.timestamp}</span>}
                     {!message.streaming && message.elapsed_ms != null && (
-                      <span className="timestamp" title="Generation time">
+                      <span className="timestamp" title={t("ask.generationTime")}>
                         {(message.elapsed_ms / 1000).toFixed(1)}s
                       </span>
                     )}
@@ -1302,7 +1303,7 @@ export const AskAstrologerPage = () => {
                     {!message.streaming && (message.context || message.model) && (
                       <button
                         onClick={() => openInfo(messageInfo(message))}
-                        title="See the chart data used for this answer"
+                        title={t("ask.chartDataForAnswer")}
                         style={{
                           marginLeft: "auto",
                           background: "none",
@@ -1323,7 +1324,7 @@ export const AskAstrologerPage = () => {
                 {message.type === "system" && (
                   <div className="message-header">
                     <Sparkles size={18} />
-                    <span>System</span>
+                    <span>{t("ask.system")}</span>
                   </div>
                 )}
                 <div className="message-content">
@@ -1335,7 +1336,7 @@ export const AskAstrologerPage = () => {
                           <span></span>
                           <span></span>
                         </div>
-                        Consulting the chart…
+                        {t("ask.consulting")}
                       </div>
                     ) : (
                       <>
@@ -1357,10 +1358,10 @@ export const AskAstrologerPage = () => {
                       <button
                         className="msg-action-btn"
                         onClick={() => handleCopy(message.content, index)}
-                        title="Copy answer"
+                        title={t("ask.copyTitle")}
                       >
                         {copiedIdx === index ? <Check size={13} /> : <Copy size={13} />}
-                        {copiedIdx === index ? "Copied" : "Copy"}
+                        {copiedIdx === index ? t("ask.copied") : t("ask.copy")}
                       </button>
                       {index === lastAiIndex && message.question && (
                         <div className="regen-group">
@@ -1368,18 +1369,18 @@ export const AskAstrologerPage = () => {
                             className="msg-action-btn regen-main"
                             onClick={() => handleRegenerate(message)}
                             disabled={loading}
-                            title="Regenerate this answer with the current model"
+                            title={t("ask.regenCurrentTitle")}
                           >
                             <RefreshCw size={13} />
-                            Regenerate
+                            {t("ask.regenerate")}
                           </button>
                           <button
                             ref={regenBtnRef}
                             className="msg-action-btn regen-caret"
                             onClick={() => setRegenMenuOpen((v) => !v)}
                             disabled={loading || modelOptions.length === 0}
-                            title="Regenerate with a different model"
-                            aria-label="Regenerate with a different model"
+                            title={t("ask.regenDifferentTitle")}
+                            aria-label={t("ask.regenDifferentTitle")}
                           >
                             <ChevronDown size={13} />
                           </button>
@@ -1390,7 +1391,7 @@ export const AskAstrologerPage = () => {
                             align="left"
                             width={220}
                           >
-                            <div className="regen-menu-label">Regenerate with…</div>
+                            <div className="regen-menu-label">{t("ask.regenWith")}</div>
                             {modelOptions.map((opt) => {
                               const isCurrent =
                                 opt.providerType === providerType && opt.model === model;
@@ -1416,14 +1417,14 @@ export const AskAstrologerPage = () => {
                           <button
                             className={`msg-action-btn${message.feedback === "up" ? " active-up" : ""}`}
                             onClick={() => handleFeedback(index, "up")}
-                            title="Helpful"
+                            title={t("ask.helpful")}
                           >
                             <ThumbsUp size={13} />
                           </button>
                           <button
                             className={`msg-action-btn${message.feedback === "down" ? " active-down" : ""}`}
                             onClick={() => handleFeedback(index, "down")}
-                            title="Not helpful"
+                            title={t("ask.notHelpful")}
                           >
                             <ThumbsDown size={13} />
                           </button>
@@ -1448,7 +1449,7 @@ export const AskAstrologerPage = () => {
             <input
               type="text"
               className="chat-input"
-              placeholder="Ask a question about your birth chart..."
+              placeholder={t("ask.inputPlaceholder")}
               value={currentQuestion}
               onChange={(e) => setCurrentQuestion(e.target.value)}
               onKeyPress={(e) => {
@@ -1459,9 +1460,9 @@ export const AskAstrologerPage = () => {
               disabled={loading}
             />
             {loading ? (
-              <button className="btn-stop" onClick={handleStop} title="Stop generating">
+              <button className="btn-stop" onClick={handleStop} title={t("ask.stopTitle")}>
                 <Square size={16} fill="currentColor" />
-                <span>Stop</span>
+                <span>{t("ask.stop")}</span>
               </button>
             ) : (
               <button
@@ -1475,11 +1476,7 @@ export const AskAstrologerPage = () => {
           </div>
 
           {/* Safety / disclaimer footer */}
-          <div className="ai-disclaimer">
-            ⚠ AI-generated astrological guidance for reflection and entertainment only — not a
-            substitute for professional medical, financial, legal, or psychological advice. Verify
-            important decisions independently.
-          </div>
+          <div className="ai-disclaimer">⚠ {t("ask.disclaimer")}</div>
         </div>
 
         {/* Info Modal */}
@@ -1539,7 +1536,7 @@ export const AskAstrologerPage = () => {
                   }}
                 >
                   <Info size={24} style={{ color: "var(--saffron)" }} />
-                  Chart Data Sent to AI
+                  {t("ask.chartDataSentToAI")}
                 </h3>
                 <button
                   onClick={() => setShowInfoModal(false)}
@@ -1584,9 +1581,7 @@ export const AskAstrologerPage = () => {
                   }}
                 >
                   <p style={{ margin: 0, color: "var(--cosmic-indigo)", fontWeight: 500 }}>
-                    {modalData
-                      ? "This is the exact structured context the backend assembled and sent to the AI model:"
-                      : "This is the chart information that will be sent to the AI model. The backend also adds your full running dasha chain, yogas, doshas, current transits, Sarva Ashtakavarga and Shadbala — visible here after you ask a question:"}
+                    {modalData ? t("ask.modalIntroWithData") : t("ask.modalIntroNoData")}
                   </p>
                 </div>
 
@@ -1623,14 +1618,9 @@ export const AskAstrologerPage = () => {
                       fontWeight: 600,
                     }}
                   >
-                    📝 Note:
+                    📝 {t("ask.note")}
                   </p>
-                  <p style={{ margin: 0, color: "var(--text-secondary)" }}>
-                    The AI model receives this structured data along with your question: your Lagna,
-                    planetary positions and nakshatras, the currently-active Vimsottari dasha chain
-                    (Maha → Bhukti → Antara → Sookshma), yogas and doshas present in the chart,
-                    current planetary transits (Gochara), Sarva Ashtakavarga and Shadbala strengths.
-                  </p>
+                  <p style={{ margin: 0, color: "var(--text-secondary)" }}>{t("ask.noteBody")}</p>
                 </div>
               </div>
             </div>
@@ -1689,7 +1679,7 @@ export const AskAstrologerPage = () => {
                   }}
                 >
                   <KeyRound size={24} style={{ color: "var(--saffron)" }} />
-                  Your API Keys
+                  {t("ask.yourApiKeys")}
                 </h3>
                 <button
                   onClick={() => setShowKeysModal(false)}
@@ -1716,8 +1706,7 @@ export const AskAstrologerPage = () => {
                     lineHeight: 1.6,
                   }}
                 >
-                  Keys are stored encrypted on the server and used only for your own requests.
-                  They're never shown back in full. Ollama (local) needs no key.
+                  {t("ask.keysIntro")}
                 </p>
 
                 {KEY_PROVIDERS.map((p) => {
@@ -1736,16 +1725,16 @@ export const AskAstrologerPage = () => {
                           {p.label}
                         </span>
                         <span className={`key-pill ${status.has_key ? "set" : "unset"}`}>
-                          {status.has_key ? `Saved ${status.masked || ""}` : "Not set"}
+                          {status.has_key
+                            ? t("ask.savedKey", { masked: status.masked || "" })
+                            : t("ask.notSet")}
                         </span>
                       </div>
                       <div className="key-row-controls">
                         <input
                           type="password"
                           className="key-input"
-                          placeholder={
-                            status.has_key ? "Enter a new key to replace" : "Paste API key"
-                          }
+                          placeholder={status.has_key ? t("ask.enterNewKey") : t("ask.pasteKey")}
                           value={keyInputs[p.id] || ""}
                           onChange={(e) =>
                             setKeyInputs((prev) => ({ ...prev, [p.id]: e.target.value }))
@@ -1758,7 +1747,7 @@ export const AskAstrologerPage = () => {
                           onClick={() => handleSaveKey(p.id)}
                           disabled={busy || !(keyInputs[p.id] || "").trim()}
                         >
-                          {busy ? "…" : "Save"}
+                          {busy ? "…" : t("ask.save")}
                         </button>
                         {status.has_key && (
                           <button
@@ -1766,7 +1755,7 @@ export const AskAstrologerPage = () => {
                             style={{ padding: "0 var(--space-md)" }}
                             onClick={() => handleClearKey(p.id)}
                             disabled={busy}
-                            title="Remove stored key"
+                            title={t("ask.removeKey")}
                           >
                             <Trash2 size={13} />
                           </button>

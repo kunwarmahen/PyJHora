@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Sun, Sunrise, Sunset, MapPin } from "lucide-react";
 import { astrologyService } from "../services/api";
 
@@ -27,6 +28,7 @@ async function reverseGeocode(latitude, longitude) {
  * Self-contained: fetches independently so a failure never blanks the page.
  */
 export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
+  const { t } = useTranslation();
   const today = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(today);
   const [data, setData] = useState(null);
@@ -44,7 +46,7 @@ export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
 
   const requestCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setGeoError("Geolocation isn't supported by this browser.");
+      setGeoError(t("panchanga.geoUnsupported"));
       return;
     }
     setGeoLoading(true);
@@ -56,7 +58,7 @@ export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
         // getTimezoneOffset() is (UTC - local) in minutes; negate for the
         // east-positive offset PyJHora expects (e.g. IST -330 → +5.5).
         const tz = -new Date().getTimezoneOffset() / 60;
-        const name = (await reverseGeocode(lat, lon)) || "Current location";
+        const name = (await reverseGeocode(lat, lon)) || t("panchanga.currentLocation");
         setCurrentLoc({ place: name, latitude: lat, longitude: lon, timezone: tz });
         setSource("current");
         setGeoLoading(false);
@@ -64,14 +66,14 @@ export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
       (err) => {
         setGeoError(
           err.code === err.PERMISSION_DENIED
-            ? "Location permission denied."
-            : "Couldn't get your current location."
+            ? t("panchanga.permissionDenied")
+            : t("panchanga.geoFailed")
         );
         setGeoLoading(false);
       },
       { timeout: 10000, maximumAge: 600000 }
     );
-  }, []);
+  }, [t]);
 
   const useCurrent = () => {
     if (currentLoc) setSource("current");
@@ -85,7 +87,7 @@ export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
     astrologyService
       .getPanchanga({ ...activeLoc, date })
       .then((r) => setData(r.data))
-      .catch(() => setError("Panchanga unavailable for this place/date."))
+      .catch(() => setError(t("panchanga.unavailable")))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeLoc.place, activeLoc.latitude, activeLoc.longitude, activeLoc.timezone, date]);
@@ -95,16 +97,16 @@ export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
   }, [load]);
 
   const limbs = data && [
-    { label: "Tithi", value: data.tithi?.name, ends: data.tithi?.ends },
-    { label: "Vaara", value: data.vaara?.name },
+    { label: t("panchanga.tithi"), value: data.tithi?.name, ends: data.tithi?.ends },
+    { label: t("panchanga.vaara"), value: data.vaara?.name },
     {
-      label: "Nakshatra",
+      label: t("common.nakshatra"),
       value: data.nakshatra?.name,
       ends: data.nakshatra?.ends,
-      sub: data.nakshatra?.pada ? `Pada ${data.nakshatra.pada}` : null,
+      sub: data.nakshatra?.pada ? `${t("common.pada")} ${data.nakshatra.pada}` : null,
     },
-    { label: "Yoga", value: data.yoga?.name, ends: data.yoga?.ends },
-    { label: "Karana", value: data.karana?.name, ends: data.karana?.ends },
+    { label: t("panchanga.yoga"), value: data.yoga?.name, ends: data.yoga?.ends },
+    { label: t("panchanga.karana"), value: data.karana?.name, ends: data.karana?.ends },
   ];
 
   const range = (p) => (p && p.start ? `${p.start} – ${p.end}` : "—");
@@ -114,22 +116,26 @@ export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
       <div className="panchanga-header">
         <h3>
           <Sun size={24} style={{ color: "var(--saffron)" }} />
-          Panchanga
+          {t("panchanga.title")}
         </h3>
         <div className="panchanga-controls">
-          <div className="chart-style-toggle" role="group" aria-label="Almanac location">
+          <div
+            className="chart-style-toggle"
+            role="group"
+            aria-label={t("panchanga.almanacLocation")}
+          >
             <button
               className={source === "birth" ? "active" : ""}
               onClick={() => setSource("birth")}
             >
-              Birth place
+              {t("panchanga.birthPlace")}
             </button>
             <button
               className={source === "current" ? "active" : ""}
               onClick={useCurrent}
               disabled={geoLoading}
             >
-              {geoLoading ? "Locating…" : "Current location"}
+              {geoLoading ? t("panchanga.locating") : t("panchanga.currentLocation")}
             </button>
           </div>
           <input
@@ -137,7 +143,7 @@ export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
             className="panchanga-date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            aria-label="Almanac date"
+            aria-label={t("panchanga.almanacDate")}
           />
         </div>
       </div>
@@ -147,7 +153,7 @@ export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
       </div>
       {geoError && <div className="panchanga-status">{geoError}</div>}
 
-      {loading && <div className="panchanga-status">Loading almanac…</div>}
+      {loading && <div className="panchanga-status">{t("panchanga.loadingAlmanac")}</div>}
       {error && !loading && <div className="panchanga-status">{error}</div>}
 
       {data && !loading && !error && (
@@ -158,42 +164,46 @@ export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
                 <span className="panchanga-limb-label">{l.label}</span>
                 <span className="panchanga-limb-value">{l.value || "—"}</span>
                 {l.sub && <span className="panchanga-limb-sub">{l.sub}</span>}
-                {l.ends && <span className="panchanga-limb-sub">until {l.ends}</span>}
+                {l.ends && (
+                  <span className="panchanga-limb-sub">
+                    {t("panchanga.until", { time: l.ends })}
+                  </span>
+                )}
               </div>
             ))}
           </div>
 
           <div className="panchanga-suntimes">
             <span>
-              <Sunrise size={16} /> Sunrise {data.sunrise}
+              <Sunrise size={16} /> {t("panchanga.sunrise")} {data.sunrise}
             </span>
             <span>
-              <Sunset size={16} /> Sunset {data.sunset}
+              <Sunset size={16} /> {t("panchanga.sunset")} {data.sunset}
             </span>
           </div>
 
           <div className="panchanga-periods">
             <div className="panchanga-period inauspicious">
-              <span className="panchanga-period-label">Rahu Kalam</span>
+              <span className="panchanga-period-label">{t("panchanga.rahuKalam")}</span>
               <span className="panchanga-period-time">{range(data.rahu_kalam)}</span>
             </div>
             <div className="panchanga-period inauspicious">
-              <span className="panchanga-period-label">Yamaganda</span>
+              <span className="panchanga-period-label">{t("panchanga.yamaganda")}</span>
               <span className="panchanga-period-time">{range(data.yamaganda)}</span>
             </div>
             <div className="panchanga-period inauspicious">
-              <span className="panchanga-period-label">Gulika Kalam</span>
+              <span className="panchanga-period-label">{t("panchanga.gulikaKalam")}</span>
               <span className="panchanga-period-time">{range(data.gulika)}</span>
             </div>
             <div className="panchanga-period auspicious">
-              <span className="panchanga-period-label">Abhijit Muhurta</span>
+              <span className="panchanga-period-label">{t("panchanga.abhijit")}</span>
               <span className="panchanga-period-time">{range(data.abhijit)}</span>
             </div>
           </div>
 
           {data.durmuhurtam && data.durmuhurtam.length > 0 && (
             <div className="panchanga-durmuhurtam">
-              <span className="panchanga-period-label">Durmuhurtam</span>
+              <span className="panchanga-period-label">{t("panchanga.durmuhurtam")}</span>
               <span>
                 {data.durmuhurtam.map((d, i) => (
                   <span key={i} className="panchanga-durm-slot">
