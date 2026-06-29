@@ -388,7 +388,15 @@
     "status": "Status",
     "breakdown": "Ashtakoot (8 Kootas) Breakdown",
     "outOf": "out of {{max}}",
-    "aiAnalysis": "AI Analysis"
+    "aiAnalysis": "AI Analysis",
+    "pada": "Pada",
+    "charts": "Charts Side by Side",
+    "aiError": "Failed to generate AI analysis",
+    "aiHint": "Get a detailed relationship reading from the AI model you picked in “Ask AI Astrologer”.",
+    "aiLoading": "Consulting the AI astrologer…",
+    "aiModel": "Answered by {{model}}",
+    "aiGenerate": "Get detailed AI analysis",
+    "aiRegenerate": "Regenerate analysis"
   },
   "compare": {
     "title": "Compare Charts",
@@ -402,7 +410,14 @@
     "placements": "Placements side by side",
     "body": "Body",
     "highlightNote": "Highlighted rows share the same sign in both charts.",
-    "calcError": "Failed to calculate charts"
+    "calcError": "Failed to calculate charts",
+    "aiTitle": "AI Comparison",
+    "aiHint": "Get a neutral AI comparison of the two charts using the model picked in “Ask AI Astrologer”. This is not marriage matching.",
+    "aiLoading": "Comparing the two charts…",
+    "aiModel": "Answered by {{model}}",
+    "aiGenerate": "Get AI comparison",
+    "aiRegenerate": "Regenerate comparison",
+    "aiError": "Failed to generate AI comparison"
   },
   "birthChart": {
     "title": "Birth Chart",

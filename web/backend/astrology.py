@@ -1366,8 +1366,98 @@ class AstrologyCompute:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
-    def get_compatibility(*args, **kwargs):
-        return {"error": "Not implemented yet"}
+    def get_compatibility(male_dob: str, male_tob: str, male_place: str,
+                          female_dob: str, female_tob: str, female_place: str,
+                          male_lat: Optional[float] = None, male_lon: Optional[float] = None,
+                          female_lat: Optional[float] = None, female_lon: Optional[float] = None,
+                          male_tz: Optional[float] = None, female_tz: Optional[float] = None,
+                          tz: Optional[float] = 5.5) -> Dict:
+        """Ashtakoot (Guna Milan) compatibility between two charts.
+
+        Computes each person's Moon nakshatra+pada and runs PyJHora's North-Indian
+        Ashtakoota (the classic 36-point system). Returns the eight kootas with
+        their *correct* individual maxima plus a verdict, so the frontend can render
+        an accurate breakdown."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available"}
+
+        nakshatra_names = [
+            "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra",
+            "Punarvasu", "Pushya", "Ashlesha", "Magha", "Purva Phalguni", "Uttara Phalguni",
+            "Hasta", "Chitra", "Swati", "Vishakha", "Anuradha", "Jyeshtha",
+            "Mula", "Purva Ashadha", "Uttara Ashadha", "Shravana", "Dhanishta", "Shatabhisha",
+            "Purva Bhadrapada", "Uttara Bhadrapada", "Revati"
+        ]
+
+        def _moon_nakshatra_pada(dob, tob, place, lat, lon, person_tz):
+            """1-based Moon nakshatra number (1-27) and pada (1-4)."""
+            year, month, day = map(int, dob.split("-"))
+            time_parts = tob.split(":")
+            hour = int(time_parts[0])
+            minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707  # Chennai default
+            jd = swe.julday(year, month, day, hour + minute / 60)
+            place_obj = drik.Place(place, lat, lon, person_tz if person_tz is not None else (tz or 5.5))
+            pp = charts.rasi_chart(jd, place_obj)
+            moon_rasi, moon_long = pp[2][1]  # pp[0]=Asc, pp[1]=Sun, pp[2]=Moon
+            absolute_longitude = moon_rasi * 30.0 + moon_long
+            nak, pada = drik.nakshatra_pada(absolute_longitude)[:2]
+            return nak, pada
+
+        try:
+            boy_nak, boy_pada = _moon_nakshatra_pada(
+                male_dob, male_tob, male_place, male_lat, male_lon, male_tz)
+            girl_nak, girl_pada = _moon_nakshatra_pada(
+                female_dob, female_tob, female_place, female_lat, female_lon, female_tz)
+
+            ak = compat_module.Ashtakoota(boy_nak, boy_pada, girl_nak, girl_pada, method="North")
+            # compatibility_score() -> [varna, vasiya, gana, dina(tara), yoni,
+            #   raasi_adhipathi(graha maitri), raasi(bhakoot), naadi, total_score, ...]
+            scores = ak.compatibility_score()
+            varna, vasiya, gana, tara, yoni, maitri, bhakoot, naadi, total = scores[:9]
+
+            kootas = [
+                {"key": "varna", "name": "Varna", "score": varna, "max": 1,
+                 "description": "Spiritual compatibility and ego balance"},
+                {"key": "vashya", "name": "Vashya", "score": vasiya, "max": 2,
+                 "description": "Mutual attraction and influence"},
+                {"key": "tara", "name": "Tara (Dina)", "score": tara, "max": 3,
+                 "description": "Health, longevity and destiny"},
+                {"key": "yoni", "name": "Yoni", "score": yoni, "max": 4,
+                 "description": "Physical and intimate compatibility"},
+                {"key": "maitri", "name": "Graha Maitri", "score": maitri, "max": 5,
+                 "description": "Mental affinity and friendship"},
+                {"key": "gana", "name": "Gana", "score": gana, "max": 6,
+                 "description": "Temperament and nature"},
+                {"key": "bhakoot", "name": "Bhakoot (Rasi)", "score": bhakoot, "max": 7,
+                 "description": "Love, family welfare and prosperity"},
+                {"key": "nadi", "name": "Nadi", "score": naadi, "max": 8,
+                 "description": "Health and progeny (genetic harmony)"},
+            ]
+
+            if total >= 28:
+                status = "Excellent Match"
+            elif total >= 24:
+                status = "Very Good Match"
+            elif total >= 18:
+                status = "Good Match"
+            elif total >= 14:
+                status = "Average — Needs Consideration"
+            else:
+                status = "Not Recommended"
+
+            return {
+                "total_score": round(float(total), 1),
+                "max_score": 36,
+                "status": status,
+                "kootas": kootas,
+                "boy": {"nakshatra": nakshatra_names[boy_nak - 1], "pada": boy_pada},
+                "girl": {"nakshatra": nakshatra_names[girl_nak - 1], "pada": girl_pada},
+            }
+        except Exception as e:
+            print(f"Compatibility calculation error: {e}")
+            return {"error": str(e)}
 
     @staticmethod
     def search_location(query: str = "", *args, **kwargs):

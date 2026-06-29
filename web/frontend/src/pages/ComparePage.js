@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { GitCompareArrows, Users } from "lucide-react";
+import { GitCompareArrows, Users, Sparkles } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { PageHeader } from "../components/PageHeader";
@@ -14,6 +14,19 @@ import { DEFAULT_AYANAMSA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 
 const PLANETS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
+
+// Read the model config the user already picked in "Ask Astrologer". The server
+// resolves the actual API key (per-user stored key → env key), so we only need
+// the provider/model selection here — no key handling on this page.
+const readModelConfig = () => {
+  const providerType = localStorage.getItem("ai_provider_type") || "ollama";
+  return {
+    providerType,
+    model: localStorage.getItem("ai_model") || "",
+    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    legacyProvider: providerType === "ollama" ? "qwen" : providerType,
+  };
+};
 
 const toBirthDetails = (p) => ({
   name: p.birth_details.name,
@@ -58,6 +71,12 @@ export const ComparePage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // AI comparison is on-demand (uses the model picked in "Ask Astrologer").
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiAnalysis, setAiAnalysis] = useState("");
+  const [aiModel, setAiModel] = useState("");
+
   useEffect(() => {
     if (!selectedProfile) {
       navigate("/profile-selection");
@@ -73,6 +92,10 @@ export const ComparePage = () => {
   );
 
   useEffect(() => {
+    // Any change to the pairing invalidates a prior AI reading.
+    setAiAnalysis("");
+    setAiError("");
+    setAiModel("");
     if (!selectedProfile || !secondProfile) {
       setChartA(null);
       setChartB(null);
@@ -101,6 +124,26 @@ export const ComparePage = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfile, secondProfile, ayanamsa]);
+
+  const handleAiAnalysis = async () => {
+    if (!selectedProfile || !secondProfile) return;
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const response = await astrologyService.compareChartsAI(
+        toBirthDetails(selectedProfile),
+        toBirthDetails(secondProfile),
+        { name1: selectedProfile.profile_name, name2: secondProfile.profile_name },
+        { ...readModelConfig(), ayanamsa }
+      );
+      setAiAnalysis(response.data.ai_analysis || "");
+      setAiModel(response.data.model || response.data.provider || "");
+    } catch (err) {
+      setAiError(err.response?.data?.detail || t("compare.aiError"));
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   if (!selectedProfile) return null;
 
@@ -227,6 +270,78 @@ export const ComparePage = () => {
               >
                 {t("compare.highlightNote")}
               </p>
+            </Card>
+
+            {/* AI comparison (on-demand, neutral — not marriage matching) */}
+            <Card title={t("compare.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
+              <ErrorBanner message={aiError} />
+
+              {!aiAnalysis && !aiLoading && (
+                <p
+                  style={{
+                    color: "var(--text-secondary)",
+                    marginBottom: "var(--space-md)",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  {t("compare.aiHint")}
+                </p>
+              )}
+
+              {aiLoading && <LoadingState message={t("compare.aiLoading")} />}
+
+              {aiAnalysis && !aiLoading && (
+                <div
+                  style={{
+                    padding: "var(--space-md)",
+                    background: "white",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: "1rem",
+                    lineHeight: "1.8",
+                    color: "var(--cosmic-indigo)",
+                    whiteSpace: "pre-wrap",
+                    marginBottom: "var(--space-md)",
+                  }}
+                >
+                  {aiAnalysis}
+                  {aiModel && (
+                    <div
+                      style={{
+                        marginTop: "var(--space-md)",
+                        paddingTop: "var(--space-sm)",
+                        borderTop: "1px solid var(--sandalwood)",
+                        fontSize: "0.8rem",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      {t("compare.aiModel", { model: aiModel })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!aiLoading && (
+                <button
+                  onClick={handleAiAnalysis}
+                  style={{
+                    padding: "var(--space-md) var(--space-lg)",
+                    background:
+                      "linear-gradient(135deg, var(--cosmic-indigo) 0%, var(--saffron) 100%)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: "1rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--space-sm)",
+                  }}
+                >
+                  <Sparkles size={18} />
+                  {aiAnalysis ? t("compare.aiRegenerate") : t("compare.aiGenerate")}
+                </button>
+              )}
             </Card>
           </>
         )}

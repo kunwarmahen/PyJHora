@@ -88,6 +88,19 @@ class CompatibilityAnalysisRequest(BaseModel):
     api_key: Optional[str] = None
     ayanamsa: Optional[str] = None
 
+class CompareAnalysisRequest(BaseModel):
+    person1_details: BirthDetails
+    person2_details: BirthDetails
+    person1_name: Optional[str] = None
+    person2_name: Optional[str] = None
+    llm_provider: str = "qwen"  # legacy fallback
+    # New model-selection fields (optional; fall back to llm_provider when absent)
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    ayanamsa: Optional[str] = None
+
 # Lifecycle events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -692,6 +705,8 @@ async def get_compatibility(
             female_place=female_place,
             female_lat=female_latitude,
             female_lon=female_longitude,
+            male_tz=male_timezone,
+            female_tz=female_timezone,
             tz=male_timezone or female_timezone or 5.5
         )
 
@@ -1197,6 +1212,8 @@ async def analyze_compatibility(
             male_lon=male_details.longitude,
             female_lat=female_details.latitude,
             female_lon=female_details.longitude,
+            male_tz=male_details.timezone,
+            female_tz=female_details.timezone,
             tz=male_details.timezone or female_details.timezone
         )
 
@@ -1226,6 +1243,45 @@ async def analyze_compatibility(
 
         return {
             "compatibility_score": compatibility,
+            "ai_analysis": ai_analysis,
+            "provider": cfg.provider_type.value,
+            "model": cfg.model,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/compare-analysis")
+async def analyze_comparison(
+    request: CompareAnalysisRequest,
+    current_user: str = Depends(get_current_user)
+):
+    """Neutral AI comparison of two charts (not marriage compatibility)."""
+    _enforce_rate_limit(current_user)
+    try:
+        p1 = request.person1_details
+        p2 = request.person2_details
+        ayanamsa = request.ayanamsa or DEFAULT_AYANAMSA
+
+        chart_a = AstrologyCompute.get_horoscope_predictions(
+            dob=p1.dob, tob=p1.tob, place=p1.place,
+            lat=p1.latitude, lon=p1.longitude, tz=p1.timezone, ayanamsa=ayanamsa,
+        )
+        chart_b = AstrologyCompute.get_horoscope_predictions(
+            dob=p2.dob, tob=p2.tob, place=p2.place,
+            lat=p2.latitude, lon=p2.longitude, tz=p2.timezone, ayanamsa=ayanamsa,
+        )
+
+        cfg = await _resolve_cfg(current_user, request)
+
+        ai_analysis = await llm_service.compare_charts(
+            chart_a=chart_a,
+            chart_b=chart_b,
+            name_a=request.person1_name or "Person 1",
+            name_b=request.person2_name or "Person 2",
+            config=cfg,
+        )
+
+        return {
             "ai_analysis": ai_analysis,
             "provider": cfg.provider_type.value,
             "model": cfg.model,

@@ -324,6 +324,18 @@ class LLMService:
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
         return await self._complete(prompt, cfg)
 
+    async def compare_charts(self,
+                             chart_a: Dict[str, Any],
+                             chart_b: Dict[str, Any],
+                             name_a: str = "Person 1",
+                             name_b: str = "Person 2",
+                             provider: LLMProvider = LLMProvider.QWEN,
+                             config: Optional[ModelConfig] = None) -> str:
+        """Generate a neutral, relationship-agnostic comparison of two charts."""
+        prompt = self._build_comparison_prompt(chart_a, chart_b, name_a, name_b)
+        cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        return await self._complete(prompt, cfg)
+
     # ------------------------------------------------------------------ #
     # Provider dispatch
     # ------------------------------------------------------------------ #
@@ -888,6 +900,47 @@ Based on these SPECIFIC CHARTS and the {koota_score}/36 Ashta Koota score, provi
 6. Practical recommendations for a harmonious marriage
 
 IMPORTANT: Use the actual chart data provided above. Be balanced, specific to their placements, insightful, and constructive. Do not ask for more information."""
+
+        return prompt
+
+    def _build_comparison_prompt(self, chart_a: Dict[str, Any], chart_b: Dict[str, Any],
+                                 name_a: str, name_b: str) -> str:
+        """Build a neutral, relationship-agnostic two-chart comparison prompt.
+
+        Unlike compatibility (which assumes marriage/Guna Milan), this contrasts the
+        two charts as individuals — useful for any pairing (friends, family, the same
+        person across a rectification, etc.)."""
+
+        def block(name: str, chart: Dict[str, Any]) -> str:
+            lagna = chart.get("lagna", {})
+            moon = chart.get("moon_sign", {})
+            sun = chart.get("sun_sign", {})
+            return (
+                f"=== {name} ===\n"
+                f"Lagna (Ascendant): {lagna.get('sign_name', 'Unknown')} in "
+                f"{lagna.get('nakshatra', 'Unknown')} nakshatra\n"
+                f"Moon: {moon.get('sign_name', 'Unknown')} in {moon.get('nakshatra', 'Unknown')} "
+                f"nakshatra (Pada {moon.get('nakshatra_pada', 'Unknown')})\n"
+                f"Sun: {sun.get('sign_name', 'Unknown')}\n"
+                f"Planets:\n{self._format_planets(chart.get('planetary_positions', {}))}"
+            )
+
+        prompt = f"""You are an expert Vedic astrologer. Below are two COMPLETE, ACCURATELY CALCULATED birth charts from PyJHora software. Compare and contrast them as two individuals. This is NOT a marriage/compatibility (Guna Milan) reading — make no assumptions about the nature of any relationship between them.
+
+{block(name_a, chart_a)}
+
+{block(name_b, chart_b)}
+
+Provide a clear side-by-side comparison covering:
+
+1. Personality & temperament — contrast their Lagna and overall disposition
+2. Mind & emotions — contrast their Moon signs/nakshatras
+3. Vitality, ego & self-expression — contrast their Sun
+4. Notable similarities (shared signs, nakshatras, or planetary patterns)
+5. Notable differences and how their natures diverge
+6. A short, neutral synthesis of how the two charts compare
+
+IMPORTANT: Use the actual chart data above. Be specific to their placements, balanced, and concise. Refer to them as "{name_a}" and "{name_b}". Do not score them and do not ask for more information."""
 
         return prompt
 

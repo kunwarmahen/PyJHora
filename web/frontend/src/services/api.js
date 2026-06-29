@@ -218,6 +218,25 @@ export const astrologyService = {
       },
       { timeout: 300000 }
     ),
+
+  // Neutral AI comparison of two charts (Compare Charts page) — not marriage matching.
+  compareChartsAI: (person1, person2, names = {}, model = {}) =>
+    api.post(
+      "/api/astrology/compare-analysis",
+      {
+        person1_details: person1,
+        person2_details: person2,
+        person1_name: names.name1,
+        person2_name: names.name2,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
 };
 
 /**

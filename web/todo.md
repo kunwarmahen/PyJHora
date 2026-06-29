@@ -805,3 +805,40 @@ usage capture).
       `aiTools.*` page strings, and `dashboard.features.aiTools` in en/hi/sa. Verified:
       backend compiles + endpoint returns 11 tools in 3 categories; lint clean; locale
       JSON valid.
+
+## Compatibility (Guna Milan) — real Ashtakoot + charts + on-demand AI (DONE 2026-06-29)
+
+- [x] DONE 2026-06-29: **implemented the compatibility backend** (it was a stub returning
+      `{"error": "Not implemented yet"}`, so the page showed bogus/empty scores).
+      `AstrologyCompute.get_compatibility` now computes each person's **Moon nakshatra+pada**
+      and runs PyJHora's North-Indian `Ashtakoota` (the classic 36-point Guna Milan). Returns
+      the **8 kootas with their correct individual maxima** — Varna 1, Vashya 2, Tara(Dina) 3,
+      Yoni 4, Graha Maitri 5, Gana 6, Bhakoot(Rasi) 7, Nadi 8 (sum 36) — plus a verdict and
+      each partner's Moon nakshatra/pada. The old frontend table hard-coded mislabeled kootas
+      (reused `dinam`/`ganam`, wrong maxes); the page now renders `result.kootas` dynamically.
+- [x] DONE 2026-06-29: **per-person timezones** — `get_compatibility` takes `male_tz`/
+      `female_tz` (fallback `tz`); both `/compatibility` and `/compatibility-analysis`
+      endpoints pass each profile's own timezone so partners born in different zones score
+      right.
+- [x] DONE 2026-06-29: **side-by-side charts on the Compatibility page** — after a check it
+      renders both kundalis (North/South per `chartStyle`) using the shared chart components,
+      matching the Compare Charts page so both give a visual comparison.
+- [x] DONE 2026-06-29: **on-demand AI analysis** — replaced the old non-functional `useQwen`
+      checkbox with a **"Get detailed AI analysis"** button that calls `/compatibility-analysis`
+      with the model the user picked in *Ask AI Astrologer* (localStorage `ai_provider_type/
+      ai_model/ai_base_url`, same pattern as `TransitChat`) and shows **which model answered**.
+      i18n: `compat.pada/charts/aiHint/aiLoading/aiModel/aiGenerate/aiRegenerate/aiError` in
+      en/hi/sa. Verified: backend computes 22.5/36 on a sample, both files compile, page lint
+      clean, locale JSON valid.
+- [x] DONE 2026-06-29: **neutral AI comparison on the Compare Charts page** (owner ask —
+      parity with the Compatibility page, but Compare Charts is relationship-agnostic, so it
+      is NOT Guna Milan). New `llm_service.compare_charts` + `_build_comparison_prompt` (a
+      neutral "compare & contrast these two charts as individuals" prompt covering
+      personality/Lagna, mind/Moon, vitality/Sun, similarities, differences, synthesis — no
+      score, no marriage assumption) and `POST /api/astrology/compare-analysis`
+      (`CompareAnalysisRequest`, model-config aware via `_resolve_cfg`). Frontend:
+      `compareChartsAI` (`services/api.js`) + an on-demand "Get AI comparison" card on
+      `ComparePage` that uses the model picked in Ask AI Astrologer and shows which model
+      answered; the reading is cleared whenever the pairing changes. i18n: `compare.aiTitle/
+      aiHint/aiLoading/aiModel/aiGenerate/aiRegenerate/aiError` in en/hi/sa. Verified: backend
+      compiles + route registered + prompt builds, frontend lint clean, locale JSON valid.

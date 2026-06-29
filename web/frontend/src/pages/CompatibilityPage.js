@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Heart, User, Users, Sparkles } from "lucide-react";
+import { Heart, User, Users, Sparkles, GitCompareArrows } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
@@ -9,18 +9,55 @@ import { PageHeader } from "../components/PageHeader";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
+import { NorthIndianChart } from "../components/NorthIndianChart";
+import { SouthIndianChart } from "../components/SouthIndianChart";
+import { DEFAULT_AYANAMSA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
+
+// Read the model config the user already picked in "Ask Astrologer". The server
+// resolves the actual API key (per-user stored key → env key), so we only need
+// the provider/model selection here — no key handling on this page.
+const readModelConfig = () => {
+  const providerType = localStorage.getItem("ai_provider_type") || "ollama";
+  return {
+    providerType,
+    model: localStorage.getItem("ai_model") || "",
+    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    legacyProvider: providerType === "ollama" ? "qwen" : providerType,
+  };
+};
+
+const toBirthDetails = (p) => ({
+  name: p.birth_details.name,
+  dob: p.birth_details.dob,
+  tob: p.birth_details.tob,
+  place: p.birth_details.place,
+  latitude: parseFloat(p.birth_details.latitude),
+  longitude: parseFloat(p.birth_details.longitude),
+  timezone: parseFloat(p.birth_details.timezone),
+});
 
 export const CompatibilityPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { selectedProfile, profiles, loadProfiles } = useProfile();
 
+  const ayanamsa = localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA;
+  const chartStyle = localStorage.getItem("chartStyle") || "north";
+  const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
+
   const [secondProfile, setSecondProfile] = useState(null);
-  const [useQwen, setUseQwen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [chartA, setChartA] = useState(null);
+  const [chartB, setChartB] = useState(null);
+
+  // AI analysis is on-demand (uses the model picked in "Ask Astrologer").
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiAnalysis, setAiAnalysis] = useState("");
+  const [aiModel, setAiModel] = useState("");
 
   // Redirect if no profile selected
   useEffect(() => {
@@ -33,6 +70,15 @@ export const CompatibilityPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfile, navigate]);
 
+  const resetResults = () => {
+    setResult(null);
+    setChartA(null);
+    setChartB(null);
+    setAiAnalysis("");
+    setAiError("");
+    setAiModel("");
+  };
+
   const handleCalculate = async () => {
     if (!secondProfile) {
       setError(t("compat.errSelectSecond"));
@@ -41,28 +87,27 @@ export const CompatibilityPage = () => {
 
     setLoading(true);
     setError("");
+    setAiAnalysis("");
+    setAiError("");
+
+    const person1Data = toBirthDetails(selectedProfile);
+    const person2Data = toBirthDetails(secondProfile);
 
     try {
-      const person1Data = {
-        dob: selectedProfile.birth_details.dob,
-        tob: selectedProfile.birth_details.tob,
-        place: selectedProfile.birth_details.place,
-        latitude: parseFloat(selectedProfile.birth_details.latitude),
-        longitude: parseFloat(selectedProfile.birth_details.longitude),
-        timezone: parseFloat(selectedProfile.birth_details.timezone),
-      };
-
-      const person2Data = {
-        dob: secondProfile.birth_details.dob,
-        tob: secondProfile.birth_details.tob,
-        place: secondProfile.birth_details.place,
-        latitude: parseFloat(secondProfile.birth_details.latitude),
-        longitude: parseFloat(secondProfile.birth_details.longitude),
-        timezone: parseFloat(secondProfile.birth_details.timezone),
-      };
-
-      const response = await astrologyService.getCompatibility(person1Data, person2Data, useQwen);
-      setResult(response.data);
+      // Score + both birth charts in parallel — the charts power the side-by-side
+      // visual comparison, the score powers the Ashtakoot breakdown.
+      const [compat, ra, rb] = await Promise.all([
+        astrologyService.getCompatibility(person1Data, person2Data),
+        astrologyService.calculateBirthChart(person1Data, ayanamsa),
+        astrologyService.calculateBirthChart(person2Data, ayanamsa),
+      ]);
+      if (compat.data?.error) {
+        setError(compat.data.error);
+        return;
+      }
+      setResult(compat.data);
+      setChartA(ra.data);
+      setChartB(rb.data);
     } catch (err) {
       setError(err.response?.data?.detail || t("compat.calcError"));
     } finally {
@@ -70,9 +115,31 @@ export const CompatibilityPage = () => {
     }
   };
 
+  const handleAiAnalysis = async () => {
+    if (!secondProfile) return;
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const response = await astrologyService.analyzeCompatibilityAI(
+        toBirthDetails(selectedProfile),
+        toBirthDetails(secondProfile),
+        { ...readModelConfig(), ayanamsa }
+      );
+      setAiAnalysis(response.data.ai_analysis || "");
+      setAiModel(response.data.model || response.data.provider || "");
+    } catch (err) {
+      setAiError(err.response?.data?.detail || t("compat.aiError"));
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   if (!selectedProfile) {
     return null;
   }
+
+  const nameA = selectedProfile.profile_name;
+  const nameB = secondProfile?.profile_name || t("compare.person2");
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -227,7 +294,7 @@ export const CompatibilityPage = () => {
                 onChange={(e) => {
                   const profile = profiles.find((p) => p._id === e.target.value);
                   setSecondProfile(profile || null);
-                  setResult(null);
+                  resetResults();
                 }}
                 style={{
                   width: "100%",
@@ -293,54 +360,13 @@ export const CompatibilityPage = () => {
                       {orDash(secondProfile.birth_details.tob)}
                     </div>
                     <div>
-                      <strong>Place:</strong> {orDash(secondProfile.birth_details.place)}
+                      <strong>{t("common.place")}:</strong>{" "}
+                      {orDash(secondProfile.birth_details.place)}
                     </div>
                   </div>
                 </div>
               )}
             </div>
-          </div>
-
-          {/* AI Toggle */}
-          <div
-            style={{
-              marginTop: "var(--space-lg)",
-              padding: "var(--space-md)",
-              background: "var(--sacred-white)",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--sandalwood)",
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-md)",
-            }}
-          >
-            <input
-              type="checkbox"
-              id="useQwen"
-              checked={useQwen}
-              onChange={(e) => setUseQwen(e.target.checked)}
-              style={{
-                width: "20px",
-                height: "20px",
-                cursor: "pointer",
-                accentColor: "var(--saffron)",
-              }}
-            />
-            <label
-              htmlFor="useQwen"
-              style={{
-                cursor: "pointer",
-                fontSize: "1rem",
-                color: "var(--cosmic-indigo)",
-                fontWeight: 500,
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-sm)",
-              }}
-            >
-              <Sparkles size={18} style={{ color: "var(--saffron)" }} />
-              {t("compat.useAi")}
-            </label>
           </div>
 
           {/* Calculate Button */}
@@ -451,7 +477,7 @@ export const CompatibilityPage = () => {
                 }}
               >
                 {result.total_score}
-                <span style={{ fontSize: "2rem" }}>/36</span>
+                <span style={{ fontSize: "2rem" }}>/{result.max_score || 36}</span>
               </div>
               <div
                 style={{
@@ -468,6 +494,18 @@ export const CompatibilityPage = () => {
                   {t("compat.status")}: {result.status}
                 </span>
               </div>
+              {(result.boy?.nakshatra || result.girl?.nakshatra) && (
+                <div
+                  style={{
+                    marginTop: "var(--space-md)",
+                    fontSize: "0.875rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  {nameA}: {result.boy?.nakshatra} ({t("compat.pada")} {result.boy?.pada}) &nbsp;•&nbsp;{" "}
+                  {nameB}: {result.girl?.nakshatra} ({t("compat.pada")} {result.girl?.pada})
+                </div>
+              )}
             </div>
 
             {/* Ashtakoot Breakdown */}
@@ -489,18 +527,10 @@ export const CompatibilityPage = () => {
                 marginBottom: "var(--space-xl)",
               }}
             >
-              {[
-                { name: "Varna (Dina)", score: result.dinam, max: 1 },
-                { name: "Vashya (Gana)", score: result.ganam, max: 2 },
-                { name: "Tara (Dina)", score: result.dinam, max: 3 },
-                { name: "Yoni", score: result.yoni, max: 4 },
-                { name: "Graha Maitri (Rasi)", score: result.rasi, max: 5 },
-                { name: "Gana", score: result.ganam, max: 6 },
-                { name: "Bhakoot (Rajju)", score: result.rajju, max: 7 },
-                { name: "Nadi (Vedha)", score: result.vedha, max: 8 },
-              ].map((koota, index) => (
+              {(result.kootas || []).map((koota) => (
                 <div
-                  key={index}
+                  key={koota.key}
+                  title={koota.description}
                   style={{
                     padding: "var(--space-md)",
                     background: "var(--sacred-white)",
@@ -549,17 +579,9 @@ export const CompatibilityPage = () => {
               ))}
             </div>
 
-            {/* AI Analysis */}
-            {result.ai_analysis && (
-              <div
-                style={{
-                  padding: "var(--space-lg)",
-                  background:
-                    "linear-gradient(135deg, rgba(52, 73, 94, 0.05) 0%, rgba(52, 73, 94, 0.1) 100%)",
-                  borderRadius: "var(--radius-lg)",
-                  border: "2px solid var(--cosmic-indigo)",
-                }}
-              >
+            {/* Side-by-side charts for visual comparison */}
+            {chartA && chartB && (
+              <>
                 <h4
                   style={{
                     color: "var(--cosmic-indigo)",
@@ -571,9 +593,79 @@ export const CompatibilityPage = () => {
                     gap: "var(--space-sm)",
                   }}
                 >
-                  <Sparkles size={20} style={{ color: "var(--saffron)" }} />
-                  {t("compat.aiAnalysis")}
+                  <GitCompareArrows size={20} style={{ color: "var(--saffron)" }} />
+                  {t("compat.charts")}
                 </h4>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                    gap: "var(--space-xl)",
+                    marginBottom: "var(--space-xl)",
+                  }}
+                >
+                  <Card title={nameA} accent="saffron">
+                    <Kundali
+                      planets={chartA.planets}
+                      lagna={chartA.lagna}
+                      title={nameA}
+                      exportable
+                    />
+                  </Card>
+                  <Card title={nameB} accent="vermillion">
+                    <Kundali
+                      planets={chartB.planets}
+                      lagna={chartB.lagna}
+                      title={nameB}
+                      exportable
+                    />
+                  </Card>
+                </div>
+              </>
+            )}
+
+            {/* AI Analysis (on-demand) */}
+            <div
+              style={{
+                padding: "var(--space-lg)",
+                background:
+                  "linear-gradient(135deg, rgba(52, 73, 94, 0.05) 0%, rgba(52, 73, 94, 0.1) 100%)",
+                borderRadius: "var(--radius-lg)",
+                border: "2px solid var(--cosmic-indigo)",
+              }}
+            >
+              <h4
+                style={{
+                  color: "var(--cosmic-indigo)",
+                  marginBottom: "var(--space-md)",
+                  fontSize: "1.25rem",
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-sm)",
+                }}
+              >
+                <Sparkles size={20} style={{ color: "var(--saffron)" }} />
+                {t("compat.aiAnalysis")}
+              </h4>
+
+              <ErrorBanner message={aiError} />
+
+              {!aiAnalysis && !aiLoading && (
+                <p
+                  style={{
+                    color: "var(--text-secondary)",
+                    marginBottom: "var(--space-md)",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  {t("compat.aiHint")}
+                </p>
+              )}
+
+              {aiLoading && <LoadingState message={t("compat.aiLoading")} />}
+
+              {aiAnalysis && !aiLoading && (
                 <div
                   style={{
                     padding: "var(--space-md)",
@@ -583,12 +675,49 @@ export const CompatibilityPage = () => {
                     lineHeight: "1.8",
                     color: "var(--cosmic-indigo)",
                     whiteSpace: "pre-wrap",
+                    marginBottom: "var(--space-md)",
                   }}
                 >
-                  {result.ai_analysis}
+                  {aiAnalysis}
+                  {aiModel && (
+                    <div
+                      style={{
+                        marginTop: "var(--space-md)",
+                        paddingTop: "var(--space-sm)",
+                        borderTop: "1px solid var(--sandalwood)",
+                        fontSize: "0.8rem",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      {t("compat.aiModel", { model: aiModel })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              )}
+
+              {!aiLoading && (
+                <button
+                  onClick={handleAiAnalysis}
+                  style={{
+                    padding: "var(--space-md) var(--space-lg)",
+                    background:
+                      "linear-gradient(135deg, var(--cosmic-indigo) 0%, var(--saffron) 100%)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: "1rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--space-sm)",
+                  }}
+                >
+                  <Sparkles size={18} />
+                  {aiAnalysis ? t("compat.aiRegenerate") : t("compat.aiGenerate")}
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

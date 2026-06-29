@@ -313,10 +313,11 @@ REACT_APP_API_TIMEOUT=30000
 - Optional AI enhancement with Qwen
 
 ### 4. Marriage Compatibility
-- Calculate compatibility scores
-- Ashta Koota analysis
-- Detailed compatibility breakdown
-- Optional AI analysis with Qwen
+- Ashtakoot (Guna Milan) score out of 36, computed from each person's Moon nakshatra+pada
+- Per-koota breakdown with correct maxima (Varna 1, Vashya 2, Tara 3, Yoni 4, Graha Maitri 5,
+  Gana 6, Bhakoot 7, Nadi 8) and a verdict
+- Side-by-side kundalis (North/South) for visual comparison
+- On-demand "Get detailed AI analysis" using the model picked in Ask AI Astrologer
 
 ### 5. Dhasa Periods
 - **Vimsottari**: full drill-down tree Maha Dasha → Bhukti → Antara → Sookshma.
@@ -466,6 +467,7 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `POST /api/ai/conversations/{id}/feedback` - Thumbs up/down on an answer
 - `POST /api/astrology/predict` - Generate AI-powered predictions (general, health, career, relationships)
 - `POST /api/astrology/compatibility-analysis` - Get detailed AI compatibility analysis
+- `POST /api/astrology/compare-analysis` - Get a neutral AI comparison of two charts (not marriage matching)
 
 ### User
 - `GET /api/user/charts` - Get user's saved charts
@@ -487,7 +489,7 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `/dhasa` - Dhasa periods: Vimsottari drill-down tree + other systems
 - `/transit` - Transits (Gochara) over the natal chart
 - `/advanced` - Advanced details: Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala
-- `/compare` - Compare two saved profiles side by side
+- `/compare` - Compare two saved profiles side by side (charts, placements table + on-demand neutral AI comparison)
 - `/share/:token` - **Public, read-only** shared chart view (no login required)
 - `/predictions` - Horoscope and predictions generator
 
