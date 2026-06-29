@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import { Sparkles, Send, Square, ChevronDown, ChevronUp } from "lucide-react";
@@ -241,7 +242,13 @@ export const TransitChat = ({ birthDetails, profile, result, ayanamsa = DEFAULT_
               color: "var(--text-muted)",
             }}
           >
-            {t("transitChat.modelSource", { model: configuredModelLabel })}
+            {t("transitChat.modelSource", { model: configuredModelLabel })}{" "}
+            <Link
+              to="/ask-astrologer"
+              style={{ color: "var(--saffron)", fontWeight: 600 }}
+            >
+              {t("transitChat.modelChange")}
+            </Link>
           </p>
 
           {/* Messages */}
