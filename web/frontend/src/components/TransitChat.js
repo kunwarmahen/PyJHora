@@ -40,6 +40,12 @@ export const TransitChat = ({ birthDetails, profile, result, ayanamsa = DEFAULT_
   const abortRef = useRef(null);
   const scrollRef = useRef(null);
 
+  // The model is inherited from "Ask AI Astrologer" (same localStorage keys). Show
+  // the current selection; fall back to the provider name when no specific model is
+  // set (e.g. the default local Ollama provider), or a generic label if neither.
+  const cfg = readModelConfig();
+  const configuredModelLabel = cfg.model || cfg.providerType || t("transitChat.modelDefault");
+
   // Smart suggestion chips derived from what's actually on screen. Saturn's
   // gochara from the natal Moon (12th/1st/2nd) is Sade Sati; retrogrades and
   // upcoming slow-mover ingresses are the other natural "what does this mean"
@@ -123,6 +129,12 @@ export const TransitChat = ({ birthDetails, profile, result, ayanamsa = DEFAULT_
         profileId: profile._id,
       },
       {
+        onMeta: (meta) =>
+          updateLastAi((m) => ({
+            ...m,
+            provider: meta.provider || m.provider,
+            model: meta.model || m.model,
+          })),
         onToken: (tok) =>
           updateLastAi((m) => ({ ...m, content: m.content + tok })),
         onDone: (d) => {
@@ -221,6 +233,17 @@ export const TransitChat = ({ birthDetails, profile, result, ayanamsa = DEFAULT_
             {t("transitChat.intro")}
           </p>
 
+          {/* Where the model comes from — inherited from "Ask AI Astrologer". */}
+          <p
+            style={{
+              margin: "0 0 var(--space-md)",
+              fontSize: "0.75rem",
+              color: "var(--text-muted)",
+            }}
+          >
+            {t("transitChat.modelSource", { model: configuredModelLabel })}
+          </p>
+
           {/* Messages */}
           {messages.length > 0 && (
             <div
@@ -276,6 +299,19 @@ export const TransitChat = ({ birthDetails, profile, result, ayanamsa = DEFAULT_
                     )}
                     {m.streaming && m.content && (
                       <span style={{ color: "var(--saffron)" }}> ▍</span>
+                    )}
+                    {!m.streaming && !m.error && (m.model || m.provider) && (
+                      <div
+                        style={{
+                          marginTop: "var(--space-xs)",
+                          fontSize: "0.6875rem",
+                          color: "var(--text-muted)",
+                        }}
+                      >
+                        {t("transitChat.answeredBy", {
+                          model: m.model || m.provider,
+                        })}
+                      </div>
                     )}
                   </div>
                 )
