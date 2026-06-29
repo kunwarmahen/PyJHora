@@ -337,9 +337,35 @@ web exposes. High-value additions:
       - OUT OF SCOPE for A (leave English): free-text yoga/dosha *descriptions*, Ashtakoot koota
         names, and AI answers (the AI already replies in the language the user writes in; a future
         nicety is to add a language hint to the system prompt).
-      - Option B (backend `utils.set_language()` threading) stays the fallback if native Hindi
-        data is ever wanted server-side — but it can't do Sanskrit and needs the backend moved
-        off its hardcoded `ZODIAC_NAMES`/`nakshatra_names` tables.
+
+      **Plan — Option B (backend `utils.set_language()`), the fallback if we want native
+      engine-localized data server-side (e.g. for non-web consumers, or to also localize
+      free-text yoga/dosha/dhasa *descriptions* PyJHora generates):**
+      - Supported by PyJHora out of the box for **en/ta/te/hi/ka/ml only — NO Sanskrit**
+        (`const.available_languages`, `src/jhora/lang/list_values_*.txt` +
+        `msg_strings_*.txt` + `*_msgs_*.json`). So under B, `sa` users would fall back to en
+        (or we'd have to author Sanskrit `lang/` files upstream — a big, separate effort).
+      - Today `web/backend/astrology.py` ignores all this: it builds its OWN
+        `ZODIAC_NAMES` / `nakshatra_names` (and similar) constants and indexes them directly.
+        Step 1 is to **stop hardcoding** — replace those module constants with reads from
+        `jhora.utils.resource_strings` / `get_resource_lists()` so names flow from the active
+        language. (Audit every `ZODIAC_NAMES[...]`, `nakshatra_names[...]`, planet-name and
+        dhasa/bhukti label site; ~the same call sites the grep in this entry found.)
+      - Step 2: thread a `lang` request param through the endpoints (birth-chart, divisional,
+        dhasa, transit, panchanga, doshas, yogas, compatibility, chart-details, ashtakavarga,
+        shadbala) and wrap each handler with `utils.set_language(lang)` **+ reset to the
+        default afterwards** so requests don't leak language into each other — mirror exactly
+        the existing per-request ayanamsa set/reset pattern (`drik.set_ayanamsa_mode` →
+        reset), since `set_language` is likewise process-global module state.
+      - Step 3: frontend passes the current `i18n.language` (mapped sa→en fallback) on every
+        astrology call in `services/api.js`; values then arrive already localized, so the
+        Option-A frontend mapping is NOT needed for the 5 supported langs.
+      - Tradeoffs vs A: B also localizes PyJHora's free-text predictions/yoga/dosha messages
+        (A can't) and keeps one source of truth; but B is a backend refactor, is racy unless
+        the set/reset is airtight (global state under concurrency — consider a lock or
+        per-request language arg if PyJHora exposes one), and **cannot do Sanskrit**.
+      - **Decision rule:** if Sanskrit must work → A (or A for `sa` + B for the others, a
+        hybrid). If Sanskrit is droppable and localized free-text descriptions are wanted → B.
 
 ## 6. Suggested execution order
 
