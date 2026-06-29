@@ -317,7 +317,29 @@ web exposes. High-value additions:
           `utils.set_language()` with reset-after (like the ayanamsa pattern); gives Hindi
           data natively but needs the backend refactored off its own tables and still has NO
           Sanskrit. Recommended: (A) for names, leave free-text/AI English (AI already
-          answers in whatever language the user asks).
+          answers in whatever language the user asks). Tracked as its own item below.
+
+- [ ] **Localize engine-returned chart-data names (i18n data layer)** (P2). The UI chrome is
+      fully translated (en/hi/sa, see above), but values that come back from the backend are
+      still English: planet / sign / nakshatra / yoga / dosha / koota / dhasa-lord names (plus
+      panchanga limb *values* and AI answers). **Plan — Option A (frontend mapping), recommended
+      because it's the only path that covers Sanskrit:**
+      - Extend `web/frontend/src/constants/jyotish.js` (already has `RASI_NAMES`/`RASI_ABBR`/
+        `PLANET_ABBR`) with English→hi/sa lookup tables for: 12 rasis, 27 (+Abhijit) nakshatras,
+        9 grahas (Sun…Ketu), and the dasha-lord names (same as grahas). Source the hi/sa strings
+        from PyJHora's own `src/jhora/lang/list_values_hi.txt` (Hindi) and hand-author Sanskrit
+        (PyJHora has no `sa` file).
+      - Add a small `localizeName(canonicalEnglish, kind, lang)` helper (returns the mapped name,
+        falls back to the English input if unmapped) and wrap the render sites: every `sign_name`,
+        `nakshatra`, and planet-key/`lord` display across NorthIndianChart / SouthIndianChart /
+        BirthChart / Transit / Compare / Dhasa / Panchanga / Predictions.
+      - Drive it off the current i18n language (`i18n.language`), same as the rest of the UI.
+      - OUT OF SCOPE for A (leave English): free-text yoga/dosha *descriptions*, Ashtakoot koota
+        names, and AI answers (the AI already replies in the language the user writes in; a future
+        nicety is to add a language hint to the system prompt).
+      - Option B (backend `utils.set_language()` threading) stays the fallback if native Hindi
+        data is ever wanted server-side — but it can't do Sanskrit and needs the backend moved
+        off its hardcoded `ZODIAC_NAMES`/`nakshatra_names` tables.
 
 ## 6. Suggested execution order
 
