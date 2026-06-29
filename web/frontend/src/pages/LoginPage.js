@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import { Mail, Lock, AlertCircle } from "lucide-react";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import "../styles/Auth.css";
 
 export const LoginPage = () => {
@@ -10,6 +12,7 @@ export const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login, error } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,9 +26,12 @@ export const LoginPage = () => {
 
   return (
     <div className="auth-container">
+      <div className="auth-lang">
+        <LanguageSwitcher />
+      </div>
       <div className="auth-card">
         <h1>PyJHora</h1>
-        <p className="subtitle">Vedic Astrology Web Application</p>
+        <p className="subtitle">{t("auth.tagline")}</p>
 
         <form onSubmit={handleSubmit}>
           {error && (
@@ -36,40 +42,40 @@ export const LoginPage = () => {
           )}
 
           <div className="form-group">
-            <label>Username</label>
+            <label>{t("auth.username")}</label>
             <div className="input-wrapper">
               <Mail size={18} />
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
+                placeholder={t("auth.usernamePlaceholder")}
                 required
               />
             </div>
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label>{t("auth.password")}</label>
             <div className="input-wrapper">
               <Lock size={18} />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder={t("auth.passwordPlaceholder")}
                 required
               />
             </div>
           </div>
 
           <button type="submit" className="submit-btn" disabled={isLoading}>
-            {isLoading ? "Logging in..." : "Login"}
+            {isLoading ? t("auth.loggingIn") : t("auth.login")}
           </button>
         </form>
 
         <p className="auth-link">
-          Don't have an account? <Link to="/register">Register here</Link>
+          {t("auth.noAccount")} <Link to="/register">{t("auth.registerHere")}</Link>
         </p>
       </div>
     </div>

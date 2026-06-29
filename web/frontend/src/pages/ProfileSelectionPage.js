@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash } from "../utils/format";
 import {
@@ -14,10 +15,12 @@ import {
   Edit2,
 } from "lucide-react";
 import LocationSearch from "../components/LocationSearch";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import "../styles/ProfileSelection.css";
 
 export const ProfileSelectionPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const {
     profiles,
     loading,
@@ -84,7 +87,7 @@ export const ProfileSelectionPage = () => {
   const handleCreateProfile = async (e) => {
     e.preventDefault();
     if (!formData.profile_name.trim()) {
-      setError("Please enter a profile name");
+      setError(t("profile.errEnterName"));
       return;
     }
     if (
@@ -93,9 +96,7 @@ export const ProfileSelectionPage = () => {
       formData.latitude === "" ||
       formData.longitude === ""
     ) {
-      setError(
-        "Please search and select a place of birth (this sets the coordinates and timezone)."
-      );
+      setError(t("profile.errSelectPlace"));
       return;
     }
 
@@ -134,7 +135,7 @@ export const ProfileSelectionPage = () => {
         timezone: "5.5",
       });
     } else {
-      setError(result.error || "Failed to save profile");
+      setError(result.error || t("profile.errSaveFailed"));
     }
   };
 
@@ -145,7 +146,7 @@ export const ProfileSelectionPage = () => {
 
   const handleDeleteProfile = async (e, profileId) => {
     e.stopPropagation();
-    if (window.confirm("Are you sure you want to delete this profile?")) {
+    if (window.confirm(t("profile.confirmDelete"))) {
       await deleteProfile(profileId);
     }
   };
@@ -165,15 +166,16 @@ export const ProfileSelectionPage = () => {
 
   return (
     <div className="profile-selection-page mandala-bg">
+      <div className="profile-lang-switch">
+        <LanguageSwitcher />
+      </div>
       <div className="profile-selection-container">
         <div className="page-header-section fade-in">
           <div className="mandala-icon">
             <Star size={48} />
           </div>
-          <h1 className="text-gradient">Select Your Chart</h1>
-          <p className="subtitle">
-            Choose an existing profile or create a new one to explore your cosmic journey
-          </p>
+          <h1 className="text-gradient">{t("profile.selectTitle")}</h1>
+          <p className="subtitle">{t("profile.selectSubtitle")}</p>
         </div>
 
         {!showCreateForm ? (
@@ -181,7 +183,7 @@ export const ProfileSelectionPage = () => {
             {loading ? (
               <div className="loading-state">
                 <div className="spinner"></div>
-                <p>Loading your charts...</p>
+                <p>{t("profile.loading")}</p>
               </div>
             ) : (
               <>
@@ -200,14 +202,14 @@ export const ProfileSelectionPage = () => {
                           <button
                             className="edit-btn"
                             onClick={(e) => handleEditProfile(e, profile)}
-                            aria-label="Edit profile"
+                            aria-label={t("profile.editAria")}
                           >
                             <Edit2 size={16} />
                           </button>
                           <button
                             className="delete-btn"
                             onClick={(e) => handleDeleteProfile(e, profile._id)}
-                            aria-label="Delete profile"
+                            aria-label={t("profile.deleteAria")}
                           >
                             <Trash2 size={16} />
                           </button>
@@ -217,7 +219,7 @@ export const ProfileSelectionPage = () => {
                       <div className="profile-details">
                         <div className="detail-item">
                           <User size={14} />
-                          <span>{profile.birth_details.name || "Anonymous"}</span>
+                          <span>{profile.birth_details.name || t("common.anonymous")}</span>
                         </div>
                         <div className="detail-item">
                           <Calendar size={14} />
@@ -233,7 +235,7 @@ export const ProfileSelectionPage = () => {
                         </div>
                       </div>
                       <div className="select-indicator">
-                        <span>Continue with this chart</span>
+                        <span>{t("profile.continueWith")}</span>
                         <ChevronRight size={18} />
                       </div>
                     </div>
@@ -246,8 +248,8 @@ export const ProfileSelectionPage = () => {
                     <div className="create-icon">
                       <Plus size={48} />
                     </div>
-                    <h3>Create New Chart</h3>
-                    <p>Add a new birth chart profile</p>
+                    <h3>{t("profile.createNew")}</h3>
+                    <p>{t("profile.createNewSub")}</p>
                   </div>
                 </div>
               </>
@@ -256,7 +258,7 @@ export const ProfileSelectionPage = () => {
         ) : (
           <div className="create-profile-form fade-in">
             <div className="form-header">
-              <h2>{editingProfile ? "Edit Chart Profile" : "Create New Chart Profile"}</h2>
+              <h2>{editingProfile ? t("profile.editTitle") : t("profile.createTitle")}</h2>
               <button
                 className="back-btn"
                 onClick={() => {
@@ -274,7 +276,7 @@ export const ProfileSelectionPage = () => {
                   });
                 }}
               >
-                Back to Profiles
+                {t("profile.backToProfiles")}
               </button>
             </div>
 
@@ -282,30 +284,30 @@ export const ProfileSelectionPage = () => {
               <div className="form-group">
                 <label>
                   <Star size={18} />
-                  Profile Name *
+                  {t("profile.profileName")} *
                 </label>
                 <input
                   type="text"
                   name="profile_name"
                   value={formData.profile_name}
                   onChange={handleInputChange}
-                  placeholder="e.g., My Birth Chart, John's Chart"
+                  placeholder={t("profile.profileNamePlaceholder")}
                   required
                 />
-                <small>A friendly name to identify this profile</small>
+                <small>{t("profile.profileNameHint")}</small>
               </div>
 
               <div className="form-group">
                 <label>
                   <User size={18} />
-                  Full Name (Optional)
+                  {t("profile.fullName")}
                 </label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  placeholder="Your full name"
+                  placeholder={t("profile.fullNamePlaceholder")}
                 />
               </div>
 
@@ -313,7 +315,7 @@ export const ProfileSelectionPage = () => {
                 <div className="form-group">
                   <label>
                     <Calendar size={18} />
-                    Date of Birth *
+                    {t("common.dateOfBirth")} *
                   </label>
                   <input
                     type="date"
@@ -327,7 +329,7 @@ export const ProfileSelectionPage = () => {
                 <div className="form-group">
                   <label>
                     <Clock size={18} />
-                    Time of Birth *
+                    {t("common.timeOfBirth")} *
                   </label>
                   <input
                     type="time"
@@ -343,7 +345,7 @@ export const ProfileSelectionPage = () => {
               <div className="form-group">
                 <label>
                   <MapPin size={18} />
-                  Place of Birth *
+                  {t("profile.placeOfBirth")} *
                 </label>
                 <LocationSearch onLocationSelect={handleLocationSelect} />
                 {formData.latitude && formData.longitude && (
@@ -364,35 +366,35 @@ export const ProfileSelectionPage = () => {
               {/* Coordinates & timezone are auto-filled from the location search above.
                   These fields are an optional manual override for advanced users. */}
               <details className="advanced-coordinates">
-                <summary>Advanced: adjust coordinates &amp; timezone</summary>
+                <summary>{t("profile.advancedToggle")}</summary>
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Latitude</label>
+                    <label>{t("profile.latitude")}</label>
                     <input
                       type="number"
                       name="latitude"
                       value={formData.latitude ?? ""}
                       onChange={handleInputChange}
-                      placeholder="Auto-filled from place"
+                      placeholder={t("profile.autoFilled")}
                       step="0.0001"
                     />
                   </div>
 
                   <div className="form-group">
-                    <label>Longitude</label>
+                    <label>{t("profile.longitude")}</label>
                     <input
                       type="number"
                       name="longitude"
                       value={formData.longitude ?? ""}
                       onChange={handleInputChange}
-                      placeholder="Auto-filled from place"
+                      placeholder={t("profile.autoFilled")}
                       step="0.0001"
                     />
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label>Timezone (UTC offset)</label>
+                  <label>{t("profile.timezoneLabel")}</label>
                   <select name="timezone" value={formData.timezone} onChange={handleInputChange}>
                     {timezones.map((tz) => (
                       <option key={tz.value} value={tz.value}>
@@ -408,11 +410,11 @@ export const ProfileSelectionPage = () => {
               <button type="submit" className="submit-btn" disabled={saving}>
                 {saving
                   ? editingProfile
-                    ? "Updating Profile..."
-                    : "Creating Profile..."
+                    ? t("profile.updating")
+                    : t("profile.creating")
                   : editingProfile
-                    ? "Update Profile"
-                    : "Create Profile"}
+                    ? t("profile.update")
+                    : t("profile.create")}
               </button>
             </form>
           </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Star, Calendar, Clock, MapPin } from "lucide-react";
 import { astrologyService } from "../services/api";
 import { NorthIndianChart } from "../components/NorthIndianChart";
@@ -7,12 +8,14 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { DataField } from "../components/DataField";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { formatDate, orDash } from "../utils/format";
 import "../styles/Dashboard.css";
 
 /** Public, read-only view of a shared chart (no auth required). */
 export const SharedChartPage = () => {
   const { token } = useParams();
+  const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -26,21 +29,18 @@ export const SharedChartPage = () => {
       .then((r) => !cancelled && setData(r.data))
       .catch((e) => {
         if (!cancelled)
-          setError(
-            e.response?.status === 404
-              ? "This shared chart was not found."
-              : "Failed to load the shared chart."
-          );
+          setError(e.response?.status === 404 ? t("shared.notFound") : t("shared.loadFailed"));
       })
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const chart = data?.chart;
   const bd = data?.birth_details || {};
-  const title = data?.profile_name || bd.name || "Shared Chart";
+  const title = data?.profile_name || bd.name || t("shared.defaultTitle");
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -50,9 +50,10 @@ export const SharedChartPage = () => {
           <h1>PyJHora</h1>
         </div>
         <div className="nav-right">
+          <LanguageSwitcher />
           <Link to="/login" className="change-profile-btn">
             <Star size={16} />
-            <span>Open PyJHora</span>
+            <span>{t("shared.openApp")}</span>
           </Link>
         </div>
       </nav>
@@ -70,45 +71,54 @@ export const SharedChartPage = () => {
             fontWeight: 600,
           }}
         >
-          Read-only shared chart — anyone with this link can view it.
+          {t("shared.readOnlyBanner")}
         </div>
 
         <ErrorBanner message={error} />
 
         {loading ? (
           <Card>
-            <LoadingState message="Loading shared chart…" />
+            <LoadingState message={t("shared.loading")} />
           </Card>
         ) : chart ? (
           <>
             <Card title={title} icon={<Star size={24} />}>
               <div className="ui-field-grid">
                 <DataField
-                  label="Date of Birth"
+                  label={t("common.dateOfBirth")}
                   icon={<Calendar size={16} />}
                   value={formatDate(bd.dob)}
                 />
                 <DataField
-                  label="Time of Birth"
+                  label={t("common.timeOfBirth")}
                   icon={<Clock size={16} />}
                   value={orDash(bd.tob)}
                 />
-                <DataField label="Place" icon={<MapPin size={16} />} value={orDash(bd.place)} />
                 <DataField
-                  label="Lagna"
+                  label={t("common.place")}
+                  icon={<MapPin size={16} />}
+                  value={orDash(bd.place)}
+                />
+                <DataField
+                  label={t("common.lagna")}
                   icon={<Star size={16} />}
                   value={chart.lagna?.sign_name || "—"}
                 />
               </div>
             </Card>
 
-            <NorthIndianChart chartData={chart} title="Rasi Chart" subtitle="D1" exportable />
+            <NorthIndianChart
+              chartData={chart}
+              title={t("birthChart.rasiChart")}
+              subtitle="D1"
+              exportable
+            />
 
             {chart.d9_chart && chart.d9_lagna && (
               <NorthIndianChart
                 planets={chart.d9_chart}
                 lagna={chart.d9_lagna}
-                title="Navamsa Chart"
+                title={t("shared.navamsaChart")}
                 subtitle="D9"
                 exportable
               />
@@ -121,9 +131,9 @@ export const SharedChartPage = () => {
                 marginTop: "var(--space-xl)",
               }}
             >
-              Want your own chart, dashas and AI readings?{" "}
+              {t("shared.cta")}{" "}
               <Link to="/register" style={{ color: "var(--saffron)", fontWeight: 600 }}>
-                Create a free account
+                {t("shared.ctaLink")}
               </Link>
               .
             </p>

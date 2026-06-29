@@ -1,4 +1,12 @@
 /* Profile Selection Page Styles */
+/* Language switcher pinned top-right (this page has no navbar). */
+.profile-lang-switch {
+  position: absolute;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  z-index: 3;
+}
+
 .profile-selection-page {
   min-height: 100vh;
   display: flex;
