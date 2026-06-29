@@ -278,7 +278,7 @@ web exposes. High-value additions:
 - [ ] **AI astrologer upgrades** (P1): see the dedicated plan in **§8** below
       (model selection, varga context, saved history, full dasha tree, streaming,
       multi-turn, richer context). Supersedes this one-liner.
-- [~] **Multi-language / Sanskrit term glossary tooltips** (P2). Glossary tooltips DONE
+- [x] **Multi-language / Sanskrit term glossary tooltips** (P2). Glossary tooltips DONE
       2026-06-28: `constants/glossary.js` (~30 Jyotish terms) + a reusable `<GlossaryTerm>`
       (dotted underline, hover/tap/focus popover, case-insensitive lookup, renders plainly
       if unknown). Wired into the Advanced page's section titles/labels; reusable anywhere.
@@ -293,11 +293,31 @@ web exposes. High-value additions:
       DashboardPage (feature cards via `dashboard.features.*` keys), BirthChartPage
       (header, chart-details, controls, nakshatra/lagna labels, yogas/doshas, errors).
       Interpolation used for `{{code}}`/`{{name}}`/`{{count}}`. CI build passes (+~22kB gz
-      for i18next + locale JSON). REMAINING (incremental, same pattern): the other 11 pages
-      (Dhasa/Transit/Advanced/Compatibility/Compare/Ask/Predictions/Profile/Login/Register/
-      Shared) + their shared primitives (Button/ErrorBanner/LoadingState text). Engine-side
-      data (planet/sign/nakshatra/yoga names from the backend) is still English — a later
-      pass could map those through the constants tables.
+      for i18next + locale JSON). FULL UI ROLLOUT DONE 2026-06-29: all 13 pages + shared
+      components now translated (Login/Register/ProfileSelection/SharedChart/Dhasa/Transit/
+      Advanced/Compatibility/Compare/Predictions/Ask + NavDrawer/PageHeader/ProfileBanner/
+      LoadingState/PanchangaPanel). Namespaces: common/auth/profile/shared/nav/dashboard/
+      birthChart/dhasa/transit/advanced/compare/compat/predictions/ask/panchanga. Added
+      `utils/format.js → intlLocale(lang)` (en→en-US, hi→hi-IN, sa→en-IN) for localized
+      `toLocaleDateString`; Dhasa/Transit dates now follow the language. Module-level helpers
+      (Dhasa `formatDuration`/`LEVELS`) take `t`; Ask example questions use i18next
+      `returnObjects` arrays. `LanguageSwitcher` also pinned top-right on the navless
+      Login/Register/ProfileSelection/SharedChart screens. CI build green.
+      NOT TRANSLATED (intentional — data layer): engine-returned names/values
+      (planet/sign/nakshatra/yoga/dosha/koota/dhasa-lord names, AI answers) come from the
+      backend in English. PyJHora itself ships native name files for en/ta/te/hi/ka/ml via
+      `utils.set_language()` (NO Sanskrit), but the web backend (`astrology.py`) uses its OWN
+      hardcoded English/transliterated tables (`ZODIAC_NAMES`, `nakshatra_names`), so it does
+      NOT currently honor a language. To localize data later, two paths:
+      (A) **frontend mapping** — extend `constants/jyotish.js` (already has RASI_NAMES etc.)
+          to map canonical English→hi/sa and wrap `sign_name`/`nakshatra` render sites; covers
+          all 3 langs incl. Sanskrit, no backend change, but only the finite enumerations
+          (not free-text yoga/dosha descriptions).
+      (B) **backend `set_language`** — thread a `lang` param through endpoints + call
+          `utils.set_language()` with reset-after (like the ayanamsa pattern); gives Hindi
+          data natively but needs the backend refactored off its own tables and still has NO
+          Sanskrit. Recommended: (A) for names, leave free-text/AI English (AI already
+          answers in whatever language the user asks).
 
 ## 6. Suggested execution order
 
