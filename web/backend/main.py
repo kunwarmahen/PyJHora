@@ -44,6 +44,9 @@ class AskQuestionRequest(BaseModel):
     ayanamsa: Optional[str] = None
     sections: Optional[dict] = None  # toggle dasha_tree/yogas/doshas/transits
     vargas: Optional[list] = None    # divisional-chart factors, e.g. [1, 9, 10]
+    # Answer mode: "pass_all" (default) pre-sends the full context; "tools" lets the
+    # model fetch chart data on demand. Set per conversation (first turn wins).
+    mode: Optional[str] = None
     # Conversation (save + multi-turn)
     conversation_id: Optional[str] = None
     profile_id: Optional[str] = None
@@ -807,30 +810,56 @@ async def ask_question(
         conv = await convo.get_conversation(current_user, request.conversation_id) \
             if request.conversation_id else None
         history = convo.history_for_model(conv)
+        mode = _resolve_mode(request, conv)
 
         # Get AI response
         started = datetime.now(timezone.utc)
-        answer = await llm_service.ask_question(
-            chart_data=chart_data,
-            question=request.question,
-            config=cfg,
-            history=history,
-        )
+        usage: dict = {}
+        tool_trace: list = []
+        if mode == "tools":
+            # Drain the tool loop, collecting the final answer + the call trace.
+            seed_block = llm_service._render_context_block(chart_data, tool_mode=True)
+            bd = request.birth_details.model_dump()
+            parts = []
+            async for ev in llm_service.run_tool_loop(
+                    seed_block, request.question, history, cfg, bd,
+                    request.ayanamsa or DEFAULT_AYANAMSA, usage=usage):
+                et = ev.get("type")
+                if et == "token":
+                    parts.append(ev["text"])
+                elif et == "tool_call":
+                    tool_trace.append({"name": ev["name"], "args": ev.get("args", {})})
+                elif et == "tool_result":
+                    for tr in reversed(tool_trace):
+                        if tr["name"] == ev["name"] and "ok" not in tr:
+                            tr["ok"] = ev["ok"]
+                            break
+            answer = "".join(parts)
+        else:
+            answer = await llm_service.ask_question(
+                chart_data=chart_data,
+                question=request.question,
+                config=cfg,
+                history=history,
+            )
         elapsed_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
 
         # Persist the turn (create the conversation on first message)
         conv_id = await _save_turn(current_user, request, cfg, chart_data, answer,
-                                   elapsed_ms=elapsed_ms)
+                                   elapsed_ms=elapsed_ms, usage=usage or None,
+                                   mode=mode, tool_trace=tool_trace or None)
 
         return {
             "question": request.question,
             "answer": answer,
             "provider": cfg.provider_type.value,
             "model": cfg.model,
+            "mode": mode,
             "elapsed_ms": elapsed_ms,
             "conversation_id": conv_id,
             "sections": chart_data.get("_sections", {}),
             "vargas": chart_data.get("_vargas", []),
+            "tool_trace": tool_trace,
             "context": chart_data,  # full structured context (for the "what was sent" view)
             "chart_summary": {
                 "lagna": chart_data.get("lagna", {}),
@@ -841,9 +870,19 @@ async def ask_question(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+def _resolve_mode(request: "AskQuestionRequest", conv: Optional[dict]) -> str:
+    """The effective answer mode. A conversation's mode is fixed on its first turn,
+    so follow-ups inherit it; a brand-new conversation takes the request's mode."""
+    if conv and conv.get("mode"):
+        return conv["mode"]
+    m = request.mode or "pass_all"
+    return m if m in ("pass_all", "tools") else "pass_all"
+
+
 async def _save_turn(user_id: str, request: "AskQuestionRequest", cfg, chart_data: dict,
                      answer: str, elapsed_ms: Optional[int] = None,
-                     usage: Optional[dict] = None) -> str:
+                     usage: Optional[dict] = None, mode: str = "pass_all",
+                     tool_trace: Optional[list] = None) -> str:
     """Persist a user question + assistant answer, creating the conversation if new.
 
     When `request.regenerate` is set and a conversation exists, the previous
@@ -852,7 +891,7 @@ async def _save_turn(user_id: str, request: "AskQuestionRequest", cfg, chart_dat
     if not conv_id:
         conv_id = await convo.create_conversation(
             user_id, request.profile_id, request.question,
-            request.birth_details.model_dump(),
+            request.birth_details.model_dump(), mode=mode,
         )
     now = datetime.now(timezone.utc).isoformat()
     ai_msg = {
@@ -864,6 +903,8 @@ async def _save_turn(user_id: str, request: "AskQuestionRequest", cfg, chart_dat
     }
     if usage:
         ai_msg["usage"] = usage
+    if tool_trace:
+        ai_msg["tool_trace"] = tool_trace
     if request.regenerate and request.conversation_id:
         await convo.replace_last_assistant(user_id, conv_id, ai_msg)
     else:
@@ -891,28 +932,50 @@ async def ask_question_stream(
     conv = await convo.get_conversation(current_user, request.conversation_id) \
         if request.conversation_id else None
     history = convo.history_for_model(conv)
+    mode = _resolve_mode(request, conv)
 
     async def event_gen():
-        # Tell the client which conversation + model up front.
+        # Tell the client which conversation + model + mode up front.
         meta = {
             "type": "meta",
             "conversation_id": request.conversation_id,
             "provider": cfg.provider_type.value,
             "model": cfg.model,
+            "mode": mode,
             "sections": chart_data.get("_sections", {}),
             "vargas": chart_data.get("_vargas", []),
-            "context": chart_data,  # exact structured context sent to the model
+            "context": chart_data,  # exact structured context (seed, in tool mode)
         }
         yield f"data: {json.dumps(meta)}\n\n"
 
         parts = []
+        tool_trace: list = []
         usage: dict = {}
         started = datetime.now(timezone.utc)
         try:
-            async for chunk in llm_service.stream_answer(chart_data, request.question,
-                                                         history, cfg, usage=usage):
-                parts.append(chunk)
-                yield f"data: {json.dumps({'type': 'token', 'text': chunk})}\n\n"
+            if mode == "tools":
+                # Seed = the toggled-on sections; the model fetches the rest via tools.
+                seed_block = llm_service._render_context_block(chart_data, tool_mode=True)
+                bd = request.birth_details.model_dump()
+                async for ev in llm_service.run_tool_loop(
+                        seed_block, request.question, history, cfg, bd,
+                        request.ayanamsa or DEFAULT_AYANAMSA, usage=usage):
+                    et = ev.get("type")
+                    if et == "token":
+                        parts.append(ev["text"])
+                    elif et == "tool_call":
+                        tool_trace.append({"name": ev["name"], "args": ev.get("args", {})})
+                    elif et == "tool_result":
+                        for tr in reversed(tool_trace):
+                            if tr["name"] == ev["name"] and "ok" not in tr:
+                                tr["ok"] = ev["ok"]
+                                break
+                    yield f"data: {json.dumps(ev)}\n\n"
+            else:
+                async for chunk in llm_service.stream_answer(chart_data, request.question,
+                                                             history, cfg, usage=usage):
+                    parts.append(chunk)
+                    yield f"data: {json.dumps({'type': 'token', 'text': chunk})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
             return
@@ -922,7 +985,8 @@ async def ask_question_stream(
         usage = usage or None
         try:
             conv_id = await _save_turn(current_user, request, cfg, chart_data, answer,
-                                       elapsed_ms=elapsed_ms, usage=usage)
+                                       elapsed_ms=elapsed_ms, usage=usage, mode=mode,
+                                       tool_trace=tool_trace or None)
         except Exception as e:
             conv_id = request.conversation_id
             print(f"Failed to persist conversation: {e}")

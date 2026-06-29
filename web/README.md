@@ -31,6 +31,11 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Rich, transparent context**: D1 + chosen divisional charts (vargas), the running
   Vimsottari dasha chain, yogas, doshas, current transits, Sarva Ashtakavarga and
   Shadbala strengths — view the exact data sent
+- **Two answer modes** (per conversation): **Full context** pre-sends the whole chart,
+  or **Tool calls** sends a small seed and lets the model fetch what it needs on demand
+  (dasha, yogas, doshas, transits, vargas, ashtakavarga, shadbala, panchanga) — the
+  tool-call steps show inline in the transcript. See
+  [`docs/AI_TOOL_CALLING_DESIGN.md`](docs/AI_TOOL_CALLING_DESIGN.md)
 - **Saved history**: every Q&A is stored per profile and can be revisited or deleted
 - **Answer affordances**: copy, **regenerate** (with the same model, or pick a
   *different* provider/model from the split-button menu), thumbs up/down, and
@@ -57,6 +62,7 @@ pyjhora-web/
 │   ├── astrology.py         # PyJHora wrapper
 │   ├── llm_service.py       # Multi-provider LLM layer (Ollama/OpenAI-compatible/Gemini/OpenAI) + streaming
 │   ├── chart_context.py     # Builds the structured chart context sent to the AI
+│   ├── tools.py             # Tool registry for agentic mode (wraps AstrologyCompute)
 │   ├── conversations.py     # Saved AI chat threads (per user + profile)
 │   ├── user_settings.py     # Per-user encrypted API keys
 │   ├── ratelimit.py         # Per-user rate limiting for AI endpoints

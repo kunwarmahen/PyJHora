@@ -26,6 +26,7 @@ import {
   ChevronDown,
   FileText,
   FileType,
+  Wrench,
 } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate } from "../utils/format";
@@ -141,15 +142,31 @@ export const AskAstrologerPage = () => {
   };
 
   // What to show for a single AI message: its own context snapshot if we have it
-  // (answers from this session), else the metadata stored with the message.
-  const messageInfo = (m) =>
-    m.context || {
-      provider: m.provider,
-      model: m.model,
-      vargas: m.vargas,
-      sections: m.sections,
-      note: t("ask.snapshotNote"),
-    };
+  // (answers from this session), else the metadata stored with the message. In tool
+  // mode we also surface the seed + the tools the model called to answer.
+  const messageInfo = (m) => {
+    const isTools = m.mode === "tools" || (m.toolSteps && m.toolSteps.length > 0);
+    if (isTools) {
+      return {
+        mode: "tools",
+        provider: m.provider,
+        model: m.model,
+        seed_context: m.context || { note: t("ask.snapshotNote") },
+        tools_used: (m.toolSteps || []).map((s) =>
+          s.notice ? { notice: s.notice } : { tool: s.name, args: s.args, ok: s.ok }
+        ),
+      };
+    }
+    return (
+      m.context || {
+        provider: m.provider,
+        model: m.model,
+        vargas: m.vargas,
+        sections: m.sections,
+        note: t("ask.snapshotNote"),
+      }
+    );
+  };
 
   // Conversation persistence + multi-turn
   const [conversationId, setConversationId] = useState(null);
@@ -196,6 +213,14 @@ export const AskAstrologerPage = () => {
   const [baseUrl, setBaseUrl] = useState(() => localStorage.getItem("ai_base_url") || "");
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  // Answer mode: "pass_all" (pre-send the full context) vs "tools" (let the model
+  // fetch chart data on demand). Chosen per conversation; locked once a thread has
+  // started (its first turn fixes the mode server-side). Default from last choice.
+  const [mode, setMode] = useState(() => localStorage.getItem("ai_mode") || "pass_all");
+  useEffect(() => {
+    localStorage.setItem("ai_mode", mode);
+  }, [mode]);
+
   // Divisional charts to include in the AI context (D1 is always the natal base)
   const [selectedVargas, setSelectedVargas] = useState(() => {
     try {
@@ -227,6 +252,13 @@ export const AskAstrologerPage = () => {
   };
 
   const selectedProvider = providers.find((p) => p.type === providerType) || null;
+
+  // The mode is fixed once a conversation has any AI turn (the backend locks it on
+  // the first turn). A brand-new/empty thread can still switch modes.
+  const modeLocked = !!conversationId || messages.some((m) => m.type === "ai");
+
+  // "get_dasha_chain" -> "dasha chain" for the step labels.
+  const fmtTool = (n) => (n || "").replace(/^get_/, "").replace(/_/g, " ");
 
   // Persist choices
   useEffect(() => {
@@ -392,6 +424,7 @@ export const AskAstrologerPage = () => {
         baseUrl: useBaseUrl,
         legacyProvider: useType === "ollama" ? "qwen" : useType,
         vargas: selectedVargas,
+        mode,
         conversationId: conversationIdRef.current,
         profileId: selectedProfile._id,
         regenerate,
@@ -403,12 +436,34 @@ export const AskAstrologerPage = () => {
             ...msg,
             provider: m.provider || msg.provider,
             model: m.model || msg.model,
+            mode: m.mode || msg.mode,
             context: m.context || msg.context,
             vargas: m.vargas || msg.vargas,
             sections: m.sections || msg.sections,
           }));
         },
         onToken: (t) => updateLastAi((msg) => ({ ...msg, content: msg.content + t })),
+        onToolCall: (e) =>
+          updateLastAi((msg) => ({
+            ...msg,
+            toolSteps: [...(msg.toolSteps || []), { name: e.name, args: e.args, ok: null }],
+          })),
+        onToolResult: (e) =>
+          updateLastAi((msg) => {
+            const steps = [...(msg.toolSteps || [])];
+            for (let i = steps.length - 1; i >= 0; i--) {
+              if (steps[i].name === e.name && steps[i].ok === null) {
+                steps[i] = { ...steps[i], ok: e.ok };
+                break;
+              }
+            }
+            return { ...msg, toolSteps: steps };
+          }),
+        onNotice: (e) =>
+          updateLastAi((msg) => ({
+            ...msg,
+            toolSteps: [...(msg.toolSteps || []), { notice: e.text }],
+          })),
         onDone: (d) => {
           if (d.conversation_id) setConversationId(d.conversation_id);
           updateLastAi((msg) => ({
@@ -481,6 +536,7 @@ export const AskAstrologerPage = () => {
       elapsed_ms: undefined,
       usage: undefined,
       feedback: undefined,
+      toolSteps: undefined,
       provider: useType,
       model: useModel,
       timestamp: new Date().toLocaleTimeString(),
@@ -618,17 +674,25 @@ export const AskAstrologerPage = () => {
               content: m.content,
               provider: m.provider,
               model: m.model,
+              mode: conv.mode,
               vargas: m.vargas,
               sections: m.sections,
               elapsed_ms: m.elapsed_ms,
               usage: m.usage,
               feedback: m.feedback,
+              // rebuild the tool-call steps from the persisted trace
+              toolSteps: (m.tool_trace || []).map((tc) => ({
+                name: tc.name,
+                args: tc.args,
+                ok: tc.ok ?? true,
+              })),
               // remember the prompt behind this answer (for Regenerate)
               question: raw[i - 1]?.role === "user" ? raw[i - 1].content : undefined,
             }
       );
       setMessages(msgs.length ? msgs : [{ type: "system", content: t("ask.emptyConversation") }]);
       setConversationId(id);
+      if (conv.mode) setMode(conv.mode);
       setShowHistory(false);
     } catch (e) {
       setError(t("ask.errLoadConv"));
@@ -1140,6 +1204,72 @@ export const AskAstrologerPage = () => {
             ))}
           </div>
 
+          {/* Answer Mode Card */}
+          <div
+            style={{
+              background: "white",
+              borderRadius: "var(--radius-xl)",
+              padding: "var(--space-xl)",
+              boxShadow: "var(--shadow-lg)",
+              borderTop: "4px solid var(--saffron)",
+            }}
+          >
+            <h3
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-sm)",
+                marginBottom: "var(--space-xs)",
+                color: "var(--cosmic-indigo)",
+                fontSize: "1.25rem",
+                fontWeight: 700,
+              }}
+            >
+              <Wrench size={20} style={{ color: "var(--saffron)" }} />
+              Answer mode
+            </h3>
+            <p
+              style={{
+                margin: "0 0 var(--space-md)",
+                fontSize: "0.8125rem",
+                color: "var(--text-secondary)",
+              }}
+            >
+              {modeLocked
+                ? "This conversation's mode is fixed. Start a new conversation to switch."
+                : "Full context sends the whole chart up front. Tool calls send a seed (the charts selected below) and let the AI fetch the rest on demand."}
+            </p>
+            <div style={{ display: "flex", gap: "var(--space-sm)" }}>
+              {[
+                { val: "pass_all", label: "Full context" },
+                { val: "tools", label: "Tool calls" },
+              ].map((o) => {
+                const active = mode === o.val;
+                return (
+                  <button
+                    key={o.val}
+                    type="button"
+                    onClick={() => !modeLocked && setMode(o.val)}
+                    disabled={modeLocked}
+                    style={{
+                      cursor: modeLocked ? "not-allowed" : "pointer",
+                      padding: "var(--space-xs) var(--space-md)",
+                      borderRadius: "var(--radius-md)",
+                      fontSize: "0.8125rem",
+                      fontWeight: 600,
+                      border: `1px solid ${active ? "var(--saffron)" : "var(--sandalwood)"}`,
+                      background: active ? "rgba(255, 153, 51, 0.12)" : "white",
+                      color: active ? "var(--vermillion)" : "var(--text-secondary)",
+                      opacity: modeLocked && !active ? 0.5 : 1,
+                    }}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Divisional Charts (Vargas) Card */}
           <div
             style={{
@@ -1327,6 +1457,62 @@ export const AskAstrologerPage = () => {
                     <span>{t("ask.system")}</span>
                   </div>
                 )}
+                {message.type === "ai" &&
+                  message.toolSteps &&
+                  message.toolSteps.length > 0 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "6px",
+                        margin: "0 0 var(--space-sm)",
+                      }}
+                    >
+                      {message.toolSteps.map((s, si) =>
+                        s.notice ? (
+                          <span
+                            key={si}
+                            style={{
+                              fontSize: "12px",
+                              fontStyle: "italic",
+                              color: "var(--ink-light, #888)",
+                              alignSelf: "center",
+                            }}
+                          >
+                            {s.notice}
+                          </span>
+                        ) : (
+                          <span
+                            key={si}
+                            title={s.args ? JSON.stringify(s.args) : ""}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              fontSize: "12px",
+                              padding: "2px 8px",
+                              borderRadius: "999px",
+                              border: "1px solid var(--saffron, #e08a2c)",
+                              color: s.ok === false ? "#c0392b" : "var(--saffron, #e08a2c)",
+                              background: "rgba(224,138,44,0.06)",
+                            }}
+                          >
+                            {s.ok === null ? (
+                              <Wrench size={12} />
+                            ) : s.ok ? (
+                              <Check size={12} />
+                            ) : (
+                              <X size={12} />
+                            )}
+                            {fmtTool(s.name)}
+                            {s.args && Object.keys(s.args).length
+                              ? ` (${Object.values(s.args).join(", ")})`
+                              : ""}
+                          </span>
+                        )
+                      )}
+                    </div>
+                  )}
                 <div className="message-content">
                   {message.type === "ai" ? (
                     message.streaming && !message.content ? (

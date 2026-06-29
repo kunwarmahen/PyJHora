@@ -641,3 +641,79 @@ workspace. **Decisions captured 2026-06-28** (owner answered the clarifying roun
 3. 8.4 save + history (DB + endpoints + panel).
 4. 8.5 streaming, then multi-turn.
 5. 8.6 multi-user hardening + 8.7 polish.
+
+### 8.9 Agentic tool-calling mode (let the AI fetch what it needs) (P1) — IN PROGRESS 2026-06-29
+
+**Idea (owner, 2026-06-29):** today every question ships a big pre-assembled
+context block (pass-all). Add a second mode where we **publish our compute
+functions as tools** and let the model decide what extra data it needs, emit a
+tool call, we execute it (calling `AstrologyCompute`) and feed the result back,
+looping until it answers. User can **toggle between the two modes**. Full design:
+[docs/AI_TOOL_CALLING_DESIGN.md](docs/AI_TOOL_CALLING_DESIGN.md).
+
+**Decisions captured 2026-06-29** (owner answered the clarifying round):
+
+- **Provider support:** **native function-calling where available** (OpenAI,
+  Gemini, capable Ollama/OpenAI-compatible models) **+ a prompt-based JSON
+  tool-protocol fallback** for models without native tool-calling. One internal
+  tool-loop abstraction; the per-provider layer either uses native `tools=` or
+  the JSON protocol.
+- **Baseline seed (configurable):** default seed = **natal chart + running dasha
+  chain** (≈ what pass-all sends as its core today). But the seed is **user-
+  selectable** so we can A/B what actually helps — **reuse the existing `sections`
+  toggles + varga selector**: in tool mode a section that's toggled *on* is
+  pre-computed & seeded; a section that's *off* becomes an on-demand **tool**.
+  Natal is always seeded (the base); `dasha_tree` on by default; everything else
+  defaults to "tool". (Can graduate to an explicit tri-state seed/tool/off later.)
+- **Mode toggle:** **per-conversation** — chosen when a conversation starts and
+  stored on the conversation doc, so each thread records how it was answered.
+  Default stays **pass-all** until tool mode proves reliable.
+
+**Tools to publish** (1:1 over existing `AstrologyCompute` statics, same
+birth-details args): `get_natal_chart` (D1), `get_dasha_chain` /
+`get_dasha_children`, `get_yogas`, `get_doshas`, `get_transits`,
+`get_ashtakavarga`, `get_shadbala`, `get_chart_details`,
+`get_divisional_chart(varga_factor)`, `get_panchanga`. Each already returns a
+clean status/dict — thin JSON-schema wrappers, minimal new surface.
+
+**Build order / status:**
+- [x] (1) **Tool registry** (`tools.py`) — 11 tools (get_natal_chart, get_dasha_chain,
+      get_dasha_children, get_yogas, get_doshas, get_transits, get_ashtakavarga,
+      get_shadbala, get_chart_details, get_divisional_chart, get_panchanga) as thin
+      JSON-schema wrappers over `AstrologyCompute`. Birth details + ayanamsa are
+      **server-injected** (model can't redirect to another person); name + arg
+      validation; results mirror `chart_context` section shapes. Unit-tested.
+- [x] (2) **Provider-agnostic tool-loop** (`llm_service.run_tool_loop`) — neutral
+      internal message format converted per provider; **non-streaming tool rounds**
+      (reliable tool-call detection) then the final answer emitted as token events;
+      native function-calling for OpenAI-style + Ollama; **JSON-protocol fallback**
+      (Gemini for now, and auto-fallback if a native round throws); round cap (6) →
+      forced final answer; usage summed across rounds. Verified live on Ollama
+      (gemma4:12b) single- and multi-tool (called chart_details + dasha_chain + D10).
+- [x] (3) **Endpoint wiring** — `/ask` + `/ask/stream` branch on the conversation's
+      `mode`; stream emits `tool_call` / `tool_result` / `notice` SSE events; the
+      completed `tool_trace` is persisted on the assistant message. Conversation doc
+      gains a `mode` field (locked on first turn); `serialize_conversation` +
+      `list_conversations` expose it.
+- [x] (4) **Seed = toggled-on sections** — tool mode renders the seed via
+      `_render_context_block(..., tool_mode=True)` (closing text no longer claims the
+      chart is complete); all tools exposed so the model can fetch the rest.
+- [x] (5) **Frontend** — per-conversation **Answer mode** toggle (Full context / Tool
+      calls), locked once a thread has an AI turn; `mode` sent through
+      `streamAskQuestion`; new `onToolCall/onToolResult/onNotice` callbacks render
+      tool-call **step pills** in the transcript; steps rebuilt from `tool_trace` when
+      loading a saved thread.
+- [x] (6) **Inspector** — `messageInfo` shows `{ mode, seed_context, tools_used }`
+      for tool-mode answers instead of a static block.
+- [ ] FOLLOW-UP: native Gemini function-calling (currently via JSON protocol).
+- [ ] FOLLOW-UP: localize the new frontend strings (Answer mode card + step labels
+      use English literals for now — see §5 i18n).
+- [ ] FOLLOW-UP: explicit tri-state seed/tool/off per section (today: seeded if the
+      section toggle is on, otherwise fetched via tool).
+- [ ] FOLLOW-UP: cache identical tool results within one answer; cap repeated calls.
+
+**Open risks:** weak local models loop/hallucinate tool names (cap max tool
+rounds, validate names, fall back to pass-all on repeated failure); streaming +
+tool loop interleaving (stream → pause on tool call → execute → resume); token
+cost of multi-round tool results vs one pass-all block (measure with the existing
+usage capture).

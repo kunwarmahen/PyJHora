@@ -221,7 +221,7 @@ export const astrologyService = {
  */
 export const streamAskQuestion = (birthDetails, question, model = {}, callbacks = {}) => {
   const controller = new AbortController();
-  const { onMeta, onToken, onDone, onError } = callbacks;
+  const { onMeta, onToken, onDone, onError, onToolCall, onToolResult, onNotice } = callbacks;
 
   (async () => {
     try {
@@ -241,7 +241,9 @@ export const streamAskQuestion = (birthDetails, question, model = {}, callbacks 
           base_url: model.baseUrl,
           api_key: model.apiKey,
           vargas: model.vargas,
+          sections: model.sections,
           ayanamsa: model.ayanamsa,
+          mode: model.mode,
           conversation_id: model.conversationId,
           profile_id: model.profileId,
           regenerate: model.regenerate || false,
@@ -283,6 +285,9 @@ export const streamAskQuestion = (birthDetails, question, model = {}, callbacks 
           }
           if (evt.type === "meta") onMeta && onMeta(evt);
           else if (evt.type === "token") onToken && onToken(evt.text);
+          else if (evt.type === "tool_call") onToolCall && onToolCall(evt);
+          else if (evt.type === "tool_result") onToolResult && onToolResult(evt);
+          else if (evt.type === "notice") onNotice && onNotice(evt);
           else if (evt.type === "done") onDone && onDone(evt);
           else if (evt.type === "error") onError && onError(new Error(evt.message));
         }

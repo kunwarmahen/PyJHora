@@ -17,6 +17,19 @@ from dataclasses import dataclass
 from typing import Optional, Dict, Any, List, AsyncGenerator
 from enum import Enum
 
+import tools as tool_registry
+
+# Agentic ("tool-call") mode tuning.
+MAX_TOOL_ROUNDS = 6
+TOOL_MODE_NOTE = (
+    "Some chart sections may be omitted from the context above. Use the available "
+    "tools to fetch any additional data you need — dasha periods, yogas, doshas, "
+    "current transits, divisional (varga) charts, ashtakavarga, shadbala, panchanga "
+    "— before answering. Fetch only what is relevant to the question, then give a "
+    "specific, well-reasoned final answer that cites the chart factors behind every "
+    "claim. Do not ask the user for more information; fetch it yourself."
+)
+
 SYSTEM_PROMPT = (
     "You are an expert Vedic (Jyotish) astrologer. Reason from classical Parashari "
     "principles and make your reasoning explicit, citing the chart factors behind "
@@ -588,9 +601,11 @@ class LLMService:
         except Exception as e:
             return f"Error calling Gemini: {str(e)}"
 
-    def _render_context_block(self, chart_data: Dict[str, Any]) -> str:
-        """Render the full chart context (no question) — reused by the single-shot
-        prompt and as the system message for streaming/multi-turn chat."""
+    def _render_context_block(self, chart_data: Dict[str, Any], tool_mode: bool = False) -> str:
+        """Render the chart context (no question) — reused by the single-shot prompt
+        and as the system message for streaming/multi-turn chat. When `tool_mode` is
+        set the closing instructions acknowledge the context may be partial and the
+        model should fetch the rest via tools (rather than claiming it's complete)."""
 
         from datetime import datetime
 
@@ -749,9 +764,26 @@ Planetary Positions (All 9 Grahas):"""
                     f"ratio {p.get('strength_ratio', '?')}, rank {p.get('rank', '?')}{flag}"
                 )
 
-        context_block = f"""Below is the COMPLETE BIRTH CHART DATA for this person, calculated using precise astronomical calculations from the PyJHora Vedic astrology software. This is REAL, VERIFIED CHART DATA - not hypothetical.
+        header = ("Below is birth chart data for this person, calculated using precise "
+                  "astronomical calculations from the PyJHora Vedic astrology software. "
+                  "This is REAL, VERIFIED CHART DATA - not hypothetical."
+                  if tool_mode else
+                  "Below is the COMPLETE BIRTH CHART DATA for this person, calculated "
+                  "using precise astronomical calculations from the PyJHora Vedic "
+                  "astrology software. This is REAL, VERIFIED CHART DATA - not "
+                  "hypothetical.")
+        title = "=== BIRTH CHART ===" if tool_mode else "=== COMPLETE BIRTH CHART ==="
+        closing = (
+            "Give practical, actionable guidance. Some sections may be omitted above — "
+            "call the available tools to fetch any additional data you need rather than "
+            "asking the user."
+            if tool_mode else
+            "Give practical, actionable guidance. Do NOT ask for more information — you "
+            "have the complete chart and today's date.")
 
-=== COMPLETE BIRTH CHART ===
+        context_block = f"""{header}
+
+{title}
 
 {chart_description}
 
@@ -761,7 +793,7 @@ IMPORTANT INSTRUCTIONS:
 1. TODAY'S DATE is {current_date} - use it to determine which Dasha/sub-period is CURRENTLY active.
 2. The planetary positions, signs, houses, nakshatras, divisional charts (vargas) and Dasha periods above were calculated accurately from the exact birth time and location.
 3. Be specific to THIS chart: cite the placements/dashas/yogas behind your reasoning rather than giving generic horoscope text.
-4. Give practical, actionable guidance. Do NOT ask for more information — you have the complete chart and today's date."""
+4. {closing}"""
 
         return context_block
 
@@ -865,6 +897,379 @@ IMPORTANT: Use the actual chart data provided above. Be balanced, specific to th
         for planet, data in planets.items():
             result.append(f"- {planet}: {data.get('sign_name', 'Unknown')}")
         return "\n".join(result)
+
+    # ------------------------------------------------------------------ #
+    # Agentic tool-calling mode
+    # ------------------------------------------------------------------ #
+    # Messages are kept in a provider-neutral internal format and converted per
+    # provider on each call (the OpenAI vs Ollama tool-call schemas differ):
+    #   {"role": "system"|"user"|"assistant", "content": str}
+    #   {"role": "assistant", "content": str|None,
+    #    "tool_calls": [{"id", "name", "args": dict}]}
+    #   {"role": "tool", "id", "name", "content": str}
+
+    @staticmethod
+    def _to_openai_messages(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        out = []
+        for m in messages:
+            role = m.get("role")
+            if role == "assistant" and m.get("tool_calls"):
+                out.append({
+                    "role": "assistant",
+                    "content": m.get("content") or None,
+                    "tool_calls": [{
+                        "id": c.get("id"), "type": "function",
+                        "function": {"name": c["name"],
+                                     "arguments": json.dumps(c.get("args") or {})},
+                    } for c in m["tool_calls"]],
+                })
+            elif role == "tool":
+                out.append({"role": "tool", "tool_call_id": m.get("id"),
+                            "content": m.get("content", "")})
+            else:
+                out.append({"role": role, "content": m.get("content", "")})
+        return out
+
+    @staticmethod
+    def _to_ollama_messages(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        out = []
+        for m in messages:
+            role = m.get("role")
+            if role == "assistant" and m.get("tool_calls"):
+                out.append({
+                    "role": "assistant", "content": m.get("content") or "",
+                    "tool_calls": [{"function": {"name": c["name"],
+                                                 "arguments": c.get("args") or {}}}
+                                   for c in m["tool_calls"]],
+                })
+            elif role == "tool":
+                out.append({"role": "tool", "content": m.get("content", "")})
+            else:
+                out.append({"role": role, "content": m.get("content", "")})
+        return out
+
+    @staticmethod
+    def _to_text_messages(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Flatten tool turns into plain text — used for the JSON-protocol path and
+        any provider called without native tools."""
+        out = []
+        for m in messages:
+            role = m.get("role")
+            if role == "assistant" and m.get("tool_calls"):
+                calls = "; ".join(f"{c['name']}({json.dumps(c.get('args') or {})})"
+                                  for c in m["tool_calls"])
+                out.append({"role": "assistant",
+                            "content": f"[Requested data via tools: {calls}]"})
+            elif role == "tool":
+                out.append({"role": "user",
+                            "content": f"[Result of {m.get('name')}]:\n{m.get('content','')}"})
+            else:
+                out.append({"role": role, "content": m.get("content", "")})
+        return out
+
+    @staticmethod
+    def _openai_tool_payload(specs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        return [{"type": "function", "function": {
+            "name": s["name"], "description": s["description"],
+            "parameters": s["parameters"]}} for s in specs]
+
+    @staticmethod
+    def _json_tools_instructions(specs: List[Dict[str, Any]]) -> str:
+        lines = [
+            "When you need astrological data you do not yet have, reply with ONLY a "
+            "JSON object on its own line and nothing else:",
+            '{"tool": "<tool_name>", "args": { ... }}',
+            "After you receive the result you may request more tools the same way, or "
+            "— when you have enough — reply with your final answer as normal prose "
+            "(no JSON).",
+            "", "Available tools:",
+        ]
+        for s in specs:
+            props = s["parameters"].get("properties", {})
+            req = set(s["parameters"].get("required", []))
+            params = (", ".join(f"{k}{'*' if k in req else ''}" for k in props)
+                      if props else "no arguments")
+            lines.append(f"- {s['name']}({params}): {s['description']}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _parse_json_tool(content: Optional[str]) -> Optional[Dict[str, Any]]:
+        """Extract a {"tool", "args"} request from a JSON-protocol reply, tolerating
+        code fences and surrounding prose."""
+        if not content:
+            return None
+        s = content.strip()
+        if s.startswith("```"):
+            s = s.strip("`")
+            if s[:4].lower() == "json":
+                s = s[4:]
+            s = s.strip()
+        obj = None
+        try:
+            obj = json.loads(s)
+        except json.JSONDecodeError:
+            i, j = s.find("{"), s.rfind("}")
+            if i != -1 and j > i:
+                try:
+                    obj = json.loads(s[i:j + 1])
+                except json.JSONDecodeError:
+                    return None
+        if isinstance(obj, dict) and obj.get("tool"):
+            return {"name": obj["tool"], "args": obj.get("args") or {}}
+        return None
+
+    def build_tool_messages(self, seed_block: str, question: str,
+                            history: Optional[List[Dict[str, str]]],
+                            use_json: bool, specs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        system = SYSTEM_PROMPT + "\n\n" + seed_block + "\n\n" + TOOL_MODE_NOTE
+        if use_json:
+            system += "\n\n" + self._json_tools_instructions(specs)
+        messages = [{"role": "system", "content": system}]
+        for m in (history or []):
+            if m.get("role") in ("user", "assistant") and m.get("content"):
+                messages.append({"role": m["role"], "content": m["content"]})
+        messages.append({"role": "user", "content": question})
+        return messages
+
+    async def run_tool_loop(self, seed_block: str, question: str,
+                            history: Optional[List[Dict[str, str]]], cfg: ModelConfig,
+                            birth_details: Dict[str, Any], ayanamsa: str,
+                            tool_names: Optional[List[str]] = None,
+                            max_rounds: int = MAX_TOOL_ROUNDS,
+                            usage: Optional[Dict[str, Any]] = None) -> AsyncGenerator[Dict[str, Any], None]:
+        """Drive the agentic loop, yielding event dicts:
+          {"type": "tool_call", "name", "args"}
+          {"type": "tool_result", "name", "ok"}
+          {"type": "notice", "text"}
+          {"type": "token", "text"}   (the final answer)
+        Tokens reported by each round are summed into `usage` if provided."""
+        specs = tool_registry.tool_specs(tool_names)
+        # Gemini native function-calling is a follow-up; route it via the universal
+        # JSON protocol for now.
+        use_json = cfg.provider_type == ProviderType.GEMINI
+        messages = self.build_tool_messages(seed_block, question, history, use_json, specs)
+
+        agg = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+        have_usage = False
+
+        def _add_usage(u):
+            nonlocal have_usage
+            if not u:
+                return
+            have_usage = True
+            for k in agg:
+                agg[k] += u.get(k) or 0
+
+        rounds = 0
+        while rounds < max_rounds:
+            rounds += 1
+            try:
+                res = await self._chat_once(messages, specs, cfg, use_json)
+            except Exception as e:
+                if not use_json:
+                    # Native tools unsupported/failed → switch to JSON protocol.
+                    use_json = True
+                    messages[0]["content"] += "\n\n" + self._json_tools_instructions(specs)
+                    yield {"type": "notice", "text": "Switching to compatibility tool mode."}
+                    rounds -= 1
+                    continue
+                yield {"type": "token", "text": f"\n\n[Tool mode error: {e}]"}
+                if usage is not None and have_usage:
+                    usage.update(agg)
+                return
+
+            _add_usage(res.get("usage"))
+            tool_calls = res.get("tool_calls") or []
+            if use_json and not tool_calls:
+                parsed = self._parse_json_tool(res.get("content"))
+                if parsed:
+                    tool_calls = [{"id": f"call_{rounds}",
+                                   "name": parsed["name"], "args": parsed["args"]}]
+
+            if not tool_calls:
+                final = res.get("content") or ""
+                if final:
+                    yield {"type": "token", "text": final}
+                if usage is not None and have_usage:
+                    usage.update(agg)
+                return
+
+            messages.append({"role": "assistant", "content": res.get("content"),
+                             "tool_calls": tool_calls})
+            for c in tool_calls:
+                yield {"type": "tool_call", "name": c["name"], "args": c.get("args") or {}}
+                try:
+                    result = tool_registry.dispatch(c["name"], c.get("args"),
+                                                    birth_details, ayanamsa)
+                    ok = not (isinstance(result, dict) and result.get("error"))
+                except tool_registry.ToolError as te:
+                    result = {"error": str(te)}
+                    ok = False
+                yield {"type": "tool_result", "name": c["name"], "ok": ok}
+                messages.append({"role": "tool", "id": c.get("id"), "name": c["name"],
+                                 "content": json.dumps(result, default=str)})
+
+        # Round cap reached — force a final answer with no further tool calls.
+        yield {"type": "notice", "text": "Reached the tool-call limit; answering now."}
+        messages.append({"role": "user",
+                         "content": "You have enough information now. Provide your "
+                                    "final answer without calling any more tools."})
+        try:
+            content, u = await self._complete_chat(messages, cfg)
+            _add_usage(u)
+            yield {"type": "token", "text": content or "[No answer produced]"}
+        except Exception as e:
+            yield {"type": "token", "text": f"\n\n[Tool mode error: {e}]"}
+        if usage is not None and have_usage:
+            usage.update(agg)
+
+    async def _chat_once(self, messages, specs, cfg, use_json) -> Dict[str, Any]:
+        """One non-streaming round. Returns
+        {"content": str|None, "tool_calls": [...], "usage": {...}|None}."""
+        if use_json:
+            content, u = await self._complete_chat(messages, cfg)
+            return {"content": content, "tool_calls": [], "usage": u}
+        if cfg.provider_type == ProviderType.OLLAMA:
+            return await self._chat_once_ollama(messages, specs, cfg)
+        if cfg.provider_type in (ProviderType.OPENAI, ProviderType.OPENAI_COMPATIBLE):
+            return await self._chat_once_openai(messages, specs, cfg)
+        # Should not reach here (Gemini uses use_json) — fall back to plain chat.
+        content, u = await self._complete_chat(messages, cfg)
+        return {"content": content, "tool_calls": [], "usage": u}
+
+    async def _chat_once_openai(self, messages, specs, cfg, max_tokens: int = 4096) -> Dict[str, Any]:
+        base_url = (cfg.base_url or "").rstrip("/")
+        if not base_url:
+            raise RuntimeError("no base URL configured for this provider")
+        if cfg.provider_type == ProviderType.OPENAI and not cfg.api_key:
+            raise RuntimeError("OPENAI_API_KEY is not set")
+        headers = {"Content-Type": "application/json"}
+        if cfg.api_key:
+            headers["Authorization"] = f"Bearer {cfg.api_key}"
+        payload = {
+            "model": cfg.model,
+            "messages": self._to_openai_messages(messages),
+            "temperature": 0.7,
+            "max_tokens": max_tokens,
+            "tools": self._openai_tool_payload(specs),
+            "tool_choice": "auto",
+        }
+        timeout = 300.0 if cfg.provider_type == ProviderType.OPENAI_COMPATIBLE else 120.0
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            r = await client.post(f"{base_url}/chat/completions", json=payload, headers=headers)
+            if r.status_code != 200:
+                raise RuntimeError(f"{cfg.model}: {r.status_code} - {r.text[:300]}")
+            data = r.json()
+        msg = (data.get("choices") or [{}])[0].get("message", {})
+        tool_calls = []
+        for tc in msg.get("tool_calls") or []:
+            fn = tc.get("function", {})
+            try:
+                args = json.loads(fn.get("arguments") or "{}")
+            except json.JSONDecodeError:
+                args = {}
+            tool_calls.append({"id": tc.get("id"), "name": fn.get("name"), "args": args})
+        return {"content": msg.get("content"), "tool_calls": tool_calls,
+                "usage": data.get("usage")}
+
+    async def _chat_once_ollama(self, messages, specs, cfg, max_tokens: int = 4096) -> Dict[str, Any]:
+        url = (cfg.base_url or self.ollama_url).rstrip("/")
+        payload = {
+            "model": cfg.model or self.ollama_default_model,
+            "messages": self._to_ollama_messages(messages),
+            "stream": False,
+            "tools": self._openai_tool_payload(specs),
+            "options": {"temperature": 0.7, "num_predict": max_tokens},
+        }
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            r = await client.post(f"{url}/api/chat", json=payload)
+            if r.status_code != 200:
+                raise RuntimeError(f"Ollama {payload['model']}: {r.status_code} - {r.text[:300]}")
+            data = r.json()
+        msg = data.get("message", {})
+        tool_calls = []
+        for tc in msg.get("tool_calls") or []:
+            fn = tc.get("function", {})
+            args = fn.get("arguments")
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args)
+                except json.JSONDecodeError:
+                    args = {}
+            tool_calls.append({"id": None, "name": fn.get("name"), "args": args or {}})
+        usage = None
+        if data.get("prompt_eval_count") is not None or data.get("eval_count") is not None:
+            pt, ct = data.get("prompt_eval_count"), data.get("eval_count")
+            usage = {"prompt_tokens": pt, "completion_tokens": ct,
+                     "total_tokens": (pt or 0) + (ct or 0)}
+        return {"content": msg.get("content"), "tool_calls": tool_calls, "usage": usage}
+
+    async def _complete_chat(self, messages, cfg: ModelConfig, max_tokens: int = 4096):
+        """Non-streaming plain chat (no tools) over neutral messages. Returns
+        (content, usage). Used by the JSON-protocol path and the forced final answer."""
+        if cfg.provider_type == ProviderType.OLLAMA:
+            url = (cfg.base_url or self.ollama_url).rstrip("/")
+            payload = {"model": cfg.model or self.ollama_default_model,
+                       "messages": self._to_text_messages(messages), "stream": False,
+                       "options": {"temperature": 0.7, "num_predict": max_tokens}}
+            async with httpx.AsyncClient(timeout=300.0) as client:
+                r = await client.post(f"{url}/api/chat", json=payload)
+                if r.status_code != 200:
+                    raise RuntimeError(f"Ollama: {r.status_code} - {r.text[:300]}")
+                data = r.json()
+            pt, ct = data.get("prompt_eval_count"), data.get("eval_count")
+            usage = ({"prompt_tokens": pt, "completion_tokens": ct,
+                      "total_tokens": (pt or 0) + (ct or 0)}
+                     if pt is not None or ct is not None else None)
+            return data.get("message", {}).get("content", ""), usage
+
+        if cfg.provider_type in (ProviderType.OPENAI, ProviderType.OPENAI_COMPATIBLE):
+            base_url = (cfg.base_url or "").rstrip("/")
+            headers = {"Content-Type": "application/json"}
+            if cfg.api_key:
+                headers["Authorization"] = f"Bearer {cfg.api_key}"
+            payload = {"model": cfg.model, "messages": self._to_text_messages(messages),
+                       "temperature": 0.7, "max_tokens": max_tokens}
+            timeout = 300.0 if cfg.provider_type == ProviderType.OPENAI_COMPATIBLE else 120.0
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                r = await client.post(f"{base_url}/chat/completions", json=payload, headers=headers)
+                if r.status_code != 200:
+                    raise RuntimeError(f"{cfg.model}: {r.status_code} - {r.text[:300]}")
+                data = r.json()
+            msg = (data.get("choices") or [{}])[0].get("message", {})
+            return msg.get("content", ""), data.get("usage")
+
+        if cfg.provider_type == ProviderType.GEMINI:
+            api_key = cfg.api_key or self.gemini_api_key
+            model = cfg.model or self.gemini_default_model
+            if not api_key:
+                raise RuntimeError("GEMINI_API_KEY is not set")
+            plain = self._to_text_messages(messages)
+            system_text = next((m["content"] for m in plain if m["role"] == "system"), None)
+            contents = [{"role": "model" if m["role"] == "assistant" else "user",
+                         "parts": [{"text": m["content"]}]}
+                        for m in plain if m["role"] != "system"]
+            payload = {"contents": contents,
+                       "generationConfig": {"temperature": 0.7, "maxOutputTokens": max_tokens}}
+            if system_text:
+                payload["system_instruction"] = {"parts": [{"text": system_text}]}
+            url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+                   f"{model}:generateContent?key={api_key}")
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                r = await client.post(url, json=payload)
+                if r.status_code != 200:
+                    raise RuntimeError(f"Gemini {model}: {r.status_code} - {r.text[:300]}")
+                data = r.json()
+            parts = (data.get("candidates") or [{}])[0].get("content", {}).get("parts", [])
+            content = "".join(p.get("text", "") for p in parts)
+            um = data.get("usageMetadata") or {}
+            usage = ({"prompt_tokens": um.get("promptTokenCount"),
+                      "completion_tokens": um.get("candidatesTokenCount"),
+                      "total_tokens": um.get("totalTokenCount")} if um else None)
+            return content, usage
+
+        raise RuntimeError("Unsupported provider for tool mode")
+
 
 # Singleton instance
 llm_service = LLMService()
