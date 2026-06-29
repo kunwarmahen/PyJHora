@@ -1,8 +1,9 @@
 # Agentic Tool-Calling Mode for "Ask AI Astrologer"
 
 Status: **implemented** 2026-06-29 (design agreed same day). Backend + frontend
-shipped and verified live on Ollama; follow-ups (native Gemini function-calling,
-i18n of new strings, tri-state seed, tool-result caching) tracked in
+shipped and verified live on Ollama; native function-calling wired for OpenAI-style,
+Ollama, **and Gemini** (Gemini live round-trip pending a real key). Remaining
+follow-ups (i18n of new strings, tri-state seed, tool-result caching) tracked in
 [todo.md §8.9](../todo.md). The sections below describe the design as built; where
 the implementation differs it is noted inline.
 
@@ -120,8 +121,12 @@ A provider-agnostic `run_tool_loop(messages, cfg, tools, on_event)`:
 Per-provider edges:
 - **OpenAI / OpenAI-compatible:** native `tools` + `tool_calls` in the delta;
   reuse the existing `_stream_openai_style` plumbing, add tool-call assembly.
-- **Gemini:** `function_declarations` + `functionCall` / `functionResponse`
-  parts.
+- **Gemini:** native via `_chat_once_gemini` — `tools:[{functionDeclarations}]` +
+  `toolConfig.functionCallingConfig`, parse `functionCall` parts, feed results back as
+  `functionResponse` parts in a **user** turn (consecutive results merged into one turn
+  per Gemini's adjacency rule). A schema sanitizer keeps only Gemini-accepted keys
+  (drops `default`) and omits empty `parameters`. `id`s echoed when present (parallel
+  calls).
 - **Ollama:** native `tools` for models that support it; otherwise the JSON
   fallback.
 - **JSON fallback (any model):** system instruction tells the model to reply with

@@ -705,7 +705,15 @@ clean status/dict — thin JSON-schema wrappers, minimal new surface.
       loading a saved thread.
 - [x] (6) **Inspector** — `messageInfo` shows `{ mode, seed_context, tools_used }`
       for tool-mode answers instead of a static block.
-- [ ] FOLLOW-UP: native Gemini function-calling (currently via JSON protocol).
+- [x] DONE 2026-06-29: **native Gemini function-calling** — `_chat_once_gemini`
+      sends `tools: [{functionDeclarations}]` + `toolConfig.functionCallingConfig`,
+      parses `functionCall` parts, and feeds results back as `functionResponse` parts
+      in a user turn (consecutive results merged into one turn per Gemini's rules; a
+      schema sanitizer drops keys Gemini rejects e.g. `default`, and omits empty
+      `parameters`). All providers now attempt native first; a failed native round
+      still auto-falls back to the JSON protocol. Converters unit-tested against the
+      verified v1beta REST shape; live round-trip not yet run here (no Gemini key in
+      this env) — verify in-app with a real key.
 - [ ] FOLLOW-UP: localize the new frontend strings (Answer mode card + step labels
       use English literals for now — see §5 i18n).
 - [ ] FOLLOW-UP: explicit tri-state seed/tool/off per section (today: seeded if the
