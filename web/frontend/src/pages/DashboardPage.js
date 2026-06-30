@@ -12,6 +12,7 @@ import {
   Star,
   Sparkles,
   Orbit,
+  Grid3x3,
   GitCompareArrows,
   Wrench,
 } from "lucide-react";
@@ -69,6 +70,12 @@ export const DashboardPage = () => {
       icon: <Orbit size={32} />,
       path: "/transit",
       gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
+    },
+    {
+      key: "sarvatobhadra",
+      icon: <Grid3x3 size={32} />,
+      path: "/sarvatobhadra",
+      gradient: "linear-gradient(135deg, #FF9933 0%, #2D3561 100%)",
     },
     {
       key: "advanced",

@@ -101,6 +101,20 @@ class CompareAnalysisRequest(BaseModel):
     api_key: Optional[str] = None
     ayanamsa: Optional[str] = None
 
+class SarvatobhadraAnalysisRequest(BaseModel):
+    birth_details: BirthDetails
+    person_name: Optional[str] = None
+    name_nakshatra: Optional[int] = None  # 1..27 naama-nakshatra (optional anchor)
+    current_date: Optional[str] = None
+    current_time: Optional[str] = None
+    current_tz: Optional[float] = None
+    llm_provider: str = "qwen"  # legacy fallback
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    ayanamsa: Optional[str] = None
+
 # Lifecycle events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -1286,6 +1300,68 @@ async def analyze_comparison(
             "provider": cfg.provider_type.value,
             "model": cfg.model,
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============= SARVATOBHADRA CHAKRA =============
+
+@app.post("/api/astrology/sarvatobhadra")
+async def get_sarvatobhadra(
+    birth_details: BirthDetails,
+    name_nakshatra: Optional[int] = None,
+    current_date: Optional[str] = None,
+    current_time: Optional[str] = None,
+    current_tz: Optional[float] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Sarvatobhadra Chakra with today's transits + vedha on the native's stars."""
+    try:
+        sbc = AstrologyCompute.get_sarvatobhadra_chakra(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude, tz=birth_details.timezone,
+            name_nakshatra=name_nakshatra, current_date=current_date,
+            current_time=current_time, current_tz=current_tz, ayanamsa=ayanamsa,
+        )
+        if sbc.get("status") != "success":
+            raise HTTPException(status_code=400, detail=sbc.get("error", "Calculation failed"))
+        return sbc
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/astrology/sarvatobhadra-analysis")
+async def analyze_sarvatobhadra(
+    request: SarvatobhadraAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Plain-language AI reading of the Sarvatobhadra Chakra transit picture."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        sbc = AstrologyCompute.get_sarvatobhadra_chakra(
+            dob=bd.dob, tob=bd.tob, place=bd.place,
+            lat=bd.latitude, lon=bd.longitude, tz=bd.timezone,
+            name_nakshatra=request.name_nakshatra, current_date=request.current_date,
+            current_time=request.current_time, current_tz=request.current_tz,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+        )
+        if sbc.get("status") != "success":
+            raise HTTPException(status_code=400, detail=sbc.get("error", "Calculation failed"))
+
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_sarvatobhadra(
+            sbc_data=sbc, name=request.person_name or "this person", config=cfg,
+        )
+        return {
+            "ai_analysis": ai_analysis,
+            "provider": cfg.provider_type.value,
+            "model": cfg.model,
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

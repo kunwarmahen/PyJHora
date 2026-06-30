@@ -336,6 +336,16 @@ class LLMService:
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
         return await self._complete(prompt, cfg)
 
+    async def analyze_sarvatobhadra(self,
+                                    sbc_data: Dict[str, Any],
+                                    name: str = "this person",
+                                    provider: LLMProvider = LLMProvider.QWEN,
+                                    config: Optional[ModelConfig] = None) -> str:
+        """Layman interpretation of the Sarvatobhadra Chakra transit reading."""
+        prompt = self._build_sarvatobhadra_prompt(sbc_data, name)
+        cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        return await self._complete(prompt, cfg)
+
     # ------------------------------------------------------------------ #
     # Provider dispatch
     # ------------------------------------------------------------------ #
@@ -943,6 +953,71 @@ Provide a clear side-by-side comparison covering:
 IMPORTANT: Use the actual chart data above. Be specific to their placements, balanced, and concise. Refer to them as "{name_a}" and "{name_b}". Do not score them and do not ask for more information."""
 
         return prompt
+
+    def _build_sarvatobhadra_prompt(self, sbc: Dict[str, Any], name: str) -> str:
+        """Build a plain-language Sarvatobhadra Chakra (transit) reading prompt.
+
+        The chakra logic is already computed (occupation + facing/saamne vedha on
+        the native's sensitive points); the model's job is to translate the
+        structured findings into something a non-astrologer can act on."""
+        anchors = sbc.get("anchors", {})
+        anchor_lines = []
+        for a in anchors.values():
+            anchor_lines.append(f"- {a.get('label')}: {a.get('name')}")
+
+        findings = sbc.get("findings", [])
+        if findings:
+            find_lines = []
+            for f in findings:
+                kind = ("a graha sitting ON it" if f.get("kind") == "occupation"
+                        else "vedha (obstruction) facing it across the chakra")
+                find_lines.append(
+                    f"- {f.get('planet')} ({f.get('planet_nature')}, {f.get('tone')}) — "
+                    f"{kind} → {f.get('anchor_label')} ({f.get('anchor_name')})"
+                )
+            findings_block = "\n".join(find_lines)
+        else:
+            findings_block = "- No graha is currently occupying or casting vedha on the native's sensitive points (a quiet, neutral window on the chakra)."
+
+        pan = sbc.get("transit_panchanga", {})
+        pan_line = (
+            f"Today's tithi group: {pan.get('tithi_group')} "
+            f"({'matches' if pan.get('same_tithi_group') else 'differs from'} the birth tithi group); "
+            f"today's weekday: {pan.get('weekday')} "
+            f"({'matches' if pan.get('same_weekday') else 'differs from'} the birth weekday)."
+        )
+
+        planets = sbc.get("planets", [])
+        planet_line = ", ".join(
+            f"{p.get('name')} in {p.get('nakshatra')}/{p.get('sign_name')}"
+            f"{' (retrograde)' if p.get('retrograde') else ''}"
+            for p in planets
+        )
+
+        return f"""You are a warm, plain-spoken Vedic astrologer explaining a Sarvatobhadra Chakra reading to someone with NO astrology background. Avoid jargon; when you must use a term (vedha, nakshatra), explain it in a few words.
+
+The Sarvatobhadra Chakra is a 9×9 grid of all the stars, signs, syllables, tithis and weekdays. We map where the planets are TODAY onto it and check the person's most sensitive cells: their birth star, Moon sign, name star, birth tithi and birth weekday. A planet "occupying" a sensitive cell, or a planet "facing" it from across the grid (called vedha, meaning obstruction), activates that part of life — gently if the planet is a natural benefic (Jupiter, Venus, Mercury, Moon), more testingly if it is a malefic (Saturn, Mars, Rahu, Ketu, Sun).
+
+Reading for: {name}
+Transit date: {sbc.get('transit_date')} {sbc.get('transit_time')}
+
+The person's sensitive points on the chakra:
+{chr(10).join(anchor_lines)}
+
+Where the planets sit today: {planet_line}
+
+{pan_line}
+
+What the chakra flags right now (already computed — trust these):
+{findings_block}
+
+Write a clear, encouraging reading (about 250-350 words) with these parts:
+1. **The headline** — one or two sentences on the overall tone of this period for {name} (supportive, mixed, or a time for care).
+2. **What's being touched** — for each flagged planet above, say in everyday language what it tends to stir up and which life area (e.g. Saturn → patience, work, delays; Jupiter → growth, opportunity, optimism), tied to which sensitive point it hits.
+3. **What to expect & do** — 2-4 concrete, gentle suggestions for the weeks ahead.
+4. End with one short line of reassurance.
+
+Be specific to the findings above — do not invent placements that aren't listed. If nothing is flagged, say plainly that this is a calm, unremarkable window and give light general guidance. Do NOT predict death, disease, disasters, or precise dates. Close with a brief reminder that this is for reflection, not a substitute for professional advice."""
 
     def _format_planets(self, planets: Dict[str, Any]) -> str:
         """Format planetary positions for prompt"""

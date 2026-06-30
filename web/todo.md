@@ -842,3 +842,43 @@ usage capture).
       answered; the reading is cleared whenever the pairing changes. i18n: `compare.aiTitle/
       aiHint/aiLoading/aiModel/aiGenerate/aiRegenerate/aiError` in en/hi/sa. Verified: backend
       compiles + route registered + prompt builds, frontend lint clean, locale JSON valid.
+
+## Sarvatobhadra Chakra — transit grid + layman AI reading (DONE 2026-06-29)
+
+- [x] DONE 2026-06-29: **brought the Sarvatobhadra Chakra to the web** (it previously
+      existed only in the desktop PyQt UI, `jhora.ui.chakra.Sarvatobadra`, with no web
+      surface). Owner ask: build the chakra and have the AI explain, in layman terms, what
+      the person can expect. Scope agreed: **current transits (gochara) + vedha** on a
+      **new dedicated page**, anchored to the **birth star, Moon sign, name star, birth
+      tithi & weekday**.
+- [x] **Backend chakra engine** (`astrology.py`): ported the authentic 9×9 grid (28
+      nakshatras incl. Abhijit on the outer ring, 50 aksharas, 12 rasis, and the 3×3 centre
+      of five tithi groups Nanda/Bhadra/Jaya/Rikta/Purna + weekdays) into a typed,
+      programmatic `_build_sbc_grid()` — faithful to the desktop layout. New
+      `AstrologyCompute.get_sarvatobhadra_chakra(...)` places each transiting graha on BOTH
+      its nakshatra cell and its rasi cell, derives the native's anchor cells (janma star,
+      Moon sign, optional naama-nakshatra, birth tithi group, birth weekday), and computes
+      **occupation** (a graha on an anchor cell) + **saamne/frontal vedha** (a graha on the
+      cell mirrored through the chakra centre, `(8-r, 8-c)`). Returns the full grid,
+      anchors, planet placements, structured `findings`, and a transit-day panchanga with
+      same-tithi-group / same-weekday coincidence flags. Benefic/malefic split drives a
+      supportive-vs-stressful tone. Verified the mirror-vedha invariant on two charts
+      (e.g. 1990-05-15 → birth weekday Tuesday, correct).
+- [x] **Layman AI reading** (`llm_service.py`): `analyze_sarvatobhadra` +
+      `_build_sarvatobhadra_prompt` — a jargon-light, ~250-350-word reading (headline tone,
+      what each flagged graha stirs up + which life area, 2-4 gentle suggestions, a line of
+      reassurance) that trusts the pre-computed findings and avoids death/disease/precise-date
+      predictions. `POST /api/astrology/sarvatobhadra` (compute) and
+      `POST /api/astrology/sarvatobhadra-analysis` (AI, model-config aware via `_resolve_cfg`,
+      rate-limited) added to `main.py` with `SarvatobhadraAnalysisRequest`.
+- [x] **Frontend** (`SarvatobhadraPage.js`, route `/sarvatobhadra`, nav + dashboard card,
+      `getSarvatobhadra`/`analyzeSarvatobhadraAI` in `services/api.js`): renders the 9×9
+      grid with per-ring colour coding, graha chips (green benefic / red malefic), anchor
+      highlight + dashed vedha-source cells and a legend; a date/time picker (defaults to
+      now, "Now" reset) and an optional **name-star dropdown** (27 nakshatras with their
+      naama syllables — no fragile transliteration); an anchors panel; a colour-toned
+      findings list; and an on-demand AI reading card that uses the model picked in Ask AI
+      Astrologer. i18n: `nav.sarvatobhadra`, `dashboard.features.sarvatobhadra`, and the full
+      `sbc.*` block in en (hi/sa get the nav + card labels, body falls back to en). Verified:
+      backend imports OK + compute invariants pass; `npm run build` compiles; lint clean;
+      locale JSON valid.

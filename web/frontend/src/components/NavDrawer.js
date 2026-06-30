@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Wrench,
   Star,
+  Grid3x3,
   GitCompareArrows,
   LogOut,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const LINKS = [
   { to: "/birth-chart", labelKey: "nav.birthChart", icon: <Calendar size={20} /> },
   { to: "/dhasa", labelKey: "nav.dhasa", icon: <Clock size={20} /> },
   { to: "/transit", labelKey: "nav.transit", icon: <Orbit size={20} /> },
+  { to: "/sarvatobhadra", labelKey: "nav.sarvatobhadra", icon: <Grid3x3 size={20} /> },
   { to: "/advanced", labelKey: "nav.advanced", icon: <Sparkles size={20} /> },
   { to: "/compare", labelKey: "nav.compare", icon: <GitCompareArrows size={20} /> },
   { to: "/compatibility", labelKey: "nav.compatibility", icon: <Heart size={20} /> },

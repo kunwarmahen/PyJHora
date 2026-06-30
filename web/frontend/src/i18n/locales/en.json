@@ -61,6 +61,43 @@
     "chipSummary": "Summarize my current transits",
     "chipMostImportant": "Which transit matters most right now?"
   },
+  "sbc": {
+    "title": "Sarvatobhadra Chakra",
+    "subtitle": "Today's grahas mapped onto the all-directions star grid",
+    "date": "Date",
+    "now": "Now",
+    "nowHint": "Jump back to the present moment",
+    "nameStar": "Name star",
+    "nameStarNone": "Name star (optional)",
+    "nameStarHint": "Pick the nakshatra your name's first syllable belongs to — adds it as a sensitive point.",
+    "loading": "Building the chakra and placing the grahas…",
+    "calcError": "Failed to build the Sarvatobhadra Chakra",
+    "asOf": "As of {{moment}}",
+    "ayanamsa": "Ayanamsa",
+    "tithiMatch": "Today's tithi is {{group}} — same group as your birth",
+    "tithiToday": "Today's tithi group: {{group}}",
+    "weekdayMatch": "Today is {{day}} — your birth weekday",
+    "weekdayToday": "Today: {{day}}",
+    "chakraTitle": "The Chakra",
+    "anchorsTitle": "Your sensitive points",
+    "findingsTitle": "What's active now",
+    "findingsNone": "No graha is currently sitting on or facing your sensitive points — a calm, unremarkable window.",
+    "findOccupies": "is sitting on your",
+    "findVedha": "casts vedha (faces) your",
+    "vedhaNote": "Vedha here is the saamne (frontal) line — a graha pierces the cell directly facing it across the chakra. We also flag grahas sitting on a sensitive cell.",
+    "legendAnchor": "Your sensitive point",
+    "legendVedha": "Casts vedha on a point",
+    "legendBenefic": "Benefic graha",
+    "legendMalefic": "Malefic graha",
+    "aiTitle": "AI reading — what to expect",
+    "aiHint": "Get a plain-language reading of what these placements mean for you in the weeks ahead. Uses the model selected in Ask AI Astrologer.",
+    "aiLoading": "Reading the chakra…",
+    "aiGenerate": "Generate AI reading",
+    "aiRegenerate": "Regenerate reading",
+    "aiError": "Couldn't generate the reading.",
+    "aiModel": "Answered by {{model}}",
+    "disclaimer": "AI interpretation of the Sarvatobhadra Chakra for the chosen moment. For reflection, not a substitute for professional advice."
+  },
   "shared": {
     "notFound": "This shared chart was not found.",
     "loadFailed": "Failed to load the shared chart.",
@@ -132,6 +169,7 @@
     "birthChart": "Birth Chart",
     "dhasa": "Dhasa Periods",
     "transit": "Transits",
+    "sarvatobhadra": "Sarvatobhadra Chakra",
     "advanced": "Advanced Details",
     "compare": "Compare Charts",
     "compatibility": "Compatibility",
@@ -178,6 +216,10 @@
       "transit": {
         "title": "Transits (Gochara)",
         "description": "See where the planets are moving today over your natal chart"
+      },
+      "sarvatobhadra": {
+        "title": "Sarvatobhadra Chakra",
+        "description": "Today's transits on the 9×9 star grid, with a plain-language AI reading"
       },
       "advanced": {
         "title": "Advanced Details",

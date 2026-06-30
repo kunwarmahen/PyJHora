@@ -9,8 +9,8 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Authentication**: User registration and login with JWT tokens
 - **Features**: Birth Chart (Rasi D1 + Navamsa D9), divisional charts D1–D60, Panchanga,
   Yogas/Doshas, Vimsottari Dhasa (+ Ashtottari/Yogini/Narayana/Kalachakra), Transits,
-  Compatibility, and an Advanced page (Ashtakavarga, Arudha, Karakas, Special Lagnas,
-  Upagrahas, Shadbala)
+  Sarvatobhadra Chakra (with layman AI reading), Compatibility, and an Advanced page
+  (Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala)
 - **AI Integration**: Multi-model LLM support (Ollama/local, OpenAI-compatible, Gemini, ChatGPT)
 - **Interactive Q&A**: Chat with AI Astrologer for personalized insights
 
@@ -336,7 +336,20 @@ REACT_APP_API_TIMEOUT=30000
 - Key upcoming sign-ingress dates for Jupiter and Saturn
 - North / South Indian chart styles, respects the selected ayanamsa
 
-### 7. Advanced Details (`/advanced`)
+### 7. Sarvatobhadra Chakra (`/sarvatobhadra`)
+- The authentic **9×9 "auspicious-in-every-direction" grid** — 28 nakshatras (incl.
+  Abhijit), the 50 aksharas, 12 rasis, and the central tithi-group / weekday block —
+  with **today's grahas mapped onto it** (each placed on both its nakshatra and rasi cell)
+- Highlights the native's **sensitive points**: birth star (Janma Nakshatra), Moon sign,
+  birth tithi group, birth weekday, plus an optional **name star** (pick the nakshatra of
+  your name's first syllable from a dropdown)
+- Flags **occupation** (a graha sitting on a sensitive cell) and **saamne/frontal vedha**
+  (a graha facing it across the chakra), toned supportive (benefic) vs stressful (malefic),
+  with a same-tithi-group / same-weekday coincidence read for the chosen day
+- Date/time picker (defaults to now), respects the selected ayanamsa, and an on-demand
+  **plain-language AI reading** of what to expect — uses the model picked in Ask AI Astrologer
+
+### 8. Advanced Details (`/advanced`)
 - **Ashtakavarga**: Bhinna (per-contributor) + Sarva (combined) bindu tables, with
   a Sarva heatmap (grand total 337)
 - **Chart factors**: Arudha padas (A1–A12), Chara karakas (Jaimini), Special lagnas
@@ -345,13 +358,13 @@ REACT_APP_API_TIMEOUT=30000
   with total rupa, required rupa, ratio and rank for Sun–Saturn
 - Each section loads independently and respects the selected ayanamsa
 
-### 8. Export & Share
+### 9. Export & Share
 - **Export** any chart as **PNG** or **PDF** (buttons on each chart card) — on Birth
   Chart, Compare, Transit and the shared view
 - **Share** a chart as a **public, read-only link** (`/share/:token`) — no login needed
   to view; offers a "create a free account" CTA
 
-### 9. LLM Integration (Optional)
+### 10. LLM Integration (Optional)
 - Enhanced predictions with a local Ollama model or any configured provider
 - Contextual astrological interpretations
 - Personalized analysis
@@ -449,6 +462,8 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `POST /api/astrology/dasha-periods?dhasa_type=` - Maha-level periods for ashtottari/
   yogini/narayana/kalachakra
 - `POST /api/astrology/transit?current_date=&current_time=&current_tz=&ayanamsa=` - Current transits (Gochara); `current_time`/`current_tz` anchor the snapshot to the viewer's present moment and timezone (default: their local now)
+- `POST /api/astrology/sarvatobhadra?name_nakshatra=&current_date=&current_time=&current_tz=&ayanamsa=` - Sarvatobhadra Chakra (9×9 grid) with the current transits + occupation/vedha on the native's sensitive stars
+- `POST /api/astrology/sarvatobhadra-analysis` - Plain-language AI reading of the Sarvatobhadra transit picture (`SarvatobhadraAnalysisRequest`; model-config aware, rate-limited)
 - `POST /api/astrology/ashtakavarga?ayanamsa=` - Bhinna + Sarva Ashtakavarga tables
 - `POST /api/astrology/chart-details?ayanamsa=` - Arudha padas, Chara karakas,
   Special lagnas, Upagrahas
@@ -488,6 +503,7 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `/compatibility` - Marriage compatibility checker
 - `/dhasa` - Dhasa periods: Vimsottari drill-down tree + other systems
 - `/transit` - Transits (Gochara) over the natal chart
+- `/sarvatobhadra` - Sarvatobhadra Chakra: today's transits on the 9×9 star grid + occupation/vedha on your sensitive stars, with a layman AI reading
 - `/advanced` - Advanced details: Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala
 - `/compare` - Compare two saved profiles side by side (charts, placements table + on-demand neutral AI comparison)
 - `/share/:token` - **Public, read-only** shared chart view (no login required)

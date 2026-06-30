@@ -237,6 +237,48 @@ export const astrologyService = {
       },
       { timeout: 300000 }
     ),
+
+  // Sarvatobhadra Chakra: the 9×9 grid with today's transits + vedha mapped on it.
+  getSarvatobhadra: (
+    birthDetails,
+    {
+      nameNakshatra = null,
+      currentDate = null,
+      currentTime = null,
+      currentTz = null,
+      ayanamsa = DEFAULT_AYANAMSA,
+    } = {}
+  ) =>
+    api.post("/api/astrology/sarvatobhadra", birthDetails, {
+      params: {
+        name_nakshatra: nameNakshatra,
+        current_date: currentDate,
+        current_time: currentTime,
+        current_tz: currentTz,
+        ayanamsa,
+      },
+    }),
+
+  // Plain-language AI reading of the Sarvatobhadra transit picture.
+  analyzeSarvatobhadraAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/sarvatobhadra-analysis",
+      {
+        birth_details: birthDetails,
+        person_name: opts.personName,
+        name_nakshatra: opts.nameNakshatra,
+        current_date: opts.currentDate,
+        current_time: opts.currentTime,
+        current_tz: opts.currentTz,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
 };
 
 /**

@@ -189,6 +189,108 @@ def _fmt_hours(h):
     return f"{hh:02d}:{mm:02d}{suffix}"
 
 
+# ── Sarvatobhadra Chakra (SBC) ──────────────────────────────────────────────
+# The Sarvatobhadra ("auspicious in every direction") Chakra is a 9×9 grid used
+# in muhurta and gochara (transit) analysis. Its rings, from outside in:
+#   • the 28 nakshatras (incl. Abhijit) on the outer border (corners are vowels)
+#   • the 50 aksharas (Sanskrit syllables) — used to locate a person's name star
+#   • the 12 rasis (signs)
+#   • a 3×3 centre carrying the five tithi groups (Nanda/Bhadra/Jaya/Rikta/Purna)
+#     and the seven weekdays.
+# A planet transiting a cell "pierces" (vedha) the cell directly facing it across
+# the chakra — the saamne (frontal) vedha — i.e. the cell mirrored through the
+# centre. We compute occupation (a planet sitting on a sensitive cell) and that
+# facing vedha onto the native's anchor cells (birth star, sign, name star,
+# birth tithi & weekday). The grid layout below mirrors PyJHora's desktop
+# `jhora.ui.chakra.Sarvatobadra` so the web view is faithful to the library.
+#
+# Raw grid: ints on the border are nakshatras (1..28); ints inside are rasis
+# (1..12); the five `None` cells are the centre tithi/weekday block (filled from
+# _SBC_CENTER); every other string is an akshara (syllable) label.
+_SBC_RAW = [
+    ['ii',  23,   24,    25,    26,    27,   1,    2,    'a'],
+    [22,    'rii','g',   's',   'd',   'ch', 'l',  'u',  3],
+    [28,    'kh', 'ai',  11,    12,    1,    'lu', 'a',  4],
+    [21,    'j',  10,    'ah',  None,  'o',  2,    'v',  5],
+    [20,    'bh', 9,     None,  None,  None, 3,    'k',  6],
+    [19,    'y',  8,     'am',  None,  'au', 4,    'h',  7],
+    [18,    'n',  'e',   7,     6,     5,    'luu','d',  8],
+    [17,    'ri', 't',   'r',   'p',   't~', 'm',  'uu', 9],
+    ['i',   16,   15,    14,    13,    12,   11,   10,   'aa'],
+]
+
+# The five centre cells: tithi group + the weekdays sharing the cell.
+_SBC_CENTER = {
+    (3, 4): {"group": "Rikta",  "tithis": [4, 9, 14],  "weekdays": ["Friday"]},
+    (4, 3): {"group": "Jaya",   "tithis": [3, 8, 13],  "weekdays": ["Thursday"]},
+    (4, 4): {"group": "Purna",  "tithis": [5, 10, 15], "weekdays": ["Saturday"]},
+    (4, 5): {"group": "Nanda",  "tithis": [1, 6, 11],  "weekdays": ["Sunday", "Tuesday"]},
+    (5, 4): {"group": "Bhadra", "tithis": [2, 7, 12],  "weekdays": ["Monday", "Wednesday"]},
+}
+
+# 28 nakshatra names including Abhijit (the 28th), inserted between Uttara
+# Ashadha (21) and Shravana (22) — its slot on the chakra's outer ring.
+_SBC_NAK28 = NAKSHATRA_NAMES[:21] + ["Abhijit"] + NAKSHATRA_NAMES[21:]
+
+# Tithi group order, indexed by (tithi-1) % 5.
+_SBC_TITHI_GROUPS = ["Nanda", "Bhadra", "Jaya", "Rikta", "Purna"]
+
+# Grahas split into the classic benefic / malefic camps for a layman read of
+# whether a transit over a sensitive cell is supportive or stressful.
+_SBC_BENEFICS = {"Jupiter", "Venus", "Mercury", "Moon"}
+_SBC_MALEFICS = {"Sun", "Mars", "Saturn", "Rahu", "Ketu"}
+
+
+def _build_sbc_grid():
+    """Classify the raw 9×9 grid into typed cells and index the nakshatra / rasi
+    / tithi-group / weekday cells so placements can be looked up by value."""
+    grid = [[None] * 9 for _ in range(9)]
+    nak_cell, rasi_cell = {}, {}
+    group_cell, weekday_cell = {}, {}
+    for i in range(9):
+        for j in range(9):
+            raw = _SBC_RAW[i][j]
+            on_border = (i == 0 or i == 8 or j == 0 or j == 8)
+            if (i, j) in _SBC_CENTER:
+                c = _SBC_CENTER[(i, j)]
+                cell = {"type": "tithi", "label": c["group"], "group": c["group"],
+                        "tithis": c["tithis"], "weekdays": c["weekdays"]}
+                group_cell[c["group"]] = (i, j)
+                for wd in c["weekdays"]:
+                    weekday_cell[wd] = (i, j)
+            elif isinstance(raw, int) and on_border:
+                cell = {"type": "nakshatra", "label": _SBC_NAK28[raw - 1],
+                        "nakshatra": raw, "name": _SBC_NAK28[raw - 1]}
+                nak_cell[raw] = (i, j)
+            elif isinstance(raw, int):
+                cell = {"type": "rasi", "label": ZODIAC_NAMES[raw - 1],
+                        "rasi": raw, "name": ZODIAC_NAMES[raw - 1]}
+                rasi_cell[raw] = (i, j)
+            else:
+                cell = {"type": "akshara", "label": raw, "akshara": raw}
+            cell["row"], cell["col"] = i, j
+            grid[i][j] = cell
+    return grid, nak_cell, rasi_cell, group_cell, weekday_cell
+
+
+_SBC_GRID, _SBC_NAK_CELL, _SBC_RASI_CELL, _SBC_GROUP_CELL, _SBC_WEEKDAY_CELL = (
+    _build_sbc_grid() if PYJHORA_AVAILABLE else (None, {}, {}, {}, {}))
+
+
+def _sbc_nature(planet):
+    """'benefic' | 'malefic' for a graha name (used for the layman verdict)."""
+    if planet in _SBC_BENEFICS:
+        return "benefic"
+    if planet in _SBC_MALEFICS:
+        return "malefic"
+    return "neutral"
+
+
+def _tithi_group(n):
+    """Nanda/Bhadra/Jaya/Rikta/Purna group name for a 1..30 tithi index."""
+    return _SBC_TITHI_GROUPS[(n - 1) % 5]
+
+
 class AstrologyCompute:
     """Core astrology calculations using PyJHora"""
 
@@ -1359,6 +1461,181 @@ class AstrologyCompute:
 
         except Exception as e:
             print(f"Transit calculation error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_sarvatobhadra_chakra(dob: str, tob: str, place: str,
+                                 lat: Optional[float] = None, lon: Optional[float] = None,
+                                 tz: Optional[float] = None, name_nakshatra: Optional[int] = None,
+                                 current_date: Optional[str] = None, current_time: Optional[str] = None,
+                                 current_tz: Optional[float] = None,
+                                 ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Sarvatobhadra Chakra with the current transits mapped onto it.
+
+        Builds the 9×9 chakra, places each transiting graha on its nakshatra cell
+        AND its rasi cell, then reports — against the native's sensitive points
+        (birth/janma star, Moon sign, optional name star, birth tithi group and
+        birth weekday) — both *occupation* (a graha sitting on the cell) and
+        *facing (saamne) vedha* (a graha on the cell mirrored across the chakra's
+        centre). The structured `findings` feed the layman AI reading."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available"}
+
+        try:
+            _set_ayanamsa(ayanamsa)
+            from datetime import datetime
+
+            year, month, day = map(int, dob.split("-"))
+            tparts = tob.split(":")
+            hour = int(tparts[0])
+            minute = int(tparts[1]) if len(tparts) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707  # Chennai default
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place or "", lat, lon, tz_offset)
+
+            nak_span = 360.0 / 27.0
+
+            def mirror(cell):
+                return (8 - cell[0], 8 - cell[1])
+
+            def cell_meta(cell):
+                return _SBC_GRID[cell[0]][cell[1]] if cell else None
+
+            # ── Natal anchors ────────────────────────────────────────────────
+            natal_jd = swe.julday(year, month, day, hour + minute / 60.0)
+            natal = charts.rasi_chart(natal_jd, place_obj)
+            moon_rasi, moon_deg = natal[2][1]  # row 2 = Moon
+            moon_abs = moon_rasi * 30.0 + moon_deg
+            janma_nak = int(moon_abs / nak_span) + 1  # 1..27 (27-star system)
+            # Map the 27-star janma nakshatra onto the 28-cell ring (Abhijit is
+            # cell 28; the 27-star indices ≥22 shift up by one on the ring).
+            janma_cell_key = janma_nak if janma_nak <= 21 else janma_nak + 1
+            birth_tithi = drik.tithi(natal_jd, place_obj)[0]
+            birth_weekday = drik.vaara(natal_jd, place_obj)  # 0=Sun..6=Sat
+            birth_group = _tithi_group(birth_tithi)
+
+            anchors = {}
+            anchors["janma_nakshatra"] = {
+                "label": "Birth star (Janma Nakshatra)",
+                "name": _SBC_NAK28[janma_cell_key - 1],
+                "cell": list(_SBC_NAK_CELL[janma_cell_key]),
+            }
+            anchors["moon_sign"] = {
+                "label": "Moon sign (Janma Rasi)",
+                "name": ZODIAC_NAMES[moon_rasi],
+                "cell": list(_SBC_RASI_CELL[moon_rasi + 1]),
+            }
+            anchors["birth_tithi"] = {
+                "label": "Birth tithi group",
+                "name": birth_group,
+                "cell": list(_SBC_GROUP_CELL[birth_group]),
+            }
+            anchors["birth_weekday"] = {
+                "label": "Birth weekday",
+                "name": WEEKDAY_NAMES[birth_weekday],
+                "cell": list(_SBC_WEEKDAY_CELL[WEEKDAY_NAMES[birth_weekday]]),
+            }
+            if name_nakshatra and 1 <= int(name_nakshatra) <= 27:
+                nn = int(name_nakshatra)
+                nn_key = nn if nn <= 21 else nn + 1
+                anchors["name_nakshatra"] = {
+                    "label": "Name star (Naama Nakshatra)",
+                    "name": _SBC_NAK28[nn_key - 1],
+                    "cell": list(_SBC_NAK_CELL[nn_key]),
+                }
+
+            # ── Transit moment (viewer's wall clock + tz; see get_transits) ──
+            if current_date:
+                ty, tm, td = map(int, current_date.split("-"))
+            else:
+                now = datetime.now()
+                ty, tm, td = now.year, now.month, now.day
+            if current_time:
+                cparts = current_time.split(":")
+                t_hour, t_min = int(cparts[0]), (int(cparts[1]) if len(cparts) > 1 else 0)
+            else:
+                t_hour, t_min = 12, 0
+            transit_tz = current_tz if current_tz is not None else tz_offset
+            transit_place = drik.Place(place or "", lat, lon, transit_tz)
+            transit_jd = swe.julday(ty, tm, td, t_hour + t_min / 60.0)
+
+            transit = charts.rasi_chart(transit_jd, transit_place)
+            retro_ids = set(drik.planets_in_retrograde(transit_jd, transit_place))
+
+            # Place each graha on its nakshatra cell + rasi cell.
+            placements = {}  # (r,c) -> list of planet names
+            planets = []
+            for pidx, (rasi, degrees) in transit[1:]:  # skip ascendant
+                name = PLANET_NAMES.get(pidx, f"Planet_{pidx}")
+                abs_long = rasi * 30.0 + degrees
+                nak27 = int(abs_long / nak_span) + 1
+                nak_key = nak27 if nak27 <= 21 else nak27 + 1
+                nak_c = _SBC_NAK_CELL[nak_key]
+                rasi_c = _SBC_RASI_CELL[rasi + 1]
+                for c in (nak_c, rasi_c):
+                    placements.setdefault(c, []).append(name)
+                planets.append({
+                    "name": name,
+                    "nature": _sbc_nature(name),
+                    "retrograde": pidx in retro_ids,
+                    "sign_name": ZODIAC_NAMES[rasi],
+                    "degrees": round(degrees, 2),
+                    "nakshatra": _SBC_NAK28[nak_key - 1],
+                    "nakshatra_cell": list(nak_c),
+                    "rasi_cell": list(rasi_c),
+                })
+
+            # ── Findings: occupation + facing vedha on each anchor ───────────
+            findings = []
+            for key, a in anchors.items():
+                cell = tuple(a["cell"])
+                mcell = mirror(cell)
+                for planet in placements.get(cell, []):
+                    nature = _sbc_nature(planet)
+                    findings.append({
+                        "anchor": key, "anchor_label": a["label"], "anchor_name": a["name"],
+                        "kind": "occupation", "planet": planet, "planet_nature": nature,
+                        "tone": "supportive" if nature == "benefic" else "stressful",
+                    })
+                for planet in placements.get(mcell, []):
+                    nature = _sbc_nature(planet)
+                    findings.append({
+                        "anchor": key, "anchor_label": a["label"], "anchor_name": a["name"],
+                        "kind": "vedha", "planet": planet, "planet_nature": nature,
+                        "facing": cell_meta(mcell).get("label") if cell_meta(mcell) else None,
+                        "tone": "supportive" if nature == "benefic" else "stressful",
+                    })
+
+            # ── Transit-day panchanga, with coincidence flags vs the native ──
+            t_tithi = drik.tithi(transit_jd, transit_place)[0]
+            t_weekday = drik.vaara(transit_jd, transit_place)
+            t_group = _tithi_group(t_tithi)
+            transit_panchanga = {
+                "tithi_group": t_group,
+                "same_tithi_group": t_group == birth_group,
+                "weekday": WEEKDAY_NAMES[t_weekday],
+                "same_weekday": t_weekday == birth_weekday,
+            }
+
+            return {
+                "status": "success",
+                "transit_date": f"{ty:04d}-{tm:02d}-{td:02d}",
+                "transit_time": f"{t_hour:02d}:{t_min:02d}",
+                "grid": _SBC_GRID,
+                "anchors": anchors,
+                "planets": planets,
+                "placements": {f"{r},{c}": v for (r, c), v in placements.items()},
+                "findings": findings,
+                "transit_panchanga": transit_panchanga,
+            }
+
+        except Exception as e:
+            print(f"Sarvatobhadra calculation error: {str(e)}")
             import traceback
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}

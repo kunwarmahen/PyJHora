@@ -11,6 +11,7 @@ import { BirthChartPage } from "./pages/BirthChartPage";
 import { CompatibilityPage } from "./pages/CompatibilityPage";
 import { DhasaPage } from "./pages/DhasaPage";
 import { TransitPage } from "./pages/TransitPage";
+import { SarvatobhadraPage } from "./pages/SarvatobhadraPage";
 import { AdvancedPage } from "./pages/AdvancedPage";
 import { ComparePage } from "./pages/ComparePage";
 import { SharedChartPage } from "./pages/SharedChartPage";
@@ -125,6 +126,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AiToolsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/sarvatobhadra"
+              element={
+                <ProtectedRoute>
+                  <SarvatobhadraPage />
                 </ProtectedRoute>
               }
             />
