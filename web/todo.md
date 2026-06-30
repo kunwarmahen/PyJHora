@@ -100,16 +100,23 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
       `.ui-card-header--sm`, and text/weight helpers) plus page-specific classes in
       `Dashboard.css` (nakshatra cards, dhasa tree/badges/current-period, compat). Converted
       pages off inline styles: Transit 51→3, BirthChart 40→1, Compatibility 49→3, Dhasa
-      44→14, Sarvatobhadra 38→26, Compare 13→4, Advanced 10→1, SharedChart 3→1, plus the
-      AskAstrologer settings selects/labels (`.ask-select`/`.ask-field*`). App-wide ~398→~175
-      `style={{}}` sites removed (~223). What REMAINS inline is intentional: genuinely
-      **data-driven** styles (Dhasa per-level `--lvl-accent`/avatar, Sarvatobhadra chakra-cell
-      colours, Ashtakavarga heatmap tint, Learn progress-bar widths, Dashboard per-feature
-      gradient, comparison-match highlight), **lucide icon colour props**, one-off layout
-      tweaks, and the dense AskAstrologer modal/tool-trace/portal-menu (94 left — low-value/
-      dynamic). Hover effects that were JS `onMouseOver/onMouseOut` handlers are now CSS
-      `:hover`. Lint clean, prod build green throughout. See also the shared chat component
-      below (TransitChat + AskAstrologer now share `components/chat/*`).
+      44→14, Sarvatobhadra 38→26, Compare 13→4, Advanced 10→1, SharedChart 3→1, and
+      **AskAstrologer 99→13** — the dense modal/tool-trace/settings clusters were swept in a
+      follow-up pass (2026-06-30): TraceNode timeline (`.trace-node*`), tool-call pills + trace
+      panel (`.tool-pill*`/`.tool-trace-*`/`.trace-*`), settings cards/toggles (`.ask-card*`/
+      `.ask-toggle-btn`/`.ask-grid`/`.ask-warning`/`.ask-link-btn`/`.ask-viewdata-btn`), the
+      history panel (`.history-*`, reusing `.ui-card`), the chat area/error banner/info button,
+      and BOTH modals onto shared `.modal-overlay`/`.modal-panel`/`.modal-header`/`.modal-title`/
+      `.modal-close`/`.modal-body` (+ info-modal inner blocks), plus staggered `.fade-in--d2/d4/d6`.
+      App-wide ~398→~95 `style={{}}` sites removed (~300). What REMAINS inline is intentional:
+      genuinely **data-driven** styles (Dhasa per-level `--lvl-accent`/avatar, the TraceNode dot
+      colour, PortalMenu positioning, Sarvatobhadra chakra-cell colours, Ashtakavarga heatmap
+      tint, Learn progress-bar widths, Dashboard per-feature gradient, comparison-match
+      highlight), **lucide icon colour props**, and trivial one-off single-property overrides
+      (a font-size/margin layered on a utility class). Hover effects that were JS
+      `onMouseOver/onMouseOut` handlers are now CSS `:hover`. Lint clean, prod build green
+      throughout. See also the shared chat component below (TransitChat + AskAstrologer now
+      share `components/chat/*`).
 - [x] **Shared `<PageHeader>` / `<ProfileBanner>`.** DONE 2026-06-28: extracted the
       copy-pasted navbar (back button + accent icon + title/subtitle) into
       `components/PageHeader.js` (accent variants: saffron/indigo/terracotta/gold) and the
