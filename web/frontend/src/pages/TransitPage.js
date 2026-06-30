@@ -15,6 +15,7 @@ import { Card } from "../components/Card";
 import { TransitChat } from "../components/TransitChat";
 import { PLANET_ABBR, DEFAULT_AYANAMSA, AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
+import "../styles/Shared.css";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
@@ -177,18 +178,6 @@ export const TransitPage = () => {
     { field: "year", label: t("transit.unitYear") },
   ];
 
-  const stepBtnStyle = {
-    minWidth: "26px",
-    padding: "2px 6px",
-    border: "none",
-    background: "transparent",
-    color: "var(--cosmic-indigo)",
-    fontWeight: 700,
-    fontSize: "1rem",
-    lineHeight: 1,
-    cursor: "pointer",
-  };
-
   return (
     <div className="dashboard-container mandala-bg">
       <PageHeader
@@ -202,134 +191,51 @@ export const TransitPage = () => {
         <ProfileBanner profile={selectedProfile} />
 
         {/* Controls */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "var(--space-md)",
-            marginBottom: "var(--space-xl)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-sm)",
-              flexWrap: "wrap",
-            }}
-          >
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-sm)",
-                fontWeight: 600,
-                color: "var(--cosmic-indigo)",
-              }}
-            >
+        <div className="page-controls">
+          <div className="controls-group">
+            <label className="control-label">
               <Calendar size={18} style={{ color: "var(--saffron)" }} />
               {t("transit.transitDate")}
             </label>
             <input
               type="date"
+              className="control-input"
               value={transitDate}
               onChange={(e) => setDatePart(e.target.value)}
-              style={{
-                padding: "var(--space-sm) var(--space-md)",
-                borderRadius: "var(--radius-md)",
-                border: "2px solid var(--sandalwood)",
-                fontSize: "0.9375rem",
-                fontWeight: 600,
-                color: "var(--text-primary)",
-                background: "white",
-              }}
             />
             <input
               type="time"
+              className="control-input"
               value={transitTime}
               onChange={(e) => setTimePart(e.target.value)}
-              style={{
-                padding: "var(--space-sm) var(--space-md)",
-                borderRadius: "var(--radius-md)",
-                border: "2px solid var(--sandalwood)",
-                fontSize: "0.9375rem",
-                fontWeight: 600,
-                color: "var(--text-primary)",
-                background: "white",
-              }}
             />
             <button
+              className="control-btn"
               onClick={() => setMomentMs(Date.now())}
               title={t("transit.nowHint")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-xs)",
-                padding: "var(--space-sm) var(--space-md)",
-                borderRadius: "var(--radius-md)",
-                border: "2px solid var(--sandalwood)",
-                background: "white",
-                color: "var(--cosmic-indigo)",
-                fontWeight: 600,
-                cursor: "pointer",
-                fontSize: "0.8125rem",
-              }}
             >
               <RotateCcw size={14} /> {t("transit.now")}
             </button>
           </div>
 
           {/* ± steppers: nudge the moment by a minute / hour / day / year */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-sm)",
-              flexWrap: "wrap",
-            }}
-          >
+          <div className="controls-group">
             {stepUnits.map(({ field, label }) => (
-              <div
-                key={field}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  background: "white",
-                  border: "2px solid var(--sandalwood)",
-                  borderRadius: "var(--radius-md)",
-                  boxShadow: "var(--shadow-sm)",
-                  overflow: "hidden",
-                }}
-              >
+              <div key={field} className="stepper">
                 <button
                   type="button"
+                  className="stepper__btn"
                   onClick={() => shift(field, -1)}
                   aria-label={`-1 ${label}`}
-                  style={stepBtnStyle}
                 >
                   −
                 </button>
-                <span
-                  style={{
-                    padding: "0 var(--space-xs)",
-                    fontSize: "0.75rem",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                    color: "var(--text-secondary)",
-                    minWidth: "44px",
-                    textAlign: "center",
-                  }}
-                >
-                  {label}
-                </span>
+                <span className="stepper__label">{label}</span>
                 <button
                   type="button"
+                  className="stepper__btn"
                   onClick={() => shift(field, 1)}
                   aria-label={`+1 ${label}`}
-                  style={stepBtnStyle}
                 >
                   +
                 </button>
@@ -338,31 +244,12 @@ export const TransitPage = () => {
           </div>
 
           {/* Chart style toggle */}
-          <div
-            style={{
-              display: "flex",
-              gap: "4px",
-              background: "white",
-              padding: "4px",
-              borderRadius: "var(--radius-md)",
-              boxShadow: "var(--shadow-sm)",
-            }}
-          >
+          <div className="chart-toggle">
             {["north", "south"].map((style) => (
               <button
                 key={style}
+                className={`chart-toggle__btn${chartStyle === style ? " is-active" : ""}`}
                 onClick={() => setStyle(style)}
-                style={{
-                  padding: "var(--space-sm) var(--space-md)",
-                  borderRadius: "var(--radius-sm)",
-                  border: "none",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                  fontSize: "0.8125rem",
-                  textTransform: "capitalize",
-                  background: chartStyle === style ? "var(--saffron)" : "transparent",
-                  color: chartStyle === style ? "white" : "var(--text-secondary)",
-                }}
               >
                 {style === "south" ? t("birthChart.southIndian") : t("birthChart.northIndian")}
               </button>
@@ -377,75 +264,24 @@ export const TransitPage = () => {
             <LoadingState message={t("transit.loading")} />
           </Card>
         ) : result ? (
-          <div style={{ opacity: 0, animation: "fadeIn 0.6s ease-out forwards" }}>
+          <div className="fade-in">
             {/* Natal reference */}
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "var(--space-md)",
-                marginBottom: "var(--space-xl)",
-                fontSize: "0.875rem",
-                color: "var(--text-secondary)",
-              }}
-            >
-              <span
-                style={{
-                  padding: "var(--space-xs) var(--space-md)",
-                  background: "white",
-                  borderRadius: "var(--radius-full)",
-                  boxShadow: "var(--shadow-sm)",
-                }}
-              >
-                {t("transit.asOf", { moment: transitMoment })}
-              </span>
-              <span
-                style={{
-                  padding: "var(--space-xs) var(--space-md)",
-                  background: "white",
-                  borderRadius: "var(--radius-full)",
-                  boxShadow: "var(--shadow-sm)",
-                }}
-              >
+            <div className="info-pills">
+              <span className="info-pill">{t("transit.asOf", { moment: transitMoment })}</span>
+              <span className="info-pill">
                 {t("transit.natalLagna")}:{" "}
-                <strong style={{ color: "var(--saffron)" }}>
-                  {result.natal?.lagna?.sign_name}
-                </strong>
+                <strong className="text-saffron">{result.natal?.lagna?.sign_name}</strong>
               </span>
-              <span
-                style={{
-                  padding: "var(--space-xs) var(--space-md)",
-                  background: "white",
-                  borderRadius: "var(--radius-full)",
-                  boxShadow: "var(--shadow-sm)",
-                }}
-              >
+              <span className="info-pill">
                 {t("transit.natalMoon")}:{" "}
-                <strong style={{ color: "var(--cosmic-indigo)" }}>
-                  {result.natal?.moon?.sign_name}
-                </strong>
+                <strong className="text-indigo">{result.natal?.moon?.sign_name}</strong>
               </span>
-              <span
-                style={{
-                  padding: "var(--space-xs) var(--space-md)",
-                  background: "white",
-                  borderRadius: "var(--radius-full)",
-                  boxShadow: "var(--shadow-sm)",
-                }}
-              >
-                {t("transit.ayanamsa")}:{" "}
-                <strong style={{ color: "var(--cosmic-indigo)" }}>{ayanamsaLabel}</strong>
+              <span className="info-pill">
+                {t("transit.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
               </span>
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-                gap: "var(--space-xl)",
-                alignItems: "start",
-              }}
-            >
+            <div className="chart-grid">
               {/* Transit chart over natal lagna */}
               <Kundali
                 planets={planets}
@@ -458,118 +294,50 @@ export const TransitPage = () => {
               />
 
               {/* Transit table */}
-              <div
-                style={{
-                  background: "white",
-                  borderRadius: "var(--radius-xl)",
-                  padding: "var(--space-lg)",
-                  boxShadow: "var(--shadow-lg)",
-                  borderTop: "4px solid var(--cosmic-indigo)",
-                }}
-              >
-                <h3
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-sm)",
-                    marginTop: 0,
-                    marginBottom: "var(--space-md)",
-                    color: "var(--cosmic-indigo)",
-                    fontSize: "1.125rem",
-                  }}
-                >
-                  <Orbit size={18} style={{ color: "var(--saffron)" }} />
+              <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <Orbit size={18} />
                   {t("transit.transitingGrahas")}
                 </h3>
-                <div style={{ overflowX: "auto" }}>
-                  <table
-                    style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" }}
-                  >
+                <div className="table-scroll">
+                  <table className="data-table">
                     <thead>
-                      <tr
-                        style={{
-                          textAlign: "left",
-                          color: "var(--text-muted)",
-                          textTransform: "uppercase",
-                          fontSize: "0.6875rem",
-                          letterSpacing: "0.5px",
-                        }}
-                      >
-                        <th style={{ padding: "var(--space-xs)" }}>{t("common.planet")}</th>
-                        <th style={{ padding: "var(--space-xs)" }}>{t("common.sign")}</th>
-                        <th style={{ padding: "var(--space-xs)" }}>{t("common.nakshatra")}</th>
-                        <th style={{ padding: "var(--space-xs)", textAlign: "center" }}>
-                          {t("transit.fromLagna")}
-                        </th>
-                        <th style={{ padding: "var(--space-xs)", textAlign: "center" }}>
-                          {t("transit.fromMoon")}
-                        </th>
+                      <tr>
+                        <th>{t("common.planet")}</th>
+                        <th>{t("common.sign")}</th>
+                        <th>{t("common.nakshatra")}</th>
+                        <th className="text-center">{t("transit.fromLagna")}</th>
+                        <th className="text-center">{t("transit.fromMoon")}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {orderedPlanets.map(([name, p]) => (
-                        <tr key={name} style={{ borderTop: "1px solid var(--sandalwood)" }}>
-                          <td
-                            style={{
-                              padding: "var(--space-sm) var(--space-xs)",
-                              fontWeight: 700,
-                              color: "var(--cosmic-indigo)",
-                            }}
-                          >
+                        <tr key={name}>
+                          <td className="fw-700 text-indigo">
                             {PLANET_ABBR[name] || name}{" "}
-                            <span style={{ fontWeight: 400, color: "var(--text-secondary)" }}>
+                            <span style={{ fontWeight: 400 }} className="text-secondary">
                               {name}
                             </span>
                             {p.retrograde && (
-                              <span
-                                title={t("transit.retrograde")}
-                                style={{
-                                  marginLeft: "6px",
-                                  padding: "1px 5px",
-                                  background: "rgba(227, 66, 52, 0.12)",
-                                  color: "var(--vermillion)",
-                                  borderRadius: "var(--radius-sm)",
-                                  fontSize: "0.625rem",
-                                  fontWeight: 700,
-                                }}
-                              >
+                              <span className="retro-badge" title={t("transit.retrograde")}>
                                 ℞
                               </span>
                             )}
                           </td>
-                          <td style={{ padding: "var(--space-sm) var(--space-xs)" }}>
+                          <td>
                             {p.sign_name}{" "}
-                            <span style={{ color: "var(--text-muted)" }}>
+                            <span className="text-muted">
                               {p.degrees != null ? `${p.degrees.toFixed(1)}°` : ""}
                             </span>
                           </td>
-                          <td
-                            style={{
-                              padding: "var(--space-sm) var(--space-xs)",
-                              color: "var(--text-secondary)",
-                            }}
-                          >
+                          <td className="text-secondary">
                             {p.nakshatra}
                             {p.nakshatra_pada ? ` (${p.nakshatra_pada})` : ""}
                           </td>
-                          <td
-                            style={{
-                              padding: "var(--space-sm) var(--space-xs)",
-                              textAlign: "center",
-                              fontWeight: 600,
-                              color: "var(--saffron)",
-                            }}
-                          >
+                          <td className="text-center fw-600 text-saffron">
                             {ordinal(p.house_from_lagna)}
                           </td>
-                          <td
-                            style={{
-                              padding: "var(--space-sm) var(--space-xs)",
-                              textAlign: "center",
-                              fontWeight: 600,
-                              color: "var(--vermillion)",
-                            }}
-                          >
+                          <td className="text-center fw-600 text-vermillion">
                             {ordinal(p.house_from_moon)}
                           </td>
                         </tr>
@@ -577,82 +345,25 @@ export const TransitPage = () => {
                     </tbody>
                   </table>
                 </div>
-                <p
-                  style={{
-                    margin: "var(--space-md) 0 0",
-                    fontSize: "0.75rem",
-                    color: "var(--text-muted)",
-                  }}
-                >
-                  {t("transit.houseNote")}
-                </p>
+                <p className="card-note">{t("transit.houseNote")}</p>
               </div>
             </div>
 
             {/* Upcoming ingresses */}
             {result.upcoming && result.upcoming.length > 0 && (
-              <div
-                style={{
-                  marginTop: "var(--space-xl)",
-                  background: "white",
-                  borderRadius: "var(--radius-xl)",
-                  padding: "var(--space-xl)",
-                  boxShadow: "var(--shadow-lg)",
-                  borderTop: "4px solid var(--saffron)",
-                }}
-              >
-                <h3
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-sm)",
-                    marginTop: 0,
-                    marginBottom: "var(--space-md)",
-                    color: "var(--cosmic-indigo)",
-                    fontSize: "1.25rem",
-                  }}
-                >
-                  <TrendingUp size={20} style={{ color: "var(--saffron)" }} />
+              <div className="ui-card ui-card--accent ui-card--flush mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm" style={{ fontSize: "1.25rem" }}>
+                  <TrendingUp size={20} />
                   {t("transit.upcoming")}
                 </h3>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: "var(--space-md)",
-                  }}
-                >
+                <div className="card-grid">
                   {result.upcoming.map((u, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        padding: "var(--space-md)",
-                        border: "1px solid var(--sandalwood)",
-                        borderRadius: "var(--radius-lg)",
-                        background: "var(--sacred-white)",
-                      }}
-                    >
-                      <div style={{ fontSize: "1rem", fontWeight: 700, color: "var(--saffron)" }}>
-                        {u.planet}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.875rem",
-                          color: "var(--text-primary)",
-                          marginTop: "var(--space-xs)",
-                        }}
-                      >
+                    <div key={i} className="ingress-card">
+                      <div className="ingress-card__planet">{u.planet}</div>
+                      <div className="ingress-card__signs">
                         {u.from_sign} → <strong>{u.to_sign}</strong>
                       </div>
-                      <div
-                        style={{
-                          fontSize: "0.8125rem",
-                          color: "var(--text-secondary)",
-                          marginTop: "2px",
-                        }}
-                      >
-                        {formatDate(u.date, locale)}
-                      </div>
+                      <div className="ingress-card__date">{formatDate(u.date, locale)}</div>
                     </div>
                   ))}
                 </div>

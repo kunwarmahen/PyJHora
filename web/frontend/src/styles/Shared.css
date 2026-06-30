@@ -159,6 +159,14 @@
   font-weight: 600;
   color: var(--text-muted);
 }
+/* Smaller in-card header (for secondary panels/tables) */
+.ui-card-header--sm {
+  font-size: 1.125rem;
+  margin-bottom: var(--space-md);
+}
+.mt-xl {
+  margin-top: var(--space-xl);
+}
 
 /* ---- Button ---- */
 .ui-btn {
@@ -336,4 +344,250 @@
   .glossary-pop {
     max-width: 200px;
   }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Page-level shared utilities — recurring structural + presentational
+   patterns lifted out of per-page inline styles (controls rows, the
+   North/South chart toggle, ± steppers, info-pill rows, light data tables,
+   and text/color helpers). Reused across the feature pages.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* fade-in on mount (keyframes live in Dashboard.css, imported by the pages) */
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+/* ---- Card padding / margin modifiers (on top of .ui-card) ---- */
+.ui-card--pad-lg {
+  padding: var(--space-lg);
+}
+.ui-card--flush {
+  margin-bottom: 0;
+}
+
+/* ---- Controls row (date pickers, toggles, etc. above content) ---- */
+.page-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+.controls-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+.control-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: 600;
+  color: var(--cosmic-indigo);
+}
+.control-input {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--sandalwood);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: white;
+}
+.control-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--sandalwood);
+  background: white;
+  color: var(--cosmic-indigo);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.8125rem;
+}
+
+/* ---- North/South chart-style toggle ---- */
+.chart-toggle {
+  display: flex;
+  gap: 4px;
+  background: white;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.chart-toggle__btn {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  text-transform: capitalize;
+  background: transparent;
+  color: var(--text-secondary);
+}
+.chart-toggle__btn.is-active {
+  background: var(--saffron);
+  color: white;
+}
+
+/* ---- ± stepper group ---- */
+.stepper {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 2px solid var(--sandalwood);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.stepper__btn {
+  min-width: 26px;
+  padding: 2px 6px;
+  border: none;
+  background: transparent;
+  color: var(--cosmic-indigo);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.stepper__label {
+  padding: 0 var(--space-xs);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  min-width: 44px;
+  text-align: center;
+}
+
+/* ---- Info-pill row (small status chips above content) ---- */
+.info-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+.info-pill {
+  padding: var(--space-xs) var(--space-md);
+  background: white;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---- Responsive two-column grid for chart + side panel ---- */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-xl);
+  align-items: start;
+}
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-md);
+}
+
+/* ---- Light data table (borderless rows, muted uppercase header) ---- */
+.table-scroll {
+  overflow-x: auto;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+.data-table thead tr {
+  text-align: left;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.5px;
+}
+.data-table th {
+  padding: var(--space-xs);
+  font-weight: 700;
+}
+.data-table tbody td {
+  padding: var(--space-sm) var(--space-xs);
+}
+.data-table tbody tr {
+  border-top: 1px solid var(--sandalwood);
+}
+
+/* ---- Text / color utilities (replace one-off inline color styles) ---- */
+.text-saffron {
+  color: var(--saffron);
+}
+.text-indigo {
+  color: var(--cosmic-indigo);
+}
+.text-vermillion {
+  color: var(--vermillion);
+}
+.text-muted {
+  color: var(--text-muted);
+}
+.text-secondary {
+  color: var(--text-secondary);
+}
+.text-center {
+  text-align: center;
+}
+.fw-600 {
+  font-weight: 600;
+}
+.fw-700 {
+  font-weight: 700;
+}
+
+/* Small note under a card/table */
+.card-note {
+  margin: var(--space-md) 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Retrograde (℞) inline badge */
+.retro-badge {
+  margin-left: 6px;
+  padding: 1px 5px;
+  background: rgba(227, 66, 52, 0.12);
+  color: var(--vermillion);
+  border-radius: var(--radius-sm);
+  font-size: 0.625rem;
+  font-weight: 700;
+}
+
+/* Upcoming-ingress mini card (Transit page) */
+.ingress-card {
+  padding: var(--space-md);
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-lg);
+  background: var(--sacred-white);
+}
+.ingress-card__planet {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--saffron);
+}
+.ingress-card__signs {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  margin-top: var(--space-xs);
+}
+.ingress-card__date {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
 }
