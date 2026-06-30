@@ -383,13 +383,31 @@ class LLMService:
         cfg = config or self.resolve_config()
         prompt = self._build_quiz_gen_prompt(chart_data, topics, level,
                                              num_mcq, num_free, focus_note)
-        raw = await self._complete(prompt, cfg, max_tokens=4096,
-                                   system=self.QUIZ_SYSTEM_PROMPT)
-        data = self._extract_json(raw)
-        items = data.get("questions") if isinstance(data, dict) else data
-        if not isinstance(items, list):
-            raise ValueError(f"Quiz generation returned no questions. Model said: {raw[:300]}")
-        return self._normalize_items(items, topics, level)
+        # Generous output budget: small local models can spend a lot before the
+        # JSON closes; too small a cap returns an empty/truncated reply.
+        last_raw = ""
+        for attempt in range(2):
+            raw = await self._complete(prompt, cfg, max_tokens=8192,
+                                       system=self.QUIZ_SYSTEM_PROMPT)
+            last_raw = raw or last_raw
+            if not (raw or "").strip():
+                continue  # empty reply — retry once
+            try:
+                data = self._extract_json(raw)
+            except ValueError:
+                continue  # unparseable — retry once
+            items = data.get("questions") if isinstance(data, dict) else data
+            if isinstance(items, list) and items:
+                try:
+                    return self._normalize_items(items, topics, level)
+                except ValueError:
+                    continue
+        snippet = (last_raw or "").strip()[:200]
+        raise ValueError(
+            "The AI model returned an empty or unreadable quiz"
+            + (f" (it said: '{snippet}…')" if snippet else "")
+            + ". Try fewer questions, or pick a larger/cloud model in Ask AI Astrologer."
+        )
 
     async def grade_quiz_answers(self,
                                  chart_data: Dict[str, Any],
@@ -403,10 +421,23 @@ class LLMService:
             return {}
         cfg = config or self.resolve_config()
         prompt = self._build_quiz_grade_prompt(chart_data, free_items, answers)
-        raw = await self._complete(prompt, cfg, max_tokens=4096,
-                                   system=self.QUIZ_SYSTEM_PROMPT)
-        data = self._extract_json(raw)
-        grades = data.get("grades") if isinstance(data, dict) else data
+        grades = None
+        for attempt in range(2):
+            raw = await self._complete(prompt, cfg, max_tokens=8192,
+                                       system=self.QUIZ_SYSTEM_PROMPT)
+            if not (raw or "").strip():
+                continue
+            try:
+                data = self._extract_json(raw)
+            except ValueError:
+                continue
+            grades = data.get("grades") if isinstance(data, dict) else data
+            if isinstance(grades, list):
+                break
+        # If the model never returned usable grades, degrade gracefully: the caller
+        # fills in a per-item fallback (the reference rationale) rather than 500ing.
+        if not isinstance(grades, list):
+            return {}
         out: Dict[str, Dict[str, Any]] = {}
         for g in (grades or []):
             gid = str(g.get("id", ""))

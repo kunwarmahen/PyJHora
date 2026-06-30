@@ -1378,6 +1378,28 @@ QUIZ_TOPICS = ("planets", "yogas", "dashas", "vargas")
 QUIZ_LEVELS = ("beginner", "intermediate", "advanced")
 
 
+def _quiz_context(birth_details: dict, topics: list, ayanamsa: str) -> dict:
+    """Build a chart context tailored to the quiz topics. The full /ask context
+    (ashtakavarga + shadbala + every varga) is ~3.5k tokens — too big for small
+    local models, which then exhaust their output budget and return nothing. Only
+    pull the sections a topic actually needs."""
+    sections = {"dasha_tree": False, "yogas": False, "doshas": False,
+                "transits": False, "ashtakavarga": False, "shadbala": False}
+    vargas = [1]
+    if "yogas" in topics:
+        sections["yogas"] = True
+        sections["doshas"] = True
+    if "dashas" in topics:
+        sections["dasha_tree"] = True
+        sections["transits"] = True
+    if "vargas" in topics:
+        vargas = [1, 9, 10]
+    return build_chart_context(
+        birth_details=birth_details, ayanamsa=ayanamsa,
+        sections=sections, vargas=vargas,
+    )
+
+
 class QuizGenerateRequest(BaseModel):
     birth_details: BirthDetails
     profile_id: Optional[str] = None
@@ -1433,9 +1455,9 @@ async def quiz_generate(
                 focus_note = ("Weight more questions toward these weaker topics: "
                               + ", ".join(weak))
 
-        chart_data = build_chart_context(
-            birth_details=request.birth_details.model_dump(),
-            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+        chart_data = _quiz_context(
+            request.birth_details.model_dump(), topics,
+            request.ayanamsa or DEFAULT_AYANAMSA,
         )
         cfg = await _resolve_cfg(current_user, request)
         items = await llm_service.generate_quiz(
@@ -1507,9 +1529,9 @@ async def quiz_grade(
         free_items = [it for it in items if it.get("format") == "free"]
         cfg = await _resolve_cfg(current_user, request)
         if free_items:
-            chart_data = build_chart_context(
-                birth_details=session.get("birth_details", {}),
-                ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+            chart_data = _quiz_context(
+                session.get("birth_details", {}), session.get("topics", []),
+                request.ayanamsa or DEFAULT_AYANAMSA,
             )
             free_grades = await llm_service.grade_quiz_answers(
                 chart_data=chart_data, free_items=free_items, answers=answers, config=cfg,

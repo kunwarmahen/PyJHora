@@ -929,6 +929,17 @@ revealed only in graded results. Adaptive difficulty reads `get_stats` →
 backend imports + `_extract_json`/`_normalize_items`/`compute_topic_scores`/
 `suggest_level` unit-tested; `npm run build` compiles, lint clean, locale JSON valid.
 
+**Fix 2026-06-29 — "Empty response from model" on small local models:** gemma4:12b
+returned `done_reason:length, eval_count:4096, response:""` — the full /ask context
+(~3.5k tokens incl. ashtakavarga+shadbala+all vargas) left no room, so it exhausted
+its output budget before emitting any JSON. Fixes: (1) `_quiz_context()` in `main.py`
+tailors the context to the chosen topics (planets→base only; yogas→yogas+doshas;
+dashas→dasha_tree+transits; vargas→D1/D9/D10) — drops the heavy sections; (2) raised
+the quiz output budget to 8192 tokens; (3) `generate_quiz`/`grade_quiz_answers` retry
+once on empty/unparseable output, grading degrades to the per-item rationale instead
+of 500ing, and the error now guides the user to fewer questions / a bigger model.
+Verified gemma4:12b returns a full 5-item quiz (~87s on this box).
+
 **Decisions captured (owner, 2026-06-29):**
 - **Answer format:** both — an **MCQ warm-up → free-text** flow. Each session/round
   starts with multiple-choice to build confidence, then moves to open-ended
