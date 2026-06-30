@@ -703,3 +703,365 @@
 .nakshatra-card__body > div {
   margin-bottom: var(--space-xs);
 }
+
+/* ── Compatibility: person picker, score box + Ashtakoot grid ─────────────── */
+.person-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-lg);
+}
+.compat-person {
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+}
+.compat-person--a {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 153, 51, 0.05) 0%,
+    rgba(255, 153, 51, 0.15) 100%
+  );
+  border: 2px solid var(--saffron);
+}
+.compat-person--b {
+  background: linear-gradient(135deg, rgba(227, 66, 52, 0.05) 0%, rgba(227, 66, 52, 0.15) 100%);
+  border: 2px solid var(--vermillion);
+}
+.compat-person__head {
+  margin-bottom: var(--space-md);
+  font-size: 1.125rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.compat-person--a .compat-person__head {
+  color: var(--saffron);
+}
+.compat-person--b .compat-person__head {
+  color: var(--vermillion);
+}
+.compat-person__card {
+  padding: var(--space-md);
+  background: white;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--sandalwood);
+}
+.compat-person__card.is-spaced {
+  margin-top: var(--space-md);
+  animation: fadeIn 0.3s ease-out;
+}
+.compat-person__name {
+  margin: 0 0 var(--space-sm);
+  font-weight: 600;
+  color: var(--cosmic-indigo);
+  font-size: 1.125rem;
+}
+.compat-person__select-label {
+  display: block;
+  margin-bottom: var(--space-sm);
+  font-weight: 600;
+  color: var(--cosmic-indigo);
+  font-size: 0.875rem;
+}
+
+.score-box {
+  padding: var(--space-xl);
+  background: linear-gradient(135deg, rgba(255, 153, 51, 0.1) 0%, rgba(227, 66, 52, 0.1) 100%);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-xl);
+  text-align: center;
+  border: 2px solid var(--saffron);
+}
+.score-box__label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+.score-box__value {
+  font-size: 4rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: var(--space-sm);
+}
+.score-box__value-max {
+  font-size: 2rem;
+}
+.score-box__status {
+  padding: var(--space-md);
+  background: white;
+  border-radius: var(--radius-md);
+  display: inline-block;
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  font-size: 1.125rem;
+}
+.score-box__nakshatras {
+  margin-top: var(--space-md);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.koota-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+.koota-card {
+  padding: var(--space-md);
+  background: var(--sacred-white);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--sandalwood);
+  text-align: center;
+  transition: all 0.3s ease;
+}
+.koota-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.koota-card__name {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
+  font-weight: 600;
+}
+.koota-card__score {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.koota-card__score--good {
+  color: var(--emerald-green);
+}
+.koota-card__score--mid {
+  color: var(--saffron);
+}
+.koota-card__score--low {
+  color: var(--vermillion);
+}
+.koota-card__max {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* ── Dasha (Vimsottari): system badges, current-period banner + drill tree ── */
+.dhasa-badges {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+.dhasa-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  background: white;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  border-left: 4px solid var(--cosmic-indigo);
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+}
+.dhasa-badge__sub {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.dhasa-today {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255, 153, 51, 0.1);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  color: var(--saffron);
+  font-weight: 600;
+}
+
+.current-period {
+  background: linear-gradient(135deg, rgba(255, 153, 51, 0.1) 0%, rgba(226, 123, 90, 0.1) 100%);
+  border: 3px solid var(--saffron);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-xl);
+  box-shadow: 0 0 24px rgba(255, 153, 51, 0.2);
+}
+.current-period__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+.current-period__icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+.current-period__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+}
+.field-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.dasha-tree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+/* Per-level accent + avatar size flow in via inline --lvl-accent / --avatar. */
+.dasha-node {
+  margin-left: 0;
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--sacred-white);
+}
+.dasha-node.is-current {
+  border: 2px solid var(--lvl-accent);
+  background: rgba(255, 153, 51, 0.05);
+}
+.dasha-node__head {
+  padding: var(--space-md);
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: var(--space-md);
+  align-items: center;
+  cursor: default;
+}
+.dasha-node--root .dasha-node__head {
+  padding: var(--space-lg);
+}
+.dasha-node__head.is-expandable {
+  cursor: pointer;
+}
+.dasha-node__avatar {
+  width: var(--avatar);
+  height: var(--avatar);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--lvl-accent) 0%, var(--cosmic-indigo-light) 100%);
+}
+.dasha-node.is-current .dasha-node__avatar {
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
+}
+.dasha-node__lord {
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+}
+.dasha-node.is-current .dasha-node__lord {
+  color: var(--lvl-accent);
+}
+.dasha-node__level {
+  margin-left: var(--space-sm);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+.dasha-node__dates {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.dasha-node__now {
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--lvl-accent);
+  color: white;
+  border-radius: var(--radius-full);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.dasha-node__chevron {
+  color: var(--lvl-accent);
+  display: flex;
+  transition: transform 0.3s ease;
+}
+.dasha-node__chevron.is-open {
+  transform: rotate(180deg);
+}
+.dasha-node__spacer {
+  width: 20px;
+}
+.dasha-node__children {
+  border-top: 1px solid var(--sandalwood);
+  padding: var(--space-md);
+  background: white;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.dasha-node__loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+.dasha-node__error {
+  color: var(--vermillion);
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.period-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.period-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--space-md);
+  align-items: center;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--sandalwood);
+  background: var(--sacred-white);
+}
+.period-row.is-current {
+  border: 2px solid var(--saffron);
+  background: rgba(255, 153, 51, 0.06);
+}
+.period-row__now {
+  margin-left: var(--space-sm);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--saffron);
+}
