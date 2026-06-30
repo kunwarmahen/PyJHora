@@ -14,6 +14,7 @@ import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
 import { DEFAULT_AYANAMSA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
+import "../styles/Shared.css";
 
 const PLANETS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
 
@@ -172,18 +173,10 @@ export const ComparePage = () => {
             <label className="ui-datafield" style={{ cursor: "pointer" }}>
               <div className="ui-datafield-label">{t("compare.person2")}</div>
               <select
+                className="form-select"
+                style={{ marginTop: "var(--space-xs)" }}
                 value={secondId}
                 onChange={(e) => setSecondId(e.target.value)}
-                style={{
-                  width: "100%",
-                  marginTop: "var(--space-xs)",
-                  padding: "var(--space-sm)",
-                  borderRadius: "var(--radius-md)",
-                  border: "2px solid var(--sandalwood)",
-                  background: "white",
-                  color: "var(--cosmic-indigo)",
-                  fontWeight: 600,
-                }}
               >
                 <option value="">{t("compare.chooseProfile")}</option>
                 {otherProfiles.map((p) => (
@@ -195,7 +188,7 @@ export const ComparePage = () => {
             </label>
           </div>
           {otherProfiles.length === 0 && (
-            <p style={{ color: "var(--text-secondary)", marginTop: "var(--space-md)" }}>
+            <p className="text-secondary" style={{ marginTop: "var(--space-md)" }}>
               {t("compare.needTwo")}
             </p>
           )}
@@ -211,13 +204,7 @@ export const ComparePage = () => {
 
         {!loading && chartA && chartB && (
           <>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-                gap: "var(--space-xl)",
-              }}
-            >
+            <div className="chart-grid">
               <Card title={nameA} accent="saffron">
                 <Kundali planets={chartA.planets} lagna={chartA.lagna} title={nameA} exportable />
               </Card>
@@ -231,7 +218,7 @@ export const ComparePage = () => {
               icon={<GitCompareArrows size={24} />}
               accent="indigo"
             >
-              <div style={{ overflowX: "auto" }}>
+              <div className="table-scroll">
                 <table className="adv-table">
                   <thead>
                     <tr>
@@ -241,35 +228,20 @@ export const ComparePage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {compareRows(chartA, chartB).map((r) => (
-                      <tr key={r.label}>
-                        <td style={{ fontWeight: r.sub ? 400 : 700 }}>{r.label}</td>
-                        <td
-                          style={{
-                            background: r.a && r.a === r.b ? "rgba(255,153,51,0.12)" : undefined,
-                          }}
-                        >
-                          {r.a || "—"}
-                        </td>
-                        <td
-                          style={{
-                            background: r.a && r.a === r.b ? "rgba(255,153,51,0.12)" : undefined,
-                          }}
-                        >
-                          {r.b || "—"}
-                        </td>
-                      </tr>
-                    ))}
+                    {compareRows(chartA, chartB).map((r) => {
+                      const match = r.a && r.a === r.b ? "is-match" : "";
+                      return (
+                        <tr key={r.label}>
+                          <td className={r.sub ? "fw-400" : "fw-700"}>{r.label}</td>
+                          <td className={match}>{r.a || "—"}</td>
+                          <td className={match}>{r.b || "—"}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
-              <p
-                style={{
-                  color: "var(--text-secondary)",
-                  marginTop: "var(--space-md)",
-                  fontSize: "0.85rem",
-                }}
-              >
+              <p className="card-note" style={{ fontSize: "0.85rem" }}>
                 {t("compare.highlightNote")}
               </p>
             </Card>
@@ -278,68 +250,21 @@ export const ComparePage = () => {
             <Card title={t("compare.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
               <ErrorBanner message={aiError} />
 
-              {!aiAnalysis && !aiLoading && (
-                <p
-                  style={{
-                    color: "var(--text-secondary)",
-                    marginBottom: "var(--space-md)",
-                    fontSize: "0.9rem",
-                  }}
-                >
-                  {t("compare.aiHint")}
-                </p>
-              )}
+              {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("compare.aiHint")}</p>}
 
               {aiLoading && <LoadingState message={t("compare.aiLoading")} />}
 
               {aiAnalysis && !aiLoading && (
-                <div
-                  className="sbc-ai-markdown"
-                  style={{
-                    padding: "var(--space-md)",
-                    background: "white",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "1rem",
-                    lineHeight: "1.8",
-                    color: "var(--cosmic-indigo)",
-                    marginBottom: "var(--space-md)",
-                  }}
-                >
+                <div className="sbc-ai-markdown ai-panel__reading">
                   <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
                   {aiModel && (
-                    <div
-                      style={{
-                        marginTop: "var(--space-md)",
-                        paddingTop: "var(--space-sm)",
-                        borderTop: "1px solid var(--sandalwood)",
-                        fontSize: "0.8rem",
-                        color: "var(--text-secondary)",
-                      }}
-                    >
-                      {t("compare.aiModel", { model: aiModel })}
-                    </div>
+                    <div className="ai-panel__meta">{t("compare.aiModel", { model: aiModel })}</div>
                   )}
                 </div>
               )}
 
               {!aiLoading && (
-                <button
-                  onClick={handleAiAnalysis}
-                  style={{
-                    padding: "var(--space-md) var(--space-lg)",
-                    background:
-                      "linear-gradient(135deg, var(--cosmic-indigo) 0%, var(--saffron) 100%)",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "1rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-sm)",
-                  }}
-                >
+                <button className="ui-btn ui-btn--ai" onClick={handleAiAnalysis}>
                   <Sparkles size={18} />
                   {aiAnalysis ? t("compare.aiRegenerate") : t("compare.aiGenerate")}
                 </button>

@@ -13,6 +13,7 @@ import { DataField } from "../components/DataField";
 import { GlossaryTerm } from "../components/GlossaryTerm";
 import { AYANAMSAS, DEFAULT_AYANAMSA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
+import "../styles/Shared.css";
 
 const RASI_ABBR = ["Ar", "Ta", "Ge", "Cn", "Le", "Vi", "Li", "Sc", "Sg", "Cp", "Aq", "Pi"];
 
@@ -120,13 +121,7 @@ export const AdvancedPage = () => {
       <div className="dashboard-content">
         <ProfileBanner profile={selectedProfile} />
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            marginBottom: "var(--space-lg)",
-          }}
-        >
+        <div className="controls-end">
           <label className="ayanamsa-select">
             <span>{t("birthChart.ayanamsa")}</span>
             <select value={ayanamsa} onChange={(e) => changeAyanamsa(e.target.value)}>
@@ -154,10 +149,10 @@ export const AdvancedPage = () => {
                 icon={<Grid3x3 size={24} />}
                 accent="saffron"
               >
-                <p style={{ color: "var(--text-secondary)", marginBottom: "var(--space-md)" }}>
+                <p className="card-intro">
                   {t("advanced.savIntro")} <strong>{av.sarva_total}</strong>.
                 </p>
-                <div style={{ overflowX: "auto" }}>
+                <div className="table-scroll">
                   <table className="adv-table">
                     <thead>
                       <tr>
@@ -169,11 +164,11 @@ export const AdvancedPage = () => {
                     </thead>
                     <tbody>
                       <tr>
-                        <td style={{ fontWeight: 700 }}>
+                        <td className="fw-700">
                           <GlossaryTerm term="Sarva">Sarva (SAV)</GlossaryTerm>
                         </td>
                         {av.sarva.map((v, i) => (
-                          <td key={i} style={{ background: savColor(v), fontWeight: 700 }}>
+                          <td key={i} className="fw-700" style={{ background: savColor(v) }}>
                             {v}
                           </td>
                         ))}
@@ -245,10 +240,8 @@ export const AdvancedPage = () => {
                 icon={<Gauge size={24} />}
                 accent="vermillion"
               >
-                <p style={{ color: "var(--text-secondary)", marginBottom: "var(--space-md)" }}>
-                  {t("advanced.shadbalaIntro")}
-                </p>
-                <div style={{ overflowX: "auto" }}>
+                <p className="card-intro">{t("advanced.shadbalaIntro")}</p>
+                <div className="table-scroll">
                   <table className="adv-table">
                     <thead>
                       <tr>
@@ -268,21 +261,16 @@ export const AdvancedPage = () => {
                     <tbody>
                       {shadbala.planets.map((p) => (
                         <tr key={p.planet}>
-                          <td style={{ fontWeight: 700 }}>{p.planet}</td>
+                          <td className="fw-700">{p.planet}</td>
                           <td>{p.sthana}</td>
                           <td>{p.kaala}</td>
                           <td>{p.dig}</td>
                           <td>{p.cheshta}</td>
                           <td>{p.naisargika}</td>
                           <td>{p.drik}</td>
-                          <td style={{ fontWeight: 700 }}>{p.total_rupa}</td>
+                          <td className="fw-700">{p.total_rupa}</td>
                           <td>{p.required_rupa}</td>
-                          <td
-                            style={{
-                              fontWeight: 700,
-                              color: p.sufficient ? "var(--saffron)" : "var(--vermillion)",
-                            }}
-                          >
+                          <td className={`fw-700 ${p.sufficient ? "text-saffron" : "text-vermillion"}`}>
                             {p.strength_ratio}
                           </td>
                           <td>{p.rank}</td>

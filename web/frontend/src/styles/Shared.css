@@ -560,11 +560,19 @@
 .text-center {
   text-align: center;
 }
+.fw-400 {
+  font-weight: 400;
+}
 .fw-600 {
   font-weight: 600;
 }
 .fw-700 {
   font-weight: 700;
+}
+
+/* Highlighted (matching) cell in a comparison table */
+.adv-table td.is-match {
+  background: rgba(255, 153, 51, 0.12);
 }
 
 /* Stacked label/value detail list (e.g. profile summary blocks) */
@@ -650,6 +658,19 @@
 .kv-value {
   color: var(--cosmic-indigo);
   font-weight: 600;
+}
+
+/* Intro paragraph at the top of a card */
+.card-intro {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+/* Right-aligned single-control bar (e.g. an ayanamsa picker above content) */
+.controls-end {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-lg);
 }
 
 /* Small note under a card/table */
