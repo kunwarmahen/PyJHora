@@ -13,6 +13,7 @@ import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { PLANET_ABBR, DEFAULT_AYANAMSA, AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
+import "../styles/Shared.css";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 const dateISO = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -228,14 +229,6 @@ export const SarvatobhadraPage = () => {
 
   const placements = result?.placements || {};
 
-  const chip = (bg) => ({
-    padding: "var(--space-xs) var(--space-md)",
-    background: bg || "white",
-    borderRadius: "var(--radius-full)",
-    boxShadow: "var(--shadow-sm)",
-    fontSize: "0.8125rem",
-  });
-
   const renderCell = (cell) => {
     const key = `${cell.row},${cell.col}`;
     const anchor = anchorByCell[key];
@@ -333,95 +326,36 @@ export const SarvatobhadraPage = () => {
         <ProfileBanner profile={selectedProfile} />
 
         {/* Controls */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "var(--space-md)",
-            marginBottom: "var(--space-lg)",
-          }}
-        >
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-sm)",
-              fontWeight: 600,
-              color: "var(--cosmic-indigo)",
-            }}
-          >
+        <div className="controls-group" style={{ marginBottom: "var(--space-lg)" }}>
+          <label className="control-label">
             <Calendar size={18} style={{ color: "var(--saffron)" }} />
             {t("sbc.date")}
           </label>
           <input
             type="date"
+            className="control-input"
             value={transitDate}
             onChange={(e) => setDatePart(e.target.value)}
-            style={{
-              padding: "var(--space-sm) var(--space-md)",
-              borderRadius: "var(--radius-md)",
-              border: "2px solid var(--sandalwood)",
-              fontWeight: 600,
-              background: "white",
-            }}
           />
           <input
             type="time"
+            className="control-input"
             value={transitTime}
             onChange={(e) => setTimePart(e.target.value)}
-            style={{
-              padding: "var(--space-sm) var(--space-md)",
-              borderRadius: "var(--radius-md)",
-              border: "2px solid var(--sandalwood)",
-              fontWeight: 600,
-              background: "white",
-            }}
           />
-          <button
-            onClick={() => setMomentMs(Date.now())}
-            title={t("sbc.nowHint")}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-xs)",
-              padding: "var(--space-sm) var(--space-md)",
-              borderRadius: "var(--radius-md)",
-              border: "2px solid var(--sandalwood)",
-              background: "white",
-              color: "var(--cosmic-indigo)",
-              fontWeight: 600,
-              cursor: "pointer",
-              fontSize: "0.8125rem",
-            }}
-          >
+          <button className="control-btn" onClick={() => setMomentMs(Date.now())} title={t("sbc.nowHint")}>
             <RotateCcw size={14} /> {t("sbc.now")}
           </button>
 
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-sm)",
-              fontWeight: 600,
-              color: "var(--cosmic-indigo)",
-              marginLeft: "auto",
-            }}
-          >
+          <label className="control-label" style={{ marginLeft: "auto" }}>
             {t("sbc.nameStar")}
           </label>
           <select
+            className="control-input"
             value={nameNak}
             onChange={(e) => setNameNak(e.target.value)}
             title={t("sbc.nameStarHint")}
-            style={{
-              padding: "var(--space-sm) var(--space-md)",
-              borderRadius: "var(--radius-md)",
-              border: "2px solid var(--sandalwood)",
-              fontWeight: 600,
-              background: "white",
-              maxWidth: "260px",
-            }}
+            style={{ maxWidth: "260px" }}
           >
             <option value="">{t("sbc.nameStarNone")}</option>
             {NAAMA_NAKSHATRAS.map((label, i) => (
@@ -439,31 +373,23 @@ export const SarvatobhadraPage = () => {
             <LoadingState message={t("sbc.loading")} />
           </Card>
         ) : result ? (
-          <div style={{ opacity: 0, animation: "fadeIn 0.6s ease-out forwards" }}>
+          <div className="fade-in">
             {/* Context chips */}
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "var(--space-sm)",
-                marginBottom: "var(--space-lg)",
-                color: "var(--text-secondary)",
-              }}
-            >
-              <span style={chip()}>
+            <div className="info-pills">
+              <span className="info-pill">
                 {t("sbc.asOf", {
                   moment: `${formatDate(result.transit_date, locale)}, ${result.transit_time}`,
                 })}
               </span>
-              <span style={chip()}>
+              <span className="info-pill">
                 {t("sbc.ayanamsa")}: <strong>{ayanamsaLabel}</strong>
               </span>
-              <span style={chip()}>
+              <span className="info-pill">
                 {result.transit_panchanga?.same_tithi_group
                   ? t("sbc.tithiMatch", { group: result.transit_panchanga.tithi_group })
                   : t("sbc.tithiToday", { group: result.transit_panchanga?.tithi_group })}
               </span>
-              <span style={chip()}>
+              <span className="info-pill">
                 {result.transit_panchanga?.same_weekday
                   ? t("sbc.weekdayMatch", { day: result.transit_panchanga.weekday })
                   : t("sbc.weekdayToday", { day: result.transit_panchanga?.weekday })}
@@ -630,74 +556,26 @@ export const SarvatobhadraPage = () => {
             </div>
 
             {/* AI reading */}
-            <div style={{ marginTop: "var(--space-xl)" }}>
+            <div className="mt-xl">
               <Card title={t("sbc.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
                 <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && (
-                  <p style={{ color: "var(--text-secondary)", marginBottom: "var(--space-md)", fontSize: "0.9rem" }}>
-                    {t("sbc.aiHint")}
-                  </p>
-                )}
+                {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("sbc.aiHint")}</p>}
                 {aiLoading && <LoadingState message={t("sbc.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
-                  <div
-                    className="sbc-ai-markdown"
-                    style={{
-                      padding: "var(--space-md)",
-                      background: "white",
-                      borderRadius: "var(--radius-md)",
-                      fontSize: "1rem",
-                      lineHeight: "1.8",
-                      color: "var(--cosmic-indigo)",
-                      marginBottom: "var(--space-md)",
-                    }}
-                  >
+                  <div className="sbc-ai-markdown ai-panel__reading">
                     <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
                     {aiModel && (
-                      <div
-                        style={{
-                          marginTop: "var(--space-md)",
-                          paddingTop: "var(--space-sm)",
-                          borderTop: "1px solid var(--sandalwood)",
-                          fontSize: "0.8rem",
-                          color: "var(--text-secondary)",
-                        }}
-                      >
-                        {t("sbc.aiModel", { model: aiModel })}
-                      </div>
+                      <div className="ai-panel__meta">{t("sbc.aiModel", { model: aiModel })}</div>
                     )}
                   </div>
                 )}
                 {!aiLoading && (
-                  <button
-                    onClick={handleAi}
-                    style={{
-                      padding: "var(--space-md) var(--space-lg)",
-                      background: "linear-gradient(135deg, var(--cosmic-indigo) 0%, var(--saffron) 100%)",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "var(--radius-md)",
-                      fontSize: "1rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "var(--space-sm)",
-                    }}
-                  >
+                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
                     <Sparkles size={18} />
                     {aiAnalysis ? t("sbc.aiRegenerate") : t("sbc.aiGenerate")}
                   </button>
                 )}
-                <p
-                  style={{
-                    margin: "var(--space-md) 0 0",
-                    fontSize: "0.75rem",
-                    color: "var(--text-muted)",
-                  }}
-                >
-                  {t("sbc.disclaimer")}
-                </p>
+                <p className="card-note">{t("sbc.disclaimer")}</p>
               </Card>
             </div>
           </div>

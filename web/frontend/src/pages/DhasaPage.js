@@ -11,6 +11,7 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import "../styles/Dashboard.css";
+import "../styles/Shared.css";
 
 // ── Shared helpers ──────────────────────────────────────────────────────────
 const NOW = new Date();
@@ -109,68 +110,21 @@ function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
 
   return (
     <div
-      style={{
-        marginLeft: indent,
-        border: isCurrent ? `2px solid ${meta.accent}` : "1px solid var(--sandalwood)",
-        borderRadius: "var(--radius-lg)",
-        overflow: "hidden",
-        background: isCurrent ? "rgba(255, 153, 51, 0.05)" : "var(--sacred-white)",
-      }}
+      className={`dasha-node${level === 1 ? " dasha-node--root" : ""}${isCurrent ? " is-current" : ""}`}
+      style={{ marginLeft: indent, "--lvl-accent": meta.accent, "--avatar": `${avatar}px` }}
     >
       <div
         onClick={toggle}
-        style={{
-          padding: level === 1 ? "var(--space-lg)" : "var(--space-md)",
-          cursor: canExpand ? "pointer" : "default",
-          display: "grid",
-          gridTemplateColumns: "auto 1fr auto auto",
-          gap: "var(--space-md)",
-          alignItems: "center",
-        }}
+        className={`dasha-node__head${canExpand ? " is-expandable" : ""}`}
       >
-        <div
-          style={{
-            width: avatar,
-            height: avatar,
-            background: isCurrent
-              ? "linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%)"
-              : `linear-gradient(135deg, ${meta.accent} 0%, var(--cosmic-indigo-light) 100%)`,
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "white",
-            fontWeight: 700,
-            fontSize: "0.75rem",
-            flexShrink: 0,
-          }}
-        >
-          {(node.lord || "?").slice(0, 2)}
-        </div>
+        <div className="dasha-node__avatar">{(node.lord || "?").slice(0, 2)}</div>
 
         <div>
-          <div
-            style={{
-              fontSize: lordSize,
-              fontWeight: 700,
-              color: isCurrent ? meta.accent : "var(--cosmic-indigo)",
-            }}
-          >
+          <div className="dasha-node__lord" style={{ fontSize: lordSize }}>
             {node.lord}
-            <span
-              style={{
-                marginLeft: "var(--space-sm)",
-                fontSize: "0.6875rem",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                color: "var(--text-muted)",
-              }}
-            >
-              {t(meta.labelKey)}
-            </span>
+            <span className="dasha-node__level">{t(meta.labelKey)}</span>
           </div>
-          <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "2px" }}>
+          <div className="dasha-node__dates">
             {formatDuration(node, level, t)}
             {node.start_date && node.end_date && (
               <span>
@@ -181,74 +135,27 @@ function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
           </div>
         </div>
 
-        {isCurrent && (
-          <div
-            style={{
-              padding: "var(--space-xs) var(--space-sm)",
-              background: meta.accent,
-              color: "white",
-              borderRadius: "var(--radius-full)",
-              fontSize: "0.625rem",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {t("dhasa.now")}
-          </div>
-        )}
+        {isCurrent && <div className="dasha-node__now">{t("dhasa.now")}</div>}
 
         {canExpand ? (
-          <div
-            style={{
-              color: meta.accent,
-              transition: "transform 0.3s ease",
-              transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-            }}
-          >
+          <div className={`dasha-node__chevron${expanded ? " is-open" : ""}`}>
             <ChevronDown size={20} />
           </div>
         ) : (
-          <div style={{ width: 20 }} />
+          <div className="dasha-node__spacer" />
         )}
       </div>
 
       {expanded && canExpand && (
-        <div
-          style={{
-            borderTop: "1px solid var(--sandalwood)",
-            padding: "var(--space-md)",
-            background: "white",
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--space-sm)",
-          }}
-        >
+        <div className="dasha-node__children">
           {loading && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-sm)",
-                color: "var(--text-secondary)",
-                fontSize: "0.875rem",
-              }}
-            >
+            <div className="dasha-node__loading">
               <div className="spinner" style={{ width: 18, height: 18 }}></div>
               {t("dhasa.loadingChildren")}
             </div>
           )}
           {error && (
-            <div
-              style={{
-                color: "var(--vermillion)",
-                fontSize: "0.875rem",
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-sm)",
-              }}
-            >
+            <div className="dasha-node__error">
               <AlertCircle size={16} /> {error}
             </div>
           )}
@@ -329,7 +236,7 @@ function OtherDashaSystems({ birthDetails }) {
       </label>
 
       {selected && systems.find((s) => s.key === selected)?.description && (
-        <p style={{ color: "var(--text-secondary)", marginBottom: "var(--space-lg)" }}>
+        <p className="text-secondary" style={{ marginBottom: "var(--space-lg)" }}>
           {systems.find((s) => s.key === selected).description}
         </p>
       )}
@@ -338,43 +245,19 @@ function OtherDashaSystems({ birthDetails }) {
       {loading && <LoadingState message={t("dhasa.calcPeriods")} />}
 
       {data?.periods?.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+        <div className="period-list">
           {data.periods.map((p, i) => {
             const current = isCurrentPeriod(p.start_date, p.end_date);
             return (
-              <div
-                key={`${p.lord}-${i}`}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr auto auto",
-                  gap: "var(--space-md)",
-                  alignItems: "center",
-                  padding: "var(--space-md)",
-                  borderRadius: "var(--radius-md)",
-                  border: current ? "2px solid var(--saffron)" : "1px solid var(--sandalwood)",
-                  background: current ? "rgba(255, 153, 51, 0.06)" : "var(--sacred-white)",
-                }}
-              >
-                <span style={{ fontWeight: 700, color: "var(--cosmic-indigo)" }}>
+              <div key={`${p.lord}-${i}`} className={`period-row${current ? " is-current" : ""}`}>
+                <span className="fw-700 text-indigo">
                   {p.lord}
-                  {current && (
-                    <span
-                      style={{
-                        marginLeft: "var(--space-sm)",
-                        fontSize: "0.625rem",
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        color: "var(--saffron)",
-                      }}
-                    >
-                      {t("dhasa.now")}
-                    </span>
-                  )}
+                  {current && <span className="period-row__now">{t("dhasa.now")}</span>}
                 </span>
-                <span style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                <span className="text-secondary" style={{ fontSize: "0.8125rem" }}>
                   {formatDate(p.start_date, locale)} – {formatDate(p.end_date, locale)}
                 </span>
-                <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
+                <span className="text-muted" style={{ fontSize: "0.8125rem" }}>
                   {p.duration_years}y
                 </span>
               </div>
@@ -467,49 +350,13 @@ export const DhasaPage = () => {
         <ErrorBanner message={error} />
 
         {/* System badge + today */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "var(--space-md)",
-            marginBottom: "var(--space-xl)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-sm)",
-              padding: "var(--space-sm) var(--space-lg)",
-              background: "white",
-              borderRadius: "var(--radius-full)",
-              boxShadow: "var(--shadow-sm)",
-              borderLeft: "4px solid var(--cosmic-indigo)",
-              fontWeight: 700,
-              color: "var(--cosmic-indigo)",
-            }}
-          >
+        <div className="dhasa-badges">
+          <div className="dhasa-badge">
             <Clock size={18} style={{ color: "var(--saffron)" }} />
             {t("dhasa.vimsottariSystem")}
-            <span style={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--text-muted)" }}>
-              {t("dhasa.cycle120")}
-            </span>
+            <span className="dhasa-badge__sub">{t("dhasa.cycle120")}</span>
           </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-sm)",
-              padding: "var(--space-sm) var(--space-md)",
-              background: "rgba(255, 153, 51, 0.1)",
-              borderRadius: "var(--radius-md)",
-              fontSize: "0.875rem",
-              color: "var(--saffron)",
-              fontWeight: 600,
-            }}
-          >
+          <div className="dhasa-today">
             <Calendar size={16} />
             {t("dhasa.today")}{" "}
             {NOW.toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" })}
@@ -521,167 +368,60 @@ export const DhasaPage = () => {
             <LoadingState message={t("dhasa.loading")} />
           </Card>
         ) : result ? (
-          <div style={{ opacity: 0, animation: "fadeIn 0.6s ease-out forwards" }}>
+          <div className="fade-in">
             {/* Current Period Highlight */}
             {currentMahaDasha && (
-              <div
-                style={{
-                  background:
-                    "linear-gradient(135deg, rgba(255, 153, 51, 0.1) 0%, rgba(226, 123, 90, 0.1) 100%)",
-                  border: "3px solid var(--saffron)",
-                  borderRadius: "var(--radius-xl)",
-                  padding: "var(--space-xl)",
-                  marginBottom: "var(--space-xl)",
-                  boxShadow: "0 0 24px rgba(255, 153, 51, 0.2)",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-sm)",
-                    marginBottom: "var(--space-md)",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "40px",
-                      height: "40px",
-                      background:
-                        "linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%)",
-                      borderRadius: "50%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "white",
-                    }}
-                  >
+              <div className="current-period">
+                <div className="current-period__head">
+                  <div className="current-period__icon">
                     <Clock size={20} />
                   </div>
                   <h3 style={{ margin: 0, color: "var(--cosmic-indigo)", fontSize: "1.5rem" }}>
                     {t("dhasa.currentPeriod")}
                   </h3>
                 </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: "var(--space-md)",
-                    marginTop: "var(--space-lg)",
-                  }}
-                >
+                <div className="current-period__grid">
                   <div>
-                    <div
-                      style={{
-                        fontSize: "0.75rem",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        color: "var(--text-muted)",
-                        marginBottom: "var(--space-xs)",
-                      }}
-                    >
-                      {t("dhasa.mahaDasha")}
-                    </div>
+                    <div className="field-label">{t("dhasa.mahaDasha")}</div>
                     <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--saffron)" }}>
                       {currentMahaDasha.lord}
                     </div>
                   </div>
                   <div>
-                    <div
-                      style={{
-                        fontSize: "0.75rem",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        color: "var(--text-muted)",
-                        marginBottom: "var(--space-xs)",
-                      }}
-                    >
-                      {t("dhasa.period")}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.875rem",
-                        fontWeight: 600,
-                        color: "var(--cosmic-indigo)",
-                      }}
-                    >
+                    <div className="field-label">{t("dhasa.period")}</div>
+                    <div className="fw-600 text-indigo" style={{ fontSize: "0.875rem" }}>
                       {formatDate(currentMahaDasha.start_date, locale)} -{" "}
                       {formatDate(currentMahaDasha.end_date, locale)}
                     </div>
                   </div>
                   {currentSubPeriod && (
                     <div>
-                      <div
-                        style={{
-                          fontSize: "0.75rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
-                          color: "var(--text-muted)",
-                          marginBottom: "var(--space-xs)",
-                        }}
-                      >
-                        {t("dhasa.currentBhukti")}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "1.125rem",
-                          fontWeight: 600,
-                          color: "var(--vermillion)",
-                        }}
-                      >
+                      <div className="field-label">{t("dhasa.currentBhukti")}</div>
+                      <div style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--vermillion)" }}>
                         {currentSubPeriod.lord}
                       </div>
-                      <div
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-secondary)",
-                          marginTop: "var(--space-xs)",
-                        }}
-                      >
+                      <div className="text-secondary" style={{ fontSize: "0.75rem", marginTop: "var(--space-xs)" }}>
                         {formatDate(currentSubPeriod.start_date, locale)} -{" "}
                         {formatDate(currentSubPeriod.end_date, locale)}
                       </div>
                     </div>
                   )}
                 </div>
-                <p
-                  style={{
-                    margin: "var(--space-lg) 0 0",
-                    fontSize: "0.8125rem",
-                    color: "var(--text-secondary)",
-                  }}
-                >
+                <p className="text-secondary" style={{ margin: "var(--space-lg) 0 0", fontSize: "0.8125rem" }}>
                   {t("dhasa.liveHint")}
                 </p>
               </div>
             )}
 
             {/* Full drill-down tree */}
-            <div
-              style={{
-                background: "white",
-                borderRadius: "var(--radius-xl)",
-                padding: "var(--space-xl)",
-                boxShadow: "var(--shadow-lg)",
-                borderTop: "4px solid var(--cosmic-indigo)",
-              }}
-            >
-              <h3
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-sm)",
-                  marginBottom: "var(--space-xl)",
-                  color: "var(--cosmic-indigo)",
-                  fontSize: "1.5rem",
-                }}
-              >
-                <Star size={24} style={{ color: "var(--saffron)" }} />
+            <div className="ui-card ui-card--accent-indigo ui-card--flush">
+              <h3 className="ui-card-header">
+                <Star size={24} />
                 {t("dhasa.allMaha")}
               </h3>
 
               {result.dasha_sequence && result.dasha_sequence.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
+                <div className="dasha-tree">
                   {result.dasha_sequence.map((dasha, index) => (
                     <DashaNode
                       key={`${dasha.lord}-${index}`}
