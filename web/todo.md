@@ -1026,3 +1026,39 @@ Verified gemma4:12b returns a full 5-item quiz (~87s on this box).
   (keeps it a real test; less hand-holding).
 - Should the quiz also be answerable for *another person's* shared chart, or only
   the user's own saved profiles? Default: any saved profile the user can view.
+
+---
+
+## Map location picker — pick birthplace on a map (DONE 2026-06-29)
+
+Goal: let users set the birthplace by **clicking/dragging a pin on a map** (the
+"Google Maps" feel) in addition to the existing text search — using **only free,
+key-less services** (no paid Google/Mapbox billing).
+
+- [x] **Stack: Leaflet + OpenStreetMap, $0 / no API key.** `react-leaflet@4` +
+      `leaflet@1.9` with the default OSM raster tiles (free; polite `User-Agent`
+      already set on our Nominatim calls). Coordinates are captured client-side from
+      the pin/click — no geocoding call needed just to get lat/long. Adds ~50 KB gz
+      to the main bundle.
+- [x] **Backend — reverse geocode endpoint.** `POST /api/location/reverse`
+      ({lat,long} → place + tz). `AstrologyCompute.reverse_geocode` computes the
+      timezone **offline** via `timezonefinder` (works for any clicked point, no
+      network) and uses Nominatim *reverse* only for a friendly place name; if that
+      lookup fails/rate-limits it still returns coords + tz with a "lat, lon" label,
+      so a clicked point is always usable. Reuses the geopy/timezonefinder deps that
+      `search_location` already pulled in — no new backend packages.
+- [x] **Frontend — `MapPicker` component.** Three ways to set location, all free:
+      type a place (existing `LocationSearch`), **click/drag the pin**, or **"Use my
+      location"** (browser `navigator.geolocation`). Collapsible "Pick on map" toggle
+      keeps the form compact; saffron-themed to match. Reverse-geocode is **debounced
+      (600 ms)** so a drag stays well under Nominatim's 1 req/sec policy. Wired into
+      `ProfileSelectionPage` next to `LocationSearch`, sharing `handleLocationSelect`.
+- [x] **Production kill-switch (both layers).** Frontend
+      `REACT_APP_ENABLE_MAP_PICKER` (default true) hides the map and falls back to
+      text search; backend `MAP_PICKER_ENABLED` (default true) makes
+      `/api/location/reverse` return 403 — defense in depth. Both documented in the
+      `.env`/`.env.example` files; `/health` now reports `map_picker_enabled`.
+- [x] **Verify:** `reverse_geocode(28.61,77.21)` → "…New Delhi, Delhi, India", tz
+      5.5 (offline tz confirmed); config flag loads; `npm run build` compiles; lint
+      clean. NOTE: same *current-DST* tz caveat as text search — fine for picking a
+      place, a known limitation for historical births.

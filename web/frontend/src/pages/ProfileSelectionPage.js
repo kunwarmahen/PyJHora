@@ -15,6 +15,7 @@ import {
   Edit2,
 } from "lucide-react";
 import LocationSearch from "../components/LocationSearch";
+import MapPicker from "../components/MapPicker";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import "../styles/ProfileSelection.css";
 
@@ -348,6 +349,11 @@ export const ProfileSelectionPage = () => {
                   {t("profile.placeOfBirth")} *
                 </label>
                 <LocationSearch onLocationSelect={handleLocationSelect} />
+                <MapPicker
+                  onLocationSelect={handleLocationSelect}
+                  latitude={formData.latitude}
+                  longitude={formData.longitude}
+                />
                 {formData.latitude && formData.longitude && (
                   <div className="location-info">
                     <MapPin size={16} />

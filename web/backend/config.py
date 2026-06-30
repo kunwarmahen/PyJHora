@@ -21,6 +21,12 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
 
+    # Interactive map location picker (Leaflet + OpenStreetMap). When False the
+    # backend reverse-geocode endpoint returns 403 so the feature can be fully
+    # disabled for production deployments. The frontend has its own
+    # REACT_APP_ENABLE_MAP_PICKER flag to hide the UI; keep the two in sync.
+    MAP_PICKER_ENABLED: bool = True
+
     class Config:
         env_file = ".env"
         case_sensitive = True

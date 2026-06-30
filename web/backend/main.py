@@ -1652,6 +1652,37 @@ async def search_location(req: LocationSearchRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Location search error: {str(e)}")
 
+
+class ReverseGeocodeRequest(BaseModel):
+    latitude: float
+    longitude: float
+
+@app.post("/api/location/reverse")
+async def reverse_geocode(req: ReverseGeocodeRequest):
+    """Resolve a map-picked lat/long to a place name + timezone offset.
+
+    Backs the interactive map picker. Gated by MAP_PICKER_ENABLED so the whole
+    feature can be switched off for production deployments (the frontend hides
+    the UI via REACT_APP_ENABLE_MAP_PICKER; this guard is defense in depth).
+    """
+    if not settings.MAP_PICKER_ENABLED:
+        raise HTTPException(status_code=403, detail="Map location picker is disabled.")
+    if not (-90 <= req.latitude <= 90) or not (-180 <= req.longitude <= 180):
+        raise HTTPException(status_code=400, detail="Coordinates out of range.")
+    try:
+        result = AstrologyCompute.reverse_geocode(req.latitude, req.longitude)
+        if result:
+            return {
+                "success": True,
+                "place": result[0],
+                "latitude": result[1],
+                "longitude": result[2],
+                "timezone": result[3],
+            }
+        return {"success": False, "message": "Could not resolve that location."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Reverse geocode error: {str(e)}")
+
 # ============= SAVED PROFILES =============
 
 class SaveProfileRequest(BaseModel):
@@ -1791,7 +1822,8 @@ async def health_check():
     return {
         "status": "healthy",
         "pyjhora_available": AstrologyCompute.PYJHORA_AVAILABLE,
-        "qwen_enabled": settings.USE_QWEN
+        "qwen_enabled": settings.USE_QWEN,
+        "map_picker_enabled": settings.MAP_PICKER_ENABLED
     }
 
 if __name__ == "__main__":

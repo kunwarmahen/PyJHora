@@ -1,0 +1,105 @@
+.map-picker {
+  width: 100%;
+  margin: 10px 0 4px;
+}
+
+.map-picker-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #b35a00;
+  background: #fff6ea;
+  border: 1px solid #f0c389;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.map-picker-toggle:hover {
+  background: #ffedd6;
+  border-color: #e07b00;
+}
+
+.map-picker-body {
+  margin-top: 12px;
+  animation: mapFadeIn 0.25s ease;
+}
+
+.map-picker-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.map-picker-locate {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #f7941d 0%, #e07b00 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.map-picker-locate:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(224, 123, 0, 0.35);
+}
+
+.map-picker-hint {
+  font-size: 12px;
+  color: #777;
+  font-style: italic;
+}
+
+.map-picker-canvas {
+  border: 2px solid #f0c389;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Keep the Leaflet map below sticky headers / dropdowns in the form. */
+.map-picker-canvas .leaflet-container {
+  z-index: 0;
+}
+
+.map-picker-status {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #b35a00;
+}
+
+.map-picker-error {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background-color: #ffebee;
+  color: #c62828;
+  border-left: 4px solid #c62828;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+@keyframes mapFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 600px) {
+  .map-picker-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

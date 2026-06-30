@@ -1764,3 +1764,38 @@ class AstrologyCompute:
         except Exception as e:
             print(f"Location search error: {e}")
             return None
+
+    @staticmethod
+    def reverse_geocode(latitude, longitude, *args, **kwargs):
+        """Resolve a clicked map point to [display_name, lat, lon, tz_offset].
+
+        Used by the interactive map picker: the lat/long already come from the
+        pin, so the timezone is computed offline with timezonefinder (no network
+        needed) and Nominatim reverse-geocoding only supplies a friendly place
+        name. If the reverse lookup fails we still return coordinates + tz with a
+        synthesised label so a clicked point is always usable."""
+        if not PYJHORA_AVAILABLE:
+            return None
+        try:
+            lat = round(float(latitude), 6)
+            lon = round(float(longitude), 6)
+        except (TypeError, ValueError):
+            return None
+        # Timezone is always derivable from coordinates alone (offline).
+        try:
+            tz = round(float(utils.get_place_timezone_offset(lat, lon)), 2)
+        except Exception as e:
+            print(f"Reverse geocode timezone error: {e}")
+            tz = 0.0
+        place = f"{lat}, {lon}"
+        try:
+            from geopy.geocoders import Nominatim
+
+            geolocator = Nominatim(user_agent="PyJHoraWeb", timeout=10)
+            loc = geolocator.reverse((lat, lon), language="en", zoom=10)
+            if loc and loc.address:
+                place = loc.address
+        except Exception as e:
+            # Network/rate-limit issues should not break the picker; keep coords.
+            print(f"Reverse geocode lookup error: {e}")
+        return [place, lat, lon, tz]
