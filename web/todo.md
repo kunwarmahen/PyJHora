@@ -766,6 +766,29 @@ clean status/dict — thin JSON-schema wrappers, minimal new surface.
       use English literals for now — see §5 i18n).
 - [ ] FOLLOW-UP: explicit tri-state seed/tool/off per section (today: seeded if the
       section toggle is on, otherwise fetched via tool).
+- [ ] **FUTURE: graha drishti (aspects) — capability capture + AI context + tool** (owner
+      ask 2026-06-30). Aspects are currently *reasoned about by the model* (the system
+      prompt encodes drishti rules incl. Mars 4/8, Jupiter 5/9, Saturn 3/10 special
+      aspects) but **never computed and sent** — there is no aspect data in the pass-all
+      context and no aspect tool in the smart-lookup registry, so the model infers them
+      from raw placements (error-prone). **Decisions captured 2026-06-30 (owner):**
+      compute the **full depth** — graha drishti + rasi (sign/Jaimini) drishti + aspect
+      **strength** (Sripati/virupa bala) so the AI can weigh partial vs full aspects; and
+      surface it via **both** paths (default-on pass-all section AND a smart-lookup tool),
+      for parity with the other sections. Plan:
+      - **Capability capture**: add `AstrologyCompute.get_aspects(...)` returning graha
+        drishti (which planet aspects which house/planet, incl. the special aspects),
+        rasi drishti, and per-aspect virupa strength. Check what PyJHora already exposes
+        (`drishti`/`aspect`/`bala` helpers in `src/jhora/horoscope/...`) before
+        hand-rolling — likely the strength is the only piece needing assembly.
+      - **Pass-all context** (§8.3): add a **default-on** `sections["aspects"]` to
+        `chart_context.build_chart_context` so the rendered block lists each graha's
+        drishti + strength (token-budgeted, one compact line per planet).
+      - **Smart-lookup tool** (§8.9): publish `get_aspects` as a 12th tool in `tools.py`
+        (thin JSON-schema wrapper, birth-details server-injected like the rest) + add it
+        to `tool_catalog()` so it shows on the AI Capabilities page.
+      - i18n the new labels; verify token cost stays within budget (measure vs current
+        ~2.2k — strength data adds weight, so keep the rendered line terse).
 - [x] FOLLOW-UP: cache identical tool results within one answer; cap repeated calls.
       DONE 2026-06-30: `run_tool_loop` keeps a per-answer `tool_cache` keyed by
       `name + sorted-JSON(args)` and a `call_counts` map. An identical (name+args)
