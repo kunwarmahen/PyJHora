@@ -2,10 +2,8 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import ReactMarkdown from "react-markdown";
 import {
   MessageCircle,
-  Send,
   Bot,
   User,
   Sparkles,
@@ -20,7 +18,6 @@ import {
   RefreshCw,
   ThumbsUp,
   ThumbsDown,
-  Square,
   Download,
   KeyRound,
   ChevronDown,
@@ -36,6 +33,8 @@ import { exportConversationPdf } from "../utils/exportConversation";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
+import { ChatComposer } from "../components/chat/ChatComposer";
+import { StreamingMarkdown } from "../components/chat/StreamingMarkdown";
 import "../styles/Dashboard.css";
 import "../styles/Chat.css";
 
@@ -1868,10 +1867,10 @@ export const AskAstrologerPage = () => {
                         {t("ask.consulting")}
                       </div>
                     ) : (
-                      <>
-                        <ReactMarkdown>{message.content}</ReactMarkdown>
-                        {message.streaming && <span className="stream-cursor">▍</span>}
-                      </>
+                      <StreamingMarkdown
+                        content={message.content}
+                        streaming={message.streaming}
+                      />
                     )
                   ) : (
                     message.content
@@ -1965,43 +1964,19 @@ export const AskAstrologerPage = () => {
             ))}
           </div>
 
-          <div
-            className="chat-input-container"
-            style={{
-              display: "flex",
-              gap: "var(--space-sm)",
-              padding: "var(--space-lg)",
-              borderTop: "2px solid var(--sandalwood)",
-              background: "white",
-            }}
-          >
-            <input
-              type="text"
-              className="chat-input"
-              placeholder={t("ask.inputPlaceholder")}
+          <div className="chat-input-container">
+            <ChatComposer
               value={currentQuestion}
-              onChange={(e) => setCurrentQuestion(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === "Enter" && !loading) {
-                  handleAskQuestion(currentQuestion);
-                }
-              }}
-              disabled={loading}
+              onChange={setCurrentQuestion}
+              onSubmit={() => handleAskQuestion(currentQuestion)}
+              onStop={handleStop}
+              busy={loading}
+              multiline={false}
+              placeholder={t("ask.inputPlaceholder")}
+              sendTitle={t("ask.send")}
+              stopTitle={t("ask.stopTitle")}
+              stopLabel={t("ask.stop")}
             />
-            {loading ? (
-              <button className="btn-stop" onClick={handleStop} title={t("ask.stopTitle")}>
-                <Square size={16} fill="currentColor" />
-                <span>{t("ask.stop")}</span>
-              </button>
-            ) : (
-              <button
-                className="btn-send"
-                onClick={() => handleAskQuestion(currentQuestion)}
-                disabled={!currentQuestion.trim()}
-              >
-                <Send size={20} />
-              </button>
-            )}
           </div>
 
           {/* Safety / disclaimer footer */}

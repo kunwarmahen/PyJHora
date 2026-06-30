@@ -461,6 +461,7 @@
     "helpful": "Helpful",
     "notHelpful": "Not helpful",
     "inputPlaceholder": "Ask a question about your birth chart...",
+    "send": "Send",
     "stop": "Stop",
     "stopTitle": "Stop generating",
     "tokens": "tokens",
