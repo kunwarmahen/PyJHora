@@ -660,6 +660,17 @@
   font-weight: 600;
 }
 
+/* Read-only / informational saffron banner */
+.readonly-banner {
+  background: rgba(255, 153, 51, 0.1);
+  border: 1px solid rgba(255, 153, 51, 0.3);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-xl);
+  color: var(--saffron);
+  font-weight: 600;
+}
+
 /* Intro paragraph at the top of a card */
 .card-intro {
   color: var(--text-secondary);

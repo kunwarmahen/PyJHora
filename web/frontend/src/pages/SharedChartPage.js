@@ -11,6 +11,7 @@ import { DataField } from "../components/DataField";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { formatDate, orDash } from "../utils/format";
 import "../styles/Dashboard.css";
+import "../styles/Shared.css";
 
 /** Public, read-only view of a shared chart (no auth required). */
 export const SharedChartPage = () => {
@@ -59,20 +60,7 @@ export const SharedChartPage = () => {
       </nav>
 
       <div className="dashboard-content">
-        <div
-          className="fade-in"
-          style={{
-            background: "rgba(255, 153, 51, 0.1)",
-            border: "1px solid rgba(255, 153, 51, 0.3)",
-            borderRadius: "var(--radius-lg)",
-            padding: "var(--space-md) var(--space-lg)",
-            marginBottom: "var(--space-xl)",
-            color: "var(--saffron)",
-            fontWeight: 600,
-          }}
-        >
-          {t("shared.readOnlyBanner")}
-        </div>
+        <div className="fade-in readonly-banner">{t("shared.readOnlyBanner")}</div>
 
         <ErrorBanner message={error} />
 
@@ -124,15 +112,9 @@ export const SharedChartPage = () => {
               />
             )}
 
-            <p
-              style={{
-                textAlign: "center",
-                color: "var(--text-secondary)",
-                marginTop: "var(--space-xl)",
-              }}
-            >
+            <p className="text-center text-secondary mt-xl">
               {t("shared.cta")}{" "}
-              <Link to="/register" style={{ color: "var(--saffron)", fontWeight: 600 }}>
+              <Link to="/register" className="text-saffron fw-600">
                 {t("shared.ctaLink")}
               </Link>
               .
