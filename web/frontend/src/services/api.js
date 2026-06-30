@@ -112,6 +112,9 @@ export const astrologyService = {
   // Shadbala / planetary strength.
   getShadbala: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/shadbala", birthDetails, { params: { ayanamsa } }),
+  // Graha drishti (aspects): per-graha houses/planets aspected + strength %.
+  getAspects: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/aspects", birthDetails, { params: { ayanamsa } }),
   // Shareable read-only chart link.
   createShare: (birthDetails, ayanamsa = DEFAULT_AYANAMSA, profileName = null) =>
     api.post("/api/astrology/share", {

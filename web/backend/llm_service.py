@@ -1129,6 +1129,29 @@ Planetary Positions (All 9 Grahas):"""
                     f"ratio {p.get('strength_ratio', '?')}, rank {p.get('rank', '?')}{flag}"
                 )
 
+        # Graha drishti (aspects) — one compact line per aspecting graha, with the
+        # Parashari sphuta strength (%) so partial aspects can be weighed.
+        aspects = chart_data.get("aspects", {})
+        a_planets = aspects.get("planets", []) if isinstance(aspects, dict) else []
+        if a_planets:
+            chart_description += "\n\nGraha Drishti (aspects; strength 0-100%, 100 = full):"
+            for a in a_planets:
+                houses = ", ".join(
+                    f"{h['house']}({h['strength']}%)" for h in a.get("aspects_houses", [])
+                )
+                pl = ", ".join(
+                    f"{p.get('planet', '?')} {p.get('strength', 0)}%"
+                    for p in a.get("aspects_planets", [])
+                ) or "none"
+                special = " [special aspects]" if a.get("special_aspect") else ""
+                chart_description += (
+                    f"\n- {a.get('planet', '?')}{special}: houses {houses or 'none'}; "
+                    f"planets {pl}"
+                )
+                rasi_pl = a.get("rasi_drishti_planets", [])
+                if rasi_pl:
+                    chart_description += f"; rasi-drishti on {', '.join(rasi_pl)}"
+
         header = ("Below is birth chart data for this person, calculated using precise "
                   "astronomical calculations from the PyJHora Vedic astrology software. "
                   "This is REAL, VERIFIED CHART DATA - not hypothetical."

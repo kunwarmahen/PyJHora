@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { PLANET_ABBR, RASI_NAMES, RASI_ABBR } from "../constants/jyotish";
+import { PLANET_ABBR, RASI_NAMES, RASI_ABBR, ASPECT_COLORS } from "../constants/jyotish";
 import { ChartExportButtons } from "./ChartExportButtons";
 import "../styles/NorthIndianChart.css";
 
@@ -19,6 +19,9 @@ export const NorthIndianChart = ({
   title = "Rasi Chart",
   subtitle = "North Indian",
   exportable = false,
+  aspects = null,
+  showAspects = false,
+  focusPlanet = null,
 }) => {
   const [hoveredHouse, setHoveredHouse] = useState(null);
   const svgRef = useRef(null);
@@ -238,6 +241,46 @@ export const NorthIndianChart = ({
             stroke={indigo}
             strokeWidth="2"
           />
+
+          {/* Graha drishti (aspect) lines — from each aspecting graha's house to
+              the houses it aspects. Houses in the aspect data are 1-based from the
+              Lagna, which is exactly the visual house numbering here. */}
+          {showAspects && aspects && lagna && (
+            <g className="aspect-lines">
+              {aspects.flatMap((a) => {
+                const data = planets[a.planet];
+                if (!data || !data.house) return [];
+                const srcVisual = ((data.house - lagna.house + 12) % 12) + 1;
+                const src = houses[srcVisual - 1];
+                if (!src) return [];
+                const dim = focusPlanet && focusPlanet !== a.planet;
+                if (focusPlanet && dim) return [];
+                const color = ASPECT_COLORS[a.planet] || indigo;
+                return (a.aspects_houses || []).map((h) => {
+                  const tgt = houses[h.house - 1];
+                  if (!tgt) return null;
+                  // Weight the line by aspect strength (0-100%): full aspects draw
+                  // bold/solid, partial ones thin/faint.
+                  const f = Math.max(0, Math.min(100, h.strength || 0)) / 100;
+                  const width = (focusPlanet ? 1.4 : 0.8) + f * (focusPlanet ? 2.0 : 1.4);
+                  const opacity = (focusPlanet ? 0.4 : 0.18) + f * (focusPlanet ? 0.55 : 0.42);
+                  return (
+                    <line
+                      key={`${a.planet}-${h.house}`}
+                      x1={src.cx}
+                      y1={src.cy}
+                      x2={tgt.cx}
+                      y2={tgt.cy}
+                      stroke={color}
+                      strokeWidth={width}
+                      strokeOpacity={opacity}
+                      strokeLinecap="round"
+                    />
+                  );
+                });
+              })}
+            </g>
+          )}
 
           {houses.map((house) => {
             const planetsInHouse = getPlanetsInHouse(house.num);

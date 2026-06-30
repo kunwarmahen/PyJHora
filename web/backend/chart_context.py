@@ -26,6 +26,7 @@ DEFAULT_SECTIONS = {
     "transits": True,
     "ashtakavarga": True,
     "shadbala": True,
+    "aspects": True,
 }
 
 # Divisional charts included by default: D1 (natal), D9 (Navamsa), D10 (Dasamsa).
@@ -117,7 +118,17 @@ def build_chart_context(birth_details: Dict[str, Any],
     `vargas` is the list of divisional-chart factors to include (D1 is always the
     natal base; the rest are computed into a dedicated section).
     """
-    sections = {**DEFAULT_SECTIONS, **(sections or {})}
+    # Sections may be legacy bools or tri-state strings ("seed"/"tool"/"off").
+    # Only "seed" (or True) is rendered into the prompt; "tool"/"off" are not
+    # pre-computed here (in tool mode the model fetches "tool" sections on demand).
+    raw_sections = {**DEFAULT_SECTIONS, **(sections or {})}
+
+    def _seed(key: str) -> bool:
+        v = raw_sections.get(key)
+        return v is True or v == "seed"
+
+    # Bool view used for the cheap section checks below.
+    sections = {k: _seed(k) for k in raw_sections}
     # Keep only supported factors, preserve order, dedupe.
     requested = vargas if vargas is not None else DEFAULT_VARGAS
     seen = set()
@@ -211,6 +222,14 @@ def build_chart_context(birth_details: Dict[str, Any],
                 for p in sb.get("planets", [])
             ]
 
+    if sections.get("aspects"):
+        asp = AstrologyCompute.get_aspects(ayanamsa=ayanamsa, **args)
+        if asp.get("status") == "success":
+            ctx["aspects"] = {
+                "planets": asp.get("planets", []),
+                "note": asp.get("note"),
+            }
+
     # Divisional charts (vargas). D1 is already the natal `planetary_positions`,
     # so only the extra factors are computed into their own section.
     varga_charts = []
@@ -233,6 +252,8 @@ def build_chart_context(birth_details: Dict[str, Any],
 
     # Record what was included so the caller (and the "what was sent" modal) can
     # show it.
-    ctx["_sections"] = sections
+    # Record the raw tri-state map (seed/tool/off) so the "what was sent" inspector
+    # shows exactly how each section was handled, not just a seeded/not bool.
+    ctx["_sections"] = raw_sections
     ctx["_vargas"] = varga_factors
     return ctx

@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate } from "../utils/format";
-import { VARGAS } from "../constants/jyotish";
+import { VARGAS, VARGA_SUGGESTIONS } from "../constants/jyotish";
 import { astrologyService, streamAskQuestion } from "../services/api";
 import { exportConversationPdf } from "../utils/exportConversation";
 import { NorthIndianChart } from "../components/NorthIndianChart";
@@ -38,6 +38,26 @@ import { StreamingMarkdown } from "../components/chat/StreamingMarkdown";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Chat.css";
+
+// Toggleable context sections (must mirror the backend's DEFAULT_SECTIONS). In
+// "Full context" mode each is On (seeded) or Off; in "Smart lookup" mode each is
+// tri-state: Seed (pre-sent), Tool (the AI fetches it on demand) or Off.
+const CONTEXT_SECTIONS = [
+  { key: "dasha_tree", label: "Dasha chain" },
+  { key: "yogas", label: "Yogas" },
+  { key: "doshas", label: "Doshas" },
+  { key: "transits", label: "Transits" },
+  { key: "aspects", label: "Aspects (drishti)" },
+  { key: "ashtakavarga", label: "Ashtakavarga" },
+  { key: "shadbala", label: "Shadbala" },
+];
+
+// Default tri-state for Smart-lookup mode: seed the natal base + dasha chain,
+// let the AI fetch everything else on demand. Full-context mode seeds all.
+const DEFAULT_SECTION_STATE = {
+  dasha_tree: "seed", yogas: "tool", doshas: "tool", transits: "tool",
+  aspects: "tool", ashtakavarga: "tool", shadbala: "tool",
+};
 
 
 /**
@@ -255,6 +275,58 @@ export const AskAstrologerPage = () => {
     );
   };
 
+  const addVargas = (values) => {
+    setSelectedVargas((prev) => {
+      const next = new Set(prev);
+      values.forEach((v) => next.add(v));
+      return Array.from(next).sort((a, b) => a - b);
+    });
+  };
+
+  // Per-section context state (seed/tool/off), persisted across sessions.
+  const [sections, setSections] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("ai_sections"));
+      if (saved && typeof saved === "object") return { ...DEFAULT_SECTION_STATE, ...saved };
+    } catch (e) {
+      /* ignore */
+    }
+    return { ...DEFAULT_SECTION_STATE };
+  });
+  useEffect(() => {
+    localStorage.setItem("ai_sections", JSON.stringify(sections));
+  }, [sections]);
+
+  // In Full-context mode there are no tools, so a section is only On (seed) or
+  // Off; map any "tool" value to "seed" before sending so nothing silently drops.
+  const effectiveSections = () => {
+    if (mode === "tools") return sections;
+    const out = {};
+    for (const k of Object.keys(sections)) out[k] = sections[k] === "off" ? "off" : "seed";
+    return out;
+  };
+
+  const cycleSection = (key) => {
+    const order = mode === "tools" ? ["seed", "tool", "off"] : ["seed", "off"];
+    setSections((prev) => {
+      const cur = prev[key] === "tool" && mode !== "tools" ? "seed" : prev[key];
+      const idx = order.indexOf(cur);
+      return { ...prev, [key]: order[(idx + 1) % order.length] };
+    });
+  };
+
+  // Suggest divisional charts based on keywords in the current question. Only
+  // surfaces vargas the user hasn't already selected.
+  const vargaSuggestions = (() => {
+    const q = (currentQuestion || "").toLowerCase();
+    if (!q.trim()) return [];
+    const want = new Set();
+    for (const rule of VARGA_SUGGESTIONS) {
+      if (rule.keywords.some((k) => q.includes(k))) rule.vargas.forEach((v) => want.add(v));
+    }
+    return VARGAS.filter((v) => want.has(v.value) && !selectedVargas.includes(v.value));
+  })();
+
   const PROVIDER_ICONS = {
     ollama: "🤖",
     "openai-compatible": "💻",
@@ -435,6 +507,7 @@ export const AskAstrologerPage = () => {
         baseUrl: useBaseUrl,
         legacyProvider: useType === "ollama" ? "qwen" : useType,
         vargas: selectedVargas,
+        sections: effectiveSections(),
         mode,
         conversationId: conversationIdRef.current,
         profileId: selectedProfile._id,
@@ -1170,6 +1243,40 @@ export const AskAstrologerPage = () => {
             </div>
           </div>
 
+          {/* Context Sections Card */}
+          <div className="ask-card">
+            <h3 className="ask-card__header ask-card__header--tight">
+              <Wrench size={20} />
+              Context sections
+            </h3>
+            <p className="ask-card__hint">
+              {mode === "tools"
+                ? "Per section: Seed sends it up front, Tool lets the AI fetch it on demand, Off excludes it. Natal chart + dasha are always available."
+                : "Toggle which chart sections are sent to the AI. (Switch to Smart lookup for on-demand fetching.)"}
+            </p>
+            <div className="ask-section-list">
+              {CONTEXT_SECTIONS.map((s) => {
+                const state = mode === "tools"
+                  ? sections[s.key]
+                  : (sections[s.key] === "off" ? "off" : "seed");
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    className={`ask-section-row ask-section-row--${state}`}
+                    onClick={() => cycleSection(s.key)}
+                    title="Click to change"
+                  >
+                    <span className="ask-section-row__label">{s.label}</span>
+                    <span className={`ask-section-row__state ask-section-row__state--${state}`}>
+                      {state === "seed" ? "Seed" : state === "tool" ? "Tool" : "Off"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Divisional Charts (Vargas) Card */}
           <div className="ask-card">
             <h3 className="ask-card__header ask-card__header--tight">
@@ -1511,6 +1618,23 @@ export const AskAstrologerPage = () => {
               </div>
             ))}
           </div>
+
+          {vargaSuggestions.length > 0 && (
+            <div className="varga-suggest-row">
+              <span className="varga-suggest-row__hint">Suggested charts:</span>
+              {vargaSuggestions.map((v) => (
+                <button
+                  key={v.value}
+                  type="button"
+                  className="varga-suggest-chip"
+                  onClick={() => addVargas([v.value])}
+                  title={`${v.name} — ${v.significance}`}
+                >
+                  + {v.code} <span className="varga-suggest-chip__sig">{v.significance}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="chat-input-container">
             <ChatComposer

@@ -151,6 +151,13 @@ def _chart_details(bd, ayanamsa, **_):
     return AstrologyCompute.get_chart_details(ayanamsa=ayanamsa, **_args(bd))
 
 
+def _aspects(bd, ayanamsa, **_):
+    a = AstrologyCompute.get_aspects(ayanamsa=ayanamsa, **_args(bd))
+    if a.get("status") != "success":
+        return a
+    return {"planets": a.get("planets", []), "note": a.get("note")}
+
+
 def _divisional_chart(bd, ayanamsa, varga_factor: Optional[int] = None, **_):
     try:
         factor = int(varga_factor)
@@ -277,6 +284,14 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _EMPTY_PARAMS, _chart_details,
     ),
     _Tool(
+        "get_aspects",
+        "Graha drishti (planetary aspects): for each graha, the houses and planets "
+        "it aspects (incl. the Mars 4/8, Jupiter 5/9, Saturn 3/10 special aspects), "
+        "the planets it aspects by rasi (sign) drishti, and a 0-100% strength per "
+        "graha->planet aspect (100 = full). Use to judge influences on a planet/house.",
+        _EMPTY_PARAMS, _aspects,
+    ),
+    _Tool(
         "get_divisional_chart",
         "A divisional (varga) chart for a life area, with its Lagna and planet "
         "placements. Pick the varga_factor by topic — " + _VARGA_DESC + ".",
@@ -305,6 +320,52 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
 # --------------------------------------------------------------------------- #
 # Public API
 # --------------------------------------------------------------------------- #
+# Map each toggleable context section to the tool that fetches it on demand.
+# Used by the tri-state (seed / tool / off) control in "Smart lookup" mode: a
+# section set to "tool" exposes its tool; "seed" or "off" do not (seeded data is
+# already in the prompt, off means excluded entirely).
+SECTION_TOOL: Dict[str, str] = {
+    "dasha_tree": "get_dasha_chain",
+    "yogas": "get_yogas",
+    "doshas": "get_doshas",
+    "transits": "get_transits",
+    "ashtakavarga": "get_ashtakavarga",
+    "shadbala": "get_shadbala",
+    "aspects": "get_aspects",
+}
+
+# Tools with no section toggle — always available in tool mode so the model can
+# fetch the natal base, drill dashas, pull a varga, or read the panchanga.
+ALWAYS_TOOLS: List[str] = [
+    "get_natal_chart", "get_chart_details", "get_dasha_children",
+    "get_divisional_chart", "get_panchanga",
+]
+
+
+def tool_names_for_sections(sections: Optional[Dict[str, Any]]) -> Optional[List[str]]:
+    """Resolve which tools to expose in Smart-lookup mode from the tri-state
+    `sections` map (values "seed" | "tool" | "off", or legacy bools).
+
+    Returns None when `sections` is None (legacy/unspecified → expose every tool,
+    the original behaviour). Otherwise: the always-on tools, plus the tool for any
+    section explicitly set to "tool" (a section unspecified in the map also gets
+    its tool, so the model is never blind to data the user didn't pin)."""
+    if sections is None:
+        return None
+    names = list(ALWAYS_TOOLS)
+    for sec, tool in SECTION_TOOL.items():
+        v = sections.get(sec, "tool")
+        if v is True:
+            state = "seed"
+        elif v is False:
+            state = "off"
+        else:
+            state = v if v in ("seed", "tool", "off") else "tool"
+        if state == "tool" and tool not in names:
+            names.append(tool)
+    return names
+
+
 def tool_specs(names: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     """Provider-neutral specs. `names` optionally restricts/orders the set (e.g.
     to expose only the sections not already seeded into the prompt)."""
@@ -322,6 +383,7 @@ def tool_specs(names: Optional[List[str]] = None) -> List[Dict[str, Any]]:
 _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_natal_chart":      {"label": "Natal chart",            "category": "Core chart"},
     "get_chart_details":    {"label": "House-by-house detail",  "category": "Core chart"},
+    "get_aspects":          {"label": "Graha drishti (aspects)", "category": "Core chart"},
     "get_divisional_chart": {"label": "Divisional (varga) charts", "category": "Core chart"},
     "get_dasha_chain":      {"label": "Running dasha periods",  "category": "Timing"},
     "get_dasha_children":   {"label": "Dasha sub-periods",      "category": "Timing"},

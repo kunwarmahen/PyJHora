@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Calendar, User, MapPin, Clock, Star, Share2, Copy, Check } from "lucide-react";
+import { Calendar, User, MapPin, Clock, Star, Share2, Copy, Check, Eye } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
@@ -14,6 +14,7 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { DataField } from "../components/DataField";
+import { AspectsCard } from "../components/AspectsCard";
 import { AYANAMSAS, DEFAULT_AYANAMSA, VARGAS, DEFAULT_VARGA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
@@ -28,6 +29,11 @@ export const BirthChartPage = () => {
   const [result, setResult] = useState(null);
   const [doshas, setDoshas] = useState(null);
   const [yogas, setYogas] = useState(null);
+  const [aspects, setAspects] = useState(null);
+  const [showAspects, setShowAspects] = useState(
+    () => localStorage.getItem("showAspects") === "1"
+  );
+  const [focusPlanet, setFocusPlanet] = useState(null);
   const [chartStyle, setChartStyle] = useState(() => localStorage.getItem("chartStyle") || "north");
   const [ayanamsa, setAyanamsa] = useState(
     () => localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA
@@ -147,9 +153,10 @@ export const BirthChartPage = () => {
       const response = await astrologyService.calculateBirthChart(birthDetails, ayanamsa);
       setResult(response.data);
 
-      // Yogas & doshas load independently — a failure here shouldn't blank the chart.
+      // Yogas, doshas & aspects load independently — a failure here shouldn't blank the chart.
       setDoshas(null);
       setYogas(null);
+      setAspects(null);
       astrologyService
         .getDoshas(birthDetails, ayanamsa)
         .then((r) => setDoshas(r.data?.doshas || null))
@@ -158,6 +165,10 @@ export const BirthChartPage = () => {
         .getYogas(birthDetails, ayanamsa)
         .then((r) => setYogas(r.data?.yogas || null))
         .catch(() => setYogas(null));
+      astrologyService
+        .getAspects(birthDetails, ayanamsa)
+        .then((r) => setAspects(r.data?.planets || null))
+        .catch(() => setAspects(null));
     } catch (err) {
       setError(err.response?.data?.detail || t("birthChart.calcError"));
     } finally {
@@ -287,11 +298,34 @@ export const BirthChartPage = () => {
                     </label>
                   </div>
 
+                  {aspects && aspects.length > 0 && (
+                    <div className="aspect-controls">
+                      <button
+                        type="button"
+                        className={`aspect-toggle${showAspects ? " is-active" : ""}`}
+                        onClick={() => {
+                          const next = !showAspects;
+                          setShowAspects(next);
+                          localStorage.setItem("showAspects", next ? "1" : "0");
+                        }}
+                      >
+                        <Eye size={16} />
+                        {showAspects ? t("aspects.hideOnChart") : t("aspects.showOnChart")}
+                      </button>
+                      {showAspects && (
+                        <span className="aspect-controls__hint">{t("aspects.hoverHint")}</span>
+                      )}
+                    </div>
+                  )}
+
                   <Kundali
                     chartData={result}
                     title={t("birthChart.rasiChart")}
                     subtitle={`D1 · ${styleLabel}`}
                     exportable
+                    aspects={aspects}
+                    showAspects={showAspects}
+                    focusPlanet={focusPlanet}
                   />
 
                   {/* Divisional (varga) chart with picker */}
@@ -464,6 +498,13 @@ export const BirthChartPage = () => {
                 </div>
               </div>
             )}
+
+            {/* Graha Drishti (aspects) */}
+            <AspectsCard
+              aspects={aspects}
+              onFocus={setFocusPlanet}
+              focusPlanet={focusPlanet}
+            />
           </div>
         ) : null}
       </div>

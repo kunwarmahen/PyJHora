@@ -518,9 +518,15 @@ workspace. **Decisions captured 2026-06-28** (owner answered the clarifying roun
       `vargas`; response echoes the included list.
 - [x] Verified live: asking about marriage/career with D1/D9/D10 returns an answer
       that references the Navamsa (D9) and Dasamsa (D10) placements we sent.
-- [ ] FOLLOW-UP: per-question varga suggestions (career→D10, marriage→D9/D7, ...) as a
-      one-click hint. NOTE: with sign-only varga data, models sometimes embellish exact
-      degrees/nakshatra — fine for signs; revisit if more precision is wanted.
+- [x] FOLLOW-UP: per-question varga suggestions (career→D10, marriage→D9/D7, ...) as a
+      one-click hint. DONE 2026-06-30: `constants/jyotish.js → VARGA_SUGGESTIONS` maps ~10
+      topics (career/marriage/children/wealth/property/education/siblings/parents/
+      spirituality/health) to their classical vargas + trigger keywords. The Ask page
+      derives `vargaSuggestions` from the live question text and renders dashed **"+ D10
+      (career…)"** chips above the composer for any suggested varga not already selected;
+      clicking one adds it to `selectedVargas` (so it's seeded into the AI context). NOTE:
+      with sign-only varga data, models sometimes embellish exact degrees/nakshatra — fine
+      for signs; revisit if more precision is wanted.
 
 ### 8.3 Richer astrological context (P1) — MOSTLY DONE 2026-06-28
 
@@ -764,31 +770,68 @@ clean status/dict — thin JSON-schema wrappers, minimal new surface.
       this env) — verify in-app with a real key.
 - [ ] FOLLOW-UP: localize the new frontend strings (Answer mode card + step labels
       use English literals for now — see §5 i18n).
-- [ ] FOLLOW-UP: explicit tri-state seed/tool/off per section (today: seeded if the
-      section toggle is on, otherwise fetched via tool).
-- [ ] **FUTURE: graha drishti (aspects) — capability capture + AI context + tool** (owner
-      ask 2026-06-30). Aspects are currently *reasoned about by the model* (the system
-      prompt encodes drishti rules incl. Mars 4/8, Jupiter 5/9, Saturn 3/10 special
-      aspects) but **never computed and sent** — there is no aspect data in the pass-all
-      context and no aspect tool in the smart-lookup registry, so the model infers them
-      from raw placements (error-prone). **Decisions captured 2026-06-30 (owner):**
-      compute the **full depth** — graha drishti + rasi (sign/Jaimini) drishti + aspect
-      **strength** (Sripati/virupa bala) so the AI can weigh partial vs full aspects; and
-      surface it via **both** paths (default-on pass-all section AND a smart-lookup tool),
-      for parity with the other sections. Plan:
-      - **Capability capture**: add `AstrologyCompute.get_aspects(...)` returning graha
-        drishti (which planet aspects which house/planet, incl. the special aspects),
-        rasi drishti, and per-aspect virupa strength. Check what PyJHora already exposes
-        (`drishti`/`aspect`/`bala` helpers in `src/jhora/horoscope/...`) before
-        hand-rolling — likely the strength is the only piece needing assembly.
-      - **Pass-all context** (§8.3): add a **default-on** `sections["aspects"]` to
-        `chart_context.build_chart_context` so the rendered block lists each graha's
-        drishti + strength (token-budgeted, one compact line per planet).
-      - **Smart-lookup tool** (§8.9): publish `get_aspects` as a 12th tool in `tools.py`
-        (thin JSON-schema wrapper, birth-details server-injected like the rest) + add it
-        to `tool_catalog()` so it shows on the AI Capabilities page.
-      - i18n the new labels; verify token cost stays within budget (measure vs current
-        ~2.2k — strength data adds weight, so keep the rendered line terse).
+- [x] FOLLOW-UP: explicit tri-state seed/tool/off per section. DONE 2026-06-30: each
+      context section is now Seed (pre-sent in the prompt), Tool (the AI fetches it on
+      demand in Smart-lookup mode) or Off (excluded entirely). Backend:
+      `chart_context.build_chart_context` normalizes section values (legacy bools OR the new
+      "seed"/"tool"/"off" strings) — only "seed"/True is rendered into the prompt; it stores
+      the raw tri-state in `_sections` so the "what was sent" inspector shows the actual
+      handling. `tools.SECTION_TOOL` maps each section to its fetch tool + `ALWAYS_TOOLS`
+      (natal/chart-details/dasha-children/divisional/panchanga); new
+      `tools.tool_names_for_sections(sections)` returns the always-on tools plus the tool for
+      any section set to "tool" (a "seed" section's tool is withheld since the data is already
+      in the prompt; "off" withholds it too). Both `/ask` and `/ask/stream` pass
+      `tool_names=...` into `run_tool_loop` so the exposed toolset matches the tri-state
+      (`None`/legacy → all tools, unchanged). Frontend: a **Context sections** card on the Ask
+      page — in Smart-lookup mode each row cycles Seed→Tool→Off (colour-coded pill); in
+      Full-context mode it's On(Seed)/Off (Tool maps to Seed since there are no tools).
+      Default for Smart lookup = dasha seeded, everything else Tool (matches the §8.9
+      decision); persisted in `localStorage` (`ai_sections`); sent as `sections` through
+      `streamAskQuestion`. (New card labels are English literals — folded into the i18n
+      follow-up above.)
+- [x] **graha drishti (aspects) — capability capture + AI context + tool** (owner ask
+      2026-06-30). DONE 2026-06-30. Aspects used to be *reasoned about by the model* (the
+      system prompt encodes drishti rules incl. Mars 4/8, Jupiter 5/9, Saturn 3/10 special
+      aspects) but were **never computed and sent** — error-prone inference from raw
+      placements. Now computed at **full depth** (graha drishti + rasi/Jaimini drishti +
+      Parashari sphuta strength) and surfaced via **both** paths:
+      - **Capability capture**: `AstrologyCompute.get_aspects(...)` — for each of the 9
+        grahas, the houses (1-based) and planets it casts **graha drishti** on (incl. the
+        special aspects), the planets it aspects by **rasi drishti**, and a **0-100%
+        strength** per graha→planet aspect so partial vs full aspects can be weighed. Built
+        on PyJHora's existing `house.graha_drishti_from_chart` / `raasi_drishti_from_chart`
+        + `strength.planet_aspect_relationship_table_pvr` (sphuta drishti, normalized %) —
+        no hand-rolled math; ayanamsa set/reset like the other methods.
+      - **Pass-all context** (§8.3): **default-on** `sections["aspects"]` in
+        `chart_context.build_chart_context`; rendered in `_render_context_block` as one
+        terse line per graha (`Mars [special aspects]: houses 2,3,11; planets Sun 35%;
+        rasi-drishti on …`). Measured rendered context stays within budget.
+      - **Smart-lookup tool** (§8.9): `get_aspects` published as the **12th tool** in
+        `tools.py` (birth-details server-injected) + added to `tool_catalog()`/`_DISPLAY`
+        (Core chart) so it shows on the AI Capabilities page, and to `SECTION_TOOL` so it
+        participates in the tri-state above. Verified: get_aspects computes (Mars special
+        aspects + Sun 35% on the test chart), seeds + renders in pass-all, dispatches as a
+        tool (registry now 12 tools/catalog), backend imports clean, frontend build green.
+        (Aspect-section label is English literal — folded into the i18n follow-up above.)
+      - **User-facing display** (owner ask 2026-06-30 — "show this to the user on the portal
+        too, not just the AI"): new `POST /api/astrology/aspects` endpoint + `getAspects` in
+        `services/api.js`; reusable **`AspectsCard`** (`components/AspectsCard.js` + `Aspects.css`)
+        — a per-graha table (houses/planets aspected with strength %, rasi-drishti, ★ for
+        special aspects) shown on **both** the Birth Chart page (under Yogas/Doshas) and the
+        Advanced page (table only). **Aspect lines drawn on the Rasi chart**: `NorthIndianChart`
+        (SVG `<line>`s house-centre→house-centre) and `SouthIndianChart` (a `0..4` `viewBox`
+        SVG overlay on the fixed-sign grid, non-scaling stroke) gained `aspects`/`showAspects`/
+        `focusPlanet` props; colour-coded per graha (`ASPECT_COLORS`). A **"Show aspects on
+        chart" toggle** (persisted, off by default) on Birth Chart turns the lines on/off, and
+        hovering a table row **focuses** just that graha's lines (dims the rest). i18n `aspects.*`
+        in en (hi/sa fall back). Lint + production build green.
+      - **Strength-weighted lines** (owner ask 2026-06-30): `get_aspects` now returns each
+        aspected house as `{house, strength}` (per-house sphuta % read from the `vt` house
+        columns, idx 9+), so both chart overlays **scale each line's width + opacity by the
+        aspect strength** — full aspects draw bold/solid, partial ones thin/faint. The
+        AspectsCard "houses" column renders the same as strength-tinted pills, and the AI
+        context line now shows `house(strength%)`. Consumers updated across astrology.py /
+        llm_service render / AspectsCard / North+South overlays; verified + build green.
 - [x] FOLLOW-UP: cache identical tool results within one answer; cap repeated calls.
       DONE 2026-06-30: `run_tool_loop` keeps a per-answer `tool_cache` keyed by
       `name + sorted-JSON(args)` and a `call_counts` map. An identical (name+args)
@@ -1160,9 +1203,10 @@ key-less services** (no paid Google/Mapbox billing).
 Audit of `src/jhora/...` vs the web backend (`astrology.py` exposes ~18 compute methods;
 `main.py` ~30 astrology endpoints) found a large set of classical capabilities the engine
 supports that have **no web surface**. Owner picked the following to add (2026-06-30):
-**all four feature pages below + Longevity**. Graha-drishti (aspects) stays in the §8.9
-backlog for now. Build order suggestion: 9.1 Varshaphal → 9.2 Almanac → 9.4 Raja Yogas/
-more dashas → 9.3 Pancha Pakshi → 9.5 Longevity (each independent; sequence is by value).
+**all four feature pages below + Longevity**. (Graha-drishti / aspects — formerly backlog
+— was since SHIPPED, see §8.9.) Build order suggestion: 9.1 Varshaphal → 9.2 Almanac →
+9.4 Raja Yogas/more dashas → 9.3 Pancha Pakshi → 9.5 Longevity (each independent; sequence
+is by value).
 
 Each follows the established pattern: a thin `AstrologyCompute` method (server-injects
 birth details + ayanamsa, resets global state after), an auth-protected endpoint in

@@ -1092,6 +1092,90 @@ class AstrologyCompute:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
+    def get_aspects(dob: str, tob: str, place: str,
+                    lat: Optional[float] = None, lon: Optional[float] = None,
+                    tz: Optional[float] = None,
+                    ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Graha drishti (planetary aspects) + rasi (sign/Jaimini) drishti, with
+        Parashari sphuta aspect strength (virupa, 0-100%).
+
+        For each of the nine grahas this returns the houses and planets it casts
+        graha drishti on (including the Mars 4/8, Jupiter 5/9, Saturn 3/10 special
+        aspects), the planets it aspects by rasi drishti, and a strength % per
+        graha→planet aspect so partial aspects can be weighed against full ones.
+        """
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            second = int(tp[2]) if len(tp) > 2 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
+            pp = charts.rasi_chart(jd, place_obj)
+            h2p = utils.get_house_planet_list_from_planet_positions(pp)
+
+            # Graha drishti: arp/ahp/app = aspected rasis / houses (0-based from
+            # Lagna) / planets, keyed by planet index 0..8.
+            _, ahp, app = house.graha_drishti_from_chart(h2p)
+            # Rasi (sign) drishti: planets aspected by each planet's sign.
+            _, _, apr = house.raasi_drishti_from_chart(h2p)
+            # Sphuta aspect strength table: rows = aspecting planet, cols = aspected
+            # planets (0..8) then 12 houses; values are 0-100% (100 = full aspect).
+            vt = strength.planet_aspect_relationship_table_pvr(
+                pp, include_houses=True, normalize_as_percentage=True)
+
+            # Planets that have special aspects beyond the universal 7th (Mars 4/8,
+            # Jupiter 5/9, Saturn 3/10).
+            special = {2, 4, 6}
+
+            planets = []
+            for p in range(9):
+                name = PLANET_NAMES.get(p, str(p))
+                strength_row = vt[p] if p < len(vt) else []
+
+                def _str(idx):
+                    return int(strength_row[idx]) if idx < len(strength_row) else 0
+
+                aspected_planets = [
+                    {"planet": PLANET_NAMES.get(q, str(q)), "strength": _str(q)}
+                    for q in app.get(p, [])
+                ]
+                rasi_planets = [PLANET_NAMES.get(q, str(q)) for q in apr.get(p, [])]
+                # Houses are 0-based from Lagna in `ahp`; present 1-based, each with
+                # its sphuta strength (the house columns of `vt` start at index 9, so
+                # house N is column 9 + (N-1)).
+                aspected_houses = [
+                    {"house": hn, "strength": _str(9 + hn - 1)}
+                    for hn in sorted((h % 12) + 1 for h in ahp.get(p, []))
+                ]
+                planets.append({
+                    "planet": name,
+                    "special_aspect": p in special,
+                    "aspects_houses": aspected_houses,
+                    "aspects_planets": aspected_planets,
+                    "rasi_drishti_planets": rasi_planets,
+                })
+
+            return {
+                "status": "success",
+                "planets": planets,
+                "note": ("strength is Parashari sphuta graha drishti as a percentage "
+                         "(0-100; 100 = a full/exact aspect, lower = partial)."),
+            }
+        except Exception as e:
+            print(f"Aspects error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
     def get_horoscope_predictions(dob: str, tob: str, place: str,
                                   lat: Optional[float] = None, lon: Optional[float] = None,
                                   tz: Optional[float] = None,

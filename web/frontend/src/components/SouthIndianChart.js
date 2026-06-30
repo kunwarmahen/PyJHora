@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { PLANET_ABBR, RASI_ABBR } from "../constants/jyotish";
+import { PLANET_ABBR, RASI_ABBR, ASPECT_COLORS } from "../constants/jyotish";
 import { ChartExportButtons } from "./ChartExportButtons";
 import "../styles/NorthIndianChart.css";
 
@@ -33,6 +33,9 @@ export const SouthIndianChart = ({
   title = "Rasi Chart",
   subtitle = "South Indian",
   exportable = false,
+  aspects = null,
+  showAspects = false,
+  focusPlanet = null,
 }) => {
   const gridRef = useRef(null);
   const planets = planetsProp || chartData?.planets;
@@ -41,6 +44,12 @@ export const SouthIndianChart = ({
   if (!planets) {
     return <div className="chart-empty">No chart data</div>;
   }
+
+  // Centre of a sign's fixed cell in the 0..4 overlay grid coordinate system.
+  const cellCenter = (signNum) => {
+    const pos = SIGN_POS[signNum];
+    return pos ? { x: pos.col - 0.5, y: pos.row - 0.5 } : null;
+  };
 
   // Items (lagna + planets) occupying a given zodiac sign (1–12)
   const itemsForSign = (signNum) => {
@@ -92,6 +101,50 @@ export const SouthIndianChart = ({
           <div className="si-center-title">{title}</div>
           <div className="si-center-sub">{subtitle}</div>
         </div>
+
+        {/* Graha drishti (aspect) lines. Aspect houses are 1-based from the Lagna;
+            convert to the fixed sign, then to its cell centre. The overlay uses a
+            0..4 grid so it scales with the chart (non-uniform-safe). */}
+        {showAspects && aspects && lagna && (
+          <svg
+            className="si-aspect-overlay"
+            viewBox="0 0 4 4"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            {aspects.flatMap((a) => {
+              const data = planets[a.planet];
+              if (!data || !data.house) return [];
+              if (focusPlanet && focusPlanet !== a.planet) return [];
+              const src = cellCenter(data.house);
+              if (!src) return [];
+              const color = ASPECT_COLORS[a.planet] || "#37474f";
+              return (a.aspects_houses || []).map((h) => {
+                const sign = ((lagna.house - 1 + (h.house - 1)) % 12) + 1;
+                const tgt = cellCenter(sign);
+                if (!tgt) return null;
+                // Weight the line by aspect strength (0-100%).
+                const f = Math.max(0, Math.min(100, h.strength || 0)) / 100;
+                const width = (focusPlanet ? 1.4 : 0.8) + f * (focusPlanet ? 2.0 : 1.4);
+                const opacity = (focusPlanet ? 0.4 : 0.18) + f * (focusPlanet ? 0.55 : 0.42);
+                return (
+                  <line
+                    key={`${a.planet}-${h.house}`}
+                    x1={src.x}
+                    y1={src.y}
+                    x2={tgt.x}
+                    y2={tgt.y}
+                    stroke={color}
+                    strokeWidth={width}
+                    strokeOpacity={opacity}
+                    strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                );
+              });
+            })}
+          </svg>
+        )}
       </div>
     </div>
   );

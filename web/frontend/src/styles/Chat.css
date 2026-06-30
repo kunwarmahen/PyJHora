@@ -1135,6 +1135,87 @@
   cursor: not-allowed;
 }
 
+/* Tri-state context-section rows (Seed / Tool / Off) */
+.ask-section-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.ask-section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  cursor: pointer;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--sandalwood);
+  background: white;
+  font-size: 0.8125rem;
+  width: 100%;
+  text-align: left;
+}
+.ask-section-row__label {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.ask-section-row__state {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.ask-section-row__state--seed {
+  background: rgba(255, 153, 51, 0.16);
+  color: var(--vermillion);
+}
+.ask-section-row__state--tool {
+  background: rgba(63, 81, 181, 0.12);
+  color: #3f51b5;
+}
+.ask-section-row__state--off {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-secondary);
+}
+.ask-section-row--off .ask-section-row__label {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+/* Per-question varga suggestion chips above the composer */
+.varga-suggest-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+.varga-suggest-row__hint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.varga-suggest-chip {
+  cursor: pointer;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--saffron);
+  background: rgba(255, 153, 51, 0.08);
+  color: var(--vermillion);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.varga-suggest-chip:hover {
+  background: rgba(255, 153, 51, 0.18);
+}
+.varga-suggest-chip__sig {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
 .ask-error {
   display: flex;
   align-items: center;

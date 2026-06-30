@@ -11,6 +11,7 @@ import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { DataField } from "../components/DataField";
 import { GlossaryTerm } from "../components/GlossaryTerm";
+import { AspectsCard } from "../components/AspectsCard";
 import { AYANAMSAS, DEFAULT_AYANAMSA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
@@ -37,6 +38,7 @@ export const AdvancedPage = () => {
   const [av, setAv] = useState(null);
   const [details, setDetails] = useState(null);
   const [shadbala, setShadbala] = useState(null);
+  const [aspects, setAspects] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -72,10 +74,11 @@ export const AdvancedPage = () => {
     setAv(null);
     setDetails(null);
     setShadbala(null);
+    setAspects(null);
     let cancelled = false;
-    const done = { av: false, d: false, sb: false };
+    const done = { av: false, d: false, sb: false, asp: false };
     const settle = () => {
-      if (!cancelled && done.av && done.d && done.sb) setLoading(false);
+      if (!cancelled && done.av && done.d && done.sb && done.asp) setLoading(false);
     };
     astrologyService
       .getAshtakavarga(birthDetails, ayanamsa)
@@ -99,6 +102,14 @@ export const AdvancedPage = () => {
       .catch((e) => !cancelled && setError(e.response?.data?.detail || ""))
       .finally(() => {
         done.sb = true;
+        settle();
+      });
+    astrologyService
+      .getAspects(birthDetails, ayanamsa)
+      .then((r) => !cancelled && setAspects(r.data?.planets || null))
+      .catch(() => {})
+      .finally(() => {
+        done.asp = true;
         settle();
       });
     return () => {
@@ -281,6 +292,9 @@ export const AdvancedPage = () => {
                 </div>
               </Card>
             )}
+
+            {/* Graha Drishti (aspects) — table only (no chart on this page) */}
+            <AspectsCard aspects={aspects} />
           </>
         )}
       </div>

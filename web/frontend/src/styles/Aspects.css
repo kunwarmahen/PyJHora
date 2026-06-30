@@ -1,0 +1,117 @@
+/* Graha Drishti (aspects) card + table, and the South-chart line overlay. */
+
+.aspects-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+.aspects-card__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.aspects-card__foot {
+  margin-top: var(--space-sm);
+  font-style: italic;
+}
+
+.aspects-table-wrap {
+  overflow-x: auto;
+}
+.aspects-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.aspects-table th,
+.aspects-table td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--sandalwood);
+}
+.aspects-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
+.aspects-row {
+  transition: background 0.15s ease;
+  cursor: default;
+}
+.aspects-row:hover,
+.aspects-row.is-active {
+  background: rgba(255, 153, 51, 0.1);
+}
+.aspects-graha {
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  white-space: nowrap;
+}
+.aspects-special {
+  margin-left: 4px;
+  color: var(--saffron);
+}
+.aspects-pl-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.aspects-pl {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.aspects-rasi {
+  color: var(--text-secondary);
+}
+
+/* "Show on chart" toggle reused in the card header / chart controls */
+.aspect-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--sandalwood);
+  background: white;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.aspect-toggle.is-active {
+  border-color: var(--saffron);
+  background: rgba(255, 153, 51, 0.12);
+  color: var(--vermillion);
+}
+
+.aspect-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+.aspect-controls__hint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* South-Indian chart aspect-line overlay (fills the relative .si-grid) */
+.si-aspect-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}

@@ -358,6 +358,19 @@
     "calcPeriods": "Calculating periods…",
     "loadDashaError": "Failed to load dasha"
   },
+  "aspects": {
+    "title": "Aspects (Graha Drishti)",
+    "intro": "Which planets and houses each graha casts its aspect (drishti) on, with the aspect strength.",
+    "graha": "Graha",
+    "houses": "Aspects houses",
+    "planets": "Aspects planets",
+    "rasiDrishti": "Rasi drishti",
+    "specialTip": "Has special aspects (Mars 4/8, Jupiter 5/9, Saturn 3/10)",
+    "note": "★ = special aspects. Strength is the Parashari sphuta drishti (0–100%); 100 = a full/exact aspect, lower = partial.",
+    "showOnChart": "Show aspects on chart",
+    "hideOnChart": "Hide aspects",
+    "hoverHint": "Hover a graha in the table below to highlight just its aspects."
+  },
   "advanced": {
     "title": "Advanced Details",
     "subtitle": "Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas & Shadbala",

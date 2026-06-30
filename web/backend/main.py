@@ -588,6 +588,27 @@ async def get_ashtakavarga(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/astrology/aspects")
+async def get_aspects(
+    birth_details: BirthDetails,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user)
+):
+    """Graha drishti (planetary aspects) + rasi drishti + sphuta aspect strength."""
+    try:
+        result = AstrologyCompute.get_aspects(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, ayanamsa=ayanamsa,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/astrology/chart-details")
 async def get_chart_details(
     birth_details: BirthDetails,
@@ -873,7 +894,9 @@ async def ask_question(
             parts = []
             async for ev in llm_service.run_tool_loop(
                     seed_block, request.question, history, cfg, bd,
-                    request.ayanamsa or DEFAULT_AYANAMSA, usage=usage):
+                    request.ayanamsa or DEFAULT_AYANAMSA,
+                    tool_names=tool_registry.tool_names_for_sections(request.sections),
+                    usage=usage):
                 et = ev.get("type")
                 if et == "token":
                     parts.append(ev["text"])
@@ -1024,7 +1047,9 @@ async def ask_question_stream(
                 bd = request.birth_details.model_dump()
                 async for ev in llm_service.run_tool_loop(
                         seed_block, request.question, history, cfg, bd,
-                        request.ayanamsa or DEFAULT_AYANAMSA, usage=usage):
+                        request.ayanamsa or DEFAULT_AYANAMSA,
+                        tool_names=tool_registry.tool_names_for_sections(request.sections),
+                        usage=usage):
                     et = ev.get("type")
                     if et == "token":
                         parts.append(ev["text"])

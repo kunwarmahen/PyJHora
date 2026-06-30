@@ -8,7 +8,8 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Frontend**: React SPA with responsive UI
 - **Authentication**: User registration and login with JWT tokens
 - **Features**: Birth Chart (Rasi D1 + Navamsa D9), divisional charts D1–D60, Panchanga,
-  Yogas/Doshas, Vimsottari Dhasa (+ Ashtottari/Yogini/Narayana/Kalachakra), Transits,
+  Yogas/Doshas, Graha Drishti (aspects, with strength-weighted lines on the chart),
+  Vimsottari Dhasa (+ Ashtottari/Yogini/Narayana/Kalachakra), Transits,
   Sarvatobhadra Chakra (with layman AI reading), Compatibility, and an Advanced page
   (Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala)
 - **AI Integration**: Multi-model LLM support (Ollama/local, OpenAI-compatible, Gemini, ChatGPT)
@@ -29,10 +30,11 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   (prompt + completion breakdown on hover), captured from Ollama, OpenAI/-compatible
   and Gemini streams
 - **Rich, transparent context**: D1 + chosen divisional charts (vargas), the running
-  Vimsottari dasha chain, yogas, doshas, current transits, Sarva Ashtakavarga and
-  Shadbala strengths — view the exact data sent
+  Vimsottari dasha chain, yogas, doshas, graha drishti (aspects), current transits,
+  Sarva Ashtakavarga and Shadbala strengths — view the exact data sent
 - **Two answer modes** (per conversation): **Full context** pre-sends the whole chart,
   or **Smart lookup** sends a small seed and lets the model fetch what it needs on demand
+  — with a **per-section Seed / Tool / Off** control over what is pre-sent vs fetched
   (dasha, yogas, doshas, transits, vargas, ashtakavarga, shadbala, panchanga) — the
   tool-call steps show inline in the transcript. See
   [`docs/AI_TOOL_CALLING_DESIGN.md`](docs/AI_TOOL_CALLING_DESIGN.md)
@@ -299,6 +301,9 @@ REACT_APP_API_TIMEOUT=30000
 - Divisional (varga) charts D1–D60 with a picker
 - North / South Indian chart styles, selectable ayanamsa
 - Yogas & Doshas surfaced as cards
+- Graha Drishti (aspects) card + optional aspect lines drawn on the Rasi chart
+  (per-graha colour, **width/opacity weighted by aspect strength**); a show/hide
+  toggle, and hover a graha to focus just its aspects
 - Panchanga (daily almanac) panel: tithi, vaara, nakshatra, yoga, karana plus
   sunrise/sunset and rahu kalam / yamaganda / gulika / abhijit / durmuhurtam,
   with a date picker and a Birth-place / Current-location (geolocation) toggle
@@ -356,6 +361,9 @@ REACT_APP_API_TIMEOUT=30000
   (Sree/Indu/Bhrigu Bindu/Pranapada/Kunda), Upagrahas (Gulika/Maandi + the 5 solar)
 - **Shadbala**: six-fold planetary strength (sthana/kaala/dig/cheshta/naisargika/drik)
   with total rupa, required rupa, ratio and rank for Sun–Saturn
+- **Graha Drishti (aspects)**: per-graha table of the houses & planets each graha
+  aspects (incl. the Mars 4/8, Jupiter 5/9, Saturn 3/10 special aspects) plus rasi
+  drishti, with the Parashari sphuta strength (0–100%)
 - Each section loads independently and respects the selected ayanamsa
 
 ### 9. Export & Share
