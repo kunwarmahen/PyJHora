@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import ReactMarkdown from "react-markdown";
 import { Heart, User, Users, Sparkles, GitCompareArrows } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
-import { formatDate, orDash } from "../utils/format";
+import { formatDate, orDash, errorMessage } from "../utils/format";
 import { astrologyService } from "../services/api";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBanner } from "../components/ErrorBanner";
@@ -109,7 +110,7 @@ export const CompatibilityPage = () => {
       setChartA(ra.data);
       setChartB(rb.data);
     } catch (err) {
-      setError(err.response?.data?.detail || t("compat.calcError"));
+      setError(errorMessage(err, t("compat.calcError")));
     } finally {
       setLoading(false);
     }
@@ -128,7 +129,7 @@ export const CompatibilityPage = () => {
       setAiAnalysis(response.data.ai_analysis || "");
       setAiModel(response.data.model || response.data.provider || "");
     } catch (err) {
-      setAiError(err.response?.data?.detail || t("compat.aiError"));
+      setAiError(errorMessage(err, t("compat.aiError")));
     } finally {
       setAiLoading(false);
     }
@@ -667,6 +668,7 @@ export const CompatibilityPage = () => {
 
               {aiAnalysis && !aiLoading && (
                 <div
+                  className="sbc-ai-markdown"
                   style={{
                     padding: "var(--space-md)",
                     background: "white",
@@ -674,11 +676,10 @@ export const CompatibilityPage = () => {
                     fontSize: "1rem",
                     lineHeight: "1.8",
                     color: "var(--cosmic-indigo)",
-                    whiteSpace: "pre-wrap",
                     marginBottom: "var(--space-md)",
                   }}
                 >
-                  {aiAnalysis}
+                  <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
                   {aiModel && (
                     <div
                       style={{

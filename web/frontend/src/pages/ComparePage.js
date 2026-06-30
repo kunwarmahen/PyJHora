@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import ReactMarkdown from "react-markdown";
 import { GitCompareArrows, Users, Sparkles } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
+import { errorMessage } from "../utils/format";
 import { astrologyService } from "../services/api";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBanner } from "../components/ErrorBanner";
@@ -114,7 +116,7 @@ export const ComparePage = () => {
         setChartB(rb.data);
       })
       .catch((e) => {
-        if (!cancelled) setError(e.response?.data?.detail || t("compare.calcError"));
+        if (!cancelled) setError(errorMessage(e, t("compare.calcError")));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -139,7 +141,7 @@ export const ComparePage = () => {
       setAiAnalysis(response.data.ai_analysis || "");
       setAiModel(response.data.model || response.data.provider || "");
     } catch (err) {
-      setAiError(err.response?.data?.detail || t("compare.aiError"));
+      setAiError(errorMessage(err, t("compare.aiError")));
     } finally {
       setAiLoading(false);
     }
@@ -292,6 +294,7 @@ export const ComparePage = () => {
 
               {aiAnalysis && !aiLoading && (
                 <div
+                  className="sbc-ai-markdown"
                   style={{
                     padding: "var(--space-md)",
                     background: "white",
@@ -299,11 +302,10 @@ export const ComparePage = () => {
                     fontSize: "1rem",
                     lineHeight: "1.8",
                     color: "var(--cosmic-indigo)",
-                    whiteSpace: "pre-wrap",
                     marginBottom: "var(--space-md)",
                   }}
                 >
-                  {aiAnalysis}
+                  <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
                   {aiModel && (
                     <div
                       style={{

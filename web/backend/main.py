@@ -77,6 +77,24 @@ class ShareRequest(BaseModel):
     profile_name: Optional[str] = None
 
 
+class CompatibilityRequest(BaseModel):
+    """Ashtakoot compatibility scoring. Flat birth fields for both partners —
+    sent as a JSON body by the frontend (these were previously declared as bare
+    function args, which FastAPI treated as query params)."""
+    male_dob: str
+    male_tob: str
+    male_place: str
+    female_dob: str
+    female_tob: str
+    female_place: str
+    male_latitude: Optional[float] = None
+    male_longitude: Optional[float] = None
+    male_timezone: Optional[float] = None
+    female_latitude: Optional[float] = None
+    female_longitude: Optional[float] = None
+    female_timezone: Optional[float] = None
+    use_qwen: bool = False
+
 class CompatibilityAnalysisRequest(BaseModel):
     male_details: BirthDetails
     female_details: BirthDetails
@@ -691,47 +709,35 @@ async def get_transits(
 
 @app.post("/api/astrology/compatibility")
 async def get_compatibility(
-    male_dob: str,
-    male_tob: str,
-    male_place: str,
-    female_dob: str,
-    female_tob: str,
-    female_place: str,
-    male_latitude: Optional[float] = None,
-    male_longitude: Optional[float] = None,
-    male_timezone: Optional[float] = None,
-    female_latitude: Optional[float] = None,
-    female_longitude: Optional[float] = None,
-    female_timezone: Optional[float] = None,
-    use_qwen: bool = False,
+    request: CompatibilityRequest,
     current_user: str = Depends(get_current_user)
 ):
     """Calculate compatibility"""
     try:
         compatibility = AstrologyCompute.get_compatibility(
-            male_dob=male_dob,
-            male_tob=male_tob,
-            male_place=male_place,
-            male_lat=male_latitude,
-            male_lon=male_longitude,
-            female_dob=female_dob,
-            female_tob=female_tob,
-            female_place=female_place,
-            female_lat=female_latitude,
-            female_lon=female_longitude,
-            male_tz=male_timezone,
-            female_tz=female_timezone,
-            tz=male_timezone or female_timezone or 5.5
+            male_dob=request.male_dob,
+            male_tob=request.male_tob,
+            male_place=request.male_place,
+            male_lat=request.male_latitude,
+            male_lon=request.male_longitude,
+            female_dob=request.female_dob,
+            female_tob=request.female_tob,
+            female_place=request.female_place,
+            female_lat=request.female_latitude,
+            female_lon=request.female_longitude,
+            male_tz=request.male_timezone,
+            female_tz=request.female_timezone,
+            tz=request.male_timezone or request.female_timezone or 5.5
         )
 
-        if use_qwen and settings.USE_QWEN:
+        if request.use_qwen and settings.USE_QWEN:
             chart1 = AstrologyCompute.get_horoscope_predictions(
-                male_dob, male_tob, male_place,
-                lat=male_latitude, lon=male_longitude, tz=male_timezone
+                request.male_dob, request.male_tob, request.male_place,
+                lat=request.male_latitude, lon=request.male_longitude, tz=request.male_timezone
             )
             chart2 = AstrologyCompute.get_horoscope_predictions(
-                female_dob, female_tob, female_place,
-                lat=female_latitude, lon=female_longitude, tz=female_timezone
+                request.female_dob, request.female_tob, request.female_place,
+                lat=request.female_latitude, lon=request.female_longitude, tz=request.female_timezone
             )
             qwen_analysis = await QwenPredictor.generate_compatibility_prediction(
                 chart1, chart2, compatibility.get("total_score", 0)

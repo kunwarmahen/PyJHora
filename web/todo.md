@@ -842,6 +842,22 @@ usage capture).
       answered; the reading is cleared whenever the pairing changes. i18n: `compare.aiTitle/
       aiHint/aiLoading/aiModel/aiGenerate/aiRegenerate/aiError` in en/hi/sa. Verified: backend
       compiles + route registered + prompt builds, frontend lint clean, locale JSON valid.
+- [x] DONE 2026-06-29: **fixed the Compatibility "Check" crash + markdown parity.** Two bugs:
+      (1) the page crashed with *"Objects are not valid as a React child (found: object with
+      keys {type, loc, msg, input, url})"* — FastAPI 422 responses put `detail` as an **array
+      of validation objects**, and several pages did `setError(err.response?.data?.detail)`,
+      handing that array straight to React. Added `errorMessage(err, fallback)` in
+      `utils/format.js` that flattens any detail shape (string / array of `{msg,...}` / object)
+      into a readable string; routed all Compatibility + Compare catch blocks through it.
+      (2) Under that, the real failure surfaced: `POST /api/astrology/compatibility` declared
+      its birth fields as **bare function args**, so FastAPI treated them as **query params**
+      while the frontend sent a JSON body → six `"Field required"`. Added a `CompatibilityRequest`
+      Pydantic model (flat keys matching the existing `services/api.js` payload) and switched the
+      endpoint to accept it as the request body. (3) Markdown parity: the Compatibility + Compare
+      AI readings rendered raw text in a `white-space: pre-wrap` div; both now use `<ReactMarkdown>`
+      with the shared `sbc-ai-markdown` styles, matching the Sarvatobhadra reading. Verified:
+      `main.py` parses, both pages lint clean. NOTE: restart the backend to pick up the new route
+      signature.
 
 ## Sarvatobhadra Chakra — transit grid + layman AI reading (DONE 2026-06-29)
 
