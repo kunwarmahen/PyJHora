@@ -14,6 +14,7 @@ import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
 import { DEFAULT_AYANAMSA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
+import "../styles/Shared.css";
 
 // Read the model config the user already picked in "Ask Astrologer". The server
 // resolves the actual API key (per-user stored key → env key), so we only need
@@ -156,95 +157,30 @@ export const CompatibilityPage = () => {
         <ErrorBanner message={error} />
 
         {/* Profile Selection Card */}
-        <div
-          style={{
-            background: "white",
-            borderRadius: "var(--radius-xl)",
-            padding: "var(--space-xl)",
-            marginBottom: "var(--space-xl)",
-            boxShadow: "var(--shadow-lg)",
-            borderTop: "4px solid var(--saffron)",
-            animation: "fadeIn 0.6s ease-out",
-          }}
-        >
-          <h3
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-sm)",
-              marginBottom: "var(--space-lg)",
-              color: "var(--cosmic-indigo)",
-              fontSize: "1.5rem",
-            }}
-          >
-            <Users size={24} style={{ color: "var(--saffron)" }} />
+        <div className="ui-card ui-card--accent fade-in">
+          <h3 className="ui-card-header">
+            <Users size={24} />
             {t("compat.selectProfiles")}
           </h3>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-              gap: "var(--space-lg)",
-            }}
-          >
+          <div className="person-grid">
             {/* Person 1 - Selected Profile */}
-            <div
-              style={{
-                padding: "var(--space-lg)",
-                background:
-                  "linear-gradient(135deg, rgba(255, 153, 51, 0.05) 0%, rgba(255, 153, 51, 0.15) 100%)",
-                borderRadius: "var(--radius-lg)",
-                border: "2px solid var(--saffron)",
-              }}
-            >
-              <h4
-                style={{
-                  color: "var(--saffron)",
-                  marginBottom: "var(--space-md)",
-                  fontSize: "1.125rem",
-                  fontWeight: 700,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-sm)",
-                }}
-              >
+            <div className="compat-person compat-person--a">
+              <h4 className="compat-person__head">
                 <User size={20} /> {t("compare.person1")}
               </h4>
-              <div
-                style={{
-                  padding: "var(--space-md)",
-                  background: "white",
-                  borderRadius: "var(--radius-md)",
-                  border: "1px solid var(--sandalwood)",
-                }}
-              >
-                <p
-                  style={{
-                    margin: "0 0 var(--space-sm) 0",
-                    fontWeight: 600,
-                    color: "var(--cosmic-indigo)",
-                    fontSize: "1.125rem",
-                  }}
-                >
-                  {selectedProfile.profile_name}
-                </p>
-                <div
-                  style={{
-                    fontSize: "0.875rem",
-                    color: "var(--text-secondary)",
-                    lineHeight: "1.6",
-                  }}
-                >
-                  <div style={{ marginBottom: "var(--space-xs)" }}>
+              <div className="compat-person__card">
+                <p className="compat-person__name">{selectedProfile.profile_name}</p>
+                <div className="detail-list">
+                  <div>
                     <strong>{t("common.name")}:</strong>{" "}
                     {selectedProfile.birth_details.name || t("common.anonymous")}
                   </div>
-                  <div style={{ marginBottom: "var(--space-xs)" }}>
+                  <div>
                     <strong>{t("common.dateOfBirth")}:</strong>{" "}
                     {formatDate(selectedProfile.birth_details.dob)}
                   </div>
-                  <div style={{ marginBottom: "var(--space-xs)" }}>
+                  <div>
                     <strong>{t("common.timeOfBirth")}:</strong>{" "}
                     {orDash(selectedProfile.birth_details.tob)}
                   </div>
@@ -257,57 +193,18 @@ export const CompatibilityPage = () => {
             </div>
 
             {/* Person 2 - Select from profiles */}
-            <div
-              style={{
-                padding: "var(--space-lg)",
-                background:
-                  "linear-gradient(135deg, rgba(227, 66, 52, 0.05) 0%, rgba(227, 66, 52, 0.15) 100%)",
-                borderRadius: "var(--radius-lg)",
-                border: "2px solid var(--vermillion)",
-              }}
-            >
-              <h4
-                style={{
-                  color: "var(--vermillion)",
-                  marginBottom: "var(--space-md)",
-                  fontSize: "1.125rem",
-                  fontWeight: 700,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-sm)",
-                }}
-              >
+            <div className="compat-person compat-person--b">
+              <h4 className="compat-person__head">
                 <User size={20} /> {t("compare.person2")}
               </h4>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "var(--space-sm)",
-                  fontWeight: 600,
-                  color: "var(--cosmic-indigo)",
-                  fontSize: "0.875rem",
-                }}
-              >
-                {t("compat.selectToCompare")}
-              </label>
+              <label className="compat-person__select-label">{t("compat.selectToCompare")}</label>
               <select
+                className="form-select"
                 value={secondProfile?._id || ""}
                 onChange={(e) => {
                   const profile = profiles.find((p) => p._id === e.target.value);
                   setSecondProfile(profile || null);
                   resetResults();
-                }}
-                style={{
-                  width: "100%",
-                  padding: "var(--space-md)",
-                  borderRadius: "var(--radius-md)",
-                  border: "2px solid var(--sandalwood)",
-                  fontSize: "1rem",
-                  fontFamily: "inherit",
-                  background: "white",
-                  color: "var(--cosmic-indigo)",
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
                 }}
               >
                 <option value="">{t("compat.selectPlaceholder")}</option>
@@ -321,42 +218,18 @@ export const CompatibilityPage = () => {
               </select>
 
               {secondProfile && (
-                <div
-                  style={{
-                    marginTop: "var(--space-md)",
-                    padding: "var(--space-md)",
-                    background: "white",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--sandalwood)",
-                    animation: "fadeIn 0.3s ease-out",
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: "0 0 var(--space-sm) 0",
-                      fontWeight: 600,
-                      color: "var(--cosmic-indigo)",
-                      fontSize: "1.125rem",
-                    }}
-                  >
-                    {secondProfile.profile_name}
-                  </p>
-                  <div
-                    style={{
-                      fontSize: "0.875rem",
-                      color: "var(--text-secondary)",
-                      lineHeight: "1.6",
-                    }}
-                  >
-                    <div style={{ marginBottom: "var(--space-xs)" }}>
+                <div className="compat-person__card is-spaced">
+                  <p className="compat-person__name">{secondProfile.profile_name}</p>
+                  <div className="detail-list">
+                    <div>
                       <strong>{t("common.name")}:</strong>{" "}
                       {secondProfile.birth_details.name || t("common.anonymous")}
                     </div>
-                    <div style={{ marginBottom: "var(--space-xs)" }}>
+                    <div>
                       <strong>{t("common.dateOfBirth")}:</strong>{" "}
                       {formatDate(secondProfile.birth_details.dob)}
                     </div>
-                    <div style={{ marginBottom: "var(--space-xs)" }}>
+                    <div>
                       <strong>{t("common.timeOfBirth")}:</strong>{" "}
                       {orDash(secondProfile.birth_details.tob)}
                     </div>
@@ -372,38 +245,10 @@ export const CompatibilityPage = () => {
 
           {/* Calculate Button */}
           <button
+            className="ui-btn ui-btn--primary ui-btn--block ui-btn--lg"
+            style={{ marginTop: "var(--space-lg)" }}
             onClick={handleCalculate}
             disabled={loading || !secondProfile}
-            style={{
-              marginTop: "var(--space-lg)",
-              width: "100%",
-              padding: "var(--space-lg)",
-              background: secondProfile
-                ? "linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%)"
-                : "var(--sandalwood)",
-              color: "white",
-              border: "none",
-              borderRadius: "var(--radius-lg)",
-              fontSize: "1.125rem",
-              fontWeight: 700,
-              cursor: secondProfile ? "pointer" : "not-allowed",
-              boxShadow: secondProfile ? "var(--shadow-lg)" : "none",
-              transition: "all 0.3s ease",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "var(--space-sm)",
-            }}
-            onMouseOver={(e) => {
-              if (secondProfile) {
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow = "0 8px 24px rgba(255, 153, 51, 0.4)";
-              }
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = secondProfile ? "var(--shadow-lg)" : "none";
-            }}
           >
             <Heart size={20} />
             {loading ? t("compat.calculating") : t("compat.check")}
@@ -419,90 +264,24 @@ export const CompatibilityPage = () => {
 
         {/* Results */}
         {result && !loading && (
-          <div
-            style={{
-              background: "white",
-              borderRadius: "var(--radius-xl)",
-              padding: "var(--space-xl)",
-              boxShadow: "var(--shadow-lg)",
-              borderTop: "4px solid var(--saffron)",
-              animation: "fadeIn 0.6s ease-out",
-            }}
-          >
-            <h3
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-sm)",
-                marginBottom: "var(--space-lg)",
-                color: "var(--cosmic-indigo)",
-                fontSize: "1.5rem",
-              }}
-            >
-              <Heart size={24} style={{ color: "var(--saffron)" }} />
+          <div className="ui-card ui-card--accent fade-in">
+            <h3 className="ui-card-header">
+              <Heart size={24} />
               {t("compat.results")}
             </h3>
 
             {/* Total Score Display */}
-            <div
-              style={{
-                padding: "var(--space-xl)",
-                background:
-                  "linear-gradient(135deg, rgba(255, 153, 51, 0.1) 0%, rgba(227, 66, 52, 0.1) 100%)",
-                borderRadius: "var(--radius-lg)",
-                marginBottom: "var(--space-xl)",
-                textAlign: "center",
-                border: "2px solid var(--saffron)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "0.875rem",
-                  color: "var(--text-secondary)",
-                  marginBottom: "var(--space-sm)",
-                  textTransform: "uppercase",
-                  letterSpacing: "1px",
-                  fontWeight: 600,
-                }}
-              >
-                {t("compat.totalScore")}
-              </div>
-              <div
-                style={{
-                  fontSize: "4rem",
-                  fontWeight: 700,
-                  background: "linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  marginBottom: "var(--space-sm)",
-                }}
-              >
+            <div className="score-box">
+              <div className="score-box__label">{t("compat.totalScore")}</div>
+              <div className="score-box__value">
                 {result.total_score}
-                <span style={{ fontSize: "2rem" }}>/{result.max_score || 36}</span>
+                <span className="score-box__value-max">/{result.max_score || 36}</span>
               </div>
-              <div
-                style={{
-                  padding: "var(--space-md)",
-                  background: "white",
-                  borderRadius: "var(--radius-md)",
-                  display: "inline-block",
-                  boxShadow: "var(--shadow-sm)",
-                }}
-              >
-                <span
-                  style={{ fontWeight: 700, color: "var(--cosmic-indigo)", fontSize: "1.125rem" }}
-                >
-                  {t("compat.status")}: {result.status}
-                </span>
+              <div className="score-box__status">
+                {t("compat.status")}: {result.status}
               </div>
               {(result.boy?.nakshatra || result.girl?.nakshatra) && (
-                <div
-                  style={{
-                    marginTop: "var(--space-md)",
-                    fontSize: "0.875rem",
-                    color: "var(--text-secondary)",
-                  }}
-                >
+                <div className="score-box__nakshatras">
                   {nameA}: {result.boy?.nakshatra} ({t("compat.pada")} {result.boy?.pada}) &nbsp;•&nbsp;{" "}
                   {nameB}: {result.girl?.nakshatra} ({t("compat.pada")} {result.girl?.pada})
                 </div>
@@ -510,101 +289,35 @@ export const CompatibilityPage = () => {
             </div>
 
             {/* Ashtakoot Breakdown */}
-            <h4
-              style={{
-                color: "var(--cosmic-indigo)",
-                marginBottom: "var(--space-md)",
-                fontSize: "1.25rem",
-                fontWeight: 700,
-              }}
-            >
-              {t("compat.breakdown")}
-            </h4>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-                gap: "var(--space-md)",
-                marginBottom: "var(--space-xl)",
-              }}
-            >
-              {(result.kootas || []).map((koota) => (
-                <div
-                  key={koota.key}
-                  title={koota.description}
-                  style={{
-                    padding: "var(--space-md)",
-                    background: "var(--sacred-white)",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--sandalwood)",
-                    textAlign: "center",
-                    transition: "all 0.3s ease",
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow = "var(--shadow-md)";
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "0.75rem",
-                      color: "var(--text-secondary)",
-                      marginBottom: "var(--space-xs)",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {koota.name}
+            <h4 className="card-subhead">{t("compat.breakdown")}</h4>
+            <div className="koota-grid">
+              {(result.kootas || []).map((koota) => {
+                const tier =
+                  koota.score >= koota.max * 0.7
+                    ? "good"
+                    : koota.score >= koota.max * 0.4
+                      ? "mid"
+                      : "low";
+                return (
+                  <div key={koota.key} className="koota-card" title={koota.description}>
+                    <div className="koota-card__name">{koota.name}</div>
+                    <div className={`koota-card__score koota-card__score--${tier}`}>
+                      {koota.score}
+                    </div>
+                    <div className="koota-card__max">{t("compat.outOf", { max: koota.max })}</div>
                   </div>
-                  <div
-                    style={{
-                      fontSize: "1.5rem",
-                      fontWeight: 700,
-                      color:
-                        koota.score >= koota.max * 0.7
-                          ? "var(--emerald-green)"
-                          : koota.score >= koota.max * 0.4
-                            ? "var(--saffron)"
-                            : "var(--vermillion)",
-                    }}
-                  >
-                    {koota.score}
-                  </div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                    {t("compat.outOf", { max: koota.max })}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Side-by-side charts for visual comparison */}
             {chartA && chartB && (
               <>
-                <h4
-                  style={{
-                    color: "var(--cosmic-indigo)",
-                    marginBottom: "var(--space-md)",
-                    fontSize: "1.25rem",
-                    fontWeight: 700,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-sm)",
-                  }}
-                >
-                  <GitCompareArrows size={20} style={{ color: "var(--saffron)" }} />
+                <h4 className="card-subhead">
+                  <GitCompareArrows size={20} />
                   {t("compat.charts")}
                 </h4>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-                    gap: "var(--space-xl)",
-                    marginBottom: "var(--space-xl)",
-                  }}
-                >
+                <div className="chart-grid" style={{ marginBottom: "var(--space-xl)" }}>
                   <Card title={nameA} accent="saffron">
                     <Kundali
                       planets={chartA.planets}
@@ -626,94 +339,29 @@ export const CompatibilityPage = () => {
             )}
 
             {/* AI Analysis (on-demand) */}
-            <div
-              style={{
-                padding: "var(--space-lg)",
-                background:
-                  "linear-gradient(135deg, rgba(52, 73, 94, 0.05) 0%, rgba(52, 73, 94, 0.1) 100%)",
-                borderRadius: "var(--radius-lg)",
-                border: "2px solid var(--cosmic-indigo)",
-              }}
-            >
-              <h4
-                style={{
-                  color: "var(--cosmic-indigo)",
-                  marginBottom: "var(--space-md)",
-                  fontSize: "1.25rem",
-                  fontWeight: 700,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-sm)",
-                }}
-              >
+            <div className="ai-panel">
+              <h4 className="ai-panel__title">
                 <Sparkles size={20} style={{ color: "var(--saffron)" }} />
                 {t("compat.aiAnalysis")}
               </h4>
 
               <ErrorBanner message={aiError} />
 
-              {!aiAnalysis && !aiLoading && (
-                <p
-                  style={{
-                    color: "var(--text-secondary)",
-                    marginBottom: "var(--space-md)",
-                    fontSize: "0.9rem",
-                  }}
-                >
-                  {t("compat.aiHint")}
-                </p>
-              )}
+              {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("compat.aiHint")}</p>}
 
               {aiLoading && <LoadingState message={t("compat.aiLoading")} />}
 
               {aiAnalysis && !aiLoading && (
-                <div
-                  className="sbc-ai-markdown"
-                  style={{
-                    padding: "var(--space-md)",
-                    background: "white",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "1rem",
-                    lineHeight: "1.8",
-                    color: "var(--cosmic-indigo)",
-                    marginBottom: "var(--space-md)",
-                  }}
-                >
+                <div className="sbc-ai-markdown ai-panel__reading">
                   <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
                   {aiModel && (
-                    <div
-                      style={{
-                        marginTop: "var(--space-md)",
-                        paddingTop: "var(--space-sm)",
-                        borderTop: "1px solid var(--sandalwood)",
-                        fontSize: "0.8rem",
-                        color: "var(--text-secondary)",
-                      }}
-                    >
-                      {t("compat.aiModel", { model: aiModel })}
-                    </div>
+                    <div className="ai-panel__meta">{t("compat.aiModel", { model: aiModel })}</div>
                   )}
                 </div>
               )}
 
               {!aiLoading && (
-                <button
-                  onClick={handleAiAnalysis}
-                  style={{
-                    padding: "var(--space-md) var(--space-lg)",
-                    background:
-                      "linear-gradient(135deg, var(--cosmic-indigo) 0%, var(--saffron) 100%)",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "1rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-sm)",
-                  }}
-                >
+                <button className="ui-btn ui-btn--ai" onClick={handleAiAnalysis}>
                   <Sparkles size={18} />
                   {aiAnalysis ? t("compat.aiRegenerate") : t("compat.aiGenerate")}
                 </button>

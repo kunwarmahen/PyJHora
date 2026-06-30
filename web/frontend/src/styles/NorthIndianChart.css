@@ -287,3 +287,10 @@
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
 }
+
+/* Inline share button inside the Chart Details card header */
+.chart-export-btn--inline {
+  margin-left: auto;
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+}

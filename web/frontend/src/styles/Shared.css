@@ -209,6 +209,22 @@
   background: rgba(255, 153, 51, 0.2);
 }
 
+/* Larger, prominent button (e.g. a page's primary action) */
+.ui-btn--lg {
+  font-size: 1.125rem;
+  padding: var(--space-lg);
+}
+/* AI-action button (indigo → saffron) used by the on-demand analysis panels */
+.ui-btn--ai {
+  background: linear-gradient(135deg, var(--cosmic-indigo) 0%, var(--saffron) 100%);
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+.ui-btn--ai:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
 .ui-btn--ghost {
   background: none;
   color: var(--cosmic-indigo);
@@ -549,6 +565,91 @@
 }
 .fw-700 {
   font-weight: 700;
+}
+
+/* Stacked label/value detail list (e.g. profile summary blocks) */
+.detail-list {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.detail-list > div {
+  margin-bottom: var(--space-xs);
+}
+.detail-list > div:last-child {
+  margin-bottom: 0;
+}
+
+/* Full-width form select */
+.form-select {
+  width: 100%;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--sandalwood);
+  font-size: 1rem;
+  font-family: inherit;
+  background: white;
+  color: var(--cosmic-indigo);
+  cursor: pointer;
+}
+
+/* On-demand AI analysis panel (Compatibility / Compare / Sarvatobhadra) */
+.ai-panel {
+  padding: var(--space-lg);
+  background: linear-gradient(135deg, rgba(52, 73, 94, 0.05) 0%, rgba(52, 73, 94, 0.1) 100%);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--cosmic-indigo);
+}
+.ai-panel__title {
+  color: var(--cosmic-indigo);
+  margin-bottom: var(--space-md);
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.ai-panel__hint {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+  font-size: 0.9rem;
+}
+.ai-panel__reading {
+  padding: var(--space-md);
+  background: white;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--cosmic-indigo);
+  margin-bottom: var(--space-md);
+}
+.ai-panel__meta {
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--sandalwood);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Subheading inside a results card */
+.card-subhead {
+  color: var(--cosmic-indigo);
+  margin-bottom: var(--space-md);
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* Inline "label: value" pair (label muted, value indigo/bold) */
+.kv-label {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+.kv-value {
+  color: var(--cosmic-indigo);
+  font-weight: 600;
 }
 
 /* Small note under a card/table */

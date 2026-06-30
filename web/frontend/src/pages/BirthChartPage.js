@@ -16,6 +16,7 @@ import { Card } from "../components/Card";
 import { DataField } from "../components/DataField";
 import { AYANAMSAS, DEFAULT_AYANAMSA, VARGAS, DEFAULT_VARGA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
+import "../styles/Shared.css";
 
 export const BirthChartPage = () => {
   const navigate = useNavigate();
@@ -189,18 +190,17 @@ export const BirthChartPage = () => {
             <LoadingState message={t("birthChart.loading")} />
           </Card>
         ) : result ? (
-          <div style={{ opacity: 0, animation: "fadeIn 0.6s ease-out forwards" }}>
+          <div className="fade-in">
             {/* Chart Details Card */}
             <Card
               title={t("birthChart.chartDetails")}
               icon={<Star size={24} />}
               actions={
                 <button
-                  className="chart-export-btn"
+                  className="chart-export-btn chart-export-btn--inline"
                   onClick={handleShare}
                   disabled={shareBusy}
                   title={t("birthChart.shareTitle")}
-                  style={{ marginLeft: "auto", padding: "6px 12px", fontSize: "0.8125rem" }}
                 >
                   {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
                   <span>
@@ -236,30 +236,13 @@ export const BirthChartPage = () => {
                 />
               </div>
               {shareUrl && (
-                <div
-                  style={{
-                    marginTop: "var(--space-lg)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-sm)",
-                    flexWrap: "wrap",
-                  }}
-                >
+                <div className="share-row">
                   <Copy size={14} style={{ color: "var(--saffron)", flexShrink: 0 }} />
                   <input
                     readOnly
+                    className="share-url-input"
                     value={shareUrl}
                     onFocus={(e) => e.target.select()}
-                    style={{
-                      flex: 1,
-                      minWidth: "220px",
-                      padding: "var(--space-sm) var(--space-md)",
-                      border: "1px solid var(--sandalwood)",
-                      borderRadius: "var(--radius-md)",
-                      background: "var(--sacred-white)",
-                      color: "var(--cosmic-indigo)",
-                      fontSize: "0.8125rem",
-                    }}
                   />
                 </div>
               )}
@@ -358,90 +341,32 @@ export const BirthChartPage = () => {
 
             {/* Nakshatra Information Section */}
             {result.lagna || result.d1_chart ? (
-              <div
-                style={{
-                  background: "white",
-                  borderRadius: "var(--radius-xl)",
-                  padding: "var(--space-xl)",
-                  marginTop: "var(--space-xl)",
-                  boxShadow: "var(--shadow-lg)",
-                  borderTop: "4px solid var(--saffron)",
-                }}
-              >
-                <h3
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-sm)",
-                    marginBottom: "var(--space-lg)",
-                    color: "var(--cosmic-indigo)",
-                    fontSize: "1.5rem",
-                  }}
-                >
-                  <Star size={24} style={{ color: "var(--saffron)" }} />
+              <div className="ui-card ui-card--accent ui-card--flush mt-xl">
+                <h3 className="ui-card-header">
+                  <Star size={24} />
                   {t("birthChart.nakshatraInfo")}
                 </h3>
 
                 {/* Lagna Nakshatra */}
                 {result.lagna && result.lagna.nakshatra && (
-                  <div
-                    style={{
-                      padding: "var(--space-lg)",
-                      background:
-                        "linear-gradient(135deg, rgba(255, 153, 51, 0.05) 0%, rgba(255, 153, 51, 0.15) 100%)",
-                      borderRadius: "var(--radius-lg)",
-                      marginBottom: "var(--space-lg)",
-                      border: "2px solid var(--saffron)",
-                    }}
-                  >
-                    <h4
-                      style={{
-                        color: "var(--saffron)",
-                        marginBottom: "var(--space-md)",
-                        fontSize: "1.125rem",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {t("birthChart.lagnaAscendant")}
-                    </h4>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                        gap: "var(--space-md)",
-                      }}
-                    >
+                  <div className="lagna-highlight">
+                    <h4>{t("birthChart.lagnaAscendant")}</h4>
+                    <div className="lagna-grid">
                       <div>
-                        <span style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                          {t("common.sign")}:{" "}
-                        </span>
-                        <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
-                          {result.lagna.sign_name}
-                        </span>
+                        <span className="kv-label">{t("common.sign")}: </span>
+                        <span className="kv-value">{result.lagna.sign_name}</span>
                       </div>
                       <div>
-                        <span style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                          {t("common.nakshatra")}:{" "}
-                        </span>
-                        <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
-                          {result.lagna.nakshatra}
-                        </span>
+                        <span className="kv-label">{t("common.nakshatra")}: </span>
+                        <span className="kv-value">{result.lagna.nakshatra}</span>
                       </div>
                       <div>
-                        <span style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                          {t("common.pada")}:{" "}
-                        </span>
-                        <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
-                          {result.lagna.nakshatra_pada}
-                        </span>
+                        <span className="kv-label">{t("common.pada")}: </span>
+                        <span className="kv-value">{result.lagna.nakshatra_pada}</span>
                       </div>
                       <div>
-                        <span style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
-                          {t("common.degrees")}:{" "}
-                        </span>
-                        <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
-                          {result.lagna.degrees}°
-                        </span>
+                        <span className="kv-label">{t("common.degrees")}: </span>
+                        <span className="kv-value">{result.lagna.degrees}°</span>
                       </div>
                     </div>
                   </div>
@@ -449,78 +374,30 @@ export const BirthChartPage = () => {
 
                 {/* Planetary Nakshatras */}
                 {result.d1_chart && (
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                      gap: "var(--space-md)",
-                    }}
-                  >
+                  <div className="nakshatra-grid">
                     {Object.entries(result.d1_chart).map(([planet, data]) => (
-                      <div
-                        key={planet}
-                        style={{
-                          padding: "var(--space-md)",
-                          background: "var(--sacred-white)",
-                          borderRadius: "var(--radius-md)",
-                          border: "1px solid var(--sandalwood)",
-                          transition: "all 0.3s ease",
-                        }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.transform = "translateY(-2px)";
-                          e.currentTarget.style.boxShadow = "var(--shadow-md)";
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.transform = "translateY(0)";
-                          e.currentTarget.style.boxShadow = "none";
-                        }}
-                      >
-                        <h5
-                          style={{
-                            color: "var(--saffron)",
-                            marginBottom: "var(--space-sm)",
-                            fontSize: "1rem",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {planet}
-                        </h5>
-                        <div style={{ fontSize: "0.875rem", lineHeight: "1.6" }}>
-                          <div style={{ marginBottom: "var(--space-xs)" }}>
-                            <span style={{ color: "var(--text-secondary)" }}>
-                              {t("common.sign")}:{" "}
-                            </span>
-                            <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
-                              {data.sign_name}
-                            </span>
+                      <div key={planet} className="nakshatra-card">
+                        <h5>{planet}</h5>
+                        <div className="nakshatra-card__body">
+                          <div>
+                            <span className="kv-label">{t("common.sign")}: </span>
+                            <span className="kv-value">{data.sign_name}</span>
                           </div>
                           {data.nakshatra && (
                             <>
-                              <div style={{ marginBottom: "var(--space-xs)" }}>
-                                <span style={{ color: "var(--text-secondary)" }}>
-                                  {t("common.nakshatra")}:{" "}
-                                </span>
-                                <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
-                                  {data.nakshatra}
-                                </span>
+                              <div>
+                                <span className="kv-label">{t("common.nakshatra")}: </span>
+                                <span className="kv-value">{data.nakshatra}</span>
                               </div>
-                              <div style={{ marginBottom: "var(--space-xs)" }}>
-                                <span style={{ color: "var(--text-secondary)" }}>
-                                  {t("common.pada")}:{" "}
-                                </span>
-                                <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
-                                  {data.nakshatra_pada}
-                                </span>
+                              <div>
+                                <span className="kv-label">{t("common.pada")}: </span>
+                                <span className="kv-value">{data.nakshatra_pada}</span>
                               </div>
                             </>
                           )}
                           <div>
-                            <span style={{ color: "var(--text-secondary)" }}>
-                              {t("common.degrees")}:{" "}
-                            </span>
-                            <span style={{ color: "var(--cosmic-indigo)", fontWeight: 600 }}>
-                              {data.degrees}°
-                            </span>
+                            <span className="kv-label">{t("common.degrees")}: </span>
+                            <span className="kv-value">{data.degrees}°</span>
                           </div>
                         </div>
                       </div>
@@ -540,27 +417,9 @@ export const BirthChartPage = () => {
 
             {/* Yogas */}
             {yogas && yogas.length > 0 && (
-              <div
-                style={{
-                  background: "white",
-                  borderRadius: "var(--radius-xl)",
-                  padding: "var(--space-xl)",
-                  marginTop: "var(--space-xl)",
-                  boxShadow: "var(--shadow-lg)",
-                  borderTop: "4px solid var(--saffron)",
-                }}
-              >
-                <h3
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-sm)",
-                    marginBottom: "var(--space-lg)",
-                    color: "var(--cosmic-indigo)",
-                    fontSize: "1.5rem",
-                  }}
-                >
-                  <Star size={24} style={{ color: "var(--saffron)" }} />
+              <div className="ui-card ui-card--accent ui-card--flush mt-xl">
+                <h3 className="ui-card-header">
+                  <Star size={24} />
                   {t("birthChart.yogas")}
                   <span className="section-count">
                     {t("birthChart.yogasFound", { count: yogas.length })}
@@ -585,27 +444,9 @@ export const BirthChartPage = () => {
 
             {/* Doshas */}
             {doshas && doshas.length > 0 && (
-              <div
-                style={{
-                  background: "white",
-                  borderRadius: "var(--radius-xl)",
-                  padding: "var(--space-xl)",
-                  marginTop: "var(--space-xl)",
-                  boxShadow: "var(--shadow-lg)",
-                  borderTop: "4px solid var(--saffron)",
-                }}
-              >
-                <h3
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-sm)",
-                    marginBottom: "var(--space-lg)",
-                    color: "var(--cosmic-indigo)",
-                    fontSize: "1.5rem",
-                  }}
-                >
-                  <Star size={24} style={{ color: "var(--saffron)" }} />
+              <div className="ui-card ui-card--accent ui-card--flush mt-xl">
+                <h3 className="ui-card-header">
+                  <Star size={24} />
                   {t("birthChart.doshas")}
                 </h3>
                 <div className="dosha-grid">

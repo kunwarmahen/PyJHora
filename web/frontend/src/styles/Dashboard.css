@@ -631,3 +631,75 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Birth Chart: nakshatra info + share link (lifted from inline styles) ── */
+.share-row {
+  margin-top: var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+.share-url-input {
+  flex: 1;
+  min-width: 220px;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-md);
+  background: var(--sacred-white);
+  color: var(--cosmic-indigo);
+  font-size: 0.8125rem;
+}
+
+.lagna-highlight {
+  padding: var(--space-lg);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 153, 51, 0.05) 0%,
+    rgba(255, 153, 51, 0.15) 100%
+  );
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-lg);
+  border: 2px solid var(--saffron);
+}
+.lagna-highlight h4 {
+  color: var(--saffron);
+  margin-bottom: var(--space-md);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.lagna-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+
+.nakshatra-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-md);
+}
+.nakshatra-card {
+  padding: var(--space-md);
+  background: var(--sacred-white);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--sandalwood);
+  transition: all 0.3s ease;
+}
+.nakshatra-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.nakshatra-card h5 {
+  color: var(--saffron);
+  margin-bottom: var(--space-sm);
+  font-size: 1rem;
+  font-weight: 700;
+}
+.nakshatra-card__body {
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.nakshatra-card__body > div {
+  margin-bottom: var(--space-xs);
+}
