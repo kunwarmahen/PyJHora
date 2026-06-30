@@ -1011,7 +1011,7 @@ Where the planets sit today: {planet_line}
 What the chakra flags right now (already computed — trust these):
 {findings_block}
 
-Write a clear, encouraging reading (about 250-350 words) with these parts:
+Write a clear, encouraging reading (about 500 words) with these parts:
 1. **The headline** — one or two sentences on the overall tone of this period for {name} (supportive, mixed, or a time for care).
 2. **What's being touched** — for each flagged planet above, say in everyday language what it tends to stir up and which life area (e.g. Saturn → patience, work, delays; Jupiter → growth, opportunity, optimism), tied to which sensitive point it hits.
 3. **What to expect & do** — 2-4 concrete, gentle suggestions for the weeks ahead.

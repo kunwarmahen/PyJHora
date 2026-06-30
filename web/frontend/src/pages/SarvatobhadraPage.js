@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import ReactMarkdown from "react-markdown";
 import { Grid3x3, Calendar, RotateCcw, Sparkles, Crosshair } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
@@ -641,6 +642,7 @@ export const SarvatobhadraPage = () => {
                 {aiLoading && <LoadingState message={t("sbc.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div
+                    className="sbc-ai-markdown"
                     style={{
                       padding: "var(--space-md)",
                       background: "white",
@@ -648,11 +650,10 @@ export const SarvatobhadraPage = () => {
                       fontSize: "1rem",
                       lineHeight: "1.8",
                       color: "var(--cosmic-indigo)",
-                      whiteSpace: "pre-wrap",
                       marginBottom: "var(--space-md)",
                     }}
                   >
-                    {aiAnalysis}
+                    <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
                     {aiModel && (
                       <div
                         style={{

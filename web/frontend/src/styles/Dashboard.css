@@ -588,3 +588,29 @@
   color: var(--cosmic-indigo);
   font-size: 0.95rem;
 }
+
+/* AI reading (markdown) on the Sarvatobhadra page — tidy default spacing */
+.sbc-ai-markdown > :first-child {
+  margin-top: 0;
+}
+.sbc-ai-markdown p {
+  margin: 0 0 var(--space-md);
+}
+.sbc-ai-markdown ul,
+.sbc-ai-markdown ol {
+  margin: 0 0 var(--space-md);
+  padding-left: 1.4rem;
+}
+.sbc-ai-markdown li {
+  margin-bottom: var(--space-xs);
+}
+.sbc-ai-markdown h1,
+.sbc-ai-markdown h2,
+.sbc-ai-markdown h3 {
+  margin: var(--space-md) 0 var(--space-sm);
+  color: var(--saffron);
+  font-size: 1.05rem;
+}
+.sbc-ai-markdown strong {
+  color: var(--cosmic-indigo);
+}
