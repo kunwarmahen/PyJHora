@@ -24,7 +24,8 @@ def _now_iso() -> str:
 async def create_conversation(user_id: str, profile_id: Optional[str],
                               title: str,
                               birth_details: Optional[Dict[str, Any]] = None,
-                              mode: str = "pass_all") -> str:
+                              mode: str = "pass_all",
+                              source: str = "astrologer") -> str:
     db = get_database()
     doc = {
         "user_id": user_id,
@@ -34,6 +35,9 @@ async def create_conversation(user_id: str, profile_id: Optional[str],
         # How answers in this thread are produced: "pass_all" (default) sends a
         # pre-assembled context block; "tools" lets the model fetch data on demand.
         "mode": mode if mode in ("pass_all", "tools") else "pass_all",
+        # Where the thread originated, so the Ask page can label/filter it:
+        # "astrologer" (the main Ask page) or "transit" (the Transits-page chat).
+        "source": source or "astrologer",
         "messages": [],
         "created_at": _now_iso(),
         "updated_at": _now_iso(),
@@ -134,6 +138,7 @@ async def list_conversations(user_id: str,
             "profile_id": c.get("profile_id"),
             "title": c.get("title"),
             "mode": c.get("mode", "pass_all"),
+            "source": c.get("source", "astrologer"),
             "message_count": len(msgs),
             "last_model": last_model,
             "created_at": c.get("created_at"),
@@ -160,6 +165,7 @@ def serialize_conversation(c: Optional[Dict[str, Any]]) -> Optional[Dict[str, An
         "profile_id": c.get("profile_id"),
         "title": c.get("title"),
         "mode": c.get("mode", "pass_all"),
+        "source": c.get("source", "astrologer"),
         "messages": c.get("messages", []),
         "created_at": c.get("created_at"),
         "updated_at": c.get("updated_at"),

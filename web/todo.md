@@ -553,9 +553,16 @@ workspace. **Decisions captured 2026-06-28** (owner answered the clarifying roun
 - [x] Frontend: **History** panel on the Ask page — lists saved conversations for
       the profile (title, Q&A count, model, date), click to reload a thread,
       delete inline, plus a **New Chat** button. Verified list/get/delete live.
-- [~] FOLLOW-UP: token usage + latency metadata per answer (latency captured via
-      `elapsed_ms`; token usage still not captured). The dead `Prediction` model in
-      database.py was removed 2026-06-28 (also dropped its now-unused import in main.py).
+- [x] FOLLOW-UP: token usage + latency metadata per answer. Latency (`elapsed_ms`)
+      and the streaming token counts were already captured; DONE 2026-06-30 the
+      **non-streaming** `/ask` path now captures token usage too — `_complete` /
+      `ask_question` thread a mutable `usage` dict into each provider call
+      (`_call_ollama` reads `prompt_eval_count`/`eval_count`, `_call_openai_style`
+      the `usage` object, `_call_gemini` the `usageMetadata`) via a shared
+      `_fill_usage` helper, and the endpoint persists it on the message and returns
+      it in the response (parity with the stream `done` event). The dead `Prediction`
+      model in database.py was removed 2026-06-28 (also dropped its now-unused import
+      in main.py).
 
 ### 8.5 Streaming + multi-turn (P1) — DONE 2026-06-28
 
@@ -639,7 +646,16 @@ workspace. **Decisions captured 2026-06-28** (owner answered the clarifying roun
       z-index 1101 like the modals), anchored to the trigger via
       `getBoundingClientRect()`, re-positioned on scroll/resize and auto-flipping
       upward when there's no room below.
-- [ ] FOLLOW-UP: automatic retry on transient stream failures.
+- [x] FOLLOW-UP: automatic retry on transient stream failures. DONE 2026-06-30:
+      `LLMService.stream_answer` is now a retry wrapper around a stream-generator
+      factory. A stream that fails **before emitting any content** with a transient
+      error (provider unreachable, timeout, 5xx/429 — classified by
+      `_is_transient_stream_error` on the provider's single error chunk) is retried
+      up to `MAX_STREAM_RETRIES` (2) with a linear backoff (`STREAM_RETRY_BACKOFF`),
+      clearing `usage` between attempts. Permanent errors (e.g. "API key not set")
+      and mid-stream failures (content already sent — can't re-send without
+      duplicating) are surfaced as-is. Unit-tested: retry-then-succeed,
+      exhaust-retries, and that a non-transient/normal first chunk is never retried.
 
 ### 8.8 Suggested build order
 
@@ -727,7 +743,14 @@ clean status/dict — thin JSON-schema wrappers, minimal new surface.
       use English literals for now — see §5 i18n).
 - [ ] FOLLOW-UP: explicit tri-state seed/tool/off per section (today: seeded if the
       section toggle is on, otherwise fetched via tool).
-- [ ] FOLLOW-UP: cache identical tool results within one answer; cap repeated calls.
+- [x] FOLLOW-UP: cache identical tool results within one answer; cap repeated calls.
+      DONE 2026-06-30: `run_tool_loop` keeps a per-answer `tool_cache` keyed by
+      `name + sorted-JSON(args)` and a `call_counts` map. An identical (name+args)
+      call is served from the cache instead of re-dispatching (the `tool_result`
+      event carries a `cached: true` flag); a call repeated past `MAX_DUP_TOOL_CALLS`
+      (3) is short-circuited with an error result nudging the model to use the data
+      it has and answer — breaking the loop a weak model can fall into. Unit-tested:
+      5 identical requests → exactly 1 real `tools.dispatch`, 2 cache hits, 2 capped.
 - [x] FOLLOW-UP (DONE 2026-06-29): **visualize the call flow** during a smart-lookup
       answer. The tool result data now flows through: `run_tool_loop`'s `tool_result`
       event carries the full `result`; the stream + `/ask` persist it into each
@@ -776,10 +799,15 @@ usage capture).
       slow-mover ingresses, plus summary / "which matters most". Streams token-by-token
       with a Stop button; ReactMarkdown render; i18n in en/hi/sa under `transitChat`.
       Verified: lint clean + production build compiles.
-- [ ] FOLLOW-UP: this chat's thread isn't surfaced in the Ask page's conversation
-      switcher UI (it is saved + listable via `/api/ai/conversations`, just not shown
-      there). Consider a "Transit reading" label/filter so reopened threads are
-      findable.
+- [x] FOLLOW-UP: this chat's thread is now surfaced in the Ask page's conversation
+      switcher. DONE 2026-06-30: conversations carry a `source` field
+      ("astrologer" default / "transit") set at creation — `create_conversation`
+      stores it, `list_conversations`/`serialize_conversation` expose it,
+      `AskQuestionRequest.source` carries it, and `TransitChat` sends
+      `source: "transit"` through `streamAskQuestion`. The Ask page's History panel
+      shows a **"Transit"** badge on those threads and — only once at least one
+      exists — a **All / Astrologer / Transit readings** filter row. i18n keys
+      `ask.sourceTransit` + `ask.filter.*` added in en/hi/sa.
 - [ ] FOLLOW-UP: refactor — extract a shared message-bubble/streaming-input component
       so `TransitChat` and the 2.2k-line `AskAstrologerPage` share one chat UI instead
       of two. Deferred to keep this change low-risk.

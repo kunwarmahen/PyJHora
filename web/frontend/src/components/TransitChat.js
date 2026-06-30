@@ -125,6 +125,7 @@ export const TransitChat = ({ birthDetails, profile, result, ayanamsa = DEFAULT_
         },
         vargas: [1],
         mode: "pass_all",
+        source: "transit",
         ayanamsa,
         conversationId: convIdRef.current,
         profileId: profile._id,

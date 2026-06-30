@@ -416,6 +416,12 @@
     "noConversations": "No saved conversations yet. Ask a question to start one.",
     "deleteConversation": "Delete conversation",
     "qa": "Q&A",
+    "sourceTransit": "Transit",
+    "filter": {
+      "all": "All",
+      "astrologer": "Astrologer",
+      "transit": "Transit readings"
+    },
     "aiModel": "AI Model",
     "viewDataSent": "View data sent",
     "viewDataTitle": "See the exact chart data sent to the AI",

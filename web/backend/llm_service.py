@@ -10,6 +10,7 @@ Each request is described by a ModelConfig (provider_type + model + optional
 base_url + api_key). Legacy provider strings ("qwen"/"gemini"/"chatgpt") are
 still accepted and mapped onto the new model so older clients keep working.
 """
+import asyncio
 import httpx
 import json
 import os
@@ -21,6 +22,29 @@ import tools as tool_registry
 
 # Agentic ("tool-call") mode tuning.
 MAX_TOOL_ROUNDS = 6
+# Cap on how many times the SAME tool may be re-executed (identical name + args)
+# within one answer; beyond this the model gets a nudge to use what it has.
+MAX_DUP_TOOL_CALLS = 3
+
+# Streaming retry tuning. A stream that fails *before emitting any content* with a
+# transient error (provider unreachable, 5xx/429, timeout) is retried from scratch;
+# once real tokens have been sent we can't cleanly retry, so we don't.
+MAX_STREAM_RETRIES = 2
+STREAM_RETRY_BACKOFF = 1.0  # seconds, multiplied by the attempt number
+_TRANSIENT_STREAM_MARKERS = (
+    "cannot connect", "connection", "timed out", "timeout", "temporarily",
+    "read error", "reset by peer", "502", "503", "504", "500", "429",
+)
+
+
+def _is_transient_stream_error(text: Optional[str]) -> bool:
+    """Heuristic: does this first-chunk error string look retryable? The provider
+    `_stream_*` methods yield a single error string (no content) when they fail at
+    connect time, so we inspect that to decide whether a retry is worthwhile."""
+    t = (text or "").lower()
+    if not t.startswith("error"):
+        return False
+    return any(m in t for m in _TRANSIENT_STREAM_MARKERS)
 TOOL_MODE_NOTE = (
     "Some chart sections may be omitted from the context above. Use the available "
     "tools to fetch any additional data you need — dasha periods, yogas, doshas, "
@@ -285,9 +309,12 @@ class LLMService:
                           question: str,
                           provider: LLMProvider = LLMProvider.QWEN,
                           config: Optional[ModelConfig] = None,
-                          history: Optional[List[Dict[str, str]]] = None) -> str:
+                          history: Optional[List[Dict[str, str]]] = None,
+                          usage: Optional[Dict[str, Any]] = None) -> str:
         """Ask a question about the chart. Pass either a ModelConfig or a legacy
-        provider. `history` (prior {role, content} turns) enables multi-turn."""
+        provider. `history` (prior {role, content} turns) enables multi-turn. If a
+        mutable `usage` dict is supplied it is filled with the provider's reported
+        token counts once the call completes (parity with the streaming path)."""
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
         if history:
             convo_text = "\n\n=== PRIOR CONVERSATION ===\n" + "\n".join(
@@ -301,7 +328,7 @@ class LLMService:
             )
         else:
             prompt = self._build_chart_analysis_prompt(chart_data, question)
-        return await self._complete(prompt, cfg)
+        return await self._complete(prompt, cfg, usage=usage)
 
     async def generate_prediction(self,
                                  chart_data: Dict[str, Any],
@@ -605,15 +632,29 @@ class LLMService:
     # Provider dispatch
     # ------------------------------------------------------------------ #
     async def _complete(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
-                        system: Optional[str] = None) -> str:
+                        system: Optional[str] = None,
+                        usage: Optional[Dict[str, Any]] = None) -> str:
         sys_prompt = system or SYSTEM_PROMPT
         if cfg.provider_type == ProviderType.OLLAMA:
-            return await self._call_ollama(prompt, cfg, max_tokens, sys_prompt)
+            return await self._call_ollama(prompt, cfg, max_tokens, sys_prompt, usage)
         if cfg.provider_type in (ProviderType.OPENAI, ProviderType.OPENAI_COMPATIBLE):
-            return await self._call_openai_style(prompt, cfg, max_tokens, sys_prompt)
+            return await self._call_openai_style(prompt, cfg, max_tokens, sys_prompt, usage)
         if cfg.provider_type == ProviderType.GEMINI:
-            return await self._call_gemini(prompt, cfg, max_tokens, sys_prompt)
+            return await self._call_gemini(prompt, cfg, max_tokens, sys_prompt, usage)
         return "Unsupported LLM provider"
+
+    @staticmethod
+    def _fill_usage(usage: Optional[Dict[str, Any]],
+                    prompt_tokens, completion_tokens, total_tokens=None) -> None:
+        """Populate a mutable usage dict from a provider's reported counts."""
+        if usage is None:
+            return
+        if prompt_tokens is None and completion_tokens is None and total_tokens is None:
+            return
+        usage["prompt_tokens"] = prompt_tokens
+        usage["completion_tokens"] = completion_tokens
+        usage["total_tokens"] = (total_tokens if total_tokens is not None
+                                 else (prompt_tokens or 0) + (completion_tokens or 0))
 
     # ------------------------------------------------------------------ #
     # Streaming (chat) — yields text chunks as they arrive
@@ -626,20 +667,49 @@ class LLMService:
 
         If a mutable `usage` dict is supplied it is populated in place with the
         provider's reported token counts (prompt_tokens/completion_tokens/
-        total_tokens) once the stream completes, so the caller can persist/show it."""
+        total_tokens) once the stream completes, so the caller can persist/show it.
+
+        Transient failures that occur *before any content is emitted* (provider
+        unreachable, 5xx/429, timeout) are retried up to MAX_STREAM_RETRIES with a
+        short backoff; once real tokens have streamed to the client we can't retry
+        without duplicating text, so a mid-stream failure is surfaced as-is."""
         messages = self.build_chat_messages(chart_data, question, history)
-        if cfg.provider_type == ProviderType.OLLAMA:
-            gen = self._stream_ollama(messages, cfg, max_tokens, usage)
-        elif cfg.provider_type in (ProviderType.OPENAI, ProviderType.OPENAI_COMPATIBLE):
-            gen = self._stream_openai_style(messages, cfg, max_tokens, usage)
-        elif cfg.provider_type == ProviderType.GEMINI:
-            gen = self._stream_gemini(messages, cfg, max_tokens, usage)
-        else:
+
+        def _new_gen():
+            if cfg.provider_type == ProviderType.OLLAMA:
+                return self._stream_ollama(messages, cfg, max_tokens, usage)
+            if cfg.provider_type in (ProviderType.OPENAI, ProviderType.OPENAI_COMPATIBLE):
+                return self._stream_openai_style(messages, cfg, max_tokens, usage)
+            if cfg.provider_type == ProviderType.GEMINI:
+                return self._stream_gemini(messages, cfg, max_tokens, usage)
+
             async def _unsupported():
                 yield "Unsupported LLM provider"
-            gen = _unsupported()
-        async for chunk in gen:
-            yield chunk
+            return _unsupported()
+
+        attempt = 0
+        while True:
+            gen = _new_gen()
+            emitted = False          # any real content yielded yet?
+            pending_error = None     # a transient error seen before any content
+            async for chunk in gen:
+                if not emitted and pending_error is None and _is_transient_stream_error(chunk):
+                    # Provider failed at connect time (no content yet) — hold the
+                    # error; we may retry instead of surfacing it.
+                    pending_error = chunk
+                    continue
+                emitted = True
+                yield chunk
+            if pending_error is not None and not emitted:
+                if attempt < MAX_STREAM_RETRIES:
+                    attempt += 1
+                    if usage is not None:
+                        usage.clear()  # nothing was produced; reset before retry
+                    await asyncio.sleep(STREAM_RETRY_BACKOFF * attempt)
+                    continue
+                # Out of retries — surface the transient error to the client.
+                yield pending_error
+            return
 
     async def _stream_ollama(self, messages, cfg, max_tokens, usage=None) -> AsyncGenerator[str, None]:
         url = (cfg.base_url or self.ollama_url).rstrip("/")
@@ -792,7 +862,8 @@ class LLMService:
             yield f"Error calling Gemini: {str(e)}"
 
     async def _call_ollama(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
-                           system: str = SYSTEM_PROMPT) -> str:
+                           system: str = SYSTEM_PROMPT,
+                           usage: Optional[Dict[str, Any]] = None) -> str:
         url = cfg.base_url or self.ollama_url
         model = cfg.model or self.ollama_default_model
         try:
@@ -807,7 +878,10 @@ class LLMService:
                 }
                 response = await client.post(f"{url}/api/generate", json=payload)
                 if response.status_code == 200:
-                    return response.json().get("response", "No response from model")
+                    data = response.json()
+                    self._fill_usage(usage, data.get("prompt_eval_count"),
+                                     data.get("eval_count"))
+                    return data.get("response", "No response from model")
                 return f"Error from Ollama ({model}): {response.status_code} - {response.text}"
         except httpx.ConnectError:
             return ("Error: Cannot connect to Ollama. Ensure it is running "
@@ -816,7 +890,8 @@ class LLMService:
             return f"Error calling Ollama: {str(e)}"
 
     async def _call_openai_style(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
-                                 system: str = SYSTEM_PROMPT) -> str:
+                                 system: str = SYSTEM_PROMPT,
+                                 usage: Optional[Dict[str, Any]] = None) -> str:
         """OpenAI and any OpenAI-compatible server share the /chat/completions schema."""
         base_url = (cfg.base_url or "").rstrip("/")
         if not base_url:
@@ -845,6 +920,9 @@ class LLMService:
                                              json=payload, headers=headers)
                 if response.status_code == 200:
                     result = response.json()
+                    u = result.get("usage") or {}
+                    self._fill_usage(usage, u.get("prompt_tokens"),
+                                     u.get("completion_tokens"), u.get("total_tokens"))
                     choices = result.get("choices", [])
                     if choices:
                         return choices[0].get("message", {}).get("content", "No response")
@@ -856,7 +934,8 @@ class LLMService:
             return f"Error calling model: {str(e)}"
 
     async def _call_gemini(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
-                           system: str = SYSTEM_PROMPT) -> str:
+                           system: str = SYSTEM_PROMPT,
+                           usage: Optional[Dict[str, Any]] = None) -> str:
         api_key = cfg.api_key or self.gemini_api_key
         model = cfg.model or self.gemini_default_model
         if not api_key:
@@ -873,6 +952,10 @@ class LLMService:
                 response = await client.post(url, json=payload)
                 if response.status_code == 200:
                     result = response.json()
+                    um = result.get("usageMetadata") or {}
+                    self._fill_usage(usage, um.get("promptTokenCount"),
+                                     um.get("candidatesTokenCount"),
+                                     um.get("totalTokenCount"))
                     candidates = result.get("candidates", [])
                     if candidates:
                         parts = candidates[0].get("content", {}).get("parts", [])
@@ -1453,6 +1536,19 @@ Be specific to the findings above — do not invent placements that aren't liste
             for k in agg:
                 agg[k] += u.get(k) or 0
 
+        # Within a single answer, identical tool calls (same name + args) are served
+        # from a cache so the same compute isn't redone, and a tool repeated past
+        # MAX_DUP_TOOL_CALLS is short-circuited with a nudge — this breaks the loop a
+        # weak model can fall into where it keeps requesting the same data.
+        tool_cache: Dict[str, Any] = {}
+        call_counts: Dict[str, int] = {}
+
+        def _tool_key(name: str, args: Optional[Dict[str, Any]]) -> str:
+            try:
+                return name + "::" + json.dumps(args or {}, sort_keys=True, default=str)
+            except Exception:
+                return name + "::" + str(args)
+
         rounds = 0
         while rounds < max_rounds:
             rounds += 1
@@ -1505,16 +1601,37 @@ Be specific to the findings above — do not invent placements that aren't liste
             messages.append({"role": "assistant", "content": res.get("content"),
                              "tool_calls": tool_calls})
             for c in tool_calls:
-                yield {"type": "tool_call", "name": c["name"], "args": c.get("args") or {}}
-                try:
-                    result = tool_registry.dispatch(c["name"], c.get("args"),
-                                                    birth_details, ayanamsa)
-                    ok = not (isinstance(result, dict) and result.get("error"))
-                except tool_registry.ToolError as te:
-                    result = {"error": str(te)}
+                args = c.get("args") or {}
+                key = _tool_key(c["name"], args)
+                call_counts[key] = call_counts.get(key, 0) + 1
+                yield {"type": "tool_call", "name": c["name"], "args": args}
+                if call_counts[key] > MAX_DUP_TOOL_CALLS:
+                    # Repeated identical call — refuse and steer the model to finish.
+                    result = {"error": (
+                        f"'{c['name']}' was already called with these arguments "
+                        f"{MAX_DUP_TOOL_CALLS} times. Use the earlier result and give "
+                        "your final answer now.")}
                     ok = False
-                yield {"type": "tool_result", "name": c["name"], "ok": ok,
-                       "result": result}
+                    yield {"type": "tool_result", "name": c["name"], "ok": ok,
+                           "result": result, "cached": False}
+                elif key in tool_cache:
+                    # Identical to an earlier call this answer — reuse, don't recompute.
+                    result = tool_cache[key]
+                    ok = not (isinstance(result, dict) and result.get("error"))
+                    yield {"type": "tool_result", "name": c["name"], "ok": ok,
+                           "result": result, "cached": True}
+                else:
+                    try:
+                        result = tool_registry.dispatch(c["name"], args,
+                                                        birth_details, ayanamsa)
+                        ok = not (isinstance(result, dict) and result.get("error"))
+                    except tool_registry.ToolError as te:
+                        result = {"error": str(te)}
+                        ok = False
+                    if ok:
+                        tool_cache[key] = result
+                    yield {"type": "tool_result", "name": c["name"], "ok": ok,
+                           "result": result, "cached": False}
                 messages.append({"role": "tool", "id": c.get("id"), "name": c["name"],
                                  "content": json.dumps(result, default=str)})
 

@@ -226,6 +226,8 @@ export const AskAstrologerPage = () => {
   const [conversationId, setConversationId] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  // Filter the history list by where a thread originated (all / astrologer / transit)
+  const [historyFilter, setHistoryFilter] = useState("all");
 
   // 8.7 polish: in-flight stream control + per-answer affordances
   const abortRef = useRef(null);
@@ -911,6 +913,13 @@ export const AskAstrologerPage = () => {
       }));
     });
 
+  // History list filtered by origin (Transit-page chats are saved here too).
+  const convSource = (c) => c.source || "astrologer";
+  const hasTransitConvos = conversations.some((c) => convSource(c) === "transit");
+  const visibleConversations = conversations.filter(
+    (c) => historyFilter === "all" || convSource(c) === historyFilter
+  );
+
   return (
     <div className="dashboard-container mandala-bg">
       <PageHeader
@@ -1012,13 +1021,44 @@ export const AskAstrologerPage = () => {
               <History size={20} style={{ color: "var(--saffron)" }} />
               {t("ask.savedConversations")}
             </h3>
-            {conversations.length === 0 ? (
+            {/* Filter chips — only shown once a Transit-page reading exists, so the
+                main Ask page stays uncluttered for users who never use that chat. */}
+            {hasTransitConvos && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: "var(--space-xs)",
+                  marginBottom: "var(--space-md)",
+                  flexWrap: "wrap",
+                }}
+              >
+                {["all", "astrologer", "transit"].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setHistoryFilter(f)}
+                    style={{
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      padding: "0.25rem 0.75rem",
+                      borderRadius: "999px",
+                      cursor: "pointer",
+                      border: `1px solid ${historyFilter === f ? "var(--saffron)" : "var(--sandalwood)"}`,
+                      background: historyFilter === f ? "rgba(255, 153, 51, 0.12)" : "white",
+                      color: historyFilter === f ? "var(--saffron-dark, #cc6600)" : "var(--text-secondary)",
+                    }}
+                  >
+                    {t(`ask.filter.${f}`)}
+                  </button>
+                ))}
+              </div>
+            )}
+            {visibleConversations.length === 0 ? (
               <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", margin: 0 }}>
                 {t("ask.noConversations")}
               </p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
-                {conversations.map((c) => (
+                {visibleConversations.map((c) => (
                   <div
                     key={c.id}
                     onClick={() => loadConversation(c.id)}
@@ -1045,6 +1085,25 @@ export const AskAstrologerPage = () => {
                           whiteSpace: "nowrap",
                         }}
                       >
+                        {convSource(c) === "transit" && (
+                          <span
+                            style={{
+                              display: "inline-block",
+                              fontSize: "0.625rem",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.03em",
+                              padding: "0.1rem 0.4rem",
+                              marginRight: "0.4rem",
+                              borderRadius: "4px",
+                              verticalAlign: "middle",
+                              background: "rgba(63, 81, 181, 0.1)",
+                              color: "var(--cosmic-indigo)",
+                            }}
+                          >
+                            {t("ask.sourceTransit")}
+                          </span>
+                        )}
                         {c.title}
                       </div>
                       <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>

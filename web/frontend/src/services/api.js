@@ -359,6 +359,7 @@ export const streamAskQuestion = (birthDetails, question, model = {}, callbacks 
           sections: model.sections,
           ayanamsa: model.ayanamsa,
           mode: model.mode,
+          source: model.source,
           conversation_id: model.conversationId,
           profile_id: model.profileId,
           regenerate: model.regenerate || false,

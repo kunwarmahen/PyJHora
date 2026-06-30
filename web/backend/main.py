@@ -54,6 +54,10 @@ class AskQuestionRequest(BaseModel):
     # Conversation (save + multi-turn)
     conversation_id: Optional[str] = None
     profile_id: Optional[str] = None
+    # Where the thread originated, so the Ask page can label/filter it:
+    # "astrologer" (default) or "transit" (the Transits-page chat). Only honoured
+    # when the conversation is first created.
+    source: Optional[str] = None
     # When true, replace the last assistant answer instead of appending a new turn
     regenerate: bool = False
 
@@ -888,6 +892,7 @@ async def ask_question(
                 question=request.question,
                 config=cfg,
                 history=history,
+                usage=usage,
             )
         elapsed_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
 
@@ -903,6 +908,7 @@ async def ask_question(
             "model": cfg.model,
             "mode": mode,
             "elapsed_ms": elapsed_ms,
+            "usage": usage or None,
             "conversation_id": conv_id,
             "sections": chart_data.get("_sections", {}),
             "vargas": chart_data.get("_vargas", []),
@@ -939,6 +945,7 @@ async def _save_turn(user_id: str, request: "AskQuestionRequest", cfg, chart_dat
         conv_id = await convo.create_conversation(
             user_id, request.profile_id, request.question,
             request.birth_details.model_dump(), mode=mode,
+            source=request.source or "astrologer",
         )
     now = datetime.now(timezone.utc).isoformat()
     ai_msg = {

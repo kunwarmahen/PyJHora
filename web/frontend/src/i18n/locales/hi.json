@@ -303,6 +303,12 @@
     "noConversations": "अभी कोई सहेजी गई बातचीत नहीं। शुरू करने के लिए एक प्रश्न पूछें।",
     "deleteConversation": "बातचीत हटाएँ",
     "qa": "प्र/उ",
+    "sourceTransit": "गोचर",
+    "filter": {
+      "all": "सभी",
+      "astrologer": "ज्योतिषी",
+      "transit": "गोचर पठन"
+    },
     "aiModel": "एआई मॉडल",
     "viewDataSent": "भेजा गया डेटा देखें",
     "viewDataTitle": "एआई को भेजा गया सटीक कुंडली डेटा देखें",
