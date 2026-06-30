@@ -1152,3 +1152,176 @@ key-less services** (no paid Google/Mapbox billing).
       epsilon guard (`markerRef`) so it ignores the echo of the user's own pin
       drag/click and never fights the map back. Search → open map now lands on the
       searched place, and the user can still drag to refine.
+
+---
+
+## 9. Engine features to resurface to the web (planned 2026-06-30)
+
+Audit of `src/jhora/...` vs the web backend (`astrology.py` exposes ~18 compute methods;
+`main.py` ~30 astrology endpoints) found a large set of classical capabilities the engine
+supports that have **no web surface**. Owner picked the following to add (2026-06-30):
+**all four feature pages below + Longevity**. Graha-drishti (aspects) stays in the §8.9
+backlog for now. Build order suggestion: 9.1 Varshaphal → 9.2 Almanac → 9.4 Raja Yogas/
+more dashas → 9.3 Pancha Pakshi → 9.5 Longevity (each independent; sequence is by value).
+
+Each follows the established pattern: a thin `AstrologyCompute` method (server-injects
+birth details + ayanamsa, resets global state after), an auth-protected endpoint in
+`main.py`, a dedicated page in the saffron Vedic style (`PageHeader`/`ProfileBanner`/
+`Card`), the North/South `Kundali` where a chart is shown, an optional on-demand AI
+reading via `_resolve_cfg` (model the user picked in Ask AI Astrologer, rate-limited),
+and i18n keys (en full; hi/sa nav+card, body falls back to en — the `sbc.*`/`learn.*`
+pattern). Where useful, also publish as a smart-lookup **tool** (§8.9) so the AI can fetch it.
+
+### 9.1 Varshaphal / Annual Horoscope (Tajaka) (P1) — the biggest gap
+
+An entire classical sub-system with zero web presence. The Tajaka/Varshaphal chart is the
+solar-return for a chosen year (Sun returns to its natal longitude), read with its own
+yogas, sensitive points (Sahams), and annual dashas.
+
+Engine entry points (verified to exist):
+- **Annual chart:** `horoscope/transit/tajaka.py → varsha_pravesh(jd_at_dob, place,
+  divisional_chart_factor=1, years=N)` returns the year-entry chart.
+- **Sahams (37):** `horoscope/transit/saham.py` — `punya_saham`, `vidya_saham`,
+  `yasas_saham`, `mitra_saham`, `mahatmaya_saham`, … (each takes `planet_positions`,
+  `night_time_birth`). Sensitive points like Western "Arabic parts".
+- **Tajaka yogas:** `horoscope/transit/tajaka_yoga.py` — Ishkavala, Induvara, Ithasala,
+  Eesarpha, Nakta, Yamaya, etc. (`*_from_jd_place` variants exist for several).
+- **Tajaka aspects:** `tajaka.py` trinal/sextile/square/benefic-aspect helpers (the
+  Tajaka aspect scheme differs from Parashari drishti — relevant to the annual reading).
+- **Annual dashas:** `dhasa/annual/mudda.py → mudda_dhasa_bhukthi(jd,place,years,…)`,
+  `dhasa/annual/patyayini.py → get_dhasa_bhukthi(...)`, plus `varsha_vimsottari_*` and
+  `dhasa/raasi/narayana.py → varsha_narayana_dhasa_bhukthi(...)`. (`horoscope/main.py`
+  has `_get_varsha_vimsottari_dhasa` / `_get_varsha_narayana_dhasa` as references.)
+
+Plan:
+- [ ] **Backend** `AstrologyCompute.get_varshaphal(dob, tob, place, lat, lon, tz, year,
+      ayanamsa)` → the annual chart (planet houses for the `Kundali`), the year-entry
+      instant, the **Muntha** (progressed Ascendant) and **year-lord (Varsheshwara)**,
+      a curated set of Sahams (start with the ~8 best-known: Punya/Vidya/Yasas/Mitra/
+      Karma/Roga/Vivaha/Putra), the present Tajaka yogas, and the annual dasha (default
+      Mudda; offer Patyayini/Varsha-Vimsottari/Varsha-Narayana as alternates like the
+      main Dasha page's system picker). Reset global ayanamsa after, as everywhere.
+- [ ] **Endpoint** `POST /api/astrology/varshaphal?year=YYYY&ayanamsa=X` (auth). Validate
+      year ≥ birth year.
+- [ ] **Frontend** `VarshaphalPage.js` (route `/varshaphal`, dashboard card + drawer
+      entry — remember the drawer is hidden on desktop, so the card matters): a **year
+      stepper** (default = current age-year), the annual `Kundali` (North/South toggle,
+      selected ayanamsa, exportable), a Muntha + year-lord pill row, a Sahams table, a
+      Tajaka-yogas card, and the annual-dasha table reusing the Dhasa page's period table.
+- [ ] **On-demand AI reading** (`llm_service.analyze_varshaphal` + prompt) — a year-ahead
+      forecast grounded in the computed Muntha/year-lord/Sahams/annual-dasha (jargon-light,
+      same safety footer; no death/disease/precise-date), model-config aware + rate-limited.
+- [ ] **Smart-lookup tool** (§8.9): publish `get_varshaphal(year)` as a tool so the main
+      astrologer can pull an annual snapshot when asked "how is 2026 for me?".
+- [ ] i18n `nav.varshaphal`, `dashboard.features.varshaphal`, `varshaphal.*`. Verify
+      `varsha_pravesh` round-trips on the verified True-Chitra chart; build + lint clean.
+
+### 9.2 Almanac extensions — Eclipses, Festival/Vratha calendar, Hora (P1)
+
+Grow the existing self-contained `PanchangaPanel` into a fuller almanac, or a dedicated
+**Almanac/Calendar page**. All three are date-range/location driven (not birth-chart
+bound), so they can live on one page with the current Panchanga.
+
+Engine entry points:
+- **Eclipses:** `panchanga/eclipse.py → next_solar_eclipse(...)`, `next_lunar_eclipse(...)`
+  (return type/time; visibility from the place where swe supports it).
+- **Vratha / festival & special-date finders:** `panchanga/vratha.py` — `pradosham_dates`,
+  `special_vratha_dates`, `tithi_dates` (→ Ekadashi/Amavasya/Purnima/Sankashti by tithi
+  index), `nakshathra_dates`, `yoga_dates`, `_ashtaka_manvaadhi_dates`. All take
+  `(panchanga_place, start_date, end_date, …)`.
+- **Conjunctions (Graha Yuddha / planetary meetings):** `vratha.py → conjunctions(place,
+  start, end, minimum_separation_longitude, planets_in_same_house=False)` — find upcoming
+  planetary conjunction dates.
+- **Hora (planetary hours):** the day's hora-lord sequence for muhurta (check
+  `panchanga/drik.py`/`drik1.py` for a `hora`/`hora_lord` helper; if absent, derive from
+  sunrise→sunset / weekday-lord ordering — small assembly).
+
+Plan:
+- [ ] **Backend** methods on `AstrologyCompute`: `get_eclipses(place, lat, lon, tz, from_date,
+      count=2)` (next solar+lunar), `get_festival_dates(place, lat, lon, tz, start, end,
+      types[])` (Ekadashi/Pradosham/Amavasya/Purnima/Sankashti + key vrathas),
+      `get_planetary_hours(date, place, lat, lon, tz)` (sunrise-anchored hora-lord table),
+      and optionally `get_conjunctions(start, end, min_sep)`.
+- [ ] **Endpoints** under `/api/astrology/almanac/*` (or extend `/panchanga`): `eclipses`,
+      `festivals`, `hora`, `conjunctions` (auth; location toggle = birthplace vs current
+      location, reusing the PanchangaPanel pattern).
+- [ ] **Frontend**: extend `PanchangaPanel` with tabs/sections (Today · Festivals ·
+      Eclipses · Hora) **or** a `AlmanacPage` (route `/almanac`, dashboard card). Date-range
+      picker for the festival finder; an upcoming-eclipse card; a planetary-hours strip for
+      the chosen day (current hora highlighted). Saffron/gold identity.
+- [ ] i18n `almanac.*`; cache where the engine call is heavy (festival scans over a range).
+      Note the same current-DST tz caveat as elsewhere. Verify eclipse + Ekadashi finders
+      against known 2026 dates; build + lint clean.
+
+### 9.3 Pancha Pakshi Sastra (P2) — unique daily-timing system
+
+A bird-cycle predictive timing system (Tamil Siddha tradition) that exists only in the
+desktop PyQt UI (`ui/pancha_pakshi_sastra_widget.py`), never on the web. Assigns the
+native a "birth bird" from nakshatra+paksha, then rates activities by the bird's
+state (rule/eat/walk/sleep/die) across the day's segments.
+
+Engine entry points: `panchanga/pancha_paksha.py` — `construct_pancha_pakshi_information(
+dob, tob, place, nakshathra_bird_index=None)`, `_get_birth_bird_from_nakshathra`,
+`_get_paksha`, `get_matching_pancha_pakshi_data_from_db(bird, weekday, paksha)`.
+
+Plan:
+- [ ] **Backend** `AstrologyCompute.get_pancha_pakshi(dob, tob, place, lat, lon, tz, date)`
+      → birth bird, paksha, and the day's activity-strength timeline (which periods favour
+      work/travel/rest, the bird's state per segment). Server-computes from the profile;
+      `date` defaults to today in the place's tz.
+- [ ] **Endpoint** `POST /api/astrology/pancha-pakshi?date=…` (auth).
+- [ ] **Frontend** `PanchaPakshiPage.js` (route `/pancha-pakshi`, dashboard card + drawer):
+      birth-bird badge, a day-timeline strip colour-coded by activity strength (like the
+      SBC findings tone), a "best times for X" summary, and a date picker. Optional
+      jargon-light AI reading (`analyze_pancha_pakshi`) explaining what to do/avoid today.
+- [ ] i18n `nav.panchaPakshi`, `dashboard.features.panchaPakshi`, `panchaPakshi.*` (en;
+      hi/sa nav+card). Verify the birth-bird derivation on a known chart; build + lint clean.
+
+### 9.4 Raja Yogas (dedicated) + expanded Dasha systems (P2)
+
+- [ ] **Raja Yogas card.** The Birth Chart "Yogas" card uses generic `yoga.get_yoga_details`.
+      `horoscope/chart/raja_yoga.py` (+ `raja_yoga_bv_raman.py`) is a dedicated module:
+      `get_raja_yoga_details(jd, place, divisional_chart_factor, language)`, Dharma-
+      Karmadhipati raja yoga, Vipareeta raja yoga, raja-yoga pairs, with strength. Add
+      `AstrologyCompute.get_raja_yogas(...)` + `POST /api/astrology/raja-yogas`, and a
+      **Raja Yogas** card on the Birth Chart (or Advanced) page — name, the planets/lords
+      forming it, and strength, golden accent. Optionally feed into the AI context.
+- [ ] **More dasha systems.** `SUPPORTED_DASHAS` currently lists ~6. The engine ships
+      ~50 under `dhasa/graha/*` and `dhasa/raasi/*` (Sudarsana Chakra `dhasa/
+      sudharsana_chakra.py → sudharshana_chakra_chart`, Shoola, Drig `raasi/drig.py`,
+      Sudasa `raasi/sudasa.py`, Kendradhi/Lagna-Kendradhi, Trikona, Sthira, Tara, Kaala,
+      Chara variants, etc.). Audit which `get_dasha_periods` can normalize to the existing
+      flat maha-period shape (graha-lord vs rasi-sign) and add the well-known ones to the
+      Dhasa page's "Other Dasha Systems" picker. (Sudarsana Chakra is chart-based — may
+      warrant its own small renderer rather than the flat period table.)
+- [ ] i18n the new labels; verify each added system returns dated periods on the test chart.
+
+### 9.5 Longevity / Ayur (P2) — jargon-light, with disclaimer (owner approved 2026-06-30)
+
+Owner OK'd adding it provided it's gentle and clearly framed. `prediction/longevity.py →
+life_span_range(jd, place)` returns a life-span band (short/medium/long ayu via the
+classical Balarishta/Alpa/Madhya/Purna-ayu checks + Jaimini corrections).
+
+Plan:
+- [ ] **Backend** `AstrologyCompute.get_longevity(dob, tob, place, lat, lon, tz, ayanamsa)`
+      → the ayu *category* (Alpa/Madhya/Purna) and the contributing factors, NOT a death
+      date. Reset ayanamsa after.
+- [ ] **Endpoint** `POST /api/astrology/longevity` (auth).
+- [ ] **Frontend**: a card on the **Advanced** page (not its own scary page) framed as
+      "Ayu / vitality indication" with an explicit disclaimer reusing the AI safety-footer
+      copy (general guidance, not medical/predictive; longevity in jyotish is conditional
+      and multi-factorial). Present the *category* and factors; avoid any year/age claim.
+- [ ] Optional: include as a low-weight signal the AI may reference *only* when explicitly
+      asked about health/vitality, with the same guardrails. i18n `advanced.longevity.*`.
+      Verify `life_span_range` runs on the test chart; build + lint clean.
+
+### 9.6 Other engine capabilities noted (not selected — parked for later)
+
+Catalogued during the audit; not on the active roadmap unless the owner asks:
+- **Sphuta points** (`chart/sphuta.py`): Beeja/Kshetra/Tri/Chatur/Pancha/Prana/Deha sphuta
+  (progeny & sensitive points) — could be DataFields on the Advanced page.
+- **Saham finder beyond the annual 8** (all 37 in `saham.py`).
+- **Argalas** (intervention analysis, `chart/house.py`) — pairs with the aspects backlog.
+- **Vedic clock / Vakra-gathi retrograde plot** (`ui/vedic_clock.py`, `vakra_gathi_plot.py`).
+- **Surya Siddhanta / Khanda Khaadyaka** alternate panchanga engines (`panchanga/*`).
+- **Hijri / calendar conversions** (`panchanga/hijri.py`).
