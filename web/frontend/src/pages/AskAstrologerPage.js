@@ -38,17 +38,6 @@ import { StreamingMarkdown } from "../components/chat/StreamingMarkdown";
 import "../styles/Dashboard.css";
 import "../styles/Chat.css";
 
-const selectStyle = {
-  width: "100%",
-  marginTop: "var(--space-xs)",
-  padding: "var(--space-sm) var(--space-md)",
-  borderRadius: "var(--radius-md)",
-  border: "1px solid var(--sandalwood)",
-  background: "var(--sacred-white)",
-  color: "var(--cosmic-indigo)",
-  fontSize: "0.9375rem",
-  fontFamily: "inherit",
-};
 
 /**
  * One node in the "Behind the scenes" timeline: a coloured dot sitting on a
@@ -1208,20 +1197,12 @@ export const AskAstrologerPage = () => {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
                 {/* Provider */}
-                <label style={{ display: "block" }}>
-                  <span
-                    style={{
-                      fontSize: "0.8125rem",
-                      fontWeight: 600,
-                      color: "var(--text-secondary)",
-                    }}
-                  >
-                    {t("ask.provider")}
-                  </span>
+                <label className="ask-field">
+                  <span className="ask-field-label">{t("ask.provider")}</span>
                   <select
+                    className="ask-select"
                     value={providerType}
                     onChange={(e) => handleProviderChange(e.target.value)}
-                    style={selectStyle}
                   >
                     {providers.map((p) => (
                       <option key={p.type} value={p.type}>
@@ -1233,21 +1214,13 @@ export const AskAstrologerPage = () => {
                 </label>
 
                 {/* Model */}
-                <label style={{ display: "block" }}>
-                  <span
-                    style={{
-                      fontSize: "0.8125rem",
-                      fontWeight: 600,
-                      color: "var(--text-secondary)",
-                    }}
-                  >
-                    {t("ask.model")}
-                  </span>
+                <label className="ask-field">
+                  <span className="ask-field-label">{t("ask.model")}</span>
                   {selectedProvider && selectedProvider.models.length > 0 ? (
                     <select
+                      className="ask-select"
                       value={model}
                       onChange={(e) => setModel(e.target.value)}
-                      style={selectStyle}
                     >
                       {!selectedProvider.models.includes(model) && model && (
                         <option value={model}>
@@ -1263,10 +1236,10 @@ export const AskAstrologerPage = () => {
                   ) : (
                     <input
                       type="text"
+                      className="ask-select"
                       value={model}
                       onChange={(e) => setModel(e.target.value)}
                       placeholder={t("ask.enterModel")}
-                      style={selectStyle}
                     />
                   )}
                 </label>
@@ -1308,10 +1281,11 @@ export const AskAstrologerPage = () => {
                     {showAdvanced && (
                       <input
                         type="text"
+                        className="ask-select"
                         value={baseUrl}
                         onChange={(e) => setBaseUrl(e.target.value)}
                         placeholder={selectedProvider.base_url}
-                        style={{ ...selectStyle, marginTop: "var(--space-sm)" }}
+                        style={{ marginTop: "var(--space-sm)" }}
                       />
                     )}
                   </div>

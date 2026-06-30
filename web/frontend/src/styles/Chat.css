@@ -924,3 +924,26 @@
   font-size: 0.6875rem;
   color: var(--text-muted);
 }
+
+/* Ask-page settings selects (provider/model/varga pickers) */
+.ask-select {
+  width: 100%;
+  margin-top: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--sandalwood);
+  background: var(--sacred-white);
+  color: var(--cosmic-indigo);
+  font-size: 0.9375rem;
+  font-family: inherit;
+}
+
+/* Ask-page settings field label (above each provider/model/varga control) */
+.ask-field {
+  display: block;
+}
+.ask-field-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
