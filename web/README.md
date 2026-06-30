@@ -484,6 +484,12 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `POST /api/astrology/compatibility-analysis` - Get detailed AI compatibility analysis
 - `POST /api/astrology/compare-analysis` - Get a neutral AI comparison of two charts (not marriage matching)
 
+### Saved Profiles
+- `POST /api/profiles/save` - Save a new birth profile
+- `GET /api/profiles/list` - List all saved profiles for the current user
+- `PUT /api/profiles/{profile_id}` - Update an existing birth profile
+- `DELETE /api/profiles/{profile_id}` - Delete a saved profile
+
 ### User
 - `GET /api/user/charts` - Get user's saved charts
 - `GET /api/user/api-keys` - Per-provider key status (masked; never the raw key)

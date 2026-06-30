@@ -1448,6 +1448,46 @@ async def save_profile(req: SaveProfileRequest, current_user: str = Depends(get_
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.put("/api/profiles/{profile_id}")
+async def update_profile(profile_id: str, req: SaveProfileRequest, current_user: str = Depends(get_current_user)):
+    """Update an existing birth profile"""
+    try:
+        from database import database
+        from bson import ObjectId
+
+        if database is None:
+            raise HTTPException(status_code=500, detail="Database not connected")
+
+        profiles_collection = database["saved_profiles"]
+
+        # If this is set as default, unset all other defaults
+        if req.is_default:
+            await profiles_collection.update_many(
+                {"user_id": current_user},
+                {"$set": {"is_default": False}}
+            )
+
+        result = await profiles_collection.update_one(
+            {"_id": ObjectId(profile_id), "user_id": current_user},
+            {"$set": {
+                "profile_name": req.profile_name,
+                "birth_details": req.birth_details.model_dump(),
+                "is_default": req.is_default,
+            }}
+        )
+
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Profile not found")
+
+        return {
+            "success": True,
+            "message": f"Profile '{req.profile_name}' updated successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/profiles/list")
 async def list_profiles(current_user: str = Depends(get_current_user)):
     """Get all saved profiles for the current user"""
