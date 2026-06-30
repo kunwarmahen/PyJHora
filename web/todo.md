@@ -905,3 +905,113 @@ usage capture).
       (stacks below 900px); chakra cap raised 460→760px with `clamp()`-scaled cell + graha
       chip text so it stays legible larger; anchors/findings became a compact, smaller-text
       sidebar.
+
+## Learn the Chart — AI quiz & graded feedback (DONE 2026-06-29)
+
+Owner ask (2026-06-29): a feature where the user can "learn to make sense of a
+chart." Pick a person's chart → the AI generates questions about *that* chart →
+the user answers → the AI grades each answer, says what's right/wrong and **why**,
+with detailed reasoning. A guided, interactive way to actually learn jyotish from
+your own (or a saved) chart rather than just reading a generated report.
+
+**SHIPPED 2026-06-29** — all plan items below done. Backend: `quiz.py`
+(`quiz_sessions` collection) + `llm_service.generate_quiz`/`grade_quiz_answers`
+(strict-JSON gen + grading, robust `_extract_json` tolerant of fences/prose, MCQ
+graded deterministically in `main.py`, free-text graded by the LLM against
+`expected_points` + chart facts) + endpoints `POST /api/astrology/quiz/generate`,
+`/quiz/grade`, `GET /quiz/history`, `/quiz/stats`, `DELETE /quiz/{id}`. The answer
+key (correct_index/expected_points/rationale) is stored server-side and stripped
+from the generate response (`quiz.public_items`) so it can't be read in devtools;
+revealed only in graded results. Adaptive difficulty reads `get_stats` →
+`suggest_level` + weak-topic emphasis. Frontend: `LearnChartPage.js` (route
+`/learn`, nav + dashboard card, `GraduationCap` icon) with setup → MCQ → free-text
+→ results → history phases, `learn.*` i18n (en full; hi/sa nav+card). Verified:
+backend imports + `_extract_json`/`_normalize_items`/`compute_topic_scores`/
+`suggest_level` unit-tested; `npm run build` compiles, lint clean, locale JSON valid.
+
+**Decisions captured (owner, 2026-06-29):**
+- **Answer format:** both — an **MCQ warm-up → free-text** flow. Each session/round
+  starts with multiple-choice to build confidence, then moves to open-ended
+  free-text questions the AI grades with partial credit + explanation.
+- **Difficulty:** offer **both modes, user chooses** — either manually pick
+  Beginner / Intermediate / Advanced, *or* turn on **Adaptive** (difficulty auto
+  raises/lowers based on recent scores). A simple toggle: "Adaptive" on/off; when
+  off, the level selector drives it.
+- **Topics (all four, user-selectable per session):** Planets/signs/houses ·
+  Yogas & doshas · Dashas & transits · Vargas (D9/D10 etc.). Default = all on.
+- **Progress:** **save per user** in Mongo — quiz history, per-topic scores, weak
+  areas, streaks. Feeds the "review your weak spots" view and Adaptive difficulty.
+
+### Plan
+
+- [x] **Reuse the existing chart-context path.** Questions and grading MUST be
+      grounded in real computed facts, not the model's astro guesses. Build the quiz
+      context from the same `chart_context.py` builder that `/api/astrology/ask`
+      uses (Rasi/D9 placements, lagna, yogas, doshas, current dasha/bhukti,
+      transits, requested vargas). The chart facts are the **answer key**: the
+      grader scores the user against this context, not against free-floating model
+      opinion. This also keeps it provider-agnostic (qwen/gemini/openai/compat) via
+      the user's saved model config + `_resolve_cfg`, and rate-limited like the
+      other AI endpoints.
+
+- [x] **Backend — quiz generation** (`llm_service.py` + `main.py`):
+      `generate_quiz(chart_context, topics, level, n_mcq, n_freetext)` →
+      `POST /api/astrology/quiz/generate`. Prompt instructs the model to emit
+      **structured JSON** (not prose): a list of items, each with `id`, `topic`,
+      `difficulty`, `format` (`mcq`|`free`), `prompt`, for MCQ `options[]` +
+      `correct_index`, and a hidden `rationale`/`expected_points[]` used later for
+      grading. Validate/parse the JSON server-side (reject + retry once on malformed
+      output). Questions must reference *this* chart ("Your Moon is in Scorpio in
+      the 4th — what does that suggest about…") using the real placements.
+
+- [x] **Backend — grading** (`llm_service.py` + `main.py`):
+      `grade_answers(chart_context, items, user_answers)` →
+      `POST /api/astrology/quiz/grade`. MCQ graded **deterministically** against
+      `correct_index` (no LLM needed → cheap + reliable). Free-text graded by the
+      LLM against `expected_points` **and** the chart facts: returns per-item
+      `score` (0–1 / partial credit), `verdict` (correct / partial / incorrect),
+      `what_was_right`, `what_was_wrong`, and **detailed `reasoning`** citing the
+      actual chart. Plus a session summary: overall %, per-topic breakdown, and 2–3
+      "study these next" pointers. Guardrails: same jargon-light, no
+      death/disease/precise-date tone as the Sarvatobhadra reading.
+
+- [x] **Backend — persistence** (`database.py` / new `quiz.py`): a `quiz_sessions`
+      collection keyed by `user_id` + `profile_id`: stored items, answers, grades,
+      topic scores, level, adaptive flag, timestamps. Endpoints:
+      `GET /api/astrology/quiz/history` (list past sessions) and
+      `GET /api/astrology/quiz/stats` (per-topic mastery, streak, weak areas →
+      powers Adaptive + the review view). Decide: store the full Q/A transcript
+      (richer review) vs just scores (lighter) — lean to full transcript, it's small.
+
+- [x] **Backend — adaptive difficulty:** when Adaptive is on, `quiz/generate`
+      reads `quiz/stats` to pick the next level per topic (weak topic → easier &
+      more questions; mastered topic → harder / fewer). When off, honor the
+      user-selected level. Keep the rule simple and explainable (e.g. rolling avg of
+      last N items per topic with thresholds).
+
+- [x] **Frontend — new page** `LearnChartPage.js`, route `/learn` (gated by
+      `ProtectedRoute`), nav entry + a Dashboard feature card, in the existing
+      saffron Vedic style using `PageHeader`/`ProfileBanner`/`Card`/`Button`.
+      Flow: profile picker → setup panel (topic checkboxes, level selector +
+      Adaptive toggle, question counts) → **MCQ round** (tap an option, immediate or
+      end-of-round reveal) → **free-text round** (textarea per question) → **Submit**
+      → **results view**: per-question right/wrong/partial with the AI's reasoning
+      (render via `react-markdown` like the SBC reading), session score, per-topic
+      bars, and "study next" chips. Add a **History / progress** view (past sessions,
+      mastery per topic, streak, "drill my weak spots" shortcut).
+
+- [x] **Frontend — API + i18n:** add `generateQuiz`/`gradeQuiz`/`getQuizHistory`/
+      `getQuizStats` to `services/api.js`; add a `learn.*` i18n block (en full;
+      hi/sa nav + card labels, body falls back to en — same pattern as `sbc.*`).
+
+- [x] **Verify:** backend imports + a JSON-schema sanity test on generate/grade
+      output; one end-to-end quiz on a known chart (e.g. the verified True-Chitra
+      chart) where MCQ keys and free-text reasoning actually match the placements;
+      `npm run build` compiles; lint clean; locale JSON valid.
+
+### Open questions (non-blocking — sensible defaults chosen, will confirm before/while building)
+- Quiz length per session? Default: ~5 MCQ + ~3 free-text, user-adjustable.
+- Reveal MCQ answers immediately or only at end-of-round? Default: end-of-round
+  (keeps it a real test; less hand-holding).
+- Should the quiz also be answerable for *another person's* shared chart, or only
+  the user's own saved profiles? Default: any saved profile the user can view.

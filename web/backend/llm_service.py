@@ -347,15 +347,241 @@ class LLMService:
         return await self._complete(prompt, cfg)
 
     # ------------------------------------------------------------------ #
+    # "Learn the Chart" — AI quiz generation + grading
+    # ------------------------------------------------------------------ #
+    QUIZ_SYSTEM_PROMPT = (
+        "You are an expert Vedic (Jyotish) astrology teacher writing an interactive "
+        "quiz to help a student learn to read a SPECIFIC birth chart. You reason from "
+        "classical Parashari principles, but here your job is to TEACH and TEST, not to "
+        "give a reading. Every question and every grade must be grounded in the real, "
+        "pre-computed chart facts supplied to you — never invent placements. "
+        "You ALWAYS reply with strictly valid JSON and nothing else: no prose, no "
+        "markdown, no code fences."
+    )
+
+    # Human-facing labels for the four topic groups the UI offers.
+    QUIZ_TOPICS = {
+        "planets": "Planets, signs & houses (placements and their basic meanings)",
+        "yogas": "Yogas & doshas (combinations and afflictions present in the chart)",
+        "dashas": "Dashas & transits (timing — current periods and ongoing gochara)",
+        "vargas": "Divisional charts (D9 Navamsa, D10 Dasamsa, etc. and what they refine)",
+    }
+    QUIZ_LEVELS = ("beginner", "intermediate", "advanced")
+
+    async def generate_quiz(self,
+                            chart_data: Dict[str, Any],
+                            topics: List[str],
+                            level: str = "beginner",
+                            num_mcq: int = 5,
+                            num_free: int = 3,
+                            focus_note: str = "",
+                            config: Optional[ModelConfig] = None) -> List[Dict[str, Any]]:
+        """Generate a quiz about THIS chart. Returns a list of question items, each a
+        dict with id/topic/difficulty/format/question and (hidden) answer-key fields
+        (correct_index + rationale for MCQ, expected_points + rationale for free-text).
+        The caller strips the answer key before sending items to the browser."""
+        cfg = config or self.resolve_config()
+        prompt = self._build_quiz_gen_prompt(chart_data, topics, level,
+                                             num_mcq, num_free, focus_note)
+        raw = await self._complete(prompt, cfg, max_tokens=4096,
+                                   system=self.QUIZ_SYSTEM_PROMPT)
+        data = self._extract_json(raw)
+        items = data.get("questions") if isinstance(data, dict) else data
+        if not isinstance(items, list):
+            raise ValueError(f"Quiz generation returned no questions. Model said: {raw[:300]}")
+        return self._normalize_items(items, topics, level)
+
+    async def grade_quiz_answers(self,
+                                 chart_data: Dict[str, Any],
+                                 free_items: List[Dict[str, Any]],
+                                 answers: Dict[str, str],
+                                 config: Optional[ModelConfig] = None) -> Dict[str, Dict[str, Any]]:
+        """LLM-grade the free-text answers against the expected points + chart facts.
+        Returns {item_id: {score, verdict, what_was_right, what_was_wrong, reasoning}}.
+        MCQ items are graded deterministically by the caller, not here."""
+        if not free_items:
+            return {}
+        cfg = config or self.resolve_config()
+        prompt = self._build_quiz_grade_prompt(chart_data, free_items, answers)
+        raw = await self._complete(prompt, cfg, max_tokens=4096,
+                                   system=self.QUIZ_SYSTEM_PROMPT)
+        data = self._extract_json(raw)
+        grades = data.get("grades") if isinstance(data, dict) else data
+        out: Dict[str, Dict[str, Any]] = {}
+        for g in (grades or []):
+            gid = str(g.get("id", ""))
+            if not gid:
+                continue
+            try:
+                score = max(0.0, min(1.0, float(g.get("score", 0))))
+            except (TypeError, ValueError):
+                score = 0.0
+            verdict = g.get("verdict")
+            if verdict not in ("correct", "partial", "incorrect"):
+                verdict = "correct" if score >= 0.8 else ("partial" if score >= 0.34 else "incorrect")
+            out[gid] = {
+                "score": round(score, 2),
+                "verdict": verdict,
+                "what_was_right": (g.get("what_was_right") or "").strip(),
+                "what_was_wrong": (g.get("what_was_wrong") or "").strip(),
+                "reasoning": (g.get("reasoning") or "").strip(),
+            }
+        return out
+
+    @staticmethod
+    def _extract_json(raw: Optional[str]) -> Any:
+        """Parse a JSON object/array from a model reply, tolerating code fences and
+        surrounding prose."""
+        if not raw:
+            raise ValueError("Empty response from model.")
+        s = raw.strip()
+        if s.startswith("```"):
+            s = s.strip("`")
+            if s[:4].lower() == "json":
+                s = s[4:]
+            s = s.strip()
+        try:
+            return json.loads(s)
+        except json.JSONDecodeError:
+            pass
+        # Fall back to the widest {...} or [...] span in the text.
+        for open_c, close_c in (("[", "]"), ("{", "}")):
+            i, j = s.find(open_c), s.rfind(close_c)
+            if i != -1 and j > i:
+                try:
+                    return json.loads(s[i:j + 1])
+                except json.JSONDecodeError:
+                    continue
+        raise ValueError(f"Could not parse JSON from model reply: {raw[:300]}")
+
+    def _normalize_items(self, items: List[Dict[str, Any]], topics: List[str],
+                         level: str) -> List[Dict[str, Any]]:
+        """Validate + clean raw model items into the stored question schema."""
+        out: List[Dict[str, Any]] = []
+        for n, it in enumerate(items, start=1):
+            if not isinstance(it, dict):
+                continue
+            fmt = "mcq" if it.get("format") == "mcq" else ("free" if it.get("format") == "free" else None)
+            q = (it.get("question") or "").strip()
+            if not fmt or not q:
+                continue
+            topic = it.get("topic") if it.get("topic") in self.QUIZ_TOPICS else (topics[0] if topics else "planets")
+            difficulty = it.get("difficulty") if it.get("difficulty") in self.QUIZ_LEVELS else level
+            item: Dict[str, Any] = {
+                "id": f"q{n}",
+                "topic": topic,
+                "difficulty": difficulty,
+                "format": fmt,
+                "question": q,
+                "rationale": (it.get("rationale") or "").strip(),
+            }
+            if fmt == "mcq":
+                opts = [str(o).strip() for o in (it.get("options") or []) if str(o).strip()]
+                if len(opts) < 2:
+                    continue
+                try:
+                    ci = int(it.get("correct_index"))
+                except (TypeError, ValueError):
+                    continue
+                if not (0 <= ci < len(opts)):
+                    continue
+                item["options"] = opts
+                item["correct_index"] = ci
+            else:
+                pts = [str(p).strip() for p in (it.get("expected_points") or []) if str(p).strip()]
+                item["expected_points"] = pts
+            out.append(item)
+        if not out:
+            raise ValueError("No valid quiz questions after normalization.")
+        return out
+
+    def _build_quiz_gen_prompt(self, chart_data: Dict[str, Any], topics: List[str],
+                               level: str, num_mcq: int, num_free: int,
+                               focus_note: str) -> str:
+        topic_lines = "\n".join(
+            f"- {t}: {self.QUIZ_TOPICS[t]}" for t in topics if t in self.QUIZ_TOPICS
+        ) or f"- planets: {self.QUIZ_TOPICS['planets']}"
+        level_guide = {
+            "beginner": "Beginner: test recall of single placements and their plain meaning "
+                        "(which sign/house a planet is in, what a house signifies).",
+            "intermediate": "Intermediate: combine two factors (lord placement + aspect, "
+                            "dignity of a house lord, what a present yoga implies).",
+            "advanced": "Advanced: synthesize multiple factors (dasha + transit timing, "
+                        "varga corroboration, strength/ashtakavarga weighed together).",
+        }.get(level, "Beginner")
+        return (
+            self._render_context_block(chart_data)
+            + "\n\n=== YOUR TASK: WRITE A QUIZ ABOUT THIS CHART ===\n"
+            + f"Create exactly {num_mcq} multiple-choice and {num_free} free-text "
+              "(open-ended) questions that teach the student to read THIS chart.\n\n"
+            + "Difficulty: " + level_guide + "\n\n"
+            + "Cover these topics (spread the questions across them):\n" + topic_lines + "\n"
+            + (f"\nFocus emphasis: {focus_note}\n" if focus_note else "")
+            + "\nRULES:\n"
+            + "1. Every question MUST reference the real placements above (e.g. 'Your Moon "
+              "is in Scorpio in the 4th house — what does that suggest about ...'). Never "
+              "ask about factors not present in the chart data.\n"
+            + "2. Multiple-choice: exactly 4 plausible options, ONE correct; put its index "
+              "(0-3) in correct_index. Make distractors believable, not silly.\n"
+            + "3. Free-text: list 2-4 'expected_points' — the key ideas a correct answer "
+              "should contain — used later for grading.\n"
+            + "4. 'rationale' explains the correct answer citing the specific chart factors.\n"
+            + "5. Keep questions clear and answerable from the chart; avoid trick wording.\n\n"
+            + "Reply with ONLY this JSON (no prose, no code fences):\n"
+            + '{"questions": [\n'
+            + '  {"topic": "planets", "difficulty": "beginner", "format": "mcq", '
+              '"question": "...", "options": ["...","...","...","..."], '
+              '"correct_index": 0, "rationale": "..."},\n'
+            + '  {"topic": "dashas", "difficulty": "beginner", "format": "free", '
+              '"question": "...", "expected_points": ["...","..."], "rationale": "..."}\n'
+            + "]}"
+        )
+
+    def _build_quiz_grade_prompt(self, chart_data: Dict[str, Any],
+                                 free_items: List[Dict[str, Any]],
+                                 answers: Dict[str, str]) -> str:
+        blocks = []
+        for it in free_items:
+            pts = "; ".join(it.get("expected_points", [])) or "(none provided)"
+            ans = (answers.get(it["id"]) or "").strip() or "(no answer given)"
+            blocks.append(
+                f"--- Question {it['id']} (topic: {it.get('topic')}) ---\n"
+                f"Question: {it.get('question')}\n"
+                f"Expected key points: {pts}\n"
+                f"Reference rationale: {it.get('rationale') or '(none)'}\n"
+                f"STUDENT'S ANSWER: {ans}"
+            )
+        questions_block = "\n\n".join(blocks)
+        return (
+            self._render_context_block(chart_data)
+            + "\n\n=== YOUR TASK: GRADE THESE FREE-TEXT ANSWERS ===\n"
+            + "Grade each student answer against the expected key points AND the real "
+              "chart facts above. Award partial credit. Be encouraging but honest.\n\n"
+            + questions_block
+            + "\n\nFor each question return: a score from 0.0 to 1.0; a verdict of "
+              "'correct' (>=0.8), 'partial' (0.34-0.79) or 'incorrect' (<0.34); a short "
+              "'what_was_right'; a short 'what_was_wrong' (empty string if fully correct); "
+              "and 'reasoning' — a detailed explanation of the right answer citing the "
+              "specific chart factors, so the student learns WHY.\n\n"
+            + "Reply with ONLY this JSON (no prose, no code fences):\n"
+            + '{"grades": [\n'
+            + '  {"id": "q3", "score": 0.5, "verdict": "partial", "what_was_right": "...", '
+              '"what_was_wrong": "...", "reasoning": "..."}\n'
+            + "]}"
+        )
+
+    # ------------------------------------------------------------------ #
     # Provider dispatch
     # ------------------------------------------------------------------ #
-    async def _complete(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096) -> str:
+    async def _complete(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
+                        system: Optional[str] = None) -> str:
+        sys_prompt = system or SYSTEM_PROMPT
         if cfg.provider_type == ProviderType.OLLAMA:
-            return await self._call_ollama(prompt, cfg, max_tokens)
+            return await self._call_ollama(prompt, cfg, max_tokens, sys_prompt)
         if cfg.provider_type in (ProviderType.OPENAI, ProviderType.OPENAI_COMPATIBLE):
-            return await self._call_openai_style(prompt, cfg, max_tokens)
+            return await self._call_openai_style(prompt, cfg, max_tokens, sys_prompt)
         if cfg.provider_type == ProviderType.GEMINI:
-            return await self._call_gemini(prompt, cfg, max_tokens)
+            return await self._call_gemini(prompt, cfg, max_tokens, sys_prompt)
         return "Unsupported LLM provider"
 
     # ------------------------------------------------------------------ #
@@ -534,7 +760,8 @@ class LLMService:
         except Exception as e:
             yield f"Error calling Gemini: {str(e)}"
 
-    async def _call_ollama(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096) -> str:
+    async def _call_ollama(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
+                           system: str = SYSTEM_PROMPT) -> str:
         url = cfg.base_url or self.ollama_url
         model = cfg.model or self.ollama_default_model
         try:
@@ -543,7 +770,7 @@ class LLMService:
                 payload = {
                     "model": model,
                     "prompt": prompt,
-                    "system": SYSTEM_PROMPT,
+                    "system": system,
                     "stream": False,
                     "options": {"temperature": 0.7, "num_predict": max_tokens},
                 }
@@ -557,7 +784,8 @@ class LLMService:
         except Exception as e:
             return f"Error calling Ollama: {str(e)}"
 
-    async def _call_openai_style(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096) -> str:
+    async def _call_openai_style(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
+                                 system: str = SYSTEM_PROMPT) -> str:
         """OpenAI and any OpenAI-compatible server share the /chat/completions schema."""
         base_url = (cfg.base_url or "").rstrip("/")
         if not base_url:
@@ -576,7 +804,7 @@ class LLMService:
                 payload = {
                     "model": cfg.model,
                     "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "system", "content": system},
                         {"role": "user", "content": prompt},
                     ],
                     "temperature": 0.7,
@@ -596,7 +824,8 @@ class LLMService:
         except Exception as e:
             return f"Error calling model: {str(e)}"
 
-    async def _call_gemini(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096) -> str:
+    async def _call_gemini(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
+                           system: str = SYSTEM_PROMPT) -> str:
         api_key = cfg.api_key or self.gemini_api_key
         model = cfg.model or self.gemini_default_model
         if not api_key:
@@ -606,7 +835,7 @@ class LLMService:
                 url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
                        f"{model}:generateContent?key={api_key}")
                 payload = {
-                    "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+                    "system_instruction": {"parts": [{"text": system}]},
                     "contents": [{"parts": [{"text": prompt}]}],
                     "generationConfig": {"temperature": 0.7, "maxOutputTokens": max_tokens},
                 }

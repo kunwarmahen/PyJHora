@@ -279,6 +279,54 @@ export const astrologyService = {
       },
       { timeout: 300000 }
     ),
+
+  // ---- Learn the Chart (AI quiz) ----
+  // Generate a quiz grounded in this chart; returns questions without answer keys.
+  generateQuiz: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/quiz/generate",
+      {
+        birth_details: birthDetails,
+        profile_id: opts.profileId,
+        topics: opts.topics,
+        level: opts.level,
+        adaptive: opts.adaptive,
+        num_mcq: opts.numMcq,
+        num_free: opts.numFree,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
+  // Grade a quiz session's answers; returns per-question feedback + reasoning.
+  gradeQuiz: (sessionId, answers, model = {}) =>
+    api.post(
+      "/api/astrology/quiz/grade",
+      {
+        session_id: sessionId,
+        answers,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
+  getQuizHistory: (profileId = null) =>
+    api.get("/api/astrology/quiz/history", { params: { profile_id: profileId } }),
+
+  getQuizStats: (profileId = null) =>
+    api.get("/api/astrology/quiz/stats", { params: { profile_id: profileId } }),
+
+  deleteQuiz: (sessionId) => api.delete(`/api/astrology/quiz/${sessionId}`),
 };
 
 /**

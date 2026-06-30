@@ -164,6 +164,70 @@
     "create": "Create Profile",
     "update": "Update Profile"
   },
+  "learn": {
+    "title": "Learn the Chart",
+    "subtitle": "An AI tutor quizzes you on this chart, grades your answers, and explains why",
+    "setupTitle": "Set up your quiz",
+    "topicsLabel": "Topics",
+    "topicsHint": "Pick which areas of the chart to be quizzed on.",
+    "topics": {
+      "planets": "Planets, signs & houses",
+      "yogas": "Yogas & doshas",
+      "dashas": "Dashas & transits",
+      "vargas": "Divisional charts"
+    },
+    "difficultyLabel": "Difficulty",
+    "adaptive": "Adaptive",
+    "adaptiveHint": "auto-adjusts to your recent scores",
+    "levels": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "countLabel": "How many questions?",
+    "mcqCount": "Multiple-choice",
+    "freeCount": "Free-text",
+    "start": "Start quiz",
+    "viewHistory": "History",
+    "yourProgress": "Your progress",
+    "sessionsTaken_one": "{{count}} quiz taken",
+    "sessionsTaken_other": "{{count}} quizzes taken",
+    "streak_one": "{{count}}-quiz streak",
+    "streak_other": "{{count}}-quiz streak",
+    "overall": "Overall",
+    "mcqRound": "Multiple-choice warm-up",
+    "freeRound": "Free-text round",
+    "answerPlaceholder": "Type your answer in your own words…",
+    "continueFree": "Continue to free-text",
+    "submit": "Submit for grading",
+    "back": "Back",
+    "cancel": "Cancel",
+    "generating": "Generating your quiz from this chart…",
+    "grading": "Grading your answers…",
+    "scoreLabel": "Overall score",
+    "studyNext": "Study these next",
+    "drillWeak": "Drill my weak spots",
+    "newQuiz": "New quiz",
+    "yourAnswer": "Your answer",
+    "noAnswer": "(no answer given)",
+    "right": "Right",
+    "wrong": "To improve",
+    "verdicts": {
+      "correct": "Correct",
+      "partial": "Partly right",
+      "incorrect": "Incorrect"
+    },
+    "historyTitle": "Past quizzes",
+    "noHistory": "No quizzes yet — start one to begin learning this chart.",
+    "questionsCount_one": "{{count}} question",
+    "questionsCount_other": "{{count}} questions",
+    "notGraded": "Not graded",
+    "delete": "Delete",
+    "errNoTopic": "Pick at least one topic.",
+    "errGenerate": "Couldn't generate the quiz. Check your AI model in Ask AI Astrologer.",
+    "errGrade": "Couldn't grade your answers. Please try again.",
+    "errHistory": "Couldn't load your quiz history."
+  },
   "nav": {
     "dashboard": "Dashboard",
     "birthChart": "Birth Chart",
@@ -173,6 +237,7 @@
     "advanced": "Advanced Details",
     "compare": "Compare Charts",
     "compatibility": "Compatibility",
+    "learn": "Learn the Chart",
     "ask": "Ask AI Astrologer",
     "aiTools": "AI Capabilities",
     "openMenu": "Open menu",
@@ -228,6 +293,10 @@
       "compare": {
         "title": "Compare Charts",
         "description": "Put two profiles side by side and compare their placements"
+      },
+      "learn": {
+        "title": "Learn the Chart",
+        "description": "Quiz yourself on this chart — the AI asks, grades, and explains why"
       },
       "aiTools": {
         "title": "AI Capabilities",

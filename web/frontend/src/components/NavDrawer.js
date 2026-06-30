@@ -15,6 +15,7 @@ import {
   Star,
   Grid3x3,
   GitCompareArrows,
+  GraduationCap,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
@@ -32,6 +33,7 @@ const LINKS = [
   { to: "/advanced", labelKey: "nav.advanced", icon: <Sparkles size={20} /> },
   { to: "/compare", labelKey: "nav.compare", icon: <GitCompareArrows size={20} /> },
   { to: "/compatibility", labelKey: "nav.compatibility", icon: <Heart size={20} /> },
+  { to: "/learn", labelKey: "nav.learn", icon: <GraduationCap size={20} /> },
   { to: "/ask-astrologer", labelKey: "nav.ask", icon: <MessageCircle size={20} /> },
   { to: "/ai-tools", labelKey: "nav.aiTools", icon: <Wrench size={20} /> },
 ];

@@ -14,6 +14,7 @@ import {
   Orbit,
   Grid3x3,
   GitCompareArrows,
+  GraduationCap,
   Wrench,
 } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
@@ -76,6 +77,12 @@ export const DashboardPage = () => {
       icon: <Grid3x3 size={32} />,
       path: "/sarvatobhadra",
       gradient: "linear-gradient(135deg, #FF9933 0%, #2D3561 100%)",
+    },
+    {
+      key: "learn",
+      icon: <GraduationCap size={32} />,
+      path: "/learn",
+      gradient: "linear-gradient(135deg, #E27B5A 0%, #D4AF37 100%)",
     },
     {
       key: "advanced",
