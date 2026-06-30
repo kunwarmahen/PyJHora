@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo } from "react";
+import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -60,6 +60,9 @@ const MapPicker = ({ onLocationSelect, latitude, longitude }) => {
   );
   const mapRef = useRef(null);
   const reverseTimer = useRef(null);
+  // Mirror of `marker` so the prop-sync effect can compare against the latest
+  // pin without re-running every time the pin moves.
+  const markerRef = useRef(marker);
 
   const center = useMemo(
     () => marker || DEFAULT_CENTER,
@@ -100,12 +103,31 @@ const MapPicker = ({ onLocationSelect, latitude, longitude }) => {
     (lat, lng) => {
       const rl = Math.round(lat * 1e6) / 1e6;
       const rg = Math.round(lng * 1e6) / 1e6;
+      markerRef.current = [rl, rg];
       setMarker([rl, rg]);
       if (reverseTimer.current) clearTimeout(reverseTimer.current);
       reverseTimer.current = setTimeout(() => reverseGeocode(rl, rg), 600);
     },
     [reverseGeocode],
   );
+
+  // Keep the pin in sync with coordinates set elsewhere (the text search, or
+  // editing an existing profile): drop/move the pin and recentre. The epsilon
+  // guard skips the echo of our own pick() — so dragging the pin never fights
+  // the map back to where it started.
+  useEffect(() => {
+    if (latitude == null || longitude == null) return;
+    const lat = Number(latitude);
+    const lng = Number(longitude);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+    const prev = markerRef.current;
+    if (prev && Math.abs(prev[0] - lat) < 1e-6 && Math.abs(prev[1] - lng) < 1e-6) {
+      return;
+    }
+    markerRef.current = [lat, lng];
+    setMarker([lat, lng]);
+    if (mapRef.current) mapRef.current.setView([lat, lng], PICKED_ZOOM);
+  }, [latitude, longitude]);
 
   const handleUseMyLocation = () => {
     if (!navigator.geolocation) {

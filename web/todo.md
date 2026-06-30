@@ -1062,3 +1062,11 @@ key-less services** (no paid Google/Mapbox billing).
       5.5 (offline tz confirmed); config flag loads; `npm run build` compiles; lint
       clean. NOTE: same *current-DST* tz caveat as text search — fine for picking a
       place, a known limitation for historical births.
+- [x] **Search ⇄ map two-way sync (FIXED 2026-06-30).** Reported: after a text
+      search the map still opened on the old/empty spot. Cause — `MapPicker` read
+      `latitude`/`longitude` props only in the initial `useState`, so later changes
+      never moved the pin. Added a prop-sync `useEffect` that drops/recentres the pin
+      whenever the coords change (text search OR editing an existing profile), with an
+      epsilon guard (`markerRef`) so it ignores the echo of the user's own pin
+      drag/click and never fights the map back. Search → open map now lands on the
+      searched place, and the user can still drag to refine.
