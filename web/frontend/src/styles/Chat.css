@@ -694,7 +694,8 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 0 var(--space-md);
+  height: 48px;
+  padding: 0 var(--space-lg);
   border-radius: var(--radius-md);
   border: 1px solid var(--vermillion);
   background: rgba(229, 57, 53, 0.08);
