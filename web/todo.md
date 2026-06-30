@@ -881,7 +881,7 @@ usage capture).
       supportive-vs-stressful tone. Verified the mirror-vedha invariant on two charts
       (e.g. 1990-05-15 → birth weekday Tuesday, correct).
 - [x] **Layman AI reading** (`llm_service.py`): `analyze_sarvatobhadra` +
-      `_build_sarvatobhadra_prompt` — a jargon-light, ~250-350-word reading (headline tone,
+      `_build_sarvatobhadra_prompt` — a jargon-light, ~500-word reading (headline tone,
       what each flagged graha stirs up + which life area, 2-4 gentle suggestions, a line of
       reassurance) that trusts the pre-computed findings and avoids death/disease/precise-date
       predictions. `POST /api/astrology/sarvatobhadra` (compute) and
@@ -898,3 +898,10 @@ usage capture).
       `sbc.*` block in en (hi/sa get the nav + card labels, body falls back to en). Verified:
       backend imports OK + compute invariants pass; `npm run build` compiles; lint clean;
       locale JSON valid.
+- [x] **Post-review polish 2026-06-29**: (1) the AI reading is now rendered with
+      `react-markdown` (was raw text, so `*  **bold**` leaked through) — added scoped
+      `.sbc-ai-markdown` spacing in `Dashboard.css`; reading length bumped to ~500 words.
+      (2) Desktop layout reflowed to **~75% chakra / 25% sidebar** via `.sbc-layout`
+      (stacks below 900px); chakra cap raised 460→760px with `clamp()`-scaled cell + graha
+      chip text so it stays legible larger; anchors/findings became a compact, smaller-text
+      sidebar.
