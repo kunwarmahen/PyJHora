@@ -36,6 +36,7 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { ChatComposer } from "../components/chat/ChatComposer";
 import { StreamingMarkdown } from "../components/chat/StreamingMarkdown";
 import "../styles/Dashboard.css";
+import "../styles/Shared.css";
 import "../styles/Chat.css";
 
 
@@ -45,51 +46,15 @@ import "../styles/Chat.css";
  * trim the connector so it starts/ends at the first/last dot.
  */
 const TraceNode = ({ icon, dotBg, dotBorder, isFirst, isLast, children }) => (
-  <div style={{ display: "flex", gap: "10px" }}>
-    <div style={{ position: "relative", width: "20px", flexShrink: 0 }}>
-      {!isFirst && (
-        <div
-          style={{
-            position: "absolute",
-            left: "9px",
-            top: 0,
-            height: "9px",
-            width: "2px",
-            background: "var(--sandalwood, #e7d9c5)",
-          }}
-        />
-      )}
-      {!isLast && (
-        <div
-          style={{
-            position: "absolute",
-            left: "9px",
-            top: "9px",
-            bottom: 0,
-            width: "2px",
-            background: "var(--sandalwood, #e7d9c5)",
-          }}
-        />
-      )}
-      <span
-        style={{
-          position: "relative",
-          zIndex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "18px",
-          height: "18px",
-          borderRadius: "50%",
-          background: dotBg,
-          border: `1px solid ${dotBorder}`,
-          color: "white",
-        }}
-      >
+  <div className="trace-node">
+    <div className="trace-node__rail">
+      {!isFirst && <div className="trace-node__line trace-node__line--top" />}
+      {!isLast && <div className="trace-node__line trace-node__line--bottom" />}
+      <span className="trace-node__dot" style={{ background: dotBg, borderColor: dotBorder }}>
         {icon}
       </span>
     </div>
-    <div style={{ flex: 1, paddingBottom: "14px", minWidth: 0 }}>{children}</div>
+    <div className="trace-node__body">{children}</div>
   </div>
 );
 
@@ -985,55 +950,20 @@ export const AskAstrologerPage = () => {
 
         {/* History panel */}
         {showHistory && (
-          <div
-            style={{
-              background: "white",
-              borderRadius: "var(--radius-xl)",
-              padding: "var(--space-xl)",
-              boxShadow: "var(--shadow-lg)",
-              borderTop: "4px solid var(--saffron)",
-              marginBottom: "var(--space-xl)",
-            }}
-          >
-            <h3
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-sm)",
-                marginBottom: "var(--space-lg)",
-                color: "var(--cosmic-indigo)",
-                fontSize: "1.25rem",
-                fontWeight: 700,
-              }}
-            >
-              <History size={20} style={{ color: "var(--saffron)" }} />
+          <div className="ui-card ui-card--accent">
+            <h3 className="ui-card-header ui-card-header--sm">
+              <History size={20} />
               {t("ask.savedConversations")}
             </h3>
             {/* Filter chips — only shown once a Transit-page reading exists, so the
                 main Ask page stays uncluttered for users who never use that chat. */}
             {hasTransitConvos && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: "var(--space-xs)",
-                  marginBottom: "var(--space-md)",
-                  flexWrap: "wrap",
-                }}
-              >
+              <div className="history-filters">
                 {["all", "astrologer", "transit"].map((f) => (
                   <button
                     key={f}
+                    className={`history-filter${historyFilter === f ? " is-active" : ""}`}
                     onClick={() => setHistoryFilter(f)}
-                    style={{
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                      padding: "0.25rem 0.75rem",
-                      borderRadius: "999px",
-                      cursor: "pointer",
-                      border: `1px solid ${historyFilter === f ? "var(--saffron)" : "var(--sandalwood)"}`,
-                      background: historyFilter === f ? "rgba(255, 153, 51, 0.12)" : "white",
-                      color: historyFilter === f ? "var(--saffron-dark, #cc6600)" : "var(--text-secondary)",
-                    }}
                   >
                     {t(`ask.filter.${f}`)}
                   </button>
@@ -1041,79 +971,34 @@ export const AskAstrologerPage = () => {
               </div>
             )}
             {visibleConversations.length === 0 ? (
-              <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", margin: 0 }}>
+              <p className="text-secondary" style={{ fontSize: "0.875rem", margin: 0 }}>
                 {t("ask.noConversations")}
               </p>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+              <div className="history-list">
                 {visibleConversations.map((c) => (
                   <div
                     key={c.id}
+                    className={`history-item${c.id === conversationId ? " is-active" : ""}`}
                     onClick={() => loadConversation(c.id)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "var(--space-md)",
-                      padding: "var(--space-md)",
-                      borderRadius: "var(--radius-md)",
-                      cursor: "pointer",
-                      border: `1px solid ${c.id === conversationId ? "var(--saffron)" : "var(--sandalwood)"}`,
-                      background: c.id === conversationId ? "rgba(255, 153, 51, 0.08)" : "white",
-                    }}
                   >
-                    <div style={{ minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          color: "var(--cosmic-indigo)",
-                          fontSize: "0.9375rem",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
+                    <div className="history-item__main">
+                      <div className="history-item__title">
                         {convSource(c) === "transit" && (
-                          <span
-                            style={{
-                              display: "inline-block",
-                              fontSize: "0.625rem",
-                              fontWeight: 700,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.03em",
-                              padding: "0.1rem 0.4rem",
-                              marginRight: "0.4rem",
-                              borderRadius: "4px",
-                              verticalAlign: "middle",
-                              background: "rgba(63, 81, 181, 0.1)",
-                              color: "var(--cosmic-indigo)",
-                            }}
-                          >
-                            {t("ask.sourceTransit")}
-                          </span>
+                          <span className="history-source-badge">{t("ask.sourceTransit")}</span>
                         )}
                         {c.title}
                       </div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                      <div className="history-item__meta">
                         {Math.floor((c.message_count || 0) / 2)} {t("ask.qa")}
                         {c.last_model ? ` · ${c.last_model}` : ""}
                         {c.updated_at ? ` · ${formatDate(c.updated_at)}` : ""}
                       </div>
                     </div>
                     <button
+                      className="history-item__delete"
                       onClick={(e) => handleDeleteConversation(c.id, e)}
                       title={t("ask.deleteConversation")}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "var(--text-secondary)",
-                        padding: "var(--space-xs)",
-                        display: "flex",
-                        flexShrink: 0,
-                      }}
-                      onMouseOver={(e) => (e.currentTarget.style.color = "var(--vermillion)")}
-                      onMouseOut={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -1126,72 +1011,29 @@ export const AskAstrologerPage = () => {
 
         {/* Display Birth Chart */}
         {chartData && (
-          <div style={{ opacity: 0, animation: "fadeIn 0.6s ease-out 0.2s forwards" }}>
+          <div className="fade-in fade-in--d2">
             <NorthIndianChart chartData={chartData} />
           </div>
         )}
 
         {/* AI Model Selector and Examples */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-            gap: "var(--space-lg)",
-            marginBottom: "var(--space-xl)",
-            opacity: 0,
-            animation: "fadeIn 0.6s ease-out 0.4s forwards",
-          }}
-        >
+        <div className="ask-grid fade-in fade-in--d4">
           {/* LLM Selector Card */}
-          <div
-            style={{
-              background: "white",
-              borderRadius: "var(--radius-xl)",
-              padding: "var(--space-xl)",
-              boxShadow: "var(--shadow-lg)",
-              borderTop: "4px solid var(--saffron)",
-            }}
-          >
-            <h3
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-sm)",
-                marginBottom: "var(--space-lg)",
-                color: "var(--cosmic-indigo)",
-                fontSize: "1.25rem",
-                fontWeight: 700,
-              }}
-            >
-              <Bot size={20} style={{ color: "var(--saffron)" }} />
+          <div className="ask-card">
+            <h3 className="ask-card__header">
+              <Bot size={20} />
               {t("ask.aiModel")}
               <button
+                className="ask-viewdata-btn"
                 onClick={() => openInfo(lastContext)}
-                style={{
-                  marginLeft: "auto",
-                  background: "rgba(255, 153, 51, 0.1)",
-                  border: "1px solid var(--saffron)",
-                  cursor: "pointer",
-                  color: "var(--saffron)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-xs)",
-                  padding: "var(--space-xs) var(--space-sm)",
-                  borderRadius: "var(--radius-sm)",
-                  transition: "all 0.3s ease",
-                }}
-                onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255, 153, 51, 0.2)")}
-                onMouseOut={(e) => (e.currentTarget.style.background = "rgba(255, 153, 51, 0.1)")}
                 title={t("ask.viewDataTitle")}
               >
                 <Info size={18} />
-                <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>
-                  {t("ask.viewDataSent")}
-                </span>
+                <span>{t("ask.viewDataSent")}</span>
               </button>
             </h3>
             {providersLoading ? (
-              <div style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
+              <div className="text-secondary" style={{ fontSize: "0.875rem" }}>
                 {t("ask.detectingModels")}
               </div>
             ) : (
@@ -1246,16 +1088,7 @@ export const AskAstrologerPage = () => {
 
                 {/* Availability note */}
                 {selectedProvider && !selectedProvider.available && (
-                  <div
-                    style={{
-                      fontSize: "0.8125rem",
-                      color: "var(--vermillion)",
-                      background: "rgba(229, 57, 53, 0.08)",
-                      border: "1px solid rgba(229, 57, 53, 0.25)",
-                      borderRadius: "var(--radius-md)",
-                      padding: "var(--space-sm) var(--space-md)",
-                    }}
-                  >
+                  <div className="ask-warning">
                     ⚠ {selectedProvider.reason || t("ask.providerUnreachable")}
                   </div>
                 )}
@@ -1265,16 +1098,8 @@ export const AskAstrologerPage = () => {
                   <div>
                     <button
                       type="button"
+                      className="ask-link-btn"
                       onClick={() => setShowAdvanced((v) => !v)}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "var(--saffron)",
-                        fontSize: "0.8125rem",
-                        fontWeight: 600,
-                        padding: 0,
-                      }}
                     >
                       {showAdvanced ? "▾" : "▸"} {t("ask.advancedEndpoint")}
                     </button>
@@ -1295,27 +1120,9 @@ export const AskAstrologerPage = () => {
           </div>
 
           {/* Examples Card */}
-          <div
-            style={{
-              background: "white",
-              borderRadius: "var(--radius-xl)",
-              padding: "var(--space-xl)",
-              boxShadow: "var(--shadow-lg)",
-              borderTop: "4px solid var(--saffron)",
-            }}
-          >
-            <h3
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-sm)",
-                marginBottom: "var(--space-lg)",
-                color: "var(--cosmic-indigo)",
-                fontSize: "1.25rem",
-                fontWeight: 700,
-              }}
-            >
-              <MessageCircle size={20} style={{ color: "var(--saffron)" }} />
+          <div className="ask-card">
+            <h3 className="ask-card__header">
+              <MessageCircle size={20} />
               {t("ask.exampleTitle")}
             </h3>
             {exampleQuestions.map((q, index) => (
@@ -1331,41 +1138,17 @@ export const AskAstrologerPage = () => {
           </div>
 
           {/* Answer Mode Card */}
-          <div
-            style={{
-              background: "white",
-              borderRadius: "var(--radius-xl)",
-              padding: "var(--space-xl)",
-              boxShadow: "var(--shadow-lg)",
-              borderTop: "4px solid var(--saffron)",
-            }}
-          >
-            <h3
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-sm)",
-                marginBottom: "var(--space-xs)",
-                color: "var(--cosmic-indigo)",
-                fontSize: "1.25rem",
-                fontWeight: 700,
-              }}
-            >
-              <Wrench size={20} style={{ color: "var(--saffron)" }} />
+          <div className="ask-card">
+            <h3 className="ask-card__header ask-card__header--tight">
+              <Wrench size={20} />
               Answer mode
             </h3>
-            <p
-              style={{
-                margin: "0 0 var(--space-md)",
-                fontSize: "0.8125rem",
-                color: "var(--text-secondary)",
-              }}
-            >
+            <p className="ask-card__hint">
               {modeLocked
                 ? "This conversation's mode is fixed. Start a new conversation to switch."
                 : "Full context sends the whole chart up front. Smart lookup sends a starting summary (the charts selected below) and lets the AI pull in extra details by itself as it answers."}
             </p>
-            <div style={{ display: "flex", gap: "var(--space-sm)" }}>
+            <div className="ask-toggle-row">
               {[
                 { val: "pass_all", label: "Full context" },
                 { val: "tools", label: "Smart lookup" },
@@ -1375,19 +1158,10 @@ export const AskAstrologerPage = () => {
                   <button
                     key={o.val}
                     type="button"
+                    className={`ask-toggle-btn${active ? " is-active" : ""}`}
                     onClick={() => !modeLocked && setMode(o.val)}
                     disabled={modeLocked}
-                    style={{
-                      cursor: modeLocked ? "not-allowed" : "pointer",
-                      padding: "var(--space-xs) var(--space-md)",
-                      borderRadius: "var(--radius-md)",
-                      fontSize: "0.8125rem",
-                      fontWeight: 600,
-                      border: `1px solid ${active ? "var(--saffron)" : "var(--sandalwood)"}`,
-                      background: active ? "rgba(255, 153, 51, 0.12)" : "white",
-                      color: active ? "var(--vermillion)" : "var(--text-secondary)",
-                      opacity: modeLocked && !active ? 0.5 : 1,
-                    }}
+                    style={modeLocked && !active ? { opacity: 0.5 } : undefined}
                   >
                     {o.label}
                   </button>
@@ -1397,39 +1171,13 @@ export const AskAstrologerPage = () => {
           </div>
 
           {/* Divisional Charts (Vargas) Card */}
-          <div
-            style={{
-              background: "white",
-              borderRadius: "var(--radius-xl)",
-              padding: "var(--space-xl)",
-              boxShadow: "var(--shadow-lg)",
-              borderTop: "4px solid var(--saffron)",
-            }}
-          >
-            <h3
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-sm)",
-                marginBottom: "var(--space-xs)",
-                color: "var(--cosmic-indigo)",
-                fontSize: "1.25rem",
-                fontWeight: 700,
-              }}
-            >
-              <Star size={20} style={{ color: "var(--saffron)" }} />
+          <div className="ask-card">
+            <h3 className="ask-card__header ask-card__header--tight">
+              <Star size={20} />
               {t("ask.chartsToConsult")}
             </h3>
-            <p
-              style={{
-                margin: "0 0 var(--space-md)",
-                fontSize: "0.8125rem",
-                color: "var(--text-secondary)",
-              }}
-            >
-              {t("ask.chartsHint")}
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-sm)" }}>
+            <p className="ask-card__hint">{t("ask.chartsHint")}</p>
+            <div className="ask-toggle-row">
               {VARGAS.map((v) => {
                 const active = selectedVargas.includes(v.value);
                 const isD1 = v.value === 1;
@@ -1437,20 +1185,11 @@ export const AskAstrologerPage = () => {
                   <button
                     key={v.value}
                     type="button"
+                    className={`ask-toggle-btn${active ? " is-active" : ""}`}
                     onClick={() => !isD1 && toggleVarga(v.value)}
                     disabled={isD1}
                     title={`${v.name} — ${v.significance}`}
-                    style={{
-                      cursor: isD1 ? "default" : "pointer",
-                      padding: "var(--space-xs) var(--space-md)",
-                      borderRadius: "var(--radius-md)",
-                      fontSize: "0.8125rem",
-                      fontWeight: 600,
-                      border: `1px solid ${active ? "var(--saffron)" : "var(--sandalwood)"}`,
-                      background: active ? "rgba(255, 153, 51, 0.12)" : "white",
-                      color: active ? "var(--vermillion)" : "var(--text-secondary)",
-                      opacity: isD1 ? 0.8 : 1,
-                    }}
+                    style={isD1 ? { cursor: "default", opacity: 0.8 } : undefined}
                   >
                     {v.code}
                   </button>
@@ -1462,31 +1201,11 @@ export const AskAstrologerPage = () => {
 
         {/* Error banner */}
         {error && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "var(--space-md)",
-              marginBottom: "var(--space-lg)",
-              padding: "var(--space-md) var(--space-lg)",
-              background: "rgba(229, 57, 53, 0.08)",
-              border: "1px solid rgba(229, 57, 53, 0.3)",
-              borderRadius: "var(--radius-md)",
-              color: "var(--vermillion)",
-              fontSize: "0.875rem",
-            }}
-          >
+          <div className="ask-error">
             <span>⚠ {error}</span>
             <button
+              className="ask-error__dismiss"
               onClick={() => setError("")}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "var(--vermillion)",
-                display: "flex",
-              }}
               title={t("ask.dismiss")}
             >
               <X size={16} />
@@ -1495,32 +1214,8 @@ export const AskAstrologerPage = () => {
         )}
 
         {/* Chat Area */}
-        <div
-          style={{
-            background: "white",
-            borderRadius: "var(--radius-xl)",
-            boxShadow: "var(--shadow-lg)",
-            borderTop: "4px solid var(--saffron)",
-            display: "flex",
-            flexDirection: "column",
-            minHeight: "500px",
-            maxHeight: "700px",
-            opacity: 0,
-            animation: "fadeIn 0.6s ease-out 0.6s forwards",
-          }}
-        >
-          <div
-            className="messages-container"
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "var(--space-xl)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-lg)",
-              background: "var(--sacred-white)",
-            }}
-          >
+        <div className="chat-area fade-in fade-in--d6">
+          <div className="messages-container">
             {messages.map((message, index) => (
               <div key={index} className={`message ${message.type}`}>
                 {message.type === "user" && (
@@ -1558,19 +1253,9 @@ export const AskAstrologerPage = () => {
                       })()}
                     {!message.streaming && (message.context || message.model) && (
                       <button
+                        className="msg-info-btn"
                         onClick={() => openInfo(messageInfo(message))}
                         title={t("ask.chartDataForAnswer")}
-                        style={{
-                          marginLeft: "auto",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          color: "var(--saffron)",
-                          display: "flex",
-                          alignItems: "center",
-                          padding: "2px",
-                          borderRadius: "var(--radius-sm)",
-                        }}
                       >
                         <Info size={15} />
                       </button>
@@ -1589,45 +1274,19 @@ export const AskAstrologerPage = () => {
                   (() => {
                     const realSteps = message.toolSteps.filter((s) => !s.notice);
                     return (
-                      <div style={{ margin: "0 0 var(--space-sm)" }}>
+                      <div className="tool-steps">
                         {/* Pills timeline of the tool calls, in order */}
-                        <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: "6px",
-                            alignItems: "center",
-                          }}
-                        >
+                        <div className="tool-pills">
                           {message.toolSteps.map((s, si) =>
                             s.notice ? (
-                              <span
-                                key={si}
-                                style={{
-                                  fontSize: "12px",
-                                  fontStyle: "italic",
-                                  color: "var(--ink-light, #888)",
-                                  alignSelf: "center",
-                                }}
-                              >
+                              <span key={si} className="tool-pill-notice">
                                 {s.notice}
                               </span>
                             ) : (
                               <span
                                 key={si}
+                                className={`tool-pill${s.ok === false ? " tool-pill--err" : ""}`}
                                 title={s.args ? JSON.stringify(s.args) : ""}
-                                style={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "4px",
-                                  fontSize: "12px",
-                                  padding: "2px 8px",
-                                  borderRadius: "999px",
-                                  border: "1px solid var(--saffron, #e08a2c)",
-                                  color:
-                                    s.ok === false ? "#c0392b" : "var(--saffron, #e08a2c)",
-                                  background: "rgba(224,138,44,0.06)",
-                                }}
                               >
                                 {s.ok === null ? (
                                   <Wrench size={12} />
@@ -1646,16 +1305,8 @@ export const AskAstrologerPage = () => {
                           {realSteps.length > 0 && (
                             <button
                               type="button"
+                              className="tool-trace-toggle"
                               onClick={() => toggleTrace(index, message)}
-                              style={{
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                color: "var(--saffron, #e08a2c)",
-                                fontSize: "12px",
-                                fontWeight: 600,
-                                padding: "2px 4px",
-                              }}
                             >
                               {openTrace[index] ? "▾" : "▸"} Behind the scenes
                             </button>
@@ -1665,15 +1316,7 @@ export const AskAstrologerPage = () => {
                         {/* Expanded: a vertical timeline of the whole call flow —
                             seed → each tool call (+ the data it returned) → answer. */}
                         {openTrace[index] && realSteps.length > 0 && (
-                          <div
-                            style={{
-                              marginTop: "var(--space-sm)",
-                              border: "1px solid var(--sandalwood, #e7d9c5)",
-                              borderRadius: "var(--radius-md)",
-                              padding: "var(--space-md)",
-                              background: "var(--sacred-white, #fdfaf5)",
-                            }}
-                          >
+                          <div className="tool-trace-panel">
                             {/* Start: the seed sent to the model */}
                             <TraceNode
                               isFirst
@@ -1681,29 +1324,12 @@ export const AskAstrologerPage = () => {
                               dotBg="var(--saffron, #e08a2c)"
                               dotBorder="var(--saffron, #e08a2c)"
                             >
-                              <div
-                                style={{
-                                  fontSize: "12px",
-                                  fontWeight: 600,
-                                  color: "var(--cosmic-indigo)",
-                                }}
-                              >
-                                Starting summary sent to the AI
-                              </div>
+                              <div className="trace-label">Starting summary sent to the AI</div>
                               {(message.context || message.mode === "tools") && (
                                 <button
                                   type="button"
+                                  className="trace-link"
                                   onClick={() => openInfo(messageInfo(message))}
-                                  style={{
-                                    marginTop: "2px",
-                                    background: "none",
-                                    border: "none",
-                                    padding: 0,
-                                    cursor: "pointer",
-                                    color: "var(--saffron, #e08a2c)",
-                                    fontSize: "11px",
-                                    fontWeight: 600,
-                                  }}
                                 >
                                   view what was sent
                                 </button>
@@ -1715,19 +1341,11 @@ export const AskAstrologerPage = () => {
                               s.notice ? (
                                 <TraceNode
                                   key={si}
-                                  icon={<span style={{ fontSize: "9px" }}>•</span>}
+                                  icon={<span className="trace-bullet">•</span>}
                                   dotBg="var(--ink-light, #999)"
                                   dotBorder="var(--ink-light, #999)"
                                 >
-                                  <div
-                                    style={{
-                                      fontSize: "12px",
-                                      fontStyle: "italic",
-                                      color: "var(--text-secondary)",
-                                    }}
-                                  >
-                                    {s.notice}
-                                  </div>
+                                  <div className="trace-notice">{s.notice}</div>
                                 </TraceNode>
                               ) : (
                                 <TraceNode
@@ -1741,28 +1359,13 @@ export const AskAstrologerPage = () => {
                                       <Check size={11} />
                                     )
                                   }
-                                  dotBg={
-                                    s.ok === false ? "#c0392b" : "var(--saffron, #e08a2c)"
-                                  }
-                                  dotBorder={
-                                    s.ok === false ? "#c0392b" : "var(--saffron, #e08a2c)"
-                                  }
+                                  dotBg={s.ok === false ? "#c0392b" : "var(--saffron, #e08a2c)"}
+                                  dotBorder={s.ok === false ? "#c0392b" : "var(--saffron, #e08a2c)"}
                                 >
-                                  <div
-                                    style={{
-                                      fontSize: "12px",
-                                      fontWeight: 600,
-                                      color: "var(--cosmic-indigo)",
-                                    }}
-                                  >
+                                  <div className="trace-label">
                                     Looked up {fmtTool(s.name)}
                                     {s.args && Object.keys(s.args).length ? (
-                                      <span
-                                        style={{
-                                          fontWeight: 400,
-                                          color: "var(--text-secondary)",
-                                        }}
-                                      >
+                                      <span className="trace-label__args">
                                         {" "}
                                         ({Object.entries(s.args)
                                           .map(([k, v]) => `${k}: ${v}`)
@@ -1771,32 +1374,9 @@ export const AskAstrologerPage = () => {
                                     ) : null}
                                   </div>
                                   {s.result !== undefined && (
-                                    <details style={{ marginTop: "3px" }}>
-                                      <summary
-                                        style={{
-                                          cursor: "pointer",
-                                          fontSize: "11px",
-                                          fontWeight: 600,
-                                          color: "var(--saffron, #e08a2c)",
-                                        }}
-                                      >
-                                        view data
-                                      </summary>
-                                      <pre
-                                        style={{
-                                          margin: "4px 0 0",
-                                          fontSize: "11px",
-                                          lineHeight: 1.4,
-                                          maxHeight: "220px",
-                                          overflow: "auto",
-                                          background: "white",
-                                          border: "1px solid var(--sandalwood, #e7d9c5)",
-                                          borderRadius: "var(--radius-sm)",
-                                          padding: "6px 8px",
-                                          whiteSpace: "pre-wrap",
-                                          wordBreak: "break-word",
-                                        }}
-                                      >
+                                    <details className="trace-data">
+                                      <summary className="trace-data__summary">view data</summary>
+                                      <pre className="trace-data__pre">
                                         {JSON.stringify(s.result, null, 2)}
                                       </pre>
                                     </details>
@@ -1812,13 +1392,7 @@ export const AskAstrologerPage = () => {
                               dotBg="var(--vermillion, #c0392b)"
                               dotBorder="var(--vermillion, #c0392b)"
                             >
-                              <div
-                                style={{
-                                  fontSize: "12px",
-                                  fontWeight: 600,
-                                  color: "var(--cosmic-indigo)",
-                                }}
-                              >
+                              <div className="trace-label">
                                 {message.streaming
                                   ? "Writing the answer…"
                                   : "Wrote the answer above"}
@@ -1959,146 +1533,32 @@ export const AskAstrologerPage = () => {
 
         {/* Info Modal */}
         {showInfoModal && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0, 0, 0, 0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1000,
-              padding: "var(--space-lg)",
-              animation: "fadeIn 0.3s ease-out",
-            }}
-            onClick={() => setShowInfoModal(false)}
-          >
-            <div
-              style={{
-                background: "white",
-                borderRadius: "var(--radius-xl)",
-                maxWidth: "800px",
-                width: "100%",
-                maxHeight: "80vh",
-                overflow: "auto",
-                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-                animation: "slideIn 0.3s ease-out",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
+          <div className="modal-overlay" onClick={() => setShowInfoModal(false)}>
+            <div className="modal-panel modal-panel--lg" onClick={(e) => e.stopPropagation()}>
               {/* Modal Header */}
-              <div
-                style={{
-                  padding: "var(--space-xl)",
-                  borderBottom: "2px solid var(--sandalwood)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  position: "sticky",
-                  top: 0,
-                  background: "white",
-                  zIndex: 1,
-                }}
-              >
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: "1.5rem",
-                    color: "var(--cosmic-indigo)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-sm)",
-                  }}
-                >
-                  <Info size={24} style={{ color: "var(--saffron)" }} />
+              <div className="modal-header modal-header--sticky">
+                <h3 className="modal-title">
+                  <Info size={24} />
                   {t("ask.chartDataSentToAI")}
                 </h3>
-                <button
-                  onClick={() => setShowInfoModal(false)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "var(--text-secondary)",
-                    padding: "var(--space-sm)",
-                    borderRadius: "var(--radius-md)",
-                    transition: "all 0.3s ease",
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.background = "var(--sandalwood)";
-                    e.currentTarget.style.color = "var(--vermillion)";
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.background = "none";
-                    e.currentTarget.style.color = "var(--text-secondary)";
-                  }}
-                >
+                <button className="modal-close" onClick={() => setShowInfoModal(false)}>
                   <X size={24} />
                 </button>
               </div>
 
               {/* Modal Content */}
-              <div
-                style={{
-                  padding: "var(--space-xl)",
-                  fontSize: "0.875rem",
-                  lineHeight: "1.6",
-                }}
-              >
-                <div
-                  style={{
-                    background:
-                      "linear-gradient(135deg, rgba(255, 153, 51, 0.05) 0%, rgba(255, 153, 51, 0.1) 100%)",
-                    padding: "var(--space-lg)",
-                    borderRadius: "var(--radius-lg)",
-                    marginBottom: "var(--space-lg)",
-                    border: "1px solid var(--saffron)",
-                  }}
-                >
-                  <p style={{ margin: 0, color: "var(--cosmic-indigo)", fontWeight: 500 }}>
-                    {modalData ? t("ask.modalIntroWithData") : t("ask.modalIntroNoData")}
-                  </p>
+              <div className="modal-body" style={{ fontSize: "0.875rem", lineHeight: "1.6" }}>
+                <div className="info-modal-intro">
+                  <p>{modalData ? t("ask.modalIntroWithData") : t("ask.modalIntroNoData")}</p>
                 </div>
 
-                <pre
-                  style={{
-                    background: "var(--sacred-white)",
-                    padding: "var(--space-lg)",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--sandalwood)",
-                    overflow: "auto",
-                    fontFamily: "monospace",
-                    fontSize: "0.8125rem",
-                    lineHeight: "1.8",
-                    color: "var(--cosmic-indigo)",
-                  }}
-                >
+                <pre className="info-modal-pre">
                   {JSON.stringify(modalData || getChartDataForLLM(), null, 2)}
                 </pre>
 
-                <div
-                  style={{
-                    marginTop: "var(--space-lg)",
-                    padding: "var(--space-md)",
-                    background: "rgba(52, 73, 94, 0.05)",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--cosmic-indigo)",
-                    fontSize: "0.8125rem",
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: "0 0 var(--space-sm) 0",
-                      color: "var(--cosmic-indigo)",
-                      fontWeight: 600,
-                    }}
-                  >
-                    📝 {t("ask.note")}
-                  </p>
-                  <p style={{ margin: 0, color: "var(--text-secondary)" }}>{t("ask.noteBody")}</p>
+                <div className="info-modal-note">
+                  <p className="fw-600 text-indigo">📝 {t("ask.note")}</p>
+                  <p className="text-secondary">{t("ask.noteBody")}</p>
                 </div>
               </div>
             </div>
@@ -2107,82 +1567,22 @@ export const AskAstrologerPage = () => {
 
         {/* API Keys Modal (8.6 — per-user, encrypted server-side) */}
         {showKeysModal && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0, 0, 0, 0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1000,
-              padding: "var(--space-lg)",
-              animation: "fadeIn 0.3s ease-out",
-            }}
-            onClick={() => setShowKeysModal(false)}
-          >
-            <div
-              style={{
-                background: "white",
-                borderRadius: "var(--radius-xl)",
-                maxWidth: "560px",
-                width: "100%",
-                maxHeight: "85vh",
-                overflow: "auto",
-                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-                animation: "slideIn 0.3s ease-out",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div
-                style={{
-                  padding: "var(--space-xl)",
-                  borderBottom: "2px solid var(--sandalwood)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: "1.5rem",
-                    color: "var(--cosmic-indigo)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-sm)",
-                  }}
-                >
-                  <KeyRound size={24} style={{ color: "var(--saffron)" }} />
+          <div className="modal-overlay" onClick={() => setShowKeysModal(false)}>
+            <div className="modal-panel modal-panel--sm" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3 className="modal-title">
+                  <KeyRound size={24} />
                   {t("ask.yourApiKeys")}
                 </h3>
-                <button
-                  onClick={() => setShowKeysModal(false)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "var(--text-secondary)",
-                    padding: "var(--space-sm)",
-                    borderRadius: "var(--radius-md)",
-                    display: "flex",
-                  }}
-                >
+                <button className="modal-close" onClick={() => setShowKeysModal(false)}>
                   <X size={24} />
                 </button>
               </div>
 
-              <div style={{ padding: "var(--space-xl)" }}>
+              <div className="modal-body">
                 <p
-                  style={{
-                    margin: "0 0 var(--space-lg)",
-                    fontSize: "0.8125rem",
-                    color: "var(--text-secondary)",
-                    lineHeight: 1.6,
-                  }}
+                  className="text-secondary"
+                  style={{ margin: "0 0 var(--space-lg)", fontSize: "0.8125rem", lineHeight: 1.6 }}
                 >
                   {t("ask.keysIntro")}
                 </p>
@@ -2194,11 +1594,8 @@ export const AskAstrologerPage = () => {
                     <div key={p.id} className="key-row">
                       <div className="key-row-head">
                         <span
-                          style={{
-                            fontWeight: 700,
-                            color: "var(--cosmic-indigo)",
-                            fontSize: "0.9375rem",
-                          }}
+                          className="fw-700 text-indigo"
+                          style={{ fontSize: "0.9375rem" }}
                         >
                           {p.label}
                         </span>
