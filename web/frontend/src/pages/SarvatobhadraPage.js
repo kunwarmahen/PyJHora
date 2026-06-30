@@ -275,7 +275,7 @@ export const SarvatobhadraPage = () => {
       >
         <span
           style={{
-            fontSize: isCenter ? "0.5rem" : "0.56rem",
+            fontSize: isCenter ? "clamp(0.5rem, 1vw, 0.62rem)" : "clamp(0.56rem, 1.15vw, 0.74rem)",
             fontWeight: cell.type === "akshara" ? 400 : 700,
             color: CELL_FG[cell.type] || "var(--text-secondary)",
             lineHeight: 1.05,
@@ -301,10 +301,10 @@ export const SarvatobhadraPage = () => {
               <span
                 key={g}
                 style={{
-                  fontSize: "0.5rem",
+                  fontSize: "clamp(0.5rem, 1.1vw, 0.64rem)",
                   fontWeight: 800,
                   lineHeight: 1,
-                  padding: "1px 2px",
+                  padding: "1px 3px",
                   borderRadius: "3px",
                   color: "white",
                   background:
@@ -470,14 +470,7 @@ export const SarvatobhadraPage = () => {
               </span>
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-                gap: "var(--space-xl)",
-                alignItems: "start",
-              }}
-            >
+            <div className="sbc-layout">
               {/* The chakra grid */}
               <Card
                 title={t("sbc.chakraTitle")}
@@ -491,7 +484,7 @@ export const SarvatobhadraPage = () => {
                       gridTemplateColumns: "repeat(9, 1fr)",
                       gap: "2px",
                       minWidth: "320px",
-                      maxWidth: "460px",
+                      maxWidth: "760px",
                       margin: "0 auto",
                     }}
                   >
@@ -576,10 +569,13 @@ export const SarvatobhadraPage = () => {
                 </div>
               </Card>
 
-              {/* Findings + anchors */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xl)" }}>
-                <Card title={t("sbc.anchorsTitle")} icon={<Crosshair size={22} />} accent="indigo">
-                  <ul style={{ margin: 0, paddingLeft: "1.1rem", lineHeight: 1.9 }}>
+              {/* Findings + anchors (compact sidebar) */}
+              <div
+                className="sbc-side"
+                style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}
+              >
+                <Card title={t("sbc.anchorsTitle")} icon={<Crosshair size={18} />} accent="indigo">
+                  <ul style={{ margin: 0, paddingLeft: "1rem" }}>
                     {Object.values(result.anchors).map((a) => (
                       <li key={a.label} style={{ color: "var(--text-secondary)" }}>
                         {a.label}:{" "}
@@ -589,23 +585,26 @@ export const SarvatobhadraPage = () => {
                   </ul>
                 </Card>
 
-                <Card title={t("sbc.findingsTitle")} icon={<Sparkles size={22} />} accent="saffron">
+                <Card title={t("sbc.findingsTitle")} icon={<Sparkles size={18} />} accent="saffron">
                   {result.findings.length === 0 ? (
-                    <p style={{ color: "var(--text-secondary)", margin: 0 }}>{t("sbc.findingsNone")}</p>
+                    <p style={{ color: "var(--text-secondary)", margin: 0, fontSize: "0.78rem" }}>
+                      {t("sbc.findingsNone")}
+                    </p>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-sm)" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
                       {result.findings.map((f, i) => (
                         <div
                           key={i}
                           style={{
-                            padding: "var(--space-sm) var(--space-md)",
-                            borderRadius: "var(--radius-md)",
+                            padding: "var(--space-xs) var(--space-sm)",
+                            borderRadius: "var(--radius-sm)",
                             border: "1px solid var(--sandalwood)",
                             borderLeft: `4px solid ${
                               f.tone === "supportive" ? "var(--forest-green, #2e7d32)" : "var(--vermillion)"
                             }`,
                             background: "white",
-                            fontSize: "0.875rem",
+                            fontSize: "0.75rem",
+                            lineHeight: 1.45,
                           }}
                         >
                           <strong style={{ color: "var(--cosmic-indigo)" }}>{f.planet}</strong>{" "}
@@ -619,8 +618,8 @@ export const SarvatobhadraPage = () => {
                   )}
                   <p
                     style={{
-                      margin: "var(--space-md) 0 0",
-                      fontSize: "0.75rem",
+                      margin: "var(--space-sm) 0 0",
+                      fontSize: "0.68rem",
                       color: "var(--text-muted)",
                     }}
                   >

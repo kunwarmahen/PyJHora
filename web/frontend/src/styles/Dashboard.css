@@ -614,3 +614,20 @@
 .sbc-ai-markdown strong {
   color: var(--cosmic-indigo);
 }
+
+/* Sarvatobhadra page: chakra dominant (~75%), compact right column */
+.sbc-layout {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: var(--space-lg);
+  align-items: start;
+}
+.sbc-side ul {
+  line-height: 1.55;
+  font-size: 0.78rem;
+}
+@media (max-width: 900px) {
+  .sbc-layout {
+    grid-template-columns: 1fr;
+  }
+}
