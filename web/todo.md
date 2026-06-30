@@ -89,11 +89,27 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
 - [x] **Health endpoint 500.** FIXED 2026-06-27: `/health` read `AstrologyCompute.PYJHORA_AVAILABLE`
       but the flag was module-level only → AttributeError → 500. Exposed it as a class
       attribute. Verified `/health` now returns 200 with `pyjhora_available: true`.
-- [~] **Kill inline styles.** Reduced the worst offenders: the copy-pasted inline-styled
-      navbars + profile banners + error blocks across BirthChart/Dhasa/Transit/
-      Compatibility/Ask/Dashboard are gone (replaced by the shared components below, which
-      use CSS classes in `Shared.css`). Remaining: per-page content still has inline styles
-      (controls, cards) — incremental cleanup, no visual change intended.
+- [x] **Kill inline styles.** Phase 1 (2026-06-28) removed the copy-pasted inline-styled
+      navbars + profile banners + error blocks via shared components. BROAD SWEEP DONE
+      2026-06-30: added a "Page-level shared utilities" section to `Shared.css`
+      (`.page-controls`/`.controls-group`/`.control-input`/`.control-btn`, the North/South
+      `.chart-toggle`, `.stepper`, `.info-pills`/`.info-pill`, `.chart-grid`/`.card-grid`,
+      light `.data-table`, `.detail-list`, `.form-select`, `.ai-panel` (+`.ui-btn--ai`),
+      `.score-box`/`.koota-*`/`.compat-person*`, `.kv-label`/`.kv-value`, `.card-intro`/
+      `.card-note`/`.readonly-banner`, `.fade-in`, `.mt-xl`, `.ui-card--pad-lg`/`--flush`,
+      `.ui-card-header--sm`, and text/weight helpers) plus page-specific classes in
+      `Dashboard.css` (nakshatra cards, dhasa tree/badges/current-period, compat). Converted
+      pages off inline styles: Transit 51→3, BirthChart 40→1, Compatibility 49→3, Dhasa
+      44→14, Sarvatobhadra 38→26, Compare 13→4, Advanced 10→1, SharedChart 3→1, plus the
+      AskAstrologer settings selects/labels (`.ask-select`/`.ask-field*`). App-wide ~398→~175
+      `style={{}}` sites removed (~223). What REMAINS inline is intentional: genuinely
+      **data-driven** styles (Dhasa per-level `--lvl-accent`/avatar, Sarvatobhadra chakra-cell
+      colours, Ashtakavarga heatmap tint, Learn progress-bar widths, Dashboard per-feature
+      gradient, comparison-match highlight), **lucide icon colour props**, one-off layout
+      tweaks, and the dense AskAstrologer modal/tool-trace/portal-menu (94 left — low-value/
+      dynamic). Hover effects that were JS `onMouseOver/onMouseOut` handlers are now CSS
+      `:hover`. Lint clean, prod build green throughout. See also the shared chat component
+      below (TransitChat + AskAstrologer now share `components/chat/*`).
 - [x] **Shared `<PageHeader>` / `<ProfileBanner>`.** DONE 2026-06-28: extracted the
       copy-pasted navbar (back button + accent icon + title/subtitle) into
       `components/PageHeader.js` (accent variants: saffron/indigo/terracotta/gold) and the
@@ -808,9 +824,17 @@ usage capture).
       shows a **"Transit"** badge on those threads and — only once at least one
       exists — a **All / Astrologer / Transit readings** filter row. i18n keys
       `ask.sourceTransit` + `ask.filter.*` added in en/hi/sa.
-- [ ] FOLLOW-UP: refactor — extract a shared message-bubble/streaming-input component
-      so `TransitChat` and the 2.2k-line `AskAstrologerPage` share one chat UI instead
-      of two. Deferred to keep this change low-risk.
+- [x] FOLLOW-UP: refactor — shared chat component. DONE 2026-06-30: created
+      `components/chat/*` — `StreamingMarkdown` (markdown body + blinking cursor +
+      "thinking…" placeholder), `SuggestionChips`, `ChatComposer` (text field + Send/Stop,
+      Enter-to-send, single- or multi-line), and `ChatBubble` (left/right bubble) — styled by
+      a "Shared chat primitives" section in `Chat.css`. `TransitChat` was fully rewritten onto
+      them (its ~20 inline-styled elements gone, now `.transit-chat__*`/`.chat-*` classes);
+      `AskAstrologerPage` adopted `ChatComposer` (replacing its duplicated input bar) and
+      `StreamingMarkdown` (its message body). The two chats now share one chat UI instead of
+      two. (Their *bubble layouts* still differ by design — Ask is a full-width chat log,
+      Transit is compact left/right bubbles — so `ChatBubble` is Transit-only; the genuinely
+      shared pieces are the composer, chips, and streaming-markdown.)
 
 ---
 

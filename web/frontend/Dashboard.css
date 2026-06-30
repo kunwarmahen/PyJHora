@@ -1,0 +1,140 @@
+
+/* ── Compatibility (Guna Milan) page — lifted from inline styles ── */
+.person-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-lg);
+}
+.compat-person {
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+}
+.compat-person--a {
+  background: linear-gradient(135deg, rgba(255, 153, 51, 0.05) 0%, rgba(255, 153, 51, 0.15) 100%);
+  border: 2px solid var(--saffron);
+}
+.compat-person--b {
+  background: linear-gradient(135deg, rgba(227, 66, 52, 0.05) 0%, rgba(227, 66, 52, 0.15) 100%);
+  border: 2px solid var(--vermillion);
+}
+.compat-person__head {
+  margin-bottom: var(--space-md);
+  font-size: 1.125rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.compat-person--a .compat-person__head {
+  color: var(--saffron);
+}
+.compat-person--b .compat-person__head {
+  color: var(--vermillion);
+}
+.compat-person__card {
+  padding: var(--space-md);
+  background: white;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--sandalwood);
+}
+.compat-person__card.is-spaced {
+  margin-top: var(--space-md);
+}
+.compat-person__name {
+  margin: 0 0 var(--space-sm) 0;
+  font-weight: 600;
+  color: var(--cosmic-indigo);
+  font-size: 1.125rem;
+}
+.compat-person__select-label {
+  display: block;
+  margin-bottom: var(--space-sm);
+  font-weight: 600;
+  color: var(--cosmic-indigo);
+  font-size: 0.875rem;
+}
+
+.score-box {
+  padding: var(--space-xl);
+  background: linear-gradient(135deg, rgba(255, 153, 51, 0.1) 0%, rgba(227, 66, 52, 0.1) 100%);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-xl);
+  text-align: center;
+  border: 2px solid var(--saffron);
+}
+.score-box__label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+.score-box__value {
+  font-size: 4rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: var(--space-sm);
+}
+.score-box__value-max {
+  font-size: 2rem;
+}
+.score-box__status {
+  padding: var(--space-md);
+  background: white;
+  border-radius: var(--radius-md);
+  display: inline-block;
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  font-size: 1.125rem;
+}
+.score-box__nakshatras {
+  margin-top: var(--space-md);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.koota-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+.koota-card {
+  padding: var(--space-md);
+  background: var(--sacred-white);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--sandalwood);
+  text-align: center;
+  transition: all 0.3s ease;
+}
+.koota-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.koota-card__name {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
+  font-weight: 600;
+}
+.koota-card__score {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.koota-card__score--good {
+  color: var(--emerald-green);
+}
+.koota-card__score--mid {
+  color: var(--saffron);
+}
+.koota-card__score--low {
+  color: var(--vermillion);
+}
+.koota-card__max {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}

@@ -1,0 +1,212 @@
+
+/* ── Dhasa (Vimsottari) page — lifted from inline styles ── */
+.dhasa-badges {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+.dhasa-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  background: white;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  border-left: 4px solid var(--cosmic-indigo);
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+}
+.dhasa-badge__sub {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.dhasa-today {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255, 153, 51, 0.1);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  color: var(--saffron);
+  font-weight: 600;
+}
+
+.current-period {
+  background: linear-gradient(135deg, rgba(255, 153, 51, 0.1) 0%, rgba(226, 123, 90, 0.1) 100%);
+  border: 3px solid var(--saffron);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-xl);
+  box-shadow: 0 0 24px rgba(255, 153, 51, 0.2);
+}
+.current-period__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+.current-period__icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+.current-period__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+}
+.field-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.period-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.period-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--space-md);
+  align-items: center;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--sandalwood);
+  background: var(--sacred-white);
+}
+.period-row.is-current {
+  border: 2px solid var(--saffron);
+  background: rgba(255, 153, 51, 0.06);
+}
+.period-row__now {
+  margin-left: var(--space-sm);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--saffron);
+}
+
+/* Recursive dasha tree node (accent + avatar size come from --lvl-accent/--avatar) */
+.dasha-tree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.dasha-node {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--sandalwood);
+  background: var(--sacred-white);
+}
+.dasha-node.is-current {
+  border: 2px solid var(--lvl-accent);
+  background: rgba(255, 153, 51, 0.05);
+}
+.dasha-node__head {
+  padding: var(--space-md);
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: var(--space-md);
+  align-items: center;
+}
+.dasha-node--root > .dasha-node__head {
+  padding: var(--space-lg);
+}
+.dasha-node__head.is-expandable {
+  cursor: pointer;
+}
+.dasha-node__avatar {
+  width: var(--avatar);
+  height: var(--avatar);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--lvl-accent) 0%, var(--cosmic-indigo-light) 100%);
+}
+.dasha-node.is-current .dasha-node__avatar {
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
+}
+.dasha-node__lord {
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+}
+.dasha-node.is-current .dasha-node__lord {
+  color: var(--lvl-accent);
+}
+.dasha-node__level {
+  margin-left: var(--space-sm);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+.dasha-node__dates {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.dasha-node__now {
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--lvl-accent);
+  color: white;
+  border-radius: var(--radius-full);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.dasha-node__chevron {
+  color: var(--lvl-accent);
+  transition: transform 0.3s ease;
+}
+.dasha-node__chevron.is-open {
+  transform: rotate(180deg);
+}
+.dasha-node__spacer {
+  width: 20px;
+}
+.dasha-node__children {
+  border-top: 1px solid var(--sandalwood);
+  padding: var(--space-md);
+  background: white;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.dasha-node__loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+.dasha-node__error {
+  color: var(--vermillion);
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
