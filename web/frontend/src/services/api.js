@@ -116,9 +116,9 @@ export const astrologyService = {
   getAspects: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/aspects", birthDetails, { params: { ayanamsa } }),
   // Varshaphal / Tajaka annual (solar-return) horoscope for a target year.
-  getVarshaphal: (birthDetails, year, ayanamsa = DEFAULT_AYANAMSA) =>
+  getVarshaphal: (birthDetails, year, ayanamsa = DEFAULT_AYANAMSA, dashaSystem = "mudda") =>
     api.post("/api/astrology/varshaphal", birthDetails, {
-      params: { year, ayanamsa },
+      params: { year, ayanamsa, dasha_system: dashaSystem },
     }),
   // Plain-language AI year-ahead reading of the Varshaphal chart.
   analyzeVarshaphalAI: (birthDetails, year, opts = {}, model = {}) =>

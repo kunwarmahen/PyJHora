@@ -1251,8 +1251,20 @@ Plan — **SHIPPED 2026-07-02**:
       DETAIL pinned empirically: `varsha_pravesh(years=N)` returns the solar return in
       `birth_year+N-1`, but `lord_of_the_year`/`muntha`/`mudda` advance `jd + years·year_value`
       — so the code uses `years=age+1` for the chart and `age` for the rest, where
-      `age = year − birth_year`. Guards `year < birth_year`. (Alternate annual-dasha systems
-      Patyayini/Varsha-Narayana deferred — Mudda ships; add to a picker later.)
+      `age = year − birth_year`. Guards `year < birth_year`.
+- [x] **Alternate annual-dasha systems** (2026-07-02): a **Mudda / Patyayini / Varsha-Narayana**
+      picker on the Varshaphal page (persisted `varsha_dasha`), `dasha_system` param on
+      `get_varshaphal` + the endpoint. Engine: `mudda.mudda_dhasa_bhukthi` (planet, dur=days),
+      `patyayini.get_dhasa_bhukthi(jd_years,…)` (planet incl. **Lagna** as a lord, dur=float
+      years, takes the **annual** JD from `next_solar_date(…, years=age+1)`), and
+      `narayana.varsha_narayana_dhasa_bhukthi(dob,tob,…)` (**sign** lords). A shared
+      `_annual_dasha()` normalizes all three to `{system, system_key, lord_type, periods:
+      [{lord_name,start,end,current}]}` by deriving each end from the **next** period's start
+      (raw-last falls back to start+duration) and **dropping same-calendar-day rows** — which
+      cleanly removes Patyayini's sub-day slivers (very weak planets) and Narayana's zero-span
+      compression tail, no unit-guessing. Response also lists `dasha_systems`. Table header
+      switches Period lord ⇄ Period sign by `lord_type`. Verified: mudda 9 / patyayini 7 /
+      narayana 16 periods on the test chart, correct current period in each, bogus→mudda.
 - [x] **Endpoint** `POST /api/astrology/varshaphal?year=YYYY&ayanamsa=X` (auth), `BirthDetails`
       body + `year` query param. Returns 400 on pre-birth year.
 - [x] **Frontend** `VarshaphalPage.js` (route `/varshaphal`, dashboard card + drawer entry):

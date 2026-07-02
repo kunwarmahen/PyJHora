@@ -21,6 +21,14 @@ const PLANET_ORDER = [
   "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu",
 ];
 
+// Selectable annual-dasha systems (labels are i18n keys). Keys match the backend
+// VARSHA_DASHA_SYSTEMS. Mudda + Patyayini are planet-ruled; Narayana is sign-ruled.
+const DASHA_SYSTEMS = [
+  { key: "mudda", labelKey: "varshaphal.dashaMudda" },
+  { key: "patyayini", labelKey: "varshaphal.dashaPatyayini" },
+  { key: "narayana", labelKey: "varshaphal.dashaNarayana" },
+];
+
 const ordinal = (n) => {
   const s = ["th", "st", "nd", "rd"];
   const v = n % 100;
@@ -66,6 +74,10 @@ export const VarshaphalPage = () => {
     : 1900;
   const [year, setYear] = useState(() => new Date().getFullYear());
 
+  const [dashaSystem, setDashaSystem] = useState(
+    () => localStorage.getItem("varsha_dasha") || "mudda"
+  );
+
   const [chartStyle, setChartStyle] = useState(() => localStorage.getItem("chartStyle") || "north");
   const ayanamsa = localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA;
   const ayanamsaLabel = AYANAMSAS.find((a) => a.value === ayanamsa)?.label || ayanamsa;
@@ -76,6 +88,11 @@ export const VarshaphalPage = () => {
   };
 
   const stepYear = (delta) => setYear((y) => Math.max(birthYear, y + delta));
+
+  const setDasha = (key) => {
+    setDashaSystem(key);
+    localStorage.setItem("varsha_dasha", key);
+  };
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
@@ -107,14 +124,14 @@ export const VarshaphalPage = () => {
     setAiError("");
     setAiModel("");
     try {
-      const res = await astrologyService.getVarshaphal(birthDetails, year, ayanamsa);
+      const res = await astrologyService.getVarshaphal(birthDetails, year, ayanamsa, dashaSystem);
       setResult(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || t("varshaphal.calcError"));
     } finally {
       setLoading(false);
     }
-  }, [birthDetails, year, ayanamsa, t]);
+  }, [birthDetails, year, ayanamsa, dashaSystem, t]);
 
   useEffect(() => {
     if (!selectedProfile) {
@@ -374,25 +391,43 @@ export const VarshaphalPage = () => {
             </div>
 
             {/* Annual dasha */}
-            {periods.length > 0 && (
-              <div className="ui-card ui-card--accent-indigo ui-card--flush mt-xl">
-                <h3 className="ui-card-header ui-card-header--sm" style={{ fontSize: "1.25rem" }}>
-                  <Clock size={20} />
-                  {t("varshaphal.annualDasha")}
-                </h3>
-                <p className="card-intro">{result.annual_dasha?.system}</p>
+            <div className="ui-card ui-card--accent-indigo ui-card--flush mt-xl">
+              <h3 className="ui-card-header ui-card-header--sm" style={{ fontSize: "1.25rem" }}>
+                <Clock size={20} />
+                {t("varshaphal.annualDasha")}
+              </h3>
+
+              {/* System picker */}
+              <div className="chart-toggle" style={{ marginBottom: "0.75rem" }}>
+                {DASHA_SYSTEMS.map((s) => (
+                  <button
+                    key={s.key}
+                    className={`chart-toggle__btn${dashaSystem === s.key ? " is-active" : ""}`}
+                    onClick={() => setDasha(s.key)}
+                  >
+                    {t(s.labelKey)}
+                  </button>
+                ))}
+              </div>
+              <p className="card-intro">{result.annual_dasha?.system}</p>
+
+              {periods.length > 0 ? (
                 <div className="table-scroll">
                   <table className="data-table">
                     <thead>
                       <tr>
-                        <th>{t("varshaphal.period")}</th>
+                        <th>
+                          {result.annual_dasha?.lord_type === "raasi"
+                            ? t("varshaphal.periodSign")
+                            : t("varshaphal.period")}
+                        </th>
                         <th>{t("varshaphal.from")}</th>
                         <th>{t("varshaphal.to")}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {periods.map((p, i) => (
-                        <tr key={i} className={p.current ? "is-current-row" : ""}>
+                        <tr key={i} className={p.current ? "is-current" : ""}>
                           <td className="fw-700 text-indigo">
                             {p.lord_name}
                             {p.current && (
@@ -408,8 +443,10 @@ export const VarshaphalPage = () => {
                     </tbody>
                   </table>
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="card-note">{t("varshaphal.noDasha")}</p>
+              )}
+            </div>
 
             {/* AI year-ahead reading */}
             <div className="mt-xl">

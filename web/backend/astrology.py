@@ -134,6 +134,14 @@ VARSHAPHAL_SAHAMS = [
     ("Puthra", "puthra_saham", "Children, progeny"),
 ]
 
+# Selectable annual (Varshaphal) dasha systems: key -> (label, lord_type).
+# graha => periods ruled by planets; raasi => ruled by signs.
+VARSHA_DASHA_SYSTEMS = {
+    "mudda":     ("Mudda (Varsha Vimsottari)", "graha"),
+    "patyayini": ("Patyayini",                 "graha"),
+    "narayana":  ("Varsha Narayana",           "raasi"),
+}
+
 # ── Panchanga (daily almanac) name tables ──────────────────────────────────
 # Standard Sanskrit names, kept consistent with the chart's nakshatra naming.
 NAKSHATRA_NAMES = [
@@ -303,6 +311,92 @@ def _sbc_nature(planet):
 def _tithi_group(n):
     """Nanda/Bhadra/Jaya/Rikta/Purna group name for a 1..30 tithi index."""
     return _SBC_TITHI_GROUPS[(n - 1) % 5]
+
+
+def _varsha_lord_name(system_key, lord_repr):
+    """Map an annual-dasha lord to a display name. graha systems use a planet
+    index (or 'L' for the Lagna, a valid Patyayini lord); the raasi system
+    (Narayana) uses a sign index."""
+    val = lord_repr[0] if isinstance(lord_repr, (tuple, list)) else lord_repr
+    if system_key == "narayana":
+        try:
+            return ZODIAC_NAMES[int(val)]
+        except (TypeError, ValueError, IndexError):
+            return str(val)
+    if val == "L" or (PYJHORA_AVAILABLE and val == const._ascendant_symbol):
+        return "Lagna"
+    try:
+        return PLANET_NAMES.get(int(val), str(val))
+    except (TypeError, ValueError):
+        return str(val)
+
+
+def _annual_dasha(system_key, jd_dob, place_obj, age, dob_date, tob_tuple):
+    """Compute the maha-period list for a Varshaphal dasha system, normalised to
+    the flat shape the frontend table consumes: {system, system_key, lord_type,
+    periods:[{lord_name, start, end, current}]}.
+
+    Each engine system returns start instants at full precision but expresses
+    duration in a different unit (Mudda: days; Patyayini: float years; Narayana:
+    an internal weight). We therefore derive every period's END from the *next*
+    period's start (only the raw-last period falls back to start+duration), then
+    drop any period whose start and end collapse to the same calendar day — this
+    removes Patyayini's sub-day slivers for very weak planets and Narayana's
+    zero-span second-cycle tail, leaving a clean day-resolution timeline."""
+    from datetime import date as _date
+
+    if system_key == "patyayini":
+        from jhora.horoscope.dhasa.annual import patyayini
+        jd_years = drik.next_solar_date(jd_dob, place_obj, years=age + 1)
+        raw = patyayini.get_dhasa_bhukthi(jd_years, place_obj, dhasa_level_index=1)
+        dur_unit_days = 365.25  # float years -> days
+    elif system_key == "narayana":
+        from jhora.horoscope.dhasa.raasi import narayana
+        raw = narayana.varsha_narayana_dhasa_bhukthi(
+            dob_date, tob_tuple, place_obj, years=age + 1, dhasa_level_index=1)
+        dur_unit_days = 30.0  # only used for the raw-last fallback (usually dropped)
+    else:  # mudda (default)
+        system_key = "mudda"
+        from jhora.horoscope.dhasa.annual import mudda
+        raw = mudda.mudda_dhasa_bhukthi(jd_dob, place_obj, age, dhasa_level_index=1)
+        dur_unit_days = 1.0  # already days
+
+    label, lord_type = VARSHA_DASHA_SYSTEMS[system_key]
+
+    items = []
+    for entry in raw:
+        lord_repr, start_t, dur = entry[0], entry[1], entry[2]
+        start_jd = swe.julday(int(start_t[0]), int(start_t[1]), int(start_t[2]),
+                              float(start_t[3]))
+        items.append({
+            "lord_name": _varsha_lord_name(system_key, lord_repr),
+            "start_jd": start_jd,
+            "dur_days": float(dur) * dur_unit_days,
+        })
+    items.sort(key=lambda x: x["start_jd"])
+
+    today = _date.today().isoformat()
+
+    def _iso(jd):
+        y, m, d, _ = utils.jd_to_gregorian(jd)
+        return f"{int(y):04d}-{int(m):02d}-{int(d):02d}"
+
+    periods = []
+    for i, it in enumerate(items):
+        end_jd = (items[i + 1]["start_jd"] if i + 1 < len(items)
+                  else it["start_jd"] + max(it["dur_days"], 1.0))
+        start_iso, end_iso = _iso(it["start_jd"]), _iso(end_jd)
+        if start_iso == end_iso:
+            continue  # sub-day sliver / collapsed tail
+        periods.append({
+            "lord_name": it["lord_name"],
+            "start": start_iso,
+            "end": end_iso,
+            "current": start_iso <= today < end_iso,
+        })
+
+    return {"system": label, "system_key": system_key,
+            "lord_type": lord_type, "periods": periods}
 
 
 class AstrologyCompute:
@@ -1193,7 +1287,8 @@ class AstrologyCompute:
     def get_varshaphal(dob: str, tob: str, place: str, year: int,
                        lat: Optional[float] = None, lon: Optional[float] = None,
                        tz: Optional[float] = None,
-                       ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+                       ayanamsa: str = DEFAULT_AYANAMSA,
+                       dasha_system: str = "mudda") -> Dict:
         """Varshaphal / Tajaka annual (solar-return) horoscope for a target year.
 
         Returns the annual chart (formatted for the Kundali component), the
@@ -1217,11 +1312,14 @@ class AstrologyCompute:
                 return {"error": "Year must be on or after the birth year",
                         "status": "failed"}
 
+            dasha_key = (dasha_system or "mudda").lower()
+            if dasha_key not in VARSHA_DASHA_SYSTEMS:
+                dasha_key = "mudda"
+
             _set_ayanamsa(ayanamsa)
             import contextlib
             import io
             from jhora.horoscope.transit import tajaka, saham, tajaka_yoga
-            from jhora.horoscope.dhasa.annual import mudda
 
             y, m, d = map(int, dob.split("-"))
             time_parts = tob.split(":")
@@ -1365,44 +1463,17 @@ class AstrologyCompute:
             except Exception:
                 pass
 
-            # ── Annual dasha (Mudda / Varsha Vimsottari), maha level ────────
-            annual_dasha = {"system": "Mudda (Varsha Vimsottari)", "periods": []}
+            # ── Annual dasha (selectable system: Mudda / Patyayini / Narayana) ─
+            label, lord_type = VARSHA_DASHA_SYSTEMS[dasha_key]
+            annual_dasha = {"system": label, "system_key": dasha_key,
+                            "lord_type": lord_type, "periods": []}
+            dob_date = drik.Date(y, m, d)
+            tob_tuple = (hour, minute, 0)
             try:
-                raw = mudda.mudda_dhasa_bhukthi(jd_dob, place_obj, age,
-                                                dhasa_level_index=1)
-                from datetime import date as _date
-                today = _date.today()
-
-                def _iso(t):
-                    return f"{int(t[0]):04d}-{int(t[1]):02d}-{int(t[2]):02d}"
-
-                periods = []
-                for lords, start_t, dur_days in raw:
-                    lord = lords[0]
-                    start_jd = swe.julday(int(start_t[0]), int(start_t[1]),
-                                          int(start_t[2]), float(start_t[3]))
-                    periods.append({
-                        "lord": lord,
-                        "lord_name": PLANET_NAMES.get(lord, str(lord)),
-                        "start": _iso(start_t),
-                        "_start_jd": start_jd,
-                        "duration_days": round(float(dur_days), 1),
-                    })
-                for i, p in enumerate(periods):
-                    if i + 1 < len(periods):
-                        end_jd = periods[i + 1]["_start_jd"]
-                    else:
-                        end_jd = p["_start_jd"] + float(p["duration_days"])
-                    ey2, em2, ed2, _ = utils.jd_to_gregorian(end_jd)
-                    p["end"] = f"{int(ey2):04d}-{int(em2):02d}-{int(ed2):02d}"
-                    try:
-                        p["current"] = (p["start"] <= today.isoformat() < p["end"])
-                    except Exception:
-                        p["current"] = False
-                    del p["_start_jd"]
-                annual_dasha["periods"] = periods
+                annual_dasha = _annual_dasha(dasha_key, jd_dob, place_obj, age,
+                                             dob_date, tob_tuple)
             except Exception as e:
-                print(f"Varshaphal annual-dasha error: {e}")
+                print(f"Varshaphal annual-dasha ({dasha_key}) error: {e}")
 
             return {
                 "status": "success",
@@ -1416,6 +1487,10 @@ class AstrologyCompute:
                 "sahams": sahams,
                 "tajaka_yogas": tajaka_yogas,
                 "annual_dasha": annual_dasha,
+                "dasha_systems": [
+                    {"key": k, "label": v[0], "lord_type": v[1]}
+                    for k, v in VARSHA_DASHA_SYSTEMS.items()
+                ],
             }
         except Exception as e:
             print(f"Varshaphal error: {str(e)}")

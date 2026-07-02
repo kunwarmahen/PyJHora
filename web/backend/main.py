@@ -625,6 +625,7 @@ async def get_varshaphal(
     birth_details: BirthDetails,
     year: int,
     ayanamsa: str = DEFAULT_AYANAMSA,
+    dasha_system: str = "mudda",
     current_user: str = Depends(get_current_user)
 ):
     """Varshaphal / Tajaka annual (solar-return) horoscope for a target year."""
@@ -634,6 +635,7 @@ async def get_varshaphal(
             year=year,
             lat=birth_details.latitude, lon=birth_details.longitude,
             tz=birth_details.timezone, ayanamsa=ayanamsa,
+            dasha_system=dasha_system,
         )
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))

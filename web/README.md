@@ -363,7 +363,8 @@ REACT_APP_API_TIMEOUT=30000
 - **Sahams** (sensitive points, akin to Arabic parts): Punya/Vidya/Yasas/Mitra/Karma/Roga/
   Vivaha/Puthra — each as sign + degree + house
 - Present **Tajaka yogas** (Ishkavala/Induvara + Ithasala/Eesarpha planet pairs)
-- **Annual Mudda (Varsha Vimsottari) dasha** — the year's sub-periods, current one highlighted
+- **Annual dasha** with a system picker — **Mudda (Varsha Vimsottari)** and **Patyayini**
+  (planet-ruled) or **Varsha Narayana** (sign-ruled) — the year's sub-periods, current one highlighted
 - On-demand **plain-language AI year-ahead reading** grounded in the above, using the model
   picked in Ask AI Astrologer
 - Also published as a smart-lookup **tool** (`get_varshaphal`) so the AI astrologer can pull
