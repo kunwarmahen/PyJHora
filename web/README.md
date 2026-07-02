@@ -8,12 +8,13 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Frontend**: React SPA with responsive UI
 - **Authentication**: User registration and login with JWT tokens
 - **Features**: Birth Chart (Rasi D1 + Navamsa D9), divisional charts D1–D60, Panchanga,
-  Yogas/Doshas, Graha Drishti (aspects, with strength-weighted lines on the chart),
-  Vimsottari Dhasa (+ Ashtottari/Yogini/Narayana/Kalachakra), Transits,
+  Yogas/Doshas, dedicated Raja Yogas, Graha Drishti (aspects, with strength-weighted lines
+  on the chart), Vimsottari Dhasa (+ 13 other dasha systems & Sudarsana Chakra), Transits,
   Varshaphal / Tajaka annual horoscope (with year-ahead AI reading),
   an Almanac (planetary hours, eclipses, festival/vratha dates),
+  Pancha Pakshi Sastra (bird-cycle day timing, with AI day-guide),
   Sarvatobhadra Chakra (with layman AI reading), Compatibility, an Advanced page
-  (Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala), and
+  (Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala, Ayu/longevity), and
   experimental Birth-Time Rectification (BV Raman śuddhi methods, with before/after charts)
 - **AI Integration**: Multi-model LLM support (Ollama/local, OpenAI-compatible, Gemini, ChatGPT)
 - **Interactive Q&A**: Chat with AI Astrologer for personalized insights
@@ -304,6 +305,9 @@ REACT_APP_API_TIMEOUT=30000
 - Divisional (varga) charts D1–D60 with a picker
 - North / South Indian chart styles, selectable ayanamsa
 - Yogas & Doshas surfaced as cards
+- **Raja Yogas** card — the fundamental Kendra–Trikona raja yogas (a quadrant lord
+  associated with a trine lord, each with a coarse strength) plus the named special
+  types (Dharma-Karmadhipati, Vipareeta, Neecha-Bhanga) with descriptions
 - Graha Drishti (aspects) card + optional aspect lines drawn on the Rasi chart
   (per-graha colour, **width/opacity weighted by aspect strength**); a show/hide
   toggle, and hover a graha to focus just its aspects
@@ -332,8 +336,13 @@ REACT_APP_API_TIMEOUT=30000
   Maha + Bhukti load up front; deeper levels lazy-load on expand (computed at full
   precision from the natal chart). The currently running period auto-expands the
   whole live chain and is highlighted.
-- **Other systems**: Ashtottari, Yogini (graha), Narayana, Kalachakra (raasi) —
-  pick one from the "Other Dasha Systems" card for a maha-period table.
+- **Other systems** (14 total): Ashtottari, Yogini, Shodasottari, Dwadasottari,
+  Panchottari, Shatabdika (graha) and Narayana, Kalachakra, Kendradhi-Rasi, Sudasa,
+  Drig, Chara, Sthira, Trikona (raasi) — pick one from the "Other Dasha Systems" card
+  for a maha-period table.
+- **Sudarsana Chakra**: a collapsible section showing the three wheels read from the
+  Lagna, Moon and Sun as ascendants for a chosen solar-return year (± year stepper),
+  rendered as three Kundalis in the selected chart style.
 
 ### 6. Transits (Gochara)
 - Current planetary positions for the present moment (anchored to the viewer's local
@@ -391,7 +400,19 @@ REACT_APP_API_TIMEOUT=30000
   closest approach (min separation + date) and flags a **planetary war** when under 1°
 - Same current-DST timezone caveat as the rest of the almanac (fine for picking a day)
 
-### 10. Advanced Details (`/advanced`)
+### 10. Pancha Pakshi Sastra (`/pancha-pakshi`)
+- The **bird-cycle daily-timing system** (Tamil Siddha tradition): assigns you a
+  **birth bird** from your birth star + paksha, then rates the day's windows by that
+  bird's state — **Ruling / Eating / Walking / Sleeping / Dying** (strongest to weakest)
+- A **colour-coded day timeline** — 10 main periods (5 from sunrise, 5 from sunset), each
+  split into 5 sub-windows, tinted by strength with a legend, and the currently-running
+  window outlined
+- **Best** and **quieter** window summaries (top/bottom by effect) for "good time for X"
+  planning, a date picker + "Today" reset
+- Optional **plain-language AI day-guide** (uses the model picked in Ask AI Astrologer),
+  and a smart-lookup **tool** (`get_pancha_pakshi`) so the AI can pull today's timing
+
+### 11. Advanced Details (`/advanced`)
 - **Ashtakavarga**: Bhinna (per-contributor) + Sarva (combined) bindu tables, with
   a Sarva heatmap (grand total 337)
 - **Chart factors**: Arudha padas (A1–A12), Chara karakas (Jaimini), Special lagnas
@@ -401,9 +422,12 @@ REACT_APP_API_TIMEOUT=30000
 - **Graha Drishti (aspects)**: per-graha table of the houses & planets each graha
   aspects (incl. the Mars 4/8, Jupiter 5/9, Saturn 3/10 special aspects) plus rasi
   drishti, with the Parashari sphuta strength (0–100%)
+- **Ayu / vitality indication**: a gentle, conditional longevity band — **Alpa** (short) /
+  **Madhya** (medium) / **Purna** (long) — from the classical sign-pair method, with its
+  contributing factors. Framed as one signal among many, never a death date or age
 - Each section loads independently and respects the selected ayanamsa
 
-### 11. Birth-Time Rectification (`/rectify`) — experimental
+### 12. Birth-Time Rectification (`/rectify`) — experimental
 - Refines an uncertain recorded birth time using classical BV Raman **śuddhi** checks.
   Three methods: **Nakshatra Śuddhi** (default; self-serve — no extra input),
   **Lagna Śuddhi**, and **Janma Śuddhi** (needs a gender selection)
@@ -417,13 +441,13 @@ REACT_APP_API_TIMEOUT=30000
 - **Clearly framed as experimental** — a suggestion to verify against known life
   events, never an authoritative correction (PyJHora flags these methods experimental)
 
-### 12. Export & Share
+### 13. Export & Share
 - **Export** any chart as **PNG** or **PDF** (buttons on each chart card) — on Birth
   Chart, Compare, Transit and the shared view
 - **Share** a chart as a **public, read-only link** (`/share/:token`) — no login needed
   to view; offers a "create a free account" CTA
 
-### 13. LLM Integration (Optional)
+### 14. LLM Integration (Optional)
 - Enhanced predictions with a local Ollama model or any configured provider
 - Contextual astrological interpretations
 - Personalized analysis
