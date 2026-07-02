@@ -84,6 +84,10 @@ export const astrologyService = {
         types: Array.isArray(types) ? types.join(",") : types,
       },
     }),
+  getConjunctions: ({ place, latitude, longitude, timezone, start, end, maxSep } = {}) =>
+    api.get("/api/astrology/almanac/conjunctions", {
+      params: { place, latitude, longitude, timezone, start, end, max_sep: maxSep },
+    }),
   getDoshas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/doshas", birthDetails, { params: { ayanamsa } }),
   getYogas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>

@@ -385,6 +385,9 @@ REACT_APP_API_TIMEOUT=30000
 - **Festivals & Vrathas**: a **date-range picker** + toggleable type chips (Ekadashi,
   Pradosham, Purnima, Amavasya, Sankashti, Vinayaka Chaturthi, Krishna Ashtami) listing
   every tithi-driven occurrence in the range, sorted by date
+- **Conjunctions (Graha Yuddha)**: date-range scan of the five tara grahas (Mars, Mercury,
+  Jupiter, Venus, Saturn — Sun/Moon/nodes excluded by tradition); each event shows the
+  closest approach (min separation + date) and flags a **planetary war** when under 1°
 - Same current-DST timezone caveat as the rest of the almanac (fine for picking a day)
 
 ### 10. Advanced Details (`/advanced`)
@@ -496,6 +499,7 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `GET /api/astrology/almanac/hora?date=&place=&latitude=&longitude=&timezone=` - Planetary hours (24 horas, benefic/malefic, current flagged)
 - `GET /api/astrology/almanac/eclipses?place=&latitude=&longitude=&timezone=&from_date=&count=` - Next N solar + lunar eclipses (local time)
 - `GET /api/astrology/almanac/festivals?place=&latitude=&longitude=&timezone=&start=&end=&types=` - Tithi-driven festival / vratha dates in a range (`types` = comma-separated keys)
+- `GET /api/astrology/almanac/conjunctions?place=&latitude=&longitude=&timezone=&start=&end=&max_sep=` - Planetary conjunctions (Graha Yuddha) among Mars–Saturn, with closest approach + war flag (<1°)
 - `POST /api/astrology/horoscope` - Get horoscope predictions
 - `POST /api/astrology/doshas` - Calculate doshas
 - `POST /api/astrology/yogas` - Get yogas
@@ -553,7 +557,7 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `/compatibility` - Marriage compatibility checker
 - `/dhasa` - Dhasa periods: Vimsottari drill-down tree + other systems
 - `/transit` - Transits (Gochara) over the natal chart
-- `/almanac` - Almanac: planetary hours (hora), upcoming eclipses, and tithi-driven festival / vratha dates, with a birth-place vs current-location toggle
+- `/almanac` - Almanac: planetary hours (hora), upcoming eclipses, tithi-driven festival / vratha dates, and planetary conjunctions (Graha Yuddha), with a birth-place vs current-location toggle
 - `/sarvatobhadra` - Sarvatobhadra Chakra: today's transits on the 9×9 star grid + occupation/vedha on your sensitive stars, with a layman AI reading
 - `/advanced` - Advanced details: Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala
 - `/compare` - Compare two saved profiles side by side (charts, placements table + on-demand neutral AI comparison)

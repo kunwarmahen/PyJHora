@@ -1326,9 +1326,17 @@ Plan:
       instead of trusting that field — no `src/` edit. Constants: `HORA_PLANETS`/`HORA_BENEFICS`,
       `FESTIVAL_TYPES`/`DEFAULT_FESTIVAL_TYPES`.
 - [x] **Endpoints** (auth, GET): `/api/astrology/almanac/hora`, `.../almanac/eclipses`,
-      `.../almanac/festivals` (`types` = comma-separated keys). Conjunctions deferred (not needed
-      for the first cut). Verified against known 2026 dates: total solar eclipse **2026-08-12**,
-      partial lunar **2026-08-28**; July Ekadashis 07-10 & 07-24, Purnima 07-28, Amavasya 07-13.
+      `.../almanac/festivals` (`types` = comma-separated keys), `.../almanac/conjunctions`.
+      Verified against known 2026 dates: total solar eclipse **2026-08-12**, partial lunar
+      **2026-08-28**; July Ekadashis 07-10 & 07-24, Purnima 07-28, Amavasya 07-13.
+- [x] **Conjunctions (Graha Yuddha)** ADDED 2026-07-02: `get_conjunctions(place, lat, lon, tz,
+      start, end, max_sep=3.0)` scans the five tara grahas (Mars/Mercury/Jupiter/Venus/Saturn —
+      Sun/Moon/nodes excluded by tradition) day-by-day, collapsing consecutive in-range days into
+      one event with the closest approach (min separation + date) and a war flag (<1°). Rolled our
+      OWN one-pass daily scan rather than the engine's `vratha.conjunctions` — the latter has debug
+      `print()`s and returns only thin "day within X°" data (no separation/closest-date). Frontend:
+      a fifth `ConjunctionPanel` on the Almanac page (date-range picker, war tag). Verified 2026:
+      Venus–Jupiter 0.06° on 06-10, Mars–Saturn 0.11° on 04-20, etc.
 - [x] **Frontend**: dedicated **`AlmanacPage`** (route `/almanac`, dashboard card + nav drawer,
       `CalendarDays` icon) with a page-level location toggle (birth place vs current geolocation,
       reusing the PanchangaPanel pattern) shared across four self-contained sections: **Today**
@@ -1339,7 +1347,7 @@ Plan:
       classes in `Dashboard.css`.
 - [x] i18n `almanac.*` (en full; hi/sa get nav + dashboard-card labels, body falls back to en —
       the `sbc.*`/`learn.*` pattern). Same current-DST tz caveat as the rest of the almanac. Build
-      + lint clean (+3.0kB js, +455B css). (Conjunctions / Graha Yuddha left for a follow-up.)
+      + lint clean. All five sections shipped (Panchanga · Hora · Eclipses · Festivals · Conjunctions).
 
 ### 9.3 Pancha Pakshi Sastra (P2) — unique daily-timing system
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CalendarDays, MapPin, Clock, Moon, Sun, PartyPopper } from "lucide-react";
+import { CalendarDays, MapPin, Clock, Moon, Sun, PartyPopper, Swords } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { PageHeader } from "../components/PageHeader";
@@ -306,6 +306,94 @@ const FestivalPanel = ({ loc }) => {
   );
 };
 
+/* ── Conjunctions (Graha Yuddha) ───────────────────────────────────────── */
+const ConjunctionPanel = ({ loc }) => {
+  const { t } = useTranslation();
+  const [start, setStart] = useState(todayISO());
+  const [end, setEnd] = useState(() => addDaysISO(todayISO(), 90));
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = useCallback(() => {
+    if (loc.latitude == null || loc.longitude == null) return;
+    setLoading(true);
+    setError("");
+    astrologyService
+      .getConjunctions({ ...loc, start, end })
+      .then((r) => setData(r.data))
+      .catch(() => setError(t("almanac.unavailable")))
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loc.place, loc.latitude, loc.longitude, loc.timezone, start, end]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const events = data?.events || [];
+
+  return (
+    <div className="panchanga-panel">
+      <div className="panchanga-header">
+        <h3>
+          <Swords size={24} style={{ color: "var(--saffron)" }} />
+          {t("almanac.conjunctionsTitle")}
+        </h3>
+        <div className="panchanga-controls">
+          <input
+            type="date"
+            className="panchanga-date"
+            value={start}
+            max={end}
+            onChange={(e) => setStart(e.target.value)}
+            aria-label={t("almanac.startDate")}
+          />
+          <span className="almanac-range-sep">–</span>
+          <input
+            type="date"
+            className="panchanga-date"
+            value={end}
+            min={start}
+            onChange={(e) => setEnd(e.target.value)}
+            aria-label={t("almanac.endDate")}
+          />
+        </div>
+      </div>
+      <p className="almanac-note">{t("almanac.conjunctionsNote")}</p>
+
+      {loading && <div className="panchanga-status">{t("almanac.loading")}</div>}
+      {error && !loading && <div className="panchanga-status">{error}</div>}
+
+      {data && !loading && !error && events.length === 0 && (
+        <div className="panchanga-status">{t("almanac.noneFound")}</div>
+      )}
+
+      {events.length > 0 && !loading && !error && (
+        <div className="almanac-fest-list">
+          {events.map((ev, idx) => (
+            <div key={idx} className="almanac-fest-row">
+              <span className="almanac-fest-date">{ev.closest_date}</span>
+              <span className="almanac-fest-body">
+                <span className="almanac-fest-name">
+                  {ev.planet1} &amp; {ev.planet2}
+                  {ev.war && <span className="almanac-war-tag">{t("almanac.war")}</span>}
+                </span>
+                <span className="almanac-fest-meaning">
+                  {t("almanac.conjWindow", { from: ev.from, to: ev.to })}
+                </span>
+              </span>
+              <span className="almanac-fest-ends">
+                {t("almanac.separation", { deg: ev.separation })}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 /* ── Page ──────────────────────────────────────────────────────────────── */
 export const AlmanacPage = () => {
   const navigate = useNavigate();
@@ -409,6 +497,7 @@ export const AlmanacPage = () => {
         <HoraPanel loc={loc} />
         <EclipsePanel loc={loc} />
         <FestivalPanel loc={loc} />
+        <ConjunctionPanel loc={loc} />
       </div>
     </div>
   );

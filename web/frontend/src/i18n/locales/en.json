@@ -361,6 +361,11 @@
     "ends": "Ends",
     "festivalsTitle": "Festivals & Vrathas",
     "tithiEnds": "tithi ends {{time}}",
+    "conjunctionsTitle": "Planetary Conjunctions (Graha Yuddha)",
+    "conjunctionsNote": "When two of Mars, Mercury, Jupiter, Venus or Saturn come close in longitude. A separation under 1° is a Graha Yuddha (planetary war). Sun, Moon and the nodes are excluded by tradition.",
+    "conjWindow": "Within range {{from}} → {{to}}",
+    "separation": "closest {{deg}}°",
+    "war": "War",
     "festivalTypes": {
       "ekadashi": "Ekadashi",
       "pradosham": "Pradosham",

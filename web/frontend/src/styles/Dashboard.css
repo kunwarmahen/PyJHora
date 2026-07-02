@@ -789,6 +789,19 @@
   color: var(--text-secondary);
   font-weight: 600;
 }
+.almanac-war-tag {
+  display: inline-block;
+  margin-left: var(--space-sm);
+  padding: 1px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--vermillion);
+  color: white;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+}
 
 /* AI reading (markdown) on the Sarvatobhadra page — tidy default spacing */
 .sbc-ai-markdown > :first-child {

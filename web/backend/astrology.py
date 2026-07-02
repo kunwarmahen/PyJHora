@@ -2008,6 +2008,114 @@ class AstrologyCompute:
             return {"error": str(e), "status": "failed"}
 
     @staticmethod
+    def get_conjunctions(place: str = "", lat: Optional[float] = None,
+                         lon: Optional[float] = None, tz: Optional[float] = None,
+                         start: Optional[str] = None, end: Optional[str] = None,
+                         max_sep: float = 3.0) -> Dict:
+        """Planetary conjunctions (Graha Yuddha / 'planetary war') in a range.
+
+        Scans each day and records when two of the five tara grahas (Mars,
+        Mercury, Jupiter, Venus, Saturn — Sun/Moon/nodes never engage in Graha
+        Yuddha) come within `max_sep` degrees of each other in ecliptic
+        longitude. Consecutive in-range days are collapsed into one event with
+        the closest approach (minimum separation) and the date it occurs; a
+        separation under 1° is flagged as an actual Graha Yuddha (war).
+        Defaults to the next ~90 days from today at `place`."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available"}
+        try:
+            from datetime import datetime, timezone as _utc, timedelta
+            from itertools import combinations
+
+            tz_offset = tz if tz is not None else 5.5
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+
+            local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+            if start:
+                sy, sm, sd = map(int, start.split("-"))
+            else:
+                sy, sm, sd = local_now.year, local_now.month, local_now.day
+            if end:
+                ey, em, ed = map(int, end.split("-"))
+            else:
+                _end = local_now + timedelta(days=90)
+                ey, em, ed = _end.year, _end.month, _end.day
+
+            place_obj = drik.Place(place or "", lat, lon, tz_offset)
+            max_sep = max(0.1, min(float(max_sep or 3.0), 15.0))
+
+            start_jd = swe.julday(sy, sm, sd, 0.0)
+            end_jd = swe.julday(ey, em, ed, 0.0)
+            # Cap the scan so a runaway range can't compute a chart per day forever.
+            n_days = int(min(max(end_jd - start_jd, 0), 400)) + 1
+
+            def _lng(pp, idx):
+                # pp[idx+1][1] = [sign(0-11), degrees]; ecliptic longitude 0-360.
+                return pp[idx + 1][1][0] * 30 + pp[idx + 1][1][1]
+
+            def _sep(a, b):
+                d = abs(a - b) % 360
+                return 360 - d if d > 180 else d
+
+            # Mars..Saturn planet indices (Sun=0 .. Saturn=6 in HORA_PLANETS).
+            tara = list(range(2, 7))
+            active: Dict = {}
+            finished = []
+
+            for i in range(n_days):
+                jd = start_jd + i
+                yy, mm, dd, _ = swe.revjul(jd)
+                pp = charts.rasi_chart(jd, place_obj)
+                lngs = {p: _lng(pp, p) for p in tara}
+                seen = set()
+                for p1, p2 in combinations(tara, 2):
+                    s = _sep(lngs[p1], lngs[p2])
+                    key = (p1, p2)
+                    if s < max_sep:
+                        seen.add(key)
+                        date_t = (int(yy), int(mm), int(dd))
+                        if key not in active:
+                            active[key] = {"from": date_t, "min": s, "min_date": date_t}
+                        elif s < active[key]["min"]:
+                            active[key]["min"] = s
+                            active[key]["min_date"] = date_t
+                        active[key]["to"] = date_t
+                # close any pair that dropped out of range today
+                for key in [k for k in active if k not in seen]:
+                    finished.append((key, active.pop(key)))
+            for key, ev in active.items():
+                finished.append((key, ev))
+
+            def _d(t):
+                return f"{t[0]:04d}-{t[1]:02d}-{t[2]:02d}"
+
+            events = []
+            for (p1, p2), ev in finished:
+                events.append({
+                    "planet1": HORA_PLANETS[p1],
+                    "planet2": HORA_PLANETS[p2],
+                    "from": _d(ev["from"]),
+                    "to": _d(ev["to"]),
+                    "closest_date": _d(ev["min_date"]),
+                    "separation": round(ev["min"], 2),
+                    "war": ev["min"] < 1.0,
+                })
+            events.sort(key=lambda e: (e["closest_date"], e["planet1"]))
+            return {
+                "status": "success",
+                "place": place,
+                "start": f"{sy:04d}-{sm:02d}-{sd:02d}",
+                "end": f"{ey:04d}-{em:02d}-{ed:02d}",
+                "max_separation": max_sep,
+                "events": events,
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+
+    @staticmethod
     def get_transits(dob: str, tob: str, place: str,
                      lat: Optional[float] = None, lon: Optional[float] = None,
                      tz: Optional[float] = None, current_date: Optional[str] = None,

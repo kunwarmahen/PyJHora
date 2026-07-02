@@ -432,6 +432,33 @@ async def get_festivals(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/astrology/almanac/conjunctions")
+async def get_conjunctions(
+    place: str = "",
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    timezone: Optional[float] = None,
+    start: Optional[str] = None,
+    end: Optional[str] = None,
+    max_sep: float = 3.0,
+    current_user: str = Depends(get_current_user),
+):
+    """Planetary conjunctions (Graha Yuddha) among Mars–Saturn in a date range,
+    within `max_sep` degrees; each event carries the closest approach + a war
+    flag (<1°)."""
+    try:
+        result = AstrologyCompute.get_conjunctions(
+            place=place, lat=latitude, lon=longitude, tz=timezone,
+            start=start, end=end, max_sep=max_sep,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/astrology/birth-chart/{chart_id}")
 async def get_birth_chart(chart_id: str, current_user: str = Depends(get_current_user)):
     """Retrieve stored birth chart"""
