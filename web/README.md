@@ -10,6 +10,7 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Features**: Birth Chart (Rasi D1 + Navamsa D9), divisional charts D1–D60, Panchanga,
   Yogas/Doshas, Graha Drishti (aspects, with strength-weighted lines on the chart),
   Vimsottari Dhasa (+ Ashtottari/Yogini/Narayana/Kalachakra), Transits,
+  Varshaphal / Tajaka annual horoscope (with year-ahead AI reading),
   Sarvatobhadra Chakra (with layman AI reading), Compatibility, and an Advanced page
   (Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala)
 - **AI Integration**: Multi-model LLM support (Ollama/local, OpenAI-compatible, Gemini, ChatGPT)
@@ -354,7 +355,21 @@ REACT_APP_API_TIMEOUT=30000
 - Date/time picker (defaults to now), respects the selected ayanamsa, and an on-demand
   **plain-language AI reading** of what to expect — uses the model picked in Ask AI Astrologer
 
-### 8. Advanced Details (`/advanced`)
+### 8. Varshaphal / Annual Horoscope (`/varshaphal`)
+- The **Tajaka annual (solar-return) chart** for a chosen year — cast for the moment
+  the Sun returns to its natal longitude — with a **year stepper** (floored at the
+  birth year) and North / South chart styles, exportable, respecting the selected ayanamsa
+- **Muntha** (progressed point, advances one sign per year) and **year-lord (Varsheshwara)**
+- **Sahams** (sensitive points, akin to Arabic parts): Punya/Vidya/Yasas/Mitra/Karma/Roga/
+  Vivaha/Puthra — each as sign + degree + house
+- Present **Tajaka yogas** (Ishkavala/Induvara + Ithasala/Eesarpha planet pairs)
+- **Annual Mudda (Varsha Vimsottari) dasha** — the year's sub-periods, current one highlighted
+- On-demand **plain-language AI year-ahead reading** grounded in the above, using the model
+  picked in Ask AI Astrologer
+- Also published as a smart-lookup **tool** (`get_varshaphal`) so the AI astrologer can pull
+  an annual snapshot when asked "how is *&lt;year&gt;* for me?"
+
+### 9. Advanced Details (`/advanced`)
 - **Ashtakavarga**: Bhinna (per-contributor) + Sarva (combined) bindu tables, with
   a Sarva heatmap (grand total 337)
 - **Chart factors**: Arudha padas (A1–A12), Chara karakas (Jaimini), Special lagnas
@@ -366,13 +381,13 @@ REACT_APP_API_TIMEOUT=30000
   drishti, with the Parashari sphuta strength (0–100%)
 - Each section loads independently and respects the selected ayanamsa
 
-### 9. Export & Share
+### 10. Export & Share
 - **Export** any chart as **PNG** or **PDF** (buttons on each chart card) — on Birth
   Chart, Compare, Transit and the shared view
 - **Share** a chart as a **public, read-only link** (`/share/:token`) — no login needed
   to view; offers a "create a free account" CTA
 
-### 10. LLM Integration (Optional)
+### 11. LLM Integration (Optional)
 - Enhanced predictions with a local Ollama model or any configured provider
 - Contextual astrological interpretations
 - Personalized analysis
