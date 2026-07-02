@@ -120,6 +120,8 @@
   margin: 0 auto;
   border: 3px solid var(--saffron);
   background: white;
+  /* Positioning context for the aspect-line overlay (.si-aspect-overlay) */
+  position: relative;
 }
 .si-cell {
   border: 1px solid var(--sandalwood-dark);
