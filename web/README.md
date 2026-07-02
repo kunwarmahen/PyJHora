@@ -11,6 +11,7 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   Yogas/Doshas, Graha Drishti (aspects, with strength-weighted lines on the chart),
   Vimsottari Dhasa (+ Ashtottari/Yogini/Narayana/Kalachakra), Transits,
   Varshaphal / Tajaka annual horoscope (with year-ahead AI reading),
+  an Almanac (planetary hours, eclipses, festival/vratha dates),
   Sarvatobhadra Chakra (with layman AI reading), Compatibility, and an Advanced page
   (Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala)
 - **AI Integration**: Multi-model LLM support (Ollama/local, OpenAI-compatible, Gemini, ChatGPT)
@@ -370,7 +371,23 @@ REACT_APP_API_TIMEOUT=30000
 - Also published as a smart-lookup **tool** (`get_varshaphal`) so the AI astrologer can pull
   an annual snapshot when asked "how is *&lt;year&gt;* for me?"
 
-### 9. Advanced Details (`/advanced`)
+### 9. Almanac (`/almanac`)
+- A location-driven almanac (not birth-chart bound) with a **shared location toggle**
+  — birth place vs the device's current location (browser geolocation) — feeding four
+  self-contained sections:
+- **Today**: the daily **Panchanga** (five limbs + sunrise/sunset + Rahu Kalam/Yamaganda/
+  Gulika/Abhijit/Durmuhurtam), reusing the existing panel under the shared location control
+- **Planetary Hours (Hora)**: the day's 24 horas — 12 daytime (sunrise→sunset) + 12
+  nighttime — each ruled by a graha starting with the weekday lord, tagged benefic (gold)
+  or malefic (vermillion), with the running daytime hora highlighted; per-day date picker
+- **Eclipses**: the next solar and lunar eclipses (global visibility) with type and the
+  begin / maximum / end instants in the location's local time
+- **Festivals & Vrathas**: a **date-range picker** + toggleable type chips (Ekadashi,
+  Pradosham, Purnima, Amavasya, Sankashti, Vinayaka Chaturthi, Krishna Ashtami) listing
+  every tithi-driven occurrence in the range, sorted by date
+- Same current-DST timezone caveat as the rest of the almanac (fine for picking a day)
+
+### 10. Advanced Details (`/advanced`)
 - **Ashtakavarga**: Bhinna (per-contributor) + Sarva (combined) bindu tables, with
   a Sarva heatmap (grand total 337)
 - **Chart factors**: Arudha padas (A1–A12), Chara karakas (Jaimini), Special lagnas
@@ -382,13 +399,13 @@ REACT_APP_API_TIMEOUT=30000
   drishti, with the Parashari sphuta strength (0–100%)
 - Each section loads independently and respects the selected ayanamsa
 
-### 10. Export & Share
+### 11. Export & Share
 - **Export** any chart as **PNG** or **PDF** (buttons on each chart card) — on Birth
   Chart, Compare, Transit and the shared view
 - **Share** a chart as a **public, read-only link** (`/share/:token`) — no login needed
   to view; offers a "create a free account" CTA
 
-### 11. LLM Integration (Optional)
+### 12. LLM Integration (Optional)
 - Enhanced predictions with a local Ollama model or any configured provider
 - Contextual astrological interpretations
 - Personalized analysis
@@ -476,6 +493,9 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `POST /api/astrology/divisional-chart?varga=N` - Calculate a divisional (varga) chart
 - `GET /api/astrology/ayanamsas` - List supported ayanamsa options
 - `GET /api/astrology/panchanga?date=&latitude=&longitude=&timezone=` - Daily almanac (panchanga)
+- `GET /api/astrology/almanac/hora?date=&place=&latitude=&longitude=&timezone=` - Planetary hours (24 horas, benefic/malefic, current flagged)
+- `GET /api/astrology/almanac/eclipses?place=&latitude=&longitude=&timezone=&from_date=&count=` - Next N solar + lunar eclipses (local time)
+- `GET /api/astrology/almanac/festivals?place=&latitude=&longitude=&timezone=&start=&end=&types=` - Tithi-driven festival / vratha dates in a range (`types` = comma-separated keys)
 - `POST /api/astrology/horoscope` - Get horoscope predictions
 - `POST /api/astrology/doshas` - Calculate doshas
 - `POST /api/astrology/yogas` - Get yogas
@@ -533,6 +553,7 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `/compatibility` - Marriage compatibility checker
 - `/dhasa` - Dhasa periods: Vimsottari drill-down tree + other systems
 - `/transit` - Transits (Gochara) over the natal chart
+- `/almanac` - Almanac: planetary hours (hora), upcoming eclipses, and tithi-driven festival / vratha dates, with a birth-place vs current-location toggle
 - `/sarvatobhadra` - Sarvatobhadra Chakra: today's transits on the 9×9 star grid + occupation/vedha on your sensitive stars, with a layman AI reading
 - `/advanced` - Advanced details: Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala
 - `/compare` - Compare two saved profiles side by side (charts, placements table + on-demand neutral AI comparison)

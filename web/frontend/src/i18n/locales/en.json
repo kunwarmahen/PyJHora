@@ -243,7 +243,8 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "language": "Language",
-    "varshaphal": "Varshaphal"
+    "varshaphal": "Varshaphal",
+    "almanac": "Almanac"
   },
   "aiTools": {
     "title": "AI Capabilities",
@@ -306,6 +307,10 @@
       "varshaphal": {
         "title": "Varshaphal (Annual)",
         "description": "Your year-ahead solar-return chart — Muntha, year-lord, Sahams and annual dasha."
+      },
+      "almanac": {
+        "title": "Almanac",
+        "description": "Eclipses, festival & vratha dates, and the day's planetary hours (hora)"
       }
     }
   },
@@ -333,6 +338,38 @@
     "gulikaKalam": "Gulika Kalam",
     "abhijit": "Abhijit Muhurta",
     "durmuhurtam": "Durmuhurtam"
+  },
+  "almanac": {
+    "title": "Almanac",
+    "subtitle": "Eclipses, festivals & vrathas, and the day's planetary hours",
+    "date": "Date",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "loading": "Loading…",
+    "unavailable": "Not available for this place/date.",
+    "noneFound": "None found in this range.",
+    "horaTitle": "Planetary Hours (Hora)",
+    "horaNote": "Each hora is ruled by a graha, starting with the weekday lord at sunrise. Benefic horas are gold, malefic ones vermillion; the current hora is highlighted.",
+    "daytime": "Daytime (Sunrise → Sunset)",
+    "nighttime": "Nighttime (Sunset → Sunrise)",
+    "eclipsesTitle": "Upcoming Eclipses",
+    "eclipsesNote": "Next solar and lunar eclipses (global visibility), shown in this location's local time.",
+    "solar": "Solar Eclipses",
+    "lunar": "Lunar Eclipses",
+    "begins": "Begins",
+    "maximum": "Maximum",
+    "ends": "Ends",
+    "festivalsTitle": "Festivals & Vrathas",
+    "tithiEnds": "tithi ends {{time}}",
+    "festivalTypes": {
+      "ekadashi": "Ekadashi",
+      "pradosham": "Pradosham",
+      "purnima": "Purnima",
+      "amavasya": "Amavasya",
+      "sankashti": "Sankashti",
+      "chaturthi": "Vinayaka Chaturthi",
+      "ashtami": "Krishna Ashtami"
+    }
   },
   "dhasa": {
     "title": "Vimsottari Dasha",

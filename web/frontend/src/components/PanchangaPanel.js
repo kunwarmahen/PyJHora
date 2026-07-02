@@ -27,7 +27,13 @@ async function reverseGeocode(latitude, longitude) {
  * for a true "today, here" almanac. A date picker lets the user check any day.
  * Self-contained: fetches independently so a failure never blanks the page.
  */
-export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
+export const PanchangaPanel = ({
+  place,
+  latitude,
+  longitude,
+  timezone,
+  hideLocationToggle = false,
+}) => {
   const { t } = useTranslation();
   const today = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(today);
@@ -119,25 +125,27 @@ export const PanchangaPanel = ({ place, latitude, longitude, timezone }) => {
           {t("panchanga.title")}
         </h3>
         <div className="panchanga-controls">
-          <div
-            className="chart-style-toggle"
-            role="group"
-            aria-label={t("panchanga.almanacLocation")}
-          >
-            <button
-              className={source === "birth" ? "active" : ""}
-              onClick={() => setSource("birth")}
+          {!hideLocationToggle && (
+            <div
+              className="chart-style-toggle"
+              role="group"
+              aria-label={t("panchanga.almanacLocation")}
             >
-              {t("panchanga.birthPlace")}
-            </button>
-            <button
-              className={source === "current" ? "active" : ""}
-              onClick={useCurrent}
-              disabled={geoLoading}
-            >
-              {geoLoading ? t("panchanga.locating") : t("panchanga.currentLocation")}
-            </button>
-          </div>
+              <button
+                className={source === "birth" ? "active" : ""}
+                onClick={() => setSource("birth")}
+              >
+                {t("panchanga.birthPlace")}
+              </button>
+              <button
+                className={source === "current" ? "active" : ""}
+                onClick={useCurrent}
+                disabled={geoLoading}
+              >
+                {geoLoading ? t("panchanga.locating") : t("panchanga.currentLocation")}
+              </button>
+            </div>
+          )}
           <input
             type="date"
             className="panchanga-date"

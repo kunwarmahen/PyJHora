@@ -68,6 +68,22 @@ export const astrologyService = {
     api.get("/api/astrology/panchanga", {
       params: { place, latitude, longitude, timezone, date },
     }),
+  // Almanac (§9.2): planetary hours, eclipses, festival/vratha dates.
+  getPlanetaryHours: ({ place, latitude, longitude, timezone, date } = {}) =>
+    api.get("/api/astrology/almanac/hora", {
+      params: { place, latitude, longitude, timezone, date },
+    }),
+  getEclipses: ({ place, latitude, longitude, timezone, fromDate, count } = {}) =>
+    api.get("/api/astrology/almanac/eclipses", {
+      params: { place, latitude, longitude, timezone, from_date: fromDate, count },
+    }),
+  getFestivals: ({ place, latitude, longitude, timezone, start, end, types } = {}) =>
+    api.get("/api/astrology/almanac/festivals", {
+      params: {
+        place, latitude, longitude, timezone, start, end,
+        types: Array.isArray(types) ? types.join(",") : types,
+      },
+    }),
   getDoshas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/doshas", birthDetails, { params: { ayanamsa } }),
   getYogas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>

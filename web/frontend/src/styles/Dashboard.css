@@ -589,6 +589,207 @@
   font-size: 0.95rem;
 }
 
+/* ── Almanac page (§9.2: eclipses, festivals, planetary hours) ─────────── */
+.almanac-locbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin: var(--space-lg) 0 var(--space-sm);
+}
+.almanac-locbar .chart-style-toggle {
+  margin-bottom: 0;
+}
+.almanac-locname {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.almanac-locname svg {
+  color: var(--saffron);
+}
+.almanac-note {
+  margin: 0 0 var(--space-lg);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.almanac-subhead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--temple-gold);
+  margin: var(--space-md) 0 var(--space-sm);
+}
+
+/* Planetary hours */
+.almanac-hora-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-sm);
+}
+.almanac-hora {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--sacred-white);
+  border: 1px solid var(--sandalwood);
+  border-left: 3px solid var(--temple-gold);
+}
+.almanac-hora.is-malefic {
+  border-left-color: var(--vermillion);
+}
+.almanac-hora.is-current {
+  outline: 2px solid var(--saffron);
+  background: #fff7ec;
+}
+.almanac-hora-time {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.almanac-hora-planet {
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  font-size: 0.95rem;
+}
+
+/* Eclipses */
+.almanac-ecl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-lg);
+}
+.almanac-ecl-card {
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--sacred-white);
+  border: 1px solid var(--sandalwood);
+  border-left: 3px solid var(--cosmic-indigo);
+  margin-bottom: var(--space-sm);
+}
+.almanac-ecl-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+.almanac-ecl-type {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--sandalwood);
+  color: var(--cosmic-indigo);
+}
+.almanac-ecl-type.type-total {
+  background: var(--vermillion);
+  color: white;
+}
+.almanac-ecl-type.type-annular,
+.almanac-ecl-type.type-hybrid {
+  background: var(--saffron);
+  color: white;
+}
+.almanac-ecl-date {
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  font-size: 0.9rem;
+}
+.almanac-ecl-times {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.almanac-ecl-times strong {
+  color: var(--temple-gold);
+  font-weight: 700;
+  margin-right: var(--space-xs);
+}
+
+/* Festivals */
+.almanac-range-sep {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.almanac-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+.almanac-chip {
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--sandalwood);
+  background: var(--sacred-white);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.almanac-chip.is-on {
+  background: var(--saffron);
+  border-color: var(--saffron);
+  color: white;
+}
+.almanac-fest-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.almanac-fest-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--sacred-white);
+  border: 1px solid var(--sandalwood);
+  border-left: 3px solid var(--temple-gold);
+  flex-wrap: wrap;
+}
+.almanac-fest-date {
+  font-weight: 700;
+  color: var(--saffron);
+  font-size: 0.9rem;
+  min-width: 96px;
+}
+.almanac-fest-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 160px;
+}
+.almanac-fest-name {
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  font-size: 0.95rem;
+}
+.almanac-fest-meaning {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.almanac-fest-ends {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
 /* AI reading (markdown) on the Sarvatobhadra page — tidy default spacing */
 .sbc-ai-markdown > :first-child {
   margin-top: 0;

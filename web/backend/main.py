@@ -357,6 +357,81 @@ async def get_panchanga(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/astrology/almanac/hora")
+async def get_planetary_hours(
+    date: Optional[str] = None,
+    place: str = "",
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    timezone: Optional[float] = None,
+    current_user: str = Depends(get_current_user),
+):
+    """Planetary hours (hora) table for a place and optional date (defaults to
+    today at that place)."""
+    try:
+        result = AstrologyCompute.get_planetary_hours(
+            date=date, place=place, lat=latitude, lon=longitude, tz=timezone,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/astrology/almanac/eclipses")
+async def get_eclipses(
+    place: str = "",
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    timezone: Optional[float] = None,
+    from_date: Optional[str] = None,
+    count: int = 3,
+    current_user: str = Depends(get_current_user),
+):
+    """Upcoming solar + lunar eclipses (global visibility) from a date, in the
+    place's local time."""
+    try:
+        result = AstrologyCompute.get_eclipses(
+            place=place, lat=latitude, lon=longitude, tz=timezone,
+            from_date=from_date, count=count,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/astrology/almanac/festivals")
+async def get_festivals(
+    place: str = "",
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    timezone: Optional[float] = None,
+    start: Optional[str] = None,
+    end: Optional[str] = None,
+    types: Optional[str] = None,
+    current_user: str = Depends(get_current_user),
+):
+    """Tithi-driven festival / vratha dates in a range. `types` is a comma-
+    separated list of festival keys (defaults to the common bundle)."""
+    try:
+        type_list = [t.strip() for t in types.split(",") if t.strip()] if types else None
+        result = AstrologyCompute.get_festival_dates(
+            place=place, lat=latitude, lon=longitude, tz=timezone,
+            start=start, end=end, types=type_list,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/astrology/birth-chart/{chart_id}")
 async def get_birth_chart(chart_id: str, current_user: str = Depends(get_current_user)):
     """Retrieve stored birth chart"""

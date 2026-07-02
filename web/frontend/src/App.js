@@ -14,6 +14,7 @@ import { TransitPage } from "./pages/TransitPage";
 import { SarvatobhadraPage } from "./pages/SarvatobhadraPage";
 import { LearnChartPage } from "./pages/LearnChartPage";
 import { VarshaphalPage } from "./pages/VarshaphalPage";
+import { AlmanacPage } from "./pages/AlmanacPage";
 import { AdvancedPage } from "./pages/AdvancedPage";
 import { ComparePage } from "./pages/ComparePage";
 import { SharedChartPage } from "./pages/SharedChartPage";
@@ -83,6 +84,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <TransitPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/almanac"
+              element={
+                <ProtectedRoute>
+                  <AlmanacPage />
                 </ProtectedRoute>
               }
             />

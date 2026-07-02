@@ -1293,7 +1293,7 @@ Plan — **SHIPPED 2026-07-02**:
       periods); prompt renders ~1k tokens with real data; backend imports clean (13 tools, both
       routes); `npm run build` green (+2.7 kB); ESLint clean; locale JSON valid.
 
-### 9.2 Almanac extensions — Eclipses, Festival/Vratha calendar, Hora (P1)
+### 9.2 Almanac extensions — Eclipses, Festival/Vratha calendar, Hora (P1) — SHIPPED 2026-07-02
 
 Grow the existing self-contained `PanchangaPanel` into a fuller almanac, or a dedicated
 **Almanac/Calendar page**. All three are date-range/location driven (not birth-chart
@@ -1314,21 +1314,32 @@ Engine entry points:
   sunrise→sunset / weekday-lord ordering — small assembly).
 
 Plan:
-- [ ] **Backend** methods on `AstrologyCompute`: `get_eclipses(place, lat, lon, tz, from_date,
-      count=2)` (next solar+lunar), `get_festival_dates(place, lat, lon, tz, start, end,
-      types[])` (Ekadashi/Pradosham/Amavasya/Purnima/Sankashti + key vrathas),
-      `get_planetary_hours(date, place, lat, lon, tz)` (sunrise-anchored hora-lord table),
-      and optionally `get_conjunctions(start, end, min_sep)`.
-- [ ] **Endpoints** under `/api/astrology/almanac/*` (or extend `/panchanga`): `eclipses`,
-      `festivals`, `hora`, `conjunctions` (auth; location toggle = birthplace vs current
-      location, reusing the PanchangaPanel pattern).
-- [ ] **Frontend**: extend `PanchangaPanel` with tabs/sections (Today · Festivals ·
-      Eclipses · Hora) **or** a `AlmanacPage` (route `/almanac`, dashboard card). Date-range
-      picker for the festival finder; an upcoming-eclipse card; a planetary-hours strip for
-      the chosen day (current hora highlighted). Saffron/gold identity.
-- [ ] i18n `almanac.*`; cache where the engine call is heavy (festival scans over a range).
-      Note the same current-DST tz caveat as elsewhere. Verify eclipse + Ekadashi finders
-      against known 2026 dates; build + lint clean.
+- [x] **Backend** methods on `AstrologyCompute`: `get_planetary_hours(date, place, lat, lon,
+      tz)` (24 horas — 12 day sunrise→sunset + 12 night — via `drik.shubha_hora`, each tagged
+      benefic/malefic and the running daytime hora flagged), `get_eclipses(place, lat, lon, tz,
+      from_date, count=3)` (next N solar + N lunar, GLOBAL visibility, each stepping past the
+      previous max), `get_festival_dates(place, lat, lon, tz, start, end, types[])` (tithi-driven
+      Ekadashi/Pradosham/Purnima/Amavasya/Sankashti + Vinayaka-Chaturthi/Krishna-Ashtami via
+      `vratha.tithi_dates`). **KEY gotcha:** the vendored `eclipse.next_lunar_eclipse` returns
+      the maximum instant WITHOUT the tz offset its sibling instants carry (a swe wrapper quirk),
+      so the lunar maximum is derived as the midpoint of the (correctly localized) partial phases
+      instead of trusting that field — no `src/` edit. Constants: `HORA_PLANETS`/`HORA_BENEFICS`,
+      `FESTIVAL_TYPES`/`DEFAULT_FESTIVAL_TYPES`.
+- [x] **Endpoints** (auth, GET): `/api/astrology/almanac/hora`, `.../almanac/eclipses`,
+      `.../almanac/festivals` (`types` = comma-separated keys). Conjunctions deferred (not needed
+      for the first cut). Verified against known 2026 dates: total solar eclipse **2026-08-12**,
+      partial lunar **2026-08-28**; July Ekadashis 07-10 & 07-24, Purnima 07-28, Amavasya 07-13.
+- [x] **Frontend**: dedicated **`AlmanacPage`** (route `/almanac`, dashboard card + nav drawer,
+      `CalendarDays` icon) with a page-level location toggle (birth place vs current geolocation,
+      reusing the PanchangaPanel pattern) shared across four self-contained sections: **Today**
+      (the existing `PanchangaPanel`, now with a `hideLocationToggle` prop so it sits under the
+      shared control), **Planetary Hours** (day/night hora grids, current hora highlighted, per-day
+      date picker), **Eclipses** (solar/lunar cards with begin/max/end in local time), **Festivals**
+      (date-range picker + toggleable type chips, sorted list). Saffron/gold identity, `almanac-*`
+      classes in `Dashboard.css`.
+- [x] i18n `almanac.*` (en full; hi/sa get nav + dashboard-card labels, body falls back to en —
+      the `sbc.*`/`learn.*` pattern). Same current-DST tz caveat as the rest of the almanac. Build
+      + lint clean (+3.0kB js, +455B css). (Conjunctions / Graha Yuddha left for a follow-up.)
 
 ### 9.3 Pancha Pakshi Sastra (P2) — unique daily-timing system
 

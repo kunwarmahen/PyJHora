@@ -17,6 +17,7 @@ import {
   GitCompareArrows,
   GraduationCap,
   Wrench,
+  CalendarDays,
 } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
@@ -78,6 +79,12 @@ export const DashboardPage = () => {
       icon: <CalendarClock size={32} />,
       path: "/varshaphal",
       gradient: "linear-gradient(135deg, #D4AF37 0%, #2D3561 100%)",
+    },
+    {
+      key: "almanac",
+      icon: <CalendarDays size={32} />,
+      path: "/almanac",
+      gradient: "linear-gradient(135deg, #FFB347 0%, #D4AF37 100%)",
     },
     {
       key: "sarvatobhadra",
