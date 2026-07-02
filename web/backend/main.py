@@ -4,7 +4,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, List
 import json
 from pydantic import BaseModel
 
@@ -164,6 +164,28 @@ class RectifyExplainRequest(BaseModel):
     birth_details: BirthDetails
     method: str = "nakshatra"        # nakshatra | lagna | janma
     gender: Optional[int] = None     # 0=male, 1=female (janma suddhi only)
+    person_name: Optional[str] = None
+    llm_provider: str = "qwen"  # legacy fallback
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    ayanamsa: Optional[str] = None
+
+class RectifyEventItem(BaseModel):
+    type: str                        # an EVENT_SIGNIFICATORS key
+    date: str                        # YYYY-MM-DD
+
+class RectifyEventsRequest(BaseModel):
+    birth_details: BirthDetails
+    events: List[RectifyEventItem] = []
+    window_minutes: int = 120
+    ayanamsa: Optional[str] = None
+
+class RectifyEventsExplainRequest(BaseModel):
+    birth_details: BirthDetails
+    events: List[RectifyEventItem] = []
+    window_minutes: int = 120
     person_name: Optional[str] = None
     llm_provider: str = "qwen"  # legacy fallback
     provider_type: Optional[str] = None
@@ -874,6 +896,31 @@ async def rectify_birth_time(
             lat=birth_details.latitude, lon=birth_details.longitude,
             tz=birth_details.timezone, ayanamsa=ayanamsa,
             method=method, gender=gender,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/rectify-birth-time/events")
+async def rectify_birth_time_by_events(
+    request: RectifyEventsRequest,
+    current_user: str = Depends(get_current_user)
+):
+    """EXPERIMENTAL event-based birth-time rectification. Scans candidate times and
+    picks the one whose Vimsottari dasha + Jupiter/Saturn transits best match the
+    supplied dated life events (deterministic, auditable per-event matches)."""
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_event_rectification(
+            dob=bd.dob, tob=bd.tob, place=bd.place,
+            events=[e.model_dump() for e in request.events],
+            lat=bd.latitude, lon=bd.longitude, tz=bd.timezone,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+            window_minutes=request.window_minutes,
         )
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
@@ -1760,6 +1807,39 @@ async def explain_rectification(
 
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.explain_rectification(
+            rectification_data=rect, name=request.person_name or "this person", config=cfg,
+        )
+        return {
+            "ai_analysis": ai_analysis,
+            "provider": cfg.provider_type.value,
+            "model": cfg.model,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/rectify-birth-time/events/explain")
+async def explain_event_rectification(
+    request: RectifyEventsExplainRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Plain-language AI note on why the event-matched time fits the supplied events."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        rect = AstrologyCompute.get_event_rectification(
+            dob=bd.dob, tob=bd.tob, place=bd.place,
+            events=[e.model_dump() for e in request.events],
+            lat=bd.latitude, lon=bd.longitude, tz=bd.timezone,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+            window_minutes=request.window_minutes,
+        )
+        if rect.get("status") != "success":
+            raise HTTPException(status_code=400, detail=rect.get("error", "Calculation failed"))
+
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.explain_event_rectification(
             rectification_data=rect, name=request.person_name or "this person", config=cfg,
         )
         return {

@@ -428,16 +428,23 @@ REACT_APP_API_TIMEOUT=30000
 - Each section loads independently and respects the selected ayanamsa
 
 ### 12. Birth-Time Rectification (`/rectify`) — experimental
-- Refines an uncertain recorded birth time using classical BV Raman **śuddhi** checks.
-  Three methods: **Nakshatra Śuddhi** (default; self-serve — no extra input),
-  **Lagna Śuddhi**, and **Janma Śuddhi** (needs a gender selection)
-- Searches ±30 min around the entered time and suggests the nearest time that
-  satisfies the check, with the **signed shift** in minutes
-- Shows a **what-moved** before→after summary (Moon star/pada + rising sign) and the
-  **before/after charts side by side**
-- Optional **"why this time fits"** AI reading (uses the model picked in Ask AI
-  Astrologer) and an **"Apply suggested time to this profile"** button (with confirm)
-  so the corrected time flows into every other chart
+Two approaches, chosen with a mode toggle:
+- **By rule (śuddhi)** — classical BV Raman checks: **Nakshatra Śuddhi** (default;
+  self-serve — no extra input), **Lagna Śuddhi**, and **Janma Śuddhi** (needs a
+  gender selection). Searches ±30 min and suggests the nearest time that satisfies
+  the check
+- **By life events** — you enter known dated events (marriage, children, career,
+  illness, relocation, a parent's passing, …); the app scans candidate birth times
+  and picks the one whose **Vimsottari dasha** (the maha/bhukti running at each
+  event) plus **Jupiter/Saturn transits** best match each event's classical
+  significators. Deterministic and **auditable** — a per-event table shows *why*
+  each time fits (which period lord rules/occupies the event's houses, or is its
+  karaka), with a rough **fit %** that strengthens as you add events
+- Both show the **signed shift**, a **what-moved** before→after summary (Moon
+  star/pada + rising sign), the **before/after charts side by side**, an optional
+  **"why this time fits"** AI explanation (model from Ask AI Astrologer), and an
+  **"Apply suggested time to this profile"** button (with confirm) so the corrected
+  time flows into every other chart
 - **Clearly framed as experimental** — a suggestion to verify against known life
   events, never an authoritative correction (PyJHora flags these methods experimental)
 

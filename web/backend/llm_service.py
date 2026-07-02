@@ -393,6 +393,16 @@ class LLMService:
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
         return await self._complete(prompt, cfg)
 
+    async def explain_event_rectification(self,
+                                          rectification_data: Dict[str, Any],
+                                          name: str = "this person",
+                                          provider: LLMProvider = LLMProvider.QWEN,
+                                          config: Optional[ModelConfig] = None) -> str:
+        """Plain-language note on why the event-matched time fits the supplied events."""
+        prompt = self._build_event_rectification_prompt(rectification_data, name)
+        cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        return await self._complete(prompt, cfg)
+
     async def analyze_pancha_pakshi(self,
                                     pp_data: Dict[str, Any],
                                     name: str = "this person",
@@ -1578,6 +1588,59 @@ Write a short, clear explanation (about 200-250 words) with:
 3. **How to verify** — 2-3 gentle, concrete suggestions (compare against known timed life events, confirm the recorded time with family/records, try another method).
 
 Be specific to the facts above — do not invent placements. Do NOT predict death, disease, or precise future dates. End with one short line reminding that rectification is experimental and the recorded time, where reliable, should be trusted first."""
+
+    def _build_event_rectification_prompt(self, r: Dict[str, Any], name: str) -> str:
+        """Explain why the event-matched birth time fits the supplied life events.
+        The candidate scan, the winning time, and the per-event dasha/transit matches
+        are already computed deterministically — the model only narrates them, gently,
+        and always frames the result as experimental."""
+        entered = r.get("entered", {})
+        suggested = r.get("suggested") or {}
+        rectified = r.get("rectified")
+        delta = r.get("delta_minutes")
+        confidence = r.get("confidence")
+        window = r.get("window_minutes")
+        before = r.get("before", {}) or {}
+        after = r.get("after", {}) or {}
+        b_lagna = (before.get("lagna") or {})
+        a_lagna = (after.get("lagna") or {})
+
+        lines = []
+        for ev in r.get("events", []):
+            matched = ev.get("matched") or []
+            m = ("; ".join(matched)) if matched else "no strong dasha/transit link found"
+            lines.append(
+                f"- {ev.get('type')} on {ev.get('date')}: running Mahadasha "
+                f"{ev.get('maha')} / Bhukti {ev.get('bhukti')} → {m} (score {ev.get('score')})"
+            )
+        event_block = "\n".join(lines) or "- (no events)"
+
+        if rectified:
+            outcome = (f"The entered time {entered.get('tob')} was refined to "
+                       f"{suggested.get('tob')} (a shift of about {delta} minutes), which "
+                       f"scored best against the events (fit ≈ {confidence}%). The rising sign "
+                       f"moved from {b_lagna.get('sign_name')} to {a_lagna.get('sign_name')}.")
+        else:
+            outcome = (f"The entered time {entered.get('tob')} already scored best against the "
+                       f"events (fit ≈ {confidence}%); no shift was suggested.")
+
+        return f"""You are a warm, plain-spoken Vedic astrologer explaining an EXPERIMENTAL, event-based birth-time rectification to someone with little astrology background. Avoid jargon; when you must use a term (dasha, bhukti, lagna, transit), explain it in a few words.
+
+Event-based rectification takes known dated life events and finds the birth time whose planetary *timing* (the Vimsottari dasha period running at each event, plus Jupiter/Saturn transits) best lines up with what classically signifies each event. It is a HEURISTIC that gets stronger with more events — a suggestion to verify, never an authoritative correction. It searched within ±{window} minutes of the entered time.
+
+Person: {name}
+{outcome}
+
+Per-event timing matches the calculation found (already computed — trust these, do not re-derive):
+{event_block}
+
+Write a short, clear explanation (about 220-280 words) with:
+1. **How this works** — one or two sentences on the idea (matching event dates to the planetary periods that rule those matters).
+2. **Why this time fits the events** — walk through 2-3 of the strongest event matches above in everyday language (e.g. "your marriage fell in a period ruled by the planet governing marriage in your chart"). Use only the matches listed.
+3. **How confident to be** — be honest that the fit is ≈{confidence}% and improves with more events; a low fit means the events don't strongly pin the time.
+4. **How to verify** — 2-3 gentle suggestions (add more well-dated events, cross-check the recorded time with family/records, compare with the rule-based methods).
+
+Be specific to the matches above — do not invent placements or events. Do NOT predict death, disease, or precise future dates. End with one short line reminding that this is experimental and the recorded time, where reliable, should be trusted first."""
 
     def _format_planets(self, planets: Dict[str, Any]) -> str:
         """Format planetary positions for prompt"""

@@ -213,6 +213,37 @@ export const astrologyService = {
       },
       { timeout: 300000 }
     ),
+  // EXPERIMENTAL event-based rectification — scans candidate times for the best
+  // dasha/transit fit to the supplied dated life events.
+  rectifyByEvents: (birthDetails, events, windowMinutes = 120, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post(
+      "/api/astrology/rectify-birth-time/events",
+      {
+        birth_details: birthDetails,
+        events,
+        window_minutes: windowMinutes,
+        ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+  // Plain-language AI note on why the event-matched time fits the events.
+  explainEventRectificationAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/rectify-birth-time/events/explain",
+      {
+        birth_details: birthDetails,
+        events: opts.events || [],
+        window_minutes: opts.windowMinutes || 120,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
   // Shareable read-only chart link.
   createShare: (birthDetails, ayanamsa = DEFAULT_AYANAMSA, profileName = null) =>
     api.post("/api/astrology/share", {

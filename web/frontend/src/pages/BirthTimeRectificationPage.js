@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Clock4, Sparkles, AlertTriangle, ArrowRight, Check } from "lucide-react";
+import {
+  Clock4,
+  Sparkles,
+  AlertTriangle,
+  ArrowRight,
+  Check,
+  Plus,
+  Trash2,
+  CalendarHeart,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
@@ -25,6 +34,19 @@ const METHODS = [
   { key: "janma", labelKey: "rectify.methodJanma", needsGender: true },
 ];
 
+// Event types for the event-based mode. Keys must match the backend
+// EVENT_SIGNIFICATORS map.
+const EVENT_TYPES = [
+  "marriage", "childbirth", "career", "promotion", "education", "wealth",
+  "property", "relocation", "illness", "accident", "father_death", "mother_death",
+];
+
+const WINDOWS = [
+  { minutes: 120, labelKey: "rectify.window2h" },
+  { minutes: 360, labelKey: "rectify.window6h" },
+  { minutes: 720, labelKey: "rectify.windowDay" },
+];
+
 // Read the model the user already picked in "Ask Astrologer".
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -41,10 +63,19 @@ export const BirthTimeRectificationPage = () => {
   const { t } = useTranslation();
   const { selectedProfile, updateProfile } = useProfile();
 
+  // Top-level mode: rule-based (śuddhi) vs event-based.
+  const [mode, setMode] = useState(() => localStorage.getItem("rectify_mode") || "rule");
+
+  // Rule-mode state.
   const [method, setMethod] = useState(
     () => localStorage.getItem("rectify_method") || "nakshatra"
   );
   const [gender, setGender] = useState(null); // 0=male, 1=female (janma only)
+
+  // Event-mode state.
+  const [events, setEvents] = useState([{ type: "marriage", date: "" }]);
+  const [windowMinutes, setWindowMinutes] = useState(120);
+
   const [chartStyle, setChartStyle] = useState(() => localStorage.getItem("chartStyle") || "north");
 
   const [loading, setLoading] = useState(false);
@@ -68,6 +99,16 @@ export const BirthTimeRectificationPage = () => {
     localStorage.setItem("chartStyle", style);
   };
 
+  const chooseMode = (m) => {
+    setMode(m);
+    localStorage.setItem("rectify_mode", m);
+    setResult(null);
+    setError("");
+    setApplied(false);
+    setAiAnalysis("");
+    setAiError("");
+  };
+
   const chooseMethod = (key) => {
     setMethod(key);
     localStorage.setItem("rectify_method", key);
@@ -89,9 +130,16 @@ export const BirthTimeRectificationPage = () => {
     [selectedProfile]
   );
 
-  const rectify = useCallback(async () => {
+  const resetOutputs = () => {
+    setApplied(false);
+    setAiAnalysis("");
+    setAiError("");
+    setAiModel("");
+  };
+
+  // Rule mode auto-runs when the method/gender changes.
+  const rectifyByRule = useCallback(async () => {
     if (!birthDetails) return;
-    // Janma suddhi can't run until the user picks a gender.
     if (activeMethod.needsGender && gender == null) {
       setResult(null);
       return;
@@ -99,10 +147,7 @@ export const BirthTimeRectificationPage = () => {
     setLoading(true);
     setError("");
     setResult(null);
-    setApplied(false);
-    setAiAnalysis("");
-    setAiError("");
-    setAiModel("");
+    resetOutputs();
     try {
       const res = await astrologyService.rectifyBirthTime(
         birthDetails,
@@ -123,8 +168,36 @@ export const BirthTimeRectificationPage = () => {
       navigate("/profile-selection");
       return;
     }
-    rectify();
-  }, [selectedProfile, navigate, rectify]);
+    if (mode === "rule") rectifyByRule();
+  }, [selectedProfile, navigate, mode, rectifyByRule]);
+
+  // Event mode runs on explicit submit (needs dated events).
+  const validEvents = events.filter((e) => e.type && e.date);
+  const runEventRectify = async () => {
+    if (!birthDetails || validEvents.length === 0) return;
+    setLoading(true);
+    setError("");
+    setResult(null);
+    resetOutputs();
+    try {
+      const res = await astrologyService.rectifyByEvents(
+        birthDetails,
+        validEvents,
+        windowMinutes,
+        ayanamsa
+      );
+      setResult(res.data);
+    } catch (err) {
+      setError(errorMessage(err, t("rectify.calcError")));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addEvent = () => setEvents((ev) => [...ev, { type: "childbirth", date: "" }]);
+  const removeEvent = (i) => setEvents((ev) => ev.filter((_, idx) => idx !== i));
+  const updateEvent = (i, patch) =>
+    setEvents((ev) => ev.map((e, idx) => (idx === i ? { ...e, ...patch } : e)));
 
   const handleApply = async () => {
     if (!result?.suggested || !selectedProfile) return;
@@ -141,11 +214,8 @@ export const BirthTimeRectificationPage = () => {
         selectedProfile.profile_name,
         newDetails
       );
-      if (res?.success) {
-        setApplied(true);
-      } else {
-        setError(res?.error || t("rectify.applyError"));
-      }
+      if (res?.success) setApplied(true);
+      else setError(res?.error || t("rectify.applyError"));
     } catch (err) {
       setError(errorMessage(err, t("rectify.applyError")));
     } finally {
@@ -158,15 +228,24 @@ export const BirthTimeRectificationPage = () => {
     setAiLoading(true);
     setAiError("");
     try {
-      const res = await astrologyService.explainRectificationAI(
-        birthDetails,
-        {
-          method,
-          gender: activeMethod.needsGender ? gender : undefined,
-          personName: birthDetails.name,
-        },
-        { ...readModelConfig(), ayanamsa }
-      );
+      let res;
+      if (mode === "events") {
+        res = await astrologyService.explainEventRectificationAI(
+          birthDetails,
+          { events: validEvents, windowMinutes, personName: birthDetails.name },
+          { ...readModelConfig(), ayanamsa }
+        );
+      } else {
+        res = await astrologyService.explainRectificationAI(
+          birthDetails,
+          {
+            method,
+            gender: activeMethod.needsGender ? gender : undefined,
+            personName: birthDetails.name,
+          },
+          { ...readModelConfig(), ayanamsa }
+        );
+      }
       setAiAnalysis(res.data.ai_analysis || "");
       setAiModel(res.data.model || res.data.provider || "");
     } catch (err) {
@@ -179,7 +258,7 @@ export const BirthTimeRectificationPage = () => {
   if (!selectedProfile) return null;
 
   const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
-  const needGender = activeMethod.needsGender && gender == null;
+  const needGender = mode === "rule" && activeMethod.needsGender && gender == null;
   const suggested = result?.suggested;
   const before = result?.before || {};
   const after = result?.after || {};
@@ -202,46 +281,25 @@ export const BirthTimeRectificationPage = () => {
           <span>{t("rectify.experimental")}</span>
         </div>
 
-        {/* Controls */}
+        {/* Mode toggle */}
         <div className="page-controls">
           <div className="controls-group">
-            <label className="control-label">
-              <Clock4 size={18} style={{ color: "var(--saffron)" }} />
-              {t("rectify.method")}
-            </label>
+            <label className="control-label">{t("rectify.mode")}</label>
             <div className="chart-toggle">
-              {METHODS.map((m) => (
-                <button
-                  key={m.key}
-                  className={`chart-toggle__btn${method === m.key ? " is-active" : ""}`}
-                  onClick={() => chooseMethod(m.key)}
-                >
-                  {t(m.labelKey)}
-                </button>
-              ))}
+              <button
+                className={`chart-toggle__btn${mode === "rule" ? " is-active" : ""}`}
+                onClick={() => chooseMode("rule")}
+              >
+                {t("rectify.modeRule")}
+              </button>
+              <button
+                className={`chart-toggle__btn${mode === "events" ? " is-active" : ""}`}
+                onClick={() => chooseMode("events")}
+              >
+                {t("rectify.modeEvents")}
+              </button>
             </div>
           </div>
-
-          {/* Gender picker — only for janma suddhi */}
-          {activeMethod.needsGender && (
-            <div className="controls-group">
-              <label className="control-label">{t("rectify.gender")}</label>
-              <div className="chart-toggle">
-                <button
-                  className={`chart-toggle__btn${gender === 0 ? " is-active" : ""}`}
-                  onClick={() => setGender(0)}
-                >
-                  {t("rectify.male")}
-                </button>
-                <button
-                  className={`chart-toggle__btn${gender === 1 ? " is-active" : ""}`}
-                  onClick={() => setGender(1)}
-                >
-                  {t("rectify.female")}
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Chart style toggle */}
           <div className="chart-toggle">
@@ -257,7 +315,129 @@ export const BirthTimeRectificationPage = () => {
           </div>
         </div>
 
-        <p className="card-intro">{t(`rectify.methodDesc.${method}`)}</p>
+        {/* ---- Rule mode controls ---- */}
+        {mode === "rule" && (
+          <>
+            <div className="page-controls">
+              <div className="controls-group">
+                <label className="control-label">
+                  <Clock4 size={18} style={{ color: "var(--saffron)" }} />
+                  {t("rectify.method")}
+                </label>
+                <div className="chart-toggle">
+                  {METHODS.map((m) => (
+                    <button
+                      key={m.key}
+                      className={`chart-toggle__btn${method === m.key ? " is-active" : ""}`}
+                      onClick={() => chooseMethod(m.key)}
+                    >
+                      {t(m.labelKey)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {activeMethod.needsGender && (
+                <div className="controls-group">
+                  <label className="control-label">{t("rectify.gender")}</label>
+                  <div className="chart-toggle">
+                    <button
+                      className={`chart-toggle__btn${gender === 0 ? " is-active" : ""}`}
+                      onClick={() => setGender(0)}
+                    >
+                      {t("rectify.male")}
+                    </button>
+                    <button
+                      className={`chart-toggle__btn${gender === 1 ? " is-active" : ""}`}
+                      onClick={() => setGender(1)}
+                    >
+                      {t("rectify.female")}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <p className="card-intro">{t(`rectify.methodDesc.${method}`)}</p>
+          </>
+        )}
+
+        {/* ---- Event mode controls ---- */}
+        {mode === "events" && (
+          <div className="ui-card ui-card--accent ui-card--flush">
+            <h3 className="ui-card-header ui-card-header--sm">
+              <CalendarHeart size={18} />
+              {t("rectify.eventsTitle")}
+            </h3>
+            <p className="card-intro">{t("rectify.eventsIntro")}</p>
+
+            {events.map((ev, i) => (
+              <div
+                key={i}
+                className="controls-group"
+                style={{ gap: "0.5rem", marginBottom: "0.5rem", flexWrap: "wrap" }}
+              >
+                <select
+                  className="form-select"
+                  value={ev.type}
+                  onChange={(e) => updateEvent(i, { type: e.target.value })}
+                >
+                  {EVENT_TYPES.map((et) => (
+                    <option key={et} value={et}>
+                      {t(`rectify.event.${et}`)}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="date"
+                  className="control-input"
+                  value={ev.date}
+                  onChange={(e) => updateEvent(i, { date: e.target.value })}
+                />
+                <button
+                  type="button"
+                  className="control-btn"
+                  onClick={() => removeEvent(i)}
+                  aria-label={t("rectify.removeEvent")}
+                  disabled={events.length <= 1}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+
+            <button type="button" className="control-btn" onClick={addEvent}>
+              <Plus size={16} /> {t("rectify.addEvent")}
+            </button>
+
+            <div className="controls-group" style={{ marginTop: "1rem" }}>
+              <label className="control-label">{t("rectify.searchWindow")}</label>
+              <div className="chart-toggle">
+                {WINDOWS.map((w) => (
+                  <button
+                    key={w.minutes}
+                    className={`chart-toggle__btn${windowMinutes === w.minutes ? " is-active" : ""}`}
+                    onClick={() => setWindowMinutes(w.minutes)}
+                  >
+                    {t(w.labelKey)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-xl">
+              <button
+                className="ui-btn ui-btn--primary"
+                onClick={runEventRectify}
+                disabled={loading || validEvents.length === 0}
+              >
+                {loading ? t("rectify.loading") : t("rectify.runEvents")}
+              </button>
+              {validEvents.length === 0 && (
+                <p className="card-note">{t("rectify.eventsPrompt")}</p>
+              )}
+            </div>
+          </div>
+        )}
 
         <ErrorBanner message={error} />
 
@@ -272,7 +452,7 @@ export const BirthTimeRectificationPage = () => {
         ) : result ? (
           <div className="fade-in">
             {/* Outcome summary */}
-            <div className="info-pills">
+            <div className="info-pills mt-xl">
               <span className="info-pill">
                 {t("rectify.entered")}:{" "}
                 <strong className="text-indigo">{result.entered?.tob}</strong>
@@ -297,8 +477,16 @@ export const BirthTimeRectificationPage = () => {
                   <strong className="text-saffron">
                     {result.already_consistent
                       ? t("rectify.alreadyConsistent")
+                      : mode === "events"
+                      ? t("rectify.eventsNoChange")
                       : t("rectify.notConverged")}
                   </strong>
+                </span>
+              )}
+              {mode === "events" && result.confidence != null && (
+                <span className="info-pill">
+                  {t("rectify.fit")}:{" "}
+                  <strong className="text-saffron">{result.confidence}%</strong>
                 </span>
               )}
               <span className="info-pill">
@@ -307,6 +495,47 @@ export const BirthTimeRectificationPage = () => {
             </div>
 
             <p className="card-note">{result.note}</p>
+
+            {/* Event-match breakdown */}
+            {mode === "events" && result.events?.length > 0 && (
+              <div className="ui-card ui-card--accent-gold ui-card--flush mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm">{t("rectify.eventMatches")}</h3>
+                <div className="table-scroll">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>{t("rectify.eventCol")}</th>
+                        <th>{t("rectify.dateCol")}</th>
+                        <th>{t("rectify.periodCol")}</th>
+                        <th>{t("rectify.whyCol")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result.events.map((e, i) => (
+                        <tr key={i}>
+                          <td className="fw-700 text-indigo">{t(`rectify.event.${e.type}`)}</td>
+                          <td className="text-secondary">{e.date}</td>
+                          <td className="text-secondary">
+                            {e.maha} / {e.bhukti}
+                          </td>
+                          <td className="text-secondary" style={{ fontSize: "0.85rem" }}>
+                            {e.matched?.length ? (
+                              <ul style={{ margin: 0, paddingLeft: "1.1rem" }}>
+                                {e.matched.map((m, j) => (
+                                  <li key={j}>{m}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <span className="text-muted">{t("rectify.noMatch")}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Before / after fast-movers */}
             {suggested && (

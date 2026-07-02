@@ -1544,3 +1544,38 @@ Engine entry points (verified in `panchanga/drik.py`):
       −5.75 min correctly; janma no-gender → 400); response JSON-serializable (~3.7 kB); backend
       imports clean + both routes registered; `npm run build` green (+3 kB); ESLint clean;
       locale JSON valid. **Default method = Nakshatra Śuddhi** (self-serve).
+
+**FOLLOW-UP — event-based (interactive) rectification — SHIPPED 2026-07-02.** Owner clarified
+they expected the app to *ask questions and rectify the DOB from the answers*, not just run the
+silent śuddhi algorithm. Owner decisions: **known life events + dates** as the input,
+**deterministic scoring with an AI explanation**, added as a **new mode on the same `/rectify`
+page** (not a replacement). This is the classical life-events method.
+- [x] **Backend** `AstrologyCompute.get_event_rectification(dob,tob,place,events,lat,lon,tz,
+      ayanamsa,window_minutes=120)`. Given dated events, a **two-pass scan** (coarse 15-min over
+      the clamped ±window, then fine 2-min around the best) scores each candidate birth time:
+      for every event it finds the running **Vimsottari maha+bhukti** (built from
+      `vimsottari.vimsottari_mahadasa` + `_vimsottari_bhukti`) and awards points when a period
+      lord **rules / occupies** one of the event's significator houses (counted from the
+      *candidate's* Lagna) or **is its natural karaka**, plus a small **Jupiter/Saturn transit**
+      bonus. Both levers are birth-time-sensitive (house lords via Lagna; dasha balance via the
+      Moon's natal fraction). Returns the winning time, signed delta, a 0-100 **fit %**, and a
+      per-event **auditable match list**, plus the same before/after Moon/Lagna + charts.
+      `EVENT_SIGNIFICATORS` (12 event types → houses + karakas) + `SIGN_LORD` added as module
+      constants. Guards empty/invalid events → clean 400.
+- [x] **Endpoints** `POST /api/astrology/rectify-birth-time/events` (compute) +
+      `.../events/explain` (AI). `llm_service.explain_event_rectification` +
+      `_build_event_rectification_prompt` narrate the *pre-computed* per-event matches (~220-280w,
+      honest about the fit %, safety footer), model-config aware + rate-limited. New request
+      models `RectifyEventsRequest` / `RectifyEventsExplainRequest` (+ `RectifyEventItem`); added
+      `List` to the `typing` import.
+- [x] **Frontend** — the `/rectify` page gained a top-level **Approach** toggle
+      (By rule / By life events). Event mode: an events editor (type dropdown from 12 curated
+      events + date picker, add/remove rows), a **search-window** picker (±2h / ±6h / whole day),
+      a **Rectify from events** button, and a **"Why this time fits the events"** table (per event:
+      Maha/Bhukti + the matched reasons). Reuses the shared what-moved table, before/after charts,
+      apply-to-profile, and AI card (which calls the events-explain endpoint in this mode). New
+      `api.js` `rectifyByEvents` / `explainEventRectificationAI`; `rectify.*` i18n extended (en;
+      hi/sa fall back).
+- [x] Verified end-to-end via `TestClient`: events endpoint 200 (1988-11-23 test chart, marriage
+      2015 + career 2012 → suggests 23:25, fit 54%, per-event dasha matches shown), empty events →
+      400; whole-day scan < 0.1s; `npm run build` green; ESLint clean; locale JSON valid.
