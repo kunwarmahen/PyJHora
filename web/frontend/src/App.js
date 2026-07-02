@@ -14,6 +14,7 @@ import { TransitPage } from "./pages/TransitPage";
 import { SarvatobhadraPage } from "./pages/SarvatobhadraPage";
 import { LearnChartPage } from "./pages/LearnChartPage";
 import { VarshaphalPage } from "./pages/VarshaphalPage";
+import { PanchaPakshiPage } from "./pages/PanchaPakshiPage";
 import { BirthTimeRectificationPage } from "./pages/BirthTimeRectificationPage";
 import { AlmanacPage } from "./pages/AlmanacPage";
 import { AdvancedPage } from "./pages/AdvancedPage";
@@ -166,6 +167,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <VarshaphalPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/pancha-pakshi"
+              element={
+                <ProtectedRoute>
+                  <PanchaPakshiPage />
                 </ProtectedRoute>
               }
             />

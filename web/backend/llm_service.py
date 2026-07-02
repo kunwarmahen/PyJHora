@@ -393,6 +393,16 @@ class LLMService:
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
         return await self._complete(prompt, cfg)
 
+    async def analyze_pancha_pakshi(self,
+                                    pp_data: Dict[str, Any],
+                                    name: str = "this person",
+                                    provider: LLMProvider = LLMProvider.QWEN,
+                                    config: Optional[ModelConfig] = None) -> str:
+        """Plain-language reading of today's Pancha Pakshi bird-cycle timing."""
+        prompt = self._build_pancha_pakshi_prompt(pp_data, name)
+        cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        return await self._complete(prompt, cfg)
+
     # ------------------------------------------------------------------ #
     # "Learn the Chart" — AI quiz generation + grading
     # ------------------------------------------------------------------ #
@@ -1475,6 +1485,48 @@ Write a clear, encouraging year-ahead reading (about 500 words) with these parts
 5. End with one short line of reassurance.
 
 Be specific to the factors above — do not invent anything not listed. Do NOT predict death, disease, disasters, or precise dates. Close with a brief reminder that this is for reflection and planning, not a substitute for professional advice."""
+
+    def _build_pancha_pakshi_prompt(self, p: Dict[str, Any], name: str) -> str:
+        """Build a plain-language day-timing reading from the Pancha Pakshi data.
+
+        The birth bird, the day's best/worst windows and the segment timeline are
+        already computed; the model turns them into gentle 'good times for X'
+        guidance for the day."""
+        bird = p.get("birth_bird", {})
+        best = p.get("best_times", [])
+        avoid = p.get("avoid_times", [])
+
+        best_lines = "\n".join(
+            f"- {b.get('start')}–{b.get('end')} ({b.get('phase')}): "
+            f"{b.get('main_activity')}/{b.get('sub_activity')} — {b.get('effect')}"
+            for b in best
+        ) or "- (none)"
+        avoid_lines = "\n".join(
+            f"- {a.get('start')}–{a.get('end')} ({a.get('phase')}): "
+            f"{a.get('main_activity')}/{a.get('sub_activity')} — {a.get('effect')}"
+            for a in avoid
+        ) or "- (none)"
+
+        return f"""You are a warm, plain-spoken guide explaining PANCHA PAKSHI SASTRA — an old South-Indian (Tamil Siddha) system of timing the day. In it, each person has a "birth bird" (from their birth star), and the day is divided into windows where that bird is Ruling, Eating, Walking, Sleeping or Dying — from strongest to weakest. You favour the strong windows for important actions and rest during the weak ones. Explain simply; avoid jargon.
+
+Reading for: {name}
+Date: {p.get('date')} ({p.get('weekday')}, {p.get('paksha')} paksha)
+Birth bird: {bird.get('name')} (from birth star {bird.get('star_name')})
+Sunrise {p.get('sunrise')}, sunset {p.get('sunset')}.
+
+The strongest windows today (best for important or demanding activities):
+{best_lines}
+
+The weakest windows today (better for rest, routine, low-stakes tasks):
+{avoid_lines}
+
+Write a short, friendly day-guide (about 250-300 words):
+1. **Your bird today** — one or two sentences on what having the {bird.get('name')} as the birth bird means in this system, kept light.
+2. **Best times** — translate the strong windows into concrete "good for…" suggestions (starting important work, meetings, travel, exercise, decisions), with the clock times.
+3. **Quieter times** — note the weak windows as good for rest, chores, reflection.
+4. End with one short, encouraging line.
+
+Use the clock times given. Do NOT invent windows not listed. Do NOT make medical, financial or fated claims. Close with a one-line reminder that this is a traditional timing aid for reflection, not a rule to live by."""
 
     def _build_rectification_prompt(self, r: Dict[str, Any], name: str) -> str:
         """Explain, in plain terms, why the suggested birth time fits better than

@@ -135,6 +135,39 @@ export const astrologyService = {
   // Graha drishti (aspects): per-graha houses/planets aspected + strength %.
   getAspects: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/aspects", birthDetails, { params: { ayanamsa } }),
+  // Dedicated Raja Yogas (Kendra-Trikona pairs + named special types).
+  getRajaYogas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/raja-yogas", birthDetails, { params: { ayanamsa } }),
+  // Ayu (longevity) category — Alpa/Madhya/Purna + factors.
+  getLongevity: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/longevity", birthDetails, { params: { ayanamsa } }),
+  // Sudarsana Chakra — three wheels (Lagna/Moon/Sun) for a solar-return year.
+  getSudarsanaChakra: (birthDetails, yearOffset = 0, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/sudarsana-chakra", birthDetails, {
+      params: { year_offset: yearOffset, ayanamsa },
+    }),
+  // Pancha Pakshi Sastra — birth bird + day's activity-strength timeline.
+  getPanchaPakshi: (birthDetails, date = null) =>
+    api.post("/api/astrology/pancha-pakshi", birthDetails, {
+      params: date ? { date } : {},
+    }),
+  // Plain-language AI reading of today's Pancha Pakshi timing.
+  analyzePanchaPakshiAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/pancha-pakshi-analysis",
+      {
+        birth_details: birthDetails,
+        date: opts.date,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
   // Varshaphal / Tajaka annual (solar-return) horoscope for a target year.
   getVarshaphal: (birthDetails, year, ayanamsa = DEFAULT_AYANAMSA, dashaSystem = "mudda") =>
     api.post("/api/astrology/varshaphal", birthDetails, {

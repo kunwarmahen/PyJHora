@@ -1279,3 +1279,223 @@
   text-transform: uppercase;
   color: var(--saffron);
 }
+
+/* ── Pancha Pakshi Sastra (§9.3) ─────────────────────────────────────────── */
+.pp-bird-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+.pp-bird-badge {
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--terracotta) 0%, var(--marigold) 100%);
+  color: #fff;
+  box-shadow: var(--shadow-md);
+}
+.pp-bird-name {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--saffron-dark);
+  line-height: 1.1;
+}
+
+.pp-summary {
+  border-top: 3px solid transparent;
+}
+.pp-summary--good {
+  border-top-color: var(--emerald-green);
+}
+.pp-summary--bad {
+  border-top-color: var(--vermillion);
+}
+.pp-window-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.pp-window {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  background: rgba(244, 228, 193, 0.35);
+  font-size: 0.9rem;
+}
+.pp-window.is-running {
+  outline: 2px solid var(--saffron);
+  background: rgba(255, 153, 51, 0.12);
+}
+.pp-window__time {
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  font-variant-numeric: tabular-nums;
+  min-width: 5.5rem;
+}
+.pp-window__act {
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+
+.pp-eff {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+/* Effect scale: 0 very-bad … 4 very-good (text pills) */
+.pp-eff-0 { background: rgba(227, 66, 52, 0.16); color: #b1281c; }
+.pp-eff-1 { background: rgba(226, 123, 90, 0.18); color: #c15a34; }
+.pp-eff-2 { background: rgba(212, 175, 55, 0.2); color: #927400; }
+.pp-eff-3 { background: rgba(46, 139, 87, 0.16); color: #216b42; }
+.pp-eff-4 { background: rgba(46, 139, 87, 0.28); color: #185233; }
+
+/* Timeline */
+.pp-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.pp-segment {
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  background: var(--sacred-white);
+  box-shadow: var(--shadow-sm);
+  border-left: 4px solid var(--saffron);
+}
+.pp-segment--night {
+  border-left-color: var(--cosmic-indigo);
+  background: rgba(45, 53, 97, 0.03);
+}
+.pp-segment__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.pp-segment__time {
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  font-variant-numeric: tabular-nums;
+}
+.pp-segment__bird {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+.pp-segment__subs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.3rem;
+}
+.pp-sub {
+  border-radius: 7px;
+  padding: 0.35rem 0.3rem;
+  text-align: center;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.1rem;
+}
+.pp-sub.is-running {
+  outline: 2px solid var(--saffron);
+  outline-offset: -1px;
+}
+.pp-sub__time {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  font-variant-numeric: tabular-nums;
+}
+.pp-sub__act {
+  font-size: 0.66rem;
+  color: var(--text-secondary);
+}
+/* Effect scale backgrounds for the timeline cells */
+.pp-eff-bg-0 { background: rgba(227, 66, 52, 0.22); }
+.pp-eff-bg-1 { background: rgba(226, 123, 90, 0.24); }
+.pp-eff-bg-2 { background: rgba(212, 175, 55, 0.26); }
+.pp-eff-bg-3 { background: rgba(46, 139, 87, 0.2); }
+.pp-eff-bg-4 { background: rgba(46, 139, 87, 0.34); }
+
+.pp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+.pp-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.pp-legend__swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* ── Raja Yogas card (§9.4) ──────────────────────────────────────────────── */
+.raja-yoga-card {
+  border-left: 3px solid var(--temple-gold);
+}
+.raja-yoga-strength {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+}
+.raja-yoga-strength--strong { background: rgba(46, 139, 87, 0.2); color: #216b42; }
+.raja-yoga-strength--good { background: rgba(212, 175, 55, 0.24); color: #927400; }
+.raja-yoga-strength--neutral { background: rgba(90, 95, 122, 0.14); color: var(--text-secondary); }
+.raja-yoga-strength--weak { background: rgba(226, 123, 90, 0.2); color: #c15a34; }
+.raja-yoga-strength--special { background: rgba(255, 153, 51, 0.18); color: var(--saffron-dark); }
+
+/* ── Sudarsana Chakra (§9.4) ─────────────────────────────────────────────── */
+.sudarsana-wheels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+/* ── Longevity / Ayu card (§9.5) ─────────────────────────────────────────── */
+.ayu-band {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.75rem 0;
+}
+.ayu-band__seg {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem 0.4rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: rgba(244, 228, 193, 0.4);
+  color: var(--text-muted);
+  border: 1px solid transparent;
+}
+.ayu-band__seg.is-active {
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--marigold) 100%);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}

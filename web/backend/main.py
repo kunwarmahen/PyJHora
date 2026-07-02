@@ -149,6 +149,17 @@ class VarshaphalAnalysisRequest(BaseModel):
     api_key: Optional[str] = None
     ayanamsa: Optional[str] = None
 
+class PanchaPakshiAnalysisRequest(BaseModel):
+    birth_details: BirthDetails
+    date: Optional[str] = None
+    person_name: Optional[str] = None
+    llm_provider: str = "qwen"  # legacy fallback
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    ayanamsa: Optional[str] = None
+
 class RectifyExplainRequest(BaseModel):
     birth_details: BirthDetails
     method: str = "nakshatra"        # nakshatra | lagna | janma
@@ -750,6 +761,93 @@ async def get_varshaphal(
             lat=birth_details.latitude, lon=birth_details.longitude,
             tz=birth_details.timezone, ayanamsa=ayanamsa,
             dasha_system=dasha_system,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/raja-yogas")
+async def get_raja_yogas(
+    birth_details: BirthDetails,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user)
+):
+    """Dedicated Raja Yoga analysis (Kendra-Trikona pairs + named special types)."""
+    try:
+        result = AstrologyCompute.get_raja_yogas(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, ayanamsa=ayanamsa,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/longevity")
+async def get_longevity(
+    birth_details: BirthDetails,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user)
+):
+    """Ayu (longevity) category — Alpa/Madhya/Purna — with contributing factors.
+    Returns a conditional category and its factors, never a death date/age."""
+    try:
+        result = AstrologyCompute.get_longevity(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, ayanamsa=ayanamsa,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/sudarsana-chakra")
+async def get_sudarsana_chakra(
+    birth_details: BirthDetails,
+    year_offset: int = 0,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user)
+):
+    """Sudarsana Chakra — three wheels (Lagna/Moon/Sun ascendants) for the
+    solar-return year `year_offset` past birth (0 = natal)."""
+    try:
+        result = AstrologyCompute.get_sudarsana_chakra(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, ayanamsa=ayanamsa, year_offset=year_offset,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/pancha-pakshi")
+async def get_pancha_pakshi(
+    birth_details: BirthDetails,
+    date: Optional[str] = None,
+    current_user: str = Depends(get_current_user)
+):
+    """Pancha Pakshi Sastra — birth bird + the day's activity-strength timeline."""
+    try:
+        result = AstrologyCompute.get_pancha_pakshi(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, date=date,
         )
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
@@ -1600,6 +1698,37 @@ async def analyze_varshaphal(
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_varshaphal(
             varsha_data=varsha, name=request.person_name or "this person", config=cfg,
+        )
+        return {
+            "ai_analysis": ai_analysis,
+            "provider": cfg.provider_type.value,
+            "model": cfg.model,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/pancha-pakshi-analysis")
+async def analyze_pancha_pakshi(
+    request: PanchaPakshiAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Plain-language AI reading of today's Pancha Pakshi timing — what to do/avoid."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        pp = AstrologyCompute.get_pancha_pakshi(
+            dob=bd.dob, tob=bd.tob, place=bd.place,
+            lat=bd.latitude, lon=bd.longitude, tz=bd.timezone,
+            date=request.date,
+        )
+        if pp.get("status") != "success":
+            raise HTTPException(status_code=400, detail=pp.get("error", "Calculation failed"))
+
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_pancha_pakshi(
+            pp_data=pp, name=request.person_name or "this person", config=cfg,
         )
         return {
             "ai_analysis": ai_analysis,

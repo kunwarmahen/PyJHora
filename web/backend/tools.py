@@ -212,6 +212,35 @@ def _varshaphal(bd, ayanamsa, year: Optional[int] = None, **_):
     }
 
 
+def _raja_yogas(bd, ayanamsa, **_):
+    r = AstrologyCompute.get_raja_yogas(ayanamsa=ayanamsa, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    return {"count": r.get("count"), "raja_yogas": r.get("raja_yogas", [])}
+
+
+def _longevity(bd, ayanamsa, **_):
+    r = AstrologyCompute.get_longevity(ayanamsa=ayanamsa, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    return {"category_name": r.get("category_name"),
+            "category_desc": r.get("category_desc"),
+            "factors": r.get("factors", [])}
+
+
+def _pancha_pakshi(bd, ayanamsa, date: Optional[str] = None, **_):
+    r = AstrologyCompute.get_pancha_pakshi(date=date, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    # Trim the full 10×5 timeline to the summary the model actually needs.
+    return {
+        "date": r.get("date"),
+        "birth_bird": r.get("birth_bird", {}),
+        "best_times": r.get("best_times", []),
+        "avoid_times": r.get("avoid_times", []),
+    }
+
+
 # --------------------------------------------------------------------------- #
 # Registry
 # --------------------------------------------------------------------------- #
@@ -348,6 +377,37 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
          "required": ["year"]},
         _varshaphal,
     ),
+    _Tool(
+        "get_raja_yogas",
+        "Dedicated Raja Yoga analysis of the natal (Rasi) chart: the fundamental "
+        "Kendra-Trikona raja yogas (quadrant lord + trine lord, with a coarse "
+        "strength) and the named special types (Dharma-Karmadhipati, Vipareeta, "
+        "Neecha-Bhanga) with descriptions. Use for questions about power, status, "
+        "success and rise in life.",
+        _EMPTY_PARAMS,
+        _raja_yogas,
+    ),
+    _Tool(
+        "get_longevity",
+        "Ayu (longevity) *category* — Alpa (short) / Madhya (medium) / Purna (long) "
+        "— from the classical sign-pair Ayurdaya method, with the contributing "
+        "factors. Returns a conditional category only, never a death date or age. "
+        "Use ONLY when the person explicitly asks about vitality/longevity, and "
+        "always frame it gently as conditional and multi-factorial.",
+        _EMPTY_PARAMS,
+        _longevity,
+    ),
+    _Tool(
+        "get_pancha_pakshi",
+        "Pancha Pakshi Sastra day-timing: the person's birth bird and today's (or a "
+        "given date's) strongest and weakest activity windows (with clock times). "
+        "Use for 'what is a good time today for X' muhurta-style questions.",
+        {"type": "object", "properties": {
+            "date": {"type": "string",
+                     "description": "Date as YYYY-MM-DD; defaults to today."}},
+         "required": []},
+        _pancha_pakshi,
+    ),
 ]}
 
 
@@ -373,6 +433,7 @@ SECTION_TOOL: Dict[str, str] = {
 ALWAYS_TOOLS: List[str] = [
     "get_natal_chart", "get_chart_details", "get_dasha_children",
     "get_divisional_chart", "get_panchanga", "get_varshaphal",
+    "get_raja_yogas", "get_longevity", "get_pancha_pakshi",
 ]
 
 
@@ -424,10 +485,13 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_transits":         {"label": "Current transits (Gochara)", "category": "Timing"},
     "get_panchanga":        {"label": "Panchanga almanac",      "category": "Timing"},
     "get_varshaphal":       {"label": "Varshaphal (annual chart)", "category": "Timing"},
+    "get_pancha_pakshi":    {"label": "Pancha Pakshi timing",  "category": "Timing"},
     "get_yogas":            {"label": "Yogas",                  "category": "Strengths & afflictions"},
+    "get_raja_yogas":       {"label": "Raja Yogas",             "category": "Strengths & afflictions"},
     "get_doshas":           {"label": "Doshas",                 "category": "Strengths & afflictions"},
     "get_ashtakavarga":     {"label": "Ashtakavarga",          "category": "Strengths & afflictions"},
     "get_shadbala":         {"label": "Shadbala strength",      "category": "Strengths & afflictions"},
+    "get_longevity":        {"label": "Ayu (longevity)",        "category": "Strengths & afflictions"},
 }
 
 

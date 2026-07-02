@@ -10,6 +10,9 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
+import { NorthIndianChart } from "../components/NorthIndianChart";
+import { SouthIndianChart } from "../components/SouthIndianChart";
+import { DEFAULT_AYANAMSA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
@@ -269,6 +272,112 @@ function OtherDashaSystems({ birthDetails }) {
   );
 }
 
+// ── Sudarsana Chakra: three wheels (Lagna / Moon / Sun as ascendant) ──────────
+function SudarsanaChakra({ birthDetails }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [chartStyle] = useState(() => localStorage.getItem("chartStyle") || "north");
+  const ayanamsa = localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA;
+  const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
+
+  const load = useCallback(
+    (yr) => {
+      if (!birthDetails) return;
+      setLoading(true);
+      setError("");
+      astrologyService
+        .getSudarsanaChakra(birthDetails, yr, ayanamsa)
+        .then((r) => setData(r.data))
+        .catch((e) => setError(e.response?.data?.detail || t("dhasa.sudarsana.loadError")))
+        .finally(() => setLoading(false));
+    },
+    [birthDetails, ayanamsa, t]
+  );
+
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    if (next && !data) load(offset);
+  };
+
+  const step = (delta) => {
+    const next = Math.max(0, offset + delta);
+    setOffset(next);
+    load(next);
+  };
+
+  const wheelLabel = (ref) =>
+    ref.startsWith("Lagna")
+      ? t("dhasa.sudarsana.wheelLagna")
+      : ref.startsWith("Chandra")
+        ? t("dhasa.sudarsana.wheelMoon")
+        : t("dhasa.sudarsana.wheelSun");
+
+  return (
+    <div className="mt-xl">
+      <Card title={t("dhasa.sudarsana.title")} icon={<Star size={24} />}>
+        <p className="text-secondary" style={{ marginBottom: "var(--space-md)" }}>
+          {t("dhasa.sudarsana.intro")}
+        </p>
+        {!open ? (
+          <button className="ui-btn" onClick={toggle}>
+            {t("dhasa.sudarsana.show")}
+          </button>
+        ) : (
+          <>
+            <div className="page-controls" style={{ marginBottom: "var(--space-md)" }}>
+              <div className="controls-group">
+                <label className="control-label">{t("dhasa.sudarsana.yearOffset")}</label>
+                <div className="stepper">
+                  <button
+                    className="stepper__btn"
+                    onClick={() => step(-1)}
+                    disabled={offset <= 0}
+                    aria-label="-1"
+                  >
+                    −
+                  </button>
+                  <span className="control-input" style={{ minWidth: "6rem", textAlign: "center" }}>
+                    {offset === 0
+                      ? t("dhasa.sudarsana.natal")
+                      : t("dhasa.sudarsana.yearLabel", { year: offset })}
+                  </span>
+                  <button className="stepper__btn" onClick={() => step(1)} aria-label="+1">
+                    +
+                  </button>
+                </div>
+              </div>
+              <button className="control-btn" onClick={toggle}>
+                {t("dhasa.sudarsana.hide")}
+              </button>
+            </div>
+
+            <ErrorBanner message={error} />
+            {loading && <LoadingState message={t("dhasa.calcPeriods")} />}
+            {data && !loading && (
+              <div className="sudarsana-wheels">
+                {(data.wheels || []).map((w, i) => (
+                  <Kundali
+                    key={i}
+                    planets={data.planets}
+                    lagna={{ house: w.lagna_house, sign_name: w.sign_name }}
+                    title={wheelLabel(w.ref)}
+                    subtitle={w.sign_name}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 export const DhasaPage = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -439,6 +548,7 @@ export const DhasaPage = () => {
         ) : null}
 
         {!loading && result && <OtherDashaSystems birthDetails={birthDetails} />}
+        {!loading && result && <SudarsanaChakra birthDetails={birthDetails} />}
       </div>
     </div>
   );

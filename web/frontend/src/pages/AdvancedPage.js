@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Sparkles, Grid3x3, Compass, Gauge } from "lucide-react";
+import { Sparkles, Grid3x3, Compass, Gauge, HeartPulse } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { PageHeader } from "../components/PageHeader";
@@ -39,6 +39,7 @@ export const AdvancedPage = () => {
   const [details, setDetails] = useState(null);
   const [shadbala, setShadbala] = useState(null);
   const [aspects, setAspects] = useState(null);
+  const [longevity, setLongevity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -75,6 +76,7 @@ export const AdvancedPage = () => {
     setDetails(null);
     setShadbala(null);
     setAspects(null);
+    setLongevity(null);
     let cancelled = false;
     const done = { av: false, d: false, sb: false, asp: false };
     const settle = () => {
@@ -112,6 +114,11 @@ export const AdvancedPage = () => {
         done.asp = true;
         settle();
       });
+    // Longevity loads independently (does not gate the page spinner).
+    astrologyService
+      .getLongevity(birthDetails, ayanamsa)
+      .then((r) => !cancelled && setLongevity(r.data))
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -295,6 +302,54 @@ export const AdvancedPage = () => {
 
             {/* Graha Drishti (aspects) — table only (no chart on this page) */}
             <AspectsCard aspects={aspects} />
+
+            {/* Ayu / longevity indication (gentle, conditional) */}
+            {longevity && (
+              <Card
+                title={t("advanced.longevity.title")}
+                icon={<HeartPulse size={24} />}
+                accent="terracotta"
+              >
+                <p className="card-intro">{t("advanced.longevity.intro")}</p>
+                <div className="ayu-band">
+                  {[
+                    [0, t("advanced.longevity.alpa")],
+                    [1, t("advanced.longevity.madhya")],
+                    [2, t("advanced.longevity.purna")],
+                  ].map(([val, label]) => (
+                    <div
+                      key={val}
+                      className={`ayu-band__seg${longevity.category === val ? " is-active" : ""}`}
+                    >
+                      {label}
+                    </div>
+                  ))}
+                </div>
+                {longevity.factors?.length > 0 && (
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>{t("advanced.longevity.pair")}</th>
+                          <th>{t("advanced.longevity.signs")}</th>
+                          <th>{t("advanced.longevity.verdict")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {longevity.factors.map((f, i) => (
+                          <tr key={i}>
+                            <td className="fw-600 text-indigo">{f.pair}</td>
+                            <td className="text-secondary">{(f.signs || []).join(" · ")}</td>
+                            <td className="fw-600 text-saffron">{f.verdict}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                <p className="card-note">{t("advanced.longevity.disclaimer")}</p>
+              </Card>
+            )}
           </>
         )}
       </div>

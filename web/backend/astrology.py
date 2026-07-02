@@ -11,8 +11,11 @@ try:
     from jhora.panchanga import drik
     from jhora.horoscope.chart import charts, house, strength, yoga, dosha, arudhas, ashtakavarga
     from jhora.horoscope.match import compatibility as compat_module
-    from jhora.horoscope.dhasa.graha import vimsottari, ashtottari, yogini
-    from jhora.horoscope.dhasa.raasi import narayana, kalachakra
+    from jhora.horoscope.dhasa.graha import (vimsottari, ashtottari, yogini,
+                                             shodasottari, dwadasottari,
+                                             panchottari, sataatbika)
+    from jhora.horoscope.dhasa.raasi import (narayana, kalachakra, kendradhi_rasi,
+                                             sudasa, drig, chara, sthira, trikona)
     from jhora import utils, const
     import swisseph as swe
 
@@ -117,6 +120,48 @@ SUPPORTED_DASHAS = {
     "kalachakra": {
         "name": "Kalachakra Dasha", "lord_type": "raasi",
         "description": "Wheel-of-time rasi dasha seeded from the Moon's navamsa.",
+    },
+    # ── Additional graha (nakshatra) dashas ────────────────────────────────
+    "shodasottari": {
+        "name": "Shodasottari Dasha", "lord_type": "graha",
+        "description": "116-year conditional nakshatra dasha (graha periods).",
+    },
+    "dwadasottari": {
+        "name": "Dwadasottari Dasha", "lord_type": "graha",
+        "description": "112-year conditional nakshatra dasha (graha periods).",
+    },
+    "panchottari": {
+        "name": "Panchottari Dasha", "lord_type": "graha",
+        "description": "105-year conditional nakshatra dasha (graha periods).",
+    },
+    "shatabdika": {
+        "name": "Shatabdika Dasha", "lord_type": "graha",
+        "description": "100-year conditional nakshatra dasha (graha periods).",
+    },
+    # ── Additional raasi (sign) dashas ─────────────────────────────────────
+    "kendradhi_rasi": {
+        "name": "Kendradhi Rasi Dasha", "lord_type": "raasi",
+        "description": "Rasi dasha ordered by the quadrants from the lagna.",
+    },
+    "sudasa": {
+        "name": "Sudasa Dasha", "lord_type": "raasi",
+        "description": "Jaimini rasi dasha from Sree Lagna — fortune & prosperity.",
+    },
+    "drig": {
+        "name": "Drig Dasha", "lord_type": "raasi",
+        "description": "Jaimini rasi dasha keyed to aspects — spiritual timing.",
+    },
+    "chara": {
+        "name": "Chara Dasha", "lord_type": "raasi",
+        "description": "Jaimini's principal movable rasi dasha from the lagna.",
+    },
+    "sthira": {
+        "name": "Sthira Dasha", "lord_type": "raasi",
+        "description": "Fixed-duration rasi dasha (7/8/9 years by sign type).",
+    },
+    "trikona": {
+        "name": "Trikona Dasha", "lord_type": "raasi",
+        "description": "Jaimini trinal rasi dasha from the lagna.",
     },
 }
 
@@ -989,6 +1034,29 @@ class AstrologyCompute:
                 rows = narayana.narayana_dhasa_for_rasi_chart(dob_t, tob_t, place_obj, dhasa_level_index=1)
             elif dhasa_type == "kalachakra":
                 rows = kalachakra.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            # ── Additional graha (nakshatra) dashas ────────────────────────
+            elif dhasa_type == "shodasottari":
+                rows = shodasottari.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            elif dhasa_type == "dwadasottari":
+                rows = dwadasottari.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            elif dhasa_type == "panchottari":
+                rows = panchottari.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            elif dhasa_type == "shatabdika":
+                rows = sataatbika.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            # ── Additional raasi (sign) dashas ─────────────────────────────
+            elif dhasa_type == "kendradhi_rasi":
+                rows = kendradhi_rasi.kendradhi_rasi_dhasa(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            elif dhasa_type == "sudasa":
+                rows = sudasa.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            elif dhasa_type == "drig":
+                _pp = charts.rasi_chart(jd, place_obj)
+                rows = drig.drig_dhasa(_pp, dob_t, tob_t, dhasa_level_index=1)
+            elif dhasa_type == "chara":
+                rows = chara.get_dhasa_antardhasa(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            elif dhasa_type == "sthira":
+                rows = sthira.get_dhasa_antardhasa(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            elif dhasa_type == "trikona":
+                rows = trikona.get_dhasa_antardhasa(dob_t, tob_t, place_obj, dhasa_level_index=1)
             else:
                 return {"error": f"Unsupported dhasa type: {dhasa_type}", "status": "failed"}
 
@@ -2712,6 +2780,445 @@ class AstrologyCompute:
         except Exception as e:
             print(f"Compatibility calculation error: {e}")
             return {"error": str(e)}
+
+    @staticmethod
+    def get_pancha_pakshi(dob: str, tob: str, place: str,
+                          lat: Optional[float] = None, lon: Optional[float] = None,
+                          tz: Optional[float] = None,
+                          date: Optional[str] = None) -> Dict:
+        """Pancha Pakshi Sastra — the bird-cycle daily-timing system.
+
+        Assigns the native a *birth bird* (from the birth nakshatra + paksha),
+        then rates the chosen day's activity windows by that bird's state
+        (ruling / eating / walking / sleeping / dying) across ten main periods
+        (5 daytime from sunrise, 5 nighttime), each split into 5 sub-periods.
+        The birth bird is fixed from birth; the timeline is for `date` (defaults
+        to today at `place`). This system is independent of ayanamsa.
+        """
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            from datetime import datetime, timezone as _utc, timedelta
+            from jhora.panchanga import pancha_paksha as pp
+
+            # ── Birth bird (fixed from birth star + paksha) ────────────────
+            y, m, d = map(int, dob.split("-"))
+            tp = tob.split(":")
+            b_hour = int(tp[0]); b_min = int(tp[1]) if len(tp) > 1 else 0
+            b_sec = int(tp[2]) if len(tp) > 2 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place or "", lat, lon, tz_offset)
+
+            jd_birth = utils.julian_day_number((y, m, d), (b_hour, b_min, b_sec))
+            birth_star = pp._get_birth_nakshathra(jd_birth, place_obj)
+            birth_paksha = pp._get_paksha(jd_birth, place_obj)
+            bird_index = pp._get_birth_bird_from_nakshathra(birth_star, birth_paksha)
+            bird_name = pp.pancha_pakshi_birds[bird_index - 1].capitalize()
+
+            # ── Query day ──────────────────────────────────────────────────
+            if date:
+                qy, qm, qd = map(int, date.split("-"))
+            else:
+                local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+                qy, qm, qd = local_now.year, local_now.month, local_now.day
+
+            # Anchor the query at local sunrise (the day boundary for this system).
+            jd_noon = swe.julday(qy, qm, qd, 12)
+            sunrise_jd = drik.sunrise(jd_noon, place_obj)[2]
+            weekday_index = drik.vaara(jd_noon, place_obj) + 1
+            q_paksha = pp._get_paksha(jd_noon, place_obj)
+
+            day_len = drik.day_length(jd_noon, place_obj)      # hours
+            night_len = drik.night_length(jd_noon, place_obj)  # hours
+            day_inc = day_len / 5.0
+            night_inc = night_len / 5.0
+
+            rows = pp.get_matching_pancha_pakshi_data_from_db(
+                bird_index, weekday_index, q_paksha)
+            if not rows or len(rows) < 50:
+                return {"error": "No Pancha Pakshi data for this day",
+                        "status": "failed"}
+
+            # Row columns: wdi,pi,dni,mbi,mai,sbi,sai,df,reli,pf,efi,rtng,ppi,bpi
+            ACT = pp.pancha_pakshi_activities   # ruling,eating,walking,sleeping,dying
+            REL = pp.pp_relations               # enemy,same,friend
+            EFF = pp.pp_effect                  # very_bad..very_good
+            # Activity ordering as a coarse strength (ruling best .. dying worst).
+            ACT_RANK = {0: 5, 1: 4, 2: 3, 3: 2, 4: 1}
+
+            def _hhmm(jd_val):
+                yy, mm, dd, fh = utils.jd_to_gregorian(jd_val)
+                hh = int(fh) % 24
+                mi = int(round((fh - int(fh)) * 60))
+                if mi == 60:
+                    hh = (hh + 1) % 24; mi = 0
+                return f"{hh:02d}:{mi:02d}"
+
+            segments = []
+            best = []
+            time_from_jd = sunrise_jd
+            now_local = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+            is_today = (now_local.year, now_local.month, now_local.day) == (qy, qm, qd)
+            now_jd = None
+            if is_today:
+                # The timeline JDs are built in the same "local-clock-as-UT" frame
+                # as jd_noon (swe.julday of the local wall clock), so anchor "now"
+                # the same way for the running-window comparison.
+                now_jd = swe.julday(qy, qm, qd,
+                                    now_local.hour + now_local.minute / 60.0)
+
+            for parent in range(0, len(rows), 5):
+                base = rows[parent]
+                dni = int(base[2]); mbi = int(base[3]); mai = int(base[4])
+                time_inc = (day_inc if dni == 0 else night_inc) / 24.0  # in days
+                seg_start_jd = time_from_jd
+                seg_end_jd = time_from_jd + time_inc
+                subs = []
+                sub_from_jd = seg_start_jd
+                for irow in range(parent, parent + 5):
+                    r = rows[irow]
+                    sbi = int(r[5]); sai = int(r[6]); df = float(r[7])
+                    reli = int(r[8]); efi = int(r[10]); rtng = r[11]
+                    sub_end_jd = sub_from_jd + time_inc * df
+                    running = bool(now_jd and sub_from_jd <= now_jd < sub_end_jd)
+                    sub = {
+                        "start": _hhmm(sub_from_jd),
+                        "end": _hhmm(sub_end_jd),
+                        "sub_bird": pp.pancha_pakshi_birds[sbi].capitalize(),
+                        "sub_activity": ACT[sai].capitalize(),
+                        "relation": REL[reli].capitalize(),
+                        "effect": EFF[efi].replace("_", " ").title(),
+                        "effect_score": efi,        # 0 very-bad .. 4 very-good
+                        "rating": rtng,
+                        "running": running,
+                    }
+                    subs.append(sub)
+                    best.append({
+                        "start": sub["start"], "end": sub["end"],
+                        "phase": "day" if dni == 0 else "night",
+                        "main_activity": ACT[mai].capitalize(),
+                        "sub_activity": sub["sub_activity"],
+                        "effect": sub["effect"], "effect_score": efi,
+                        "rating": rtng, "running": running,
+                    })
+                    sub_from_jd = sub_end_jd
+                segments.append({
+                    "phase": "day" if dni == 0 else "night",
+                    "start": _hhmm(seg_start_jd),
+                    "end": _hhmm(seg_end_jd),
+                    "main_bird": pp.pancha_pakshi_birds[mbi].capitalize(),
+                    "main_activity": ACT[mai].capitalize(),
+                    "activity_rank": ACT_RANK.get(mai, 3),
+                    "sub": subs,
+                })
+                time_from_jd = sub_from_jd
+
+            # Best & worst windows by effect (then rating), for the summary.
+            ranked = sorted(best, key=lambda s: (s["effect_score"],
+                                                 float(s["rating"] or 0)), reverse=True)
+            best_times = ranked[:5]
+            avoid_times = sorted(best, key=lambda s: (s["effect_score"],
+                                                      float(s["rating"] or 0)))[:5]
+
+            return {
+                "status": "success",
+                "date": f"{qy:04d}-{qm:02d}-{qd:02d}",
+                "place": place,
+                "birth_bird": {
+                    "name": bird_name,
+                    "index": bird_index,
+                    "star": birth_star,
+                    "star_name": NAKSHATRA_NAMES[birth_star - 1],
+                    "paksha": "Shukla" if birth_paksha == 1 else "Krishna",
+                },
+                "weekday": WEEKDAY_NAMES[weekday_index - 1],
+                "paksha": "Shukla" if q_paksha == 1 else "Krishna",
+                "sunrise": _hhmm(sunrise_jd),
+                "sunset": _hhmm(sunrise_jd + day_len / 24.0),
+                "segments": segments,
+                "best_times": best_times,
+                "avoid_times": avoid_times,
+            }
+        except Exception as e:
+            print(f"Pancha Pakshi error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+
+    @staticmethod
+    def get_raja_yogas(dob: str, tob: str, place: str,
+                       lat: Optional[float] = None, lon: Optional[float] = None,
+                       tz: Optional[float] = None,
+                       ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Dedicated Raja Yoga analysis for the Rasi (D1) chart.
+
+        Surfaces (a) the fundamental Kendra–Trikona raja yogas — a quadrant lord
+        associated with a trine lord — and (b) the named special types
+        (Dharma-Karmadhipati, Vipareeta with sub-type, Neecha-Bhanga) with their
+        classical descriptions/benefits. A light dignity check labels each pair's
+        strength. Birth details + ayanamsa are server-injected; ayanamsa reset.
+        """
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            from jhora.horoscope.chart import raja_yoga as ry
+
+            y, m, d = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd = swe.julday(y, m, d, hour + minute / 60.0)
+
+            pp = charts.rasi_chart(jd, place_obj)
+            p_to_h = utils.get_planet_house_dictionary_from_planet_positions(pp)
+
+            def _dignity(pidx, sign):
+                """Coarse strength from the planet's house-strength in its sign."""
+                try:
+                    s = const.house_strengths_of_planets[pidx][sign]
+                except Exception:
+                    return "neutral"
+                if s >= const._EXALTED_UCCHAM:
+                    return "strong"
+                if s <= const._DEBILITATED_NEECHAM:
+                    return "weak"
+                if s >= const._FRIEND:
+                    return "good"
+                return "neutral"
+
+            yogas = []
+
+            # (a) Kendra–Trikona raja yoga pairs (association of quadrant &
+            #     trine lords). Strength is a blend of both planets' dignity.
+            pairs = ry.get_raja_yoga_pairs_from_planet_positions(pp)
+            for p1, p2 in pairs:
+                d1 = _dignity(p1, p_to_h.get(p1, 0))
+                d2 = _dignity(p2, p_to_h.get(p2, 0))
+                order = {"strong": 3, "good": 2, "neutral": 1, "weak": 0}
+                strength = min([d1, d2], key=lambda x: order[x])
+                yogas.append({
+                    "name": "Kendra-Trikona Raja Yoga",
+                    "type": "kendra_trikona",
+                    "planets": [PLANET_NAMES[p1], PLANET_NAMES[p2]],
+                    "description": (f"Association of a quadrant (kendra) lord and a "
+                                    f"trine (trikona) lord — {PLANET_NAMES[p1]} and "
+                                    f"{PLANET_NAMES[p2]} — the core raja yoga that "
+                                    f"confers status, authority and success."),
+                    "benefits": "Rise in position, recognition and prosperity.",
+                    "strength": strength,
+                })
+
+            # (b) Named special raja yogas (from the engine's msg resources).
+            try:
+                details, _cnt, _tot = ry.get_raja_yoga_details(
+                    jd, place_obj, divisional_chart_factor=1, language="en")
+                for key, val in details.items():
+                    # val = [pairs_label, name, description, benefits]
+                    label = val[0] if len(val) > 3 else ""
+                    name = val[1] if len(val) > 3 else val[0]
+                    desc = val[2] if len(val) > 3 else (val[1] if len(val) > 1 else "")
+                    benefits = val[3] if len(val) > 3 else (val[2] if len(val) > 2 else "")
+                    yogas.append({
+                        "name": name,
+                        "type": key,
+                        "planets": [],
+                        "pairs_label": label,
+                        "description": desc,
+                        "benefits": benefits,
+                        "strength": "special",
+                    })
+            except Exception as inner:
+                print(f"Raja yoga named-details skipped: {inner}")
+
+            return {
+                "status": "success",
+                "count": len(yogas),
+                "raja_yogas": yogas,
+            }
+        except Exception as e:
+            print(f"Raja yoga error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_longevity(dob: str, tob: str, place: str,
+                      lat: Optional[float] = None, lon: Optional[float] = None,
+                      tz: Optional[float] = None,
+                      ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Ayu (longevity) *category* from the classical Ayurdaya sign-pair method.
+
+        Returns the ayu band — Alpa (short) / Madhya (medium) / Purna (long) —
+        and the three contributing sign-pair verdicts (Lagna-lord vs 8th-lord,
+        Lagna vs Moon, Lagna vs Hora-lagna). Deliberately returns a *category*
+        and its factors, never a death date or age. Framed as conditional,
+        multi-factorial guidance. Ayanamsa server-injected + reset.
+
+        Reimplements the aggregation of the engine's `life_span_range` (which has
+        a Py3 `dict.keys()[0]` bug in the all-three-agree branch) while reusing
+        its per-pair rule and the same chart inputs.
+        """
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            import collections
+
+            y, m, d = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd = swe.julday(y, m, d, hour + minute / 60.0)
+
+            def _get_aayu(s1, s2):
+                """Sign-pair → 0 Alpa / 1 Madhya / 2 Purna (Parashari movable/
+                fixed/dual matrix). Mirrors the engine's local helper."""
+                mv, fx, dl = const.movable_signs, const.fixed_signs, const.dual_signs
+                if s1 in fx and s2 in fx:
+                    return 0
+                if s1 in mv and s2 in mv:
+                    return 2
+                if s1 in dl and s2 in dl:
+                    return 1
+                if (s1 in fx and s2 in mv) or (s1 in mv and s2 in fx):
+                    return 1
+                if (s1 in dl and s2 in mv) or (s1 in mv and s2 in dl):
+                    return 0
+                return 2  # fixed+dual
+
+            pp = charts.rasi_chart(jd, place_obj)
+            asc_house = pp[0][1][0]
+            eighth_house = (asc_house + 7) % 12
+            moon_house = pp[2][1][0]
+            lagna_lord = house.house_owner_from_planet_positions(pp, asc_house)
+            lagna_lord_house = pp[lagna_lord + 1][1][0]
+            eighth_lord = house.house_owner_from_planet_positions(pp, eighth_house)
+            eighth_lord_house = pp[eighth_lord + 1][1][0]
+            hora_lagna = drik.hora_lagna(jd, place_obj)[0]
+
+            group = [
+                _get_aayu(lagna_lord_house, eighth_lord_house),
+                _get_aayu(asc_house, moon_house),
+                _get_aayu(asc_house, hora_lagna),
+            ]
+            counter = collections.Counter(group)
+            if len(counter) == 1:
+                category = group[0]
+            elif len(counter) == 2:
+                category = max(counter, key=counter.get)
+            else:
+                category = group[-1]
+                if moon_house == asc_house or moon_house == (asc_house + 6) % 12:
+                    category = group[1]
+
+            AYU = {0: ("Alpa", "Short ayu (conditional)"),
+                   1: ("Madhya", "Medium ayu (conditional)"),
+                   2: ("Purna", "Long ayu (conditional)")}
+            cat_name, cat_desc = AYU[category]
+
+            factor_labels = [
+                ("Lagna lord & 8th lord", lagna_lord_house, eighth_lord_house),
+                ("Lagna & Moon", asc_house, moon_house),
+                ("Lagna & Hora Lagna", asc_house, hora_lagna),
+            ]
+            factors = []
+            for (label, sa, sb), verdict in zip(factor_labels, group):
+                factors.append({
+                    "pair": label,
+                    "signs": [ZODIAC_NAMES[sa], ZODIAC_NAMES[sb]],
+                    "verdict": AYU[verdict][0],
+                })
+
+            return {
+                "status": "success",
+                "category": category,          # 0/1/2
+                "category_name": cat_name,     # Alpa/Madhya/Purna
+                "category_desc": cat_desc,
+                "factors": factors,
+            }
+        except Exception as e:
+            print(f"Longevity error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_sudarsana_chakra(dob: str, tob: str, place: str,
+                             lat: Optional[float] = None, lon: Optional[float] = None,
+                             tz: Optional[float] = None,
+                             ayanamsa: str = DEFAULT_AYANAMSA,
+                             year_offset: int = 0) -> Dict:
+        """Sudarsana Chakra — the three concentric wheels read from the Lagna,
+        Moon and Sun as ascendants, for the solar-return year `year_offset` past
+        birth (0 = the natal chart itself). Returns one set of planet placements
+        plus the three reference lagnas so the frontend can render three Kundalis.
+        Ayanamsa server-injected + reset.
+        """
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            y, m, d = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd_dob = swe.julday(y, m, d, hour + minute / 60.0)
+
+            year_offset = max(0, int(year_offset))
+            if year_offset == 0:
+                jd_year = jd_dob
+            else:
+                jd_year = drik.next_solar_date(jd_dob, place_obj, years=year_offset)
+
+            pp = charts.divisional_chart(jd_year, place_obj, divisional_chart_factor=1)
+            asc_sign = pp[0][1][0]
+            moon_sign = pp[2][1][0]
+            sun_sign = pp[1][1][0]
+
+            planets = {}
+            for pidx, (rasi, degrees) in pp[1:]:
+                name = PLANET_NAMES.get(pidx, f"Planet_{pidx}")
+                planets[name] = {
+                    "rasi": rasi, "house": rasi + 1,
+                    "degrees": round(degrees, 2), "sign_name": ZODIAC_NAMES[rasi],
+                }
+
+            yy, mm, dd, _fh = utils.jd_to_gregorian(jd_year)
+            wheels = [
+                {"ref": "Lagna", "lagna_sign": asc_sign,
+                 "lagna_house": asc_sign + 1, "sign_name": ZODIAC_NAMES[asc_sign]},
+                {"ref": "Chandra (Moon)", "lagna_sign": moon_sign,
+                 "lagna_house": moon_sign + 1, "sign_name": ZODIAC_NAMES[moon_sign]},
+                {"ref": "Surya (Sun)", "lagna_sign": sun_sign,
+                 "lagna_house": sun_sign + 1, "sign_name": ZODIAC_NAMES[sun_sign]},
+            ]
+            return {
+                "status": "success",
+                "year_offset": year_offset,
+                "year_date": f"{int(yy):04d}-{int(mm):02d}-{int(dd):02d}",
+                "planets": planets,
+                "wheels": wheels,
+            }
+        except Exception as e:
+            print(f"Sudarsana Chakra error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
     def search_location(query: str = "", *args, **kwargs):

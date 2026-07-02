@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Calendar, User, MapPin, Clock, Star, Share2, Copy, Check, Eye } from "lucide-react";
+import { Calendar, User, MapPin, Clock, Star, Share2, Copy, Check, Eye, Crown } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
@@ -29,6 +29,7 @@ export const BirthChartPage = () => {
   const [result, setResult] = useState(null);
   const [doshas, setDoshas] = useState(null);
   const [yogas, setYogas] = useState(null);
+  const [rajaYogas, setRajaYogas] = useState(null);
   const [aspects, setAspects] = useState(null);
   const [showAspects, setShowAspects] = useState(
     () => localStorage.getItem("showAspects") === "1"
@@ -156,6 +157,7 @@ export const BirthChartPage = () => {
       // Yogas, doshas & aspects load independently — a failure here shouldn't blank the chart.
       setDoshas(null);
       setYogas(null);
+      setRajaYogas(null);
       setAspects(null);
       astrologyService
         .getDoshas(birthDetails, ayanamsa)
@@ -165,6 +167,10 @@ export const BirthChartPage = () => {
         .getYogas(birthDetails, ayanamsa)
         .then((r) => setYogas(r.data?.yogas || null))
         .catch(() => setYogas(null));
+      astrologyService
+        .getRajaYogas(birthDetails, ayanamsa)
+        .then((r) => setRajaYogas(r.data?.raja_yogas || []))
+        .catch(() => setRajaYogas(null));
       astrologyService
         .getAspects(birthDetails, ayanamsa)
         .then((r) => setAspects(r.data?.planets || null))
@@ -473,6 +479,57 @@ export const BirthChartPage = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Raja Yogas (dedicated) */}
+            {rajaYogas && (
+              <div className="ui-card ui-card--accent-gold ui-card--flush mt-xl">
+                <h3 className="ui-card-header">
+                  <Crown size={24} />
+                  {t("birthChart.rajaYogas")}
+                  {rajaYogas.length > 0 && (
+                    <span className="section-count">
+                      {t("birthChart.rajaYogasFound", { count: rajaYogas.length })}
+                    </span>
+                  )}
+                </h3>
+                {rajaYogas.length > 0 ? (
+                  <div className="yoga-grid">
+                    {rajaYogas.map((y, i) => (
+                      <div key={i} className="yoga-card raja-yoga-card">
+                        <div className="yoga-name">
+                          {y.name}
+                          <span
+                            className={`raja-yoga-strength raja-yoga-strength--${y.strength}`}
+                            style={{ marginLeft: "0.5rem" }}
+                          >
+                            {t(`birthChart.rajaYogaStrength.${y.strength}`)}
+                          </span>
+                        </div>
+                        {y.planets && y.planets.length > 0 && (
+                          <div className="text-saffron fw-600" style={{ fontSize: "0.85rem" }}>
+                            {y.planets.join(" – ")}
+                          </div>
+                        )}
+                        {y.pairs_label && (
+                          <div className="text-secondary" style={{ fontSize: "0.8rem" }}>
+                            {y.pairs_label}
+                          </div>
+                        )}
+                        {y.description && <p className="yoga-desc">{y.description}</p>}
+                        {y.benefits && (
+                          <div className="yoga-benefit">
+                            <span className="yoga-benefit-label">{t("birthChart.effects")}</span>
+                            {y.benefits}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="card-note">{t("birthChart.rajaYogasNone")}</p>
+                )}
               </div>
             )}
 

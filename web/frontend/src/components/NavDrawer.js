@@ -19,6 +19,7 @@ import {
   GraduationCap,
   CalendarDays,
   Clock4,
+  Bird,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
@@ -34,6 +35,7 @@ const LINKS = [
   { to: "/transit", labelKey: "nav.transit", icon: <Orbit size={20} /> },
   { to: "/varshaphal", labelKey: "nav.varshaphal", icon: <CalendarClock size={20} /> },
   { to: "/almanac", labelKey: "nav.almanac", icon: <CalendarDays size={20} /> },
+  { to: "/pancha-pakshi", labelKey: "nav.panchaPakshi", icon: <Bird size={20} /> },
   { to: "/sarvatobhadra", labelKey: "nav.sarvatobhadra", icon: <Grid3x3 size={20} /> },
   { to: "/advanced", labelKey: "nav.advanced", icon: <Sparkles size={20} /> },
   { to: "/compare", labelKey: "nav.compare", icon: <GitCompareArrows size={20} /> },

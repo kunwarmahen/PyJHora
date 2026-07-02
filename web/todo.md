@@ -1360,37 +1360,63 @@ Engine entry points: `panchanga/pancha_paksha.py` — `construct_pancha_pakshi_i
 dob, tob, place, nakshathra_bird_index=None)`, `_get_birth_bird_from_nakshathra`,
 `_get_paksha`, `get_matching_pancha_pakshi_data_from_db(bird, weekday, paksha)`.
 
-Plan:
-- [ ] **Backend** `AstrologyCompute.get_pancha_pakshi(dob, tob, place, lat, lon, tz, date)`
-      → birth bird, paksha, and the day's activity-strength timeline (which periods favour
-      work/travel/rest, the bird's state per segment). Server-computes from the profile;
-      `date` defaults to today in the place's tz.
-- [ ] **Endpoint** `POST /api/astrology/pancha-pakshi?date=…` (auth).
-- [ ] **Frontend** `PanchaPakshiPage.js` (route `/pancha-pakshi`, dashboard card + drawer):
-      birth-bird badge, a day-timeline strip colour-coded by activity strength (like the
-      SBC findings tone), a "best times for X" summary, and a date picker. Optional
-      jargon-light AI reading (`analyze_pancha_pakshi`) explaining what to do/avoid today.
-- [ ] i18n `nav.panchaPakshi`, `dashboard.features.panchaPakshi`, `panchaPakshi.*` (en;
-      hi/sa nav+card). Verify the birth-bird derivation on a known chart; build + lint clean.
+Plan — **SHIPPED 2026-07-02**:
+- [x] **Backend** `AstrologyCompute.get_pancha_pakshi(dob, tob, place, lat, lon, tz, date)`
+      → birth bird (fixed from birth star + paksha), and the query day's activity-strength
+      timeline: 10 main periods (5 daytime from sunrise + 5 nighttime) each split into 5
+      sub-windows, coloured by effect (very-bad..very-good) with the running sub-window
+      flagged, plus best/avoid summaries (top/bottom 5 by effect then rating). Built our OWN
+      clean JSON from the raw `get_matching_pancha_pakshi_data_from_db` rows + the birds/
+      activities/relations/effect constant tables — NOT the UI-oriented
+      `construct_pancha_pakshi_information` (which is coupled to `resource_strings`/language +
+      image filenames). Timing mirrors the engine (sunrise + day_length/5 per main period,
+      sub-duration = df·period). `date` defaults to today in the place's tz. Ayanamsa-independent.
+- [x] **Endpoint** `POST /api/astrology/pancha-pakshi?date=…` (auth, `BirthDetails` body).
+- [x] **Frontend** `PanchaPakshiPage.js` (route `/pancha-pakshi`, dashboard card + drawer,
+      `Bird` icon): birth-bird badge, best/quiet-windows summary cards (green/red), a
+      colour-coded day-timeline (10 segments × 5 sub-cells, current window outlined) with a
+      strength legend, a date picker + "Today" reset, and a jargon-light AI day-guide
+      (`analyze_pancha_pakshi` via `_resolve_cfg`, model the user picked in Ask, rate-limited,
+      safety footer). `pp-*` classes in `Dashboard.css` (saffron/terracotta identity).
+- [x] **Smart-lookup tool** (§8.9): `get_pancha_pakshi(date)` published as a tool (in
+      `ALWAYS_TOOLS` + `_DISPLAY` Timing) returning birth bird + best/avoid windows, so the
+      main astrologer can answer "what's a good time today for X".
+- [x] i18n `nav.panchaPakshi`, `dashboard.features.panchaPakshi` (en/hi/sa) + full
+      `panchaPakshi.*` block (en; hi/sa fall back). Verified live: 1990-05-15 chart → birth bird
+      **Owl** (from Uttara Ashadha, Krishna paksha), 10 segments, best window 13:40–14:06
+      (Ruling/very-good). Build +lint clean.
 
-### 9.4 Raja Yogas (dedicated) + expanded Dasha systems (P2)
+### 9.4 Raja Yogas (dedicated) + expanded Dasha systems (P2) — SHIPPED 2026-07-02
 
-- [ ] **Raja Yogas card.** The Birth Chart "Yogas" card uses generic `yoga.get_yoga_details`.
-      `horoscope/chart/raja_yoga.py` (+ `raja_yoga_bv_raman.py`) is a dedicated module:
-      `get_raja_yoga_details(jd, place, divisional_chart_factor, language)`, Dharma-
-      Karmadhipati raja yoga, Vipareeta raja yoga, raja-yoga pairs, with strength. Add
-      `AstrologyCompute.get_raja_yogas(...)` + `POST /api/astrology/raja-yogas`, and a
-      **Raja Yogas** card on the Birth Chart (or Advanced) page — name, the planets/lords
-      forming it, and strength, golden accent. Optionally feed into the AI context.
-- [ ] **More dasha systems.** `SUPPORTED_DASHAS` currently lists ~6. The engine ships
-      ~50 under `dhasa/graha/*` and `dhasa/raasi/*` (Sudarsana Chakra `dhasa/
-      sudharsana_chakra.py → sudharshana_chakra_chart`, Shoola, Drig `raasi/drig.py`,
-      Sudasa `raasi/sudasa.py`, Kendradhi/Lagna-Kendradhi, Trikona, Sthira, Tara, Kaala,
-      Chara variants, etc.). Audit which `get_dasha_periods` can normalize to the existing
-      flat maha-period shape (graha-lord vs rasi-sign) and add the well-known ones to the
-      Dhasa page's "Other Dasha Systems" picker. (Sudarsana Chakra is chart-based — may
-      warrant its own small renderer rather than the flat period table.)
-- [ ] i18n the new labels; verify each added system returns dated periods on the test chart.
+- [x] **Raja Yogas card.** `AstrologyCompute.get_raja_yogas(dob,tob,place,…,ayanamsa)` +
+      `POST /api/astrology/raja-yogas`. Surfaces (a) the fundamental **Kendra-Trikona** raja
+      yogas via `raja_yoga.get_raja_yoga_pairs_from_planet_positions` (quadrant lord + trine
+      lord associated), each with a coarse **strength** blended from both planets' dignity
+      (`const.house_strengths_of_planets`), and (b) the named special types via
+      `get_raja_yoga_details` — **Dharma-Karmadhipati / Vipareeta / Neecha-Bhanga** — with
+      their classical description/benefits + the forming planet-pair label. Rendered as a
+      **Raja Yogas** card on the **Birth Chart page** (golden accent, count header, strength
+      chips, graceful "none found"), loading independently like the Yogas/Doshas cards.
+      Published as a `get_raja_yogas` smart-lookup tool too. Verified across charts (1995-08-22
+      → 3 Kendra-Trikona pairs; 2000-01-01 → Dharma-Karmadhipati + Neecha-Bhanga; test chart
+      1990-05-15 → none, card shows the empty note).
+- [x] **More dasha systems.** Added **10** systems to `SUPPORTED_DASHAS` + `get_dasha_periods`,
+      all normalizing to the existing flat maha-period shape (graha-lord vs rasi-sign),
+      verified to return dated periods on the test chart: **graha** — Shodasottari (8),
+      Dwadasottari (8), Panchottari (7), Shatabdika (7 — `graha/sataatbika.py`); **raasi** —
+      Kendradhi-Rasi (24), Sudasa (23), Drig (24 — takes `planet_positions,dob,tob`, special-
+      cased), Chara (12), Sthira (12), Trikona (12). All use `dhasa_level_index=1` for the flat
+      maha list. They auto-appear in the Dhasa page's "Other Dasha Systems" picker (labels come
+      from the backend, no i18n needed). Now 14 systems total (`/dasha-systems` count = 14).
+- [x] **Sudarsana Chakra** (its own renderer, per owner). `get_sudarsana_chakra(…,year_offset)`
+      + `POST /api/astrology/sudarsana-chakra`: the annual (solar-return) chart for
+      `year_offset` past birth (0 = natal, via `drik.next_solar_date`), returned as one planet
+      set + three reference lagnas (Lagna / Chandra / Surya). A collapsible **Sudarsana Chakra**
+      section on the Dhasa page renders the three wheels as three Kundalis (North/South toggle,
+      selected ayanamsa) with a ±year stepper. Simplified surface (three ascendants) rather than
+      the engine's rotating house-lists — clean reuse of the existing `Kundali`.
+- [x] i18n: `dhasa.sudarsana.*` (en; hi/sa fall back). Build + lint clean; all 10 dashas +
+      raja-yogas + sudarsana verified live via authenticated HTTP.
 
 ### 9.5 Longevity / Ayur (P2) — jargon-light, with disclaimer (owner approved 2026-06-30)
 
@@ -1398,18 +1424,25 @@ Owner OK'd adding it provided it's gentle and clearly framed. `prediction/longev
 life_span_range(jd, place)` returns a life-span band (short/medium/long ayu via the
 classical Balarishta/Alpa/Madhya/Purna-ayu checks + Jaimini corrections).
 
-Plan:
-- [ ] **Backend** `AstrologyCompute.get_longevity(dob, tob, place, lat, lon, tz, ayanamsa)`
-      → the ayu *category* (Alpa/Madhya/Purna) and the contributing factors, NOT a death
-      date. Reset ayanamsa after.
-- [ ] **Endpoint** `POST /api/astrology/longevity` (auth).
-- [ ] **Frontend**: a card on the **Advanced** page (not its own scary page) framed as
-      "Ayu / vitality indication" with an explicit disclaimer reusing the AI safety-footer
-      copy (general guidance, not medical/predictive; longevity in jyotish is conditional
-      and multi-factorial). Present the *category* and factors; avoid any year/age claim.
-- [ ] Optional: include as a low-weight signal the AI may reference *only* when explicitly
-      asked about health/vitality, with the same guardrails. i18n `advanced.longevity.*`.
-      Verify `life_span_range` runs on the test chart; build + lint clean.
+Plan — **SHIPPED 2026-07-02**:
+- [x] **Backend** `AstrologyCompute.get_longevity(dob, tob, place, lat, lon, tz, ayanamsa)`
+      → the ayu *category* (Alpa/Madhya/Purna) + the three contributing sign-pair verdicts
+      (Lagna-lord vs 8th-lord, Lagna vs Moon, Lagna vs Hora-lagna). NOT a death date/age.
+      Ayanamsa reset after. **KEY:** the engine's `longevity.life_span_range` has a Py3 bug
+      (`counter.keys()[0]` crashes in the all-three-agree branch — which is exactly the test
+      chart's case), so we **reimplement the tiny aggregation** (reproducing the movable/fixed/
+      dual `_get_aayu` matrix, a pure classical rule) while reusing the same chart inputs
+      (`charts.rasi_chart`, `house.house_owner_from_planet_positions`, `drik.hora_lagna`) — no
+      edit to vendored `src/`.
+- [x] **Endpoint** `POST /api/astrology/longevity` (auth).
+- [x] **Frontend**: a card on the **Advanced** page (not its own page) titled "Ayu — vitality
+      indication" with an intro + a 3-segment band highlighting Alpa/Madhya/**Purna**, a factors
+      table, and an explicit disclaimer (conditional, multi-factorial, never a death date/medical
+      advice). Loads independently (doesn't gate the page spinner).
+- [x] AI: published as a `get_longevity` smart-lookup **tool** with an explicit guardrail in its
+      description ("use ONLY when the person explicitly asks about vitality/longevity, frame it
+      gently as conditional"). i18n `advanced.longevity.*` (en; hi/sa fall back). Verified live:
+      test chart → **Alpa** with the three Alpa factors. Build + lint clean.
 
 ### 9.6 Other engine capabilities noted (not selected — parked for later)
 

@@ -19,6 +19,7 @@ import {
   Wrench,
   CalendarDays,
   Clock4,
+  Bird,
 } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
@@ -86,6 +87,12 @@ export const DashboardPage = () => {
       icon: <CalendarDays size={32} />,
       path: "/almanac",
       gradient: "linear-gradient(135deg, #FFB347 0%, #D4AF37 100%)",
+    },
+    {
+      key: "panchaPakshi",
+      icon: <Bird size={32} />,
+      path: "/pancha-pakshi",
+      gradient: "linear-gradient(135deg, #E27B5A 0%, #FFB347 100%)",
     },
     {
       key: "sarvatobhadra",
