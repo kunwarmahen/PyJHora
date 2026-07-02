@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { CalendarClock, Sparkles, Star, Compass, Clock } from "lucide-react";
@@ -77,6 +77,14 @@ export const VarshaphalPage = () => {
   const [dashaSystem, setDashaSystem] = useState(
     () => localStorage.getItem("varsha_dasha") || "mudda"
   );
+  const [dashaLoading, setDashaLoading] = useState(false);
+  // The main fetch reads the dasha system via a ref so a system change does NOT
+  // recreate loadVarshaphal / trigger the full-page reload — switching systems is
+  // handled by changeDasha (a soft, in-place update of just the dasha table).
+  const dashaRef = useRef(dashaSystem);
+  useEffect(() => {
+    dashaRef.current = dashaSystem;
+  }, [dashaSystem]);
 
   const [chartStyle, setChartStyle] = useState(() => localStorage.getItem("chartStyle") || "north");
   const ayanamsa = localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA;
@@ -89,9 +97,22 @@ export const VarshaphalPage = () => {
 
   const stepYear = (delta) => setYear((y) => Math.max(birthYear, y + delta));
 
-  const setDasha = (key) => {
+  // Switching dasha system only changes the annual-dasha table, so refresh it
+  // in place (no full-page loading state / scroll jump). Falls back gracefully.
+  const changeDasha = async (key) => {
+    if (key === dashaSystem) return;
     setDashaSystem(key);
     localStorage.setItem("varsha_dasha", key);
+    if (!birthDetails) return;
+    setDashaLoading(true);
+    try {
+      const res = await astrologyService.getVarshaphal(birthDetails, year, ayanamsa, key);
+      setResult(res.data);
+    } catch (err) {
+      setError(err.response?.data?.detail || t("varshaphal.calcError"));
+    } finally {
+      setDashaLoading(false);
+    }
   };
 
   const [aiLoading, setAiLoading] = useState(false);
@@ -124,14 +145,19 @@ export const VarshaphalPage = () => {
     setAiError("");
     setAiModel("");
     try {
-      const res = await astrologyService.getVarshaphal(birthDetails, year, ayanamsa, dashaSystem);
+      const res = await astrologyService.getVarshaphal(
+        birthDetails,
+        year,
+        ayanamsa,
+        dashaRef.current
+      );
       setResult(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || t("varshaphal.calcError"));
     } finally {
       setLoading(false);
     }
-  }, [birthDetails, year, ayanamsa, dashaSystem, t]);
+  }, [birthDetails, year, ayanamsa, t]);
 
   useEffect(() => {
     if (!selectedProfile) {
@@ -218,6 +244,25 @@ export const VarshaphalPage = () => {
               >
                 +
               </button>
+            </div>
+          </div>
+
+          {/* Annual-dasha system picker */}
+          <div className="controls-group">
+            <label className="control-label">
+              <Clock size={18} style={{ color: "var(--saffron)" }} />
+              {t("varshaphal.annualDasha")}
+            </label>
+            <div className="chart-toggle">
+              {DASHA_SYSTEMS.map((s) => (
+                <button
+                  key={s.key}
+                  className={`chart-toggle__btn${dashaSystem === s.key ? " is-active" : ""}`}
+                  onClick={() => changeDasha(s.key)}
+                >
+                  {t(s.labelKey)}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -396,22 +441,11 @@ export const VarshaphalPage = () => {
                 <Clock size={20} />
                 {t("varshaphal.annualDasha")}
               </h3>
-
-              {/* System picker */}
-              <div className="chart-toggle" style={{ marginBottom: "0.75rem" }}>
-                {DASHA_SYSTEMS.map((s) => (
-                  <button
-                    key={s.key}
-                    className={`chart-toggle__btn${dashaSystem === s.key ? " is-active" : ""}`}
-                    onClick={() => setDasha(s.key)}
-                  >
-                    {t(s.labelKey)}
-                  </button>
-                ))}
-              </div>
               <p className="card-intro">{result.annual_dasha?.system}</p>
 
-              {periods.length > 0 ? (
+              {dashaLoading ? (
+                <LoadingState message={t("varshaphal.loading")} />
+              ) : periods.length > 0 ? (
                 <div className="table-scroll">
                   <table className="data-table">
                     <thead>

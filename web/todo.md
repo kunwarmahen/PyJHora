@@ -1265,6 +1265,10 @@ Plan — **SHIPPED 2026-07-02**:
       compression tail, no unit-guessing. Response also lists `dasha_systems`. Table header
       switches Period lord ⇄ Period sign by `lord_type`. Verified: mudda 9 / patyayini 7 /
       narayana 16 periods on the test chart, correct current period in each, bogus→mudda.
+      UX (2026-07-02): the system picker lives in the **top controls bar** (with the year
+      stepper + chart-style toggle), not buried by the bottom table; switching systems does a
+      **soft in-place refresh** of just the dasha card (small spinner, no full-page reload /
+      scroll jump) via a `dashaRef` so the main fetch isn't re-triggered.
 - [x] **Endpoint** `POST /api/astrology/varshaphal?year=YYYY&ayanamsa=X` (auth), `BirthDetails`
       body + `year` query param. Returns 400 on pre-birth year.
 - [x] **Frontend** `VarshaphalPage.js` (route `/varshaphal`, dashboard card + drawer entry):
