@@ -373,6 +373,16 @@ class LLMService:
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
         return await self._complete(prompt, cfg)
 
+    async def analyze_varshaphal(self,
+                                 varsha_data: Dict[str, Any],
+                                 name: str = "this person",
+                                 provider: LLMProvider = LLMProvider.QWEN,
+                                 config: Optional[ModelConfig] = None) -> str:
+        """Plain-language year-ahead (Varshaphal / annual) forecast."""
+        prompt = self._build_varshaphal_prompt(varsha_data, name)
+        cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        return await self._complete(prompt, cfg)
+
     # ------------------------------------------------------------------ #
     # "Learn the Chart" — AI quiz generation + grading
     # ------------------------------------------------------------------ #
@@ -1384,6 +1394,77 @@ Write a clear, encouraging reading (about 500 words) with these parts:
 4. End with one short line of reassurance.
 
 Be specific to the findings above — do not invent placements that aren't listed. If nothing is flagged, say plainly that this is a calm, unremarkable window and give light general guidance. Do NOT predict death, disease, disasters, or precise dates. Close with a brief reminder that this is for reflection, not a substitute for professional advice."""
+
+    def _build_varshaphal_prompt(self, v: Dict[str, Any], name: str) -> str:
+        """Build a plain-language year-ahead (Varshaphal / Tajaka) forecast prompt.
+
+        The annual chart, Muntha, year-lord, Sahams, Tajaka yogas and annual
+        dasha are already computed; the model's job is to weave them into a
+        grounded, encouraging forecast for the year."""
+        year = v.get("year")
+        entry = v.get("year_entry", {})
+        muntha = v.get("muntha", {})
+        yl = v.get("year_lord") or {}
+
+        lagna = v.get("lagna", {})
+        planets = v.get("planets", {})
+        placements = ", ".join(
+            f"{p}: {d.get('sign_name')}" for p, d in planets.items()
+        )
+
+        sahams = v.get("sahams", [])
+        saham_lines = "\n".join(
+            f"- {s.get('name')} ({s.get('significance')}): {s.get('sign_name')} "
+            f"(house {s.get('house')})"
+            for s in sahams
+        ) or "- (none computed)"
+
+        yogas = v.get("tajaka_yogas", [])
+        if yogas:
+            yoga_lines = "\n".join(
+                f"- {y.get('name')}"
+                + (f" [{'/'.join(y.get('pair'))}]" if y.get("pair") else "")
+                + f": {y.get('description')}"
+                for y in yogas
+            )
+        else:
+            yoga_lines = "- No notable Tajaka yoga this year (a steady, unremarkable year on this measure)."
+
+        periods = v.get("annual_dasha", {}).get("periods", [])
+        dasha_lines = "\n".join(
+            f"- {p.get('lord_name')}: {p.get('start')} → {p.get('end')}"
+            + (" (running now)" if p.get("current") else "")
+            for p in periods
+        ) or "- (none computed)"
+
+        return f"""You are a warm, plain-spoken Vedic astrologer giving a YEAR-AHEAD reading (Varshaphal, the annual solar-return chart in the Tajaka system) to someone with little astrology background. Avoid jargon; when you must use a term (Muntha, Saham, dasha), explain it in a few words.
+
+The Varshaphal is a fresh chart cast for the moment the Sun returns to its birth position each year. It is read for that one year only, alongside the natal chart. Key annual factors are already computed for you — trust them, do not invent placements.
+
+Reading for: {name}
+Year: {year} (solar-year begins {entry.get('date')} {entry.get('time')})
+Annual Ascendant (Lagna): {lagna.get('sign_name')}
+Planet placements this year: {placements}
+Muntha (the progressed point that advances one sign a year; the year's spotlight): {muntha.get('sign_name')} — house {muntha.get('house')} of the annual chart
+Year-lord (Varsheshwara, the planet governing the year): {yl.get('planet', 'undetermined')}
+
+Sahams (sensitive points, like signposts for specific matters):
+{saham_lines}
+
+Tajaka yogas active this year (already computed — trust these):
+{yoga_lines}
+
+Annual dasha (Mudda / Varsha Vimsottari — sub-periods within the year, each ruled by a planet):
+{dasha_lines}
+
+Write a clear, encouraging year-ahead reading (about 500 words) with these parts:
+1. **The headline** — one or two sentences on the overall tone and theme of {year} for {name}, anchored in the Muntha house and the year-lord.
+2. **What the year emphasises** — translate the Muntha house, the year-lord's nature, and 2-3 of the most relevant Sahams into everyday life areas (work, money, relationships, health, learning, home).
+3. **Timing within the year** — use the annual dasha sequence to note which stretches look more active or supportive, in plain terms.
+4. **What to do** — 2-4 concrete, gentle suggestions for the year.
+5. End with one short line of reassurance.
+
+Be specific to the factors above — do not invent anything not listed. Do NOT predict death, disease, disasters, or precise dates. Close with a brief reminder that this is for reflection and planning, not a substitute for professional advice."""
 
     def _format_planets(self, planets: Dict[str, Any]) -> str:
         """Format planetary positions for prompt"""

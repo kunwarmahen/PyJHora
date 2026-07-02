@@ -138,6 +138,17 @@ class SarvatobhadraAnalysisRequest(BaseModel):
     api_key: Optional[str] = None
     ayanamsa: Optional[str] = None
 
+class VarshaphalAnalysisRequest(BaseModel):
+    birth_details: BirthDetails
+    year: int
+    person_name: Optional[str] = None
+    llm_provider: str = "qwen"  # legacy fallback
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    ayanamsa: Optional[str] = None
+
 # Lifecycle events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -598,6 +609,29 @@ async def get_aspects(
     try:
         result = AstrologyCompute.get_aspects(
             dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, ayanamsa=ayanamsa,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/varshaphal")
+async def get_varshaphal(
+    birth_details: BirthDetails,
+    year: int,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user)
+):
+    """Varshaphal / Tajaka annual (solar-return) horoscope for a target year."""
+    try:
+        result = AstrologyCompute.get_varshaphal(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            year=year,
             lat=birth_details.latitude, lon=birth_details.longitude,
             tz=birth_details.timezone, ayanamsa=ayanamsa,
         )
@@ -1393,6 +1427,37 @@ async def analyze_sarvatobhadra(
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_sarvatobhadra(
             sbc_data=sbc, name=request.person_name or "this person", config=cfg,
+        )
+        return {
+            "ai_analysis": ai_analysis,
+            "provider": cfg.provider_type.value,
+            "model": cfg.model,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/varshaphal-analysis")
+async def analyze_varshaphal(
+    request: VarshaphalAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Plain-language AI year-ahead reading of the Varshaphal (annual) chart."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        varsha = AstrologyCompute.get_varshaphal(
+            dob=bd.dob, tob=bd.tob, place=bd.place, year=request.year,
+            lat=bd.latitude, lon=bd.longitude, tz=bd.timezone,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+        )
+        if varsha.get("status") != "success":
+            raise HTTPException(status_code=400, detail=varsha.get("error", "Calculation failed"))
+
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_varshaphal(
+            varsha_data=varsha, name=request.person_name or "this person", config=cfg,
         )
         return {
             "ai_analysis": ai_analysis,

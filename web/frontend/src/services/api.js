@@ -115,6 +115,28 @@ export const astrologyService = {
   // Graha drishti (aspects): per-graha houses/planets aspected + strength %.
   getAspects: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/aspects", birthDetails, { params: { ayanamsa } }),
+  // Varshaphal / Tajaka annual (solar-return) horoscope for a target year.
+  getVarshaphal: (birthDetails, year, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/varshaphal", birthDetails, {
+      params: { year, ayanamsa },
+    }),
+  // Plain-language AI year-ahead reading of the Varshaphal chart.
+  analyzeVarshaphalAI: (birthDetails, year, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/varshaphal-analysis",
+      {
+        birth_details: birthDetails,
+        year,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
   // Shareable read-only chart link.
   createShare: (birthDetails, ayanamsa = DEFAULT_AYANAMSA, profileName = null) =>
     api.post("/api/astrology/share", {

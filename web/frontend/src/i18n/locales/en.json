@@ -242,7 +242,8 @@
     "aiTools": "AI Capabilities",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "language": "Language"
+    "language": "Language",
+    "varshaphal": "Varshaphal"
   },
   "aiTools": {
     "title": "AI Capabilities",
@@ -301,6 +302,10 @@
       "aiTools": {
         "title": "AI Capabilities",
         "description": "See every tool the AI astrologer can call to read your chart"
+      },
+      "varshaphal": {
+        "title": "Varshaphal (Annual)",
+        "description": "Your year-ahead solar-return chart — Muntha, year-lord, Sahams and annual dasha."
       }
     }
   },
@@ -576,5 +581,40 @@
     "doshas": "Doshas",
     "present": "Present",
     "absent": "Absent"
+  },
+  "varshaphal": {
+    "title": "Varshaphal · Annual Horoscope",
+    "subtitle": "Tajaka solar-return chart for a chosen year",
+    "year": "Year",
+    "forYear": "Year",
+    "solarYearBegins": "Solar year begins",
+    "annualLagna": "Annual Lagna",
+    "muntha": "Muntha",
+    "houseWord": "house",
+    "yearLord": "Year-lord",
+    "annualChart": "Annual Chart {{year}}",
+    "tajaka": "Tajaka solar-return",
+    "placements": "Annual Placements",
+    "houseNote": "House shown as the sign number counted from the annual Ascendant.",
+    "sahams": "Sahams (sensitive points)",
+    "saham": "Saham",
+    "significance": "Signifies",
+    "tajakaYogas": "Tajaka Yogas",
+    "noYogas": "No notable Tajaka yoga this year — a steady year on this measure.",
+    "annualDasha": "Annual Dasha",
+    "period": "Period lord",
+    "from": "From",
+    "to": "To",
+    "current": "Now",
+    "aiTitle": "AI Year-Ahead Reading",
+    "aiHint": "Get a plain-language forecast for this year, grounded in the Muntha, year-lord, Sahams and annual dasha above.",
+    "aiLoading": "Reading your year ahead…",
+    "aiModel": "Answered by {{model}}",
+    "aiGenerate": "Get year-ahead reading",
+    "aiRegenerate": "Regenerate reading",
+    "aiError": "Could not generate the reading. Check your AI model settings in Ask Astrologer.",
+    "disclaimer": "For reflection and planning only — not a substitute for professional advice. No death, disease or precise-date predictions.",
+    "loading": "Casting the annual chart…",
+    "calcError": "Could not compute the Varshaphal chart."
   }
 }

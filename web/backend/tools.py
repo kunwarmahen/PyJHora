@@ -190,6 +190,28 @@ def _panchanga(bd, ayanamsa, date: Optional[str] = None, **_):
         date=date, place=a["place"], lat=a["lat"], lon=a["lon"], tz=a["tz"])
 
 
+def _varshaphal(bd, ayanamsa, year: Optional[int] = None, **_):
+    try:
+        yr = int(year)
+    except (TypeError, ValueError):
+        raise ToolError("get_varshaphal requires an integer 'year' (e.g. 2026).")
+    v = AstrologyCompute.get_varshaphal(year=yr, ayanamsa=ayanamsa, **_args(bd))
+    if v.get("status") != "success":
+        return v
+    return {
+        "year": v.get("year"),
+        "age": v.get("age"),
+        "year_entry": v.get("year_entry", {}),
+        "lagna": v.get("lagna", {}),
+        "planets": v.get("planets", {}),
+        "muntha": v.get("muntha", {}),
+        "year_lord": v.get("year_lord"),
+        "sahams": v.get("sahams", []),
+        "tajaka_yogas": v.get("tajaka_yogas", []),
+        "annual_dasha": v.get("annual_dasha", {}),
+    }
+
+
 # --------------------------------------------------------------------------- #
 # Registry
 # --------------------------------------------------------------------------- #
@@ -314,6 +336,18 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
          "required": []},
         _panchanga,
     ),
+    _Tool(
+        "get_varshaphal",
+        "Varshaphal / Tajaka annual (solar-return) horoscope for a target year: the "
+        "annual Ascendant + planet signs, the Muntha (progressed point), the year-lord "
+        "(Varsheshwara), key Sahams (sensitive points), present Tajaka yogas, and the "
+        "annual Mudda dasha sub-periods. Use for 'how is <year> for me?' questions.",
+        {"type": "object", "properties": {
+            "year": {"type": "integer",
+                     "description": "Target Gregorian year, e.g. 2026 (>= birth year)."}},
+         "required": ["year"]},
+        _varshaphal,
+    ),
 ]}
 
 
@@ -338,7 +372,7 @@ SECTION_TOOL: Dict[str, str] = {
 # fetch the natal base, drill dashas, pull a varga, or read the panchanga.
 ALWAYS_TOOLS: List[str] = [
     "get_natal_chart", "get_chart_details", "get_dasha_children",
-    "get_divisional_chart", "get_panchanga",
+    "get_divisional_chart", "get_panchanga", "get_varshaphal",
 ]
 
 
@@ -389,6 +423,7 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_dasha_children":   {"label": "Dasha sub-periods",      "category": "Timing"},
     "get_transits":         {"label": "Current transits (Gochara)", "category": "Timing"},
     "get_panchanga":        {"label": "Panchanga almanac",      "category": "Timing"},
+    "get_varshaphal":       {"label": "Varshaphal (annual chart)", "category": "Timing"},
     "get_yogas":            {"label": "Yogas",                  "category": "Strengths & afflictions"},
     "get_doshas":           {"label": "Doshas",                 "category": "Strengths & afflictions"},
     "get_ashtakavarga":     {"label": "Ashtakavarga",          "category": "Strengths & afflictions"},

@@ -540,6 +540,12 @@
 .data-table tbody tr {
   border-top: 1px solid var(--sandalwood);
 }
+.data-table tbody tr.is-current {
+  background: rgba(255, 153, 51, 0.08);
+}
+.data-table tbody tr.is-current td:first-child {
+  box-shadow: inset 3px 0 0 var(--saffron);
+}
 
 /* ---- Text / color utilities (replace one-off inline color styles) ---- */
 .text-saffron {

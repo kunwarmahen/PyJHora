@@ -1237,28 +1237,45 @@ Engine entry points (verified to exist):
   `dhasa/raasi/narayana.py → varsha_narayana_dhasa_bhukthi(...)`. (`horoscope/main.py`
   has `_get_varsha_vimsottari_dhasa` / `_get_varsha_narayana_dhasa` as references.)
 
-Plan:
-- [ ] **Backend** `AstrologyCompute.get_varshaphal(dob, tob, place, lat, lon, tz, year,
-      ayanamsa)` → the annual chart (planet houses for the `Kundali`), the year-entry
-      instant, the **Muntha** (progressed Ascendant) and **year-lord (Varsheshwara)**,
-      a curated set of Sahams (start with the ~8 best-known: Punya/Vidya/Yasas/Mitra/
-      Karma/Roga/Vivaha/Putra), the present Tajaka yogas, and the annual dasha (default
-      Mudda; offer Patyayini/Varsha-Vimsottari/Varsha-Narayana as alternates like the
-      main Dasha page's system picker). Reset global ayanamsa after, as everywhere.
-- [ ] **Endpoint** `POST /api/astrology/varshaphal?year=YYYY&ayanamsa=X` (auth). Validate
-      year ≥ birth year.
-- [ ] **Frontend** `VarshaphalPage.js` (route `/varshaphal`, dashboard card + drawer
-      entry — remember the drawer is hidden on desktop, so the card matters): a **year
-      stepper** (default = current age-year), the annual `Kundali` (North/South toggle,
-      selected ayanamsa, exportable), a Muntha + year-lord pill row, a Sahams table, a
-      Tajaka-yogas card, and the annual-dasha table reusing the Dhasa page's period table.
-- [ ] **On-demand AI reading** (`llm_service.analyze_varshaphal` + prompt) — a year-ahead
-      forecast grounded in the computed Muntha/year-lord/Sahams/annual-dasha (jargon-light,
-      same safety footer; no death/disease/precise-date), model-config aware + rate-limited.
-- [ ] **Smart-lookup tool** (§8.9): publish `get_varshaphal(year)` as a tool so the main
-      astrologer can pull an annual snapshot when asked "how is 2026 for me?".
-- [ ] i18n `nav.varshaphal`, `dashboard.features.varshaphal`, `varshaphal.*`. Verify
-      `varsha_pravesh` round-trips on the verified True-Chitra chart; build + lint clean.
+Plan — **SHIPPED 2026-07-02**:
+- [x] **Backend** `AstrologyCompute.get_varshaphal(dob, tob, place, year, lat, lon, tz,
+      ayanamsa)` → the annual (Tajaka) chart formatted for the `Kundali`, the year-entry
+      instant, the **Muntha** (natal Lagna sign advanced one sign per completed year, with
+      its house in the annual chart), the **year-lord (Varsheshwara)** via
+      `tajaka.lord_of_the_year`, the 8 curated Sahams (Punya/Vidya/Yasas/Mitra/Karma/Roga/
+      Vivaha/Puthra — each a longitude → sign+degree+house, day/night formula honoured via
+      the annual entry's sunrise/sunset), the present **Tajaka yogas** (Ishkavala/Induvara
+      chart-level + Ithasala/Eesarpha planet pairs, each wrapped so a failure is skipped and
+      engine debug prints muffled), and the **annual Mudda (Varsha Vimsottari) maha-dasha**
+      (9 periods with start/end + `current`). Ayanamsa set/reset like every method. KEY
+      DETAIL pinned empirically: `varsha_pravesh(years=N)` returns the solar return in
+      `birth_year+N-1`, but `lord_of_the_year`/`muntha`/`mudda` advance `jd + years·year_value`
+      — so the code uses `years=age+1` for the chart and `age` for the rest, where
+      `age = year − birth_year`. Guards `year < birth_year`. (Alternate annual-dasha systems
+      Patyayini/Varsha-Narayana deferred — Mudda ships; add to a picker later.)
+- [x] **Endpoint** `POST /api/astrology/varshaphal?year=YYYY&ayanamsa=X` (auth), `BirthDetails`
+      body + `year` query param. Returns 400 on pre-birth year.
+- [x] **Frontend** `VarshaphalPage.js` (route `/varshaphal`, dashboard card + drawer entry):
+      a **year stepper** (± with a numeric input, floored at the birth year; default = current
+      calendar year), the annual `Kundali` (North/South toggle, selected ayanamsa, exportable),
+      an info-pill row (year / entry instant / annual Lagna / Muntha / year-lord / ayanamsa),
+      an annual placements table, a Sahams table, a Tajaka-yogas card grid, and the annual-dasha
+      table (current period highlighted via a new reusable `.data-table tr.is-current` rule).
+- [x] **On-demand AI reading** (`llm_service.analyze_varshaphal` + `_build_varshaphal_prompt`)
+      — a ~500-word year-ahead forecast grounded in the computed Muntha/year-lord/Sahams/Tajaka
+      yogas/annual-dasha (jargon-light, safety footer, no death/disease/precise-date),
+      model-config aware via `_resolve_cfg` + rate-limited. `POST /api/astrology/varshaphal-analysis`
+      (`VarshaphalAnalysisRequest`); page has a "Get year-ahead reading" card using the model
+      picked in Ask AI Astrologer, cleared when the year changes.
+- [x] **Smart-lookup tool** (§8.9): `get_varshaphal(year)` published as the **13th tool**
+      (`tools.py`, birth-details server-injected) + in `ALWAYS_TOOLS`, `_DISPLAY` (Timing), so
+      the main astrologer can pull an annual snapshot for "how is 2026 for me?". Verified via
+      `tools.dispatch`.
+- [x] i18n `nav.varshaphal`, `dashboard.features.varshaphal` (en/hi/sa) + full `varshaphal.*`
+      block (en; hi/sa fall back). Verified: `varsha_pravesh` round-trips on the 1990-05-15
+      True-Chitra chart (entry 2026-05-15 for year 2026, year-lord Mercury, 8 sahams, 9 dasha
+      periods); prompt renders ~1k tokens with real data; backend imports clean (13 tools, both
+      routes); `npm run build` green (+2.7 kB); ESLint clean; locale JSON valid.
 
 ### 9.2 Almanac extensions — Eclipses, Festival/Vratha calendar, Hora (P1)
 
@@ -1369,3 +1386,95 @@ Catalogued during the audit; not on the active roadmap unless the owner asks:
 - **Vedic clock / Vakra-gathi retrograde plot** (`ui/vedic_clock.py`, `vakra_gathi_plot.py`).
 - **Surya Siddhanta / Khanda Khaadyaka** alternate panchanga engines (`panchanga/*`).
 - **Hijri / calendar conversions** (`panchanga/hijri.py`).
+
+---
+
+## 10. Owner-requested additions (2026-07-02)
+
+### 10.1 Show nakshatra padas in the charts (P1) — mostly a display task
+
+The backend **already computes** `nakshatra_pada` per planet (and for the Lagna) — it's in
+the birth-chart response and every varga/transit response (see `astrology.py`
+`get_nakshatra_from_longitude` → `nakshatra`/`nakshatra_pada` on each planet). So no new
+compute is needed for D1; the pada is derivable for any longitude the engine returns.
+Padas are already rendered in several **tables** (BirthChart chart-details, Advanced,
+Transit, Compatibility, Predictions, Sarvatobhadra, Panchanga) but **not in the chart
+cells** — the North/South `Kundali` cells show only planet name + degree.
+
+Owner decision (2026-07-02): show padas in **both the chart cells and the tables**.
+
+- [ ] **Chart cells (North + South).** Add an opt-in pada to each planet line in
+      `NorthIndianChart.js` (the `items.push({name, degrees})` at ~L60/330) and
+      `SouthIndianChart.js` — e.g. render the pada as a small superscript/suffix after the
+      degree (`Ma 15.2°·4` or `Ma 15°⁴`). Gate it behind a **"Show padas" toggle**
+      (persisted in localStorage, off by default) on the Birth Chart page, mirroring the
+      existing "Show aspects on chart" toggle pattern, so crowded houses don't clutter.
+      Respect the crowded-house graduated sizing already in both components (floor the pada
+      text like the degree). Pass a `showPadas` prop from BirthChart through the shared
+      chart components (same plumbing as `aspects`/`showAspects`/`focusPlanet`).
+- [ ] **Placements table — which charts?** Today the per-planet nakshatra+pada table is
+      D1-centric. **Recommendation (owner asked "show for all tables?"):** the pada is a
+      janma-nakshatra construct most meaningful in **D1**, and secondarily **D9** (navamsa
+      literally *is* the nakshatra-pada mapping). Technically the engine returns a
+      `nakshatra_pada` for every varga longitude, but a "pada" in D30/D60 has little
+      classical meaning and adds noise. So: **always show padas in the D1 table + the D9
+      (Navamsa) table; make padas in other-varga tables optional** (follow the same "Show
+      padas" toggle). The chart-cell toggle, being per-displayed-chart, naturally covers
+      whatever varga is on screen — that's fine, it's cheap and consistent; the stronger
+      claim is only about which *tables* get a dedicated pada column by default. (Owner to
+      confirm; easy to flip to "all vargas" if wanted.)
+- [ ] i18n: reuse/extend the existing `nakshatra`/`pada` label keys; add a `birthChart.showPadas`
+      toggle label (en full; hi/sa fall back). Verify a known chart's padas match JHora
+      (e.g. the verified True-Chitra chart), build + lint clean.
+
+### 10.2 Birth-time correction / rectification (P1) — full feature, experimental
+
+Owner ask (2026-07-02): a birth date-time **correction** capability. The engine supports it
+(BV Raman methods) — but PyJHora **explicitly flags it "experimental — accuracy not
+guaranteed"** (`src/jhora/panchanga/README.md`, `const.py`), so this ships with a clear
+disclaimer, framed as a *suggestion to verify*, never an authoritative correction.
+
+Engine entry points (verified to exist in `panchanga/drik.py`):
+- `_birthtime_rectification_nakshathra_suddhi(jd, place)` — nudges the time so the Moon's
+  nakshatra matches the expected/known janma star (nakshatra śuddhi).
+- `_birthtime_rectification_lagna_suddhi(jd, place)` — lagna-based refinement.
+- `_birthtime_rectification_janma_suddhi(jd, place, gender)` — janma śuddhi (needs gender).
+- Tunables: `const.birth_rectification_step_minutes` (0.25) and
+  `const.birth_rectification_loop_count` (120 steps) — i.e. it searches ±(120×0.25 min)≈±30
+  min around the entered time. (Names are underscore-prefixed → treat as semi-private; wrap
+  them, and pin the exact call signatures when implementing since they're not public API.)
+
+Owner decision (2026-07-02): build the **full feature, with disclaimer**.
+
+- [ ] **Backend** `AstrologyCompute.get_birth_time_rectification(dob, tob, place, lat, lon,
+      tz, ayanamsa, method, gender=None, expected_nakshatra=None)` → the **suggested
+      corrected time(s)**, the delta from the entered time, and *which* rule fired (nakshatra
+      / lagna / janma śuddhi). Server-injects birth details + ayanamsa and **resets global
+      state after** (same pattern as every other method). Guard the experimental methods in
+      try/except so a failure returns a clean "could not rectify" status, not a 500. Decide
+      whether to expose the search window (`step_minutes`/`loop_count`) as params or keep the
+      const defaults (start with defaults).
+- [ ] **Endpoint** `POST /api/astrology/rectify-birth-time` (auth), body carries the method,
+      optional gender + expected nakshatra. Rate-limit isn't needed (no LLM) but validate
+      inputs.
+- [ ] **Frontend** `BirthTimeRectificationPage.js` (route `/rectify`, dashboard card + drawer
+      entry — remember the drawer is hidden on desktop, so the card matters), saffron Vedic
+      style (`PageHeader`/`ProfileBanner`/`Card`). Inputs: pick a profile, choose the method
+      (nakshatra / lagna / janma śuddhi), and the method-specific extras (gender for janma;
+      known/expected janma nakshatra dropdown for nakshatra śuddhi). Output: the entered vs
+      **suggested** time, the delta, and a **prominent experimental disclaimer** (reuse the AI
+      safety-footer styling: "experimental heuristic — verify against known life events, not
+      authoritative"). Optional: a **"Apply suggested time to this profile"** button that
+      updates the profile's `tob` (with a confirm) so the corrected time flows into every
+      other chart. Show the before/after `Kundali` side-by-side so the user sees what moved
+      (Moon/Lagna are the fast movers within ±30 min).
+- [ ] **On-demand AI reading (optional):** `llm_service.explain_rectification` — a
+      jargon-light note on *why* the suggested time fits better (which nakshatra/lagna
+      boundary it snapped to), model-config aware + rate-limited, same guardrails. Lower
+      priority than the compute+display.
+- [ ] i18n `nav.rectify`, `dashboard.features.rectify`, `rectify.*` (en full; hi/sa nav+card,
+      body falls back to en). Verify a rectification round-trips on the verified True-Chitra
+      chart (entered time → suggested time within the ±30-min window, correct nakshatra);
+      build + lint clean. **Open question for owner:** default method — nakshatra śuddhi is
+      the most self-serve (only needs the known janma star); janma śuddhi needs gender + is
+      the most "predictive". Recommend defaulting to **nakshatra śuddhi**.

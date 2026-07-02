@@ -12,6 +12,7 @@ import {
   Star,
   Sparkles,
   Orbit,
+  CalendarClock,
   Grid3x3,
   GitCompareArrows,
   GraduationCap,
@@ -71,6 +72,12 @@ export const DashboardPage = () => {
       icon: <Orbit size={32} />,
       path: "/transit",
       gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
+    },
+    {
+      key: "varshaphal",
+      icon: <CalendarClock size={32} />,
+      path: "/varshaphal",
+      gradient: "linear-gradient(135deg, #D4AF37 0%, #2D3561 100%)",
     },
     {
       key: "sarvatobhadra",

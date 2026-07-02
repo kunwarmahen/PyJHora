@@ -120,6 +120,20 @@ SUPPORTED_DASHAS = {
     },
 }
 
+# Curated Sahams (sensitive points, akin to Western "Arabic parts") surfaced on
+# the Varshaphal / annual page. Each entry: (label, saham.py function, meaning).
+# The function returns a 0–360° longitude; we convert it to sign + degree.
+VARSHAPHAL_SAHAMS = [
+    ("Punya",  "punya_saham",  "Fortune, merit, good deeds"),
+    ("Vidya",  "vidya_saham",  "Education, learning"),
+    ("Yasas",  "yasas_saham",  "Fame, reputation"),
+    ("Mitra",  "mitra_saham",  "Friends, alliances"),
+    ("Karma",  "karma_saham",  "Work, career, action"),
+    ("Roga",   "roga_saham",   "Health, illness"),
+    ("Vivaha", "vivaha_saham", "Marriage"),
+    ("Puthra", "puthra_saham", "Children, progeny"),
+]
+
 # ── Panchanga (daily almanac) name tables ──────────────────────────────────
 # Standard Sanskrit names, kept consistent with the chart's nakshatra naming.
 NAKSHATRA_NAMES = [
@@ -1169,6 +1183,242 @@ class AstrologyCompute:
             }
         except Exception as e:
             print(f"Aspects error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_varshaphal(dob: str, tob: str, place: str, year: int,
+                       lat: Optional[float] = None, lon: Optional[float] = None,
+                       tz: Optional[float] = None,
+                       ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Varshaphal / Tajaka annual (solar-return) horoscope for a target year.
+
+        Returns the annual chart (formatted for the Kundali component), the
+        year-entry instant, the Muntha (progressed Ascendant), the year-lord
+        (Varsheshwara), a curated set of Sahams, the present Tajaka yogas and the
+        annual Mudda (Varsha Vimsottari) maha-dasha periods. Birth details +
+        ayanamsa are server-injected; global ayanamsa is reset afterwards.
+        """
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available"}
+
+        try:
+            birth_year = int(dob.split("-")[0])
+            year = int(year)
+            # The native attains `age` in the target year; age 0 = birth year.
+            # varsha_pravesh(years=N) yields the solar return in (birth_year+N-1),
+            # so the annual chart for `year` uses years = age + 1, while
+            # lord_of_the_year / muntha / mudda use `age` (they advance from dob).
+            age = year - birth_year
+            if age < 0:
+                return {"error": "Year must be on or after the birth year",
+                        "status": "failed"}
+
+            _set_ayanamsa(ayanamsa)
+            import contextlib
+            import io
+            from jhora.horoscope.transit import tajaka, saham, tajaka_yoga
+            from jhora.horoscope.dhasa.annual import mudda
+
+            y, m, d = map(int, dob.split("-"))
+            time_parts = tob.split(":")
+            hour = int(time_parts[0])
+            minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707  # Chennai default
+            tz_offset = tz or 5.5
+
+            jd_dob = swe.julday(y, m, d, hour + minute / 60)
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+
+            # ── Annual (Tajaka) chart ──────────────────────────────────────
+            cht, entry = tajaka.varsha_pravesh(jd_dob, place_obj,
+                                               divisional_chart_factor=1,
+                                               years=age + 1)
+            (ey, em, ed), etime = entry
+            year_entry = {
+                "date": f"{ey:04d}-{em:02d}-{ed:02d}",
+                "time": str(etime),
+            }
+
+            asc_rasi, asc_deg = cht[0][1]
+            lagna = {
+                "house": asc_rasi + 1,
+                "degrees": round(asc_deg, 2),
+                "sign_name": ZODIAC_NAMES[asc_rasi],
+            }
+            planets = {}
+            for planet_index, (rasi, degrees) in cht[1:]:
+                name = PLANET_NAMES.get(planet_index, f"Planet_{planet_index}")
+                planets[name] = {
+                    "rasi": rasi,
+                    "house": rasi + 1,
+                    "degrees": round(degrees, 2),
+                    "sign_name": ZODIAC_NAMES[rasi],
+                }
+
+            # ── Muntha: natal Lagna sign advanced one sign per completed year ─
+            natal_chart = charts.divisional_chart(jd_dob, place_obj,
+                                                  divisional_chart_factor=1)
+            natal_asc = natal_chart[0][1][0]
+            muntha_sign = tajaka.muntha_house(natal_asc, age)  # 0-11 sign index
+            muntha = {
+                "sign": muntha_sign,
+                "sign_name": ZODIAC_NAMES[muntha_sign],
+                "house": ((muntha_sign - asc_rasi) % 12) + 1,
+            }
+
+            # ── Year-lord (Varsheshwara) ───────────────────────────────────
+            year_lord = None
+            try:
+                yl_idx = tajaka.lord_of_the_year(jd_dob, place_obj, age)
+                if yl_idx is not None and yl_idx in PLANET_NAMES:
+                    year_lord = {"index": yl_idx, "planet": PLANET_NAMES[yl_idx]}
+            except Exception as e:
+                print(f"Varshaphal year-lord error: {e}")
+
+            # Day/night of the annual entry drives the Sahams' day/night formula.
+            night_birth = False
+            try:
+                ann_jd = drik.next_solar_date(jd_dob, place_obj, years=age + 1)
+                entry_hrs = drik.jd_to_gregorian(ann_jd)[3]
+                sr = utils.from_dms_str_to_dms(drik.sunrise(ann_jd, place_obj)[1])
+                ss = utils.from_dms_str_to_dms(drik.sunset(ann_jd, place_obj)[1])
+                sr_h = sr[0] + sr[1] / 60.0 + sr[2] / 3600.0
+                ss_h = ss[0] + ss[1] / 60.0 + ss[2] / 3600.0
+                night_birth = entry_hrs > ss_h or entry_hrs < sr_h
+            except Exception as e:
+                print(f"Varshaphal night-birth error: {e}")
+
+            # ── Sahams (sensitive points) ──────────────────────────────────
+            sahams = []
+            for label, fn_name, significance in VARSHAPHAL_SAHAMS:
+                try:
+                    fn = getattr(saham, fn_name)
+                    try:
+                        s_long = fn(cht, night_birth)
+                    except TypeError:
+                        s_long = fn(cht)  # a few sahams take positions only
+                    s_long = float(s_long) % 360
+                    s_sign = int(s_long // 30)
+                    sahams.append({
+                        "name": label,
+                        "significance": significance,
+                        "sign": s_sign,
+                        "sign_name": ZODIAC_NAMES[s_sign],
+                        "degrees": round(s_long % 30, 2),
+                        "house": ((s_sign - asc_rasi) % 12) + 1,
+                    })
+                except Exception as e:
+                    print(f"Varshaphal saham {label} error: {e}")
+
+            # ── Tajaka yogas (curated) ─────────────────────────────────────
+            tajaka_yogas = []
+            p2h = utils.get_planet_house_dictionary_from_planet_positions(cht)
+            _sink = io.StringIO()  # muffle engine debug prints
+            try:
+                if tajaka_yoga.ishkavala_yoga(p2h):
+                    tajaka_yogas.append({
+                        "name": "Ishkavala",
+                        "description": "Planets confined to kendras and panapharas — "
+                                       "indicates wealth, happiness and good fortune.",
+                    })
+            except Exception:
+                pass
+            try:
+                if tajaka_yoga.induvara_yoga(p2h):
+                    tajaka_yogas.append({
+                        "name": "Induvara",
+                        "description": "Planets confined to apoklimas — cautions of "
+                                       "worries, obstacles and ill health.",
+                    })
+            except Exception:
+                pass
+            try:
+                with contextlib.redirect_stdout(_sink):
+                    ith_pairs = tajaka_yoga.get_ithasala_yoga_planet_pairs(cht)
+                for p1, p2, _t in ith_pairs:
+                    a, b = PLANET_NAMES.get(p1, p1), PLANET_NAMES.get(p2, p2)
+                    tajaka_yogas.append({
+                        "name": "Ithasala",
+                        "pair": [a, b],
+                        "description": f"Applying aspect between {a} and {b} — the "
+                                       "matter they signify tends to fructify this year.",
+                    })
+            except Exception:
+                pass
+            try:
+                with contextlib.redirect_stdout(_sink):
+                    ees_pairs = tajaka_yoga.get_eesarpha_yoga_planet_pairs(cht)
+                for p1, p2 in ees_pairs:
+                    a, b = PLANET_NAMES.get(p1, p1), PLANET_NAMES.get(p2, p2)
+                    tajaka_yogas.append({
+                        "name": "Eesarpha",
+                        "pair": [a, b],
+                        "description": f"Separating aspect between {a} and {b} — the "
+                                       "matter they signify tends to slip away or delay.",
+                    })
+            except Exception:
+                pass
+
+            # ── Annual dasha (Mudda / Varsha Vimsottari), maha level ────────
+            annual_dasha = {"system": "Mudda (Varsha Vimsottari)", "periods": []}
+            try:
+                raw = mudda.mudda_dhasa_bhukthi(jd_dob, place_obj, age,
+                                                dhasa_level_index=1)
+                from datetime import date as _date
+                today = _date.today()
+
+                def _iso(t):
+                    return f"{int(t[0]):04d}-{int(t[1]):02d}-{int(t[2]):02d}"
+
+                periods = []
+                for lords, start_t, dur_days in raw:
+                    lord = lords[0]
+                    start_jd = swe.julday(int(start_t[0]), int(start_t[1]),
+                                          int(start_t[2]), float(start_t[3]))
+                    periods.append({
+                        "lord": lord,
+                        "lord_name": PLANET_NAMES.get(lord, str(lord)),
+                        "start": _iso(start_t),
+                        "_start_jd": start_jd,
+                        "duration_days": round(float(dur_days), 1),
+                    })
+                for i, p in enumerate(periods):
+                    if i + 1 < len(periods):
+                        end_jd = periods[i + 1]["_start_jd"]
+                    else:
+                        end_jd = p["_start_jd"] + float(p["duration_days"])
+                    ey2, em2, ed2, _ = utils.jd_to_gregorian(end_jd)
+                    p["end"] = f"{int(ey2):04d}-{int(em2):02d}-{int(ed2):02d}"
+                    try:
+                        p["current"] = (p["start"] <= today.isoformat() < p["end"])
+                    except Exception:
+                        p["current"] = False
+                    del p["_start_jd"]
+                annual_dasha["periods"] = periods
+            except Exception as e:
+                print(f"Varshaphal annual-dasha error: {e}")
+
+            return {
+                "status": "success",
+                "year": year,
+                "age": age,
+                "year_entry": year_entry,
+                "lagna": lagna,
+                "planets": planets,
+                "muntha": muntha,
+                "year_lord": year_lord,
+                "sahams": sahams,
+                "tajaka_yogas": tajaka_yogas,
+                "annual_dasha": annual_dasha,
+            }
+        except Exception as e:
+            print(f"Varshaphal error: {str(e)}")
             import traceback
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
