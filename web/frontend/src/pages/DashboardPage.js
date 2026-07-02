@@ -18,6 +18,7 @@ import {
   GraduationCap,
   Wrench,
   CalendarDays,
+  Clock4,
 } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
@@ -109,6 +110,12 @@ export const DashboardPage = () => {
       icon: <GitCompareArrows size={32} />,
       path: "/compare",
       gradient: "linear-gradient(135deg, #2D3561 0%, #E27B5A 100%)",
+    },
+    {
+      key: "rectify",
+      icon: <Clock4 size={32} />,
+      path: "/rectify",
+      gradient: "linear-gradient(135deg, #E27B5A 0%, #2D3561 100%)",
     },
     {
       key: "aiTools",

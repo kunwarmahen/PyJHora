@@ -12,8 +12,9 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   Vimsottari Dhasa (+ Ashtottari/Yogini/Narayana/Kalachakra), Transits,
   Varshaphal / Tajaka annual horoscope (with year-ahead AI reading),
   an Almanac (planetary hours, eclipses, festival/vratha dates),
-  Sarvatobhadra Chakra (with layman AI reading), Compatibility, and an Advanced page
-  (Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala)
+  Sarvatobhadra Chakra (with layman AI reading), Compatibility, an Advanced page
+  (Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala), and
+  experimental Birth-Time Rectification (BV Raman śuddhi methods, with before/after charts)
 - **AI Integration**: Multi-model LLM support (Ollama/local, OpenAI-compatible, Gemini, ChatGPT)
 - **Interactive Q&A**: Chat with AI Astrologer for personalized insights
 
@@ -402,13 +403,27 @@ REACT_APP_API_TIMEOUT=30000
   drishti, with the Parashari sphuta strength (0–100%)
 - Each section loads independently and respects the selected ayanamsa
 
-### 11. Export & Share
+### 11. Birth-Time Rectification (`/rectify`) — experimental
+- Refines an uncertain recorded birth time using classical BV Raman **śuddhi** checks.
+  Three methods: **Nakshatra Śuddhi** (default; self-serve — no extra input),
+  **Lagna Śuddhi**, and **Janma Śuddhi** (needs a gender selection)
+- Searches ±30 min around the entered time and suggests the nearest time that
+  satisfies the check, with the **signed shift** in minutes
+- Shows a **what-moved** before→after summary (Moon star/pada + rising sign) and the
+  **before/after charts side by side**
+- Optional **"why this time fits"** AI reading (uses the model picked in Ask AI
+  Astrologer) and an **"Apply suggested time to this profile"** button (with confirm)
+  so the corrected time flows into every other chart
+- **Clearly framed as experimental** — a suggestion to verify against known life
+  events, never an authoritative correction (PyJHora flags these methods experimental)
+
+### 12. Export & Share
 - **Export** any chart as **PNG** or **PDF** (buttons on each chart card) — on Birth
   Chart, Compare, Transit and the shared view
 - **Share** a chart as a **public, read-only link** (`/share/:token`) — no login needed
   to view; offers a "create a free account" CTA
 
-### 12. LLM Integration (Optional)
+### 13. LLM Integration (Optional)
 - Enhanced predictions with a local Ollama model or any configured provider
 - Contextual astrological interpretations
 - Personalized analysis

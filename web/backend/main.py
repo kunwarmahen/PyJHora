@@ -149,6 +149,18 @@ class VarshaphalAnalysisRequest(BaseModel):
     api_key: Optional[str] = None
     ayanamsa: Optional[str] = None
 
+class RectifyExplainRequest(BaseModel):
+    birth_details: BirthDetails
+    method: str = "nakshatra"        # nakshatra | lagna | janma
+    gender: Optional[int] = None     # 0=male, 1=female (janma suddhi only)
+    person_name: Optional[str] = None
+    llm_provider: str = "qwen"  # legacy fallback
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    ayanamsa: Optional[str] = None
+
 # Lifecycle events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -738,6 +750,32 @@ async def get_varshaphal(
             lat=birth_details.latitude, lon=birth_details.longitude,
             tz=birth_details.timezone, ayanamsa=ayanamsa,
             dasha_system=dasha_system,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/rectify-birth-time")
+async def rectify_birth_time(
+    birth_details: BirthDetails,
+    method: str = "nakshatra",
+    gender: Optional[int] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user)
+):
+    """EXPERIMENTAL birth-time rectification (BV Raman suddhi methods). Suggests a
+    corrected birth time within +/-30 min and returns before/after chart summaries.
+    method: nakshatra | lagna | janma (janma needs gender: 0=male, 1=female)."""
+    try:
+        result = AstrologyCompute.get_birth_time_rectification(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, ayanamsa=ayanamsa,
+            method=method, gender=gender,
         )
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
@@ -1562,6 +1600,38 @@ async def analyze_varshaphal(
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_varshaphal(
             varsha_data=varsha, name=request.person_name or "this person", config=cfg,
+        )
+        return {
+            "ai_analysis": ai_analysis,
+            "provider": cfg.provider_type.value,
+            "model": cfg.model,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/rectify-birth-time/explain")
+async def explain_rectification(
+    request: RectifyExplainRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Plain-language AI note on why the suggested (rectified) birth time fits better."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        rect = AstrologyCompute.get_birth_time_rectification(
+            dob=bd.dob, tob=bd.tob, place=bd.place,
+            lat=bd.latitude, lon=bd.longitude, tz=bd.timezone,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+            method=request.method, gender=request.gender,
+        )
+        if rect.get("status") != "success":
+            raise HTTPException(status_code=400, detail=rect.get("error", "Calculation failed"))
+
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.explain_rectification(
+            rectification_data=rect, name=request.person_name or "this person", config=cfg,
         )
         return {
             "ai_analysis": ai_analysis,

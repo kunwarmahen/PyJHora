@@ -1081,6 +1081,187 @@ class AstrologyCompute:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
+    def get_birth_time_rectification(dob: str, tob: str, place: str,
+                                     lat: Optional[float] = None, lon: Optional[float] = None,
+                                     tz: Optional[float] = None,
+                                     ayanamsa: str = DEFAULT_AYANAMSA,
+                                     method: str = "nakshatra",
+                                     gender: Optional[int] = None) -> Dict:
+        """EXPERIMENTAL birth-time rectification (BV Raman suddhi methods).
+
+        PyJHora itself flags these "experimental - accuracy not guaranteed", so the
+        result is framed as a *suggestion to verify*, never an authoritative correction.
+        Nudges the entered time within +/-(step*loop) minutes until the chosen suddhi
+        check is satisfied and returns entered-vs-suggested time, the delta, which rule
+        fired, and before/after chart summaries so the caller can render both kundalis.
+
+        method: "nakshatra" (nakshatra suddhi - self-serve, no extra input),
+                "lagna" (lagna suddhi) or "janma" (janma suddhi, needs `gender`:
+                0=male, 1=female).
+        """
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+
+        method_labels = {
+            "nakshatra": "Nakshatra Suddhi",
+            "lagna": "Lagna Suddhi",
+            "janma": "Janma Suddhi",
+        }
+        if method not in method_labels:
+            return {"error": f"Unknown method '{method}'", "status": "failed"}
+        if method == "janma" and gender not in (0, 1):
+            return {"error": "Janma suddhi requires gender (0=male, 1=female)",
+                    "status": "failed"}
+
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            second = int(tp[2]) if len(tp) > 2 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz or 5.5
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+            base_fh = hour + minute / 60.0 + second / 3600.0
+            jd = swe.julday(year, month, day, base_fh)
+
+            step = float(const.birth_rectification_step_minutes)
+            loop_count = int(const.birth_rectification_loop_count)
+            window_minutes = round(step * loop_count, 2)
+
+            adjust_minutes = None   # None => could not converge within the window
+            already_ok = False
+
+            if method == "nakshatra":
+                # The engine self-derives the expected janma star from the birth-time
+                # ishtakaal and returns: 0 (already matches), a revised (h,m,s) tuple,
+                # or [rectification_required, closest_star] when it could not converge.
+                res = drik._birthtime_rectification_nakshathra_suddhi(jd, place_obj)
+                if isinstance(res, tuple):
+                    rh, rm, rs = float(res[0]), float(res[1]), float(res[2])
+                    new_fh = rh + rm / 60.0 + rs / 3600.0
+                    # The engine returns only a time-of-day (no date), so a converged
+                    # time that crossed midnight looks ~24h away. The search is bounded
+                    # to +/-window minutes, so wrap the raw diff into the nearest
+                    # +/-12h to recover the true (small) signed delta.
+                    raw = ((new_fh - base_fh) + 12.0) % 24.0 - 12.0
+                    adjust_minutes = round(raw * 60.0, 4)
+                elif isinstance(res, (int, float)) and not isinstance(res, bool):
+                    adjust_minutes = 0.0
+                    already_ok = True
+                else:
+                    adjust_minutes = None  # did not converge
+            else:
+                # lagna/janma suddhi only return a bool (True => rectification needed),
+                # so wrap them in a symmetric +/- search that mirrors the engine's own
+                # nakshatra loop (try +l, then -l; first satisfied time wins).
+                def _needs(jdx):
+                    if method == "lagna":
+                        return drik._birthtime_rectification_lagna_suddhi(jdx, place_obj)
+                    return drik._birthtime_rectification_janma_suddhi(jdx, place_obj, gender)
+
+                if not _needs(jd):
+                    adjust_minutes = 0.0
+                    already_ok = True
+                else:
+                    for l in range(1, loop_count + 1):
+                        found = False
+                        for sign in (1, -1):
+                            adj = sign * l * step
+                            if not _needs(jd + adj / 1440.0):
+                                adjust_minutes = round(adj, 4)
+                                found = True
+                                break
+                        if found:
+                            break
+
+            def _tob_str(h, m, s):
+                return f"{int(h):02d}:{int(m):02d}:{int(s):02d}"
+
+            entered = {
+                "dob": dob,
+                "tob": _tob_str(hour, minute, second),
+            }
+
+            suggested = None
+            after_chart = None
+            if adjust_minutes is not None and abs(adjust_minutes) > 1e-6:
+                jd_new = jd + adjust_minutes / 1440.0
+                ny, nm, nd, nfh = utils.jd_to_gregorian(jd_new)
+                sh, smn, ss = utils.to_dms(nfh, as_string=False)
+                suggested = {
+                    "dob": f"{int(ny):04d}-{int(nm):02d}-{int(nd):02d}",
+                    "tob": _tob_str(sh, smn, ss),
+                }
+
+            # Before/after chart summaries (reuse the birth-chart renderer so the page
+            # can draw both kundalis with the same component).
+            before_chart = AstrologyCompute.calculate_birth_chart(
+                dob, entered["tob"], place, lat, lon, tz, ayanamsa)
+            if suggested is not None:
+                after_chart = AstrologyCompute.calculate_birth_chart(
+                    suggested["dob"], suggested["tob"], place, lat, lon, tz, ayanamsa)
+
+            def _moon(chart):
+                try:
+                    m = chart["d1_chart"]["Moon"]
+                    return {"nakshatra": m.get("nakshatra"), "pada": m.get("nakshatra_pada"),
+                            "sign_name": m.get("sign_name")}
+                except Exception:
+                    return None
+
+            def _lagna(chart):
+                try:
+                    la = chart.get("lagna", {})
+                    return {"sign_name": la.get("sign_name"), "nakshatra": la.get("nakshatra"),
+                            "pada": la.get("nakshatra_pada")}
+                except Exception:
+                    return None
+
+            rectified = suggested is not None
+            if rectified:
+                note = ("Experimental suggestion - the entered time did not satisfy the "
+                        f"{method_labels[method]} check; the closest time within "
+                        f"+/-{int(window_minutes)} min that does is shown. Verify against "
+                        "known life events; this is a heuristic, not authoritative.")
+            elif already_ok:
+                note = (f"The entered time already satisfies the {method_labels[method]} "
+                        "check - no rectification suggested.")
+            else:
+                note = (f"Could not rectify within +/-{int(window_minutes)} min using "
+                        f"{method_labels[method]}. Try another method or a wider review.")
+
+            return {
+                "status": "success",
+                "experimental": True,
+                "method": method,
+                "method_label": method_labels[method],
+                "gender": gender,
+                "entered": entered,
+                "suggested": suggested,
+                "delta_minutes": adjust_minutes,
+                "rectified": rectified,
+                "already_consistent": already_ok,
+                "converged": adjust_minutes is not None,
+                "window_minutes": window_minutes,
+                "step_minutes": step,
+                "before": {"moon": _moon(before_chart), "lagna": _lagna(before_chart)},
+                "after": ({"moon": _moon(after_chart), "lagna": _lagna(after_chart)}
+                          if after_chart else None),
+                "before_chart": before_chart,
+                "after_chart": after_chart,
+                "note": note,
+            }
+        except Exception as e:
+            print(f"Birth-time rectification error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
     def get_chart_details(dob: str, tob: str, place: str,
                           lat: Optional[float] = None, lon: Optional[float] = None,
                           tz: Optional[float] = None,

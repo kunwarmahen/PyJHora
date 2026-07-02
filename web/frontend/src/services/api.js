@@ -157,6 +157,29 @@ export const astrologyService = {
       },
       { timeout: 300000 }
     ),
+  // EXPERIMENTAL birth-time rectification (BV Raman suddhi methods).
+  rectifyBirthTime: (birthDetails, method = "nakshatra", gender = null, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/rectify-birth-time", birthDetails, {
+      params: { method, ...(gender != null ? { gender } : {}), ayanamsa },
+    }),
+  // Plain-language AI note on why the suggested (rectified) time fits better.
+  explainRectificationAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/rectify-birth-time/explain",
+      {
+        birth_details: birthDetails,
+        method: opts.method || "nakshatra",
+        gender: opts.gender,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
   // Shareable read-only chart link.
   createShare: (birthDetails, ayanamsa = DEFAULT_AYANAMSA, profileName = null) =>
     api.post("/api/astrology/share", {

@@ -1462,54 +1462,52 @@ Owner decision (2026-07-02): show padas in **both the chart cells and the tables
       toggle label (en full; hi/sa fall back). Verify a known chart's padas match JHora
       (e.g. the verified True-Chitra chart), build + lint clean.
 
-### 10.2 Birth-time correction / rectification (P1) — full feature, experimental
+### 10.2 Birth-time correction / rectification (P1) — full feature, experimental — SHIPPED 2026-07-02
 
 Owner ask (2026-07-02): a birth date-time **correction** capability. The engine supports it
 (BV Raman methods) — but PyJHora **explicitly flags it "experimental — accuracy not
 guaranteed"** (`src/jhora/panchanga/README.md`, `const.py`), so this ships with a clear
 disclaimer, framed as a *suggestion to verify*, never an authoritative correction.
+Owner decisions (2026-07-02): build the **full feature** — all three methods (default
+Nakshatra), the on-demand AI reading, and the apply-to-profile button — **with disclaimer**.
 
-Engine entry points (verified to exist in `panchanga/drik.py`):
-- `_birthtime_rectification_nakshathra_suddhi(jd, place)` — nudges the time so the Moon's
-  nakshatra matches the expected/known janma star (nakshatra śuddhi).
-- `_birthtime_rectification_lagna_suddhi(jd, place)` — lagna-based refinement.
-- `_birthtime_rectification_janma_suddhi(jd, place, gender)` — janma śuddhi (needs gender).
-- Tunables: `const.birth_rectification_step_minutes` (0.25) and
-  `const.birth_rectification_loop_count` (120 steps) — i.e. it searches ±(120×0.25 min)≈±30
-  min around the entered time. (Names are underscore-prefixed → treat as semi-private; wrap
-  them, and pin the exact call signatures when implementing since they're not public API.)
+Engine entry points (verified in `panchanga/drik.py`):
+- `_birthtime_rectification_nakshathra_suddhi(jd, place)` — **self-derives** the expected
+  janma star from the birth-time ishtakaal and returns a corrected time (needs **no** known-
+  star input, contrary to the original plan's `expected_nakshatra` assumption).
+- `_birthtime_rectification_lagna_suddhi(jd, place)` and `_janma_suddhi(jd, place, gender)`
+  only return a **yes/no "correction needed"** flag — no time. So the wrapper runs its own
+  symmetric ±-search (mirroring the nakshatra loop) to produce a suggested time.
+- Tunables: `const.birth_rectification_step_minutes` (0.25) × `birth_rectification_loop_count`
+  (120) ⇒ searches ±30 min around the entered time.
 
-Owner decision (2026-07-02): build the **full feature, with disclaimer**.
-
-- [ ] **Backend** `AstrologyCompute.get_birth_time_rectification(dob, tob, place, lat, lon,
-      tz, ayanamsa, method, gender=None, expected_nakshatra=None)` → the **suggested
-      corrected time(s)**, the delta from the entered time, and *which* rule fired (nakshatra
-      / lagna / janma śuddhi). Server-injects birth details + ayanamsa and **resets global
-      state after** (same pattern as every other method). Guard the experimental methods in
-      try/except so a failure returns a clean "could not rectify" status, not a 500. Decide
-      whether to expose the search window (`step_minutes`/`loop_count`) as params or keep the
-      const defaults (start with defaults).
-- [ ] **Endpoint** `POST /api/astrology/rectify-birth-time` (auth), body carries the method,
-      optional gender + expected nakshatra. Rate-limit isn't needed (no LLM) but validate
-      inputs.
-- [ ] **Frontend** `BirthTimeRectificationPage.js` (route `/rectify`, dashboard card + drawer
-      entry — remember the drawer is hidden on desktop, so the card matters), saffron Vedic
-      style (`PageHeader`/`ProfileBanner`/`Card`). Inputs: pick a profile, choose the method
-      (nakshatra / lagna / janma śuddhi), and the method-specific extras (gender for janma;
-      known/expected janma nakshatra dropdown for nakshatra śuddhi). Output: the entered vs
-      **suggested** time, the delta, and a **prominent experimental disclaimer** (reuse the AI
-      safety-footer styling: "experimental heuristic — verify against known life events, not
-      authoritative"). Optional: a **"Apply suggested time to this profile"** button that
-      updates the profile's `tob` (with a confirm) so the corrected time flows into every
-      other chart. Show the before/after `Kundali` side-by-side so the user sees what moved
-      (Moon/Lagna are the fast movers within ±30 min).
-- [ ] **On-demand AI reading (optional):** `llm_service.explain_rectification` — a
-      jargon-light note on *why* the suggested time fits better (which nakshatra/lagna
-      boundary it snapped to), model-config aware + rate-limited, same guardrails. Lower
-      priority than the compute+display.
-- [ ] i18n `nav.rectify`, `dashboard.features.rectify`, `rectify.*` (en full; hi/sa nav+card,
-      body falls back to en). Verify a rectification round-trips on the verified True-Chitra
-      chart (entered time → suggested time within the ±30-min window, correct nakshatra);
-      build + lint clean. **Open question for owner:** default method — nakshatra śuddhi is
-      the most self-serve (only needs the known janma star); janma śuddhi needs gender + is
-      the most "predictive". Recommend defaulting to **nakshatra śuddhi**.
+- [x] **Backend** `AstrologyCompute.get_birth_time_rectification(dob, tob, place, lat, lon,
+      tz, ayanamsa, method, gender=None)` (`astrology.py`) → suggested corrected time, the
+      signed delta, which rule fired, before/after Moon & Lagna, and full before/after chart
+      summaries (reuses `calculate_birth_chart`). Server-injects birth details + ayanamsa and
+      **resets global state after**. Guards the experimental engine calls in try/except. **KEY
+      gotcha pinned:** the nakshatra engine returns only a *time-of-day* tuple (no date), so a
+      converged time that crossed midnight looks ~24 h away — the delta is wrapped into the
+      nearest ±12 h to recover the true small signed shift (the search is bounded to ±30 min).
+      janma without a gender returns a clean `failed` (→ 400), not a 500.
+- [x] **Endpoint** `POST /api/astrology/rectify-birth-time` (auth), `BirthDetails` body +
+      `method`/`gender`/`ayanamsa` query params. Returns 400 on bad input / non-success.
+- [x] **Frontend** `BirthTimeRectificationPage.js` (route `/rectify`, dashboard card + drawer
+      entry, `Clock4` icon), saffron/terracotta Vedic style. Method toggle (Nakshatra default /
+      Lagna / Janma), a gender picker shown only for Janma (not stored on the profile), chart-
+      style toggle. Output: entered-vs-suggested time + signed delta pills, a **prominent
+      experimental disclaimer** (`.readonly-banner`), a **what-moved** before→after table
+      (Moon star/pada + rising sign), the **before/after `Kundali` side-by-side**, and an
+      **"Apply suggested time to this profile"** button (confirm dialog → `updateProfile` PUT,
+      so the corrected time flows into every other chart).
+- [x] **On-demand AI reading** `llm_service.explain_rectification` + `_build_rectification_prompt`
+      (~200-250-word jargon-light note on *why* the suggested time fits + how to verify, safety
+      footer, no death/disease/precise-date), model-config aware via `_resolve_cfg` +
+      rate-limited. `POST /api/astrology/rectify-birth-time/explain` (`RectifyExplainRequest`);
+      the page's reading card uses the model picked in Ask AI Astrologer.
+- [x] i18n `nav.rectify`, `dashboard.features.rectify` (en/hi/sa) + full `rectify.*` block
+      (en; hi/sa fall back). Verified: all three methods round-trip on test charts (nakshatra
+      already-consistent on the 1990-05-15 True-Chitra chart; midnight-crossing case wraps to
+      −5.75 min correctly; janma no-gender → 400); response JSON-serializable (~3.7 kB); backend
+      imports clean + both routes registered; `npm run build` green (+3 kB); ESLint clean;
+      locale JSON valid. **Default method = Nakshatra Śuddhi** (self-serve).

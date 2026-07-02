@@ -383,6 +383,16 @@ class LLMService:
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
         return await self._complete(prompt, cfg)
 
+    async def explain_rectification(self,
+                                    rectification_data: Dict[str, Any],
+                                    name: str = "this person",
+                                    provider: LLMProvider = LLMProvider.QWEN,
+                                    config: Optional[ModelConfig] = None) -> str:
+        """Plain-language note on why the suggested (rectified) birth time fits better."""
+        prompt = self._build_rectification_prompt(rectification_data, name)
+        cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        return await self._complete(prompt, cfg)
+
     # ------------------------------------------------------------------ #
     # "Learn the Chart" — AI quiz generation + grading
     # ------------------------------------------------------------------ #
@@ -1465,6 +1475,57 @@ Write a clear, encouraging year-ahead reading (about 500 words) with these parts
 5. End with one short line of reassurance.
 
 Be specific to the factors above — do not invent anything not listed. Do NOT predict death, disease, disasters, or precise dates. Close with a brief reminder that this is for reflection and planning, not a substitute for professional advice."""
+
+    def _build_rectification_prompt(self, r: Dict[str, Any], name: str) -> str:
+        """Explain, in plain terms, why the suggested birth time fits better than
+        the entered one. The rectification (method, delta, before/after Moon &
+        Lagna) is already computed — the model only interprets it, gently, and
+        always frames it as experimental."""
+        method = r.get("method_label", r.get("method", "a suddhi check"))
+        entered = r.get("entered", {})
+        suggested = r.get("suggested") or {}
+        before = r.get("before", {}) or {}
+        after = r.get("after", {}) or {}
+        b_moon = before.get("moon") or {}
+        a_moon = after.get("moon") or {}
+        b_lagna = before.get("lagna") or {}
+        a_lagna = after.get("lagna") or {}
+        delta = r.get("delta_minutes")
+        rectified = r.get("rectified")
+
+        method_expl = {
+            "Nakshatra Suddhi": "checks the Moon's birth star (nakshatra) against the star expected from the exact birth moment (the ishtakaal), nudging the time so they agree",
+            "Lagna Suddhi": "checks the rising sign (Lagna) against the Moon and Maandi in the Rasi and Navamsa, nudging the time so the Lagna falls in a supportive relationship to them",
+            "Janma Suddhi": "checks the classical birth-time gender indication (from the ishtakaal remainder), nudging the time so it agrees with the stated gender",
+        }.get(method, "nudges the birth time so a classical consistency check is satisfied")
+
+        if rectified:
+            outcome = (f"The entered time {entered.get('tob')} did NOT satisfy the check; "
+                       f"the nearest time that does is {suggested.get('tob')} "
+                       f"(a shift of about {delta} minutes).")
+        elif r.get("already_consistent"):
+            outcome = f"The entered time {entered.get('tob')} already satisfies the check — no shift was needed."
+        else:
+            outcome = "No time within the search window satisfied the check."
+
+        return f"""You are a warm, plain-spoken Vedic astrologer explaining an EXPERIMENTAL birth-time rectification to someone with little astrology background. Avoid jargon; when you must use a term (nakshatra, lagna, ishtakaal), explain it in a few words.
+
+Birth-time rectification tries to refine an uncertain recorded birth time so the chart is internally consistent by a classical rule. This is a HEURISTIC — a suggestion to verify against real life events, never an authoritative correction.
+
+Person: {name}
+Method used: {method} — this {method_expl}.
+{outcome}
+
+What moved (fast-changing points, within the small time shift):
+- Moon star: was {b_moon.get('nakshatra')} pada {b_moon.get('pada')} ({b_moon.get('sign_name')}) → now {a_moon.get('nakshatra')} pada {a_moon.get('pada')} ({a_moon.get('sign_name')})
+- Rising sign (Lagna): was {b_lagna.get('sign_name')} (star {b_lagna.get('nakshatra')}) → now {a_lagna.get('sign_name')} (star {a_lagna.get('nakshatra')})
+
+Write a short, clear explanation (about 200-250 words) with:
+1. **What was checked** — one or two sentences on what this method looks at, in everyday language.
+2. **Why the suggested time fits better** — explain what boundary the suggested time snapped to (which star/pada or rising-sign the shift aligns), using only the before/after facts above. If nothing changed, say the entered time already looked consistent.
+3. **How to verify** — 2-3 gentle, concrete suggestions (compare against known timed life events, confirm the recorded time with family/records, try another method).
+
+Be specific to the facts above — do not invent placements. Do NOT predict death, disease, or precise future dates. End with one short line reminding that rectification is experimental and the recorded time, where reliable, should be trusted first."""
 
     def _format_planets(self, planets: Dict[str, Any]) -> str:
         """Format planetary positions for prompt"""

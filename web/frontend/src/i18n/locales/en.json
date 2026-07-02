@@ -244,7 +244,8 @@
     "closeMenu": "Close menu",
     "language": "Language",
     "varshaphal": "Varshaphal",
-    "almanac": "Almanac"
+    "almanac": "Almanac",
+    "rectify": "Rectify Time"
   },
   "aiTools": {
     "title": "AI Capabilities",
@@ -311,6 +312,10 @@
       "almanac": {
         "title": "Almanac",
         "description": "Eclipses, festival & vratha dates, and the day's planetary hours (hora)"
+      },
+      "rectify": {
+        "title": "Birth-Time Rectification",
+        "description": "Experimental — refine an uncertain birth time by a classical suddhi check, with before/after charts."
       }
     }
   },
@@ -663,5 +668,51 @@
     "disclaimer": "For reflection and planning only — not a substitute for professional advice. No death, disease or precise-date predictions.",
     "loading": "Casting the annual chart…",
     "calcError": "Could not compute the Varshaphal chart."
+  },
+  "rectify": {
+    "title": "Birth-Time Rectification",
+    "subtitle": "Refine an uncertain birth time (experimental)",
+    "experimental": "Experimental heuristic — birth-time rectification is a suggestion to verify against known life events, not an authoritative correction. Where the recorded time is reliable, trust it first.",
+    "method": "Method",
+    "methodNakshatra": "Nakshatra Śuddhi",
+    "methodLagna": "Lagna Śuddhi",
+    "methodJanma": "Janma Śuddhi",
+    "methodDesc": {
+      "nakshatra": "Checks the Moon's birth star against the star expected from the exact birth moment, and nudges the time (±30 min) so they agree. Needs no extra input.",
+      "lagna": "Checks the rising sign (Lagna) against the Moon and Maandi in the Rasi and Navamsa, nudging the time so the Lagna sits in a supportive relationship.",
+      "janma": "Checks the classical birth-time gender indication and nudges the time so it agrees with the stated gender. Requires selecting a gender."
+    },
+    "gender": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "genderPrompt": "Select a gender above to run Janma Śuddhi.",
+    "loading": "Rectifying birth time…",
+    "calcError": "Could not rectify the birth time.",
+    "entered": "Entered",
+    "suggested": "Suggested",
+    "delta": "Shift",
+    "minutes": "min",
+    "alreadyConsistent": "Entered time already consistent — no change suggested",
+    "notConverged": "No better time found within the search window",
+    "whatMoved": "What moved (fast-changing points)",
+    "moonStar": "Moon star",
+    "pada": "pada",
+    "risingSign": "Rising sign (Lagna)",
+    "apply": "Apply suggested time to this profile",
+    "applying": "Applying…",
+    "applied": "Applied — the corrected time now flows into every other chart.",
+    "applyNote": "This updates the saved profile's birth time. Other charts will use the corrected time.",
+    "applyConfirm": "Update this profile's birth time to {{time}}? This affects every chart computed from it.",
+    "applyError": "Could not update the profile.",
+    "chartEntered": "Entered time",
+    "chartSuggested": "Suggested time",
+    "aiTitle": "Why this time fits (AI)",
+    "aiHint": "Get a plain-language note on why the suggested time fits better and how to verify it.",
+    "aiLoading": "Writing the explanation…",
+    "aiModel": "Answered by {{model}}",
+    "aiGenerate": "Explain the suggested time",
+    "aiRegenerate": "Regenerate explanation",
+    "aiError": "Could not generate the explanation.",
+    "disclaimer": "AI guidance for reflection only — rectification is experimental and not a substitute for verified birth records or professional advice."
   }
 }
