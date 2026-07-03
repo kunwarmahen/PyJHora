@@ -322,9 +322,10 @@ web exposes. High-value additions:
       Person 2 picked from a dropdown; computes both charts (reusing `calculateBirthChart`
       at the selected ayanamsa) and shows the two Kundalis side by side + a placements
       table (Lagna/Moon/Sun + all 9 grahas) with shared-sign rows highlighted.
-- [ ] 🔴 **AI astrologer upgrades** (P1): see the dedicated plan in **§8** below
+- [x] **AI astrologer upgrades** (P1): see the dedicated plan in **§8** below
       (model selection, varga context, saved history, full dasha tree, streaming,
-      multi-turn, richer context). Supersedes this one-liner.
+      multi-turn, richer context). Supersedes this one-liner. DONE — all of §8.1–§8.9
+      shipped (2026-06-28 → 2026-06-30); this umbrella item was stale, ticked 2026-07-03.
 - [x] **Multi-language / Sanskrit term glossary tooltips** (P2). Glossary tooltips DONE
       2026-06-28: `constants/glossary.js` (~30 Jyotish terms) + a reusable `<GlossaryTerm>`
       (dotted underline, hover/tap/focus popover, case-insensitive lookup, renders plainly
@@ -366,7 +367,8 @@ web exposes. High-value additions:
           Sanskrit. Recommended: (A) for names, leave free-text/AI English (AI already
           answers in whatever language the user asks). Tracked as its own item below.
 
-- [ ] 🔴 **Localize engine-returned chart-data names (i18n data layer)** (P2). The UI chrome is
+- [ ] 🔴 **Localize engine-returned chart-data names (i18n data layer)** (P3 — DEPRIORITIZED
+      per owner 2026-07-03; do this LAST, after Settings/auth/redesign/new-features). The UI chrome is
       fully translated (en/hi/sa, see above), but values that come back from the backend are
       still English: planet / sign / nakshatra / yoga / dosha / koota / dhasa-lord names (plus
       panchanga limb *values* and AI answers). **Plan — Option A (frontend mapping), recommended
@@ -769,8 +771,17 @@ clean status/dict — thin JSON-schema wrappers, minimal new surface.
       still auto-falls back to the JSON protocol. Converters unit-tested against the
       verified v1beta REST shape; live round-trip not yet run here (no Gemini key in
       this env) — verify in-app with a real key.
-- [ ] 🔴 FOLLOW-UP: localize the new frontend strings (Answer mode card + step labels
-      use English literals for now — see §5 i18n).
+- [x] FOLLOW-UP: localize the new frontend strings (Answer mode card + step labels).
+      DONE 2026-07-03: added a batch of `ask.*` i18n keys (en) covering the **Answer mode**
+      card (heading/hint/locked-hint + "Full context"/"Smart lookup"), the **Context sections**
+      tri-state card (heading, both hints, per-section labels via `labelKey`, and the
+      Seed/Tool/Off state pills + "Click to change" title), the **Behind the scenes** trace
+      timeline ("Starting summary sent to the AI", "view what was sent", "Looked up {{tool}}"
+      with interpolation, "view data", "Writing the answer…"/"Wrote the answer above"), and the
+      varga **"Suggested charts:"** hint. `CONTEXT_SECTIONS` now carries `labelKey` (module-level,
+      translated at render via `t()`). hi/sa fall back to en (`fallbackLng:"en"`), matching the
+      recent-feature pattern. Tool names themselves (`fmtTool` output) stay English (data layer,
+      see the deprioritized item below). ESLint clean, prod build green.
 - [x] FOLLOW-UP: explicit tri-state seed/tool/off per section. DONE 2026-06-30: each
       context section is now Seed (pre-sent in the prompt), Tool (the AI fetches it on
       demand in Smart-lookup mode) or Off (excluded entirely). Backend:
@@ -1723,3 +1734,146 @@ The six §9.6 items, owner-approved for a full build — **all SHIPPED 2026-07-0
       retrograde now=[Mercury,Rahu,Ketu] + 240-pt loops; panchanga SS + hijri 1448 Muharram 17.
       Prompt builders assemble (~2.9k / ~1.3k chars). `CI=true` build green (+4.9 kB), ESLint
       clean, locale JSON valid. 22 tools total.
+
+---
+
+## 12. Settings page — single source of truth (P1, owner ask 2026-07-03)
+
+Decision (owner 2026-07-03): **move ALL scattered controls into one Settings page** and
+**remove the per-page copies** (single source of truth, not central-defaults-with-overrides).
+Today these live as per-page dropdowns/toggles persisted ad-hoc in `localStorage`:
+- **AI model/provider** (`ai_provider_type`, `ai_model`, `ai_base_url`, endpoint override) — Ask page.
+- **AI context config**: Answer mode (`ai_mode`), Context sections tri-state (`ai_sections`),
+  vargas to consult (`ai_vargas`) — Ask page.
+- **Ayanamsa** (`ayanamsa`) — Birth Chart + threaded through most pages.
+- **Chart style** North/South (`chart_style`) — Birth Chart / Transit / Compare / Varshaphal / etc.
+- **Language** (`lang`) — LanguageSwitcher (Dashboard navbar + PageHeader).
+- **Almanac engine** (`panchanga_system`), **varsha dasha system** (`varsha_dasha`), **aspects-on-chart** toggle, etc.
+- **Per-user API keys** (already a modal on Ask; move into Settings → "AI & API Keys").
+
+Plan:
+- [ ] 🔴 **New `SettingsPage.js`** (route `/settings`, gear icon in the Dashboard navbar +
+      NavDrawer). Tabbed/sectioned: **General** (language, default chart style N/S, ayanamsa,
+      node type mean/true), **AI** (provider + model + endpoint, Answer mode default, Context
+      sections tri-state, default vargas), **AI & API keys** (fold in the existing per-user
+      encrypted-key modal), **Almanac** (Drik/Surya-Siddhanta engine), **Account** (→ §13).
+- [ ] 🔴 Centralize the settings state: a `SettingsContext` (or a small `useSettings` hook over
+      `localStorage`) that every page reads, so a change in Settings takes effect app-wide.
+      Migrate existing `localStorage` keys (keep the same keys for backward-compat, just move
+      the UI that writes them).
+- [ ] 🔴 **Remove the per-page controls** now that Settings owns them (the ayanamsa dropdown,
+      chart-style toggle, AI model/mode/sections/varga cards on Ask, API-keys modal, almanac
+      engine toggle). Pages become read-only consumers of the settings. (Confirm with owner
+      whether a couple of high-frequency toggles — e.g. chart-style N/S, transit date — should
+      stay inline as convenience; default per decision = move everything.)
+- [ ] 🔴 i18n `settings.*` (en; hi/sa fall back). Persist server-side later if we want
+      cross-device sync (optional; localStorage is fine for v1 except API keys which are already
+      server-side per user).
+
+## 13. User account & auth improvements (P1, owner ask 2026-07-03)
+
+**Root cause of frequent logout (found 2026-07-03):** `config.py:ACCESS_TOKEN_EXPIRE_MINUTES = 30`
+and there is **no refresh token** — the JWT simply dies after 30 min and the app kicks you to
+login. Decision: **refresh tokens + "Remember me"** (owner pick).
+
+Plan:
+- [ ] 🔴 **Refresh-token flow** (backend): issue a short-lived **access token** (~15–30 min) +
+      a long-lived **refresh token** (e.g. 30 days, or 7 days without "Remember me"). Store refresh
+      tokens server-side (a `refresh_tokens` collection or a hashed token on the user) so they can
+      be **revoked** on logout / password change. New endpoints `POST /api/auth/refresh` and
+      `POST /api/auth/logout` (revoke). Rotate the refresh token on each use (detect reuse →
+      revoke the family).
+- [ ] 🔴 **"Remember me" checkbox** on Login → controls refresh-token TTL (30d vs session-ish).
+- [ ] 🔴 **Frontend silent refresh**: an axios response interceptor in `services/api.js` that, on
+      a 401, transparently calls `/auth/refresh` once and retries the request; only bounce to
+      login when the refresh itself fails. Store the access token in memory + refresh token in a
+      secure httpOnly cookie if we move that way (or localStorage for v1 — note the XSS tradeoff).
+      This alone kills the "logged out every 30 min" pain.
+- [ ] 🔴 **Change password** (logged-in): `POST /api/auth/change-password` (verify current →
+      set new, revoke other sessions) + a form in Settings → Account.
+- [ ] 🔴 **Profile/account management**: view account (email/username), **update email**, **delete
+      account** (cascade: profiles, conversations, traces, shares, settings). Some CRUD for the
+      birth-profiles already exists (ProfileSelection) — audit and surface consistently.
+- [ ] 🔴 (P2) **Forgot / reset password** via email — needs an email/SMTP integration
+      (transactional email). Park until an email provider is chosen.
+- [ ] 🔴 (P2) Optional niceties: session list / "log out other devices", basic rate-limit on
+      login to blunt brute-force, password-strength hint on register.
+
+## 14. Layman FAQ / Help page (P1, owner ask 2026-07-03)
+
+A friendly, jargon-light FAQ so a non-astrologer understands what the app does and how to use it.
+- [ ] 🔴 **`HelpPage.js` / FAQ** (route `/help` or `/faq`, "?" in navbar + drawer): plain-language
+      Q&A grouped by area — *Getting started* (what's a birth chart, why time/place matter),
+      *Reading your chart* (Rasi vs Navamsa, North vs South, what a house/planet/nakshatra means),
+      *Features tour* (Dhasa, Transits, Varshaphal, Compatibility, Almanac, Sensitive Points,
+      Vedic Clock, Rectification — one short blurb + link each), *The AI astrologer* (Full context
+      vs Smart lookup, what data it sees, the disclaimer), *Privacy & accounts* (what's stored,
+      sharing links, API keys), and a *Glossary* pointer (reuse `constants/glossary.js`).
+- [ ] 🔴 Keep it maintainable: drive from a structured `faq.*` i18n block (or an MDX/JSON content
+      file) so entries are easy to add. en first; hi/sa fall back.
+- [ ] 🔴 (Optional) contextual "?" links from each feature page into the relevant FAQ anchor.
+
+## 15. UI redesign — compact density + tabs (P1, owner ask 2026-07-03) — MOCK FIRST
+
+Owner feedback: tiles/cards and their content are **too big**; wants a **more compact** layout and
+**tabbed sections** (e.g. one page with tabs for *Nakshatra Information*, *Panchanga*, *Yogas/Doshas*,
+etc.), and busy pages **tabbed on desktop**. **Keep the saffron/cream Vedic identity** (no wholesale
+re-theme — owner reaffirmed the existing look).
+
+**Process (owner directive 2026-07-03): build a MOCK first, get it verified, THEN do the real
+implementation.** Do not start converting real pages until the mock is approved.
+- [ ] 🔴 **Density/compact pass (mock)**: a static mock (HTML/Artifact or a throwaway `/mockup`
+      route) showing the reduced scale — smaller card padding, tighter type ramp, denser tables,
+      smaller tiles — on 1–2 representative pages (Birth Chart + Dashboard) in the saffron palette.
+- [ ] 🔴 **Tabbed layout (mock)**: show the tab pattern — e.g. Birth Chart page with tabs
+      *Chart* / *Nakshatra & Lagna* / *Panchanga* / *Yogas & Doshas* / *Aspects* / *Advanced*
+      instead of one long scroll; desktop = horizontal tabs, mobile = stacked/accordion.
+- [ ] 🔴 **Owner verifies the mock** → capture decisions (exact scale, which pages get tabs, which
+      panels group under which tab).
+- [ ] 🔴 **Real implementation** (only after sign-off): a reusable `<Tabs>` component + a compact
+      CSS scale (tighten the shared `.ui-card`/`.data-table`/spacing tokens in `Shared.css`),
+      rolled page-by-page. Preserve all existing functionality, i18n, and the saffron identity.
+      Verify prod build + mobile reflow after each page.
+
+## 16. New feature ideas — engine-grounded backlog (P1/P2, owner ask 2026-07-03)
+
+Owner prioritized (2026-07-03): **Muhurta, Prashna, Daily digest/notifications, KP** first; the rest
+are the fuller brainstorm. All are grounded in what `src/jhora/...` already supports (audit engine
+entry points before building each, same pattern as §9/§11: thin `AstrologyCompute` method that
+server-injects birth details + resets global state, auth endpoint, saffron page, on-demand AI via
+`_resolve_cfg`, i18n, and a §8.9 smart-lookup tool).
+
+**Prioritized (owner pick):**
+- [ ] 🔴 **Muhurta / electional astrology** (P1) — find auspicious windows for an activity
+      (marriage, travel, business start, housewarming) over a date range, from the Panchanga
+      (tithi/nakshatra/yoga/karana + avoid Rahu-Kalam/Yamaganda/Gulika, honour Abhijit and
+      benefic horas). Engine: `panchanga/vratha.py` finders + the existing planetary-hours/
+      muhurta helpers we already use in the Almanac. New page + "best times" list + AI rationale.
+- [ ] 🔴 **Prashna / horary** (P1) — cast a chart for the *moment a question is asked* (no birth
+      data), read it for a yes/no/timing answer. Reuses the natal compute at "now + current
+      location"; add a Prashna-flavored AI prompt. Simple, high wow-factor.
+- [ ] 🔴 **Daily digest & notifications** (P1) — a personalized daily card: today's panchanga +
+      any dasha-change / major transit (Sade-Sati, Jupiter transit, retrograde stations) relevant
+      to the user's chart. Delivery: in-app "Today" panel first; then **PWA push** and/or **email**
+      (needs the email provider from §13). Could reuse the `/schedule` (cron) infra conceptually.
+- [ ] 🔴 **KP system (Krishnamurti Paddhati)** (P2→P1) — sub-lords, star-lord, ruling planets,
+      significators, KP horary (1–249). Engine has KP ayanamsa + likely sub-lord helpers (audit
+      `src/jhora` for KP/sublord). A dedicated KP page + significator tables + AI reading.
+
+**Fuller brainstorm (P2, unprioritized — pick as capacity allows):**
+- [ ] 🔴 **Muhurta sub-tools**: Tarabala/Chandrabala, Panchaka, choghadiya — small additions to Muhurta.
+- [ ] 🔴 **Bhava/house-cusp chart (Sripati/Placidus)** if the engine exposes bhava madhya — a
+      cusp-based house chart alongside the whole-sign one.
+- [ ] 🔴 **Jaimini deep-dive** (Chara dasha already exists elsewhere): Arudha-based reasoning page,
+      Karakamsa/Swamsa, Jaimini aspects — surface more of the Jaimini toolkit.
+- [ ] 🔴 **Nadi / Bhrigu-style yearly markers** if any engine support exists (else skip).
+- [ ] 🔴 **Transit calendar / ephemeris view** — a month/year timeline of ingresses, retrogrades,
+      eclipses, and personal dasha changes (builds on §9.2 eclipse/vratha finders + transits).
+- [ ] 🔴 **Remedies suggestions** (gemstones/mantras/deities per weak planet) — clearly-labelled
+      as traditional-guidance-not-advice; drive from dignity/shadbala already computed.
+- [ ] 🔴 **Print-ready "full report" PDF** — one polished multi-page document bundling chart +
+      dashas + yogas/doshas + a narrative AI reading (extends the existing PNG/PDF export).
+- [ ] 🔴 **Chart-of-the-moment / "now" chart** widget on the Dashboard (current sky), tapping
+      the transit compute already built.
+- [ ] 🔴 **Compatibility upgrades**: Kuja-dosha cancellation nuances, Rajju/Vedha detail, and a
+      combined Ashtakoot + Dashakoota view.

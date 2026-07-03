@@ -43,14 +43,14 @@ import "../styles/Chat.css";
 // "Full context" mode each is On (seeded) or Off; in "Smart lookup" mode each is
 // tri-state: Seed (pre-sent), Tool (the AI fetches it on demand) or Off.
 const CONTEXT_SECTIONS = [
-  { key: "dasha_tree", label: "Dasha chain" },
-  { key: "yogas", label: "Yogas" },
-  { key: "doshas", label: "Doshas" },
-  { key: "transits", label: "Transits" },
-  { key: "aspects", label: "Aspects (drishti)" },
-  { key: "arudhas", label: "Arudha padas (AL/UL)" },
-  { key: "ashtakavarga", label: "Ashtakavarga" },
-  { key: "shadbala", label: "Shadbala" },
+  { key: "dasha_tree", labelKey: "ask.sectionDashaTree" },
+  { key: "yogas", labelKey: "ask.sectionYogas" },
+  { key: "doshas", labelKey: "ask.sectionDoshas" },
+  { key: "transits", labelKey: "ask.sectionTransits" },
+  { key: "aspects", labelKey: "ask.sectionAspects" },
+  { key: "arudhas", labelKey: "ask.sectionArudhas" },
+  { key: "ashtakavarga", labelKey: "ask.sectionAshtakavarga" },
+  { key: "shadbala", labelKey: "ask.sectionShadbala" },
 ];
 
 // Default tri-state for Smart-lookup mode: seed the natal base + dasha chain,
@@ -1215,17 +1215,15 @@ export const AskAstrologerPage = () => {
           <div className="ask-card">
             <h3 className="ask-card__header ask-card__header--tight">
               <Wrench size={20} />
-              Answer mode
+              {t("ask.answerMode")}
             </h3>
             <p className="ask-card__hint">
-              {modeLocked
-                ? "This conversation's mode is fixed. Start a new conversation to switch."
-                : "Full context sends the whole chart up front. Smart lookup sends a starting summary (the charts selected below) and lets the AI pull in extra details by itself as it answers."}
+              {modeLocked ? t("ask.modeLockedHint") : t("ask.modeHint")}
             </p>
             <div className="ask-toggle-row">
               {[
-                { val: "pass_all", label: "Full context" },
-                { val: "tools", label: "Smart lookup" },
+                { val: "pass_all", label: t("ask.modeFullContext") },
+                { val: "tools", label: t("ask.modeSmartLookup") },
               ].map((o) => {
                 const active = mode === o.val;
                 return (
@@ -1248,12 +1246,10 @@ export const AskAstrologerPage = () => {
           <div className="ask-card">
             <h3 className="ask-card__header ask-card__header--tight">
               <Wrench size={20} />
-              Context sections
+              {t("ask.contextSections")}
             </h3>
             <p className="ask-card__hint">
-              {mode === "tools"
-                ? "Per section: Seed sends it up front, Tool lets the AI fetch it on demand, Off excludes it. Natal chart + dasha are always available."
-                : "Toggle which chart sections are sent to the AI. (Switch to Smart lookup for on-demand fetching.)"}
+              {mode === "tools" ? t("ask.sectionsHintTools") : t("ask.sectionsHintFull")}
             </p>
             <div className="ask-section-list">
               {CONTEXT_SECTIONS.map((s) => {
@@ -1266,11 +1262,15 @@ export const AskAstrologerPage = () => {
                     type="button"
                     className={`ask-section-row ask-section-row--${state}`}
                     onClick={() => cycleSection(s.key)}
-                    title="Click to change"
+                    title={t("ask.clickToChange")}
                   >
-                    <span className="ask-section-row__label">{s.label}</span>
+                    <span className="ask-section-row__label">{t(s.labelKey)}</span>
                     <span className={`ask-section-row__state ask-section-row__state--${state}`}>
-                      {state === "seed" ? "Seed" : state === "tool" ? "Tool" : "Off"}
+                      {state === "seed"
+                        ? t("ask.stateSeed")
+                        : state === "tool"
+                          ? t("ask.stateTool")
+                          : t("ask.stateOff")}
                     </span>
                   </button>
                 );
@@ -1416,7 +1416,7 @@ export const AskAstrologerPage = () => {
                               className="tool-trace-toggle"
                               onClick={() => toggleTrace(index, message)}
                             >
-                              {openTrace[index] ? "▾" : "▸"} Behind the scenes
+                              {openTrace[index] ? "▾" : "▸"} {t("ask.behindTheScenes")}
                             </button>
                           )}
                         </div>
@@ -1432,14 +1432,14 @@ export const AskAstrologerPage = () => {
                               dotBg="var(--saffron, #e08a2c)"
                               dotBorder="var(--saffron, #e08a2c)"
                             >
-                              <div className="trace-label">Starting summary sent to the AI</div>
+                              <div className="trace-label">{t("ask.traceSeedSummary")}</div>
                               {(message.context || message.mode === "tools") && (
                                 <button
                                   type="button"
                                   className="trace-link"
                                   onClick={() => openInfo(messageInfo(message))}
                                 >
-                                  view what was sent
+                                  {t("ask.traceViewWhatSent")}
                                 </button>
                               )}
                             </TraceNode>
@@ -1471,7 +1471,7 @@ export const AskAstrologerPage = () => {
                                   dotBorder={s.ok === false ? "#c0392b" : "var(--saffron, #e08a2c)"}
                                 >
                                   <div className="trace-label">
-                                    Looked up {fmtTool(s.name)}
+                                    {t("ask.traceLookedUp", { tool: fmtTool(s.name) })}
                                     {s.args && Object.keys(s.args).length ? (
                                       <span className="trace-label__args">
                                         {" "}
@@ -1483,7 +1483,7 @@ export const AskAstrologerPage = () => {
                                   </div>
                                   {s.result !== undefined && (
                                     <details className="trace-data">
-                                      <summary className="trace-data__summary">view data</summary>
+                                      <summary className="trace-data__summary">{t("ask.traceViewData")}</summary>
                                       <pre className="trace-data__pre">
                                         {JSON.stringify(s.result, null, 2)}
                                       </pre>
@@ -1502,8 +1502,8 @@ export const AskAstrologerPage = () => {
                             >
                               <div className="trace-label">
                                 {message.streaming
-                                  ? "Writing the answer…"
-                                  : "Wrote the answer above"}
+                                  ? t("ask.traceWriting")
+                                  : t("ask.traceWroteAnswer")}
                               </div>
                             </TraceNode>
                           </div>
@@ -1622,7 +1622,7 @@ export const AskAstrologerPage = () => {
 
           {vargaSuggestions.length > 0 && (
             <div className="varga-suggest-row">
-              <span className="varga-suggest-row__hint">Suggested charts:</span>
+              <span className="varga-suggest-row__hint">{t("ask.suggestedCharts")}</span>
               {vargaSuggestions.map((v) => (
                 <button
                   key={v.value}
