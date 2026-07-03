@@ -231,8 +231,9 @@ export const DailyDigestPage = () => {
                 </h3>
                 {transits.sade_sati && <p className="digest-hl digest-hl--warn">{t("digest.sadeSati")}</p>}
                 {transits.retrograde?.length > 0 && (
-                  <p className="text-secondary">
-                    {t("digest.retrograde")}: {transits.retrograde.join(", ")}
+                  <p className="digest-retro">
+                    <span className="kv-label">{t("digest.retrograde")}:</span>{" "}
+                    {transits.retrograde.join(", ")}
                   </p>
                 )}
                 {transits.upcoming?.length > 0 && (

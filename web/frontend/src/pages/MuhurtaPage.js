@@ -149,7 +149,7 @@ export const MuhurtaPage = () => {
           <div className="controls-group">
             <label className="control-label">{t("muhurta.activity")}</label>
             <select
-              className="form-select"
+              className="control-input"
               value={activity}
               onChange={(e) => setActivity(e.target.value)}
             >

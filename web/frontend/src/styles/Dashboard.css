@@ -1726,3 +1726,11 @@
 .digest-details .kv-value {
   text-align: right;
 }
+.digest-retro {
+  margin: 0.65rem 0;
+  color: var(--cosmic-indigo, #2D3561);
+  font-weight: 600;
+}
+.digest-retro .kv-label {
+  margin-right: 0.35rem;
+}
