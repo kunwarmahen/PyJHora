@@ -1779,6 +1779,32 @@
   letter-spacing: 0.03em;
   color: var(--text-secondary, #7a6a52);
 }
+.bhrigu-activation-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.bhrigu-activation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border-color, #e7dccb);
+  border-left: 4px solid var(--saffron, #FF9933);
+  border-radius: 8px;
+  background: var(--card-bg, #fffaf2);
+}
+.bhrigu-activation__date {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  min-width: 96px;
+  color: var(--cosmic-indigo, #2D3561);
+}
+.bhrigu-activation__text { font-size: 0.9rem; }
 
 /* ── Remedies ─────────────────────────────────────────────────────────────── */
 .rem-grid {

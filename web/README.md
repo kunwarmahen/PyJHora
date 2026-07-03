@@ -14,10 +14,14 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   an Almanac (planetary hours, eclipses, festival/vratha dates, a Drik ⇄ Surya-Siddhanta
   engine toggle, the Hijri date, and an AI day-guide),
   Pancha Pakshi Sastra (bird-cycle day timing, with AI day-guide),
-  Muhurta / electional astrology (auspicious windows for an activity, with AI rationale),
+  Muhurta / electional astrology (auspicious windows for an activity, with AI rationale,
+  plus day sub-tools: Choghadiya, Panchaka, Tarabala & Chandrabala),
   Prashna / horary (a chart for the moment you ask, with a horary AI reading),
   a personalized daily digest ("Today" — panchanga + dasha + transits, with email & push
   notifications),
+  Bhrigu / Nadi-style yearly markers (the Moon-based annual progression + Bhrigu Bindu
+  activations, with AI reading),
+  Remedies (traditional gemstone / mantra / deity suggestions per weak planet),
   Sensitive Points (Sphutas, the 36 Sahams, and Argala — with AI reading),
   a Vedic Clock & Retrograde page (a live ghati/vighati clock + vakra-gathi retrograde
   loops, with AI reading),
@@ -573,6 +577,10 @@ Three approaches, chosen with a mode toggle:
   (Moon/Mercury/Jupiter/Venus) that avoid Rahu-Kalam / Yamaganda / Gulika
 - Ranked best-windows list + a day-by-day rating grid + an **AI rationale**, and a smart-lookup
   **tool** (`get_muhurta`) so the astrologer can answer "when is a good time to…"
+- **Day sub-tools** (a "Day tools" section, pick any day): the **Choghadiya** table (8 day + 8
+  night parts, each good/neutral/bad with a "now" marker), the **Panchaka** status, and — using
+  your profile's natal Moon — your personal **Tarabala** (the tara from your birth star to the
+  day's star) and **Chandrabala** (the transit Moon counted from your natal Moon)
 
 ### 16. Prashna / Horary (`/prashna`)
 - Ask a question and cast a chart for the **exact moment you ask** — no birth data needed
@@ -593,13 +601,34 @@ Three approaches, chosen with a mode toggle:
   (`notifications.last_sent_date`). Or leave it off and point your own cron at
   `POST /api/notifications/digest/send` per user (both share `digest.send_digest_for_user`)
 
-### 18. Export & Share
+### 18. Bhrigu / Nadi Yearly Markers (`/bhrigu-markers`)
+- Two clearly-labelled traditional predictive devices for a birth chart:
+  - **Nadi annual progression** — the one-sign-per-year advance from the natal Moon (age 0 = Moon
+    sign); each year's marker sign + its lord + the natal planets sitting there (Bhrigu-Bindu and
+    Moon-sign years flagged)
+  - **Bhrigu Bindu activations** — the natal Bhrigu Bindu (the Rahu–Moon midpoint, with its sign /
+    degree / house from the Lagna) plus the next **Jupiter & Saturn** transits into the Bhrigu-Bindu
+    and Moon signs — the turning-point trigger dates
+- Horizon picker (8 / 12 / 20 / 30 years) + an **AI reading**. Framed as an indicative aid, not a
+  fated forecast
+
+### 19. Remedies (`/remedies`)
+- Traditional **remedial suggestions per weak / afflicted planet**. A planet is flagged when it is
+  **debilitated**, **shadbala-deficient** (six-fold strength ratio < 1.0), or in a **dusthana**
+  (6th/8th/12th from the Lagna)
+- For each flagged graha: the classical **gemstone**, **beeja mantra** (+ japa count), presiding
+  **deity**, **weekday**, **charity (daana)** and **colour**, plus a per-planet dignity & strength
+  overview and an **AI reading**
+- Clearly labelled **traditional guidance & devotional practice — not medical, legal or financial
+  advice**; gemstones should be worn only after qualified consultation
+
+### 20. Export & Share
 - **Export** any chart as **PNG** or **PDF** (buttons on each chart card) — on Birth
   Chart, Compare, Transit and the shared view
 - **Share** a chart as a **public, read-only link** (`/share/:token`) — no login needed
   to view; offers a "create a free account" CTA
 
-### 19. LLM Integration (Optional)
+### 21. LLM Integration (Optional)
 - Enhanced predictions with a local Ollama model or any configured provider
 - Contextual astrological interpretations
 - Personalized analysis

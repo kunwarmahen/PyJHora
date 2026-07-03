@@ -218,11 +218,13 @@ export const BhriguMarkersPage = () => {
               {activations.length === 0 ? (
                 <p className="card-note">{t("bhrigu.noActivations")}</p>
               ) : (
-                <ul className="detail-list">
+                <ul className="bhrigu-activation-list">
                   {activations.map((a, i) => (
-                    <li key={i}>
-                      <span className="kv-label">{formatDate(a.date, locale)}</span>
-                      <span className="kv-value">
+                    <li key={i} className="bhrigu-activation">
+                      <span className="bhrigu-activation__date">
+                        {formatDate(a.date, locale)}
+                      </span>
+                      <span className="bhrigu-activation__text">
                         {t("bhrigu.activationRow", {
                           planet: a.planet,
                           sign: a.sign_name,

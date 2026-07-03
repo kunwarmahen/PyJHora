@@ -2032,6 +2032,13 @@ server-injects birth details + resets global state, auth endpoint, saffron page,
       fated forecast). Frontend `BhriguMarkersPage` (route `/bhrigu-markers`, card + drawer, `Waypoints`):
       horizon picker (8/12/20/30 yrs), BB info pills, progression grid, activations list, AI reading.
       New constant `RASI_LORDS`. i18n `bhrigu.*` (en; hi/sa nav+card labels).
+      FIX 2026-07-03: the activations used `drik.next_planet_entry_date` which micro-steps 0.01 day —
+      finding Saturn's *next* entry into a sign it just left scanned ~29 yrs (~12 s/call, ~20-30 s for
+      the 4 calls) → intermittent request timeout ("Couldn't compute the markers"). Replaced with a
+      local coarse-scan (1-day steps, safe for slow grahas <0.25°/day) + bisection to the hour, capped
+      at one Saturn cycle (~36 yr); ~0.2 s/request now, dates verified identical to the old engine. Also
+      fixed the activations-list formatting (date + text ran together — the `.detail-list`/`.kv-*` combo
+      didn't space `<li>` children) with a dedicated `.bhrigu-activation` flex row.
 - [ ] 🔴 **Transit calendar / ephemeris view** — a month/year timeline of ingresses, retrogrades,
       eclipses, and personal dasha changes (builds on §9.2 eclipse/vratha finders + transits).
 - [x] **Remedies suggestions** (gemstones/mantras/deities per weak planet). DONE 2026-07-03:
