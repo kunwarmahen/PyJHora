@@ -283,6 +283,23 @@ def _vedic_clock(bd, ayanamsa, date: Optional[str] = None, **_):
             "current_hora": r.get("current_hora"), "panchanga": r.get("panchanga")}
 
 
+def _muhurta(bd, ayanamsa, activity: str = "general",
+             start_date: Optional[str] = None, end_date: Optional[str] = None, **_):
+    a = _args(bd)
+    r = AstrologyCompute.get_muhurta(
+        activity=activity, start_date=start_date, end_date=end_date,
+        place=a["place"], lat=a["lat"], lon=a["lon"], tz=a["tz"])
+    if r.get("status") != "success":
+        return r
+    return {
+        "activity": r.get("activity"),
+        "activity_label": r.get("activity_label"),
+        "start_date": r.get("start_date"),
+        "end_date": r.get("end_date"),
+        "best_windows": r.get("best_windows", [])[:8],
+    }
+
+
 def _retrograde(bd, ayanamsa, date: Optional[str] = None, **_):
     a = _args(bd)
     r = AstrologyCompute.get_retrograde(date=date, place=a["place"],
@@ -512,6 +529,25 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _vedic_clock,
     ),
     _Tool(
+        "get_muhurta",
+        "Muhurta (electional astrology): auspicious time windows for an activity over "
+        "a date range at the birth place. activity ∈ general|marriage|travel|business|"
+        "housewarming|education|medical. Returns ranked best windows (date + clock time) "
+        "with the nakshatra/tithi/hora reason, avoiding Rahu Kalam/Yamaganda/Gulika. Use "
+        "for 'when is a good time to <do X>' questions.",
+        {"type": "object", "properties": {
+            "activity": {"type": "string",
+                         "enum": ["general", "marriage", "travel", "business",
+                                  "housewarming", "education", "medical"],
+                         "description": "The activity to time."},
+            "start_date": {"type": "string",
+                           "description": "Range start YYYY-MM-DD; defaults to today."},
+            "end_date": {"type": "string",
+                         "description": "Range end YYYY-MM-DD; defaults to +14 days."}},
+         "required": []},
+        _muhurta,
+    ),
+    _Tool(
         "get_retrograde",
         "Retrograde (Vakra) status now (or a given date): which grahas are retrograde "
         "and the next station (direction-change) dates for Mars/Mercury/Jupiter/Venus/"
@@ -550,7 +586,7 @@ ALWAYS_TOOLS: List[str] = [
     "get_divisional_chart", "get_panchanga", "get_varshaphal",
     "get_raja_yogas", "get_longevity", "get_pancha_pakshi",
     "get_sphuta", "get_sahams", "get_argala",
-    "get_vedic_clock", "get_retrograde",
+    "get_vedic_clock", "get_retrograde", "get_muhurta",
 ]
 
 
@@ -606,6 +642,7 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_pancha_pakshi":    {"label": "Pancha Pakshi timing",  "category": "Timing"},
     "get_vedic_clock":      {"label": "Vedic clock (ghati/hora)", "category": "Timing"},
     "get_retrograde":       {"label": "Retrograde (Vakra) status", "category": "Timing"},
+    "get_muhurta":          {"label": "Muhurta (auspicious times)", "category": "Timing"},
     "get_yogas":            {"label": "Yogas",                  "category": "Strengths & afflictions"},
     "get_raja_yogas":       {"label": "Raja Yogas",             "category": "Strengths & afflictions"},
     "get_doshas":           {"label": "Doshas",                 "category": "Strengths & afflictions"},

@@ -78,6 +78,10 @@ export const LoginPage = () => {
           <button type="submit" className="submit-btn" disabled={isLoading}>
             {isLoading ? t("auth.loggingIn") : t("auth.login")}
           </button>
+
+          <p className="auth-link auth-link--forgot">
+            <Link to="/forgot-password">{t("auth.forgotPassword")}</Link>
+          </p>
         </form>
 
         <p className="auth-link">

@@ -137,6 +137,33 @@
       "weak": "Weak password",
       "fair": "Fair password",
       "strong": "Strong password"
+    },
+    "forgotPassword": "Forgot password?",
+    "forgot": {
+      "subtitle": "Reset your password",
+      "intro": "Enter your username or email and we'll send you a reset link.",
+      "identifier": "Username or email",
+      "identifierPlaceholder": "you@example.com",
+      "submit": "Send reset link",
+      "sending": "Sending…",
+      "sent": "If an account matches, a reset link is on its way. Check your inbox.",
+      "noEmailConfigured": "Note: email isn't configured on this server, so no message was actually sent. Contact your administrator.",
+      "backToLogin": "Back to login",
+      "error": "Something went wrong. Please try again."
+    },
+    "reset": {
+      "subtitle": "Choose a new password",
+      "newPassword": "New password",
+      "newPasswordPlaceholder": "At least 6 characters",
+      "confirm": "Confirm password",
+      "confirmPlaceholder": "Re-enter your new password",
+      "submit": "Reset password",
+      "saving": "Saving…",
+      "backToLogin": "Back to login",
+      "missingToken": "This reset link is missing or invalid. Request a new one.",
+      "tooShort": "Password must be at least 6 characters.",
+      "mismatch": "Passwords don't match.",
+      "error": "This reset link is invalid or has expired."
     }
   },
   "profile": {
@@ -254,7 +281,10 @@
     "rectify": "Rectify Time",
     "panchaPakshi": "Pancha Pakshi",
     "sensitivePoints": "Sensitive Points",
-    "vedicClock": "Vedic Clock"
+    "vedicClock": "Vedic Clock",
+    "dailyDigest": "Today",
+    "muhurta": "Muhurta",
+    "prashna": "Prashna"
   },
   "aiTools": {
     "title": "AI Capabilities",
@@ -333,6 +363,18 @@
       "vedicClock": {
         "title": "Vedic Clock & Retrograde",
         "description": "A live ghati/hora day-clock and the vakra-gathi retrograde loops."
+      },
+      "dailyDigest": {
+        "title": "Today",
+        "description": "Your personalized daily digest — panchanga, dasha & transits"
+      },
+      "muhurta": {
+        "title": "Muhurta",
+        "description": "Find auspicious windows for weddings, travel, business & more"
+      },
+      "prashna": {
+        "title": "Prashna",
+        "description": "Horary astrology — ask a question, read the chart of the moment"
       }
     }
   },
@@ -652,7 +694,8 @@
       "ai": "AI",
       "apiKeys": "API Keys",
       "almanac": "Almanac",
-      "account": "Account"
+      "account": "Account",
+      "notifications": "Notifications"
     },
     "general": {
       "language": "Language",
@@ -724,6 +767,29 @@
       "deleteConfirmBtn": "Permanently delete",
       "deleteCancel": "Cancel",
       "deleteError": "Could not delete account"
+    },
+    "notifications": {
+      "title": "Daily digest & notifications",
+      "intro": "Get a personalized daily card — today's panchanga plus any dasha change or major transit for your chart.",
+      "dailyDigest": "Enable daily digest",
+      "profile": "For which chart",
+      "defaultProfile": "Default profile",
+      "hour": "Preferred time",
+      "email": "Email me the digest",
+      "emailUnavailable": "email not configured",
+      "push": "Browser push notification",
+      "pushUnavailable": "unavailable",
+      "sendTest": "Send me a test now",
+      "testSent": "Sent — email {{email}}, push to {{push}} device(s).",
+      "testError": "Couldn't send the digest.",
+      "saveError": "Couldn't save your preferences.",
+      "note": "Delivery timing is set by your administrator's scheduler; the digest is always available in-app on the Today page.",
+      "pushError": {
+        "unsupported": "Your browser doesn't support push notifications.",
+        "denied": "Notification permission was denied. Enable it in your browser settings.",
+        "no_vapid_key": "Push isn't configured on this server.",
+        "error": "Couldn't enable push notifications."
+      }
     }
   },
   "compat": {
@@ -1028,5 +1094,93 @@
     "aiGenerate": "Get a reading",
     "aiRegenerate": "Regenerate",
     "disclaimer": "Retrogrades are traditional invitations to review and reflect — not warnings."
+  },
+  "muhurta": {
+    "title": "Muhurta",
+    "subtitle": "Auspicious timing (electional astrology)",
+    "intro": "Pick an activity and a date range to find the most auspicious windows, drawn from the panchanga and planetary hours.",
+    "activity": "Activity",
+    "activities": {
+      "general": "General auspicious work",
+      "marriage": "Marriage / wedding",
+      "travel": "Travel / journey",
+      "business": "New business / venture",
+      "housewarming": "Housewarming (Griha Pravesh)",
+      "education": "Education (Vidyarambha)",
+      "medical": "Medical / surgery"
+    },
+    "from": "From",
+    "to": "To",
+    "find": "Find times",
+    "locationNote": "Computed for {{place}} (your profile's place).",
+    "loading": "Scanning the days…",
+    "bestWindows": "Best windows for {{activity}}",
+    "noWindows": "No clearly auspicious window was found in this range. Try widening the dates.",
+    "dayRatings": "Day-by-day",
+    "ratings": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "average": "Average",
+      "avoid": "Avoid"
+    },
+    "aiTitle": "AI rationale",
+    "aiHint": "Get a plain-language explanation of the best window and why.",
+    "aiLoading": "Thinking through the timings…",
+    "aiGenerate": "Explain the timing",
+    "aiRegenerate": "Regenerate",
+    "aiModel": "Generated by {{model}}",
+    "aiError": "Couldn't generate the rationale.",
+    "calcError": "Couldn't compute muhurta windows.",
+    "disclaimer": "Muhurta is a traditional aid to timing — personal readiness matters too. Not medical, legal or financial advice."
+  },
+  "prashna": {
+    "title": "Prashna",
+    "subtitle": "Horary astrology — the chart of the moment",
+    "intro": "In Prashna, a chart cast for the exact moment you ask a question answers it — no birth data needed. Type your question and cast.",
+    "placeholder": "e.g. Will I get the job I interviewed for?",
+    "cast": "Cast the chart",
+    "casting": "Casting the moment chart…",
+    "locationNote": "Cast for right now, at your current location (with your permission) or your profile's place.",
+    "currentLocation": "Current location",
+    "chartTitle": "Prashna chart",
+    "readingTitle": "Horary reading",
+    "noReading": "No reading was returned.",
+    "lagna": "Lagna",
+    "moon": "Moon",
+    "hora": "Hora lord: {{lord}}",
+    "aiModel": "Read by {{model}}",
+    "error": "Couldn't cast the Prashna chart.",
+    "disclaimer": "A Prashna reading is astrological guidance for reflection, not certainty — and not medical, legal or financial advice."
+  },
+  "digest": {
+    "title": "Today",
+    "subtitle": "Your personalized daily digest",
+    "refresh": "Refresh",
+    "notifySettings": "Notifications",
+    "loading": "Building your digest…",
+    "highlights": "Today's highlights",
+    "panchanga": "Panchanga",
+    "tithi": "Tithi",
+    "nakshatra": "Nakshatra",
+    "yoga": "Yoga",
+    "vaara": "Weekday",
+    "sunrise": "Sunrise / Sunset",
+    "abhijit": "Abhijit muhurta",
+    "dasha": "Your dasha",
+    "mahadasha": "Mahadasha",
+    "bhukti": "Bhukti",
+    "nextMaha": "Next Mahadasha",
+    "transits": "Transits & highlights",
+    "sadeSati": "Saturn is transiting near your natal Moon — a Sade-Sati phase is active.",
+    "retrograde": "Retrograde now",
+    "aiTitle": "Your day, read aloud",
+    "aiHint": "Get a warm, personalized reading tying today's sky to your chart.",
+    "aiLoading": "Reading your day…",
+    "aiGenerate": "Read my day",
+    "aiRegenerate": "Regenerate",
+    "aiModel": "Read by {{model}}",
+    "aiError": "Couldn't generate today's reading.",
+    "error": "Couldn't build your daily digest.",
+    "disclaimer": "A supportive daily reflection — not fated, and not medical, legal or financial advice."
   }
 }

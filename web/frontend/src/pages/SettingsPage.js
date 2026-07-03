@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Settings as SettingsIcon, Sliders, Key, CalendarDays, User, Sparkles, Check, LogOut, Mail, ShieldOff, Trash2 } from "lucide-react";
+import { Settings as SettingsIcon, Sliders, Key, CalendarDays, User, Sparkles, Check, LogOut, Mail, ShieldOff, Trash2, Bell } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { useSettings } from "../contexts/SettingsContext";
 import { useAuth } from "../contexts/AuthContext";
-import { authService, astrologyService, setTokens } from "../services/api";
+import { useProfile } from "../contexts/ProfileContext";
+import { authService, astrologyService, notificationsService, setTokens } from "../services/api";
+import { enablePush, disablePush, pushSupported } from "../utils/push";
 import { formatDate } from "../utils/format";
 import { AYANAMSAS } from "../constants/jyotish";
 import { LANGUAGES } from "../i18n";
@@ -21,9 +23,15 @@ export const SettingsPage = () => {
   const navigate = useNavigate();
   const { settings, updateSetting } = useSettings();
   const { user, logout, reloadUser } = useAuth();
+  const { profiles, loadProfiles } = useProfile();
 
   const [tab, setTab] = useState("general");
   const [savedFlash, setSavedFlash] = useState("");
+
+  // Notifications (daily digest + push)
+  const [notif, setNotif] = useState(null); // prefs
+  const [notifMeta, setNotifMeta] = useState({ push_available: false, email_available: false, vapid_public_key: "" });
+  const [notifMsg, setNotifMsg] = useState({ type: "", text: "" });
 
   // Providers for the AI model picker
   const [providers, setProviders] = useState([]);
@@ -73,6 +81,67 @@ export const SettingsPage = () => {
       .catch(() => setKeyStatus({}));
   };
   useEffect(loadKeys, []);
+
+  // Load notification prefs + profiles once.
+  useEffect(() => {
+    notificationsService
+      .getPrefs()
+      .then((r) => {
+        setNotif(r.data?.prefs || null);
+        setNotifMeta({
+          push_available: !!r.data?.push_available,
+          email_available: !!r.data?.email_available,
+          vapid_public_key: r.data?.vapid_public_key || "",
+        });
+      })
+      .catch(() => setNotif(null));
+    loadProfiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const saveNotif = async (patch) => {
+    const next = { ...(notif || {}), ...patch };
+    setNotif(next);
+    try {
+      const r = await notificationsService.setPrefs(patch);
+      setNotif(r.data?.prefs || next);
+      flash();
+    } catch {
+      setNotifMsg({ type: "error", text: t("settings.notifications.saveError") });
+    }
+  };
+
+  const togglePush = async (on) => {
+    setNotifMsg({ type: "", text: "" });
+    if (on) {
+      const res = await enablePush(notifMeta.vapid_public_key);
+      if (!res.ok) {
+        setNotifMsg({ type: "error", text: t(`settings.notifications.pushError.${res.reason}`, t("settings.notifications.pushError.error")) });
+        return;
+      }
+      await saveNotif({ push: true });
+    } else {
+      await disablePush();
+      await saveNotif({ push: false });
+    }
+  };
+
+  const sendTestDigest = async () => {
+    setNotifMsg({ type: "", text: "" });
+    try {
+      const r = await notificationsService.sendDigestNow();
+      const s = r.data?.sent || {};
+      setNotifMsg({
+        type: "ok",
+        text: t("settings.notifications.testSent", {
+          email: s.email ? "✓" : "✗",
+          push: s.push || 0,
+        }),
+      });
+    } catch (err) {
+      setNotifMsg({ type: "error", text: err.response?.data?.detail || t("settings.notifications.testError") });
+    }
+  };
 
   const activeProvider = providers.find((p) => p.type === settings.aiProviderType) || null;
   const models = activeProvider?.models || [];
@@ -188,6 +257,7 @@ export const SettingsPage = () => {
     { key: "ai", label: t("settings.tabs.ai"), icon: <Sliders size={16} /> },
     { key: "apiKeys", label: t("settings.tabs.apiKeys"), icon: <Key size={16} /> },
     { key: "almanac", label: t("settings.tabs.almanac"), icon: <CalendarDays size={16} /> },
+    { key: "notifications", label: t("settings.tabs.notifications"), icon: <Bell size={16} /> },
     { key: "account", label: t("settings.tabs.account"), icon: <User size={16} /> },
   ];
 
@@ -466,6 +536,111 @@ export const SettingsPage = () => {
               </div>
             </div>
             <p className="settings-hint">{t("settings.almanac.hint")}</p>
+          </div>
+        )}
+
+        {/* NOTIFICATIONS */}
+        {tab === "notifications" && (
+          <div className="ui-card settings-panel">
+            <h3 className="settings-section-title">{t("settings.notifications.title")}</h3>
+            <p className="settings-hint">{t("settings.notifications.intro")}</p>
+
+            {notifMsg.text && (
+              <div className={`settings-msg settings-msg--${notifMsg.type}`}>{notifMsg.text}</div>
+            )}
+
+            {/* Master switch */}
+            <div className="settings-row">
+              <label className="settings-label">{t("settings.notifications.dailyDigest")}</label>
+              <label className="settings-switch">
+                <input
+                  type="checkbox"
+                  checked={!!notif?.daily_digest}
+                  onChange={(e) => saveNotif({ daily_digest: e.target.checked })}
+                />
+                <span />
+              </label>
+            </div>
+
+            {notif?.daily_digest && (
+              <>
+                {/* Which profile */}
+                <div className="settings-row">
+                  <label className="settings-label">{t("settings.notifications.profile")}</label>
+                  <select
+                    className="form-select"
+                    value={notif?.profile_id || ""}
+                    onChange={(e) => saveNotif({ profile_id: e.target.value || null })}
+                  >
+                    <option value="">{t("settings.notifications.defaultProfile")}</option>
+                    {(profiles || []).map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.profile_name || p.birth_details?.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Preferred hour */}
+                <div className="settings-row">
+                  <label className="settings-label">{t("settings.notifications.hour")}</label>
+                  <select
+                    className="form-select"
+                    value={notif?.hour ?? 7}
+                    onChange={(e) => saveNotif({ hour: parseInt(e.target.value, 10) })}
+                  >
+                    {Array.from({ length: 24 }, (_, h) => (
+                      <option key={h} value={h}>
+                        {String(h).padStart(2, "0")}:00
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Email channel */}
+                <div className="settings-row">
+                  <label className="settings-label">
+                    {t("settings.notifications.email")}
+                    {!notifMeta.email_available && (
+                      <span className="settings-badge">{t("settings.notifications.emailUnavailable")}</span>
+                    )}
+                  </label>
+                  <label className="settings-switch">
+                    <input
+                      type="checkbox"
+                      disabled={!notifMeta.email_available}
+                      checked={!!notif?.email}
+                      onChange={(e) => saveNotif({ email: e.target.checked })}
+                    />
+                    <span />
+                  </label>
+                </div>
+
+                {/* Push channel */}
+                <div className="settings-row">
+                  <label className="settings-label">
+                    {t("settings.notifications.push")}
+                    {(!notifMeta.push_available || !pushSupported()) && (
+                      <span className="settings-badge">{t("settings.notifications.pushUnavailable")}</span>
+                    )}
+                  </label>
+                  <label className="settings-switch">
+                    <input
+                      type="checkbox"
+                      disabled={!notifMeta.push_available || !pushSupported()}
+                      checked={!!notif?.push}
+                      onChange={(e) => togglePush(e.target.checked)}
+                    />
+                    <span />
+                  </label>
+                </div>
+
+                <button type="button" className="settings-link" onClick={sendTestDigest}>
+                  {t("settings.notifications.sendTest")}
+                </button>
+              </>
+            )}
+            <p className="settings-hint">{t("settings.notifications.note")}</p>
           </div>
         )}
 

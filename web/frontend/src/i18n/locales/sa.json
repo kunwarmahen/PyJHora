@@ -93,7 +93,8 @@
     "registerHere": "अत्र पञ्जीकरोतु",
     "haveAccount": "पूर्वमेव खातम् अस्ति?",
     "loginHere": "अत्र प्रविशतु",
-    "passwordsNoMatch": "गुप्तशब्दौ न मिलतः"
+    "passwordsNoMatch": "गुप्तशब्दौ न मिलतः",
+    "forgotPassword": "गूढशब्दं विस्मृतम्?"
   },
   "profile": {
     "selectTitle": "स्वकीयां कुण्डलीं चिनोतु",
@@ -145,7 +146,10 @@
     "rectify": "काल-शुद्धिः",
     "panchaPakshi": "पञ्चपक्षी",
     "sensitivePoints": "संवेदनशील-बिन्दवः",
-    "vedicClock": "वैदिक-घटिका"
+    "vedicClock": "वैदिक-घटिका",
+    "dailyDigest": "अद्य",
+    "muhurta": "मुहूर्तः",
+    "prashna": "प्रश्नः"
   },
   "dashboard": {
     "welcome": "स्वागतम्,",
@@ -212,6 +216,18 @@
       "vedicClock": {
         "title": "वैदिक-घटिका वक्रगतिश्च",
         "description": "सजीवा घटिका/होरा दिन-घटिका वक्रगति-मण्डलानि च।"
+      },
+      "dailyDigest": {
+        "title": "अद्य",
+        "description": "दैनिकसारः — पञ्चाङ्गं, दशा, गोचरः"
+      },
+      "muhurta": {
+        "title": "मुहूर्तः",
+        "description": "विवाह-यात्रा-व्यापारादिभ्यः शुभकालनिर्णयः"
+      },
+      "prashna": {
+        "title": "प्रश्नः",
+        "description": "प्रश्नज्योतिषम् — प्रश्नक्षणस्य कुण्डली पठ्यते"
       }
     }
   },
@@ -481,5 +497,10 @@
   },
   "almanac": {
     "aiTitle": "एआई दिन-मार्गदर्शिका"
+  },
+  "settings": {
+    "tabs": {
+      "notifications": "सूचनाः"
+    }
   }
 }

@@ -25,6 +25,9 @@ import ratelimit
 import shares
 import quiz
 import refresh_tokens
+import password_reset
+import email_service
+import notifications
 import uuid
 
 # Request models
@@ -55,6 +58,14 @@ class UpdateEmailRequest(BaseModel):
 class DeleteAccountRequest(BaseModel):
     # Current password, required to confirm an irreversible account deletion.
     password: str
+
+class ForgotPasswordRequest(BaseModel):
+    # Accept either a username or an email address in one field.
+    identifier: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
 
 class AskQuestionRequest(BaseModel):
     birth_details: BirthDetails
@@ -294,6 +305,67 @@ class RectifyChatRequest(BaseModel):
     max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
+class MuhurtaAnalysisRequest(BaseModel):
+    # Location-driven (not birth-chart bound).
+    activity: str = "general"
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    place: str = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    timezone: Optional[float] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+
+class PrashnaAnalysisRequest(BaseModel):
+    # Horary — cast for the moment (no birth data). All optional → "now + here".
+    question: Optional[str] = None
+    date: Optional[str] = None
+    time: Optional[str] = None
+    place: str = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    timezone: Optional[float] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
+
+class DailyDigestAnalysisRequest(BaseModel):
+    birth_details: BirthDetails
+    date: Optional[str] = None
+    current_time: Optional[str] = None
+    current_tz: Optional[float] = None
+    person_name: Optional[str] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
+
+class NotificationPrefsRequest(BaseModel):
+    daily_digest: Optional[bool] = None
+    email: Optional[bool] = None
+    push: Optional[bool] = None
+    profile_id: Optional[str] = None
+    hour: Optional[int] = None
+
+class PushSubscribeRequest(BaseModel):
+    # A browser PushSubscription JSON (endpoint + keys).
+    subscription: dict
+
+class PushUnsubscribeRequest(BaseModel):
+    endpoint: str
+
 # Lifecycle events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -503,7 +575,9 @@ _USER_SCOPED_COLLECTIONS = [
     ("ai_tool_traces", "user_id"),
     ("shared_charts", "user_id"),
     ("quiz_sessions", "user_id"),
+    ("push_subscriptions", "user_id"),
     ("refresh_tokens", "username"),
+    ("password_reset_tokens", "username"),
 ]
 
 
@@ -531,6 +605,66 @@ async def delete_account(req: DeleteAccountRequest, current_user: str = Depends(
             print(f"delete_account: failed clearing {name}: {e}")
     await users_collection.delete_one({"username": current_user})
     return {"success": True, "message": "Account deleted"}
+
+
+@app.post("/api/auth/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest, request: Request):
+    """Begin a password reset. Looks the user up by username OR email, issues a
+    single-use reset token and emails the reset link. To avoid leaking which
+    accounts exist, the response is ALWAYS the same generic success — regardless
+    of whether the identifier matched or whether email is even configured."""
+    generic = {
+        "status": "ok",
+        "message": "If an account matches, a reset link has been sent.",
+        "email_configured": email_service.is_configured(),
+    }
+    try:
+        from database import database
+        if database is None:
+            return generic
+        ident = (req.identifier or "").strip()
+        if not ident:
+            return generic
+        # Throttle by IP to blunt enumeration/spam (reuse the login limiter).
+        client_ip = request.client.host if request.client else "unknown"
+        allowed, _ = ratelimit.login_allowed(client_ip)
+        if not allowed:
+            return generic
+
+        user = await database["users"].find_one(
+            {"$or": [{"username": ident}, {"email": ident}]}
+        )
+        if user and user.get("email"):
+            token = await password_reset.issue(user["username"])
+            reset_url = f"{settings.APP_BASE_URL.rstrip('/')}/reset-password?token={token}"
+            await email_service.send_password_reset(
+                user["email"], reset_url, settings.PASSWORD_RESET_TTL_MINUTES)
+    except Exception as e:
+        print(f"forgot_password error: {e}")
+    return generic
+
+
+@app.post("/api/auth/reset-password", response_model=Token)
+async def reset_password(req: ResetPasswordRequest):
+    """Complete a password reset with the emailed token. Consumes the token
+    (single-use), sets the new password, revokes all existing sessions, and
+    returns a fresh token pair so the user is signed straight in."""
+    from database import database
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database not connected")
+    if len((req.new_password or "")) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+
+    username = await password_reset.consume(req.token)
+    if not username:
+        raise HTTPException(status_code=400, detail="This reset link is invalid or has expired")
+
+    await database["users"].update_one(
+        {"username": username},
+        {"$set": {"hashed_password": get_password_hash(req.new_password)}},
+    )
+    await refresh_tokens.revoke_all(username)
+    return await _issue_token_pair(username, remember_me=True)
 
 # ============= ASTROLOGY ROUTES =============
 
@@ -2130,6 +2264,250 @@ async def analyze_almanac(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# ============= MUHURTA / PRASHNA / DAILY DIGEST (§16) =============
+
+@app.post("/api/astrology/muhurta")
+async def get_muhurta(
+    activity: str = "general",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    place: str = "",
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    timezone: Optional[float] = None,
+    current_user: str = Depends(get_current_user),
+):
+    """Auspicious windows for an activity over a date range (electional astrology).
+    Location-driven; not tied to a birth chart."""
+    try:
+        result = AstrologyCompute.get_muhurta(
+            activity=activity, start_date=start_date, end_date=end_date,
+            place=place, lat=latitude, lon=longitude, tz=timezone)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/muhurta-analysis")
+async def analyze_muhurta(
+    request: MuhurtaAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Plain-language rationale for the recommended auspicious windows."""
+    _enforce_rate_limit(current_user)
+    try:
+        result = AstrologyCompute.get_muhurta(
+            activity=request.activity, start_date=request.start_date,
+            end_date=request.end_date, place=request.place,
+            lat=request.latitude, lon=request.longitude, tz=request.timezone)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_muhurta(muhurta_data=result, config=cfg)
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/prashna")
+async def get_prashna(
+    question: Optional[str] = None,
+    date: Optional[str] = None,
+    time: Optional[str] = None,
+    place: str = "",
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    timezone: Optional[float] = None,
+    ayanamsa: Optional[str] = None,
+    current_user: str = Depends(get_current_user),
+):
+    """Cast a Prashna (horary) chart for a moment (defaults to now + here)."""
+    try:
+        result = AstrologyCompute.get_prashna(
+            question=question, date=date, time=time, place=place,
+            lat=latitude, lon=longitude, tz=timezone,
+            ayanamsa=ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/prashna-analysis")
+async def analyze_prashna(
+    request: PrashnaAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Prashna (horary) reading of the moment-chart for the asked question."""
+    _enforce_rate_limit(current_user)
+    try:
+        result = AstrologyCompute.get_prashna(
+            question=request.question, date=request.date, time=request.time,
+            place=request.place, lat=request.latitude, lon=request.longitude,
+            tz=request.timezone, ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_prashna(prashna_data=result, config=cfg)
+        return {"reading": ai_analysis, "chart": result,
+                "provider": cfg.provider_type.value, "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/daily-digest")
+async def get_daily_digest(
+    birth_details: BirthDetails,
+    date: Optional[str] = None,
+    current_time: Optional[str] = None,
+    current_tz: Optional[float] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Personalized 'Today' digest — panchanga + dasha + headline transits."""
+    try:
+        result = AstrologyCompute.get_daily_digest(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, date=date, current_time=current_time,
+            current_tz=current_tz, ayanamsa=ayanamsa)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/daily-digest-analysis")
+async def analyze_daily_digest(
+    request: DailyDigestAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Warm, personalized AI reading of today's digest."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_daily_digest(
+            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+            lon=bd.longitude, tz=bd.timezone, date=request.date,
+            current_time=request.current_time, current_tz=request.current_tz,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_daily_digest(
+            digest_data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============= NOTIFICATIONS (digest prefs + web push) =============
+
+@app.get("/api/notifications/prefs")
+async def get_notification_prefs(current_user: str = Depends(get_current_user)):
+    prefs = await notifications.get_prefs(current_user)
+    return {"prefs": prefs, "push_available": notifications.push_enabled(),
+            "email_available": email_service.is_configured(),
+            "vapid_public_key": notifications.vapid_public_key()}
+
+@app.put("/api/notifications/prefs")
+async def set_notification_prefs(
+    req: NotificationPrefsRequest,
+    current_user: str = Depends(get_current_user),
+):
+    prefs = await notifications.set_prefs(
+        current_user, {k: v for k, v in req.model_dump().items() if v is not None})
+    return {"prefs": prefs}
+
+@app.post("/api/notifications/push/subscribe")
+async def push_subscribe(
+    req: PushSubscribeRequest,
+    current_user: str = Depends(get_current_user),
+):
+    if not notifications.push_enabled():
+        raise HTTPException(status_code=503, detail="Push notifications are not configured on this server")
+    try:
+        await notifications.save_subscription(current_user, req.subscription)
+        return {"status": "ok"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/notifications/push/unsubscribe")
+async def push_unsubscribe(
+    req: PushUnsubscribeRequest,
+    current_user: str = Depends(get_current_user),
+):
+    removed = await notifications.delete_subscription(current_user, req.endpoint)
+    return {"status": "ok", "removed": removed}
+
+@app.post("/api/notifications/digest/send")
+async def send_digest_now(current_user: str = Depends(get_current_user)):
+    """Compute the current user's daily digest and deliver it on their enabled
+    channels (email / push). Returns what was sent. A scheduler (cron / the
+    /schedule infra) can call this per user at their preferred hour; a user can
+    also trigger a test delivery from Settings."""
+    prefs = await notifications.get_prefs(current_user)
+    if not prefs.get("daily_digest"):
+        raise HTTPException(status_code=400, detail="Daily digest is not enabled in your settings")
+
+    # Resolve the birth profile to compute for (chosen, else the default/first).
+    from database import database
+    profile = None
+    if prefs.get("profile_id"):
+        try:
+            from bson import ObjectId
+            profile = await database["saved_profiles"].find_one(
+                {"_id": ObjectId(prefs["profile_id"]), "user_id": current_user})
+        except Exception:
+            profile = None
+    if not profile:
+        profile = await database["saved_profiles"].find_one(
+            {"user_id": current_user, "is_default": True}
+        ) or await database["saved_profiles"].find_one({"user_id": current_user})
+    if not profile:
+        raise HTTPException(status_code=400, detail="No birth profile found to build the digest from")
+
+    bd = profile["birth_details"]
+    digest = AstrologyCompute.get_daily_digest(
+        dob=bd["dob"], tob=bd["tob"], place=bd.get("place", ""),
+        lat=bd.get("latitude"), lon=bd.get("longitude"), tz=bd.get("timezone"))
+    if digest.get("status") != "success":
+        raise HTTPException(status_code=400, detail=digest.get("error", "Digest calculation failed"))
+
+    name = bd.get("name") or profile.get("profile_name") or "there"
+    highlights = digest.get("highlights", [])
+    subject = f"Your PyJHora digest — {digest.get('date')}"
+    text = f"Hi {name},\n\nHere's your Vedic digest for {digest.get('date')}:\n\n" + \
+        "\n".join(f"• {h}" for h in highlights) + \
+        "\n\nOpen PyJHora for the full reading."
+    html = f"<p>Hi {name}, here's your Vedic digest for <b>{digest.get('date')}</b>:</p><ul>" + \
+        "".join(f"<li>{h}</li>" for h in highlights) + "</ul>"
+
+    sent = {"email": False, "push": 0}
+    if prefs.get("email"):
+        user = await database["users"].find_one({"username": current_user})
+        if user and user.get("email"):
+            sent["email"] = await email_service.send_daily_digest(user["email"], subject, text, html)
+    if prefs.get("push"):
+        sent["push"] = await notifications.send_push(current_user, {
+            "title": subject,
+            "body": highlights[0] if highlights else "Your daily Vedic digest is ready.",
+            "url": "/daily-digest",
+        })
+    return {"status": "ok", "sent": sent, "highlights": highlights, "date": digest.get("date")}
 
 @app.post("/api/astrology/varshaphal-analysis")
 async def analyze_varshaphal(

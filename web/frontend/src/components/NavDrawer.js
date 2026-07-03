@@ -23,6 +23,9 @@ import {
   Timer,
   Settings,
   LogOut,
+  CalendarCheck,
+  HelpCircle,
+  Sun,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
@@ -37,6 +40,9 @@ const LINKS = [
   { to: "/transit", labelKey: "nav.transit", icon: <Orbit size={20} /> },
   { to: "/varshaphal", labelKey: "nav.varshaphal", icon: <CalendarClock size={20} /> },
   { to: "/almanac", labelKey: "nav.almanac", icon: <CalendarDays size={20} /> },
+  { to: "/daily-digest", labelKey: "nav.dailyDigest", icon: <Sun size={20} /> },
+  { to: "/muhurta", labelKey: "nav.muhurta", icon: <CalendarCheck size={20} /> },
+  { to: "/prashna", labelKey: "nav.prashna", icon: <HelpCircle size={20} /> },
   { to: "/pancha-pakshi", labelKey: "nav.panchaPakshi", icon: <Bird size={20} /> },
   { to: "/sarvatobhadra", labelKey: "nav.sarvatobhadra", icon: <Grid3x3 size={20} /> },
   { to: "/sensitive-points", labelKey: "nav.sensitivePoints", icon: <Crosshair size={20} /> },

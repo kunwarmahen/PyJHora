@@ -266,3 +266,27 @@
 .pw-strength--weak .pw-strength-label { color: #c0392b; }
 .pw-strength--fair .pw-strength-label { color: #b5710f; }
 .pw-strength--strong .pw-strength-label { color: #2e7d32; }
+
+/* Forgot / reset password extras */
+.auth-note {
+  font-size: 0.88rem;
+  color: var(--text-secondary, #6b5d47);
+  margin: 0.25rem 0 1rem;
+  line-height: 1.5;
+}
+.auth-link--forgot {
+  text-align: right;
+  margin-top: 0.5rem;
+  font-size: 0.88rem;
+}
+.success-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #e6f4ea;
+  color: #1e7a34;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.92rem;
+}

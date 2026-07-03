@@ -576,6 +576,31 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
         return await self._complete(prompt, cfg)
 
+    async def analyze_muhurta(self,
+                              muhurta_data: Dict[str, Any],
+                              config: Optional[ModelConfig] = None) -> str:
+        """Plain-language rationale for the recommended auspicious windows."""
+        prompt = self._build_muhurta_prompt(muhurta_data)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
+    async def analyze_prashna(self,
+                              prashna_data: Dict[str, Any],
+                              config: Optional[ModelConfig] = None) -> str:
+        """Prashna (horary) reading of the moment-chart for the asked question."""
+        prompt = self._build_prashna_prompt(prashna_data)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
+    async def analyze_daily_digest(self,
+                                   digest_data: Dict[str, Any],
+                                   name: str = "this person",
+                                   config: Optional[ModelConfig] = None) -> str:
+        """Warm, personalized reading of today's digest for the person."""
+        prompt = self._build_daily_digest_prompt(digest_data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
     # ------------------------------------------------------------------ #
     # "Learn the Chart" — AI quiz generation + grading
     # ------------------------------------------------------------------ #
@@ -1827,6 +1852,112 @@ Write a friendly ~250-300 word day-guide:
 4. End with one short, encouraging line.
 
 Use only the times given; do NOT invent windows. Do NOT make medical, financial, legal or fated claims. Close with a one-line reminder that the panchanga is a traditional rhythm-of-the-day aid for reflection, not a rule to live by."""
+
+    def _build_muhurta_prompt(self, m: Dict[str, Any]) -> str:
+        """Explain the recommended auspicious windows for the chosen activity."""
+        windows = m.get("best_windows", [])[:8]
+        win_lines = "\n".join(
+            f"- {w['date']} {w['start']}–{w['end']} · {w['label']} ({w['quality']}) — {w['reason']}"
+            for w in windows
+        ) or "- (no clearly auspicious window found in this range)"
+
+        # A few of the strongest days for context.
+        days = sorted(m.get("days", []), key=lambda d: -d.get("score", 0))[:4]
+        day_lines = "\n".join(
+            f"- {d['date']} ({d['weekday']}): {d['rating']} — {d['nakshatra']['name']} nakshatra, "
+            f"{d['tithi']['name']} tithi, {d['yoga']['name']} yoga"
+            for d in days
+        ) or "- (none)"
+
+        return f"""You are a warm, practical Vedic muhurta (electional astrology) guide helping someone pick an auspicious time for: **{m.get('activity_label', 'their activity')}**, between {m.get('start_date')} and {m.get('end_date')} at {m.get('place') or 'the chosen place'}.
+
+The engine has already scored each day from its Panchanga (nakshatra, tithi, weekday, yoga) and, avoiding Rahu Kalam / Yamaganda / Gulika, extracted concrete time windows.
+
+Top recommended windows (use ONLY these — do not invent times):
+{win_lines}
+
+Strongest days in the range:
+{day_lines}
+
+Write a friendly ~250-word note:
+1. **Best pick** — recommend the single strongest window (date + clock time) and say plainly WHY (which nakshatra / tithi / hora makes it good).
+2. **Alternatives** — mention 1–2 backup windows.
+3. **What to avoid** — remind them the choppy periods (Rahu Kalam etc.) are already excluded, and to keep the activity within the given window.
+Keep it grounded and encouraging. Do NOT make fated, medical, legal or financial guarantees. Close with one line noting muhurta is a traditional aid to timing, and personal readiness matters too."""
+
+    def _build_prashna_prompt(self, p: Dict[str, Any]) -> str:
+        """A Prashna (horary) reading of the moment-chart for the question asked."""
+        lagna = p.get("lagna") or {}
+        moon = p.get("moon") or {}
+        sun = p.get("sun") or {}
+        panch = p.get("panchanga") or {}
+        moment = p.get("moment") or {}
+        planets = p.get("planets") or {}
+
+        # Compact one-line placements for the nine grahas.
+        plines = "\n".join(
+            f"- {name}: {info.get('sign_name')} {round(info.get('degrees', 0), 1)}°"
+            f"{' (retrograde)' if info.get('retrograde') else ''}, "
+            f"{info.get('nakshatra')} nakshatra"
+            for name, info in planets.items()
+        )
+        tithi = panch.get("tithi") or {}
+        nak = panch.get("nakshatra") or {}
+
+        question = p.get("question") or "(no specific question given — read the general tenor)"
+
+        return f"""You are an experienced Vedic PRASHNA (horary) astrologer. A chart has been cast for the exact MOMENT the question was asked — in Prashna, this moment-chart itself answers the question; no birth data is used. Read it in that spirit: the Ascendant is the querent, the Moon is the mind and the matter asked about, and the relevant house/lord shows the outcome.
+
+The question: "{question}"
+
+Moment: {moment.get('date')} {moment.get('time')} at {p.get('place') or 'the chosen place'}
+Ascendant (Lagna): {lagna.get('sign_name')} {round(lagna.get('degrees', 0), 1)}°
+Moon: {moon.get('sign_name')}, {moon.get('nakshatra')} nakshatra pada {moon.get('nakshatra_pada')}
+Sun: {sun.get('sign_name')}
+Running hora (planetary hour) lord: {p.get('hora_lord') or 'n/a'}
+Panchanga: {tithi.get('name')} tithi ({tithi.get('paksha')} paksha), {nak.get('name')} nakshatra.
+Planetary placements at the moment:
+{plines}
+
+Write a focused ~300-word horary reading:
+1. **The lay of the chart** — one line on the Ascendant + the Moon's condition (its sign, nakshatra, whether it's waxing/strong), since the Moon is central in Prashna.
+2. **The answer** — address the question directly: lean toward a "likely yes", "likely no", or "mixed / conditional", grounded in the relevant house, its lord, and the Moon's placement/aspects. Be honest about ambiguity.
+3. **Timing** — if the chart suggests a timeframe (from the Moon's nakshatra, the lord's position, or an applying aspect), give a gentle sense of when.
+4. **Guidance** — one practical, encouraging suggestion.
+Reason from the placements given; cite the factors behind your read. Do NOT make medical, legal or financial guarantees, and frame the answer as astrological guidance, not certainty."""
+
+    def _build_daily_digest_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """A warm personalized 'today' reading tying panchanga + dasha + transits."""
+        panch = d.get("panchanga") or {}
+        dasha = d.get("dasha") or {}
+        transits = d.get("transits") or {}
+        tithi = panch.get("tithi") or {}
+        nak = panch.get("nakshatra") or {}
+        vaara = panch.get("vaara") or {}
+        highlights = "\n".join(f"- {h}" for h in d.get("highlights", [])) or "- (a quiet day)"
+        bhukti = (dasha.get("bhukti") or {})
+        upcoming = "\n".join(
+            f"- {u['planet']} enters {u['to_sign']} on {u['date']}"
+            for u in transits.get("upcoming", [])
+        ) or "- (none imminent)"
+        retro = transits.get("retrograde", [])
+
+        return f"""You are a warm, encouraging personal Vedic astrologer writing {name}'s DAILY briefing for {d.get('date')}. Tie together the day's almanac, their current dasha period, and the sky's transits into one short, grounded note. Speak TO them ("you"), plainly.
+
+Today's panchanga: {vaara.get('name')}, {tithi.get('paksha')} {tithi.get('name')}, {nak.get('name')} nakshatra.
+Current dasha: {dasha.get('maha_lord', 'n/a')} Mahadasha{', ' + bhukti.get('lord') + ' Bhukti' if bhukti.get('lord') else ''} (Mahadasha runs to {dasha.get('maha_end', 'n/a')}).
+Sade-Sati active: {'yes' if transits.get('sade_sati') else 'no'}.
+Retrograde now: {', '.join(retro) if retro else 'none'}.
+Upcoming ingresses:
+{upcoming}
+Key highlights the engine flagged:
+{highlights}
+
+Write a friendly ~200-word daily note:
+1. **Today's tone** — what the tithi + nakshatra + weekday invite, in a sentence or two.
+2. **Your bigger arc** — a line tying it to the current dasha/bhukti (and Sade-Sati or a nearing dasha change if flagged), framed constructively.
+3. **A gentle nudge** — one practical suggestion for making the most of today.
+End on an encouraging line. Do NOT make fated, medical, legal or financial claims; keep it a supportive daily reflection."""
 
     def _build_rectification_prompt(self, r: Dict[str, Any], name: str) -> str:
         """Explain, in plain terms, why the suggested birth time fits better than

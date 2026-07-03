@@ -22,6 +22,9 @@ import {
   Crosshair,
   Timer,
   Settings,
+  CalendarCheck,
+  HelpCircle,
+  Sun,
 } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
@@ -88,6 +91,24 @@ export const DashboardPage = () => {
       icon: <CalendarDays size={32} />,
       path: "/almanac",
       gradient: "linear-gradient(135deg, #FFB347 0%, #D4AF37 100%)",
+    },
+    {
+      key: "dailyDigest",
+      icon: <Sun size={32} />,
+      path: "/daily-digest",
+      gradient: "linear-gradient(135deg, #FF9933 0%, #E27B5A 100%)",
+    },
+    {
+      key: "muhurta",
+      icon: <CalendarCheck size={32} />,
+      path: "/muhurta",
+      gradient: "linear-gradient(135deg, #D4AF37 0%, #FFB347 100%)",
+    },
+    {
+      key: "prashna",
+      icon: <HelpCircle size={32} />,
+      path: "/prashna",
+      gradient: "linear-gradient(135deg, #2D3561 0%, #5A5F7A 100%)",
     },
     {
       key: "panchaPakshi",

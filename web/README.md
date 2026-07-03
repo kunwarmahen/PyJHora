@@ -14,6 +14,10 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   an Almanac (planetary hours, eclipses, festival/vratha dates, a Drik ⇄ Surya-Siddhanta
   engine toggle, the Hijri date, and an AI day-guide),
   Pancha Pakshi Sastra (bird-cycle day timing, with AI day-guide),
+  Muhurta / electional astrology (auspicious windows for an activity, with AI rationale),
+  Prashna / horary (a chart for the moment you ask, with a horary AI reading),
+  a personalized daily digest ("Today" — panchanga + dasha + transits, with email & push
+  notifications),
   Sensitive Points (Sphutas, the 36 Sahams, and Argala — with AI reading),
   a Vedic Clock & Retrograde page (a live ghati/vighati clock + vakra-gathi retrograde
   loops, with AI reading),
@@ -65,8 +69,9 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   navbar + nav drawer, or `/settings`) with tabs — **General** (language, chart style North/South,
   ayanamsa), **AI** (provider / model / endpoint, answer-mode default, **Max response length**
   slider, links to API Keys + AI Capabilities), **API Keys**, **Almanac** (Drik / Surya-Siddhanta
-  engine), and **Account** (account overview, update email, change password, log out other
-  devices, and a danger-zone **Delete account**)
+  engine), **Notifications** (daily-digest opt-in, target profile + preferred hour, email + browser-
+  push toggles, "send test now"), and **Account** (account overview, update email, change password,
+  log out other devices, and a danger-zone **Delete account**)
 - **Consolidated controls**: the per-page dropdowns/toggles that used to live on individual pages
   (ayanamsa, chart style, almanac engine, AI model/keys) were removed — pages now read these from
   Settings via a `SettingsContext` (backed by the same `localStorage` keys). Language is changed
@@ -289,6 +294,27 @@ API_KEY_ENCRYPTION_KEY=change-this-to-a-long-random-string
 AI_RATE_LIMIT_PER_MIN=20
 AI_RATE_LIMIT_PER_DAY=300
 
+# Public frontend URL — used to build links in outbound email (password reset)
+APP_BASE_URL=http://localhost:3000
+
+# Transactional email (SMTP) — provider-agnostic (Gmail app-password / SendGrid /
+# Mailgun / SES SMTP). Leave SMTP_HOST blank to disable real sending (the reset
+# link is logged to the console instead). Port 587 = STARTTLS, 465 = implicit SSL.
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=PyJHora <no-reply@example.com>
+SMTP_USE_TLS=true
+PASSWORD_RESET_TTL_MINUTES=30
+
+# Web Push (PWA daily-digest notifications) via VAPID. Generate once with
+# `python -m notifications genkeys`. Leave blank to disable browser push (email +
+# in-app digest still work).
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:admin@example.com
+
 # CORS
 CORS_ORIGINS=["http://localhost:3000","http://localhost:8000"]
 ```
@@ -338,6 +364,11 @@ REACT_APP_API_TIMEOUT=30000
   **delete account** — password-confirmed and irreversible, cascade-purging all of the user's data
   (birth profiles, saved charts, AI conversations + tool traces, shared-chart links, quiz sessions,
   settings and refresh tokens)
+- **Forgot / reset password** (`/forgot-password`, `/reset-password`): request a reset by username
+  or email; a single-use, TTL'd, hashed token is emailed as a link (via the provider-agnostic SMTP
+  layer — see Configuration). The forgot endpoint always returns the same generic response (no
+  account enumeration) and is IP-throttled; completing the reset revokes all sessions and signs you
+  straight in. When SMTP is unconfigured the link is logged server-side so local dev still works.
 - Protected routes; tokens in localStorage (access + refresh)
 
 ### 2. Birth Chart Calculator
@@ -527,13 +558,38 @@ Three approaches, chosen with a mode toggle:
 - Optional **AI reading** of the current sky + smart-lookup **tools** (`get_vedic_clock`,
   `get_retrograde`)
 
-### 15. Export & Share
+### 15. Muhurta / Electional Astrology (`/muhurta`)
+- Find **auspicious time windows** for an activity (general, marriage, travel, new business,
+  housewarming, education, medical) over a date range, computed at your profile's place
+- Each day is scored from its Panchanga — per-activity favourable **nakshatra**, **weekday**,
+  **tithi** (Rikta/Amavasya penalised) and **yoga** (the nine inauspicious yogas penalised)
+- Qualifying days yield concrete **windows**: the Abhijit muhurta + the benefic planetary **horas**
+  (Moon/Mercury/Jupiter/Venus) that avoid Rahu-Kalam / Yamaganda / Gulika
+- Ranked best-windows list + a day-by-day rating grid + an **AI rationale**, and a smart-lookup
+  **tool** (`get_muhurta`) so the astrologer can answer "when is a good time to…"
+
+### 16. Prashna / Horary (`/prashna`)
+- Ask a question and cast a chart for the **exact moment you ask** — no birth data needed
+- Uses your browser location (with permission; falls back to the profile place) at the current
+  instant; renders the moment-chart via the shared North/South Kundali
+- A Prashna-style **AI reading**: Ascendant = querent, Moon = mind/matter, house & lord = outcome,
+  with a likely-yes / no / mixed answer and a sense of timing
+
+### 17. Today — Daily Digest & Notifications (`/daily-digest`)
+- A personalized **daily card**: today's Panchanga + your running Vimsottari dasha (flagging a
+  Bhukti change within 30 days) + headline transits (Sade-Sati, Jupiter-from-Moon, retrogrades,
+  next Jupiter/Saturn ingress), plus a warm **AI reading**
+- **Delivery channels** (opt-in, in **Settings → Notifications**): in-app always; **email** digest
+  (via SMTP); **browser push** (Web Push / VAPID). A "send me a test now" button and per-user
+  profile/hour preferences; deployers point a cron at `POST /api/notifications/digest/send`
+
+### 18. Export & Share
 - **Export** any chart as **PNG** or **PDF** (buttons on each chart card) — on Birth
   Chart, Compare, Transit and the shared view
 - **Share** a chart as a **public, read-only link** (`/share/:token`) — no login needed
   to view; offers a "create a free account" CTA
 
-### 16. LLM Integration (Optional)
+### 19. LLM Integration (Optional)
 - Enhanced predictions with a local Ollama model or any configured provider
 - Contextual astrological interpretations
 - Personalized analysis

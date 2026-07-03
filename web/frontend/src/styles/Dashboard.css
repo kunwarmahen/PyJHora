@@ -1620,3 +1620,97 @@
   background: rgba(45, 122, 62, 0.14);
   color: #2d7a3e;
 }
+
+/* ── Muhurta (electional astrology) ─────────────────────────────────────── */
+.muh-window-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.muh-window {
+  display: grid;
+  grid-template-columns: minmax(90px, auto) minmax(90px, auto) auto 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-color, #e7dccb);
+  border-radius: 10px;
+  background: var(--card-bg, #fffaf2);
+}
+.muh-window__date { font-weight: 700; }
+.muh-window__time { font-variant-numeric: tabular-nums; color: var(--saffron, #FF9933); font-weight: 600; }
+.muh-window__reason { font-size: 0.85rem; }
+.muh-q {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.muh-q--excellent { background: #e6f4ea; color: #1e7a34; }
+.muh-q--good { background: #eef6e6; color: #4d7c1f; }
+.muh-q--average { background: #fdf3e2; color: #9a6a13; }
+.muh-q--avoid { background: #fdeaea; color: #b4342a; }
+
+.muh-day-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+.muh-day {
+  border: 1px solid var(--border-color, #e7dccb);
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  background: var(--card-bg, #fffaf2);
+}
+.muh-day.muh-q--excellent { border-left-color: #1e7a34; }
+.muh-day.muh-q--good { border-left-color: #4d7c1f; }
+.muh-day.muh-q--average { border-left-color: #d4a017; }
+.muh-day.muh-q--avoid { border-left-color: #b4342a; }
+.muh-day__date { font-weight: 700; font-size: 0.9rem; }
+.muh-day__rating { font-size: 0.8rem; font-weight: 600; margin: 0.1rem 0; }
+.muh-day__limbs { font-size: 0.78rem; }
+
+/* ── Prashna (horary) ───────────────────────────────────────────────────── */
+.prashna-composer {
+  display: flex;
+  gap: 0.75rem;
+  align-items: stretch;
+  flex-wrap: wrap;
+  margin: 0.75rem 0 0.25rem;
+}
+.prashna-question {
+  flex: 1 1 320px;
+  min-height: 48px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* ── Daily digest ───────────────────────────────────────────────────────── */
+.digest-highlights {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.digest-hl {
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  background: var(--card-bg, #fffaf2);
+  border: 1px solid var(--border-color, #e7dccb);
+  font-size: 0.92rem;
+}
+.digest-hl--warn {
+  background: #fdf3e2;
+  border-color: #e6cf9a;
+  color: #9a6a13;
+  font-weight: 600;
+}

@@ -93,7 +93,8 @@
     "registerHere": "यहाँ पंजीकरण करें",
     "haveAccount": "पहले से खाता है?",
     "loginHere": "यहाँ लॉग इन करें",
-    "passwordsNoMatch": "पासवर्ड मेल नहीं खाते"
+    "passwordsNoMatch": "पासवर्ड मेल नहीं खाते",
+    "forgotPassword": "पासवर्ड भूल गए?"
   },
   "profile": {
     "selectTitle": "अपनी कुंडली चुनें",
@@ -145,7 +146,10 @@
     "rectify": "समय सुधार",
     "panchaPakshi": "पंच पक्षी",
     "sensitivePoints": "संवेदनशील बिंदु",
-    "vedicClock": "वैदिक घड़ी"
+    "vedicClock": "वैदिक घड़ी",
+    "dailyDigest": "आज",
+    "muhurta": "मुहूर्त",
+    "prashna": "प्रश्न"
   },
   "dashboard": {
     "welcome": "स्वागत है,",
@@ -212,6 +216,18 @@
       "vedicClock": {
         "title": "वैदिक घड़ी और वक्री",
         "description": "जीवंत घटी/होरा दिन-घड़ी और वक्र-गति के वक्री लूप।"
+      },
+      "dailyDigest": {
+        "title": "आज",
+        "description": "आपका दैनिक सारांश — पंचांग, दशा और गोचर"
+      },
+      "muhurta": {
+        "title": "मुहूर्त",
+        "description": "विवाह, यात्रा, व्यापार आदि के लिए शुभ समय खोजें"
+      },
+      "prashna": {
+        "title": "प्रश्न",
+        "description": "प्रश्न ज्योतिष — प्रश्न पूछें, क्षण की कुंडली पढ़ें"
       }
     }
   },
@@ -481,5 +497,10 @@
   },
   "almanac": {
     "aiTitle": "एआई दिन-मार्गदर्शिका"
+  },
+  "settings": {
+    "tabs": {
+      "notifications": "सूचनाएँ"
+    }
   }
 }

@@ -1872,8 +1872,19 @@ Plan:
       ProfileSelection (unchanged). Verified live (curl, isolated `pyjhora_test` DB): register→email
       update (valid/invalid)→change-password→seed profile→delete→login 401, and a Mongo sweep confirming
       **0 leftover docs** across all 9 collections.
-- [ ] 🔴 (P2) **Forgot / reset password** via email — needs an email/SMTP integration
-      (transactional email). Park until an email provider is chosen.
+- [x] (P2) **Forgot / reset password** via email. DONE 2026-07-03: provider-agnostic SMTP
+      (`email_service.py`, stdlib `smtplib` in a thread — no new dep; Gmail app-password/SendGrid/
+      Mailgun/SES all work; **graceful no-op that logs the link when `SMTP_HOST` is unset**, so dev
+      works). `password_reset.py` stores single-use, TTL'd, **hashed** tokens (mirrors
+      `refresh_tokens`); any prior unused token for the user is invalidated on a new request.
+      `POST /api/auth/forgot-password` (username OR email; **always** the same generic response so
+      it can't enumerate accounts; IP-throttled via the login limiter) emails a
+      `{APP_BASE_URL}/reset-password?token=…` link; `POST /api/auth/reset-password` consumes the
+      token atomically (race-safe), sets the hash, `revoke_all`s sessions and returns a fresh pair so
+      the user is signed straight in. Frontend: `ForgotPasswordPage`/`ResetPasswordPage` (+ routes,
+      "Forgot password?" link on Login). Config: `SMTP_*`/`APP_BASE_URL`/`PASSWORD_RESET_TTL_MINUTES`
+      in `config.py` + `.env.example`. VERIFIED in-process (TestClient): forgot→token→reset→old-pw 401/
+      new-pw 200→token-reuse rejected→bad-token rejected. (Unblocks the email digest channel below.)
 - [x] (P2) Optional niceties. DONE 2026-07-03: **"Log out other devices"** — `POST /api/auth/logout-all`
       (`revoke_all` then returns a fresh pair so *this* device stays in; frontend stores it via
       `setTokens`), button in Settings → Account. **Login brute-force rate-limit** — `ratelimit.login_*`
@@ -1930,18 +1941,50 @@ server-injects birth details + resets global state, auth endpoint, saffron page,
 `_resolve_cfg`, i18n, and a §8.9 smart-lookup tool).
 
 **Prioritized (owner pick):**
-- [ ] 🔴 **Muhurta / electional astrology** (P1) — find auspicious windows for an activity
-      (marriage, travel, business start, housewarming) over a date range, from the Panchanga
-      (tithi/nakshatra/yoga/karana + avoid Rahu-Kalam/Yamaganda/Gulika, honour Abhijit and
-      benefic horas). Engine: `panchanga/vratha.py` finders + the existing planetary-hours/
-      muhurta helpers we already use in the Almanac. New page + "best times" list + AI rationale.
-- [ ] 🔴 **Prashna / horary** (P1) — cast a chart for the *moment a question is asked* (no birth
-      data), read it for a yes/no/timing answer. Reuses the natal compute at "now + current
-      location"; add a Prashna-flavored AI prompt. Simple, high wow-factor.
-- [ ] 🔴 **Daily digest & notifications** (P1) — a personalized daily card: today's panchanga +
-      any dasha-change / major transit (Sade-Sati, Jupiter transit, retrograde stations) relevant
-      to the user's chart. Delivery: in-app "Today" panel first; then **PWA push** and/or **email**
-      (needs the email provider from §13). Could reuse the `/schedule` (cron) infra conceptually.
+- [x] **Muhurta / electional astrology** (P1). DONE 2026-07-03: `AstrologyCompute.get_muhurta(
+      activity, start, end, place…)` scans each day in the range (capped 31), scoring it from the
+      Panchanga — per-activity favourable **nakshatra** (classical lists per activity:
+      general/marriage/travel/business/housewarming/education/medical) + **vaara** + **tithi**
+      (Rikta & Amavasya penalised) + **yoga** (the nine inauspicious yogas penalised) + Vishti-karana
+      penalty — then for non-"avoid" days extracts concrete **windows**: the Abhijit muhurta (skipped
+      for marriage/travel per tradition) + the benefic planetary **horas** (Moon/Mercury/Jupiter/
+      Venus) that don't overlap Rahu-Kalam/Yamaganda/Gulika. Returns per-day ratings + a ranked
+      `best_windows` list. Reuses `get_panchanga`+`get_planetary_hours`; new constants
+      `MUHURTA_*`/`MUHURTA_ACTIVITIES`. `POST /api/astrology/muhurta` (data) + `.../muhurta-analysis`
+      (AI rationale via `_build_muhurta_prompt`). Frontend `MuhurtaPage` (route `/muhurta`, card +
+      drawer, `CalendarCheck`): activity picker, date range, best-windows list (quality chips),
+      day-by-day grid, AI rationale. Also a §8.9 smart-lookup tool `get_muhurta`. Verified live
+      (marriage 07-05→07-12 → 8 days, 12 windows). i18n `muhurta.*` (en; hi/sa nav+card labels).
+- [x] **Prashna / horary** (P1). DONE 2026-07-03: `AstrologyCompute.get_prashna(question, date,
+      time, place…)` casts a chart for the **moment the question is asked** (defaults to now + here)
+      by reusing `calculate_birth_chart`, layering the day's Panchanga + running hora lord for
+      classical horary context. `POST /api/astrology/prashna` (chart) + `.../prashna-analysis`
+      (returns `{reading, chart}`; `_build_prashna_prompt` reads it Prashna-style — Ascendant =
+      querent, Moon = mind/matter, house/lord = outcome, with a likely-yes/no/mixed answer + timing).
+      Frontend `PrashnaPage` (route `/prashna`, card + drawer, `HelpCircle`): question box → casts
+      using the querent's **browser geolocation** (falls back to the profile place), renders the
+      moment-chart via the shared North/South `Kundali` + the horary reading side by side. Verified
+      live. i18n `prashna.*`.
+- [x] **Daily digest & notifications** (P1). DONE 2026-07-03 — all three channels:
+      - **In-app "Today"** — `AstrologyCompute.get_daily_digest(dob,tob,place…)` assembles the day's
+        Panchanga + running Vimsottari dasha (flagging a Bhukti change within 30 days) + headline
+        transits (Sade-Sati by Saturn's house-from-Moon, Jupiter-from-Moon, retrogrades, next Jup/Sat
+        ingress) into a `highlights` list + structured sections. `POST /api/astrology/daily-digest`
+        (+ `.../daily-digest-analysis` for a warm AI reading via `_build_daily_digest_prompt`).
+        Frontend `DailyDigestPage` (route `/daily-digest`, card + drawer, `Sun`): highlights, panchanga
+        / dasha / transit cards, AI reading.
+      - **Email (opt-in)** — reuses the §13 SMTP layer. `notifications.py` stores per-user prefs
+        (`user_settings.notifications`: daily_digest/email/push/profile_id/hour) + `push_subscriptions`.
+        `POST /api/notifications/digest/send` computes the chosen profile's digest and delivers on the
+        enabled channels (a scheduler/cron — or the "send me a test now" button — calls it).
+      - **PWA push** — Web Push via VAPID (`pywebpush`, added to requirements; **graceful no-op when
+        VAPID keys unset** → subscribe endpoints 503). `sw.js` gained `push`/`notificationclick`
+        handlers; `utils/push.js` subscribes the SW + registers the subscription
+        (`POST /api/notifications/push/(un)subscribe`). Prefs UI: a new **Settings → Notifications**
+        tab (master switch, profile/hour pickers, email + push toggles with availability badges, test
+        button). Config: `VAPID_*` + `python -m notifications genkeys`. Verified live (prefs get/set,
+        push subscribe 503 when unset, digest highlights). Delivery *scheduling* is left to the
+        deployer's cron hitting `/digest/send` per user (the `/schedule` infra fits conceptually).
 - [ ] 🔴 **KP system (Krishnamurti Paddhati)** (P2→P1) — sub-lords, star-lord, ruling planets,
       significators, KP horary (1–249). Engine has KP ayanamsa + likely sub-lord helpers (audit
       `src/jhora` for KP/sublord). A dedicated KP page + significator tables + AI reading.

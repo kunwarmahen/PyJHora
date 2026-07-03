@@ -33,6 +33,32 @@ class Settings(BaseSettings):
     # REACT_APP_ENABLE_MAP_PICKER flag to hide the UI; keep the two in sync.
     MAP_PICKER_ENABLED: bool = True
 
+    # Public base URL of the frontend, used to build absolute links in outbound
+    # email (e.g. the password-reset link). No trailing slash.
+    APP_BASE_URL: str = "http://localhost:3000"
+
+    # Transactional email (SMTP). Provider-agnostic — works with Gmail (app
+    # password), SendGrid, Mailgun, Amazon SES SMTP, etc. When SMTP_HOST is unset
+    # the email layer becomes a graceful no-op that only logs the message, so
+    # development works without a mail server. STARTTLS is used on port 587;
+    # implicit TLS ("SSL") on port 465.
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""            # e.g. "PyJHora <no-reply@example.com>"; falls back to SMTP_USER
+    SMTP_USE_TLS: bool = True      # STARTTLS (587). Set False + port 465 for implicit SSL.
+
+    # Password-reset token lifetime (minutes).
+    PASSWORD_RESET_TTL_MINUTES: int = 30
+
+    # Web Push (PWA notifications) via VAPID. Generate a keypair once with
+    # `python -m notifications genkeys` (or vapid CLI) and set these. When unset,
+    # push is disabled (subscribe endpoints return 503) but the rest works.
+    VAPID_PUBLIC_KEY: str = ""    # base64url-encoded P-256 public key
+    VAPID_PRIVATE_KEY: str = ""   # base64url-encoded P-256 private key (PEM also accepted)
+    VAPID_SUBJECT: str = "mailto:admin@example.com"
+
     class Config:
         env_file = ".env"
         case_sensitive = True

@@ -124,6 +124,22 @@ export const authService = {
   deleteAccount: (password) =>
     api.delete("/api/auth/account", { data: { password } }),
   getProfile: () => api.get("/api/user/profile"),
+  // Forgot / reset password (email link). `identifier` = username or email.
+  forgotPassword: (identifier) =>
+    api.post("/api/auth/forgot-password", { identifier }),
+  resetPassword: (token, newPassword) =>
+    api.post("/api/auth/reset-password", { token, new_password: newPassword }),
+};
+
+// Daily-digest notification preferences + Web Push (§16).
+export const notificationsService = {
+  getPrefs: () => api.get("/api/notifications/prefs"),
+  setPrefs: (prefs) => api.put("/api/notifications/prefs", prefs),
+  subscribePush: (subscription) =>
+    api.post("/api/notifications/push/subscribe", { subscription }),
+  unsubscribePush: (endpoint) =>
+    api.post("/api/notifications/push/unsubscribe", { endpoint }),
+  sendDigestNow: () => api.post("/api/notifications/digest/send"),
 };
 
 export const astrologyService = {
@@ -431,6 +447,79 @@ export const astrologyService = {
       use_qwen: useQwen,
     }),
   getUserCharts: () => api.get("/api/user/charts"),
+
+  // ---- Muhurta / electional astrology (§16) ----
+  // Location-driven: find auspicious windows for an activity over a date range.
+  getMuhurta: ({ activity, startDate, endDate, place, latitude, longitude, timezone } = {}) =>
+    api.post("/api/astrology/muhurta", null, {
+      params: {
+        activity, start_date: startDate, end_date: endDate,
+        place, latitude, longitude, timezone,
+      },
+    }),
+  analyzeMuhurtaAI: ({ activity, startDate, endDate, place, latitude, longitude, timezone } = {}, model = {}) =>
+    api.post(
+      "/api/astrology/muhurta-analysis",
+      {
+        activity, start_date: startDate, end_date: endDate,
+        place, latitude, longitude, timezone,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+      },
+      { timeout: 300000 }
+    ),
+
+  // ---- Prashna / horary (§16) ----
+  // Cast a chart for the moment (defaults to now + here) and read it. The
+  // -analysis endpoint returns both the reading and the chart.
+  getPrashna: ({ question, date, time, place, latitude, longitude, timezone, ayanamsa } = {}) =>
+    api.post("/api/astrology/prashna", null, {
+      params: { question, date, time, place, latitude, longitude, timezone, ayanamsa },
+    }),
+  analyzePrashnaAI: ({ question, date, time, place, latitude, longitude, timezone } = {}, model = {}) =>
+    api.post(
+      "/api/astrology/prashna-analysis",
+      {
+        question, date, time, place, latitude, longitude, timezone,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
+  // ---- Daily digest (§16) ----
+  getDailyDigest: (birthDetails, { date, currentTime, currentTz, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+    api.post("/api/astrology/daily-digest", birthDetails, {
+      params: { date, current_time: currentTime, current_tz: currentTz, ayanamsa },
+    }),
+  analyzeDailyDigestAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/daily-digest-analysis",
+      {
+        birth_details: birthDetails,
+        date: opts.date,
+        current_time: opts.currentTime,
+        current_tz: opts.currentTz,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
 
   // New LLM Q&A endpoints
   getLlmProviders: () => api.get("/api/llm/providers"),

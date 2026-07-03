@@ -347,6 +347,75 @@ RETRO_PERIODS = {
 # are perpetually retrograde, handled separately).
 RETRO_STATION_PLANETS = [2, 3, 4, 5, 6]
 
+# ── Muhurta (electional astrology, §16) classification tables ──────────────
+# Rikta tithis (the 4th/9th/14th of each paksha) are weak for beginnings; the
+# absolute-tithi index 30 (Amavasya / new moon) is generally avoided too.
+MUHURTA_RIKTA_TITHIS = {4, 9, 14}
+
+# The classical inauspicious yogas to avoid for muhurta (matched by name).
+MUHURTA_BAD_YOGAS = {
+    "Vishkambha", "Atiganda", "Shula", "Ganda", "Vyaghata",
+    "Vajra", "Vyatipata", "Parigha", "Vaidhriti",
+}
+
+# Universally benefic nakshatras — the safe default set for "general" work.
+MUHURTA_BENEFIC_NAKSHATRAS = {
+    "Ashwini", "Rohini", "Mrigashira", "Punarvasu", "Pushya", "Hasta",
+    "Chitra", "Swati", "Anuradha", "Shravana", "Dhanishta", "Shatabhisha",
+    "Uttara Phalguni", "Uttara Ashadha", "Uttara Bhadrapada", "Revati",
+}
+
+# Per-activity favourable nakshatras + weekdays (0=Sunday .. 6=Saturday),
+# distilled from classical muhurta texts. `nakshatras` empty → use the benefic
+# default set. These bias the day-scoring; they are guidance, not hard rules.
+MUHURTA_ACTIVITIES = {
+    "general": {
+        "label": "General auspicious work",
+        "nakshatras": set(),  # → benefic default
+        "weekdays": {1, 3, 4, 5},  # Mon, Wed, Thu, Fri
+    },
+    "marriage": {
+        "label": "Marriage / wedding",
+        "nakshatras": {"Rohini", "Mrigashira", "Magha", "Uttara Phalguni", "Hasta",
+                       "Swati", "Anuradha", "Mula", "Uttara Ashadha",
+                       "Uttara Bhadrapada", "Revati"},
+        "weekdays": {1, 3, 4, 5},  # Mon, Wed, Thu, Fri (avoid Tue/Sat/Sun)
+    },
+    "travel": {
+        "label": "Travel / journey",
+        "nakshatras": {"Ashwini", "Mrigashira", "Punarvasu", "Pushya", "Hasta",
+                       "Anuradha", "Shravana", "Dhanishta", "Revati"},
+        "weekdays": {1, 3, 4, 5},  # avoid Tue/Sat for setting out
+    },
+    "business": {
+        "label": "New business / venture",
+        "nakshatras": {"Ashwini", "Rohini", "Mrigashira", "Pushya", "Hasta",
+                       "Chitra", "Swati", "Anuradha", "Uttara Phalguni",
+                       "Uttara Ashadha", "Uttara Bhadrapada", "Revati"},
+        "weekdays": {1, 3, 4, 5},  # Mon, Wed, Thu, Fri
+    },
+    "housewarming": {
+        "label": "Housewarming (Griha Pravesh)",
+        "nakshatras": {"Rohini", "Mrigashira", "Uttara Phalguni", "Hasta", "Chitra",
+                       "Swati", "Anuradha", "Uttara Ashadha", "Dhanishta",
+                       "Shatabhisha", "Uttara Bhadrapada", "Revati"},
+        "weekdays": {1, 3, 4, 5},
+    },
+    "education": {
+        "label": "Education / learning (Vidyarambha)",
+        "nakshatras": {"Ashwini", "Punarvasu", "Pushya", "Hasta", "Chitra", "Swati",
+                       "Anuradha", "Shravana", "Dhanishta", "Shatabhisha", "Revati",
+                       "Uttara Phalguni", "Uttara Ashadha", "Uttara Bhadrapada"},
+        "weekdays": {1, 3, 4, 5},  # Mercury/Jupiter/Venus/Moon days
+    },
+    "medical": {
+        "label": "Medical treatment / surgery",
+        "nakshatras": {"Ashwini", "Mrigashira", "Punarvasu", "Pushya", "Hasta",
+                       "Chitra", "Revati"},
+        "weekdays": {2, 6},  # Tue/Sat traditionally for surgery (Mars/Saturn)
+    },
+}
+
 # Curated tithi-driven festivals / vrathas. Each entry maps a display key to the
 # tithi index/indices (1..30, across both pakshas) the vratha falls on, plus a
 # short meaning. tithi_dates() finds every occurrence in a date range.
@@ -2531,6 +2600,397 @@ class AstrologyCompute:
                 "sunrise": sr[1][:5] if isinstance(sr[1], str) else _fmt_hours(sr[0]),
                 "sunset": ss[1][:5] if isinstance(ss[1], str) else _fmt_hours(ss[0]),
                 "horas": out,
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+
+    # ── Muhurta (electional astrology, §16) ────────────────────────────────
+    @staticmethod
+    def get_muhurta(activity: str = "general", start_date: Optional[str] = None,
+                    end_date: Optional[str] = None, place: str = "",
+                    lat: Optional[float] = None, lon: Optional[float] = None,
+                    tz: Optional[float] = None, max_days: int = 31) -> Dict:
+        """Find auspicious windows for an activity over a date range.
+
+        For each day in [start_date, end_date] (capped at `max_days`) the day is
+        scored from its Panchanga — nakshatra (per-activity favourable list),
+        vaara (weekday), tithi (Rikta/Amavasya penalised) and yoga (the nine
+        inauspicious yogas penalised). Qualifying days then contribute concrete
+        time windows: the Abhijit muhurta and the benefic planetary horas
+        (Moon/Mercury/Jupiter/Venus) that do NOT overlap Rahu Kalam, Yamaganda or
+        Gulika. Returns the per-day summaries plus a ranked `best_windows` list.
+        Location-driven (not birth-chart bound); reuses `get_panchanga` and
+        `get_planetary_hours`."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available"}
+        try:
+            from datetime import datetime, timezone as _utc, timedelta
+
+            act_key = (activity or "general").lower()
+            act = MUHURTA_ACTIVITIES.get(act_key, MUHURTA_ACTIVITIES["general"])
+            good_naks = act["nakshatras"] or MUHURTA_BENEFIC_NAKSHATRAS
+            good_days = act["weekdays"]
+
+            tz_offset = tz if tz is not None else 5.5
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+
+            # Default range: today .. +14 days, in the place's local time.
+            local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+            if start_date:
+                sy, sm, sd = map(int, start_date.split("-"))
+                start = datetime(sy, sm, sd)
+            else:
+                start = datetime(local_now.year, local_now.month, local_now.day)
+            if end_date:
+                ey, em, ed = map(int, end_date.split("-"))
+                end = datetime(ey, em, ed)
+            else:
+                end = start + timedelta(days=14)
+            if end < start:
+                end = start
+            n_days = min((end - start).days + 1, max_days)
+
+            def _to_min(hhmm):
+                try:
+                    h, m = str(hhmm).split(":")[:2]
+                    return int(h) * 60 + int(m)
+                except Exception:
+                    return None
+
+            def _overlaps(a1, a2, periods):
+                """True if window [a1,a2) overlaps any inauspicious [s,e)."""
+                for s, e in periods:
+                    if s is None or e is None:
+                        continue
+                    if a1 < e and s < a2:
+                        return True
+                return False
+
+            days_out = []
+            all_windows = []
+            for i in range(n_days):
+                d = start + timedelta(days=i)
+                date_str = f"{d.year:04d}-{d.month:02d}-{d.day:02d}"
+                panch = AstrologyCompute.get_panchanga(
+                    date=date_str, place=place, lat=lat, lon=lon, tz=tz_offset)
+                if panch.get("status") != "success":
+                    continue
+
+                nak_name = panch["nakshatra"]["name"]
+                tithi_idx = panch["tithi"]["index"]
+                yoga_name = panch["yoga"]["name"]
+                weekday = panch["vaara"]["index"]
+                within_paksha = tithi_idx if tithi_idx <= 15 else tithi_idx - 15
+
+                # ── Score the day ──────────────────────────────────────────
+                score = 0
+                reasons = []
+                if nak_name in good_naks:
+                    score += 3
+                    reasons.append(f"{nak_name} nakshatra favours this")
+                elif nak_name in MUHURTA_BENEFIC_NAKSHATRAS:
+                    score += 1
+                    reasons.append(f"{nak_name} is a benefic nakshatra")
+                else:
+                    reasons.append(f"{nak_name} is not among the preferred stars")
+
+                if weekday in good_days:
+                    score += 1
+                    reasons.append(f"{WEEKDAY_NAMES[weekday]} is a favourable weekday")
+
+                if tithi_idx == 30:
+                    score -= 2
+                    reasons.append("Amavasya (new moon) — avoid for beginnings")
+                elif within_paksha in MUHURTA_RIKTA_TITHIS:
+                    score -= 2
+                    reasons.append(f"{panch['tithi']['name']} is a Rikta tithi (weak)")
+                else:
+                    score += 1
+
+                if yoga_name in MUHURTA_BAD_YOGAS:
+                    score -= 2
+                    reasons.append(f"{yoga_name} yoga is inauspicious")
+                else:
+                    score += 1
+
+                if panch.get("karana", {}).get("name") == "Vishti":
+                    score -= 1
+                    reasons.append("Vishti (Bhadra) karana — avoid")
+
+                rating = ("excellent" if score >= 5 else "good" if score >= 3
+                          else "average" if score >= 1 else "avoid")
+
+                # ── Build candidate windows for a non-"avoid" day ─────────
+                windows = []
+                if rating != "avoid":
+                    bad_periods = []
+                    for key in ("rahu_kalam", "yamaganda", "gulika"):
+                        p = panch.get(key) or {}
+                        bad_periods.append((_to_min(p.get("start")), _to_min(p.get("end"))))
+
+                    # Abhijit muhurta (midday) — strong for most activities
+                    # except marriage/travel where tradition is cautious.
+                    abh = panch.get("abhijit")
+                    if abh and act_key not in ("marriage", "travel"):
+                        a1, a2 = _to_min(abh["start"]), _to_min(abh["end"])
+                        if a1 is not None and not _overlaps(a1, a2, bad_periods):
+                            windows.append({
+                                "date": date_str, "start": abh["start"], "end": abh["end"],
+                                "label": "Abhijit Muhurta", "quality": "excellent",
+                                "reason": "Abhijit — the auspicious midday muhurta",
+                                "day_score": score,
+                            })
+
+                    # Benefic daytime horas clear of the inauspicious periods.
+                    hrs = AstrologyCompute.get_planetary_hours(
+                        date=date_str, place=place, lat=lat, lon=lon, tz=tz_offset)
+                    for h in (hrs.get("horas", []) if hrs.get("status") == "success" else []):
+                        if h["period"] != "day" or not h["benefic"]:
+                            continue
+                        h1, h2 = _to_min(h["start"]), _to_min(h["end"])
+                        if h1 is None or _overlaps(h1, h2, bad_periods):
+                            continue
+                        windows.append({
+                            "date": date_str, "start": h["start"], "end": h["end"],
+                            "label": f"{h['planet']} hora",
+                            "quality": rating,
+                            "reason": f"{h['planet']} (benefic) planetary hour",
+                            "day_score": score,
+                        })
+
+                    all_windows.extend(windows)
+
+                days_out.append({
+                    "date": date_str,
+                    "weekday": WEEKDAY_NAMES[weekday],
+                    "score": score,
+                    "rating": rating,
+                    "tithi": panch["tithi"],
+                    "nakshatra": panch["nakshatra"],
+                    "yoga": panch["yoga"],
+                    "karana": panch["karana"],
+                    "sunrise": panch.get("sunrise"),
+                    "sunset": panch.get("sunset"),
+                    "rahu_kalam": panch.get("rahu_kalam"),
+                    "reasons": reasons,
+                    "windows": windows,
+                })
+
+            # Rank the best windows: Abhijit first, then higher day-score, then date.
+            _q = {"excellent": 0, "good": 1, "average": 2, "avoid": 3}
+            all_windows.sort(key=lambda w: (
+                _q.get(w["quality"], 4),
+                0 if w["label"] == "Abhijit Muhurta" else 1,
+                -w["day_score"], w["date"], w["start"]))
+
+            return {
+                "status": "success",
+                "activity": act_key,
+                "activity_label": act["label"],
+                "start_date": f"{start.year:04d}-{start.month:02d}-{start.day:02d}",
+                "end_date": days_out[-1]["date"] if days_out else None,
+                "place": place,
+                "days": days_out,
+                "best_windows": all_windows[:12],
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+
+    # ── Prashna / horary (§16) ─────────────────────────────────────────────
+    @staticmethod
+    def get_prashna(question: Optional[str] = None, date: Optional[str] = None,
+                    time: Optional[str] = None, place: str = "",
+                    lat: Optional[float] = None, lon: Optional[float] = None,
+                    tz: Optional[float] = None,
+                    ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Cast a Prashna (horary) chart for the *moment the question is asked* —
+        no birth data needed. The Ascendant and Moon at that instant are the
+        querent and the mind/question; the rest of the chart answers it. Reuses
+        the natal compute at "now + current location" and layers the day's
+        Panchanga + running planetary hour on top for classical horary context."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available"}
+        try:
+            from datetime import datetime, timezone as _utc, timedelta
+
+            tz_offset = tz if tz is not None else 5.5
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+
+            local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+            if date:
+                y, m, dd = map(int, date.split("-"))
+            else:
+                y, m, dd = local_now.year, local_now.month, local_now.day
+            if time:
+                tp = time.split(":")
+                hh = int(tp[0]); mi = int(tp[1]) if len(tp) > 1 else 0
+            else:
+                hh, mi = local_now.hour, local_now.minute
+            date_str = f"{y:04d}-{m:02d}-{dd:02d}"
+            time_str = f"{hh:02d}:{mi:02d}"
+
+            chart = AstrologyCompute.calculate_birth_chart(
+                dob=date_str, tob=time_str, place=place,
+                lat=lat, lon=lon, tz=tz_offset, ayanamsa=ayanamsa)
+            if "error" in chart:
+                return {"error": chart["error"], "status": "failed"}
+
+            d1 = chart.get("d1_chart", {})
+            lagna = chart.get("lagna", {})
+            moon = d1.get("Moon", {})
+            sun = d1.get("Sun", {})
+
+            # Day panchanga + the running planetary hour (hora) — horary context.
+            panch = AstrologyCompute.get_panchanga(
+                date=date_str, place=place, lat=lat, lon=lon, tz=tz_offset)
+            hrs = AstrologyCompute.get_planetary_hours(
+                date=date_str, place=place, lat=lat, lon=lon, tz=tz_offset)
+            hora_lord = None
+            for h in (hrs.get("horas", []) if hrs.get("status") == "success" else []):
+                if h.get("current"):
+                    hora_lord = h.get("planet")
+                    break
+
+            return {
+                "status": "success",
+                "question": question or "",
+                "moment": {"date": date_str, "time": time_str, "tz": tz_offset},
+                "place": place,
+                "lagna": lagna,
+                "moon": moon,
+                "sun": sun,
+                "planets": d1,
+                "navamsa": chart.get("d9_chart", {}),
+                "d9_lagna": chart.get("d9_lagna", {}),
+                "panchanga": panch if panch.get("status") == "success" else None,
+                "hora_lord": hora_lord,
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+
+    # ── Daily digest (§16) ─────────────────────────────────────────────────
+    @staticmethod
+    def get_daily_digest(dob: str, tob: str, place: str,
+                         lat: Optional[float] = None, lon: Optional[float] = None,
+                         tz: Optional[float] = None, date: Optional[str] = None,
+                         current_time: Optional[str] = None,
+                         current_tz: Optional[float] = None,
+                         ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """A personalized "Today" card: the day's Panchanga at the person's place,
+        their running Vimsottari dasha (flagging a change if the current Bhukti
+        ends within ~30 days), the headline transits (Sade-Sati / Jupiter's house
+        from natal Moon, retrograde grahas, next Jupiter/Saturn ingress), and a
+        list of plain highlight strings. Assembled from the existing panchanga /
+        dasha / transit computes."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available"}
+        try:
+            from datetime import datetime, timezone as _utc, timedelta
+
+            tz_offset = tz if tz is not None else 5.5
+            local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+            date_str = date or f"{local_now.year:04d}-{local_now.month:02d}-{local_now.day:02d}"
+
+            panch = AstrologyCompute.get_panchanga(
+                date=date_str, place=place, lat=lat, lon=lon, tz=tz_offset)
+            transits = AstrologyCompute.get_transits(
+                dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz,
+                current_date=date_str, current_time=current_time,
+                current_tz=current_tz, ayanamsa=ayanamsa)
+            dashas = AstrologyCompute.get_dashas(
+                dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz)
+
+            highlights = []
+
+            # Panchanga headline.
+            if panch.get("status") == "success":
+                # tithi['name'] already carries the paksha prefix (e.g. "Krishna Tritiya").
+                highlights.append(
+                    f"{panch['vaara']['name']} · {panch['tithi']['name']}, "
+                    f"{panch['nakshatra']['name']} nakshatra")
+
+            # Dasha snapshot + imminent change.
+            dasha_block = None
+            if dashas.get("status") != "failed" and dashas.get("current_dasha"):
+                cur = dashas["current_dasha"]
+                bhukti_periods = (dashas.get("current_bhukthi") or {}).get("periods", [])
+                today = datetime.strptime(date_str, "%Y-%m-%d")
+                running_bhukti = None
+                for b in bhukti_periods:
+                    try:
+                        bs = datetime.strptime(b["start_date"], "%Y-%m-%d")
+                        be = datetime.strptime(b["end_date"], "%Y-%m-%d")
+                    except Exception:
+                        continue
+                    if bs <= today <= be:
+                        running_bhukti = b
+                        break
+                dasha_block = {
+                    "maha_lord": cur["lord"],
+                    "maha_end": cur["end_date"],
+                    "bhukti": running_bhukti,
+                    "next_maha": (dashas.get("next_dasha") or {}).get("lord"),
+                }
+                highlights.append(
+                    f"{cur['lord']} Mahadasha"
+                    + (f", {running_bhukti['lord']} Bhukti" if running_bhukti else ""))
+                # Bhukti change within 30 days?
+                if running_bhukti:
+                    try:
+                        be = datetime.strptime(running_bhukti["end_date"], "%Y-%m-%d")
+                        days_left = (be - today).days
+                        if 0 <= days_left <= 30:
+                            highlights.append(
+                                f"⚠ {running_bhukti['lord']} Bhukti ends in {days_left} "
+                                f"day(s) — a dasha change is near")
+                    except Exception:
+                        pass
+
+            # Transit highlights: Sade-Sati, Jupiter from Moon, retrogrades, ingresses.
+            transit_block = None
+            if transits.get("status") == "success":
+                planets = transits.get("planets", {})
+                sat = planets.get("Saturn", {})
+                jup = planets.get("Jupiter", {})
+                if sat.get("house_from_moon") in (12, 1, 2):
+                    phase = {12: "first (rising)", 1: "peak (janma)",
+                             2: "final (setting)"}[sat["house_from_moon"]]
+                    highlights.append(f"Saturn is in your {sat['house_from_moon']}th from "
+                                      f"the Moon — Sade-Sati {phase} phase")
+                if jup:
+                    highlights.append(
+                        f"Jupiter transits your {jup.get('house_from_moon')}th from the Moon "
+                        f"({jup.get('sign_name')})")
+                retro = [name for name, p in planets.items() if p.get("retrograde")]
+                if retro:
+                    highlights.append("Retrograde now: " + ", ".join(retro))
+                transit_block = {
+                    "planets": planets,
+                    "upcoming": transits.get("upcoming", []),
+                    "natal": transits.get("natal", {}),
+                    "retrograde": retro,
+                    "sade_sati": sat.get("house_from_moon") in (12, 1, 2),
+                }
+                for u in transits.get("upcoming", []):
+                    highlights.append(
+                        f"{u['planet']} enters {u['to_sign']} on {u['date']}")
+
+            return {
+                "status": "success",
+                "date": date_str,
+                "place": place,
+                "panchanga": panch if panch.get("status") == "success" else None,
+                "dasha": dasha_block,
+                "transits": transit_block,
+                "highlights": highlights,
             }
         except Exception as e:
             import traceback

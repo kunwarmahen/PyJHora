@@ -27,6 +27,11 @@ import { AiToolsPage } from "./pages/AiToolsPage";
 import { SensitivePointsPage } from "./pages/SensitivePointsPage";
 import { VedicClockPage } from "./pages/VedicClockPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { MuhurtaPage } from "./pages/MuhurtaPage";
+import { PrashnaPage } from "./pages/PrashnaPage";
+import { DailyDigestPage } from "./pages/DailyDigestPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import "./App.css";
 import "./styles/Responsive.css";
 
@@ -39,6 +44,8 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/share/:token" element={<SharedChartPage />} />
 
             <Route
@@ -100,6 +107,33 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AlmanacPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/muhurta"
+              element={
+                <ProtectedRoute>
+                  <MuhurtaPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/prashna"
+              element={
+                <ProtectedRoute>
+                  <PrashnaPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/daily-digest"
+              element={
+                <ProtectedRoute>
+                  <DailyDigestPage />
                 </ProtectedRoute>
               }
             />

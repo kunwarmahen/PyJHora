@@ -10,6 +10,10 @@ bcrypt==5.0.0  # used directly in auth.py (passlib 1.7.4 breaks with bcrypt >= 4
 PyJWT==2.8.0
 motor==3.7.1
 httpx==0.25.2
+# Web Push (PWA notifications) via VAPID. Optional at runtime — the notifications
+# layer degrades gracefully if it's missing or VAPID keys are unset. Transactional
+# email (forgot-password, digest) uses the stdlib smtplib, so needs no extra dep.
+pywebpush==2.3.0
 
 # --- PyJHora runtime deps ---
 # The backend imports PyJHora 4.8.7 from ../../src (see astrology.py). These are the
