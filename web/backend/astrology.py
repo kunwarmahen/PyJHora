@@ -3346,16 +3346,47 @@ class AstrologyCompute:
                 })
 
             # ── Bhrigu Bindu / Moon activations (Jupiter + Saturn ingresses) ─
+            # NB: the engine's next_planet_entry_date micro-steps 0.01 day at a
+            # time, so finding Saturn's *next* entry into a sign it just left can
+            # take ~29 years of stepping (10-15 s per call). We instead coarse-scan
+            # (1-day steps — safe for slow grahas, they move <0.25°/day) then
+            # bisect to the hour, capped at one Saturn cycle (~36 yr).
+            def _next_sign_entry(pl_idx, jd_start, tgt_sign0, max_years=36):
+                pl = drik.ephemeris_planet_index(pl_idx)
+
+                def sign_at(j):
+                    return int(drik.sidereal_longitude(j - tz_offset / 24.0, pl) // 30) % 12
+
+                jd0 = jd_start
+                prev = sign_at(jd0)
+                limit = jd_start + max_years * 365.25
+                while jd0 < limit:
+                    jd1 = jd0 + 1.0
+                    s = sign_at(jd1)
+                    if s == tgt_sign0 and prev != tgt_sign0:
+                        lo, hi = jd0, jd1  # entry is inside (jd0, jd1]
+                        for _ in range(40):
+                            mid = (lo + hi) / 2.0
+                            if sign_at(mid) == tgt_sign0:
+                                hi = mid
+                            else:
+                                lo = mid
+                            if hi - lo < 1.0 / 24.0:
+                                break
+                        return hi
+                    prev = s
+                    jd0 = jd1
+                return None
+
             activations = []
-            search_place = drik.Place(place, lat, lon, tz_offset)
             jd_now = swe.julday(today.year, today.month, today.day, 12)
             for pl_idx, pl_name in ((4, "Jupiter"), (6, "Saturn")):
                 for tgt_sign0, tgt_label in ((bb_sign0, "Bhrigu Bindu"),
                                              (moon_rasi0, "Moon")):
                     try:
-                        ret = drik.next_planet_entry_date(
-                            pl_idx, jd_now, search_place, raasi=tgt_sign0 + 1)
-                        ejd = ret[0] if isinstance(ret, (list, tuple)) else ret
+                        ejd = _next_sign_entry(pl_idx, jd_now, tgt_sign0)
+                        if ejd is None:
+                            continue
                         g = utils.jd_to_gregorian(ejd)
                         activations.append({
                             "planet": pl_name,
