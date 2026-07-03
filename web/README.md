@@ -35,7 +35,8 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   local server (LM Studio / llama.cpp / vLLM), Google Gemini, or OpenAI — pick the exact model.
   Chosen in the new **Settings** page (see below); the Ask page shows the active model with a
   "Change in Settings" link. A **Max response length** slider (also in Settings) raises the output
-  cap if answers get cut off.
+  cap if answers get cut off — it applies across **every** AI feature (Ask, predictions,
+  compatibility, quiz, and the per-page plain-language analyses), not just the Ask page.
 - **Streaming answers**: responses stream token-by-token (SSE) with a **Stop** button
 - **Per-answer token usage**: each answer shows the provider-reported token count
   (prompt + completion breakdown on hover), captured from Ollama, OpenAI/-compatible

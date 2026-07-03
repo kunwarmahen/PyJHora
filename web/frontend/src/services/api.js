@@ -174,6 +174,7 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
       },
       { timeout: 300000 }
     ),
@@ -244,6 +245,7 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
         ayanamsa: model.ayanamsa,
       },
       { timeout: 300000 }
@@ -269,6 +271,7 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
         ayanamsa: model.ayanamsa,
       },
       { timeout: 300000 }
@@ -296,6 +299,7 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
         ayanamsa: model.ayanamsa,
       },
       { timeout: 300000 }
@@ -318,6 +322,7 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
         ayanamsa: model.ayanamsa,
       },
       { timeout: 300000 }
@@ -341,6 +346,7 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
         ayanamsa: model.ayanamsa,
       },
       { timeout: 300000 }
@@ -372,6 +378,7 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
         ayanamsa: model.ayanamsa,
       },
       { timeout: 300000 }
@@ -390,6 +397,7 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
         ayanamsa: model.ayanamsa,
       },
       { timeout: 300000 }
@@ -438,6 +446,7 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
         vargas: model.vargas,
         ayanamsa: model.ayanamsa,
         conversation_id: model.conversationId,
@@ -479,6 +488,7 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
         vargas: model.vargas,
         ayanamsa: model.ayanamsa,
       },
@@ -496,6 +506,7 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
         ayanamsa: model.ayanamsa,
       },
       { timeout: 300000 }
@@ -515,6 +526,7 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
         ayanamsa: model.ayanamsa,
       },
       { timeout: 300000 }
@@ -557,6 +569,7 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
         ayanamsa: model.ayanamsa,
       },
       { timeout: 300000 }
@@ -580,6 +593,7 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
         ayanamsa: model.ayanamsa,
       },
       { timeout: 300000 }
@@ -597,6 +611,7 @@ export const astrologyService = {
         model: model.model,
         base_url: model.baseUrl,
         api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
         ayanamsa: model.ayanamsa,
       },
       { timeout: 300000 }

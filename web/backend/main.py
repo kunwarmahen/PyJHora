@@ -128,6 +128,8 @@ class CompatibilityAnalysisRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Optional per-user output cap (output tokens); honored via _resolve_cfg.
+    max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
 class CompareAnalysisRequest(BaseModel):
@@ -141,6 +143,8 @@ class CompareAnalysisRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Optional per-user output cap (output tokens); honored via _resolve_cfg.
+    max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
 class SarvatobhadraAnalysisRequest(BaseModel):
@@ -155,6 +159,8 @@ class SarvatobhadraAnalysisRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Optional per-user output cap (output tokens); honored via _resolve_cfg.
+    max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
 class VarshaphalAnalysisRequest(BaseModel):
@@ -166,6 +172,8 @@ class VarshaphalAnalysisRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Optional per-user output cap (output tokens); honored via _resolve_cfg.
+    max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
 class PanchaPakshiAnalysisRequest(BaseModel):
@@ -177,6 +185,8 @@ class PanchaPakshiAnalysisRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Optional per-user output cap (output tokens); honored via _resolve_cfg.
+    max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
 class SensitivePointsAnalysisRequest(BaseModel):
@@ -187,6 +197,8 @@ class SensitivePointsAnalysisRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Optional per-user output cap (output tokens); honored via _resolve_cfg.
+    max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
 class CelestialAnalysisRequest(BaseModel):
@@ -198,6 +210,8 @@ class CelestialAnalysisRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Optional per-user output cap (output tokens); honored via _resolve_cfg.
+    max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
 class AlmanacAnalysisRequest(BaseModel):
@@ -213,6 +227,8 @@ class AlmanacAnalysisRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Optional per-user output cap (output tokens); honored via _resolve_cfg.
+    max_tokens: Optional[int] = None
 
 class RectifyExplainRequest(BaseModel):
     birth_details: BirthDetails
@@ -224,6 +240,8 @@ class RectifyExplainRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Optional per-user output cap (output tokens); honored via _resolve_cfg.
+    max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
 class RectifyEventItem(BaseModel):
@@ -246,6 +264,8 @@ class RectifyEventsExplainRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Optional per-user output cap (output tokens); honored via _resolve_cfg.
+    max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
 class RectifyChatMessage(BaseModel):
@@ -262,6 +282,8 @@ class RectifyChatRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Optional per-user output cap (output tokens); honored via _resolve_cfg.
+    max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
 # Lifecycle events
@@ -2208,6 +2230,8 @@ class QuizGenerateRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Optional per-user output cap (output tokens); honored via _resolve_cfg.
+    max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
 
@@ -2220,6 +2244,8 @@ class QuizGradeRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Optional per-user output cap (output tokens); honored via _resolve_cfg.
+    max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
 

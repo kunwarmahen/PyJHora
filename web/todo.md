@@ -1816,8 +1816,15 @@ slider.
       "Use the model's default length" checkbox (0 = auto); persisted as `ai_max_tokens`. The Ask
       page reads it and sends `max_tokens` on every `streamAskQuestion` call (`api.js` stream body).
       Note: SSE streaming uses raw `fetch` so it also bypasses the §13 silent-refresh (tracked there).
-- [ ] 🔴 FOLLOW-UP: thread `max_tokens` into the other AI endpoints too (predict, compatibility,
-      quiz, the per-feature analyses) — they share `_resolve_cfg` so it's a small request-field add.
+- [x] FOLLOW-UP (DONE 2026-07-03): `max_tokens` now threads into **every** AI endpoint, not just
+      Ask/transit-chat. Backend: added the optional `max_tokens` field to all remaining AI request
+      models — `PredictionRequest` (already had it), Compatibility/Compare/Sarvatobhadra/Varshaphal/
+      PanchaPakshi/SensitivePoints/Celestial/Almanac analyses, the three Rectify (explain/events-
+      explain/chat) requests, and `QuizGenerate`/`QuizGrade`. No new plumbing: `_resolve_cfg` already
+      reads `getattr(request, "max_tokens", None)` and clamps to 256..32768, so the field alone wires
+      it through. Frontend: each page's `readModelConfig()` now returns
+      `maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined`, and every
+      axios AI call in `api.js` sends `max_tokens: model.maxTokens || undefined`. Build + eslint green.
 
 ## 13. User account & auth improvements (P1, owner ask 2026-07-03)
 

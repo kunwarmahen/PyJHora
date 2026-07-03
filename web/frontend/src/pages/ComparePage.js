@@ -28,6 +28,7 @@ const readModelConfig = () => {
     model: localStorage.getItem("ai_model") || "",
     baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
+    maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
 };
 
