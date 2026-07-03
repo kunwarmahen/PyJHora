@@ -65,9 +65,9 @@ export const NavDrawer = () => {
     navigate(to);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setOpen(false);
-    logout();
+    await logout();
     clearProfile();
     navigate("/login");
   };

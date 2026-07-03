@@ -136,6 +136,24 @@
   color: var(--text-muted);
 }
 
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  font-size: 0.9rem;
+  color: var(--text-secondary, #6b5b4d);
+  cursor: pointer;
+  user-select: none;
+}
+
+.remember-me input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--saffron);
+  cursor: pointer;
+}
+
 .submit-btn {
   width: 100%;
   padding: var(--space-md) var(--space-xl);

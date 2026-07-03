@@ -23,17 +23,30 @@ import user_settings
 import ratelimit
 import shares
 import quiz
+import refresh_tokens
 import uuid
 
 # Request models
 class LoginRequest(BaseModel):
     username: str
     password: str
+    remember_me: bool = False
 
 class RegisterRequest(BaseModel):
     username: str
     email: str
     password: str
+    remember_me: bool = False
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+class LogoutRequest(BaseModel):
+    refresh_token: Optional[str] = None
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 class AskQuestionRequest(BaseModel):
     birth_details: BirthDetails
@@ -274,6 +287,17 @@ security = HTTPBearer()
 
 # ============= AUTH ROUTES =============
 
+async def _issue_token_pair(username: str, remember_me: bool = False) -> dict:
+    """Mint a short-lived access token + a long-lived refresh token for a user."""
+    access_token = create_access_token(
+        data={"sub": username},
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    days = settings.REFRESH_TOKEN_EXPIRE_DAYS if remember_me else settings.REFRESH_TOKEN_SHORT_DAYS
+    refresh_token = await refresh_tokens.issue(username, days)
+    return {"access_token": access_token, "token_type": "bearer", "refresh_token": refresh_token}
+
+
 @app.post("/api/auth/register", response_model=Token)
 async def register(req: RegisterRequest):
     """Register a new user"""
@@ -296,15 +320,9 @@ async def register(req: RegisterRequest):
             "email": req.email,
             "hashed_password": hashed_password
         }
-        result = await users_collection.insert_one(user_doc)
-        
-        # Create token
-        access_token = create_access_token(
-            data={"sub": req.username},
-            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-        )
-        
-        return {"access_token": access_token, "token_type": "bearer"}
+        await users_collection.insert_one(user_doc)
+
+        return await _issue_token_pair(req.username, req.remember_me)
     except HTTPException:
         raise
     except Exception as e:
@@ -324,18 +342,36 @@ async def login(req: LoginRequest):
         
         if not user or not verify_password(req.password, user["hashed_password"]):
             raise HTTPException(status_code=401, detail="Invalid credentials")
-        
-        access_token = create_access_token(
-            data={"sub": req.username},
-            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-        )
-        
-        return {"access_token": access_token, "token_type": "bearer"}
+
+        return await _issue_token_pair(req.username, req.remember_me)
     except HTTPException:
         raise
     except Exception as e:
         print(f"Login error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/auth/refresh", response_model=Token)
+async def refresh(req: RefreshRequest):
+    """Exchange a valid refresh token for a fresh access token. The refresh token
+    is rotated (the old one is revoked, a new one returned) so a leaked token is
+    single-use."""
+    username, new_refresh = await refresh_tokens.rotate(req.refresh_token)
+    if not username:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+    access_token = create_access_token(
+        data={"sub": username},
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    return {"access_token": access_token, "token_type": "bearer", "refresh_token": new_refresh}
+
+
+@app.post("/api/auth/logout")
+async def logout(req: LogoutRequest):
+    """Revoke the presented refresh token so it can't mint new access tokens."""
+    if req.refresh_token:
+        await refresh_tokens.revoke(req.refresh_token)
+    return {"status": "ok"}
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     """Verify token and return username"""
@@ -343,6 +379,31 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     if not username:
         raise HTTPException(status_code=401, detail="Invalid token")
     return username
+
+
+@app.post("/api/auth/change-password", response_model=Token)
+async def change_password(req: ChangePasswordRequest, current_user: str = Depends(get_current_user)):
+    """Change the logged-in user's password. Verifies the current password,
+    revokes all existing refresh tokens (logging out other devices), and returns
+    a fresh token pair so the current session stays signed in."""
+    from database import database
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database not connected")
+    if len(req.new_password or "") < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+
+    users_collection = database["users"]
+    user = await users_collection.find_one({"username": current_user})
+    if not user or not verify_password(req.current_password, user["hashed_password"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    await users_collection.update_one(
+        {"username": current_user},
+        {"$set": {"hashed_password": get_password_hash(req.new_password)}},
+    )
+    # Invalidate every existing session, then hand this one a fresh pair.
+    await refresh_tokens.revoke_all(current_user)
+    return await _issue_token_pair(current_user, remember_me=True)
 
 # ============= ASTROLOGY ROUTES =============
 

@@ -34,8 +34,8 @@ export const DashboardPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     clearProfile();
     navigate("/login");
   };

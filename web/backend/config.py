@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-this"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    # Refresh-token lifetimes. A long-lived, revocable refresh token lets the
+    # frontend silently mint fresh access tokens, so users aren't logged out
+    # every ACCESS_TOKEN_EXPIRE_MINUTES. "Remember me" picks the long TTL; a
+    # plain login gets the short one.
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    REFRESH_TOKEN_SHORT_DAYS: int = 1
 
     QWEN_API_URL: str = "http://localhost:5000"
     USE_QWEN: bool = False

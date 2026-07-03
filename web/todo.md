@@ -1777,20 +1777,34 @@ and there is **no refresh token** — the JWT simply dies after 30 min and the a
 login. Decision: **refresh tokens + "Remember me"** (owner pick).
 
 Plan:
-- [ ] 🔴 **Refresh-token flow** (backend): issue a short-lived **access token** (~15–30 min) +
-      a long-lived **refresh token** (e.g. 30 days, or 7 days without "Remember me"). Store refresh
-      tokens server-side (a `refresh_tokens` collection or a hashed token on the user) so they can
-      be **revoked** on logout / password change. New endpoints `POST /api/auth/refresh` and
-      `POST /api/auth/logout` (revoke). Rotate the refresh token on each use (detect reuse →
-      revoke the family).
-- [ ] 🔴 **"Remember me" checkbox** on Login → controls refresh-token TTL (30d vs session-ish).
-- [ ] 🔴 **Frontend silent refresh**: an axios response interceptor in `services/api.js` that, on
-      a 401, transparently calls `/auth/refresh` once and retries the request; only bounce to
-      login when the refresh itself fails. Store the access token in memory + refresh token in a
-      secure httpOnly cookie if we move that way (or localStorage for v1 — note the XSS tradeoff).
-      This alone kills the "logged out every 30 min" pain.
-- [ ] 🔴 **Change password** (logged-in): `POST /api/auth/change-password` (verify current →
-      set new, revoke other sessions) + a form in Settings → Account.
+- [x] **Refresh-token flow** (backend). DONE 2026-07-03: new `refresh_tokens.py` (`refresh_tokens`
+      collection) — opaque `secrets.token_urlsafe(48)` stored **SHA-256 hashed** with
+      `username/ttl_days/expires_at/revoked`; `issue/verify/revoke/revoke_all/rotate`. Access token
+      stays short (`ACCESS_TOKEN_EXPIRE_MINUTES=30`); `_issue_token_pair()` mints access+refresh on
+      register/login. `POST /api/auth/refresh` **rotates** (revokes the presented token, returns a
+      new pair — single-use, so a leaked token can't be reused) and `POST /api/auth/logout` revokes.
+      Config `REFRESH_TOKEN_EXPIRE_DAYS=30` / `REFRESH_TOKEN_SHORT_DAYS=1`. `Token` model gained
+      `refresh_token`. Verified live (curl): register/login return both tokens; refresh rotates (old
+      → 401, new → 200); logout revokes (→ 401).
+- [x] **"Remember me" checkbox** on Login. DONE 2026-07-03: `remember_me` on Login/Register requests
+      picks the 30d vs 1d refresh TTL; a "Keep me signed in" checkbox (default on) on `LoginPage`
+      (i18n `auth.rememberMe`); Register always issues a durable (30d) session.
+- [x] **Frontend silent refresh**. DONE 2026-07-03: `services/api.js` response interceptor — on a
+      401 (non-auth call, once per request) it transparently `POST /auth/refresh`es (a single shared
+      in-flight promise across concurrent 401s), stores the new pair, and retries the original
+      request; only a *failed* refresh clears tokens + bounces to `/login`. Tokens via
+      `setTokens/getRefreshToken/clearTokens` (both in localStorage — known XSS tradeoff vs httpOnly
+      cookies, acceptable given the app already used localStorage bearers). `AuthContext` login/
+      register take `rememberMe`; logout revokes the refresh token server-side (best-effort).
+      This kills the "logged out every 30 min" pain. NOTE: the SSE **streaming** calls
+      (`streamAskQuestion` etc.) use raw `fetch`, not axios — they bypass this interceptor, so a
+      token that expires *mid-stream* still fails; low-impact, revisit if it bites (could pre-refresh
+      before a stream).
+- [x] **Change password** (logged-in). DONE 2026-07-03: `POST /api/auth/change-password`
+      (auth-scoped) verifies current password, min-6 new, updates the hash, `revoke_all`s existing
+      refresh tokens (logs out other devices) and returns a fresh pair so the current session stays
+      in. `authService.changePassword` in api.js. Verified live (wrong-current → 400; correct →
+      new pair + old refresh & old password both rejected). UI form → Settings → Account (§12).
 - [ ] 🔴 **Profile/account management**: view account (email/username), **update email**, **delete
       account** (cascade: profiles, conversations, traces, shares, settings). Some CRUD for the
       birth-profiles already exists (ProfileSelection) — audit and surface consistently.

@@ -29,21 +29,78 @@ const api = axios.create({
   },
 });
 
+// Token storage helpers. Both the short-lived access token and the long-lived
+// refresh token live in localStorage (v1 — same as before; a refresh token is
+// what keeps you signed in across access-token expiry). Known XSS tradeoff vs
+// httpOnly cookies; acceptable given the app already used localStorage bearers.
+const ACCESS_KEY = "access_token";
+const REFRESH_KEY = "refresh_token";
+
+export const setTokens = ({ access_token, refresh_token } = {}) => {
+  if (access_token) localStorage.setItem(ACCESS_KEY, access_token);
+  if (refresh_token) localStorage.setItem(REFRESH_KEY, refresh_token);
+};
+export const getRefreshToken = () => localStorage.getItem(REFRESH_KEY);
+export const clearTokens = () => {
+  localStorage.removeItem(ACCESS_KEY);
+  localStorage.removeItem(REFRESH_KEY);
+};
+
 // Add token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
+  const token = localStorage.getItem(ACCESS_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// Handle errors
+// --- Silent refresh on 401 -------------------------------------------------
+// When a call 401s (access token expired), transparently exchange the refresh
+// token for a fresh pair and retry the original request ONCE — so the user
+// isn't bounced to /login every ACCESS_TOKEN_EXPIRE_MINUTES. A single in-flight
+// refresh is shared across concurrent 401s. Only a failed refresh logs out.
+let refreshPromise = null;
+
+const doRefresh = async () => {
+  const refresh_token = getRefreshToken();
+  if (!refresh_token) throw new Error("no refresh token");
+  // Bare axios (not `api`) so this request skips the interceptors below and
+  // can't recurse into another refresh attempt.
+  const resp = await axios.post(`${API_URL}/api/auth/refresh`, { refresh_token });
+  setTokens(resp.data);
+  return resp.data.access_token;
+};
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("access_token");
+  async (error) => {
+    const original = error.config || {};
+    const status = error.response?.status;
+    const isAuthCall = (original.url || "").includes("/api/auth/");
+
+    if (status !== 401 || isAuthCall) {
+      return Promise.reject(error);
+    }
+
+    if (!original._retried) {
+      original._retried = true;
+      try {
+        if (!refreshPromise) {
+          refreshPromise = doRefresh().finally(() => {
+            refreshPromise = null;
+          });
+        }
+        const newAccess = await refreshPromise;
+        original.headers = { ...(original.headers || {}), Authorization: `Bearer ${newAccess}` };
+        return api(original);
+      } catch (e) {
+        // Refresh failed — fall through to a hard logout.
+      }
+    }
+
+    clearTokens();
+    if (typeof window !== "undefined") {
       window.location.href = "/login";
     }
     return Promise.reject(error);
@@ -51,9 +108,17 @@ api.interceptors.response.use(
 );
 
 export const authService = {
-  register: (username, email, password) =>
-    api.post("/api/auth/register", { username, email, password }),
-  login: (username, password) => api.post("/api/auth/login", { username, password }),
+  register: (username, email, password, rememberMe = false) =>
+    api.post("/api/auth/register", { username, email, password, remember_me: rememberMe }),
+  login: (username, password, rememberMe = false) =>
+    api.post("/api/auth/login", { username, password, remember_me: rememberMe }),
+  refresh: (refresh_token) => api.post("/api/auth/refresh", { refresh_token }),
+  logout: (refresh_token) => api.post("/api/auth/logout", { refresh_token }),
+  changePassword: (currentPassword, newPassword) =>
+    api.post("/api/auth/change-password", {
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
   getProfile: () => api.get("/api/user/profile"),
 };
 

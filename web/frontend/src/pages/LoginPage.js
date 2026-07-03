@@ -9,6 +9,7 @@ import "../styles/Auth.css";
 export const LoginPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const { login, error } = useAuth();
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ export const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    const success = await login(username, password);
+    const success = await login(username, password, rememberMe);
     setIsLoading(false);
     if (success) {
       navigate("/profile-selection");
@@ -68,6 +69,15 @@ export const LoginPage = () => {
               />
             </div>
           </div>
+
+          <label className="remember-me">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+            />
+            <span>{t("auth.rememberMe")}</span>
+          </label>
 
           <button type="submit" className="submit-btn" disabled={isLoading}>
             {isLoading ? t("auth.loggingIn") : t("auth.login")}

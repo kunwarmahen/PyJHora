@@ -17,6 +17,7 @@ class TokenData(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    refresh_token: Optional[str] = None
 
 def _to_bcrypt_bytes(password: str) -> bytes:
     """bcrypt only considers the first 72 BYTES of the password. Encode to UTF-8

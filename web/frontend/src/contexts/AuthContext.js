@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
-import { authService } from "../services/api";
+import { authService, setTokens, clearTokens, getRefreshToken } from "../services/api";
 
 const AuthContext = createContext(null);
 
@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
       setError(null);
     } catch (err) {
       console.error("Failed to load profile:", err);
-      localStorage.removeItem("access_token");
+      clearTokens();
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -45,11 +45,11 @@ export const AuthProvider = ({ children }) => {
     return "An error occurred";
   };
 
-  const login = async (username, password) => {
+  const login = async (username, password, rememberMe = false) => {
     setIsLoading(true);
     try {
-      const response = await authService.login(username, password);
-      localStorage.setItem("access_token", response.data.access_token);
+      const response = await authService.login(username, password, rememberMe);
+      setTokens(response.data);
       await loadUserProfile();
       return true;
     } catch (err) {
@@ -60,11 +60,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (username, email, password) => {
+  const register = async (username, email, password, rememberMe = false) => {
     setIsLoading(true);
     try {
-      const response = await authService.register(username, email, password);
-      localStorage.setItem("access_token", response.data.access_token);
+      const response = await authService.register(username, email, password, rememberMe);
+      setTokens(response.data);
       await loadUserProfile();
       return true;
     } catch (err) {
@@ -75,8 +75,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("access_token");
+  const logout = async () => {
+    // Best-effort: revoke the refresh token server-side so it can't be reused.
+    const refreshToken = getRefreshToken();
+    if (refreshToken) {
+      try {
+        await authService.logout(refreshToken);
+      } catch (e) {
+        // Ignore — we clear locally regardless.
+      }
+    }
+    clearTokens();
     setUser(null);
     setError(null);
   };

@@ -130,7 +130,8 @@
     "registerHere": "Register here",
     "haveAccount": "Already have an account?",
     "loginHere": "Login here",
-    "passwordsNoMatch": "Passwords do not match"
+    "passwordsNoMatch": "Passwords do not match",
+    "rememberMe": "Keep me signed in"
   },
   "profile": {
     "selectTitle": "Select Your Chart",

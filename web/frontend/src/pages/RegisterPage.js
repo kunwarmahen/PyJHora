@@ -25,7 +25,7 @@ export const RegisterPage = () => {
     }
 
     setIsLoading(true);
-    const success = await register(username, email, password);
+    const success = await register(username, email, password, true);
     setIsLoading(false);
     if (success) {
       navigate("/profile-selection");
