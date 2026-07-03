@@ -12,6 +12,12 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
 
 ## 1. Bugs & correctness (P0 — fix first)
 
+- [x] **(P1) Today / Daily Digest — label/value run together** (owner report 2026-07-03):
+      the panchanga & dasha detail rows rendered "TithiKrishna Tritiya", "MahadashaRahu" etc —
+      the shared `.kv-label`/`.kv-value` spans had no separator/layout (the inline pattern elsewhere
+      bakes a `": "` into the label text). FIXED 2026-07-03: the digest detail-lists now use a
+      `.digest-details` flex layout (label left, value right) in `Dashboard.css`, so pairs are spaced
+      cleanly on the Today, panchanga, dasha and transit-ingress rows.
 - [x] **Wrong ayanamsa (planets one house off vs JHora).** FIXED 2026-06-27 (default set
       to `LAHIRI`), REVISED 2026-06-28: the real JHora default is **True Chitra Paksha**
       ("Spica in middle of Chitra always" = swe `TRUE_CITRA`), not traditional Lahiri.

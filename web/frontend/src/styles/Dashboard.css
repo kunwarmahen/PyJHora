@@ -1714,3 +1714,15 @@
   color: #9a6a13;
   font-weight: 600;
 }
+/* Label/value rows: label left, value right (the shared .kv-* spans are inline
+   with no separator, so lay them out as a spaced row). */
+.digest-details > div,
+.digest-details > li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+.digest-details .kv-value {
+  text-align: right;
+}

@@ -191,7 +191,7 @@ export const DailyDigestPage = () => {
                   <h3 className="ui-card-header ui-card-header--sm">
                     <Sun size={18} /> {t("digest.panchanga")}
                   </h3>
-                  <div className="detail-list">
+                  <div className="detail-list digest-details">
                     <div><span className="kv-label">{t("digest.tithi")}</span><span className="kv-value">{panch.tithi?.name}</span></div>
                     <div><span className="kv-label">{t("digest.nakshatra")}</span><span className="kv-value">{panch.nakshatra?.name}</span></div>
                     <div><span className="kv-label">{t("digest.yoga")}</span><span className="kv-value">{panch.yoga?.name}</span></div>
@@ -210,7 +210,7 @@ export const DailyDigestPage = () => {
                   <h3 className="ui-card-header ui-card-header--sm">
                     <Clock size={18} /> {t("digest.dasha")}
                   </h3>
-                  <div className="detail-list">
+                  <div className="detail-list digest-details">
                     <div><span className="kv-label">{t("digest.mahadasha")}</span><span className="kv-value">{dasha.maha_lord}</span></div>
                     {dasha.bhukti && (
                       <div><span className="kv-label">{t("digest.bhukti")}</span><span className="kv-value">{dasha.bhukti.lord} → {dasha.bhukti.end_date}</span></div>
@@ -236,7 +236,7 @@ export const DailyDigestPage = () => {
                   </p>
                 )}
                 {transits.upcoming?.length > 0 && (
-                  <ul className="detail-list">
+                  <ul className="detail-list digest-details">
                     {transits.upcoming.map((u, i) => (
                       <li key={i}>
                         <span className="kv-label">{u.planet}</span>
