@@ -187,7 +187,7 @@ export const DailyDigestPage = () => {
             <div className="chart-grid mt-xl">
               {/* Panchanga snapshot */}
               {panch && (
-                <div className="ui-card ui-card--pad-lg ui-card--flush">
+                <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush">
                   <h3 className="ui-card-header ui-card-header--sm">
                     <Sun size={18} /> {t("digest.panchanga")}
                   </h3>
@@ -225,7 +225,7 @@ export const DailyDigestPage = () => {
 
             {/* Transit highlights */}
             {transits && (
-              <div className="ui-card ui-card--pad-lg ui-card--flush mt-xl">
+              <div className="ui-card ui-card--accent-gold ui-card--pad-lg ui-card--flush mt-xl">
                 <h3 className="ui-card-header ui-card-header--sm">
                   <Orbit size={18} /> {t("digest.transits")}
                 </h3>
