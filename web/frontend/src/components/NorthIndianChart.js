@@ -22,6 +22,8 @@ export const NorthIndianChart = ({
   aspects = null,
   showAspects = false,
   focusPlanet = null,
+  arudhas = null,
+  showArudhas = false,
 }) => {
   const [hoveredHouse, setHoveredHouse] = useState(null);
   const svgRef = useRef(null);
@@ -61,6 +63,12 @@ export const NorthIndianChart = ({
         });
       }
     });
+
+    // Arudha padas (AL/UL/A2..) that fall in this sign, shown on one line when toggled on.
+    if (showArudhas && arudhas) {
+      const labels = arudhas.filter((a) => a.sign === signAtThisPosition).map((a) => a.short);
+      if (labels.length) items.push({ name: labels.join(" "), type: "arudha" });
+    }
 
     return items;
   };
@@ -155,6 +163,7 @@ export const NorthIndianChart = ({
 
   const accent = "var(--saffron)";
   const indigo = "var(--cosmic-indigo)";
+  const gold = "var(--temple-gold)";
   const muted = "var(--text-secondary)";
 
   return (
@@ -322,9 +331,12 @@ export const NorthIndianChart = ({
                       x={house.cx}
                       y={startY + idx * step}
                       textAnchor="middle"
-                      fill={item.type === "lagna" ? accent : indigo}
-                      fontSize={fs}
+                      fill={
+                        item.type === "lagna" ? accent : item.type === "arudha" ? gold : indigo
+                      }
+                      fontSize={item.type === "arudha" ? Math.max(fs - 2, 9) : fs}
                       fontWeight="700"
+                      fontStyle={item.type === "arudha" ? "italic" : "normal"}
                     >
                       {item.name}
                       {item.degrees != null && (

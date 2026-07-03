@@ -1610,12 +1610,17 @@ class AstrologyCompute:
                 s, d = int(pair[0]), float(pair[1])
                 return {"sign_name": ZODIAC_NAMES[s % 12], "degrees": round(d, 2)}
 
-            # Arudha padas A1..A12 (bhava arudhas), each a sign index.
+            # Arudha padas A1..A12 (bhava arudhas), each a sign index. `sign` is the
+            # 1-based rasi the arudha falls in (Aries=1) so the frontend can place the
+            # marker in the chart cell; `short` is the compact chart label (AL/UL/A2..).
             ba = arudhas.bhava_arudhas_from_planet_positions(pp)
             arudha_labels = {0: "AL (Arudha Lagna)", 11: "UL (Upapada)"}
+            arudha_short = {0: "AL", 11: "UL"}
             arudha_padas = [
                 {"bhava": i + 1,
                  "label": arudha_labels.get(i, f"A{i + 1}"),
+                 "short": arudha_short.get(i, f"A{i + 1}"),
+                 "sign": int(s) % 12 + 1,
                  "sign_name": ZODIAC_NAMES[int(s) % 12]}
                 for i, s in enumerate(ba)
             ]

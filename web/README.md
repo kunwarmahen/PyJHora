@@ -313,6 +313,10 @@ REACT_APP_API_TIMEOUT=30000
 - Graha Drishti (aspects) card + optional aspect lines drawn on the Rasi chart
   (per-graha colour, **width/opacity weighted by aspect strength**); a show/hide
   toggle, and hover a graha to focus just its aspects
+- **Arudha padas on the chart** — an optional "Show arudhas" toggle overlays the
+  bhava arudhas (**AL** Arudha Lagna, **UL** Upapada, and A2–A11) as italic
+  temple-gold markers in each rasi's cell of the Rasi (D1) chart, in both the
+  North and South styles (off by default)
 - Panchanga (daily almanac) panel: tithi, vaara, nakshatra, yoga, karana plus
   sunrise/sunset and rahu kalam / yamaganda / gulika / abhijit / durmuhurtam,
   with a date picker and a Birth-place / Current-location (geolocation) toggle

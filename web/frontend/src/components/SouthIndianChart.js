@@ -36,6 +36,8 @@ export const SouthIndianChart = ({
   aspects = null,
   showAspects = false,
   focusPlanet = null,
+  arudhas = null,
+  showArudhas = false,
 }) => {
   const gridRef = useRef(null);
   const planets = planetsProp || chartData?.planets;
@@ -62,6 +64,12 @@ export const SouthIndianChart = ({
         items.push({ name: PLANET_ABBR[name] || name, type: "planet", degrees: data.degrees });
       }
     });
+    // Arudha padas (AL/UL/A2..) that fall in this sign, shown when toggled on.
+    if (showArudhas && arudhas) {
+      arudhas
+        .filter((a) => a.sign === signNum)
+        .forEach((a) => items.push({ name: a.short, type: "arudha" }));
+    }
     return items;
   };
 
@@ -87,7 +95,12 @@ export const SouthIndianChart = ({
               <span className="si-sign">{RASI_ABBR[signNum - 1]}</span>
               <div className="si-planets">
                 {items.map((item, idx) => (
-                  <span key={idx} className={item.type === "lagna" ? "si-pl si-pl-lagna" : "si-pl"}>
+                  <span
+                    key={idx}
+                    className={`si-pl${item.type === "lagna" ? " si-pl-lagna" : ""}${
+                      item.type === "arudha" ? " si-pl-arudha" : ""
+                    }`}
+                  >
                     {item.name}
                     {item.degrees != null && <em className="si-deg">{item.degrees.toFixed(1)}°</em>}
                   </span>

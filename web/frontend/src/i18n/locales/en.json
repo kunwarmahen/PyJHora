@@ -441,6 +441,10 @@
     "hideOnChart": "Hide aspects",
     "hoverHint": "Hover a graha in the table below to highlight just its aspects."
   },
+  "arudhas": {
+    "showOnChart": "Show arudhas on chart",
+    "hideOnChart": "Hide arudhas"
+  },
   "advanced": {
     "title": "Advanced Details",
     "subtitle": "Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas & Shadbala",

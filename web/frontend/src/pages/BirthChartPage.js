@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Calendar, User, MapPin, Clock, Star, Share2, Copy, Check, Eye, Crown } from "lucide-react";
+import {
+  Calendar,
+  User,
+  MapPin,
+  Clock,
+  Star,
+  Share2,
+  Copy,
+  Check,
+  Eye,
+  Crown,
+  Landmark,
+} from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
@@ -33,6 +45,10 @@ export const BirthChartPage = () => {
   const [aspects, setAspects] = useState(null);
   const [showAspects, setShowAspects] = useState(
     () => localStorage.getItem("showAspects") === "1"
+  );
+  const [arudhas, setArudhas] = useState(null);
+  const [showArudhas, setShowArudhas] = useState(
+    () => localStorage.getItem("showArudhas") === "1"
   );
   const [focusPlanet, setFocusPlanet] = useState(null);
   const [chartStyle, setChartStyle] = useState(() => localStorage.getItem("chartStyle") || "north");
@@ -159,10 +175,15 @@ export const BirthChartPage = () => {
       setYogas(null);
       setRajaYogas(null);
       setAspects(null);
+      setArudhas(null);
       astrologyService
         .getDoshas(birthDetails, ayanamsa)
         .then((r) => setDoshas(r.data?.doshas || null))
         .catch(() => setDoshas(null));
+      astrologyService
+        .getChartDetails(birthDetails, ayanamsa)
+        .then((r) => setArudhas(r.data?.arudha_padas || null))
+        .catch(() => setArudhas(null));
       astrologyService
         .getYogas(birthDetails, ayanamsa)
         .then((r) => setYogas(r.data?.yogas || null))
@@ -304,8 +325,8 @@ export const BirthChartPage = () => {
                     </label>
                   </div>
 
-                  {aspects && aspects.length > 0 && (
-                    <div className="aspect-controls">
+                  <div className="aspect-controls">
+                    {aspects && aspects.length > 0 && (
                       <button
                         type="button"
                         className={`aspect-toggle${showAspects ? " is-active" : ""}`}
@@ -318,11 +339,25 @@ export const BirthChartPage = () => {
                         <Eye size={16} />
                         {showAspects ? t("aspects.hideOnChart") : t("aspects.showOnChart")}
                       </button>
-                      {showAspects && (
-                        <span className="aspect-controls__hint">{t("aspects.hoverHint")}</span>
-                      )}
-                    </div>
-                  )}
+                    )}
+                    {arudhas && arudhas.length > 0 && (
+                      <button
+                        type="button"
+                        className={`aspect-toggle${showArudhas ? " is-active" : ""}`}
+                        onClick={() => {
+                          const next = !showArudhas;
+                          setShowArudhas(next);
+                          localStorage.setItem("showArudhas", next ? "1" : "0");
+                        }}
+                      >
+                        <Landmark size={16} />
+                        {showArudhas ? t("arudhas.hideOnChart") : t("arudhas.showOnChart")}
+                      </button>
+                    )}
+                    {showAspects && aspects && aspects.length > 0 && (
+                      <span className="aspect-controls__hint">{t("aspects.hoverHint")}</span>
+                    )}
+                  </div>
 
                   <Kundali
                     chartData={result}
@@ -332,6 +367,8 @@ export const BirthChartPage = () => {
                     aspects={aspects}
                     showAspects={showAspects}
                     focusPlanet={focusPlanet}
+                    arudhas={arudhas}
+                    showArudhas={showArudhas}
                   />
 
                   {/* Divisional (varga) chart with picker */}

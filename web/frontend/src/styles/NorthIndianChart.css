@@ -163,6 +163,12 @@
 .si-pl-lagna {
   color: var(--saffron);
 }
+/* Arudha pada markers (AL/UL/A2..) — italic temple-gold, distinct from planets. */
+.si-pl-arudha {
+  color: var(--temple-gold);
+  font-style: italic;
+  font-size: 0.72rem;
+}
 .si-deg {
   font-style: normal;
   font-size: 0.6rem;

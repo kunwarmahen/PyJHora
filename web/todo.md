@@ -1459,41 +1459,40 @@ Catalogued during the audit; not on the active roadmap unless the owner asks:
 
 ## 10. Owner-requested additions (2026-07-02)
 
-### 10.1 Show nakshatra padas in the charts (P1) — mostly a display task
+### 10.1 Show Arudha padas (AL/UL/A2–A11) in the charts (P1) — SHIPPED 2026-07-02
 
-The backend **already computes** `nakshatra_pada` per planet (and for the Lagna) — it's in
-the birth-chart response and every varga/transit response (see `astrology.py`
-`get_nakshatra_from_longitude` → `nakshatra`/`nakshatra_pada` on each planet). So no new
-compute is needed for D1; the pada is derivable for any longitude the engine returns.
-Padas are already rendered in several **tables** (BirthChart chart-details, Advanced,
-Transit, Compatibility, Predictions, Sarvatobhadra, Panchanga) but **not in the chart
-cells** — the North/South `Kundali` cells show only planet name + degree.
+**Correction 2026-07-02:** this item was originally written as "show *nakshatra* padas in the
+charts", but the owner clarified they meant the **Arudha padas** — Arudha Lagna and the other
+bhava arudhas — not nakshatra padas. (A first pass had implemented the nakshatra-pada version;
+it was reverted and replaced with this.) The nakshatra-pada-on-cells idea is **dropped** (padas
+already appear in the D1 nakshatra table where they matter).
 
-Owner decision (2026-07-02): show padas in **both the chart cells and the tables**.
+The backend **already computes** the 12 bhava arudhas via `arudhas.bhava_arudhas_from_planet_positions`
+(surfaced by `get_chart_details` → `arudha_padas`, and shown as a DataField grid on the Advanced
+page), but they were **not drawn in the chart cells** — the North/South `Kundali` cells showed only
+planet name + degree.
 
-- [ ] **Chart cells (North + South).** Add an opt-in pada to each planet line in
-      `NorthIndianChart.js` (the `items.push({name, degrees})` at ~L60/330) and
-      `SouthIndianChart.js` — e.g. render the pada as a small superscript/suffix after the
-      degree (`Ma 15.2°·4` or `Ma 15°⁴`). Gate it behind a **"Show padas" toggle**
-      (persisted in localStorage, off by default) on the Birth Chart page, mirroring the
-      existing "Show aspects on chart" toggle pattern, so crowded houses don't clutter.
-      Respect the crowded-house graduated sizing already in both components (floor the pada
-      text like the degree). Pass a `showPadas` prop from BirthChart through the shared
-      chart components (same plumbing as `aspects`/`showAspects`/`focusPlanet`).
-- [ ] **Placements table — which charts?** Today the per-planet nakshatra+pada table is
-      D1-centric. **Recommendation (owner asked "show for all tables?"):** the pada is a
-      janma-nakshatra construct most meaningful in **D1**, and secondarily **D9** (navamsa
-      literally *is* the nakshatra-pada mapping). Technically the engine returns a
-      `nakshatra_pada` for every varga longitude, but a "pada" in D30/D60 has little
-      classical meaning and adds noise. So: **always show padas in the D1 table + the D9
-      (Navamsa) table; make padas in other-varga tables optional** (follow the same "Show
-      padas" toggle). The chart-cell toggle, being per-displayed-chart, naturally covers
-      whatever varga is on screen — that's fine, it's cheap and consistent; the stronger
-      claim is only about which *tables* get a dedicated pada column by default. (Owner to
-      confirm; easy to flip to "all vargas" if wanted.)
-- [ ] i18n: reuse/extend the existing `nakshatra`/`pada` label keys; add a `birthChart.showPadas`
-      toggle label (en full; hi/sa fall back). Verify a known chart's padas match JHora
-      (e.g. the verified True-Chitra chart), build + lint clean.
+Owner decision (2026-07-02): show the arudhas **on the chart cells** (both North & South).
+
+- [x] **Backend.** `get_chart_details` `arudha_padas` entries now also carry `sign` (1-based
+      rasi, Aries=1) and `short` (compact chart label: **AL** for bhava 1, **UL** for bhava 12,
+      else `A2..A11`) alongside the existing `bhava`/`label`/`sign_name`, so the frontend can
+      place each marker in the right cell. Verified live (AL→Taurus, A2/A3 both →Scorpio, UL→
+      Aquarius on the 1990-05-15 test chart — multiple arudhas per sign handled).
+- [x] **Chart cells (North + South).** `NorthIndianChart` and `SouthIndianChart` gained
+      `arudhas` + `showArudhas` props. For each rasi cell, the arudhas whose `sign` matches are
+      appended as a distinct **italic temple-gold** item (North: one joined line `AL A7`, size
+      floored & respecting the crowded-house graduated sizing; South: a `.si-pl-arudha` pill),
+      clearly separated from indigo planets and the saffron lagna. Shown **only on the Rasi (D1)
+      chart** (bhava arudhas are rasi-chart constructs — the varga charts, with their own sign
+      layout, don't get them). Gated behind a **"Show arudhas" toggle** on the Birth Chart page
+      (persisted `localStorage.showArudhas`, off by default, `Landmark` icon), sitting next to
+      the aspects toggle; arudhas fetched via the existing `getChartDetails` endpoint.
+- [x] i18n: added an `arudhas.showOnChart` / `arudhas.hideOnChart` block (en; hi/sa fall back).
+      `npm run build` green, ESLint clean, locale JSON valid.
+
+Follow-up (optional, not requested): a legend/tooltip explaining AL/UL, and per-varga arudhas
+(compute bhava arudhas on each divisional chart so the varga cells can show them too).
 
 ### 10.2 Birth-time correction / rectification (P1) — full feature, experimental — SHIPPED 2026-07-02
 
