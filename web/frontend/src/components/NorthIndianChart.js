@@ -165,6 +165,7 @@ export const NorthIndianChart = ({
   const indigo = "var(--cosmic-indigo)";
   const gold = "var(--temple-gold)";
   const muted = "var(--text-secondary)";
+  const planetColor = "var(--planet-color)";
 
   return (
     <div className="chart-card">
@@ -352,7 +353,7 @@ export const NorthIndianChart = ({
                       y={startY + idx * step}
                       textAnchor="middle"
                       fill={
-                        item.type === "lagna" ? accent : item.type === "arudha" ? gold : indigo
+                        item.type === "lagna" ? accent : item.type === "arudha" ? gold : planetColor
                       }
                       fontSize={item.type === "arudha" ? Math.max(fs - 2, 9) : fs}
                       fontWeight="700"
@@ -360,7 +361,7 @@ export const NorthIndianChart = ({
                     >
                       {item.name}
                       {item.degrees != null && (
-                        <tspan dx="3" fontSize={degFs} fontWeight="400" fill={muted}>
+                        <tspan dx="3" fontSize={degFs} fontWeight="400">
                           {item.degrees.toFixed(1)}°
                         </tspan>
                       )}

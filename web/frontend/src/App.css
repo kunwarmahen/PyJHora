@@ -18,6 +18,8 @@
   --temple-gold: #d4af37;
   --sacred-white: #fffef9;
   --night-sky: #1a1f3a;
+  /* Planet glyph color used across all charts (Rasi + divisional). */
+  --planet-color: var(--vermillion);
 
   /* Functional Colors */
   --bg-primary: #fffef9;
