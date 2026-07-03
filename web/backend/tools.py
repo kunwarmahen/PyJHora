@@ -248,6 +248,54 @@ def _pancha_pakshi(bd, ayanamsa, date: Optional[str] = None, **_):
     }
 
 
+def _sphuta(bd, ayanamsa, **_):
+    r = AstrologyCompute.get_sphuta(ayanamsa=ayanamsa, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    return {"sphutas": r.get("sphutas", [])}
+
+
+def _sahams(bd, ayanamsa, **_):
+    r = AstrologyCompute.get_sahams(ayanamsa=ayanamsa, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    return {"sahams": r.get("sahams", [])}
+
+
+def _argala(bd, ayanamsa, **_):
+    r = AstrologyCompute.get_argala(ayanamsa=ayanamsa, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    # Only the houses with a net argala/virodhargala are worth the tokens.
+    houses = [h for h in r.get("houses", []) if h.get("net") not in (None, "none", "balanced")]
+    return {"houses": houses}
+
+
+def _vedic_clock(bd, ayanamsa, date: Optional[str] = None, **_):
+    # Ephemeris-only (no ayanamsa): pass just the location fields.
+    a = _args(bd)
+    r = AstrologyCompute.get_vedic_clock(date=date, place=a["place"],
+                                         lat=a["lat"], lon=a["lon"], tz=a["tz"])
+    if r.get("status") != "success":
+        return r
+    return {"date": r.get("date"), "sunrise": r.get("sunrise"), "sunset": r.get("sunset"),
+            "ghati": r.get("ghati"), "vighati": r.get("vighati"),
+            "current_hora": r.get("current_hora"), "panchanga": r.get("panchanga")}
+
+
+def _retrograde(bd, ayanamsa, date: Optional[str] = None, **_):
+    a = _args(bd)
+    r = AstrologyCompute.get_retrograde(date=date, place=a["place"],
+                                        lat=a["lat"], lon=a["lon"], tz=a["tz"])
+    if r.get("status") != "success":
+        return r
+    # Drop the heavy orbit arrays — the model only needs status + stations.
+    planets = [{k: v for k, v in p.items() if k not in ("orbit_x", "orbit_y")}
+               for p in r.get("planets", [])]
+    return {"date": r.get("date"), "retrograde_now": r.get("retrograde_now", []),
+            "planets": planets, "nodes": r.get("nodes", [])}
+
+
 # --------------------------------------------------------------------------- #
 # Registry
 # --------------------------------------------------------------------------- #
@@ -424,6 +472,56 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
          "required": []},
         _pancha_pakshi,
     ),
+    _Tool(
+        "get_sphuta",
+        "The classical Sphutas — sensitive longitudes derived from the natal chart "
+        "(Tri/Chatur/Pancha/Prana/Deha/Beeja/Kshetra/Tithi/Yoga/Yogi/Avayogi), each "
+        "as a sign + degree + house. Supporting points that fine-tune longevity, "
+        "vitality and progeny reasoning. Do not over-weight the Mrityu point.",
+        _EMPTY_PARAMS,
+        _sphuta,
+    ),
+    _Tool(
+        "get_sahams",
+        "The 36 natal Sahams (Arabic-part-like sensitive points) for life themes — "
+        "Punya (fortune), Vidya (education), Karma (career), Artha (wealth), Vivaha "
+        "(marriage), Puthra (children), Rajya (authority), Laabha (gains), etc. — each "
+        "as a sign + house. Use to corroborate a specific life-area question.",
+        _EMPTY_PARAMS,
+        _sahams,
+    ),
+    _Tool(
+        "get_argala",
+        "Argala (planetary intervention) and Virodhargala (obstruction) per bhava: "
+        "which houses receive strong supportive intervention vs obstruction from "
+        "planets in the 2nd/4th/5th/11th (argala) and 12th/10th/9th/3rd (virodhargala). "
+        "Use to judge which life areas are reinforced or blocked.",
+        _EMPTY_PARAMS,
+        _argala,
+    ),
+    _Tool(
+        "get_vedic_clock",
+        "Vedic day-clock now (or a given date): sunrise/sunset, the elapsed ghati/"
+        "vighati, the running hora (planetary hour) lord, and the current panchanga "
+        "limbs (tithi/nakshatra/yoga). Use for 'what is the vedic time / current hora' "
+        "and muhurta-flavoured questions.",
+        {"type": "object", "properties": {
+            "date": {"type": "string",
+                     "description": "Date as YYYY-MM-DD; defaults to today."}},
+         "required": []},
+        _vedic_clock,
+    ),
+    _Tool(
+        "get_retrograde",
+        "Retrograde (Vakra) status now (or a given date): which grahas are retrograde "
+        "and the next station (direction-change) dates for Mars/Mercury/Jupiter/Venus/"
+        "Saturn. Use for 'is Mercury retrograde', 'what's retrograde now' questions.",
+        {"type": "object", "properties": {
+            "date": {"type": "string",
+                     "description": "Date as YYYY-MM-DD; defaults to today."}},
+         "required": []},
+        _retrograde,
+    ),
 ]}
 
 
@@ -451,6 +549,8 @@ ALWAYS_TOOLS: List[str] = [
     "get_natal_chart", "get_chart_details", "get_dasha_children",
     "get_divisional_chart", "get_panchanga", "get_varshaphal",
     "get_raja_yogas", "get_longevity", "get_pancha_pakshi",
+    "get_sphuta", "get_sahams", "get_argala",
+    "get_vedic_clock", "get_retrograde",
 ]
 
 
@@ -504,12 +604,17 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_panchanga":        {"label": "Panchanga almanac",      "category": "Timing"},
     "get_varshaphal":       {"label": "Varshaphal (annual chart)", "category": "Timing"},
     "get_pancha_pakshi":    {"label": "Pancha Pakshi timing",  "category": "Timing"},
+    "get_vedic_clock":      {"label": "Vedic clock (ghati/hora)", "category": "Timing"},
+    "get_retrograde":       {"label": "Retrograde (Vakra) status", "category": "Timing"},
     "get_yogas":            {"label": "Yogas",                  "category": "Strengths & afflictions"},
     "get_raja_yogas":       {"label": "Raja Yogas",             "category": "Strengths & afflictions"},
     "get_doshas":           {"label": "Doshas",                 "category": "Strengths & afflictions"},
     "get_ashtakavarga":     {"label": "Ashtakavarga",          "category": "Strengths & afflictions"},
     "get_shadbala":         {"label": "Shadbala strength",      "category": "Strengths & afflictions"},
     "get_longevity":        {"label": "Ayu (longevity)",        "category": "Strengths & afflictions"},
+    "get_sphuta":           {"label": "Sphutas (sensitive points)", "category": "Sensitive points"},
+    "get_sahams":           {"label": "Sahams (36 points)",     "category": "Sensitive points"},
+    "get_argala":           {"label": "Argala (intervention)",  "category": "Sensitive points"},
 }
 
 

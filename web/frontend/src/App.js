@@ -23,6 +23,8 @@ import { SharedChartPage } from "./pages/SharedChartPage";
 import { PredictionsPage } from "./pages/PredictionsPage";
 import { AskAstrologerPage } from "./pages/AskAstrologerPage";
 import { AiToolsPage } from "./pages/AiToolsPage";
+import { SensitivePointsPage } from "./pages/SensitivePointsPage";
+import { VedicClockPage } from "./pages/VedicClockPage";
 import "./App.css";
 import "./styles/Responsive.css";
 
@@ -185,6 +187,24 @@ function App() {
               element={
                 <ProtectedRoute>
                   <BirthTimeRectificationPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/sensitive-points"
+              element={
+                <ProtectedRoute>
+                  <SensitivePointsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/vedic-clock"
+              element={
+                <ProtectedRoute>
+                  <VedicClockPage />
                 </ProtectedRoute>
               }
             />

@@ -20,6 +20,8 @@ import {
   CalendarDays,
   Clock4,
   Bird,
+  Crosshair,
+  Timer,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
@@ -37,6 +39,8 @@ const LINKS = [
   { to: "/almanac", labelKey: "nav.almanac", icon: <CalendarDays size={20} /> },
   { to: "/pancha-pakshi", labelKey: "nav.panchaPakshi", icon: <Bird size={20} /> },
   { to: "/sarvatobhadra", labelKey: "nav.sarvatobhadra", icon: <Grid3x3 size={20} /> },
+  { to: "/sensitive-points", labelKey: "nav.sensitivePoints", icon: <Crosshair size={20} /> },
+  { to: "/vedic-clock", labelKey: "nav.vedicClock", icon: <Timer size={20} /> },
   { to: "/advanced", labelKey: "nav.advanced", icon: <Sparkles size={20} /> },
   { to: "/compare", labelKey: "nav.compare", icon: <GitCompareArrows size={20} /> },
   { to: "/rectify", labelKey: "nav.rectify", icon: <Clock4 size={20} /> },

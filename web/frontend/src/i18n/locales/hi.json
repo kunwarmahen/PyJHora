@@ -145,7 +145,9 @@
     "varshaphal": "वर्षफल",
     "almanac": "पंचांग-संग्रह",
     "rectify": "समय सुधार",
-    "panchaPakshi": "पंच पक्षी"
+    "panchaPakshi": "पंच पक्षी",
+    "sensitivePoints": "संवेदनशील बिंदु",
+    "vedicClock": "वैदिक घड़ी"
   },
   "dashboard": {
     "welcome": "स्वागत है,",
@@ -208,6 +210,14 @@
       "panchaPakshi": {
         "title": "पंच पक्षी",
         "description": "पक्षी-चक्र दैनिक समय — आपका जन्म-पक्षी और दिन के श्रेष्ठ व शांत काल।"
+      },
+      "sensitivePoints": {
+        "title": "संवेदनशील बिंदु",
+        "description": "स्फुट, 36 साहम और अर्गला — कुंडली के सहायक संवेदनशील बिंदु।"
+      },
+      "vedicClock": {
+        "title": "वैदिक घड़ी और वक्री",
+        "description": "जीवंत घटी/होरा दिन-घड़ी और वक्र-गति के वक्री लूप।"
       }
     }
   },
@@ -234,7 +244,11 @@
     "yamaganda": "यमगंड",
     "gulikaKalam": "गुलिक काल",
     "abhijit": "अभिजित मुहूर्त",
-    "durmuhurtam": "दुर्मुहूर्त"
+    "durmuhurtam": "दुर्मुहूर्त",
+    "engine": "पद्धति",
+    "engineDrik": "दृक्",
+    "engineSurya": "सूर्य सिद्धांत",
+    "hijri": "हिजरी"
   },
   "dhasa": {
     "title": "विंशोत्तरी दशा",

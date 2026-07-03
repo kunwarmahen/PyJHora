@@ -69,9 +69,9 @@ export const astrologyService = {
     api.post("/api/astrology/horoscope", birthDetails, {
       params: { use_qwen: useQwen },
     }),
-  getPanchanga: ({ place, latitude, longitude, timezone, date } = {}) =>
+  getPanchanga: ({ place, latitude, longitude, timezone, date, system } = {}) =>
     api.get("/api/astrology/panchanga", {
-      params: { place, latitude, longitude, timezone, date },
+      params: { place, latitude, longitude, timezone, date, system },
     }),
   // Almanac (§9.2): planetary hours, eclipses, festival/vratha dates.
   getPlanetaryHours: ({ place, latitude, longitude, timezone, date } = {}) =>
@@ -146,6 +146,49 @@ export const astrologyService = {
   // Ayu (longevity) category — Alpa/Madhya/Purna + factors.
   getLongevity: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/longevity", birthDetails, { params: { ayanamsa } }),
+  // Sensitive points (§11.1): Sphutas + 36 Sahams + Argala, aggregated.
+  getSensitivePoints: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/sensitive-points", birthDetails, { params: { ayanamsa } }),
+  analyzeSensitivePointsAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/sensitive-points-analysis",
+      {
+        birth_details: birthDetails,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+  // Vedic clock & retrograde (§11.2). Location-driven (not birth-chart bound).
+  getVedicClock: ({ place, latitude, longitude, timezone, date } = {}) =>
+    api.post("/api/astrology/vedic-clock", null, {
+      params: { place, latitude, longitude, timezone, date },
+    }),
+  getRetrograde: ({ place, latitude, longitude, timezone, date } = {}) =>
+    api.post("/api/astrology/retrograde", null, {
+      params: { place, latitude, longitude, timezone, date },
+    }),
+  analyzeCelestialAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/celestial-analysis",
+      {
+        birth_details: birthDetails,
+        date: opts.date,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
   // Sudarsana Chakra — three wheels (Lagna/Moon/Sun) for a solar-return year.
   getSudarsanaChakra: (birthDetails, yearOffset = 0, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/sudarsana-chakra", birthDetails, {

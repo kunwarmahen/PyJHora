@@ -47,6 +47,15 @@ export const PanchangaPanel = ({
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState("");
 
+  // Ephemeris engine: 'drik' (modern) or 'surya_siddhanta' (classical ayanamsa).
+  const [system, setSystem] = useState(
+    () => localStorage.getItem("panchanga_system") || "drik"
+  );
+  const changeSystem = (s) => {
+    setSystem(s);
+    localStorage.setItem("panchanga_system", s);
+  };
+
   const birthLoc = { place, latitude, longitude, timezone };
   const activeLoc = source === "current" && currentLoc ? currentLoc : birthLoc;
 
@@ -91,12 +100,12 @@ export const PanchangaPanel = ({
     setLoading(true);
     setError("");
     astrologyService
-      .getPanchanga({ ...activeLoc, date })
+      .getPanchanga({ ...activeLoc, date, system })
       .then((r) => setData(r.data))
       .catch(() => setError(t("panchanga.unavailable")))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeLoc.place, activeLoc.latitude, activeLoc.longitude, activeLoc.timezone, date]);
+  }, [activeLoc.place, activeLoc.latitude, activeLoc.longitude, activeLoc.timezone, date, system]);
 
   useEffect(() => {
     load();
@@ -146,6 +155,24 @@ export const PanchangaPanel = ({
               </button>
             </div>
           )}
+          <div
+            className="chart-style-toggle"
+            role="group"
+            aria-label={t("panchanga.engine")}
+          >
+            <button
+              className={system === "drik" ? "active" : ""}
+              onClick={() => changeSystem("drik")}
+            >
+              {t("panchanga.engineDrik")}
+            </button>
+            <button
+              className={system === "surya_siddhanta" ? "active" : ""}
+              onClick={() => changeSystem("surya_siddhanta")}
+            >
+              {t("panchanga.engineSurya")}
+            </button>
+          </div>
           <input
             type="date"
             className="panchanga-date"
@@ -189,6 +216,13 @@ export const PanchangaPanel = ({
               <Sunset size={16} /> {t("panchanga.sunset")} {data.sunset}
             </span>
           </div>
+
+          {data.hijri && (
+            <div className="panchanga-place">
+              {t("panchanga.hijri")}: {data.hijri.day} {data.hijri.month_name}{" "}
+              {data.hijri.year} AH
+            </div>
+          )}
 
           <div className="panchanga-periods">
             <div className="panchanga-period inauspicious">

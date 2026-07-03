@@ -543,6 +543,26 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
         return await self._complete(prompt, cfg)
 
+    async def analyze_sensitive_points(self,
+                                       data: Dict[str, Any],
+                                       name: str = "this person",
+                                       provider: LLMProvider = LLMProvider.QWEN,
+                                       config: Optional[ModelConfig] = None) -> str:
+        """Plain-language reading of the natal sensitive points (Sphuta/Saham/Argala)."""
+        prompt = self._build_sensitive_points_prompt(data, name)
+        cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        return await self._complete(prompt, cfg)
+
+    async def analyze_celestial(self,
+                                data: Dict[str, Any],
+                                name: str = "this person",
+                                provider: LLMProvider = LLMProvider.QWEN,
+                                config: Optional[ModelConfig] = None) -> str:
+        """Plain-language reading of the Vedic clock + retrograde snapshot."""
+        prompt = self._build_celestial_prompt(data, name)
+        cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        return await self._complete(prompt, cfg)
+
     # ------------------------------------------------------------------ #
     # "Learn the Chart" — AI quiz generation + grading
     # ------------------------------------------------------------------ #
@@ -1680,6 +1700,74 @@ Write a short, friendly day-guide (about 250-300 words):
 4. End with one short, encouraging line.
 
 Use the clock times given. Do NOT invent windows not listed. Do NOT make medical, financial or fated claims. Close with a one-line reminder that this is a traditional timing aid for reflection, not a rule to live by."""
+
+    def _build_sensitive_points_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """Turn the computed Sphutas, Sahams and Argala into a gentle, plain
+        explanation. All values are already computed — the model interprets."""
+        sphuta = (d.get("sphuta") or {}).get("sphutas", [])
+        sahams = (d.get("sahams") or {}).get("sahams", [])
+        argala = (d.get("argala") or {}).get("houses", [])
+
+        sph_lines = "\n".join(
+            f"- {s['name']} ({s['significance']}): {s['sign_name']} {s['degrees']}°, "
+            f"house {s['house']}" for s in sphuta[:12]
+        ) or "- (none)"
+        # Only the sahams likely to matter most, to keep the prompt lean.
+        key = {"Punya", "Vidya", "Yasas", "Karma", "Artha", "Vivaha", "Puthra",
+               "Roga", "Laabha", "Rajya", "Jeeva"}
+        sah_lines = "\n".join(
+            f"- {s['name']} ({s['significance']}): {s['sign_name']}, house {s['house']}"
+            for s in sahams if s['name'] in key
+        ) or "- (none)"
+        arg_lines = "\n".join(
+            f"- House {h['bhava']} ({h['sign_name']}): net {h['net']}"
+            for h in argala if h.get('net') not in (None, 'none', 'balanced')
+        )[:800] or "- (mostly balanced)"
+
+        return f"""You are a warm, plain-spoken Vedic astrologer explaining a chart's SENSITIVE POINTS to {name}. These are technical helper points, so translate them into everyday meaning and never overwhelm with jargon.
+
+SPHUTAS (sensitive longitudes derived from the chart):
+{sph_lines}
+
+Key SAHAMS (Arabic-part-like points for life themes):
+{sah_lines}
+
+ARGALA (which houses receive strong planetary "intervention" support vs obstruction):
+{arg_lines}
+
+Write a friendly ~300-word note:
+1. **What these are** — one or two sentences: sensitive supporting points that fine-tune a reading, not core predictions.
+2. **A few highlights** — pick 3-4 of the most telling points (e.g. a Saham for career/wealth/marriage sitting in a notable house, or a house with strong argala) and say plainly what they gently emphasise.
+3. **How to use them** — note they colour and confirm the main chart rather than override it.
+Keep it encouraging and non-deterministic. Do NOT dwell on Mrityu/Apamrithyu points or make any health, death, financial or fated claims. Close with a one-line reminder that these are supportive nuances for reflection."""
+
+    def _build_celestial_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """Explain the current Vedic clock + retrograde snapshot in plain terms."""
+        clock = d.get("clock") or {}
+        retro = d.get("retrograde") or {}
+        panch = clock.get("panchanga") or {}
+        hora = clock.get("current_hora") or {}
+        retro_now = retro.get("retrograde_now") or []
+        stations = "\n".join(
+            f"- {p['planet']} turns {p['next_station']['becomes']} on {p['next_station']['date']}"
+            for p in retro.get("planets", []) if p.get("next_station")
+        ) or "- (none upcoming in range)"
+
+        return f"""You are a warm, plain-spoken guide explaining the CURRENT SKY in Vedic terms to {name}, tying the traditional day-clock to what the planets are doing right now. Keep it simple and grounded.
+
+Date: {clock.get('date')} at {clock.get('place') or 'the chosen place'}
+Sunrise {clock.get('sunrise')}, sunset {clock.get('sunset')} (day length {clock.get('day_length_hours')} h).
+Running hora (planetary hour) lord: {hora.get('planet')} ({'benefic' if hora.get('benefic') else 'malefic'}).
+Panchanga now: tithi {panch.get('tithi')}, nakshatra {panch.get('nakshatra')}, yoga {panch.get('yoga')}.
+Planets retrograde right now: {', '.join(retro_now) if retro_now else 'none'}.
+Upcoming direction changes (stations):
+{stations}
+
+Write a friendly ~250-word note:
+1. **The Vedic day** — explain the ghati/hora idea in a sentence, then what the current hora lord tends to favour (e.g. Jupiter-hora good for learning, Mercury for communication), lightly.
+2. **Retrograde now** — for any planet currently retrograde, explain in everyday terms what retrograde traditionally invites (review, revisit, slow down) — NOT doom.
+3. **What's coming** — mention the next station date(s) as gentle "watch for a shift" notes.
+End with one encouraging line. Do NOT make fated, medical or financial claims; frame retrogrades as invitations to reflect, not warnings."""
 
     def _build_rectification_prompt(self, r: Dict[str, Any], name: str) -> str:
         """Explain, in plain terms, why the suggested birth time fits better than

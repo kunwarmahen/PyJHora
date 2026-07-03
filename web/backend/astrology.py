@@ -224,6 +224,74 @@ VARSHAPHAL_SAHAMS = [
     ("Puthra", "puthra_saham", "Children, progeny"),
 ]
 
+# ── Sensitive points (§11.1) ───────────────────────────────────────────────
+# Sphutas: sensitive longitudes derived from the natal chart (each engine fn
+# takes (drik.Date, tob-tuple, place) and returns (sign_index, degree)).
+#   label -> (sphuta.<fn>, significance)
+SPHUTA_DEFS = [
+    ("Tri Sphuta",     "tri_sphuta",     "Longevity / body (Lagna+Moon+Gulika)"),
+    ("Chatur Sphuta",  "chatur_sphuta",  "Adds the Sun — vitality & self"),
+    ("Pancha Sphuta",  "pancha_sphuta",  "Adds Rahu — overall karmic sum"),
+    ("Prana Sphuta",   "prana_sphuta",   "Vital force, the breath of life"),
+    ("Deha Sphuta",    "deha_sphuta",    "The physical body"),
+    ("Mrityu Sphuta",  "mrityu_sphuta",  "Sensitive point of mortality (handle gently)"),
+    ("Beeja Sphuta",   "beeja_sphuta",   "Male reproductive vitality (Sun+Jup+Venus)"),
+    ("Kshetra Sphuta", "kshetra_sphuta", "Female reproductive vitality (Moon+Jup+Mars)"),
+    ("Tithi Sphuta",   "tithi_sphuta",   "Lunar-day point (Moon−Sun)"),
+    ("Yoga Sphuta",    "yoga_sphuta",    "Sun+Moon combined point"),
+    ("Yogi Sphuta",    "yogi_sphuta",    "The benefic Yogi point"),
+    ("Avayogi Sphuta", "avayogi_sphuta", "The malefic Avayogi point"),
+]
+
+# The 36 natal Sahams (Arabic-part-like sensitive points). Each engine fn takes
+# (planet_positions, night_time_birth); a few take positions only (handled with a
+# TypeError fallback). label -> (saham.<fn>, significance).
+NATAL_SAHAMS = [
+    ("Punya",      "punya_saham",      "Fortune, merit, good deeds"),
+    ("Vidya",      "vidya_saham",      "Education, learning"),
+    ("Yasas",      "yasas_saham",      "Fame, reputation"),
+    ("Mitra",      "mitra_saham",      "Friends, alliances"),
+    ("Mahatmaya",  "mahatmaya_saham",  "Greatness, dignity"),
+    ("Asha",       "asha_saham",       "Hopes, desires"),
+    ("Samartha",   "samartha_saham",   "Capability, competence"),
+    ("Bhratri",    "bhratri_saham",    "Siblings, brothers"),
+    ("Gaurava",    "gaurava_saham",    "Respect, honour"),
+    ("Pithri",     "pithri_saham",     "Father"),
+    ("Rajya",      "rajya_saham",      "Authority, kingdom, high office"),
+    ("Maathri",    "maathri_saham",    "Mother"),
+    ("Puthra",     "puthra_saham",     "Children, progeny"),
+    ("Jeeva",      "jeeva_saham",      "Vitality, life force"),
+    ("Karma",      "karma_saham",      "Work, action, career"),
+    ("Roga",       "roga_saham",       "Illness, health"),
+    ("Kali",       "kali_saham",       "Strife, discord"),
+    ("Sastra",     "sastra_saham",     "Learning, scriptures, weapons"),
+    ("Bandhu",     "bandhu_saham",     "Relatives, kin"),
+    ("Mrithyu",    "mrithyu_saham",    "Mortality (handle gently, non-literal)"),
+    ("Paradesa",   "paradesa_saham",   "Foreign lands, travel"),
+    ("Artha",      "artha_saham",      "Wealth, resources"),
+    ("Paradara",   "paradara_saham",   "Relationships outside marriage"),
+    ("Vanika",     "vanika_saham",     "Trade, commerce"),
+    ("Karyasiddhi","karyasiddhi_saham","Accomplishment of undertakings"),
+    ("Vivaha",     "vivaha_saham",     "Marriage"),
+    ("Santapa",    "santapa_saham",    "Sorrow, distress"),
+    ("Sraddha",    "sraddha_saham",    "Faith, sincerity"),
+    ("Preethi",    "preethi_saham",    "Affection, love"),
+    ("Jadya",      "jadya_saham",      "Dullness, inertia"),
+    ("Vyaapaara",  "vyaapaara_saham",  "Business, enterprise"),
+    ("Sathru",     "sathru_saham",     "Enemies, rivals"),
+    ("Jalapatna",  "jalapatna_saham",  "Sea voyage, waters"),
+    ("Bandhana",   "bandhana_saham",   "Bondage, confinement"),
+    ("Apamrithyu", "apamrithyu_saham", "Sudden misfortune (non-literal)"),
+    ("Laabha",     "laabha_saham",     "Gains, profit"),
+]
+
+# Argala (intervention) / Virodhargala (counter-intervention) houses, from a
+# reference house: benefics/planets in the 2nd/4th/5th/11th cause argala, which
+# is obstructed by planets in the 12th/10th/9th/3rd respectively. Labels mirror
+# const.argala_houses / const.virodhargala_houses.
+ARGALA_HOUSE_LABELS = ["2nd", "4th", "5th", "11th"]
+VIRODHARGALA_HOUSE_LABELS = ["12th", "10th", "9th", "3rd"]
+
 # Selectable annual (Varshaphal) dasha systems: key -> (label, lord_type).
 # graha => periods ruled by planets; raasi => ruled by signs.
 VARSHA_DASHA_SYSTEMS = {
@@ -267,6 +335,17 @@ WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday
 # hora a supportive/inauspicious tone (Moon/Mercury/Jupiter/Venus vs Sun/Mars/Saturn).
 HORA_PLANETS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
 HORA_BENEFICS = {"Moon", "Mercury", "Jupiter", "Venus"}
+
+# Vakra-gathi (retrograde) epicycle periods, per planet index: (orbital period in
+# days, number of synodic loops to draw). Mirrors ui/vakra_gathi_plot's table but
+# lets us reimplement the loop with plain numpy (no PyQt/pyqtgraph). -1 = Earth.
+RETRO_PERIODS = {
+    2: (686.97959, 18), 3: (87.96926, 9), 4: (4332.8201, 12),
+    5: (224.7008, 8), 6: (10755.699, 59), -1: (365.25636, 1),
+}
+# Planets that can be retrograde and have a meaningful station search (Rahu/Ketu
+# are perpetually retrograde, handled separately).
+RETRO_STATION_PLANETS = [2, 3, 4, 5, 6]
 
 # Curated tithi-driven festivals / vrathas. Each entry maps a display key to the
 # tithi index/indices (1..30, across both pakshas) the vratha falls on, plus a
@@ -327,6 +406,34 @@ def _fmt_hours(h):
         mm = 0
         hh = (hh + 1) % 24
     return f"{hh:02d}:{mm:02d}{suffix}"
+
+
+# Islamic (Hijri) month names for the tabular date.
+HIJRI_MONTHS = [
+    "Muharram", "Safar", "Rabi al-Awwal", "Rabi al-Thani", "Jumada al-Awwal",
+    "Jumada al-Thani", "Rajab", "Shaban", "Ramadan", "Shawwal",
+    "Dhu al-Qadah", "Dhu al-Hijjah",
+]
+
+
+def _hijri_tabular(jd):
+    """Islamic (Hijri) date from a Julian day via the standard *tabular* civil
+    calendar — pure arithmetic, place-independent. Reimplemented inline because
+    PyJHora's `panchanga/hijri.py` imports pyIslam/hijridate (not installed) at
+    module top. Returns {year, month, month_name, day} or None on failure."""
+    import math
+    try:
+        days = math.floor(jd + 0.5) - math.floor(1948439.5 + 0.5) + 1
+        year = int(math.floor((30 * days + 10646) / 10631))
+        first = (year - 1) * 354 + math.floor((3 + 11 * year) / 30)
+        month = int(min(12, math.ceil((days - first) / 29.5)))
+        day = int(days - first - math.ceil(29.5 * (month - 1)))
+        month = max(1, min(12, month))
+        day = max(1, min(30, day))
+        return {"year": year, "month": month,
+                "month_name": HIJRI_MONTHS[month - 1], "day": day}
+    except Exception:
+        return None
 
 
 # ── Sarvatobhadra Chakra (SBC) ──────────────────────────────────────────────
@@ -2251,16 +2358,27 @@ class AstrologyCompute:
     @staticmethod
     def get_panchanga(date: Optional[str] = None, place: str = "",
                       lat: Optional[float] = None, lon: Optional[float] = None,
-                      tz: Optional[float] = None) -> Dict:
+                      tz: Optional[float] = None, system: str = "drik") -> Dict:
         """Daily almanac (panchanga) for a date + place: the five limbs
         (tithi, vaara, nakshatra, yoga, karana) plus sunrise/sunset and the
         inauspicious/auspicious periods (rahu kalam, yamaganda, gulika,
         durmuhurtam, abhijit). Elements are resolved at sunrise of the day,
-        the traditional reference point. `date` defaults to today at `place`."""
+        the traditional reference point. `date` defaults to today at `place`.
+
+        `system` selects the ephemeris/ayanamsa engine: "drik" (default, the
+        modern Drik-ganita under the app ayanamsa) or "surya_siddhanta" (the
+        classical Surya-Siddhanta ayanamsa mode). Also includes the Hijri
+        (Islamic tabular) date for the day."""
         if not PYJHORA_AVAILABLE:
             return {"error": "PyJHora not available"}
+        # Surya-Siddhanta = compute the limbs under the SURYASIDDHANTA ayanamsa
+        # (the vendored surya_sidhantha.py module itself is buggy). Reset after.
+        use_ss = (system or "drik").lower() in ("surya_siddhanta", "surya-siddhanta", "ss")
         try:
             from datetime import datetime, timezone as _utc, timedelta
+
+            if use_ss:
+                drik.set_ayanamsa_mode("SURYASIDDHANTA")
 
             tz_offset = tz if tz is not None else 5.5
             if not lat or not lon:
@@ -2310,6 +2428,8 @@ class AstrologyCompute:
                 "status": "success",
                 "date": f"{year:04d}-{month:02d}-{day:02d}",
                 "place": place,
+                "system": "surya_siddhanta" if use_ss else "drik",
+                "hijri": _hijri_tabular(jd_noon),
                 "tithi": {"index": ti[0], "name": tithi_name, "paksha": paksha,
                           "ends": _fmt_hours(ti[2])},
                 "nakshatra": {"index": nak[0], "name": NAKSHATRA_NAMES[nak[0] - 1],
@@ -2331,6 +2451,9 @@ class AstrologyCompute:
             import traceback
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
+        finally:
+            if use_ss:
+                drik.set_ayanamsa_mode(DEFAULT_AYANAMSA)
 
     @staticmethod
     def get_planetary_hours(date: Optional[str] = None, place: str = "",
@@ -3546,6 +3669,393 @@ class AstrologyCompute:
             return {"error": str(e), "status": "failed"}
         finally:
             _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def _natal_jd_place(dob, tob, place, lat, lon, tz):
+        """Shared setup: parse dob/tob → (jd, place_obj, y, m, d, hour, minute).
+        Callers must already have set the ayanamsa."""
+        y, m, d = map(int, dob.split("-"))
+        tp = tob.split(":")
+        hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+        if not lat or not lon:
+            lat, lon = 13.0827, 80.2707
+        place_obj = drik.Place(place or "", lat, lon, tz or 5.5)
+        jd = swe.julday(y, m, d, hour + minute / 60.0)
+        return jd, place_obj, y, m, d, hour, minute
+
+    @staticmethod
+    def get_sphuta(dob: str, tob: str, place: str,
+                   lat: Optional[float] = None, lon: Optional[float] = None,
+                   tz: Optional[float] = None,
+                   ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """The classical Sphutas — sensitive longitudes computed from the natal
+        chart (Tri/Chatur/Pancha/Prana/Deha/Mrityu/Beeja/Kshetra/Tithi/Yoga/
+        Yogi/Avayogi). Each is returned as a sign + degree + house-from-Lagna.
+        Ayanamsa server-injected + reset."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            from jhora.horoscope.chart import sphuta as sphuta_mod
+
+            jd, place_obj, y, m, d, hour, minute = \
+                AstrologyCompute._natal_jd_place(dob, tob, place, lat, lon, tz)
+            dob_date = drik.Date(y, m, d)
+            tob_tuple = (hour, minute, 0)
+            asc_sign = charts.rasi_chart(jd, place_obj)[0][1][0]
+
+            items = []
+            for label, fn_name, significance in SPHUTA_DEFS:
+                try:
+                    fn = getattr(sphuta_mod, fn_name)
+                    sign, deg = fn(dob_date, tob_tuple, place_obj)
+                    sign = int(sign) % 12
+                    items.append({
+                        "name": label,
+                        "significance": significance,
+                        "sign": sign,
+                        "sign_name": ZODIAC_NAMES[sign],
+                        "degrees": round(float(deg), 2),
+                        "house": ((sign - asc_sign) % 12) + 1,
+                    })
+                except Exception as e:
+                    print(f"Sphuta {label} error: {e}")
+
+            return {"status": "success", "lagna_sign": asc_sign,
+                    "lagna_sign_name": ZODIAC_NAMES[asc_sign], "sphutas": items}
+        except Exception as e:
+            print(f"Sphuta error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_sahams(dob: str, tob: str, place: str,
+                   lat: Optional[float] = None, lon: Optional[float] = None,
+                   tz: Optional[float] = None,
+                   ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """The 36 natal Sahams (Arabic-part-like sensitive points) — each a
+        longitude → sign + degree + house-from-Lagna. Day/night birth (from the
+        natal sunrise/sunset) drives each saham's day/night formula. Ayanamsa
+        server-injected + reset."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            from jhora.horoscope.transit import saham as saham_mod
+
+            jd, place_obj, y, m, d, hour, minute = \
+                AstrologyCompute._natal_jd_place(dob, tob, place, lat, lon, tz)
+            cht = charts.rasi_chart(jd, place_obj)
+            asc_sign = cht[0][1][0]
+
+            # Day- or night-birth from the natal sunrise/sunset.
+            night_birth = False
+            try:
+                birth_hrs = hour + minute / 60.0
+                sr = utils.from_dms_str_to_dms(drik.sunrise(jd, place_obj)[1])
+                ss = utils.from_dms_str_to_dms(drik.sunset(jd, place_obj)[1])
+                sr_h = sr[0] + sr[1] / 60.0 + sr[2] / 3600.0
+                ss_h = ss[0] + ss[1] / 60.0 + ss[2] / 3600.0
+                night_birth = birth_hrs > ss_h or birth_hrs < sr_h
+            except Exception as e:
+                print(f"Saham night-birth error: {e}")
+
+            items = []
+            for label, fn_name, significance in NATAL_SAHAMS:
+                try:
+                    fn = getattr(saham_mod, fn_name)
+                    try:
+                        s_long = fn(cht, night_birth)
+                    except TypeError:
+                        s_long = fn(cht)
+                    s_long = float(s_long) % 360
+                    s_sign = int(s_long // 30)
+                    items.append({
+                        "name": label,
+                        "significance": significance,
+                        "sign": s_sign,
+                        "sign_name": ZODIAC_NAMES[s_sign],
+                        "degrees": round(s_long % 30, 2),
+                        "house": ((s_sign - asc_sign) % 12) + 1,
+                    })
+                except Exception as e:
+                    print(f"Saham {label} error: {e}")
+
+            return {"status": "success", "night_birth": night_birth,
+                    "lagna_sign": asc_sign, "lagna_sign_name": ZODIAC_NAMES[asc_sign],
+                    "sahams": items}
+        except Exception as e:
+            print(f"Sahams error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_argala(dob: str, tob: str, place: str,
+                   lat: Optional[float] = None, lon: Optional[float] = None,
+                   tz: Optional[float] = None,
+                   ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Argala (planetary intervention) and Virodhargala (counter-intervention)
+        for each of the 12 bhavas. Planets in the 2nd/4th/5th/11th from a house
+        cause argala on it; planets in the 12th/10th/9th/3rd obstruct it. Returns
+        one row per bhava with the contributing planets. Ayanamsa injected + reset."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            jd, place_obj, *_ = \
+                AstrologyCompute._natal_jd_place(dob, tob, place, lat, lon, tz)
+            cht = charts.rasi_chart(jd, place_obj)
+            asc_sign = cht[0][1][0]
+            h2p = utils.get_house_planet_list_from_planet_positions(cht)
+            argala, virodhargala = house.get_argala(h2p)
+
+            def _planets(cell):
+                """'4/5' → ['Jupiter','Venus']; '' → []."""
+                out = []
+                for tok in str(cell).replace("/", " ").split():
+                    tok = tok.strip()
+                    if tok.isdigit() and int(tok) in PLANET_NAMES:
+                        out.append(PLANET_NAMES[int(tok)])
+                return out
+
+            rows = []
+            for r in range(12):
+                arg = [
+                    {"from": ARGALA_HOUSE_LABELS[i], "planets": _planets(argala[r][i])}
+                    for i in range(len(ARGALA_HOUSE_LABELS))
+                    if _planets(argala[r][i])
+                ]
+                vir = [
+                    {"from": VIRODHARGALA_HOUSE_LABELS[i], "planets": _planets(virodhargala[r][i])}
+                    for i in range(len(VIRODHARGALA_HOUSE_LABELS))
+                    if _planets(virodhargala[r][i])
+                ]
+                sign = (asc_sign + r) % 12
+                net = "argala" if len(arg) > len(vir) else \
+                      ("virodhargala" if len(vir) > len(arg) else "balanced")
+                rows.append({
+                    "bhava": r + 1,
+                    "sign": sign,
+                    "sign_name": ZODIAC_NAMES[sign],
+                    "argala": arg,
+                    "virodhargala": vir,
+                    "net": net if (arg or vir) else "none",
+                })
+
+            return {"status": "success", "lagna_sign": asc_sign,
+                    "lagna_sign_name": ZODIAC_NAMES[asc_sign], "houses": rows}
+        except Exception as e:
+            print(f"Argala error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_vedic_clock(date: Optional[str] = None, place: str = "",
+                        lat: Optional[float] = None, lon: Optional[float] = None,
+                        tz: Optional[float] = None) -> Dict:
+        """Vedic day-clock data for a date + place: sunrise/sunset, the day &
+        night lengths, the 60-ghati day divisions (1 ghati = 24 min from sunrise),
+        the running hora lord, and the panchanga limbs (tithi/nakshatra/yoga) —
+        enough for the frontend to render and live-tick a ghati/vighati clock.
+        `date` defaults to today at `place`."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            from datetime import datetime, timezone as _utc, timedelta
+
+            tz_offset = tz if tz is not None else 5.5
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            if date:
+                year, month, day = map(int, date.split("-"))
+            else:
+                local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+                year, month, day = local_now.year, local_now.month, local_now.day
+
+            place_obj = drik.Place(place or "", lat, lon, tz_offset)
+            jd_noon = swe.julday(year, month, day, 12)
+
+            sr = drik.sunrise(jd_noon, place_obj)   # (hours, 'HH:MM:SS')
+            ss = drik.sunset(jd_noon, place_obj)
+            sr_h = sr[0] if isinstance(sr[0], (int, float)) else 6.0
+            ss_h = ss[0] if isinstance(ss[0], (int, float)) else 18.0
+            day_len = max(0.01, ss_h - sr_h)
+            night_len = 24.0 - day_len
+
+            # Running hora lord (reuse the shubha_hora table).
+            horas = drik.shubha_hora(jd_noon, place_obj)
+            now_local = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+            is_today = (now_local.year, now_local.month, now_local.day) == (year, month, day)
+            now_h = now_local.hour + now_local.minute / 60.0 if is_today else None
+            current_hora = None
+            for i, (pidx, start, end) in enumerate(horas):
+                name = HORA_PLANETS[pidx] if 0 <= pidx < len(HORA_PLANETS) else str(pidx)
+                if is_today and i < 12:
+                    def _to_h(s):
+                        p = str(s).split(":")
+                        return int(p[0]) + int(p[1]) / 60.0
+                    if _to_h(start) <= now_h < _to_h(end):
+                        current_hora = {"planet": name, "benefic": name in HORA_BENEFICS,
+                                        "start": str(start)[:5], "end": str(end)[:5]}
+            if current_hora is None:
+                # Fall back to the weekday lord as the day's first hora lord.
+                first = HORA_PLANETS[horas[0][0]] if horas else "Sun"
+                current_hora = {"planet": first, "benefic": first in HORA_BENEFICS}
+
+            # Ghati/vighati elapsed since sunrise (only meaningful for "today").
+            ghati = vighati = None
+            if now_h is not None:
+                elapsed_min = (now_h - sr_h) * 60.0
+                if elapsed_min < 0:
+                    elapsed_min += 24 * 60  # before sunrise → previous vedic day
+                ghati_f = elapsed_min / 24.0          # 1 ghati = 24 min
+                ghati = int(ghati_f) % 60
+                vighati = int((ghati_f - int(ghati_f)) * 60)
+
+            # Panchanga limbs at the reference instant.
+            ref_jd = swe.julday(year, month, day, now_h if now_h is not None else 12.0)
+            limbs = {}
+            try:
+                tt = drik.tithi(ref_jd, place_obj)
+                t_name, t_paksha = _tithi_name(tt[0])
+                limbs["tithi"] = t_name
+                limbs["paksha"] = t_paksha
+            except Exception:
+                pass
+            try:
+                nk = drik.nakshatra(ref_jd, place_obj)
+                limbs["nakshatra"] = NAKSHATRA_NAMES[(nk[0] - 1) % 27]
+            except Exception:
+                pass
+            try:
+                yg = drik.yogam(ref_jd, place_obj)
+                limbs["yoga"] = YOGA_NAMES[(yg[0] - 1) % 27]
+            except Exception:
+                pass
+
+            def _hm(s):
+                return str(s)[:5] if s is not None else "—"
+
+            return {
+                "status": "success",
+                "date": f"{year:04d}-{month:02d}-{day:02d}",
+                "place": place,
+                "is_today": is_today,
+                "sunrise": _hm(sr[1]) if not isinstance(sr[1], (int, float)) else _fmt_hours(sr_h),
+                "sunset": _hm(ss[1]) if not isinstance(ss[1], (int, float)) else _fmt_hours(ss_h),
+                "sunrise_hours": round(sr_h, 4),
+                "sunset_hours": round(ss_h, 4),
+                "day_length_hours": round(day_len, 4),
+                "night_length_hours": round(night_len, 4),
+                "ghati": ghati,
+                "vighati": vighati,
+                "current_hora": current_hora,
+                "panchanga": limbs,
+                "tz": tz_offset,
+            }
+        except Exception as e:
+            print(f"Vedic clock error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+
+    @staticmethod
+    def get_retrograde(date: Optional[str] = None, place: str = "",
+                       lat: Optional[float] = None, lon: Optional[float] = None,
+                       tz: Optional[float] = None) -> Dict:
+        """Retrograde (Vakra) status for a date: which grahas are retrograde now,
+        the next station (direction-change) date for Mars/Mercury/Jupiter/Venus/
+        Saturn, and the Vakra-gathi epicycle loop (x,y) for each — the geocentric
+        apparent path that produces the classic retrograde loop, computed with
+        numpy (no pyqtgraph). `date` defaults to today at `place`."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            import numpy as np
+            from datetime import datetime, timezone as _utc, timedelta
+
+            tz_offset = tz if tz is not None else 5.5
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            if date:
+                year, month, day = map(int, date.split("-"))
+            else:
+                local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+                year, month, day = local_now.year, local_now.month, local_now.day
+
+            place_obj = drik.Place(place or "", lat, lon, tz_offset)
+            jd = swe.julday(year, month, day, 12)
+
+            retro_now = set(drik.planets_in_retrograde(jd, place_obj))
+
+            def _dist(T):
+                return T ** (2 / 3)  # Kepler's third law (a ∝ T^(2/3))
+
+            def _orbit(pidx, n=240):
+                period_days, loops = RETRO_PERIODS[pidx]
+                earth_period = RETRO_PERIODS[-1][0]
+                d1 = _dist(period_days)
+                d2 = _dist(earth_period)
+                theta = np.linspace(0, 2 * np.pi * loops, n)
+                x = d1 * np.cos(earth_period * theta / period_days) - d2 * np.cos(theta)
+                y = d1 * np.sin(earth_period * theta / period_days) - d2 * np.sin(theta)
+                scale = max(float(np.max(np.abs(x))), float(np.max(np.abs(y))), 1e-9)
+                return [round(v / scale, 4) for v in x.tolist()], \
+                       [round(v / scale, 4) for v in y.tolist()]
+
+            planets = []
+            ref_date = drik.Date(year, month, day)
+            for pidx in RETRO_STATION_PLANETS:
+                name = PLANET_NAMES[pidx]
+                is_retro = pidx in retro_now
+                next_station = None
+                try:
+                    nd = drik.next_planet_retrograde_change_date(pidx, ref_date, place_obj)
+                    if nd and nd[0]:
+                        gy, gm, gd, _ = utils.jd_to_gregorian(nd[0])
+                        next_station = {
+                            "date": f"{gy:04d}-{gm:02d}-{gd:02d}",
+                            # direction: -1 turning retrograde, +1 turning direct
+                            "becomes": "direct" if is_retro else "retrograde",
+                        }
+                except Exception as e:
+                    print(f"Retro station {name} error: {e}")
+                ox, oy = _orbit(pidx)
+                planets.append({
+                    "planet": name,
+                    "retrograde": is_retro,
+                    "next_station": next_station,
+                    "orbit_x": ox,
+                    "orbit_y": oy,
+                })
+
+            # Rahu & Ketu are perpetually retrograde in the mean-node scheme.
+            nodes = [{"planet": PLANET_NAMES[p], "retrograde": True, "perpetual": True}
+                     for p in (7, 8)]
+
+            return {
+                "status": "success",
+                "date": f"{year:04d}-{month:02d}-{day:02d}",
+                "place": place,
+                "planets": planets,
+                "nodes": nodes,
+                "retrograde_now": [PLANET_NAMES[p] for p in sorted(retro_now)
+                                   if p in PLANET_NAMES],
+            }
+        except Exception as e:
+            print(f"Retrograde error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
 
     @staticmethod
     def search_location(query: str = "", *args, **kwargs):

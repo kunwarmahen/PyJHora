@@ -20,6 +20,8 @@ import {
   CalendarDays,
   Clock4,
   Bird,
+  Crosshair,
+  Timer,
 } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
@@ -105,6 +107,18 @@ export const DashboardPage = () => {
       icon: <GraduationCap size={32} />,
       path: "/learn",
       gradient: "linear-gradient(135deg, #E27B5A 0%, #D4AF37 100%)",
+    },
+    {
+      key: "sensitivePoints",
+      icon: <Crosshair size={32} />,
+      path: "/sensitive-points",
+      gradient: "linear-gradient(135deg, #2D3561 0%, #D4AF37 100%)",
+    },
+    {
+      key: "vedicClock",
+      icon: <Timer size={32} />,
+      path: "/vedic-clock",
+      gradient: "linear-gradient(135deg, #5A5F7A 0%, #FF9933 100%)",
     },
     {
       key: "advanced",

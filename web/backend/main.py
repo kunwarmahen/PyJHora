@@ -160,6 +160,27 @@ class PanchaPakshiAnalysisRequest(BaseModel):
     api_key: Optional[str] = None
     ayanamsa: Optional[str] = None
 
+class SensitivePointsAnalysisRequest(BaseModel):
+    birth_details: BirthDetails
+    person_name: Optional[str] = None
+    llm_provider: str = "qwen"  # legacy fallback
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    ayanamsa: Optional[str] = None
+
+class CelestialAnalysisRequest(BaseModel):
+    birth_details: BirthDetails
+    date: Optional[str] = None
+    person_name: Optional[str] = None
+    llm_provider: str = "qwen"  # legacy fallback
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    ayanamsa: Optional[str] = None
+
 class RectifyExplainRequest(BaseModel):
     birth_details: BirthDetails
     method: str = "nakshatra"        # nakshatra | lagna | janma
@@ -398,10 +419,13 @@ async def get_panchanga(
     latitude: Optional[float] = None,
     longitude: Optional[float] = None,
     timezone: Optional[float] = None,
+    system: str = "drik",
     current_user: str = Depends(get_current_user),
 ):
     """Daily almanac (panchanga) for a place and optional date (defaults to
-    today at that place). Used by the 'Today' panel."""
+    today at that place). Used by the 'Today' panel. `system` = drik (default)
+    or surya_siddhanta (classical ayanamsa engine); response also includes the
+    Hijri (Islamic) date."""
     try:
         panchanga = AstrologyCompute.get_panchanga(
             date=date,
@@ -409,6 +433,7 @@ async def get_panchanga(
             lat=latitude,
             lon=longitude,
             tz=timezone,
+            system=system,
         )
         if panchanga.get("status") != "success":
             raise HTTPException(status_code=400, detail=panchanga.get("error", "Calculation failed"))
@@ -511,6 +536,77 @@ async def get_conjunctions(
         result = AstrologyCompute.get_conjunctions(
             place=place, lat=latitude, lon=longitude, tz=timezone,
             start=start, end=end, max_sep=max_sep,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/sensitive-points")
+async def get_sensitive_points(
+    birth_details: BirthDetails,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Sensitive points of the natal chart: the classical Sphutas, the 36 natal
+    Sahams, and the Argala / Virodhargala per bhava. Aggregated for one page."""
+    try:
+        args = dict(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, ayanamsa=ayanamsa,
+        )
+        sphuta = AstrologyCompute.get_sphuta(**args)
+        sahams = AstrologyCompute.get_sahams(**args)
+        argala = AstrologyCompute.get_argala(**args)
+        if sphuta.get("status") != "success":
+            raise HTTPException(status_code=400, detail=sphuta.get("error", "Calculation failed"))
+        return {"status": "success", "sphuta": sphuta, "sahams": sahams, "argala": argala}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/vedic-clock")
+async def get_vedic_clock(
+    date: Optional[str] = None,
+    place: str = "",
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    timezone: Optional[float] = None,
+    current_user: str = Depends(get_current_user),
+):
+    """Vedic day-clock data (sunrise/sunset, ghati/vighati, running hora lord,
+    panchanga limbs) for a place + optional date. Drives the live clock face."""
+    try:
+        result = AstrologyCompute.get_vedic_clock(
+            date=date, place=place, lat=latitude, lon=longitude, tz=timezone,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/retrograde")
+async def get_retrograde(
+    date: Optional[str] = None,
+    place: str = "",
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    timezone: Optional[float] = None,
+    current_user: str = Depends(get_current_user),
+):
+    """Retrograde (Vakra) status: which grahas are retrograde now, the next
+    station dates, and the Vakra-gathi epicycle loop (x,y) for each planet."""
+    try:
+        result = AstrologyCompute.get_retrograde(
+            date=date, place=place, lat=latitude, lon=longitude, tz=timezone,
         )
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
@@ -1736,6 +1832,65 @@ async def analyze_sarvatobhadra(
             "provider": cfg.provider_type.value,
             "model": cfg.model,
         }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/sensitive-points-analysis")
+async def analyze_sensitive_points(
+    request: SensitivePointsAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Plain-language AI reading of the sensitive points (Sphuta/Saham/Argala)."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        args = dict(dob=bd.dob, tob=bd.tob, place=bd.place,
+                    lat=bd.latitude, lon=bd.longitude, tz=bd.timezone,
+                    ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        data = {
+            "sphuta": AstrologyCompute.get_sphuta(**args),
+            "sahams": AstrologyCompute.get_sahams(**args),
+            "argala": AstrologyCompute.get_argala(**args),
+        }
+        if data["sphuta"].get("status") != "success":
+            raise HTTPException(status_code=400,
+                                detail=data["sphuta"].get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_sensitive_points(
+            data=data, name=request.person_name or "this person", config=cfg,
+        )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/celestial-analysis")
+async def analyze_celestial(
+    request: CelestialAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Plain-language AI reading of the Vedic clock + retrograde snapshot."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        loc = dict(place=bd.place, lat=bd.latitude, lon=bd.longitude, tz=bd.timezone)
+        data = {
+            "clock": AstrologyCompute.get_vedic_clock(date=request.date, **loc),
+            "retrograde": AstrologyCompute.get_retrograde(date=request.date, **loc),
+        }
+        if data["clock"].get("status") != "success":
+            raise HTTPException(status_code=400,
+                                detail=data["clock"].get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_celestial(
+            data=data, name=request.person_name or "this person", config=cfg,
+        )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
     except HTTPException:
         raise
     except Exception as e:

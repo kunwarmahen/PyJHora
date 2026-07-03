@@ -6,6 +6,7 @@ mandala / glow-pulse / gradient-text-everywhere), give it real typographic
 hierarchy, make it mobile-first, and clean up the code.
 
 Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to have.
+🔴 = **still open / not done** (spot-marker for the owner — every unchecked item carries it).
 
 ---
 
@@ -321,7 +322,7 @@ web exposes. High-value additions:
       Person 2 picked from a dropdown; computes both charts (reusing `calculateBirthChart`
       at the selected ayanamsa) and shows the two Kundalis side by side + a placements
       table (Lagna/Moon/Sun + all 9 grahas) with shared-sign rows highlighted.
-- [ ] **AI astrologer upgrades** (P1): see the dedicated plan in **§8** below
+- [ ] 🔴 **AI astrologer upgrades** (P1): see the dedicated plan in **§8** below
       (model selection, varga context, saved history, full dasha tree, streaming,
       multi-turn, richer context). Supersedes this one-liner.
 - [x] **Multi-language / Sanskrit term glossary tooltips** (P2). Glossary tooltips DONE
@@ -365,7 +366,7 @@ web exposes. High-value additions:
           Sanskrit. Recommended: (A) for names, leave free-text/AI English (AI already
           answers in whatever language the user asks). Tracked as its own item below.
 
-- [ ] **Localize engine-returned chart-data names (i18n data layer)** (P2). The UI chrome is
+- [ ] 🔴 **Localize engine-returned chart-data names (i18n data layer)** (P2). The UI chrome is
       fully translated (en/hi/sa, see above), but values that come back from the backend are
       still English: planet / sign / nakshatra / yoga / dosha / koota / dhasa-lord names (plus
       panchanga limb *values* and AI answers). **Plan — Option A (frontend mapping), recommended
@@ -768,7 +769,7 @@ clean status/dict — thin JSON-schema wrappers, minimal new surface.
       still auto-falls back to the JSON protocol. Converters unit-tested against the
       verified v1beta REST shape; live round-trip not yet run here (no Gemini key in
       this env) — verify in-app with a real key.
-- [ ] FOLLOW-UP: localize the new frontend strings (Answer mode card + step labels
+- [ ] 🔴 FOLLOW-UP: localize the new frontend strings (Answer mode card + step labels
       use English literals for now — see §5 i18n).
 - [x] FOLLOW-UP: explicit tri-state seed/tool/off per section. DONE 2026-06-30: each
       context section is now Seed (pre-sent in the prompt), Tool (the AI fetches it on
@@ -1444,16 +1445,39 @@ Plan — **SHIPPED 2026-07-02**:
       gently as conditional"). i18n `advanced.longevity.*` (en; hi/sa fall back). Verified live:
       test chart → **Alpa** with the three Alpa factors. Build + lint clean.
 
-### 9.6 Other engine capabilities noted (not selected — parked for later)
+### 9.6 Previously-parked engine capabilities — NOW SELECTED (owner ask 2026-07-02)
 
-Catalogued during the audit; not on the active roadmap unless the owner asks:
-- **Sphuta points** (`chart/sphuta.py`): Beeja/Kshetra/Tri/Chatur/Pancha/Prana/Deha sphuta
-  (progeny & sensitive points) — could be DataFields on the Advanced page.
-- **Saham finder beyond the annual 8** (all 37 in `saham.py`).
-- **Argalas** (intervention analysis, `chart/house.py`) — pairs with the aspects backlog.
-- **Vedic clock / Vakra-gathi retrograde plot** (`ui/vedic_clock.py`, `vakra_gathi_plot.py`).
-- **Surya Siddhanta / Khanda Khaadyaka** alternate panchanga engines (`panchanga/*`).
-- **Hijri / calendar conversions** (`panchanga/hijri.py`).
+Owner asked to build the six formerly-parked items. Clarifying round answered 2026-07-02:
+**(1)** Sphuta + full 37 Sahams + Argala → a **new dedicated "Sensitive Points" page**.
+**(2)** **Both** the Vedic clock and the Vakra-gathi retrograde plot → their **own page**
+(web SVG reimplementations of the desktop pyqtgraph widgets). **(3)** **Full treatment** —
+each new page gets an on-demand AI reading + smart-lookup tool(s). **(4)** Surya-Siddhanta +
+Hijri → **extend the existing Almanac/Panchanga** (SS as an alternate-engine toggle, Hijri
+date shown). Follows the established pattern (thin `AstrologyCompute` method that server-
+injects birth details + resets global state, auth endpoint, saffron page, on-demand AI via
+`_resolve_cfg`, i18n, and a §8.9 smart-lookup tool). See **§11** for the live build log.
+
+**Engine-entry notes pinned during the audit (2026-07-02):**
+- **Sphuta** (`chart/sphuta.py`): ~15 sphutas — each `fn(drik.Date(y,m,d), (h,m,s), place)`
+  returns `(sign, degree)`. Note `dob` must be a `drik.Date`, not a tuple.
+- **Sahams** (`transit/saham.py`): 36 natal sahams — `fn(planet_positions, night_time_birth)`
+  (a few take positions only → wrap in try/except TypeError); return a raw longitude.
+- **Argala** (`chart/house.py → get_argala(house_to_planet_dict)`): returns `(argala,
+  virodhargala)`, each 12 ascendant-relative rows × 4 (planet indices as strings) for the
+  argala houses [2,4,5,11] / virodhargala [12,10,9,3].
+- **Retrograde**: `drik.planets_in_retrograde(jd,place)` (list) +
+  `drik.next_planet_retrograde_change_date(planet, Date, place)` (next station);
+  `ui/vakra_gathi_plot.get_retrogression_orbit_data(planet)` is a pure-numpy epicycle
+  (x,y) loop — reimplement server-side (no pyqtgraph), downsample for the SVG.
+- **Vedic clock**: build from `drik.sunrise/sunset` + ghati math (1 ghati = 24 min from
+  sunrise, 60/day) + reuse `drik.shubha_hora` for the running hora lord.
+- **Surya-Siddhanta**: the vendored `panchanga/surya_sidhantha.py` is **buggy**
+  (`kali_ahargana` calls `drik.vaara(jd)` with no `place`; `_planet_mean_longitude` does
+  `.index` on a dict) — DO NOT call it. Instead use the reliable **`SURYASIDDHANTA`
+  ayanamsa mode** (in `const.available_ayanamsa_modes`) as the alternate panchanga engine.
+- **Hijri**: `panchanga/hijri.py` imports `pyIslam`/`hijridate` (not installed) at module
+  top → can't import it. Reimplement the tiny place-independent **tabular** formula inline
+  (`_islamic_from_jd_tabular`, pure arithmetic).
 
 ---
 
@@ -1631,3 +1655,61 @@ interview to also work as a **back-and-forth chat** ("ask questions and rectify"
       opening question, then "married Nov 2015, first job July 2012" correctly extracted
       `marriage 2015-11-20` + `career 2012-07-15` and asked a natural follow-up; `npm run build`
       green (+0.8 kB); ESLint clean; locale JSON valid.
+
+---
+
+## 11. Formerly-parked engine features (build log, 2026-07-02)
+
+The six §9.6 items, owner-approved for a full build — **all SHIPPED 2026-07-03**. Decisions
++ engine notes are in §9.6.
+
+### 11.1 Sensitive Points page — Sphuta + 36 Sahams + Argala (P2) — SHIPPED 2026-07-03
+- [x] **Backend** `AstrologyCompute.get_sphuta` (12 sphutas → sign/degree/house — note the
+      engine fns take a `drik.Date`, not a tuple), `get_sahams` (36 natal sahams, night-birth
+      from natal sunrise/sunset, → sign/degree/house), `get_argala` (per-bhava argala +
+      virodhargala planet lists with a net verdict). Each server-injects birth details + resets
+      ayanamsa. Shared `_natal_jd_place` helper. `SPHUTA_DEFS`/`NATAL_SAHAMS`/`ARGALA_*` consts.
+- [x] **Endpoints** `POST /api/astrology/sensitive-points` (aggregates all three) +
+      `POST /api/astrology/sensitive-points-analysis` (AI reading via `_resolve_cfg`,
+      rate-limited; `llm_service.analyze_sensitive_points` + `_build_sensitive_points_prompt`).
+- [x] **Frontend** `SensitivePointsPage.js` (route `/sensitive-points`, dashboard card +
+      drawer, `Crosshair` icon): Sphuta table, Sahams table, Argala table (net argala/
+      virodhargala pill), on-demand AI reading card. `.sp-net*` CSS in Dashboard.css.
+- [x] **Smart-lookup tools** (§8.9): `get_sphuta`, `get_sahams`, `get_argala` (in `ALWAYS_TOOLS`
+      + `_DISPLAY` under a new "Sensitive points" category). Verified via `tools.dispatch`.
+- [x] i18n `nav.sensitivePoints`, `dashboard.features.sensitivePoints`, full `sensitive.*`
+      (en; hi/sa nav+card, body falls back to en).
+
+### 11.2 Vedic Clock & Retrograde page — both visualizations (P2) — SHIPPED 2026-07-03
+- [x] **Backend** `get_vedic_clock` (sunrise/sunset, day length, ghati/vighati snapshot,
+      running hora lord via `shubha_hora`, tithi/nakshatra/yoga now) + `get_retrograde`
+      (currently-retrograde grahas via `planets_in_retrograde`, next station dates via
+      `next_planet_retrograde_change_date`, and the vakra-gathi epicycle (x,y) loop per planet
+      recomputed server-side with numpy — no pyqtgraph — normalized to [-1,1]). `RETRO_PERIODS`
+      const; Rahu/Ketu flagged perpetually retrograde.
+- [x] **Endpoints** `POST /api/astrology/vedic-clock`, `POST /api/astrology/retrograde`,
+      `POST /api/astrology/celestial-analysis` (AI reading; `analyze_celestial` +
+      `_build_celestial_prompt`).
+- [x] **Frontend** `VedicClockPage.js` (route `/vedic-clock`, dashboard card + drawer, `Timer`
+      icon): a live SVG ghati/vighati clock — the hand ticks client-side by advancing the
+      snapshot ghati by *real elapsed seconds* (1 ghati = 1440 s, timezone-independent, no
+      device-tz math) — a shaded day-arc, a digital ghati:vighati + hora-lord readout; the SVG
+      retrograde-loop plot with a planet picker; a retrograde status/stations table. `.vc-*` CSS.
+- [x] **Smart-lookup tools** (§8.9): `get_vedic_clock`, `get_retrograde` (Timing category).
+- [x] i18n `nav.vedicClock`, `dashboard.features.vedicClock`, full `vedicClock.*`.
+
+### 11.3 Almanac extension — Surya-Siddhanta engine toggle + Hijri date (P1) — SHIPPED 2026-07-03
+- [x] **Backend** `get_panchanga` gained a `system` param (`drik` default / `surya_siddhanta`
+      → computes the limbs under the `SURYASIDDHANTA` ayanamsa mode, reset in `finally`; the
+      vendored `surya_sidhantha.py` module itself is buggy so it is NOT called) and always
+      returns the `hijri` date via the inline `_hijri_tabular` (pure arithmetic — `hijri.py`
+      can't be imported, it needs pyIslam/hijridate). `GET /panchanga` + the `get_panchanga`
+      smart-lookup tool pass `system` through.
+- [x] **Frontend** `PanchangaPanel`: a Drik ⇄ Surya-Siddhanta engine toggle (persisted in
+      `localStorage.panchanga_system`) + a Hijri date line. i18n `panchanga.engine/engineDrik/
+      engineSurya/hijri` (en/hi/sa).
+- [x] Verified 2026-07-03: all 5 new endpoints 200 via `TestClient` (dependency-override auth)
+      on the 1990-05-15 chart — sphuta 12 / sahams 36 / argala 12; vedic-clock ghati+hora;
+      retrograde now=[Mercury,Rahu,Ketu] + 240-pt loops; panchanga SS + hijri 1448 Muharram 17.
+      Prompt builders assemble (~2.9k / ~1.3k chars). `CI=true` build green (+4.9 kB), ESLint
+      clean, locale JSON valid. 22 tools total.

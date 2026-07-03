@@ -1510,3 +1510,113 @@
   padding: 0.5rem 0.25rem;
   margin-bottom: 0.75rem;
 }
+
+/* ── Sensitive Points (§11.1) ─────────────────────────────────────────── */
+.sp-net {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.sp-net--argala {
+  background: rgba(45, 122, 62, 0.14);
+  color: #2d7a3e;
+}
+.sp-net--virodhargala {
+  background: rgba(211, 47, 47, 0.14);
+  color: var(--vermillion, #d32f2f);
+}
+.sp-net--balanced,
+.sp-net--none {
+  background: rgba(90, 95, 122, 0.12);
+  color: var(--text-secondary, #5a5f7a);
+}
+
+/* ── Vedic Clock & Retrograde (§11.2) ─────────────────────────────────── */
+.vc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+.vc-clock-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+.vc-clock-svg {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+}
+.vc-readout {
+  text-align: center;
+}
+.vc-ghati {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--saffron, #ff9933);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.vc-ghati small {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #5a5f7a);
+  font-weight: 600;
+}
+.vc-hora {
+  margin-top: 0.35rem;
+  font-weight: 600;
+}
+.vc-hora.benefic {
+  color: #2d7a3e;
+}
+.vc-hora.malefic {
+  color: var(--vermillion, #d32f2f);
+}
+.vc-retro-svg {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+.vc-planet-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+.vc-planet-toggle button {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--border, #e8ddc9);
+  border-radius: 999px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary, #5a5f7a);
+}
+.vc-planet-toggle button.active {
+  background: var(--saffron, #ff9933);
+  color: #fff;
+  border-color: var(--saffron, #ff9933);
+}
+.vc-retro-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.vc-retro-badge.is-retro {
+  background: rgba(211, 47, 47, 0.14);
+  color: var(--vermillion, #d32f2f);
+}
+.vc-retro-badge.is-direct {
+  background: rgba(45, 122, 62, 0.14);
+  color: #2d7a3e;
+}
