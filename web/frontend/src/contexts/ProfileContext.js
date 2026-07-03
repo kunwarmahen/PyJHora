@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { API_URL } from "../services/api";
 
 const ProfileContext = createContext();
 
@@ -14,8 +15,6 @@ export const ProfileProvider = ({ children }) => {
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
   // Load profiles from server
   const loadProfiles = async () => {

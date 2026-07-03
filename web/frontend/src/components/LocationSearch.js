@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import "./LocationSearch.css";
-
-// Get API URL from environment or use default
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+import { API_URL } from "../services/api";
 
 /**
  * LocationSearch Component

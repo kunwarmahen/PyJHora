@@ -268,6 +268,8 @@ CORS_ORIGINS=["http://localhost:3000","http://localhost:8000"]
 ### Frontend (.env)
 
 ```env
+# Optional — when unset, the app calls the same host it was served from on :8000
+# (so it works over the LAN from a phone with no per-device config). Set to pin it.
 REACT_APP_API_URL=http://localhost:8000
 REACT_APP_API_TIMEOUT=30000
 ```
@@ -644,8 +646,11 @@ The frontend uses React with:
   `public/manifest.json` + icons + `public/sw.js` (registered in production only; the
   service worker never caches `/api`)
 - **Tooling**: `npm run lint` (ESLint) and `npm run format` / `format:check` (Prettier).
-  `REACT_APP_API_URL` is required for production builds — `src/services/api.js` throws at
-  startup if it's unset (in dev it falls back to `http://localhost:8000` with a warning).
+  When `REACT_APP_API_URL` is unset, `src/services/api.js` defaults to the **same host** the
+  page was served from (on port 8000) — so the app works from any device on the LAN with no
+  per-device config (desktop via localhost, a phone via the machine's IP). Set it explicitly
+  to override. `API_URL` is exported from `api.js` and reused everywhere (LocationSearch,
+  MapPicker, ProfileContext) so the host can't drift to a hardcoded `localhost`.
 
 ### Important: PyJHora Installation
 

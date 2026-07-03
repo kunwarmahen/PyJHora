@@ -3,9 +3,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./MapPicker.css";
-
-// Get API URL from environment or use default
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+import { API_URL } from "../services/api";
 
 // Whether the interactive map picker is enabled. Defaults to ON; set
 // REACT_APP_ENABLE_MAP_PICKER=false to hide it for production deployments
