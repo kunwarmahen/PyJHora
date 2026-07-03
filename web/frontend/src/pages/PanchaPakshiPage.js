@@ -11,7 +11,7 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
-import { DEFAULT_AYANAMSA } from "../constants/jyotish";
+import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
@@ -66,7 +66,8 @@ export const PanchaPakshiPage = () => {
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [aiModel, setAiModel] = useState("");
 
-  const ayanamsa = localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA;
+  const { settings } = useSettings();
+  const ayanamsa = settings.ayanamsa;
 
   const birthDetails = useMemo(
     () =>

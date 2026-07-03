@@ -15,6 +15,7 @@ import {
   Landmark,
 } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
+import { useSettings } from "../contexts/SettingsContext";
 import { formatDate, orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
 import { NorthIndianChart } from "../components/NorthIndianChart";
@@ -27,7 +28,7 @@ import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { DataField } from "../components/DataField";
 import { AspectsCard } from "../components/AspectsCard";
-import { AYANAMSAS, DEFAULT_AYANAMSA, VARGAS, DEFAULT_VARGA } from "../constants/jyotish";
+import { VARGAS, DEFAULT_VARGA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
@@ -51,26 +52,16 @@ export const BirthChartPage = () => {
     () => localStorage.getItem("showArudhas") === "1"
   );
   const [focusPlanet, setFocusPlanet] = useState(null);
-  const [chartStyle, setChartStyle] = useState(() => localStorage.getItem("chartStyle") || "north");
-  const [ayanamsa, setAyanamsa] = useState(
-    () => localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA
-  );
+  // Chart style + ayanamsa are now global settings (edited in the Settings page).
+  const { settings } = useSettings();
+  const chartStyle = settings.chartStyle;
+  const ayanamsa = settings.ayanamsa;
   const [varga, setVarga] = useState(() => Number(localStorage.getItem("varga")) || DEFAULT_VARGA);
   const [vargaChart, setVargaChart] = useState(null);
   const [vargaLoading, setVargaLoading] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [shareBusy, setShareBusy] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
-
-  const changeChartStyle = (style) => {
-    setChartStyle(style);
-    localStorage.setItem("chartStyle", style);
-  };
-
-  const changeAyanamsa = (value) => {
-    setAyanamsa(value);
-    localStorage.setItem("ayanamsa", value);
-  };
 
   const changeVarga = (value) => {
     setVarga(value);
@@ -299,38 +290,6 @@ export const BirthChartPage = () => {
                 chartStyle === "south" ? t("birthChart.southIndian") : t("birthChart.northIndian");
               return (
                 <>
-                  <div className="chart-controls">
-                    <div
-                      className="chart-style-toggle"
-                      role="group"
-                      aria-label={t("birthChart.divisionalChart")}
-                    >
-                      <button
-                        className={chartStyle === "north" ? "active" : ""}
-                        onClick={() => changeChartStyle("north")}
-                      >
-                        {t("birthChart.northIndian")}
-                      </button>
-                      <button
-                        className={chartStyle === "south" ? "active" : ""}
-                        onClick={() => changeChartStyle("south")}
-                      >
-                        {t("birthChart.southIndian")}
-                      </button>
-                    </div>
-
-                    <label className="ayanamsa-select">
-                      <span>{t("birthChart.ayanamsa")}</span>
-                      <select value={ayanamsa} onChange={(e) => changeAyanamsa(e.target.value)}>
-                        {AYANAMSAS.map((a) => (
-                          <option key={a.value} value={a.value}>
-                            {a.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-
                   <div className="aspect-controls">
                     {aspects && aspects.length > 0 && (
                       <button

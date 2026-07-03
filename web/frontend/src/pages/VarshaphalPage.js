@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { CalendarClock, Sparkles, Star, Compass, Clock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
+import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
 import { intlLocale } from "../utils/format";
 import { NorthIndianChart } from "../components/NorthIndianChart";
@@ -13,7 +14,7 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
-import { PLANET_ABBR, DEFAULT_AYANAMSA, AYANAMSAS } from "../constants/jyotish";
+import { PLANET_ABBR, AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
@@ -86,14 +87,10 @@ export const VarshaphalPage = () => {
     dashaRef.current = dashaSystem;
   }, [dashaSystem]);
 
-  const [chartStyle, setChartStyle] = useState(() => localStorage.getItem("chartStyle") || "north");
-  const ayanamsa = localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA;
+  const { settings } = useSettings();
+  const chartStyle = settings.chartStyle;
+  const ayanamsa = settings.ayanamsa;
   const ayanamsaLabel = AYANAMSAS.find((a) => a.value === ayanamsa)?.label || ayanamsa;
-
-  const setStyle = (style) => {
-    setChartStyle(style);
-    localStorage.setItem("chartStyle", style);
-  };
 
   const stepYear = (delta) => setYear((y) => Math.max(birthYear, y + delta));
 
@@ -264,19 +261,6 @@ export const VarshaphalPage = () => {
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* Chart style toggle */}
-          <div className="chart-toggle">
-            {["north", "south"].map((style) => (
-              <button
-                key={style}
-                className={`chart-toggle__btn${chartStyle === style ? " is-active" : ""}`}
-                onClick={() => setStyle(style)}
-              >
-                {style === "south" ? t("birthChart.southIndian") : t("birthChart.northIndian")}
-              </button>
-            ))}
           </div>
         </div>
 

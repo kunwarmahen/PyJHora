@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
+import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
 import { errorMessage } from "../utils/format";
 import { NorthIndianChart } from "../components/NorthIndianChart";
@@ -25,7 +26,7 @@ import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { ChatComposer } from "../components/chat/ChatComposer";
 import { ChatBubble } from "../components/chat/ChatBubble";
-import { DEFAULT_AYANAMSA, AYANAMSAS } from "../constants/jyotish";
+import { AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Chat.css";
@@ -88,7 +89,8 @@ export const BirthTimeRectificationPage = () => {
   const [chatReady, setChatReady] = useState(false);
   const [chatStarted, setChatStarted] = useState(false);
 
-  const [chartStyle, setChartStyle] = useState(() => localStorage.getItem("chartStyle") || "north");
+  const { settings } = useSettings();
+  const chartStyle = settings.chartStyle;
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -101,15 +103,10 @@ export const BirthTimeRectificationPage = () => {
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [aiModel, setAiModel] = useState("");
 
-  const ayanamsa = localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA;
+  const ayanamsa = settings.ayanamsa;
   const ayanamsaLabel = AYANAMSAS.find((a) => a.value === ayanamsa)?.label || ayanamsa;
 
   const activeMethod = METHODS.find((m) => m.key === method) || METHODS[0];
-
-  const setStyle = (style) => {
-    setChartStyle(style);
-    localStorage.setItem("chartStyle", style);
-  };
 
   const chooseMode = (m) => {
     setMode(m);
@@ -388,19 +385,6 @@ export const BirthTimeRectificationPage = () => {
                 {t("rectify.modeChat")}
               </button>
             </div>
-          </div>
-
-          {/* Chart style toggle */}
-          <div className="chart-toggle">
-            {["north", "south"].map((style) => (
-              <button
-                key={style}
-                className={`chart-toggle__btn${chartStyle === style ? " is-active" : ""}`}
-                onClick={() => setStyle(style)}
-              >
-                {style === "south" ? t("birthChart.southIndian") : t("birthChart.northIndian")}
-              </button>
-            ))}
           </div>
         </div>
 

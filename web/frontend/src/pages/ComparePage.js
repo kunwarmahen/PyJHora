@@ -12,7 +12,7 @@ import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
-import { DEFAULT_AYANAMSA } from "../constants/jyotish";
+import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
@@ -64,8 +64,9 @@ export const ComparePage = () => {
   const { t } = useTranslation();
   const { selectedProfile, profiles, loadProfiles } = useProfile();
 
-  const ayanamsa = localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA;
-  const chartStyle = localStorage.getItem("chartStyle") || "north";
+  const { settings } = useSettings();
+  const ayanamsa = settings.ayanamsa;
+  const chartStyle = settings.chartStyle;
   const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
 
   const [secondId, setSecondId] = useState("");

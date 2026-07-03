@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import { Grid3x3, Calendar, RotateCcw, Sparkles, Crosshair } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
+import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
 import { intlLocale } from "../utils/format";
 import { PageHeader } from "../components/PageHeader";
@@ -11,7 +12,7 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
-import { PLANET_ABBR, DEFAULT_AYANAMSA, AYANAMSAS } from "../constants/jyotish";
+import { PLANET_ABBR, AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
@@ -106,7 +107,8 @@ export const SarvatobhadraPage = () => {
   const transitDate = dateISO(moment);
   const transitTime = timeISO(moment);
 
-  const ayanamsa = localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA;
+  const { settings } = useSettings();
+  const ayanamsa = settings.ayanamsa;
   const ayanamsaLabel = AYANAMSAS.find((a) => a.value === ayanamsa)?.label || ayanamsa;
 
   // AI reading (on-demand, uses the model picked in Ask Astrologer).

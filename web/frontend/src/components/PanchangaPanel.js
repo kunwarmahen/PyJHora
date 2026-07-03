@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Sun, Sunrise, Sunset, MapPin } from "lucide-react";
 import { astrologyService } from "../services/api";
+import { useSettings } from "../contexts/SettingsContext";
 
 /**
  * Reverse-geocode coordinates to a "City, Country" label using BigDataCloud's
@@ -47,14 +48,9 @@ export const PanchangaPanel = ({
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState("");
 
-  // Ephemeris engine: 'drik' (modern) or 'surya_siddhanta' (classical ayanamsa).
-  const [system, setSystem] = useState(
-    () => localStorage.getItem("panchanga_system") || "drik"
-  );
-  const changeSystem = (s) => {
-    setSystem(s);
-    localStorage.setItem("panchanga_system", s);
-  };
+  // Ephemeris engine ('drik' | 'surya_siddhanta') is a global setting now.
+  const { settings } = useSettings();
+  const system = settings.panchangaSystem;
 
   const birthLoc = { place, latitude, longitude, timezone };
   const activeLoc = source === "current" && currentLoc ? currentLoc : birthLoc;
@@ -155,24 +151,6 @@ export const PanchangaPanel = ({
               </button>
             </div>
           )}
-          <div
-            className="chart-style-toggle"
-            role="group"
-            aria-label={t("panchanga.engine")}
-          >
-            <button
-              className={system === "drik" ? "active" : ""}
-              onClick={() => changeSystem("drik")}
-            >
-              {t("panchanga.engineDrik")}
-            </button>
-            <button
-              className={system === "surya_siddhanta" ? "active" : ""}
-              onClick={() => changeSystem("surya_siddhanta")}
-            >
-              {t("panchanga.engineSurya")}
-            </button>
-          </div>
           <input
             type="date"
             className="panchanga-date"

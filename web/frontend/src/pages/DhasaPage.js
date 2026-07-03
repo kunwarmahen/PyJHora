@@ -12,7 +12,7 @@ import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
-import { DEFAULT_AYANAMSA } from "../constants/jyotish";
+import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
@@ -280,8 +280,9 @@ function SudarsanaChakra({ birthDetails }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [chartStyle] = useState(() => localStorage.getItem("chartStyle") || "north");
-  const ayanamsa = localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA;
+  const { settings } = useSettings();
+  const chartStyle = settings.chartStyle;
+  const ayanamsa = settings.ayanamsa;
   const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
 
   const load = useCallback(

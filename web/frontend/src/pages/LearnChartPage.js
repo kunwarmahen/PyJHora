@@ -20,7 +20,7 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
-import { DEFAULT_AYANAMSA } from "../constants/jyotish";
+import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Learn.css";
 
@@ -51,8 +51,9 @@ export const LearnChartPage = () => {
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
+  const { settings } = useSettings();
 
-  const ayanamsa = localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA;
+  const ayanamsa = settings.ayanamsa;
 
   // phase: setup | mcq | free | results | history
   const [phase, setPhase] = useState("setup");

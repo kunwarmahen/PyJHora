@@ -12,7 +12,7 @@ import { Card } from "../components/Card";
 import { DataField } from "../components/DataField";
 import { GlossaryTerm } from "../components/GlossaryTerm";
 import { AspectsCard } from "../components/AspectsCard";
-import { AYANAMSAS, DEFAULT_AYANAMSA } from "../constants/jyotish";
+import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
@@ -32,9 +32,8 @@ export const AdvancedPage = () => {
   const { t } = useTranslation();
   const { selectedProfile } = useProfile();
 
-  const [ayanamsa, setAyanamsa] = useState(
-    () => localStorage.getItem("ayanamsa") || DEFAULT_AYANAMSA
-  );
+  const { settings } = useSettings();
+  const ayanamsa = settings.ayanamsa;
   const [av, setAv] = useState(null);
   const [details, setDetails] = useState(null);
   const [shadbala, setShadbala] = useState(null);
@@ -59,10 +58,6 @@ export const AdvancedPage = () => {
     [selectedProfile]
   );
 
-  const changeAyanamsa = (value) => {
-    setAyanamsa(value);
-    localStorage.setItem("ayanamsa", value);
-  };
 
   useEffect(() => {
     if (!selectedProfile) {
@@ -138,19 +133,6 @@ export const AdvancedPage = () => {
 
       <div className="dashboard-content">
         <ProfileBanner profile={selectedProfile} />
-
-        <div className="controls-end">
-          <label className="ayanamsa-select">
-            <span>{t("birthChart.ayanamsa")}</span>
-            <select value={ayanamsa} onChange={(e) => changeAyanamsa(e.target.value)}>
-              {AYANAMSAS.map((a) => (
-                <option key={a.value} value={a.value}>
-                  {a.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
 
         <ErrorBanner message={error} />
 
