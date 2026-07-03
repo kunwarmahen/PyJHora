@@ -1791,6 +1791,15 @@ Plan:
       - Note: the "view what was sent to the AI" inspector button was preserved (moved into the model
         summary card header).
 - [x] i18n `settings.*` (en; hi/sa fall back) + `nav.settings`. DONE 2026-07-03.
+- [x] **AI Capabilities + language → Settings-only** (owner ask 2026-07-03). DONE: removed the
+      **AI Capabilities** dashboard tile + its NavDrawer link (page still reachable via Settings → AI
+      → "View AI capabilities"; route `/ai-tools` intact). Removed the **`<LanguageSwitcher>`** from
+      the Dashboard navbar, the shared `PageHeader` (all inner pages), and the standalone Login/
+      Register/ProfileSelection/SharedChart screens — language is changed in Settings → General now
+      (i18next browser-language detection + persisted choice still apply; only the manual pre-login
+      override is gone). Deleted the now-dead `LanguageSwitcher.js`/`.css`, the `.auth-lang`/
+      `.profile-lang-switch` styles, and the unused `nav.aiTools`/`nav.language`/
+      `dashboard.features.aiTools` i18n keys (en/hi/sa). Build + eslint green.
 
 ### 12.1 Max response length (output tokens) control (P1, owner ask 2026-07-03) — DONE 2026-07-03
 

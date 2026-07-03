@@ -32,7 +32,10 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 ### Ask AI Astrologer
 - **Interactive Chat Interface**: Multi-turn conversation with memory about your birth chart
 - **Provider & model selection**: Ollama (local, auto-detected models), any OpenAI-compatible
-  local server (LM Studio / llama.cpp / vLLM), Google Gemini, or OpenAI — pick the exact model
+  local server (LM Studio / llama.cpp / vLLM), Google Gemini, or OpenAI — pick the exact model.
+  Chosen in the new **Settings** page (see below); the Ask page shows the active model with a
+  "Change in Settings" link. A **Max response length** slider (also in Settings) raises the output
+  cap if answers get cut off.
 - **Streaming answers**: responses stream token-by-token (SSE) with a **Stop** button
 - **Per-answer token usage**: each answer shows the provider-reported token count
   (prompt + completion breakdown on hover), captured from Ollama, OpenAI/-compatible
@@ -51,14 +54,28 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Answer affordances**: copy, **regenerate** (with the same model, or pick a
   *different* provider/model from the split-button menu), thumbs up/down, and
   **export the whole conversation to Markdown or PDF**
-- **Per-user API keys (encrypted)**: each user stores their own provider keys via the
-  in-app "API Keys" manager — no shared `.env` key required
+- **Per-user API keys (encrypted)**: each user stores their own provider keys — managed in the
+  **Settings → API Keys** tab — no shared `.env` key required
 - **Rate limiting**: per-user per-minute + per-day quotas on the AI endpoints
 - **Safety disclaimer**: clear "guidance, not professional advice" footer
 
+### Settings (single source of truth)
+- **One place for preferences**: a dedicated **Settings** page (gear icon in the Dashboard
+  navbar + nav drawer, or `/settings`) with tabs — **General** (language, chart style North/South,
+  ayanamsa), **AI** (provider / model / endpoint, answer-mode default, **Max response length**
+  slider, links to API Keys + AI Capabilities), **API Keys**, **Almanac** (Drik / Surya-Siddhanta
+  engine), and **Account** (change password, log out)
+- **Consolidated controls**: the per-page dropdowns/toggles that used to live on individual pages
+  (ayanamsa, chart style, almanac engine, AI model/keys) were removed — pages now read these from
+  Settings via a `SettingsContext` (backed by the same `localStorage` keys). Language is changed
+  here too (the old per-page language switcher was removed)
+- **Per-question controls kept on Ask**: answer mode, the per-section Seed/Tool/Off context
+  toggles, and the vargas "Charts to Consult" picker remain on the Ask page (they're
+  question-specific)
+
 ### AI Capabilities page
-- **Tool catalog / capability disclosure**: a dedicated **AI Capabilities** page (nav drawer
-  on mobile, dashboard card on desktop, or `/ai-tools`) lists every tool the AI astrologer
+- **Tool catalog / capability disclosure**: the **AI Capabilities** page (reached from
+  **Settings → AI → "View AI capabilities"**, or `/ai-tools`) lists every tool the AI astrologer
   can call while answering — grouped by Core chart / Timing / Strengths & afflictions, each
   with a plain-language description and an optional **Show technical schema** toggle for its
   inputs
@@ -90,7 +107,8 @@ pyjhora-web/
 │   ├── main.py              # FastAPI application
 │   ├── config.py            # Configuration settings
 │   ├── database.py          # MongoDB models and connection
-│   ├── auth.py              # Authentication utilities
+│   ├── auth.py              # Authentication utilities (password hashing, JWT access tokens)
+│   ├── refresh_tokens.py    # Long-lived, revocable, rotating refresh tokens (silent re-auth)
 │   ├── astrology.py         # PyJHora wrapper
 │   ├── llm_service.py       # Multi-provider LLM layer (Ollama/OpenAI-compatible/Gemini/OpenAI) + streaming
 │   ├── chart_context.py     # Builds the structured chart context sent to the AI
@@ -249,6 +267,9 @@ DATABASE_NAME=pyjhora_db
 SECRET_KEY=your-secret-key-change-this
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
+# Refresh-token lifetimes (days). "Keep me signed in" picks the long TTL; a plain login the short.
+REFRESH_TOKEN_EXPIRE_DAYS=30
+REFRESH_TOKEN_SHORT_DAYS=1
 
 # LLM providers (endpoints + default models; keys are optional — users can also
 # store their own per-user keys in the app). See backend/.env.example for the full list.
@@ -303,9 +324,14 @@ REACT_APP_API_TIMEOUT=30000
 
 ### 1. Authentication
 - User registration with username, email, password
-- JWT-based login
-- Secure token storage in localStorage
-- Protected routes
+- JWT-based login with a **"Keep me signed in"** option
+- **Refresh tokens**: a short-lived access token is silently refreshed in the background using a
+  long-lived, revocable, **rotating** refresh token, so you stay signed in across access-token
+  expiry (no more being logged out every ~30 minutes). Refresh tokens are stored hashed and are
+  revoked on logout and on password change
+- **Change password** (Settings → Account): verifies the current password and signs out other
+  devices
+- Protected routes; tokens in localStorage (access + refresh)
 
 ### 2. Birth Chart Calculator
 - Calculate Rasi (D1) and Navamsa (D9) charts from birth details
@@ -562,23 +588,27 @@ OPENAI_API_KEY=your-openai-api-key-here
 
 ### Switching Between AI Models
 
-Users can select their preferred provider **and model** directly in the frontend:
-- Go to "Ask AI Astrologer" page
+Users can select their preferred provider **and model** in the frontend:
+- Go to **Settings → AI**
 - Pick a provider (Ollama / OpenAI-compatible / Gemini / OpenAI) and a specific model
+- Optionally raise the **Max response length** if answers get cut off
 - Each model will provide different perspectives on your chart
 
 ### Per-user API keys (no shared `.env` key needed)
 
 Instead of (or in addition to) the global `.env` keys above, each user can store
-their own provider keys from the app: open **"API Keys"** on the Ask AI Astrologer
-page and paste a Gemini / OpenAI / OpenAI-compatible key. Keys are encrypted at rest,
-shown back only masked, and used ahead of any global env key for that user's requests.
+their own provider keys from the app: open **Settings → API Keys** and paste a
+Gemini / OpenAI / OpenAI-compatible key. Keys are encrypted at rest, shown back only
+masked, and used ahead of any global env key for that user's requests.
 
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
+- `POST /api/auth/register` - Register new user (returns access + refresh token)
+- `POST /api/auth/login` - Login user (`remember_me` picks the refresh-token TTL)
+- `POST /api/auth/refresh` - Exchange a refresh token for a fresh access token (rotates the refresh token)
+- `POST /api/auth/logout` - Revoke a refresh token
+- `POST /api/auth/change-password` - Change password (auth; revokes other sessions, returns a fresh pair)
 - `GET /api/user/profile` - Get current user profile
 
 ### Astrology
@@ -655,6 +685,8 @@ shown back only masked, and used ahead of any global env key for that user's req
 - `/compare` - Compare two saved profiles side by side (charts, placements table + on-demand neutral AI comparison)
 - `/share/:token` - **Public, read-only** shared chart view (no login required)
 - `/predictions` - Horoscope and predictions generator
+- `/settings` - **NEW**: Settings (single source of truth) — language, chart style, ayanamsa, AI provider/model + **max response length**, API keys, almanac engine, and change password
+- `/ai-tools` - AI Capabilities catalog (reached from Settings → AI)
 
 ## Development Notes
 
