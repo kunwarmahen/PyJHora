@@ -16,13 +16,6 @@
 }
 
 /* Language switcher pinned to the top-right of auth screens (no navbar here). */
-.auth-lang {
-  position: absolute;
-  top: var(--space-lg);
-  right: var(--space-lg);
-  z-index: 2;
-}
-
 .auth-container::before {
   content: "";
   position: absolute;

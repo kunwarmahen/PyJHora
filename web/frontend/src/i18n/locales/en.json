@@ -240,11 +240,9 @@
     "compatibility": "Compatibility",
     "learn": "Learn the Chart",
     "ask": "Ask AI Astrologer",
-    "aiTools": "AI Capabilities",
     "settings": "Settings",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "language": "Language",
     "varshaphal": "Varshaphal",
     "almanac": "Almanac",
     "rectify": "Rectify Time",
@@ -305,10 +303,6 @@
       "learn": {
         "title": "Learn the Chart",
         "description": "Quiz yourself on this chart — the AI asks, grades, and explains why"
-      },
-      "aiTools": {
-        "title": "AI Capabilities",
-        "description": "See every tool the AI astrologer can call to read your chart"
       },
       "varshaphal": {
         "title": "Varshaphal (Annual)",
