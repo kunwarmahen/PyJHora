@@ -1103,6 +1103,19 @@
   color: var(--saffron);
   flex-shrink: 0;
 }
+.ask-model-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+.ask-model-summary__name {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  word-break: break-word;
+}
 .ask-card__header--tight {
   margin-bottom: var(--space-xs);
 }

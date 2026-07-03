@@ -640,7 +640,8 @@
     "traceViewData": "view data",
     "traceWriting": "Writing the answer…",
     "traceWroteAnswer": "Wrote the answer above",
-    "suggestedCharts": "Suggested charts:"
+    "suggestedCharts": "Suggested charts:",
+    "changeInSettings": "Change in Settings"
   },
   "settings": {
     "title": "Settings",

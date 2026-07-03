@@ -19,7 +19,6 @@ import {
   ThumbsUp,
   ThumbsDown,
   Download,
-  KeyRound,
   ChevronDown,
   FileText,
   FileType,
@@ -220,22 +219,10 @@ export const AskAstrologerPage = () => {
     conversationIdRef.current = conversationId;
   }, [conversationId]);
 
-  // 8.6 per-user API keys
-  const [showKeysModal, setShowKeysModal] = useState(false);
-  const [keyStatus, setKeyStatus] = useState({});
-  const [keyInputs, setKeyInputs] = useState({});
-  const [keySaving, setKeySaving] = useState("");
-  const KEY_PROVIDERS = [
-    { id: "gemini", label: "Google Gemini", hint: "aistudio.google.com/app/apikey" },
-    { id: "openai", label: "OpenAI (ChatGPT)", hint: "platform.openai.com/api-keys" },
-    {
-      id: "openai-compatible",
-      label: "Local / OpenAI-compatible",
-      hint: "Optional — only if your endpoint needs a key",
-    },
-  ];
-
-  // AI provider / model selection
+  // AI provider / model selection. The provider/model/endpoint are chosen in the
+  // Settings page now (single source of truth); this page reads them from the same
+  // localStorage keys Settings writes, and only needs the setters for the
+  // "regenerate with a different model" action + on-load model validation.
   const [providers, setProviders] = useState([]);
   const [providersLoading, setProvidersLoading] = useState(true);
   const [providerType, setProviderType] = useState(
@@ -243,7 +230,6 @@ export const AskAstrologerPage = () => {
   );
   const [model, setModel] = useState(() => localStorage.getItem("ai_model") || "");
   const [baseUrl, setBaseUrl] = useState(() => localStorage.getItem("ai_base_url") || "");
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Answer mode: "pass_all" (pre-send the full context) vs "tools" (let the model
   // fetch chart data on demand). Chosen per conversation; locked once a thread has
@@ -328,13 +314,6 @@ export const AskAstrologerPage = () => {
     return VARGAS.filter((v) => want.has(v.value) && !selectedVargas.includes(v.value));
   })();
 
-  const PROVIDER_ICONS = {
-    ollama: "🤖",
-    "openai-compatible": "💻",
-    gemini: "✨",
-    openai: "🧠",
-  };
-
   const selectedProvider = providers.find((p) => p.type === providerType) || null;
 
   // The mode is fixed once a conversation has any AI turn (the backend locks it on
@@ -396,18 +375,6 @@ export const AskAstrologerPage = () => {
   }, []);
 
   // When the provider changes, reset model + base URL to that provider's defaults
-  const handleProviderChange = (newType) => {
-    setProviderType(newType);
-    const p = providers.find((x) => x.type === newType);
-    if (p) {
-      setModel(p.default_model || p.models[0] || "");
-      setBaseUrl(p.editable_base_url ? p.base_url || "" : "");
-    } else {
-      setModel("");
-      setBaseUrl("");
-    }
-  };
-
   const exampleQuestions = t("ask.exampleQuestions", { returnObjects: true });
 
   // Redirect if no profile selected
@@ -834,60 +801,6 @@ export const AskAstrologerPage = () => {
     }
   };
 
-  // ── Per-user API keys (8.6) ─────────────────────────────────────────
-  const refreshKeyStatus = async () => {
-    try {
-      const resp = await astrologyService.getApiKeys();
-      setKeyStatus(resp.data.keys || {});
-    } catch (e) {
-      /* non-fatal */
-    }
-  };
-
-  const refreshProviders = async () => {
-    try {
-      const resp = await astrologyService.getLlmProviders();
-      setProviders(resp.data.providers || []);
-    } catch (e) {
-      /* non-fatal */
-    }
-  };
-
-  const openKeysModal = () => {
-    setKeyInputs({});
-    refreshKeyStatus();
-    setShowKeysModal(true);
-  };
-
-  const handleSaveKey = async (provider) => {
-    const value = (keyInputs[provider] || "").trim();
-    if (!value) return;
-    setKeySaving(provider);
-    try {
-      await astrologyService.setApiKey(provider, value);
-      setKeyInputs((prev) => ({ ...prev, [provider]: "" }));
-      await refreshKeyStatus();
-      await refreshProviders(); // availability may have flipped to "ready"
-    } catch (e) {
-      setError(e.response?.data?.detail || t("ask.errSaveKey"));
-    } finally {
-      setKeySaving("");
-    }
-  };
-
-  const handleClearKey = async (provider) => {
-    setKeySaving(provider);
-    try {
-      await astrologyService.deleteApiKey(provider);
-      await refreshKeyStatus();
-      await refreshProviders();
-    } catch (e) {
-      /* non-fatal */
-    } finally {
-      setKeySaving("");
-    }
-  };
-
   const getChartDataForLLM = () => {
     if (!chartData) return "No chart data available";
 
@@ -1007,14 +920,6 @@ export const AskAstrologerPage = () => {
                   <span>{t("ask.pdf")}</span>
                 </button>
               </PortalMenu>
-              <button
-                onClick={openKeysModal}
-                className="change-profile-btn"
-                title={t("ask.apiKeysTitle")}
-              >
-                <KeyRound size={16} />
-                <span>{t("ask.apiKeys")}</span>
-              </button>
               <button onClick={() => navigate("/profile-selection")} className="change-profile-btn">
                 <Star size={16} />
                 <span>{t("common.changeChart")}</span>
@@ -1093,7 +998,7 @@ export const AskAstrologerPage = () => {
 
         {/* AI Model Selector and Examples */}
         <div className="ask-grid fade-in fade-in--d4">
-          {/* LLM Selector Card */}
+          {/* AI model summary — the model/provider/endpoint are set in Settings now. */}
           <div className="ask-card">
             <h3 className="ask-card__header">
               <Bot size={20} />
@@ -1107,91 +1012,18 @@ export const AskAstrologerPage = () => {
                 <span>{t("ask.viewDataSent")}</span>
               </button>
             </h3>
-            {providersLoading ? (
-              <div className="text-secondary" style={{ fontSize: "0.875rem" }}>
-                {t("ask.detectingModels")}
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}>
-                {/* Provider */}
-                <label className="ask-field">
-                  <span className="ask-field-label">{t("ask.provider")}</span>
-                  <select
-                    className="ask-select"
-                    value={providerType}
-                    onChange={(e) => handleProviderChange(e.target.value)}
-                  >
-                    {providers.map((p) => (
-                      <option key={p.type} value={p.type}>
-                        {PROVIDER_ICONS[p.type] || "•"} {p.label}
-                        {p.available ? "" : ` — ${t("ask.unavailable")}`}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                {/* Model */}
-                <label className="ask-field">
-                  <span className="ask-field-label">{t("ask.model")}</span>
-                  {selectedProvider && selectedProvider.models.length > 0 ? (
-                    <select
-                      className="ask-select"
-                      value={model}
-                      onChange={(e) => setModel(e.target.value)}
-                    >
-                      {!selectedProvider.models.includes(model) && model && (
-                        <option value={model}>
-                          {model} ({t("ask.custom")})
-                        </option>
-                      )}
-                      {selectedProvider.models.map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      className="ask-select"
-                      value={model}
-                      onChange={(e) => setModel(e.target.value)}
-                      placeholder={t("ask.enterModel")}
-                    />
-                  )}
-                </label>
-
-                {/* Availability note */}
-                {selectedProvider && !selectedProvider.available && (
-                  <div className="ask-warning">
-                    ⚠ {selectedProvider.reason || t("ask.providerUnreachable")}
-                  </div>
-                )}
-
-                {/* Advanced: editable base URL for local providers */}
-                {selectedProvider && selectedProvider.editable_base_url && (
-                  <div>
-                    <button
-                      type="button"
-                      className="ask-link-btn"
-                      onClick={() => setShowAdvanced((v) => !v)}
-                    >
-                      {showAdvanced ? "▾" : "▸"} {t("ask.advancedEndpoint")}
-                    </button>
-                    {showAdvanced && (
-                      <input
-                        type="text"
-                        className="ask-select"
-                        value={baseUrl}
-                        onChange={(e) => setBaseUrl(e.target.value)}
-                        placeholder={selectedProvider.base_url}
-                        style={{ marginTop: "var(--space-sm)" }}
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="ask-model-summary">
+              <span className="ask-model-summary__name">
+                {providersLoading ? t("ask.detectingModels") : model || providerType}
+              </span>
+              <button
+                type="button"
+                className="ask-link-btn"
+                onClick={() => navigate("/settings")}
+              >
+                {t("ask.changeInSettings")}
+              </button>
+            </div>
           </div>
 
           {/* Examples Card */}
@@ -1686,88 +1518,6 @@ export const AskAstrologerPage = () => {
                   <p className="fw-600 text-indigo">📝 {t("ask.note")}</p>
                   <p className="text-secondary">{t("ask.noteBody")}</p>
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* API Keys Modal (8.6 — per-user, encrypted server-side) */}
-        {showKeysModal && (
-          <div className="modal-overlay" onClick={() => setShowKeysModal(false)}>
-            <div className="modal-panel modal-panel--sm" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h3 className="modal-title">
-                  <KeyRound size={24} />
-                  {t("ask.yourApiKeys")}
-                </h3>
-                <button className="modal-close" onClick={() => setShowKeysModal(false)}>
-                  <X size={24} />
-                </button>
-              </div>
-
-              <div className="modal-body">
-                <p
-                  className="text-secondary"
-                  style={{ margin: "0 0 var(--space-lg)", fontSize: "0.8125rem", lineHeight: 1.6 }}
-                >
-                  {t("ask.keysIntro")}
-                </p>
-
-                {KEY_PROVIDERS.map((p) => {
-                  const status = keyStatus[p.id] || {};
-                  const busy = keySaving === p.id;
-                  return (
-                    <div key={p.id} className="key-row">
-                      <div className="key-row-head">
-                        <span
-                          className="fw-700 text-indigo"
-                          style={{ fontSize: "0.9375rem" }}
-                        >
-                          {p.label}
-                        </span>
-                        <span className={`key-pill ${status.has_key ? "set" : "unset"}`}>
-                          {status.has_key
-                            ? t("ask.savedKey", { masked: status.masked || "" })
-                            : t("ask.notSet")}
-                        </span>
-                      </div>
-                      <div className="key-row-controls">
-                        <input
-                          type="password"
-                          className="key-input"
-                          placeholder={status.has_key ? t("ask.enterNewKey") : t("ask.pasteKey")}
-                          value={keyInputs[p.id] || ""}
-                          onChange={(e) =>
-                            setKeyInputs((prev) => ({ ...prev, [p.id]: e.target.value }))
-                          }
-                          autoComplete="off"
-                        />
-                        <button
-                          className="msg-action-btn"
-                          style={{ padding: "0 var(--space-md)" }}
-                          onClick={() => handleSaveKey(p.id)}
-                          disabled={busy || !(keyInputs[p.id] || "").trim()}
-                        >
-                          {busy ? "…" : t("ask.save")}
-                        </button>
-                        {status.has_key && (
-                          <button
-                            className="msg-action-btn"
-                            style={{ padding: "0 var(--space-md)" }}
-                            onClick={() => handleClearKey(p.id)}
-                            disabled={busy}
-                            title={t("ask.removeKey")}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
-                      </div>
-                      <span style={{ fontSize: "0.6875rem", color: "var(--text-secondary)" }}>
-                        {p.hint}
-                      </span>
-                    </div>
-                  );
-                })}
               </div>
             </div>
           </div>

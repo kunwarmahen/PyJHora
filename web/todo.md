@@ -1774,17 +1774,22 @@ Plan:
       unchanged (SettingsContext writes them), so nothing breaks; build + eslint green across all 13
       files. (Owner note: chart-style N/S is now Settings-only — trivial to re-add an inline
       quick-toggle if it's missed mid-task.)
-- [ ] 🔴 **Remove the Ask-page AI-config cards (phase 2c)** — NOT done. The Ask page's
-      provider/model/endpoint card, answer-mode card, context-sections tri-state card, vargas
-      "Charts to Consult" card, and API-keys modal are still inline. This is deferred deliberately:
-      it's the flagship chat and the config is tightly coupled (provider fetch/availability, model
-      validation, per-conversation mode locking, regenerate-with-a-different-model, per-question
-      varga suggestions). Also, **Settings does not yet own context-sections or vargas**, so those
-      must be ADDED to Settings first before they can be removed from Ask without losing function.
-      Provider/model/endpoint/mode already sync with Settings via the shared localStorage keys.
-      DECISION NEEDED: are context-sections + default-vargas global settings (move to Settings) or
-      per-question context tuning (keep on Ask)? Recommend: move model/endpoint + API-keys fully to
-      Settings; keep sections/vargas as per-question controls on Ask (they're question-specific).
+- [x] **Remove the Ask-page AI-config cards (phase 2c)** — DONE 2026-07-03 (owner decision:
+      **model + keys only**; keep answer-mode/sections/vargas as per-question controls on Ask).
+      - Removed the **provider/model/endpoint selector card** — replaced with a compact read-only
+        summary (current model + "Change in Settings" link); the model/provider/endpoint are set in
+        Settings now. The page still reads `ai_provider_type`/`ai_model`/`ai_base_url` from the shared
+        localStorage keys Settings writes (send path + regenerate-with-model unchanged), and keeps the
+        provider list fetch for the regenerate-with-a-different-model menu + on-load model validation.
+      - Removed the **API-keys button + modal** (managed in Settings → API Keys now); dropped
+        `refreshKeyStatus`/`openKeysModal`/`handleSaveKey`/`handleClearKey`/`refreshProviders`, the
+        key state, `KEY_PROVIDERS`, `PROVIDER_ICONS`, `handleProviderChange`, `showAdvanced`, and the
+        `KeyRound` import. Build + eslint green.
+      - **KEPT on Ask (per-question):** Answer mode (still per-conversation, locked after first turn),
+        Context sections tri-state, and the vargas "Charts to Consult" card + question-based varga
+        suggestions. These are question-specific context tuning, not global settings.
+      - Note: the "view what was sent to the AI" inspector button was preserved (moved into the model
+        summary card header).
 - [x] i18n `settings.*` (en; hi/sa fall back) + `nav.settings`. DONE 2026-07-03.
 
 ### 12.1 Max response length (output tokens) control (P1, owner ask 2026-07-03) — DONE 2026-07-03
