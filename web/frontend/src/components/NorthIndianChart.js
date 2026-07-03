@@ -296,12 +296,32 @@ export const NorthIndianChart = ({
             const isHovered = hoveredHouse === house.num;
             const sign = getSignForVisualHouse(house.num);
 
+            // Sign label rides the outer edge of the house so the centroid stays
+            // clear for planets. Every centroid sits on the center→edge ray, so a
+            // single outward push works for both the diamond and corner houses;
+            // the clamp keeps it off the frame in the tight corners.
+            const pad = 26;
+            const k = 0.4;
+            const labelX = Math.max(
+              squareX + pad,
+              Math.min(squareX + size - pad, house.cx + k * (house.cx - center.x))
+            );
+            const labelY = Math.max(
+              squareY + pad,
+              Math.min(squareY + size - pad, house.cy + k * (house.cy - center.y))
+            );
+            // Grow the (hover-expanded) label inward from whichever edge it hugs:
+            // left-side houses anchor at start, right-side at end, top/bottom middle.
+            const dx = labelX - center.x;
+            const labelAnchor = Math.abs(dx) < size * 0.15 ? "middle" : dx < 0 ? "start" : "end";
+
             return (
               <g key={house.num}>
-                {/* Header line: house number + sign label. The sign abbreviation
-                    is always visible (parity with the South chart); on hover it
-                    expands to the full sign name. */}
-                <text x={house.cx} y={house.cy - 24} textAnchor="middle">
+                {/* Header line: house number + sign label, pinned to the house's
+                    outer edge so it never competes with planets for the centroid.
+                    The sign abbreviation is always visible (parity with the South
+                    chart); on hover it expands to the full sign name. */}
+                <text x={labelX} y={labelY} textAnchor={labelAnchor}>
                   <tspan fill={muted} fontSize="11" fontWeight="600">
                     {house.num}
                   </tspan>
@@ -324,7 +344,7 @@ export const NorthIndianChart = ({
                   const fs = total <= 3 ? 13 : total <= 5 ? 11 : 10;
                   const step = total <= 3 ? 18 : total <= 5 ? 14 : 12;
                   const degFs = Math.max(fs - 3, 8);
-                  const startY = house.cy - ((total - 1) * step) / 2 + 6;
+                  const startY = house.cy - ((total - 1) * step) / 2;
                   return planetsInHouse.map((item, idx) => (
                     <text
                       key={idx}
