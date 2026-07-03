@@ -1,19 +1,24 @@
 import axios from "axios";
 import { DEFAULT_AYANAMSA } from "../constants/jyotish";
 
-// Fail loudly when the API base URL isn't configured. In a production build a
-// missing REACT_APP_API_URL silently points the app at localhost, which then
-// fails with confusing CORS/connection errors — so make it a hard error there,
-// and a visible warning in development (where the localhost default is fine).
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+// Base URL for the backend API. Prefer an explicit REACT_APP_API_URL, but when
+// it's unset default to the SAME host the page was served from (on port 8000).
+// That way the app works from any device on the LAN with no per-device config:
+// desktop via localhost, a phone via the machine's hostname/IP, etc. — the API
+// host always matches the page host, so it can't drift to localhost on a phone.
+const deriveApiUrl = () => {
+  if (typeof window !== "undefined" && window.location) {
+    const { protocol, hostname } = window.location;
+    return `${protocol}//${hostname}:8000`;
+  }
+  return "http://localhost:8000";
+};
+
+export const API_URL = process.env.REACT_APP_API_URL || deriveApiUrl();
 
 if (!process.env.REACT_APP_API_URL) {
-  const msg = "REACT_APP_API_URL is not set. Configure it in web/frontend/.env (see .env.example).";
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(`[config] ${msg} A production build must have REACT_APP_API_URL set.`);
-  }
   // eslint-disable-next-line no-console
-  console.warn(`[config] ${msg} Falling back to ${API_URL}.`);
+  console.info(`[config] REACT_APP_API_URL unset; using same-host default ${API_URL}.`);
 }
 
 const api = axios.create({
@@ -234,6 +239,24 @@ export const astrologyService = {
         birth_details: birthDetails,
         events: opts.events || [],
         window_minutes: opts.windowMinutes || 120,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+  // Conversational rectification: one interview turn → { reply, events, ready }.
+  rectifyChat: (birthDetails, messages, collectedEvents = [], opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/rectify-birth-time/chat",
+      {
+        birth_details: birthDetails,
+        messages,
+        collected_events: collectedEvents,
         person_name: opts.personName,
         llm_provider: model.legacyProvider || "qwen",
         provider_type: model.providerType,

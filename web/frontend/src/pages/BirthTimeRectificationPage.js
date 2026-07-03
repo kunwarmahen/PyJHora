@@ -10,6 +10,7 @@ import {
   Plus,
   Trash2,
   CalendarHeart,
+  MessageCircle,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
@@ -22,9 +23,12 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
+import { ChatComposer } from "../components/chat/ChatComposer";
+import { ChatBubble } from "../components/chat/ChatBubble";
 import { DEFAULT_AYANAMSA, AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import "../styles/Chat.css";
 
 // The three BV Raman suddhi methods the backend exposes. `needsGender` gates the
 // gender selector (janma suddhi is the only one that needs it).
@@ -76,6 +80,14 @@ export const BirthTimeRectificationPage = () => {
   const [events, setEvents] = useState([{ type: "marriage", date: "" }]);
   const [windowMinutes, setWindowMinutes] = useState(120);
 
+  // Conversational-mode state.
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
+  const [collectedEvents, setCollectedEvents] = useState([]);
+  const [chatReady, setChatReady] = useState(false);
+  const [chatStarted, setChatStarted] = useState(false);
+
   const [chartStyle, setChartStyle] = useState(() => localStorage.getItem("chartStyle") || "north");
 
   const [loading, setLoading] = useState(false);
@@ -107,6 +119,10 @@ export const BirthTimeRectificationPage = () => {
     setApplied(false);
     setAiAnalysis("");
     setAiError("");
+    setChatStarted(false);
+    setChatMessages([]);
+    setCollectedEvents([]);
+    setChatReady(false);
   };
 
   const chooseMethod = (key) => {
@@ -171,18 +187,22 @@ export const BirthTimeRectificationPage = () => {
     if (mode === "rule") rectifyByRule();
   }, [selectedProfile, navigate, mode, rectifyByRule]);
 
-  // Event mode runs on explicit submit (needs dated events).
-  const validEvents = events.filter((e) => e.type && e.date);
-  const runEventRectify = async () => {
-    if (!birthDetails || validEvents.length === 0) return;
+  // The events that produced the current result (form list or chat-collected),
+  // so the AI "why it fits" explanation uses exactly the same set.
+  const [resultEvents, setResultEvents] = useState([]);
+
+  // Shared: rectify from a given set of {type, date} events.
+  const runRectifyForEvents = async (evts) => {
+    if (!birthDetails || !evts || evts.length === 0) return;
     setLoading(true);
     setError("");
     setResult(null);
     resetOutputs();
+    setResultEvents(evts);
     try {
       const res = await astrologyService.rectifyByEvents(
         birthDetails,
-        validEvents,
+        evts,
         windowMinutes,
         ayanamsa
       );
@@ -194,10 +214,71 @@ export const BirthTimeRectificationPage = () => {
     }
   };
 
+  // Event mode runs on explicit submit (needs dated events).
+  const validEvents = events.filter((e) => e.type && e.date);
+  const runEventRectify = () => runRectifyForEvents(validEvents);
+
   const addEvent = () => setEvents((ev) => [...ev, { type: "childbirth", date: "" }]);
   const removeEvent = (i) => setEvents((ev) => ev.filter((_, idx) => idx !== i));
   const updateEvent = (i, patch) =>
     setEvents((ev) => ev.map((e, idx) => (idx === i ? { ...e, ...patch } : e)));
+
+  // ---- Conversational mode ----
+  const mergeEvents = (prev, next) => {
+    const seen = new Set(prev.map((e) => `${e.type}|${e.date}`));
+    const out = [...prev];
+    (next || []).forEach((e) => {
+      const k = `${e.type}|${e.date}`;
+      if (!seen.has(k)) {
+        seen.add(k);
+        out.push(e);
+      }
+    });
+    return out;
+  };
+
+  const sendChatTurn = async (userText, history) => {
+    setChatBusy(true);
+    try {
+      const res = await astrologyService.rectifyChat(
+        birthDetails,
+        history,
+        collectedEvents,
+        { personName: birthDetails.name },
+        { ...readModelConfig(), ayanamsa }
+      );
+      const reply = res.data.reply || "";
+      setChatMessages([...history, { role: "assistant", content: reply }]);
+      setCollectedEvents((prev) => mergeEvents(prev, res.data.events));
+      setChatReady(Boolean(res.data.ready));
+    } catch (err) {
+      setChatMessages([
+        ...history,
+        { role: "assistant", content: errorMessage(err, t("rectify.aiError")), error: true },
+      ]);
+    } finally {
+      setChatBusy(false);
+    }
+  };
+
+  const startChat = () => {
+    setChatStarted(true);
+    setChatMessages([]);
+    setCollectedEvents([]);
+    setChatReady(false);
+    setResult(null);
+    // Kick off with the interviewer's opening question.
+    sendChatTurn("", []);
+  };
+
+  const handleChatSend = () => {
+    const text = chatInput.trim();
+    if (!text || chatBusy) return;
+    const history = [...chatMessages, { role: "user", content: text }];
+    setChatMessages(history);
+    setChatInput("");
+    sendChatTurn(text, history);
+  };
 
   const handleApply = async () => {
     if (!result?.suggested || !selectedProfile) return;
@@ -229,10 +310,10 @@ export const BirthTimeRectificationPage = () => {
     setAiError("");
     try {
       let res;
-      if (mode === "events") {
+      if (mode !== "rule") {
         res = await astrologyService.explainEventRectificationAI(
           birthDetails,
-          { events: validEvents, windowMinutes, personName: birthDetails.name },
+          { events: resultEvents, windowMinutes, personName: birthDetails.name },
           { ...readModelConfig(), ayanamsa }
         );
       } else {
@@ -262,6 +343,8 @@ export const BirthTimeRectificationPage = () => {
   const suggested = result?.suggested;
   const before = result?.before || {};
   const after = result?.after || {};
+  // Event- and chat-mode results carry a fit % + per-event matches.
+  const isEventResult = result?.confidence != null;
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -297,6 +380,12 @@ export const BirthTimeRectificationPage = () => {
                 onClick={() => chooseMode("events")}
               >
                 {t("rectify.modeEvents")}
+              </button>
+              <button
+                className={`chart-toggle__btn${mode === "chat" ? " is-active" : ""}`}
+                onClick={() => chooseMode("chat")}
+              >
+                {t("rectify.modeChat")}
               </button>
             </div>
           </div>
@@ -439,6 +528,79 @@ export const BirthTimeRectificationPage = () => {
           </div>
         )}
 
+        {/* ---- Conversational mode ---- */}
+        {mode === "chat" && (
+          <div className="ui-card ui-card--accent ui-card--flush">
+            <h3 className="ui-card-header ui-card-header--sm">
+              <MessageCircle size={18} />
+              {t("rectify.chatTitle")}
+            </h3>
+            <p className="card-intro">{t("rectify.chatIntro")}</p>
+
+            {!chatStarted ? (
+              <button className="ui-btn ui-btn--primary" onClick={startChat} disabled={chatBusy}>
+                <MessageCircle size={18} /> {t("rectify.chatStart")}
+              </button>
+            ) : (
+              <>
+                <div className="rectify-chat__log">
+                  {chatMessages.map((m, i) => (
+                    <ChatBubble
+                      key={i}
+                      role={m.role}
+                      content={m.content}
+                      error={m.error}
+                    />
+                  ))}
+                  {chatBusy && (
+                    <ChatBubble
+                      role="assistant"
+                      content=""
+                      streaming
+                      thinkingLabel={t("rectify.chatThinking")}
+                    />
+                  )}
+                </div>
+
+                <ChatComposer
+                  value={chatInput}
+                  onChange={setChatInput}
+                  onSubmit={handleChatSend}
+                  busy={chatBusy}
+                  placeholder={t("rectify.chatPlaceholder")}
+                  multiline={false}
+                />
+
+                {/* Collected events + run button */}
+                {collectedEvents.length > 0 && (
+                  <div className="mt-xl">
+                    <div className="fw-600 text-secondary" style={{ marginBottom: "0.4rem" }}>
+                      {t("rectify.collected")}:
+                    </div>
+                    <div className="info-pills">
+                      {collectedEvents.map((e, i) => (
+                        <span key={i} className="info-pill">
+                          {t(`rectify.event.${e.type}`)}{" "}
+                          <strong className="text-saffron">{e.date}</strong>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-xl">
+                      <button
+                        className={`ui-btn ui-btn--primary${chatReady ? " fade-in" : ""}`}
+                        onClick={() => runRectifyForEvents(collectedEvents)}
+                        disabled={loading || collectedEvents.length === 0}
+                      >
+                        {loading ? t("rectify.loading") : t("rectify.runEvents")}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         <ErrorBanner message={error} />
 
         {needGender ? (
@@ -477,13 +639,13 @@ export const BirthTimeRectificationPage = () => {
                   <strong className="text-saffron">
                     {result.already_consistent
                       ? t("rectify.alreadyConsistent")
-                      : mode === "events"
+                      : isEventResult
                       ? t("rectify.eventsNoChange")
                       : t("rectify.notConverged")}
                   </strong>
                 </span>
               )}
-              {mode === "events" && result.confidence != null && (
+              {isEventResult && result.confidence != null && (
                 <span className="info-pill">
                   {t("rectify.fit")}:{" "}
                   <strong className="text-saffron">{result.confidence}%</strong>
@@ -497,7 +659,7 @@ export const BirthTimeRectificationPage = () => {
             <p className="card-note">{result.note}</p>
 
             {/* Event-match breakdown */}
-            {mode === "events" && result.events?.length > 0 && (
+            {isEventResult && result.events?.length > 0 && (
               <div className="ui-card ui-card--accent-gold ui-card--flush mt-xl">
                 <h3 className="ui-card-header ui-card-header--sm">{t("rectify.eventMatches")}</h3>
                 <div className="table-scroll">

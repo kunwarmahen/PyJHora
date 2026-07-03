@@ -428,7 +428,7 @@ REACT_APP_API_TIMEOUT=30000
 - Each section loads independently and respects the selected ayanamsa
 
 ### 12. Birth-Time Rectification (`/rectify`) — experimental
-Two approaches, chosen with a mode toggle:
+Three approaches, chosen with a mode toggle:
 - **By rule (śuddhi)** — classical BV Raman checks: **Nakshatra Śuddhi** (default;
   self-serve — no extra input), **Lagna Śuddhi**, and **Janma Śuddhi** (needs a
   gender selection). Searches ±30 min and suggests the nearest time that satisfies
@@ -440,6 +440,10 @@ Two approaches, chosen with a mode toggle:
   significators. Deterministic and **auditable** — a per-event table shows *why*
   each time fits (which period lord rules/occupies the event's houses, or is its
   karaka), with a rough **fit %** that strengthens as you add events
+- **Conversational** — an AI astrologer **interviews you in chat**, asking about one
+  dated life event at a time and extracting them as it goes; when it has enough it
+  invites you to run the (same deterministic) rectification. The AI only *collects*
+  the events — the engine still decides the time, so the result stays auditable
 - Both show the **signed shift**, a **what-moved** before→after summary (Moon
   star/pada + rising sign), the **before/after charts side by side**, an optional
   **"why this time fits"** AI explanation (model from Ask AI Astrologer), and an

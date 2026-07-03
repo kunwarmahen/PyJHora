@@ -194,6 +194,22 @@ class RectifyEventsExplainRequest(BaseModel):
     api_key: Optional[str] = None
     ayanamsa: Optional[str] = None
 
+class RectifyChatMessage(BaseModel):
+    role: str                        # "user" | "assistant"
+    content: str
+
+class RectifyChatRequest(BaseModel):
+    birth_details: BirthDetails
+    messages: List[RectifyChatMessage] = []
+    collected_events: List[RectifyEventItem] = []
+    person_name: Optional[str] = None
+    llm_provider: str = "qwen"  # legacy fallback
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    ayanamsa: Optional[str] = None
+
 # Lifecycle events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -1844,6 +1860,35 @@ async def explain_event_rectification(
         )
         return {
             "ai_analysis": ai_analysis,
+            "provider": cfg.provider_type.value,
+            "model": cfg.model,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/rectify-birth-time/chat")
+async def rectify_birth_time_chat(
+    request: RectifyChatRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Conversational rectification: the AI interviews the user for dated life
+    events (one question per turn) and returns the running event list + a `ready`
+    flag. The deterministic /events endpoint then does the actual rectification."""
+    _enforce_rate_limit(current_user)
+    try:
+        cfg = await _resolve_cfg(current_user, request)
+        turn = await llm_service.rectification_chat(
+            messages=[m.model_dump() for m in request.messages],
+            collected_events=[e.model_dump() for e in request.collected_events],
+            name=request.person_name or "this person",
+            config=cfg,
+        )
+        return {
+            "reply": turn.get("reply", ""),
+            "events": turn.get("events", []),
+            "ready": turn.get("ready", False),
             "provider": cfg.provider_type.value,
             "model": cfg.model,
         }

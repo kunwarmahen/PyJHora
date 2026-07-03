@@ -403,6 +403,132 @@ class LLMService:
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
         return await self._complete(prompt, cfg)
 
+    # ------------------------------------------------------------------ #
+    # Conversational (chat) birth-time rectification — the AI interviews
+    # the user for dated life events; the deterministic engine does the
+    # actual rectification once events are collected.
+    # ------------------------------------------------------------------ #
+    RECT_CHAT_SYSTEM = (
+        "You are a warm, patient Vedic astrologer conducting a birth-time RECTIFICATION "
+        "interview. Your ONLY job is to collect a handful of well-dated, significant life "
+        "events from the person, one question at a time, in plain friendly language. You do "
+        "NOT compute or guess the birth time yourself — a separate engine does that from the "
+        "events you collect. Always reply with STRICTLY VALID JSON and nothing else: no prose "
+        "outside the JSON, no markdown, no code fences."
+    )
+
+    # Event types the rectification engine understands (must match
+    # astrology.EVENT_SIGNIFICATORS keys).
+    RECT_EVENT_TYPES = {
+        "marriage": "marriage / wedding",
+        "childbirth": "birth of a child",
+        "career": "first job / career start",
+        "promotion": "promotion or major rise at work",
+        "education": "starting higher education / a degree",
+        "wealth": "a major financial gain",
+        "property": "buying property / a home",
+        "relocation": "relocation or long foreign travel",
+        "illness": "a major illness",
+        "accident": "a serious accident or injury",
+        "father_death": "father's passing",
+        "mother_death": "mother's passing",
+    }
+
+    async def rectification_chat(self,
+                                 messages: List[Dict[str, str]],
+                                 collected_events: List[Dict[str, str]],
+                                 name: str = "this person",
+                                 provider: LLMProvider = LLMProvider.QWEN,
+                                 config: Optional[ModelConfig] = None) -> Dict[str, Any]:
+        """One conversational turn. Returns {reply, events, ready}.
+
+        `messages` is the running transcript ([{role, content}]); `collected_events`
+        are the {type, date} pairs gathered so far. The model asks the next question
+        (or, when it has enough, invites the user to run the rectification) and returns
+        the *full* cumulative event list it understands."""
+        cfg = config or self.resolve_config(
+            legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+
+        types_block = "\n".join(f'  - "{k}": {v}' for k, v in self.RECT_EVENT_TYPES.items())
+        transcript = "\n".join(
+            f"{'User' if m.get('role') == 'user' else 'You'}: {m.get('content', '')}"
+            for m in messages
+        ) or "(no messages yet — greet and ask the first question)"
+        known = json.dumps(collected_events or [], ensure_ascii=False)
+
+        prompt = f"""You are interviewing {name} to gather dated life events for birth-time rectification.
+
+Allowed event types (map what the user says to one of these keys — never invent a new key):
+{types_block}
+
+Conversation so far:
+{transcript}
+
+Events already collected (keep these; add to them as the user gives more):
+{known}
+
+Instructions:
+- Ask about ONE event at a time, in a warm, simple sentence. Start with the most time-defining events (marriage, a child's birth, first job).
+- When the user gives an event, record it as {{"type": <one allowed key>, "date": "YYYY-MM-DD"}}. If they give only a month & year, use the 15th; only a year, use July 1 — and gently note it's approximate.
+- Return the FULL cumulative events list each turn (previously collected PLUS any new one).
+- Set "ready" to true once you have at least 3 dated events, OR the user says they have no more / are done. When ready, your reply should say you have enough and invite them to run the rectification (a button below the chat).
+- Never state or guess a birth time yourself; the engine does that.
+- Keep replies to 1-3 short sentences.
+
+Reply with STRICT JSON only, exactly this shape:
+{{"reply": "<your next message to the user>", "events": [{{"type": "marriage", "date": "2015-11-20"}}], "ready": false}}"""
+
+        # Small local models sometimes exhaust their output budget and return
+        # nothing (done_reason=length, empty response), so use a generous budget and
+        # retry once on empty/unparseable output before degrading gracefully.
+        data = None
+        raw = ""
+        for _attempt in range(2):
+            raw = await self._complete(prompt, cfg, max_tokens=2048, system=self.RECT_CHAT_SYSTEM)
+            try:
+                parsed = self._extract_json(raw)
+                if isinstance(parsed, dict):
+                    data = parsed
+                    break
+            except Exception:
+                pass
+        if data is None:
+            # Degrade gracefully: keep the events we had, surface any raw text as the reply.
+            return {"reply": (raw or "Could you tell me one important life event and its date?").strip(),
+                    "events": collected_events or [], "ready": False}
+
+        # Validate + normalise the returned events.
+        clean = []
+        seen = set()
+        for ev in (data.get("events") or []):
+            etype = (ev or {}).get("type")
+            edate = (ev or {}).get("date")
+            if etype not in self.RECT_EVENT_TYPES or not edate:
+                continue
+            try:
+                parts = [int(p) for p in str(edate).split("-")[:3] if p != ""]
+                if not parts:
+                    continue
+                y = parts[0]
+                m = parts[1] if len(parts) > 1 else 7   # only year → mid-year
+                d = parts[2] if len(parts) > 2 else 15   # only year/month → mid-month
+                m = min(12, max(1, m)); d = min(28, max(1, d))
+                iso = f"{y:04d}-{m:02d}-{d:02d}"
+            except Exception:
+                continue
+            key = (etype, iso)
+            if key in seen:
+                continue
+            seen.add(key)
+            clean.append({"type": etype, "date": iso})
+
+        return {
+            "reply": str(data.get("reply") or "").strip()
+            or "Could you share another life event and its date?",
+            "events": clean,
+            "ready": bool(data.get("ready")),
+        }
+
     async def analyze_pancha_pakshi(self,
                                     pp_data: Dict[str, Any],
                                     name: str = "this person",

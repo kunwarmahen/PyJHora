@@ -1579,3 +1579,31 @@ page** (not a replacement). This is the classical life-events method.
 - [x] Verified end-to-end via `TestClient`: events endpoint 200 (1988-11-23 test chart, marriage
       2015 + career 2012 → suggests 23:25, fit 54%, per-event dasha matches shown), empty events →
       400; whole-day scan < 0.1s; `npm run build` green; ESLint clean; locale JSON valid.
+
+**FOLLOW-UP — conversational (chat) rectification — SHIPPED 2026-07-02.** Owner asked for the
+interview to also work as a **back-and-forth chat** ("ask questions and rectify"). Added a 3rd
+**Conversational** mode on `/rectify`. The AI *only collects* the events; the deterministic
+`get_event_rectification` engine still decides the time (stays auditable).
+- [x] **Backend** `llm_service.rectification_chat(messages, collected_events, name, config)` — one
+      interview turn. Strict-JSON prompt (`RECT_CHAT_SYSTEM` + `RECT_EVENT_TYPES` = the 12 engine
+      event keys) → `{reply, events, ready}`; asks one event at a time, maps free text to a valid
+      type + ISO date (partial year/month → mid-year/mid-month), returns the **full cumulative**
+      event list, and sets `ready` at ≥3 events or when the user is done. Reuses `_extract_json`.
+      **KEY:** small local models (gemma4:12b) returned an EMPTY body on later turns (done_reason
+      length) — same issue the quiz hit — so the turn uses a **2048-token budget + one retry** on
+      empty/unparseable output, then degrades gracefully (keeps prior events, re-asks). Endpoint
+      `POST /api/astrology/rectify-birth-time/chat` (`RectifyChatRequest`/`RectifyChatMessage`),
+      rate-limited, model-config via `_resolve_cfg`.
+- [x] **Frontend** — `/rectify` **Approach** toggle gains **Conversational**. A start button seeds
+      the opening question, then a chat log (reuses `components/chat/ChatBubble` + `ChatComposer`,
+      new `.rectify-chat__log` CSS) with a "thinking…" bubble while the turn is in flight. Events
+      the AI understands show as **chips** (`t(rectify.event.*)` + date); a **"Rectify from these
+      events"** button (highlighted once `ready`) runs the shared event-rectify path. The result
+      block, per-event match table, before/after charts, apply-to-profile and AI "why it fits" card
+      are all shared with the events mode (keyed on `result.confidence != null`, not the mode).
+      `api.js` `rectifyChat`; `rectify.*` i18n extended (modeChat/chatTitle/chatIntro/chatStart/
+      chatThinking/chatPlaceholder/collected; en, hi/sa fall back).
+- [x] Verified: chat endpoint 200 via `TestClient`; **live Ollama (gemma4:12b)** round-trip — the
+      opening question, then "married Nov 2015, first job July 2012" correctly extracted
+      `marriage 2015-11-20` + `career 2012-07-15` and asked a natural follow-up; `npm run build`
+      green (+0.8 kB); ESLint clean; locale JSON valid.
