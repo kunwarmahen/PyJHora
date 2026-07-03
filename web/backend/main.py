@@ -57,6 +57,9 @@ class AskQuestionRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Max response length (output tokens). Optional; when set it overrides the
+    # provider default so users can raise the cap if answers get cut off.
+    max_tokens: Optional[int] = None
     # Context controls (optional)
     ayanamsa: Optional[str] = None
     sections: Optional[dict] = None  # toggle dasha_tree/yogas/doshas/transits
@@ -83,6 +86,9 @@ class PredictionRequest(BaseModel):
     model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Max response length (output tokens). Optional; when set it overrides the
+    # provider default so users can raise the cap if answers get cut off.
+    max_tokens: Optional[int] = None
     # Context controls (optional)
     ayanamsa: Optional[str] = None
     sections: Optional[dict] = None  # toggle dasha_tree/yogas/doshas/transits
@@ -1354,6 +1360,11 @@ async def _resolve_cfg(current_user: str, request: "AskQuestionRequest"):
         stored = await user_settings.get_api_key(current_user, cfg.provider_type.value)
         if stored:
             cfg.api_key = stored
+    # Optional per-user output cap from Settings (lets a user raise the limit if
+    # answers get cut off). Clamped to a sane range; None → provider defaults.
+    mt = getattr(request, "max_tokens", None)
+    if mt:
+        cfg.max_tokens = max(256, min(int(mt), 32768))
     return cfg
 
 

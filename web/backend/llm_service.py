@@ -124,6 +124,10 @@ class ModelConfig:
     model: str
     base_url: Optional[str] = None
     api_key: Optional[str] = None
+    # Optional per-request output cap. When set (from the user's Settings), it
+    # overrides the per-call default at every provider payload site, so a user
+    # whose answers get cut off can raise it. None = use the method default.
+    max_tokens: Optional[int] = None
 
 
 class LLMService:
@@ -833,6 +837,7 @@ Reply with STRICT JSON only, exactly this shape:
     async def _complete(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
                         system: Optional[str] = None,
                         usage: Optional[Dict[str, Any]] = None) -> str:
+        max_tokens = cfg.max_tokens or max_tokens
         sys_prompt = system or SYSTEM_PROMPT
         if cfg.provider_type == ProviderType.OLLAMA:
             return await self._call_ollama(prompt, cfg, max_tokens, sys_prompt, usage)
@@ -872,6 +877,7 @@ Reply with STRICT JSON only, exactly this shape:
         unreachable, 5xx/429, timeout) are retried up to MAX_STREAM_RETRIES with a
         short backoff; once real tokens have streamed to the client we can't retry
         without duplicating text, so a mid-stream failure is surfaced as-is."""
+        max_tokens = cfg.max_tokens or max_tokens
         messages = self.build_chat_messages(chart_data, question, history)
 
         def _new_gen():
@@ -2230,6 +2236,7 @@ Be specific to the matches above — do not invent placements or events. Do NOT 
         return {"content": content, "tool_calls": [], "usage": u}
 
     async def _chat_once_openai(self, messages, specs, cfg, max_tokens: int = 4096) -> Dict[str, Any]:
+        max_tokens = cfg.max_tokens or max_tokens
         base_url = (cfg.base_url or "").rstrip("/")
         if not base_url:
             raise RuntimeError("no base URL configured for this provider")
@@ -2265,6 +2272,7 @@ Be specific to the matches above — do not invent placements or events. Do NOT 
                 "usage": data.get("usage")}
 
     async def _chat_once_ollama(self, messages, specs, cfg, max_tokens: int = 4096) -> Dict[str, Any]:
+        max_tokens = cfg.max_tokens or max_tokens
         url = (cfg.base_url or self.ollama_url).rstrip("/")
         payload = {
             "model": cfg.model or self.ollama_default_model,
@@ -2388,6 +2396,7 @@ Be specific to the matches above — do not invent placements or events. Do NOT 
         return ("\n\n".join(system_parts) if system_parts else None, contents)
 
     async def _chat_once_gemini(self, messages, specs, cfg, max_tokens: int = 4096) -> Dict[str, Any]:
+        max_tokens = cfg.max_tokens or max_tokens
         api_key = cfg.api_key or self.gemini_api_key
         model = cfg.model or self.gemini_default_model
         if not api_key:
@@ -2426,6 +2435,7 @@ Be specific to the matches above — do not invent placements or events. Do NOT 
     async def _complete_chat(self, messages, cfg: ModelConfig, max_tokens: int = 4096):
         """Non-streaming plain chat (no tools) over neutral messages. Returns
         (content, usage). Used by the JSON-protocol path and the forced final answer."""
+        max_tokens = cfg.max_tokens or max_tokens
         if cfg.provider_type == ProviderType.OLLAMA:
             url = (cfg.base_url or self.ollama_url).rstrip("/")
             payload = {"model": cfg.model or self.ollama_default_model,

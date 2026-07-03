@@ -637,6 +637,7 @@ export const streamAskQuestion = (birthDetails, question, model = {}, callbacks 
           model: model.model,
           base_url: model.baseUrl,
           api_key: model.apiKey,
+          max_tokens: model.maxTokens || undefined,
           vargas: model.vargas,
           sections: model.sections,
           ayanamsa: model.ayanamsa,

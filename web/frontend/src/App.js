@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
+import { SettingsProvider } from "./contexts/SettingsContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -25,6 +26,7 @@ import { AskAstrologerPage } from "./pages/AskAstrologerPage";
 import { AiToolsPage } from "./pages/AiToolsPage";
 import { SensitivePointsPage } from "./pages/SensitivePointsPage";
 import { VedicClockPage } from "./pages/VedicClockPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import "./App.css";
 import "./styles/Responsive.css";
 
@@ -33,6 +35,7 @@ function App() {
     <Router>
       <AuthProvider>
         <ProfileProvider>
+          <SettingsProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -209,8 +212,18 @@ function App() {
               }
             />
 
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+
             <Route path="/" element={<Navigate to="/profile-selection" replace />} />
           </Routes>
+          </SettingsProvider>
         </ProfileProvider>
       </AuthProvider>
     </Router>

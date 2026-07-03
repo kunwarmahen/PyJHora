@@ -241,6 +241,7 @@
     "learn": "Learn the Chart",
     "ask": "Ask AI Astrologer",
     "aiTools": "AI Capabilities",
+    "settings": "Settings",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "language": "Language",
@@ -640,6 +641,69 @@
     "traceWriting": "Writing the answer…",
     "traceWroteAnswer": "Wrote the answer above",
     "suggestedCharts": "Suggested charts:"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Preferences for your charts and the AI astrologer",
+    "saved": "Saved",
+    "tabs": {
+      "general": "General",
+      "ai": "AI",
+      "apiKeys": "API Keys",
+      "almanac": "Almanac",
+      "account": "Account"
+    },
+    "general": {
+      "language": "Language",
+      "chartStyle": "Chart style",
+      "north": "North Indian",
+      "south": "South Indian",
+      "ayanamsa": "Ayanamsa"
+    },
+    "ai": {
+      "provider": "Provider",
+      "model": "Model",
+      "defaultModel": "Provider default",
+      "modelPlaceholder": "Enter a model name",
+      "endpoint": "Endpoint URL",
+      "unavailable": "unavailable",
+      "answerMode": "Answer mode",
+      "modeFull": "Full context",
+      "modeSmart": "Smart lookup",
+      "maxTokens": "Max response length",
+      "mtDefault": "Auto",
+      "mtUseDefault": "Use the model's default length",
+      "maxTokensHint": "How many tokens the AI may generate per answer. Raise this if answers get cut off; lower it for shorter, faster replies.",
+      "manageKeys": "Manage API keys",
+      "viewCapabilities": "View AI capabilities"
+    },
+    "apiKeys": {
+      "hint": "Your keys are encrypted on the server and never shown in full. Ollama runs locally and needs no key.",
+      "notSet": "Not set",
+      "placeholder": "Paste API key",
+      "save": "Save",
+      "remove": "Remove",
+      "saveError": "Could not save the key"
+    },
+    "almanac": {
+      "engine": "Panchanga engine",
+      "drik": "Drik (modern)",
+      "surya": "Surya-Siddhanta",
+      "hint": "Drik uses precise modern ephemeris positions; Surya-Siddhanta follows the classical treatise."
+    },
+    "account": {
+      "changePassword": "Change password",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "changeBtn": "Update password",
+      "changed": "Password updated. Other devices have been signed out.",
+      "changeNote": "Changing your password signs you out on all other devices.",
+      "changeError": "Could not change password",
+      "mismatch": "New passwords do not match",
+      "tooShort": "New password must be at least 6 characters",
+      "logout": "Log out"
+    }
   },
   "compat": {
     "title": "Compatibility Check",

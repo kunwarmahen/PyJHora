@@ -22,6 +22,7 @@ import {
   Bird,
   Crosshair,
   Timer,
+  Settings,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
@@ -48,6 +49,7 @@ const LINKS = [
   { to: "/learn", labelKey: "nav.learn", icon: <GraduationCap size={20} /> },
   { to: "/ask-astrologer", labelKey: "nav.ask", icon: <MessageCircle size={20} /> },
   { to: "/ai-tools", labelKey: "nav.aiTools", icon: <Wrench size={20} /> },
+  { to: "/settings", labelKey: "nav.settings", icon: <Settings size={20} /> },
 ];
 
 /** Hamburger button + slide-in feature drawer. The button only shows on phones

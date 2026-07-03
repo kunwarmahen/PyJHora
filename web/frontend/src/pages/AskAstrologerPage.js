@@ -507,6 +507,7 @@ export const AskAstrologerPage = () => {
         model: useModel,
         baseUrl: useBaseUrl,
         legacyProvider: useType === "ollama" ? "qwen" : useType,
+        maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
         vargas: selectedVargas,
         sections: effectiveSections(),
         mode,

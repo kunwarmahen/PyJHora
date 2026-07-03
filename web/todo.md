@@ -1752,23 +1752,44 @@ Today these live as per-page dropdowns/toggles persisted ad-hoc in `localStorage
 - **Per-user API keys** (already a modal on Ask; move into Settings → "AI & API Keys").
 
 Plan:
-- [ ] 🔴 **New `SettingsPage.js`** (route `/settings`, gear icon in the Dashboard navbar +
-      NavDrawer). Tabbed/sectioned: **General** (language, default chart style N/S, ayanamsa,
-      node type mean/true), **AI** (provider + model + endpoint, Answer mode default, Context
-      sections tri-state, default vargas), **AI & API keys** (fold in the existing per-user
-      encrypted-key modal), **Almanac** (Drik/Surya-Siddhanta engine), **Account** (→ §13).
-- [ ] 🔴 Centralize the settings state: a `SettingsContext` (or a small `useSettings` hook over
-      `localStorage`) that every page reads, so a change in Settings takes effect app-wide.
-      Migrate existing `localStorage` keys (keep the same keys for backward-compat, just move
-      the UI that writes them).
-- [ ] 🔴 **Remove the per-page controls** now that Settings owns them (the ayanamsa dropdown,
-      chart-style toggle, AI model/mode/sections/varga cards on Ask, API-keys modal, almanac
-      engine toggle). Pages become read-only consumers of the settings. (Confirm with owner
-      whether a couple of high-frequency toggles — e.g. chart-style N/S, transit date — should
-      stay inline as convenience; default per decision = move everything.)
-- [ ] 🔴 i18n `settings.*` (en; hi/sa fall back). Persist server-side later if we want
-      cross-device sync (optional; localStorage is fine for v1 except API keys which are already
-      server-side per user).
+- [x] **New `SettingsPage.js`** (route `/settings`, gear icon in the Dashboard navbar +
+      NavDrawer). DONE 2026-07-03: tabbed **General** (language, chart style N/S, ayanamsa),
+      **AI** (provider + model + endpoint, Answer mode, **Max response length slider** — see §12.1
+      below, + links to API keys & AI Capabilities), **API Keys** (fold of the existing per-user
+      encrypted-key set/replace/clear, masked status), **Almanac** (Drik/Surya-Siddhanta engine),
+      **Account** (change-password form + logout). Saffron/indigo identity, `Settings.css`.
+- [x] **Centralize the settings state**: DONE 2026-07-03: `contexts/SettingsContext.js`
+      (`SettingsProvider`/`useSettings`) reads+writes the SAME historical `localStorage` keys
+      (`lang`/`ayanamsa`/`chartStyle`/`panchanga_system`/`ai_provider_type`/`ai_model`/
+      `ai_base_url`/`ai_mode` + new `ai_max_tokens`), so the Settings page is the canonical editor
+      and every existing page keeps reading the values unchanged. Wired into `App.js` under
+      Auth/Profile providers. Language changes drive i18next immediately.
+- [ ] 🔴 **Remove the per-page controls** now that Settings owns them (ayanamsa dropdown on
+      BirthChart, chart-style toggle across ~10 pages, the AI model/mode/sections/varga cards +
+      API-keys modal on Ask, almanac engine toggle on PanchangaPanel). PHASE 2 — not done yet:
+      the Settings page is live and controls these via the shared keys, but the duplicate in-page
+      editors are still present. Migrate pages to consume `useSettings` (read-only) and delete the
+      inline controls, page by page, verifying each. (Owner decision = move everything; a couple of
+      mid-task toggles like chart-style N/S could optionally stay as a convenience — confirm.)
+- [x] i18n `settings.*` (en; hi/sa fall back) + `nav.settings`. DONE 2026-07-03.
+
+### 12.1 Max response length (output tokens) control (P1, owner ask 2026-07-03) — DONE 2026-07-03
+
+Owner: expose a control so a user whose AI answers get cut off can raise the length; give them a
+slider.
+- [x] **Backend**: `ModelConfig.max_tokens` (optional) is now honored at every provider payload
+      site — one `max_tokens = cfg.max_tokens or max_tokens` override in `_complete`, `stream_answer`,
+      `_chat_once_openai/ollama/gemini`, and `_complete_chat` — so it flows through the pass-all,
+      streaming AND smart-lookup (tool-loop) answer paths. `AskQuestionRequest.max_tokens` (+ the
+      transit-chat request) carries it; `_resolve_cfg` sets `cfg.max_tokens` **clamped to 256..32768**
+      (None → provider default 4096). Verified live on Ollama gemma4:e4b: `max_tokens=300` → exactly
+      300 completion tokens; a tiny value clamps up to the 256 floor.
+- [x] **Frontend**: a **Max response length slider** (512–8192, step 256) in Settings → AI with a
+      "Use the model's default length" checkbox (0 = auto); persisted as `ai_max_tokens`. The Ask
+      page reads it and sends `max_tokens` on every `streamAskQuestion` call (`api.js` stream body).
+      Note: SSE streaming uses raw `fetch` so it also bypasses the §13 silent-refresh (tracked there).
+- [ ] 🔴 FOLLOW-UP: thread `max_tokens` into the other AI endpoints too (predict, compatibility,
+      quiz, the per-feature analyses) — they share `_resolve_cfg` so it's a small request-field add.
 
 ## 13. User account & auth improvements (P1, owner ask 2026-07-03)
 

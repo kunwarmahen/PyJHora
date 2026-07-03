@@ -22,6 +22,7 @@ import {
   Bird,
   Crosshair,
   Timer,
+  Settings,
 } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
@@ -159,6 +160,14 @@ export const DashboardPage = () => {
             <span className="username">{user?.username}</span>
           </div>
           <LanguageSwitcher />
+          <button
+            onClick={() => navigate("/settings")}
+            className="logout-btn"
+            title={t("nav.settings")}
+            aria-label={t("nav.settings")}
+          >
+            <Settings size={18} />
+          </button>
           <button onClick={handleLogout} className="logout-btn">
             <LogOut size={18} />
             <span>{t("common.logout")}</span>
