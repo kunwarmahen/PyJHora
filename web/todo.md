@@ -1499,6 +1499,23 @@ Owner decision (2026-07-02): show the arudhas **on the chart cells** (both North
       varga (AL → Taurus D1 / Cancer D9 / Aquarius D10 / Scorpio D60 on the 1990-05-15 chart).
 - [x] i18n: added an `arudhas.showOnChart` / `arudhas.hideOnChart` block (en; hi/sa fall back).
       `npm run build` green, ESLint clean, locale JSON valid.
+- [x] **AI capability — let the model use arudhas** (owner ask 2026-07-02). Mirrors exactly how
+      graha drishti was wired (dedicated tool + pass-all section + system-prompt rule):
+      - Backend `AstrologyCompute.get_arudha_padas(...)` — a focused slice of `get_chart_details`
+        returning just the D1 bhava arudhas (AL/UL/A2..A11 with `sign`/`short`) + an explanatory
+        `note`; ayanamsa set/reset like the others.
+      - **Smart-lookup tool**: `get_arudha_padas` published as a tool in `tools.py`
+        (`SECTION_TOOL["arudhas"]`, catalog "Arudha padas (AL/UL)" under Core chart) so the model
+        can fetch it on demand; tri-state seed/tool/off honoured.
+      - **Pass-all context**: default-on `sections["arudhas"]` in `chart_context.build_chart_context`
+        → rendered as one compact line in `_render_context_block` (`AL Taurus, A2 Scorpio, …`).
+      - **System prompt**: added rule 8 — use AL for the *perceived* self/image/status (vs the real
+        Lagna), UL for the spouse.
+      - **Frontend**: added `{ arudhas }` to the Ask page's `CONTEXT_SECTIONS` + `DEFAULT_SECTION_STATE`
+        (defaults to "tool" in Smart-lookup). Verified: method + dispatch (12 padas), catalog,
+        tri-state gating, pass-all render, prompt rule; backend clean, `npm run build` green.
+      - **Table**: decided NOT to add another arudha table — the Advanced page already renders the
+        full arudha grid, so the chart overlay + Advanced table + AI access cover it.
 
 Follow-up (optional, not requested): a legend/tooltip explaining the AL/UL/A2.. labels.
 

@@ -158,6 +158,13 @@ def _aspects(bd, ayanamsa, **_):
     return {"planets": a.get("planets", []), "note": a.get("note")}
 
 
+def _arudha_padas(bd, ayanamsa, **_):
+    a = AstrologyCompute.get_arudha_padas(ayanamsa=ayanamsa, **_args(bd))
+    if a.get("status") != "success":
+        return a
+    return {"arudha_padas": a.get("arudha_padas", []), "note": a.get("note")}
+
+
 def _divisional_chart(bd, ayanamsa, varga_factor: Optional[int] = None, **_):
     try:
         factor = int(varga_factor)
@@ -343,6 +350,15 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _EMPTY_PARAMS, _aspects,
     ),
     _Tool(
+        "get_arudha_padas",
+        "Bhava arudhas of the Rasi chart: AL (Arudha Lagna = the perceived self, "
+        "image, status and material manifestation), UL (Upapada = spouse/marriage), "
+        "and A2..A11 for houses 2-11 — each the sign the arudha falls in. Use for "
+        "questions about reputation, public image, how one is seen, or (via UL) the "
+        "marriage partner.",
+        _EMPTY_PARAMS, _arudha_padas,
+    ),
+    _Tool(
         "get_divisional_chart",
         "A divisional (varga) chart for a life area, with its Lagna and planet "
         "placements. Pick the varga_factor by topic — " + _VARGA_DESC + ".",
@@ -426,6 +442,7 @@ SECTION_TOOL: Dict[str, str] = {
     "ashtakavarga": "get_ashtakavarga",
     "shadbala": "get_shadbala",
     "aspects": "get_aspects",
+    "arudhas": "get_arudha_padas",
 }
 
 # Tools with no section toggle — always available in tool mode so the model can
@@ -479,6 +496,7 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_natal_chart":      {"label": "Natal chart",            "category": "Core chart"},
     "get_chart_details":    {"label": "House-by-house detail",  "category": "Core chart"},
     "get_aspects":          {"label": "Graha drishti (aspects)", "category": "Core chart"},
+    "get_arudha_padas":     {"label": "Arudha padas (AL/UL)",    "category": "Core chart"},
     "get_divisional_chart": {"label": "Divisional (varga) charts", "category": "Core chart"},
     "get_dasha_chain":      {"label": "Running dasha periods",  "category": "Timing"},
     "get_dasha_children":   {"label": "Dasha sub-periods",      "category": "Timing"},

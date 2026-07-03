@@ -83,7 +83,11 @@ SYSTEM_PROMPT = (
     "(gochara) to time events; a result manifests when promised by the natal "
     "chart AND activated by the dasha/transit.\n"
     "7. DIVISIONAL CHARTS (vargas): corroborate with the relevant varga — D9 for "
-    "marriage/dharma, D10 for career, D7 for children, etc.\n\n"
+    "marriage/dharma, D10 for career, D7 for children, etc.\n"
+    "8. ARUDHA PADAS: when supplied, use the Arudha Lagna (AL) for the *perceived* "
+    "self — image, reputation, status and material manifestation (maya), as distinct "
+    "from the actual Lagna (the real self); use the Upapada (UL) for the spouse and "
+    "marriage. Contrast AL vs Lagna when a question is about how one is seen.\n\n"
     "Be specific to THIS chart, balanced and constructive (never fatalistic), and "
     "offer practical guidance and classical remedies where appropriate."
 )
@@ -1317,6 +1321,19 @@ Planetary Positions (All 9 Grahas):"""
                 rasi_pl = a.get("rasi_drishti_planets", [])
                 if rasi_pl:
                     chart_description += f"; rasi-drishti on {', '.join(rasi_pl)}"
+
+        # Arudha padas — AL (perceived image/status), UL (spouse), A2..A11, each the
+        # sign the arudha occupies. One compact line.
+        arudhas = chart_data.get("arudhas", {})
+        ar_padas = arudhas.get("padas", []) if isinstance(arudhas, dict) else []
+        if ar_padas:
+            items = ", ".join(
+                f"{p.get('short', '?')} {p.get('sign_name', '?')}" for p in ar_padas
+            )
+            chart_description += (
+                "\n\nArudha Padas (AL=perceived image/status, UL=spouse; sign each "
+                f"arudha occupies): {items}"
+            )
 
         header = ("Below is birth chart data for this person, calculated using precise "
                   "astronomical calculations from the PyJHora Vedic astrology software. "

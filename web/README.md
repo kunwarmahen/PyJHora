@@ -34,8 +34,9 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   (prompt + completion breakdown on hover), captured from Ollama, OpenAI/-compatible
   and Gemini streams
 - **Rich, transparent context**: D1 + chosen divisional charts (vargas), the running
-  Vimsottari dasha chain, yogas, doshas, graha drishti (aspects), current transits,
-  Sarva Ashtakavarga and Shadbala strengths — view the exact data sent
+  Vimsottari dasha chain, yogas, doshas, graha drishti (aspects), arudha padas
+  (AL/UL), current transits, Sarva Ashtakavarga and Shadbala strengths — view the
+  exact data sent (and in Smart-lookup mode the AI can fetch each on demand)
 - **Two answer modes** (per conversation): **Full context** pre-sends the whole chart,
   or **Smart lookup** sends a small seed and lets the model fetch what it needs on demand
   — with a **per-section Seed / Tool / Off** control over what is pre-sent vs fetched

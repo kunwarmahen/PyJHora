@@ -1625,6 +1625,45 @@ class AstrologyCompute:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
+    def get_arudha_padas(dob: str, tob: str, place: str,
+                         lat: Optional[float] = None, lon: Optional[float] = None,
+                         tz: Optional[float] = None,
+                         ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Bhava arudhas (AL/UL/A2..A11) of the Rasi (D1) chart — each the sign the
+        arudha falls in. Arudha Lagna (AL) reflects the *perceived* self/image/status
+        (maya), Upapada (UL) the marriage/spouse; the intermediate A2..A11 mirror the
+        arudhas of houses 2-11. A focused slice of `get_chart_details` for the AI to
+        pull on demand (and to seed the pass-all context)."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            second = int(tp[2]) if len(tp) > 2 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
+            pp = charts.rasi_chart(jd, place_obj)
+            return {
+                "status": "success",
+                "arudha_padas": _format_arudha_padas(
+                    arudhas.bhava_arudhas_from_planet_positions(pp)),
+                "note": ("AL = Arudha Lagna (perceived image/status), UL = Upapada "
+                         "(spouse/marriage); A2..A11 are the arudhas of houses 2-11. "
+                         "Each value is the rasi the arudha occupies."),
+            }
+        except Exception as e:
+            print(f"Arudha padas error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
     def get_chart_details(dob: str, tob: str, place: str,
                           lat: Optional[float] = None, lon: Optional[float] = None,
                           tz: Optional[float] = None,

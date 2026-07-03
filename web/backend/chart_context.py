@@ -27,6 +27,7 @@ DEFAULT_SECTIONS = {
     "ashtakavarga": True,
     "shadbala": True,
     "aspects": True,
+    "arudhas": True,
 }
 
 # Divisional charts included by default: D1 (natal), D9 (Navamsa), D10 (Dasamsa).
@@ -228,6 +229,14 @@ def build_chart_context(birth_details: Dict[str, Any],
             ctx["aspects"] = {
                 "planets": asp.get("planets", []),
                 "note": asp.get("note"),
+            }
+
+    if sections.get("arudhas"):
+        aru = AstrologyCompute.get_arudha_padas(ayanamsa=ayanamsa, **args)
+        if aru.get("status") == "success":
+            ctx["arudhas"] = {
+                "padas": aru.get("arudha_padas", []),
+                "note": aru.get("note"),
             }
 
     # Divisional charts (vargas). D1 is already the natal `planetary_positions`,

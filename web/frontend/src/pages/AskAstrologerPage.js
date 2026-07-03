@@ -48,6 +48,7 @@ const CONTEXT_SECTIONS = [
   { key: "doshas", label: "Doshas" },
   { key: "transits", label: "Transits" },
   { key: "aspects", label: "Aspects (drishti)" },
+  { key: "arudhas", label: "Arudha padas (AL/UL)" },
   { key: "ashtakavarga", label: "Ashtakavarga" },
   { key: "shadbala", label: "Shadbala" },
 ];
@@ -56,7 +57,7 @@ const CONTEXT_SECTIONS = [
 // let the AI fetch everything else on demand. Full-context mode seeds all.
 const DEFAULT_SECTION_STATE = {
   dasha_tree: "seed", yogas: "tool", doshas: "tool", transits: "tool",
-  aspects: "tool", ashtakavarga: "tool", shadbala: "tool",
+  aspects: "tool", arudhas: "tool", ashtakavarga: "tool", shadbala: "tool",
 };
 
 
