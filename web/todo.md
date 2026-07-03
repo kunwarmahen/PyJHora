@@ -1764,13 +1764,27 @@ Plan:
       `ai_base_url`/`ai_mode` + new `ai_max_tokens`), so the Settings page is the canonical editor
       and every existing page keeps reading the values unchanged. Wired into `App.js` under
       Auth/Profile providers. Language changes drive i18next immediately.
-- [ ] 🔴 **Remove the per-page controls** now that Settings owns them (ayanamsa dropdown on
-      BirthChart, chart-style toggle across ~10 pages, the AI model/mode/sections/varga cards +
-      API-keys modal on Ask, almanac engine toggle on PanchangaPanel). PHASE 2 — not done yet:
-      the Settings page is live and controls these via the shared keys, but the duplicate in-page
-      editors are still present. Migrate pages to consume `useSettings` (read-only) and delete the
-      inline controls, page by page, verifying each. (Owner decision = move everything; a couple of
-      mid-task toggles like chart-style N/S could optionally stay as a convenience — confirm.)
+- [x] **Remove the per-page controls (phase 2a/2b)** — DONE 2026-07-03: pages now consume
+      `useSettings` read-only and their inline editors are gone. **Ayanamsa** dropdown removed from
+      BirthChart + Advanced; the display/read-only pages (Transit/Varshaphal/Rectification/
+      Sarvatobhadra/Compare/Compatibility/Dhasa/SensitivePoints/PanchaPakshi/Learn) read
+      `settings.ayanamsa`. **Chart-style N/S** toggle removed from BirthChart/Transit/Varshaphal/
+      Rectification; all chart pages read `settings.chartStyle`. **Almanac engine** (Drik/Surya)
+      toggle removed from `PanchangaPanel` → `settings.panchangaSystem`. Backing localStorage keys
+      unchanged (SettingsContext writes them), so nothing breaks; build + eslint green across all 13
+      files. (Owner note: chart-style N/S is now Settings-only — trivial to re-add an inline
+      quick-toggle if it's missed mid-task.)
+- [ ] 🔴 **Remove the Ask-page AI-config cards (phase 2c)** — NOT done. The Ask page's
+      provider/model/endpoint card, answer-mode card, context-sections tri-state card, vargas
+      "Charts to Consult" card, and API-keys modal are still inline. This is deferred deliberately:
+      it's the flagship chat and the config is tightly coupled (provider fetch/availability, model
+      validation, per-conversation mode locking, regenerate-with-a-different-model, per-question
+      varga suggestions). Also, **Settings does not yet own context-sections or vargas**, so those
+      must be ADDED to Settings first before they can be removed from Ask without losing function.
+      Provider/model/endpoint/mode already sync with Settings via the shared localStorage keys.
+      DECISION NEEDED: are context-sections + default-vargas global settings (move to Settings) or
+      per-question context tuning (keep on Ask)? Recommend: move model/endpoint + API-keys fully to
+      Settings; keep sections/vargas as per-question controls on Ask (they're question-specific).
 - [x] i18n `settings.*` (en; hi/sa fall back) + `nav.settings`. DONE 2026-07-03.
 
 ### 12.1 Max response length (output tokens) control (P1, owner ask 2026-07-03) — DONE 2026-07-03
