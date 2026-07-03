@@ -28,6 +28,8 @@ import refresh_tokens
 import password_reset
 import email_service
 import notifications
+import digest as digest_service
+import scheduler
 import uuid
 
 # Request models
@@ -371,8 +373,10 @@ class PushUnsubscribeRequest(BaseModel):
 async def lifespan(app: FastAPI):
     # Startup
     await connect_to_mongo()
+    scheduler.start()  # daily-digest scheduler (no-op unless DIGEST_SCHEDULER_ENABLED)
     yield
     # Shutdown
+    await scheduler.stop()
     await close_mongo_connection()
 
 app = FastAPI(
@@ -2456,58 +2460,19 @@ async def push_unsubscribe(
 @app.post("/api/notifications/digest/send")
 async def send_digest_now(current_user: str = Depends(get_current_user)):
     """Compute the current user's daily digest and deliver it on their enabled
-    channels (email / push). Returns what was sent. A scheduler (cron / the
-    /schedule infra) can call this per user at their preferred hour; a user can
-    also trigger a test delivery from Settings."""
+    channels (email / push). Returns what was sent. Shares its delivery logic with
+    the background scheduler (`digest.send_digest_for_user`); a user triggers this
+    as a test from Settings, or a deployer's cron can hit it per user."""
     prefs = await notifications.get_prefs(current_user)
     if not prefs.get("daily_digest"):
         raise HTTPException(status_code=400, detail="Daily digest is not enabled in your settings")
 
-    # Resolve the birth profile to compute for (chosen, else the default/first).
-    from database import database
-    profile = None
-    if prefs.get("profile_id"):
-        try:
-            from bson import ObjectId
-            profile = await database["saved_profiles"].find_one(
-                {"_id": ObjectId(prefs["profile_id"]), "user_id": current_user})
-        except Exception:
-            profile = None
-    if not profile:
-        profile = await database["saved_profiles"].find_one(
-            {"user_id": current_user, "is_default": True}
-        ) or await database["saved_profiles"].find_one({"user_id": current_user})
-    if not profile:
-        raise HTTPException(status_code=400, detail="No birth profile found to build the digest from")
-
-    bd = profile["birth_details"]
-    digest = AstrologyCompute.get_daily_digest(
-        dob=bd["dob"], tob=bd["tob"], place=bd.get("place", ""),
-        lat=bd.get("latitude"), lon=bd.get("longitude"), tz=bd.get("timezone"))
-    if digest.get("status") != "success":
-        raise HTTPException(status_code=400, detail=digest.get("error", "Digest calculation failed"))
-
-    name = bd.get("name") or profile.get("profile_name") or "there"
-    highlights = digest.get("highlights", [])
-    subject = f"Your PyJHora digest — {digest.get('date')}"
-    text = f"Hi {name},\n\nHere's your Vedic digest for {digest.get('date')}:\n\n" + \
-        "\n".join(f"• {h}" for h in highlights) + \
-        "\n\nOpen PyJHora for the full reading."
-    html = f"<p>Hi {name}, here's your Vedic digest for <b>{digest.get('date')}</b>:</p><ul>" + \
-        "".join(f"<li>{h}</li>" for h in highlights) + "</ul>"
-
-    sent = {"email": False, "push": 0}
-    if prefs.get("email"):
-        user = await database["users"].find_one({"username": current_user})
-        if user and user.get("email"):
-            sent["email"] = await email_service.send_daily_digest(user["email"], subject, text, html)
-    if prefs.get("push"):
-        sent["push"] = await notifications.send_push(current_user, {
-            "title": subject,
-            "body": highlights[0] if highlights else "Your daily Vedic digest is ready.",
-            "url": "/daily-digest",
-        })
-    return {"status": "ok", "sent": sent, "highlights": highlights, "date": digest.get("date")}
+    result = await digest_service.send_digest_for_user(current_user, prefs)
+    if result.get("status") != "ok":
+        if result.get("reason") == "no_profile":
+            raise HTTPException(status_code=400, detail="No birth profile found to build the digest from")
+        raise HTTPException(status_code=400, detail="Digest calculation failed")
+    return result
 
 @app.post("/api/astrology/varshaphal-analysis")
 async def analyze_varshaphal(

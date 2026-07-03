@@ -154,22 +154,28 @@ def _genkeys() -> None:
     except Exception:
         print("py_vapid not installed. Run: pip install pywebpush")
         return
-    v = Vapid01()
-    v.generate_keys()
-    # Application-server (public) key is the base64url of the raw P-256 point;
-    # pywebpush accepts the PEM private key directly.
     from cryptography.hazmat.primitives import serialization
     import base64
 
+    v = Vapid01()
+    v.generate_keys()
+
+    def _b64url(raw: bytes) -> str:
+        return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+
+    # Public key: base64url of the raw uncompressed P-256 point (the value the
+    # browser needs as applicationServerKey — also exposed to the frontend).
     pub_raw = v.public_key.public_bytes(
         serialization.Encoding.X962,
         serialization.PublicFormat.UncompressedPoint,
     )
-    pub_b64 = base64.urlsafe_b64encode(pub_raw).rstrip(b"=").decode("ascii")
-    priv_pem = v.private_pem().decode("ascii") if hasattr(v, "private_pem") else ""
-    print("VAPID_PUBLIC_KEY=" + pub_b64)
-    print("VAPID_PRIVATE_KEY (PEM, keep the newlines or base64 it):")
-    print(priv_pem)
+    # Private key: base64url of the raw 32-byte scalar — a single line that
+    # pywebpush/py_vapid load via Vapid.from_string, so it drops straight into .env.
+    priv_raw = v.private_key.private_numbers().private_value.to_bytes(32, "big")
+
+    print("# Paste these into web/backend/.env")
+    print("VAPID_PUBLIC_KEY=" + _b64url(pub_raw))
+    print("VAPID_PRIVATE_KEY=" + _b64url(priv_raw))
 
 
 if __name__ == "__main__":

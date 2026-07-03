@@ -1982,9 +1982,17 @@ server-injects birth details + resets global state, auth endpoint, saffron page,
         handlers; `utils/push.js` subscribes the SW + registers the subscription
         (`POST /api/notifications/push/(un)subscribe`). Prefs UI: a new **Settings → Notifications**
         tab (master switch, profile/hour pickers, email + push toggles with availability badges, test
-        button). Config: `VAPID_*` + `python -m notifications genkeys`. Verified live (prefs get/set,
-        push subscribe 503 when unset, digest highlights). Delivery *scheduling* is left to the
-        deployer's cron hitting `/digest/send` per user (the `/schedule` infra fits conceptually).
+        button). Config: `VAPID_*` + `python -m notifications genkeys` (now prints **single-line**
+        base64url keys that drop straight into `.env`). Verified live (prefs get/set, push subscribe
+        503 when unset, digest highlights).
+      - **Scheduler** — DONE 2026-07-03: an opt-in in-process asyncio scheduler (`scheduler.py`, env
+        `DIGEST_SCHEDULER_ENABLED`/`DIGEST_SCHEDULER_INTERVAL_MINUTES`, started in the app lifespan)
+        delivers each opted-in user's digest **once a day at their preferred local hour** (interpreted
+        in the target profile's tz). Multi-worker/multi-tick safe: it **atomically claims** the day via
+        a conditional `find_one_and_update` on `user_settings` (`notifications.last_sent_date != today`)
+        so only the winner sends. Delivery logic is shared with the manual endpoint via a new `digest.py`
+        (`send_digest_for_user`). A deployer can leave the scheduler off and cron `/digest/send` instead.
+        Verified: tick sends once + claims the date, a second tick no-ops, wrong-hour users are skipped.
 - [ ] 🔴 **KP system (Krishnamurti Paddhati)** (P2→P1) — sub-lords, star-lord, ruling planets,
       significators, KP horary (1–249). Engine has KP ayanamsa + likely sub-lord helpers (audit
       `src/jhora` for KP/sublord). A dedicated KP page + significator tables + AI reading.

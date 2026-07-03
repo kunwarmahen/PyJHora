@@ -315,6 +315,12 @@ VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 VAPID_SUBJECT=mailto:admin@example.com
 
+# Daily-digest scheduler (opt-in): deliver each opted-in user's digest once a day
+# at their preferred local hour. Off by default (cron POST /notifications/digest/send
+# instead). Safe with multiple workers (an atomic DB claim prevents double-sends).
+DIGEST_SCHEDULER_ENABLED=false
+DIGEST_SCHEDULER_INTERVAL_MINUTES=15
+
 # CORS
 CORS_ORIGINS=["http://localhost:3000","http://localhost:8000"]
 ```
@@ -581,7 +587,11 @@ Three approaches, chosen with a mode toggle:
   next Jupiter/Saturn ingress), plus a warm **AI reading**
 - **Delivery channels** (opt-in, in **Settings → Notifications**): in-app always; **email** digest
   (via SMTP); **browser push** (Web Push / VAPID). A "send me a test now" button and per-user
-  profile/hour preferences; deployers point a cron at `POST /api/notifications/digest/send`
+  profile/hour preferences
+- **Scheduler**: an opt-in in-process scheduler (`DIGEST_SCHEDULER_ENABLED`) delivers each user's
+  digest once a day at their preferred local hour — multi-worker-safe via an atomic DB claim
+  (`notifications.last_sent_date`). Or leave it off and point your own cron at
+  `POST /api/notifications/digest/send` per user (both share `digest.send_digest_for_user`)
 
 ### 18. Export & Share
 - **Export** any chart as **PNG** or **PDF** (buttons on each chart card) — on Birth

@@ -59,6 +59,13 @@ class Settings(BaseSettings):
     VAPID_PRIVATE_KEY: str = ""   # base64url-encoded P-256 private key (PEM also accepted)
     VAPID_SUBJECT: str = "mailto:admin@example.com"
 
+    # In-process daily-digest scheduler. When enabled, a background task delivers
+    # each opted-in user's digest once a day at their preferred local hour. Off by
+    # default — a deployer can instead cron `POST /api/notifications/digest/send`.
+    # The wake interval must be < 60 min so it catches every target hour.
+    DIGEST_SCHEDULER_ENABLED: bool = False
+    DIGEST_SCHEDULER_INTERVAL_MINUTES: int = 15
+
     class Config:
         env_file = ".env"
         case_sensitive = True
