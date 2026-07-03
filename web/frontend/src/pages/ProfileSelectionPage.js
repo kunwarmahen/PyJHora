@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import LocationSearch from "../components/LocationSearch";
 import MapPicker from "../components/MapPicker";
-import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import "../styles/ProfileSelection.css";
 
 export const ProfileSelectionPage = () => {
@@ -167,9 +166,6 @@ export const ProfileSelectionPage = () => {
 
   return (
     <div className="profile-selection-page mandala-bg">
-      <div className="profile-lang-switch">
-        <LanguageSwitcher />
-      </div>
       <div className="profile-selection-container">
         <div className="page-header-section fade-in">
           <div className="mandala-icon">

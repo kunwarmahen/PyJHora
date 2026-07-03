@@ -3,7 +3,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import { Mail, Lock, User, AlertCircle } from "lucide-react";
-import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import "../styles/Auth.css";
 
 export const RegisterPage = () => {
@@ -34,9 +33,6 @@ export const RegisterPage = () => {
 
   return (
     <div className="auth-container">
-      <div className="auth-lang">
-        <LanguageSwitcher />
-      </div>
       <div className="auth-card">
         <h1>PyJHora</h1>
         <p className="subtitle">{t("auth.createAccount")}</p>

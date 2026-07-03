@@ -16,7 +16,6 @@ import {
   Grid3x3,
   GitCompareArrows,
   GraduationCap,
-  Wrench,
   CalendarDays,
   Clock4,
   Bird,
@@ -26,7 +25,6 @@ import {
 } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
-import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import "../styles/Dashboard.css";
 
 export const DashboardPage = () => {
@@ -139,12 +137,6 @@ export const DashboardPage = () => {
       path: "/rectify",
       gradient: "linear-gradient(135deg, #E27B5A 0%, #2D3561 100%)",
     },
-    {
-      key: "aiTools",
-      icon: <Wrench size={32} />,
-      path: "/ai-tools",
-      gradient: "linear-gradient(135deg, #3D4571 0%, #5A5F7A 100%)",
-    },
   ];
 
   return (
@@ -159,7 +151,6 @@ export const DashboardPage = () => {
             <span className="welcome-text">{t("dashboard.welcome")}</span>
             <span className="username">{user?.username}</span>
           </div>
-          <LanguageSwitcher />
           <button
             onClick={() => navigate("/settings")}
             className="logout-btn"

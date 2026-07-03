@@ -8,7 +8,6 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { DataField } from "../components/DataField";
-import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { formatDate, orDash } from "../utils/format";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
@@ -51,7 +50,6 @@ export const SharedChartPage = () => {
           <h1>PyJHora</h1>
         </div>
         <div className="nav-right">
-          <LanguageSwitcher />
           <Link to="/login" className="change-profile-btn">
             <Star size={16} />
             <span>{t("shared.openApp")}</span>

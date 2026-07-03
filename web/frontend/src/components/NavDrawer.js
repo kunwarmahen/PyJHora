@@ -12,7 +12,6 @@ import {
   Sparkles,
   Heart,
   MessageCircle,
-  Wrench,
   Star,
   Grid3x3,
   GitCompareArrows,
@@ -48,7 +47,6 @@ const LINKS = [
   { to: "/compatibility", labelKey: "nav.compatibility", icon: <Heart size={20} /> },
   { to: "/learn", labelKey: "nav.learn", icon: <GraduationCap size={20} /> },
   { to: "/ask-astrologer", labelKey: "nav.ask", icon: <MessageCircle size={20} /> },
-  { to: "/ai-tools", labelKey: "nav.aiTools", icon: <Wrench size={20} /> },
   { to: "/settings", labelKey: "nav.settings", icon: <Settings size={20} /> },
 ];
 
