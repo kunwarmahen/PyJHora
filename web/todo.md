@@ -1483,16 +1483,24 @@ Owner decision (2026-07-02): show the arudhas **on the chart cells** (both North
       `arudhas` + `showArudhas` props. For each rasi cell, the arudhas whose `sign` matches are
       appended as a distinct **italic temple-gold** item (North: one joined line `AL A7`, size
       floored & respecting the crowded-house graduated sizing; South: a `.si-pl-arudha` pill),
-      clearly separated from indigo planets and the saffron lagna. Shown **only on the Rasi (D1)
-      chart** (bhava arudhas are rasi-chart constructs — the varga charts, with their own sign
-      layout, don't get them). Gated behind a **"Show arudhas" toggle** on the Birth Chart page
-      (persisted `localStorage.showArudhas`, off by default, `Landmark` icon), sitting next to
-      the aspects toggle; arudhas fetched via the existing `getChartDetails` endpoint.
+      clearly separated from indigo planets and the saffron lagna. Gated behind a **"Show arudhas"
+      toggle** on the Birth Chart page (persisted `localStorage.showArudhas`, off by default,
+      `Landmark` icon), sitting next to the aspects toggle.
+- [x] **On the Rasi (D1) AND every divisional (varga) chart** (owner ask 2026-07-02, follow-up).
+      Bhava arudhas are per-chart (they depend on that chart's lagna/positions), so each chart
+      gets its **own** arudhas rather than reusing D1's: a shared `_format_arudha_padas()` helper
+      shapes the raw `bhava_arudhas_from_planet_positions(...)` output, and it's now called on the
+      D1 and D9 charts inside `calculate_birth_chart` (returned as `d1_arudha_padas` /
+      `d9_arudha_padas`) and on each divisional chart inside `calculate_divisional_chart`
+      (returned as `arudha_padas`). The Rasi chart sources its arudhas from the birth-chart
+      response (dropping the separate `getChartDetails` call); the varga picker passes each
+      varga's own arudhas (D1/D9 reused from the birth-chart response, others from the
+      divisional-chart response) into the varga `Kundali`. Verified live that they differ per
+      varga (AL → Taurus D1 / Cancer D9 / Aquarius D10 / Scorpio D60 on the 1990-05-15 chart).
 - [x] i18n: added an `arudhas.showOnChart` / `arudhas.hideOnChart` block (en; hi/sa fall back).
       `npm run build` green, ESLint clean, locale JSON valid.
 
-Follow-up (optional, not requested): a legend/tooltip explaining AL/UL, and per-varga arudhas
-(compute bhava arudhas on each divisional chart so the varga cells can show them too).
+Follow-up (optional, not requested): a legend/tooltip explaining the AL/UL/A2.. labels.
 
 ### 10.2 Birth-time correction / rectification (P1) — full feature, experimental — SHIPPED 2026-07-02
 

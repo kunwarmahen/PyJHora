@@ -129,11 +129,19 @@ export const BirthChartPage = () => {
     if (!result || !selectedProfile) return;
 
     if (varga === 1) {
-      setVargaChart({ planets: result.planets, lagna: result.lagna });
+      setVargaChart({
+        planets: result.planets,
+        lagna: result.lagna,
+        arudha_padas: result.d1_arudha_padas,
+      });
       return;
     }
     if (varga === 9 && result.d9_chart && result.d9_lagna) {
-      setVargaChart({ planets: result.d9_chart, lagna: result.d9_lagna });
+      setVargaChart({
+        planets: result.d9_chart,
+        lagna: result.d9_lagna,
+        arudha_padas: result.d9_arudha_padas,
+      });
       return;
     }
 
@@ -169,21 +177,19 @@ export const BirthChartPage = () => {
 
       const response = await astrologyService.calculateBirthChart(birthDetails, ayanamsa);
       setResult(response.data);
+      // Rasi (D1) arudhas ride along with the birth-chart response (per-chart arudhas
+      // for the varga picker come from each divisional-chart response instead).
+      setArudhas(response.data?.d1_arudha_padas || null);
 
       // Yogas, doshas & aspects load independently — a failure here shouldn't blank the chart.
       setDoshas(null);
       setYogas(null);
       setRajaYogas(null);
       setAspects(null);
-      setArudhas(null);
       astrologyService
         .getDoshas(birthDetails, ayanamsa)
         .then((r) => setDoshas(r.data?.doshas || null))
         .catch(() => setDoshas(null));
-      astrologyService
-        .getChartDetails(birthDetails, ayanamsa)
-        .then((r) => setArudhas(r.data?.arudha_padas || null))
-        .catch(() => setArudhas(null));
       astrologyService
         .getYogas(birthDetails, ayanamsa)
         .then((r) => setYogas(r.data?.yogas || null))
@@ -405,6 +411,8 @@ export const BirthChartPage = () => {
                             title={t("birthChart.nameChart", { name: vargaMeta.name })}
                             subtitle={`${vargaMeta.code} · ${styleLabel}`}
                             exportable
+                            arudhas={vargaChart.arudha_padas}
+                            showArudhas={showArudhas}
                           />
                         ) : (
                           <div className="varga-empty">{t("birthChart.chartUnavailable")}</div>

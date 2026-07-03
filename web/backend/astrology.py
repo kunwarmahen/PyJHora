@@ -80,6 +80,24 @@ ZODIAC_NAMES = [
     "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
 ]
 
+
+def _format_arudha_padas(ba):
+    """Shape a raw bhava-arudha sign list (from
+    `arudhas.bhava_arudhas_from_planet_positions`) into the frontend contract:
+    each entry has `bhava`, `label` (full), `short` (compact chart label —
+    AL for bhava 1, UL for bhava 12, else A2..A11), `sign` (1-based rasi the
+    arudha falls in, Aries=1) and `sign_name`."""
+    labels = {0: "AL (Arudha Lagna)", 11: "UL (Upapada)"}
+    short = {0: "AL", 11: "UL"}
+    return [
+        {"bhava": i + 1,
+         "label": labels.get(i, f"A{i + 1}"),
+         "short": short.get(i, f"A{i + 1}"),
+         "sign": int(s) % 12 + 1,
+         "sign_name": ZODIAC_NAMES[int(s) % 12]}
+        for i, s in enumerate(ba)
+    ]
+
 # Traditional (7-graha) sign lords, indexed by sign 0=Aries..11=Pisces → planet index.
 # Aries/Scorpio→Mars, Tau/Lib→Venus, Gem/Vir→Mercury, Can→Moon, Leo→Sun,
 # Sag/Pis→Jupiter, Cap/Aqu→Saturn.
@@ -625,6 +643,17 @@ class AstrologyCompute:
                     "sign_name": zodiac_names[rasi]
                 }
 
+            # Bhava arudhas (AL/UL/A2..) for the Rasi (D1) and Navamsa (D9), each computed
+            # on its own positions, so the frontend can overlay them on either chart.
+            try:
+                d1_arudha_padas = _format_arudha_padas(
+                    arudhas.bhava_arudhas_from_planet_positions(d1_chart))
+                d9_arudha_padas = _format_arudha_padas(
+                    arudhas.bhava_arudhas_from_planet_positions(d9_chart))
+            except Exception:
+                d1_arudha_padas = []
+                d9_arudha_padas = []
+
             return {
                 "status": "success",
                 "dob": dob,
@@ -649,6 +678,8 @@ class AstrologyCompute:
                 "d9_lagna": d9_lagna,  # Navamsa ascendant for D9 chart rendering
                 "d1_chart": d1_planets,
                 "d9_chart": d9_planets,
+                "d1_arudha_padas": d1_arudha_padas,
+                "d9_arudha_padas": d9_arudha_padas,
                 "d1_houses": [[p[1][0]] for p in d1_chart],  # House-wise planet placement
                 "d9_houses": [[p[1][0]] for p in d9_chart]
             }
@@ -714,6 +745,15 @@ class AstrologyCompute:
                     "sign_name": ZODIAC_NAMES[rasi],
                 }
 
+            # Bhava arudhas computed on THIS varga's own positions (not the D1 arudhas)
+            # so the frontend can overlay AL/UL/A2.. in the divisional chart's cells.
+            try:
+                arudha_padas = _format_arudha_padas(
+                    arudhas.bhava_arudhas_from_planet_positions(chart)
+                )
+            except Exception:
+                arudha_padas = []
+
             code, name, significance = SUPPORTED_VARGAS[varga_factor]
             return {
                 "status": "success",
@@ -723,6 +763,7 @@ class AstrologyCompute:
                 "significance": significance,
                 "lagna": lagna,
                 "planets": planets,
+                "arudha_padas": arudha_padas,
             }
         except Exception as e:
             print(f"Divisional chart calculation error: {str(e)}")
@@ -1610,20 +1651,8 @@ class AstrologyCompute:
                 s, d = int(pair[0]), float(pair[1])
                 return {"sign_name": ZODIAC_NAMES[s % 12], "degrees": round(d, 2)}
 
-            # Arudha padas A1..A12 (bhava arudhas), each a sign index. `sign` is the
-            # 1-based rasi the arudha falls in (Aries=1) so the frontend can place the
-            # marker in the chart cell; `short` is the compact chart label (AL/UL/A2..).
-            ba = arudhas.bhava_arudhas_from_planet_positions(pp)
-            arudha_labels = {0: "AL (Arudha Lagna)", 11: "UL (Upapada)"}
-            arudha_short = {0: "AL", 11: "UL"}
-            arudha_padas = [
-                {"bhava": i + 1,
-                 "label": arudha_labels.get(i, f"A{i + 1}"),
-                 "short": arudha_short.get(i, f"A{i + 1}"),
-                 "sign": int(s) % 12 + 1,
-                 "sign_name": ZODIAC_NAMES[int(s) % 12]}
-                for i, s in enumerate(ba)
-            ]
+            # Arudha padas A1..A12 (bhava arudhas) for the rasi chart.
+            arudha_padas = _format_arudha_padas(arudhas.bhava_arudhas_from_planet_positions(pp))
 
             # Chara karakas (Jaimini), 8 planets ordered by longitude.
             karaka_names = ["Atma (AK)", "Amatya (AmK)", "Bhratri (BK)", "Matri (MK)",
