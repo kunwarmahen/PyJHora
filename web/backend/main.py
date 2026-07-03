@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse
@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 import json
+import re
 from pydantic import BaseModel
 
 from config import settings
@@ -47,6 +48,13 @@ class LogoutRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
+
+class UpdateEmailRequest(BaseModel):
+    email: str
+
+class DeleteAccountRequest(BaseModel):
+    # Current password, required to confirm an irreversible account deletion.
+    password: str
 
 class AskQuestionRequest(BaseModel):
     birth_details: BirthDetails
@@ -346,7 +354,8 @@ async def register(req: RegisterRequest):
         user_doc = {
             "username": req.username,
             "email": req.email,
-            "hashed_password": hashed_password
+            "hashed_password": hashed_password,
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
         await users_collection.insert_one(user_doc)
 
@@ -358,19 +367,31 @@ async def register(req: RegisterRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/auth/login", response_model=Token)
-async def login(req: LoginRequest):
+async def login(req: LoginRequest, request: Request):
     """Login user and return token"""
     try:
         from database import database
         if database is None:
             raise HTTPException(status_code=500, detail="Database not connected")
-        
+
+        # Brute-force guard: throttle by client IP after repeated failures.
+        client_ip = request.client.host if request.client else "unknown"
+        allowed, retry_after = ratelimit.login_allowed(client_ip)
+        if not allowed:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Too many failed login attempts. Try again in {retry_after}s.",
+                headers={"Retry-After": str(retry_after)},
+            )
+
         users_collection = database["users"]
         user = await users_collection.find_one({"username": req.username})
-        
+
         if not user or not verify_password(req.password, user["hashed_password"]):
+            ratelimit.login_failed(client_ip)
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
+        ratelimit.login_succeeded(client_ip)
         return await _issue_token_pair(req.username, req.remember_me)
     except HTTPException:
         raise
@@ -432,6 +453,84 @@ async def change_password(req: ChangePasswordRequest, current_user: str = Depend
     # Invalidate every existing session, then hand this one a fresh pair.
     await refresh_tokens.revoke_all(current_user)
     return await _issue_token_pair(current_user, remember_me=True)
+
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+@app.put("/api/auth/email")
+async def update_email(req: UpdateEmailRequest, current_user: str = Depends(get_current_user)):
+    """Update the logged-in user's email address."""
+    from database import database
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database not connected")
+
+    email = (req.email or "").strip()
+    if not _EMAIL_RE.match(email):
+        raise HTTPException(status_code=400, detail="Please enter a valid email address")
+
+    users_collection = database["users"]
+    # Reject if another account already uses this email.
+    clash = await users_collection.find_one(
+        {"email": email, "username": {"$ne": current_user}}
+    )
+    if clash:
+        raise HTTPException(status_code=400, detail="That email is already in use")
+
+    result = await users_collection.update_one(
+        {"username": current_user}, {"$set": {"email": email}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True, "email": email}
+
+
+@app.post("/api/auth/logout-all", response_model=Token)
+async def logout_all(current_user: str = Depends(get_current_user)):
+    """Revoke every refresh token for this user (signing out all other devices),
+    then hand the current session a fresh pair so it stays signed in."""
+    await refresh_tokens.revoke_all(current_user)
+    return await _issue_token_pair(current_user, remember_me=True)
+
+
+# Every Mongo collection that stores rows scoped to a user, and the field its
+# owner is keyed on. Used to fully purge an account on deletion.
+_USER_SCOPED_COLLECTIONS = [
+    ("saved_profiles", "user_id"),
+    ("charts", "user_id"),
+    ("user_settings", "user_id"),
+    ("ai_conversations", "user_id"),
+    ("ai_tool_traces", "user_id"),
+    ("shared_charts", "user_id"),
+    ("quiz_sessions", "user_id"),
+    ("refresh_tokens", "username"),
+]
+
+
+@app.delete("/api/auth/account")
+async def delete_account(req: DeleteAccountRequest, current_user: str = Depends(get_current_user)):
+    """Permanently delete the logged-in user's account and cascade-delete all of
+    their data (birth profiles, saved charts, AI conversations + tool traces,
+    shared-chart links, quiz sessions, settings and refresh tokens). Requires the
+    current password as a confirmation. Irreversible."""
+    from database import database
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database not connected")
+
+    users_collection = database["users"]
+    user = await users_collection.find_one({"username": current_user})
+    if not user or not verify_password(req.password, user["hashed_password"]):
+        raise HTTPException(status_code=400, detail="Password is incorrect")
+
+    # Cascade: wipe every user-scoped collection, then the user row itself.
+    for name, field in _USER_SCOPED_COLLECTIONS:
+        try:
+            await database[name].delete_many({field: current_user})
+        except Exception as e:
+            # Don't abort the whole deletion if one collection is missing/errors.
+            print(f"delete_account: failed clearing {name}: {e}")
+    await users_collection.delete_one({"username": current_user})
+    return {"success": True, "message": "Account deleted"}
 
 # ============= ASTROLOGY ROUTES =============
 

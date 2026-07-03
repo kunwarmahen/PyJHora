@@ -1861,13 +1861,29 @@ Plan:
       refresh tokens (logs out other devices) and returns a fresh pair so the current session stays
       in. `authService.changePassword` in api.js. Verified live (wrong-current → 400; correct →
       new pair + old refresh & old password both rejected). UI form → Settings → Account (§12).
-- [ ] 🔴 **Profile/account management**: view account (email/username), **update email**, **delete
-      account** (cascade: profiles, conversations, traces, shares, settings). Some CRUD for the
-      birth-profiles already exists (ProfileSelection) — audit and surface consistently.
+- [x] **Profile/account management**. DONE 2026-07-03: Settings → Account now shows the account
+      overview (username + **Member since** — `register` now stamps `created_at`; `GET /api/user/profile`
+      already returned username/email). **Update email**: `PUT /api/auth/email` (validates format via
+      regex, rejects an email already used by another account) + an email form. **Delete account**:
+      `DELETE /api/auth/account` (password-confirmed, irreversible) **cascade-purges** every user-scoped
+      collection — `saved_profiles/charts/user_settings/ai_conversations/ai_tool_traces/shared_charts/
+      quiz_sessions` (by `user_id`) + `refresh_tokens` (by `username`) + the `users` row; a danger-zone UI
+      with a typed-password confirm, then local logout → `/login`. Birth-profile CRUD already lived in
+      ProfileSelection (unchanged). Verified live (curl, isolated `pyjhora_test` DB): register→email
+      update (valid/invalid)→change-password→seed profile→delete→login 401, and a Mongo sweep confirming
+      **0 leftover docs** across all 9 collections.
 - [ ] 🔴 (P2) **Forgot / reset password** via email — needs an email/SMTP integration
       (transactional email). Park until an email provider is chosen.
-- [ ] 🔴 (P2) Optional niceties: session list / "log out other devices", basic rate-limit on
-      login to blunt brute-force, password-strength hint on register.
+- [x] (P2) Optional niceties. DONE 2026-07-03: **"Log out other devices"** — `POST /api/auth/logout-all`
+      (`revoke_all` then returns a fresh pair so *this* device stays in; frontend stores it via
+      `setTokens`), button in Settings → Account. **Login brute-force rate-limit** — `ratelimit.login_*`
+      (a per-client-IP failed-attempt window, default 10 fails / 15 min, env `LOGIN_RATE_MAX_FAILS`/
+      `LOGIN_RATE_WINDOW_SEC`); the login endpoint 429s when tripped and clears the counter on success.
+      Verified: 429 after threshold, blocks even the correct password until the window passes. **Password-
+      strength hint on register** — a no-lib weak/fair/strong meter (length + character-class score) under
+      the password field. (Keyed by IP not username to avoid a victim-lockout DoS. A full per-session
+      *list* view isn't built — opaque hashed refresh tokens make it possible but it wasn't needed;
+      "log out other devices" covers the practical case.)
 
 ## 14. Layman FAQ / Help page (P1, owner ask 2026-07-03)
 

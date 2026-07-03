@@ -119,6 +119,10 @@ export const authService = {
       current_password: currentPassword,
       new_password: newPassword,
     }),
+  updateEmail: (email) => api.put("/api/auth/email", { email }),
+  logoutOtherDevices: () => api.post("/api/auth/logout-all"),
+  deleteAccount: (password) =>
+    api.delete("/api/auth/account", { data: { password } }),
   getProfile: () => api.get("/api/user/profile"),
 };
 

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Settings as SettingsIcon, Sliders, Key, CalendarDays, User, Sparkles, Check, LogOut } from "lucide-react";
+import { Settings as SettingsIcon, Sliders, Key, CalendarDays, User, Sparkles, Check, LogOut, Mail, ShieldOff, Trash2 } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { useSettings } from "../contexts/SettingsContext";
 import { useAuth } from "../contexts/AuthContext";
-import { authService, astrologyService } from "../services/api";
+import { authService, astrologyService, setTokens } from "../services/api";
+import { formatDate } from "../utils/format";
 import { AYANAMSAS } from "../constants/jyotish";
 import { LANGUAGES } from "../i18n";
 import "../styles/Settings.css";
@@ -19,7 +20,7 @@ export const SettingsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { settings, updateSetting } = useSettings();
-  const { logout } = useAuth();
+  const { user, logout, reloadUser } = useAuth();
 
   const [tab, setTab] = useState("general");
   const [savedFlash, setSavedFlash] = useState("");
@@ -34,6 +35,11 @@ export const SettingsPage = () => {
   // Account
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
   const [pwMsg, setPwMsg] = useState({ type: "", text: "" });
+  const [emailInput, setEmailInput] = useState("");
+  const [emailMsg, setEmailMsg] = useState({ type: "", text: "" });
+  const [acctMsg, setAcctMsg] = useState({ type: "", text: "" });
+  const [delConfirm, setDelConfirm] = useState({ open: false, password: "" });
+  const [busy, setBusy] = useState("");
 
   const flash = (text) => {
     setSavedFlash(text || t("settings.saved"));
@@ -114,6 +120,66 @@ export const SettingsPage = () => {
     } catch (err) {
       const detail = err?.response?.data?.detail || t("settings.account.changeError");
       setPwMsg({ type: "error", text: typeof detail === "string" ? detail : t("settings.account.changeError") });
+    }
+  };
+
+  useEffect(() => {
+    if (user?.email) setEmailInput(user.email);
+  }, [user?.email]);
+
+  const submitEmail = async (e) => {
+    e.preventDefault();
+    setEmailMsg({ type: "", text: "" });
+    const next = (emailInput || "").trim();
+    if (!next || next === user?.email) return;
+    setBusy("email");
+    try {
+      await authService.updateEmail(next);
+      await reloadUser();
+      setEmailMsg({ type: "ok", text: t("settings.account.emailUpdated") });
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      setEmailMsg({
+        type: "error",
+        text: typeof detail === "string" ? detail : t("settings.account.emailError"),
+      });
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const handleLogoutOthers = async () => {
+    setAcctMsg({ type: "", text: "" });
+    setBusy("logoutOthers");
+    try {
+      const resp = await authService.logoutOtherDevices();
+      // The current session's refresh token was revoked too — store the fresh
+      // pair the endpoint hands back so this device stays signed in.
+      setTokens(resp.data);
+      setAcctMsg({ type: "ok", text: t("settings.account.loggedOutOthers") });
+    } catch {
+      setAcctMsg({ type: "error", text: t("settings.account.logoutOthersError") });
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const handleDeleteAccount = async (e) => {
+    e.preventDefault();
+    setAcctMsg({ type: "", text: "" });
+    setBusy("delete");
+    try {
+      await authService.deleteAccount(delConfirm.password);
+      // Account (and its refresh tokens) are gone — clear the local session.
+      await logout();
+      navigate("/login");
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      setAcctMsg({
+        type: "error",
+        text: typeof detail === "string" ? detail : t("settings.account.deleteError"),
+      });
+      setBusy("");
     }
   };
 
@@ -406,6 +472,46 @@ export const SettingsPage = () => {
         {/* ACCOUNT */}
         {tab === "account" && (
           <div className="ui-card settings-panel">
+            {/* Account overview */}
+            <h3 className="settings-section-title">{t("settings.account.title")}</h3>
+            <dl className="settings-account-info">
+              <div>
+                <dt>{t("settings.account.username")}</dt>
+                <dd>{user?.username || "—"}</dd>
+              </div>
+              <div>
+                <dt>{t("settings.account.memberSince")}</dt>
+                <dd>{formatDate(user?.created_at)}</dd>
+              </div>
+            </dl>
+
+            {/* Email */}
+            <hr className="settings-divider" />
+            <h3 className="settings-section-title">{t("settings.account.email")}</h3>
+            {emailMsg.text && (
+              <div className={`settings-pw-msg settings-pw-msg--${emailMsg.type}`}>{emailMsg.text}</div>
+            )}
+            <form onSubmit={submitEmail} className="settings-pw-form">
+              <input
+                className="control-input"
+                type="email"
+                autoComplete="email"
+                placeholder={t("settings.account.emailPlaceholder")}
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                required
+              />
+              <button
+                type="submit"
+                className="control-btn"
+                disabled={busy === "email" || !emailInput.trim() || emailInput.trim() === user?.email}
+              >
+                <Mail size={14} /> {t("settings.account.updateEmail")}
+              </button>
+            </form>
+
+            {/* Change password */}
+            <hr className="settings-divider" />
             <h3 className="settings-section-title">{t("settings.account.changePassword")}</h3>
             {pwMsg.text && (
               <div className={`settings-pw-msg settings-pw-msg--${pwMsg.type}`}>{pwMsg.text}</div>
@@ -444,17 +550,82 @@ export const SettingsPage = () => {
             </form>
             <p className="settings-hint">{t("settings.account.changeNote")}</p>
 
+            {/* Sessions */}
             <hr className="settings-divider" />
-            <button
-              type="button"
-              className="control-btn control-btn--ghost"
-              onClick={async () => {
-                await logout();
-                navigate("/login");
-              }}
-            >
-              <LogOut size={14} /> {t("settings.account.logout")}
-            </button>
+            <h3 className="settings-section-title">{t("settings.account.sessions")}</h3>
+            {acctMsg.text && (
+              <div className={`settings-pw-msg settings-pw-msg--${acctMsg.type}`}>{acctMsg.text}</div>
+            )}
+            <div className="settings-account-actions">
+              <button
+                type="button"
+                className="control-btn control-btn--ghost"
+                onClick={handleLogoutOthers}
+                disabled={busy === "logoutOthers"}
+              >
+                <ShieldOff size={14} /> {t("settings.account.logoutOthers")}
+              </button>
+              <button
+                type="button"
+                className="control-btn control-btn--ghost"
+                onClick={async () => {
+                  await logout();
+                  navigate("/login");
+                }}
+              >
+                <LogOut size={14} /> {t("settings.account.logout")}
+              </button>
+            </div>
+            <p className="settings-hint">{t("settings.account.logoutOthersNote")}</p>
+
+            {/* Danger zone: delete account */}
+            <hr className="settings-divider" />
+            <div className="settings-danger">
+              <h3 className="settings-section-title settings-danger-title">
+                {t("settings.account.deleteTitle")}
+              </h3>
+              <p className="settings-hint settings-hint--warn">{t("settings.account.deleteWarn")}</p>
+              {!delConfirm.open ? (
+                <button
+                  type="button"
+                  className="control-btn control-btn--danger"
+                  onClick={() => {
+                    setAcctMsg({ type: "", text: "" });
+                    setDelConfirm({ open: true, password: "" });
+                  }}
+                >
+                  <Trash2 size={14} /> {t("settings.account.deleteBtn")}
+                </button>
+              ) : (
+                <form onSubmit={handleDeleteAccount} className="settings-pw-form">
+                  <input
+                    className="control-input"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder={t("settings.account.deleteConfirmPrompt")}
+                    value={delConfirm.password}
+                    onChange={(e) => setDelConfirm((p) => ({ ...p, password: e.target.value }))}
+                    required
+                  />
+                  <div className="settings-account-actions">
+                    <button
+                      type="submit"
+                      className="control-btn control-btn--danger"
+                      disabled={!delConfirm.password || busy === "delete"}
+                    >
+                      <Trash2 size={14} /> {t("settings.account.deleteConfirmBtn")}
+                    </button>
+                    <button
+                      type="button"
+                      className="control-btn control-btn--ghost"
+                      onClick={() => setDelConfirm({ open: false, password: "" })}
+                    >
+                      {t("settings.account.deleteCancel")}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
         )}
       </div>

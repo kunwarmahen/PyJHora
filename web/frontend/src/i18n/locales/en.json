@@ -131,7 +131,13 @@
     "haveAccount": "Already have an account?",
     "loginHere": "Login here",
     "passwordsNoMatch": "Passwords do not match",
-    "rememberMe": "Keep me signed in"
+    "rememberMe": "Keep me signed in",
+    "pwStrength": {
+      "short": "Too short — use at least 6 characters",
+      "weak": "Weak password",
+      "fair": "Fair password",
+      "strong": "Strong password"
+    }
   },
   "profile": {
     "selectTitle": "Select Your Chart",
@@ -697,7 +703,27 @@
       "changeError": "Could not change password",
       "mismatch": "New passwords do not match",
       "tooShort": "New password must be at least 6 characters",
-      "logout": "Log out"
+      "logout": "Log out",
+      "title": "Account",
+      "username": "Username",
+      "memberSince": "Member since",
+      "email": "Email address",
+      "emailPlaceholder": "you@example.com",
+      "updateEmail": "Update email",
+      "emailUpdated": "Email updated.",
+      "emailError": "Could not update email",
+      "sessions": "Sessions",
+      "logoutOthers": "Log out other devices",
+      "logoutOthersNote": "“Log out other devices” signs out every other browser and device; you stay signed in here.",
+      "loggedOutOthers": "Signed out on all other devices.",
+      "logoutOthersError": "Could not sign out other devices",
+      "deleteTitle": "Delete account",
+      "deleteWarn": "Permanently deletes your account and all your data — birth profiles, saved charts, AI conversations, shared-chart links and quiz history. This cannot be undone.",
+      "deleteBtn": "Delete my account",
+      "deleteConfirmPrompt": "Enter your password to confirm",
+      "deleteConfirmBtn": "Permanently delete",
+      "deleteCancel": "Cancel",
+      "deleteError": "Could not delete account"
     }
   },
   "compat": {

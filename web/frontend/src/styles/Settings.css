@@ -273,6 +273,71 @@
   gap: 6px;
 }
 
+.control-btn--danger {
+  background: var(--vermillion, #c0392b);
+  border: 1px solid var(--vermillion, #c0392b);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.control-btn--danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Account overview */
+.settings-account-info {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-account-info > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color, #f0e8da);
+}
+
+.settings-account-info > div:last-child {
+  border-bottom: none;
+}
+
+.settings-account-info dt {
+  color: var(--text-secondary, #8a7c6a);
+  font-size: 0.85rem;
+}
+
+.settings-account-info dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-primary, #3a2e22);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Danger zone */
+.settings-danger {
+  border: 1px solid #f5c6cb;
+  background: #fdf5f4;
+  border-radius: var(--radius-sm, 8px);
+  padding: 14px 16px;
+}
+
+.settings-danger-title {
+  color: var(--vermillion, #c0392b);
+  margin-bottom: 8px;
+}
+
 @media (max-width: 640px) {
   .settings-row {
     flex-direction: column;

@@ -65,7 +65,8 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   navbar + nav drawer, or `/settings`) with tabs — **General** (language, chart style North/South,
   ayanamsa), **AI** (provider / model / endpoint, answer-mode default, **Max response length**
   slider, links to API Keys + AI Capabilities), **API Keys**, **Almanac** (Drik / Surya-Siddhanta
-  engine), and **Account** (change password, log out)
+  engine), and **Account** (account overview, update email, change password, log out other
+  devices, and a danger-zone **Delete account**)
 - **Consolidated controls**: the per-page dropdowns/toggles that used to live on individual pages
   (ayanamsa, chart style, almanac engine, AI model/keys) were removed — pages now read these from
   Settings via a `SettingsContext` (backed by the same `localStorage` keys). Language is changed
@@ -324,14 +325,19 @@ REACT_APP_API_TIMEOUT=30000
 ## Features
 
 ### 1. Authentication
-- User registration with username, email, password
-- JWT-based login with a **"Keep me signed in"** option
+- User registration with username, email, password (with a live password-strength hint)
+- JWT-based login with a **"Keep me signed in"** option, and a per-IP **brute-force rate-limit**
+  (default 10 failed attempts / 15 min → HTTP 429; env `LOGIN_RATE_MAX_FAILS` / `LOGIN_RATE_WINDOW_SEC`)
 - **Refresh tokens**: a short-lived access token is silently refreshed in the background using a
   long-lived, revocable, **rotating** refresh token, so you stay signed in across access-token
   expiry (no more being logged out every ~30 minutes). Refresh tokens are stored hashed and are
   revoked on logout and on password change
-- **Change password** (Settings → Account): verifies the current password and signs out other
-  devices
+- **Account management** (Settings → Account): account overview (username + member-since),
+  **update email**, **change password** (verifies the current password, signs out other devices),
+  **log out other devices** (revokes every other session, keeps this one), and a danger-zone
+  **delete account** — password-confirmed and irreversible, cascade-purging all of the user's data
+  (birth profiles, saved charts, AI conversations + tool traces, shared-chart links, quiz sessions,
+  settings and refresh tokens)
 - Protected routes; tokens in localStorage (access + refresh)
 
 ### 2. Birth Chart Calculator

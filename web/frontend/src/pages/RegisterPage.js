@@ -15,6 +15,22 @@ export const RegisterPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  // Lightweight password-strength hint (no external lib): scores length +
+  // character variety into weak / fair / strong.
+  const strength = (() => {
+    if (!password) return null;
+    if (password.length < 6) return "short";
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+    if (score <= 1) return "weak";
+    if (score <= 3) return "fair";
+    return "strong";
+  })();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -85,6 +101,12 @@ export const RegisterPage = () => {
                 required
               />
             </div>
+            {strength && (
+              <div className={`pw-strength pw-strength--${strength}`}>
+                <span className="pw-strength-bar" />
+                <span className="pw-strength-label">{t(`auth.pwStrength.${strength}`)}</span>
+              </div>
+            )}
           </div>
 
           <div className="form-group">

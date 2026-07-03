@@ -216,3 +216,53 @@
     font-size: 2rem;
   }
 }
+
+/* Password strength hint (RegisterPage) */
+.pw-strength {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.pw-strength-bar {
+  height: 5px;
+  border-radius: 3px;
+  flex: 1;
+  background: #e6ddcf;
+  position: relative;
+  overflow: hidden;
+}
+
+.pw-strength-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  transition: width 0.25s ease, background 0.25s ease;
+}
+
+.pw-strength-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pw-strength--short .pw-strength-bar::before,
+.pw-strength--weak .pw-strength-bar::before {
+  width: 25%;
+  background: #c0392b;
+}
+.pw-strength--fair .pw-strength-bar::before {
+  width: 60%;
+  background: #e08a2c;
+}
+.pw-strength--strong .pw-strength-bar::before {
+  width: 100%;
+  background: #2e7d32;
+}
+
+.pw-strength--short .pw-strength-label,
+.pw-strength--weak .pw-strength-label { color: #c0392b; }
+.pw-strength--fair .pw-strength-label { color: #b5710f; }
+.pw-strength--strong .pw-strength-label { color: #2e7d32; }
