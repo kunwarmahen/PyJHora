@@ -1708,6 +1708,16 @@ The six §9.6 items, owner-approved for a full build — **all SHIPPED 2026-07-0
 - [x] **Frontend** `PanchangaPanel`: a Drik ⇄ Surya-Siddhanta engine toggle (persisted in
       `localStorage.panchanga_system`) + a Hijri date line. i18n `panchanga.engine/engineDrik/
       engineSurya/hijri` (en/hi/sa).
+- [x] **Almanac AI day-guide** (owner ask 2026-07-03, follow-up): a plain-language reading of
+      the day's panchanga + planetary hours (Abhijit/benefic-hora good windows, Rahu-Kalam/
+      Yamaganda/Gulika to avoid, honours the SS engine + Hijri). Location-driven, NOT birth-
+      chart bound → new `AlmanacAnalysisRequest` (place/lat/lon/tz/date/system + model fields,
+      no `BirthDetails`) + `POST /api/astrology/almanac-analysis`; `llm_service.analyze_almanac`
+      + `_build_almanac_prompt` (~250-300w, safety footer). Frontend: a self-contained
+      `AlmanacReading` card at the bottom of `AlmanacPage` (own date picker, uses the page's
+      active location + the persisted engine). `api.js analyzeAlmanacAI`; i18n `almanac.ai*`
+      (en full; hi/sa title). Verified: endpoint registered, prompt assembles (~1.5k chars with
+      Abhijit/Hijri/SS engine); build green (+325 B), eslint clean, locale JSON valid.
 - [x] Verified 2026-07-03: all 5 new endpoints 200 via `TestClient` (dependency-override auth)
       on the 1990-05-15 chart — sphuta 12 / sahams 36 / argala 12; vedic-clock ghati+hora;
       retrograde now=[Mercury,Rahu,Ketu] + 240-pt loops; panchanga SS + hijri 1448 Muharram 17.

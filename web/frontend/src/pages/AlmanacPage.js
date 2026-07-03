@@ -1,14 +1,91 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CalendarDays, MapPin, Clock, Moon, Sun, PartyPopper, Swords } from "lucide-react";
+import { CalendarDays, MapPin, Clock, Moon, Sun, PartyPopper, Swords, Sparkles } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { PanchangaPanel } from "../components/PanchangaPanel";
+import { Card } from "../components/Card";
+import { ErrorBanner } from "../components/ErrorBanner";
+import { LoadingState } from "../components/LoadingState";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+
+const readModelConfig = () => {
+  const providerType = localStorage.getItem("ai_provider_type") || "ollama";
+  return {
+    providerType,
+    model: localStorage.getItem("ai_model") || "",
+    baseUrl:
+      providerType === "ollama"
+        ? localStorage.getItem("ai_base_url") || undefined
+        : undefined,
+    legacyProvider: providerType === "ollama" ? "qwen" : providerType,
+  };
+};
+
+/* ── AI day-guide (panchanga + hora) ───────────────────────────────────── */
+const AlmanacReading = ({ loc }) => {
+  const { t } = useTranslation();
+  const [date, setDate] = useState(todayISO());
+  const [analysis, setAnalysis] = useState("");
+  const [model, setModel] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const run = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const system = localStorage.getItem("panchanga_system") || "drik";
+      const res = await astrologyService.analyzeAlmanacAI(
+        { ...loc, date, system },
+        readModelConfig()
+      );
+      setAnalysis(res.data.ai_analysis || "");
+      setModel(res.data.model || res.data.provider || "");
+    } catch (err) {
+      setError(err.response?.data?.detail || t("almanac.aiError"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card title={t("almanac.aiTitle")} icon={<Sparkles size={22} />} accent="gold">
+      <div className="panchanga-controls" style={{ marginBottom: "0.75rem" }}>
+        <input
+          type="date"
+          className="panchanga-date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          aria-label={t("almanac.date")}
+        />
+      </div>
+      <ErrorBanner message={error} />
+      {!analysis && !loading && <p className="ai-panel__hint">{t("almanac.aiHint")}</p>}
+      {loading && <LoadingState message={t("almanac.aiLoading")} />}
+      {analysis && !loading && (
+        <div className="sbc-ai-markdown ai-panel__reading">
+          <ReactMarkdown>{analysis}</ReactMarkdown>
+          {model && (
+            <div className="ai-panel__meta">{t("almanac.aiModel", { model })}</div>
+          )}
+        </div>
+      )}
+      {!loading && (
+        <button className="ui-btn ui-btn--ai" onClick={run}>
+          <Sparkles size={18} />
+          {analysis ? t("almanac.aiRegenerate") : t("almanac.aiGenerate")}
+        </button>
+      )}
+      <p className="card-note">{t("almanac.aiDisclaimer")}</p>
+    </Card>
+  );
+};
 
 /**
  * Reverse-geocode via BigDataCloud's free, key-less client endpoint (same as
@@ -498,6 +575,7 @@ export const AlmanacPage = () => {
         <EclipsePanel loc={loc} />
         <FestivalPanel loc={loc} />
         <ConjunctionPanel loc={loc} />
+        <AlmanacReading loc={loc} />
       </div>
     </div>
   );

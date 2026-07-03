@@ -181,6 +181,20 @@ class CelestialAnalysisRequest(BaseModel):
     api_key: Optional[str] = None
     ayanamsa: Optional[str] = None
 
+class AlmanacAnalysisRequest(BaseModel):
+    # Location-driven (not birth-chart bound), so no BirthDetails.
+    place: str = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    timezone: Optional[float] = None
+    date: Optional[str] = None
+    system: str = "drik"
+    llm_provider: str = "qwen"  # legacy fallback
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+
 class RectifyExplainRequest(BaseModel):
     birth_details: BirthDetails
     method: str = "nakshatra"        # nakshatra | lagna | janma
@@ -1889,6 +1903,34 @@ async def analyze_celestial(
         ai_analysis = await llm_service.analyze_celestial(
             data=data, name=request.person_name or "this person", config=cfg,
         )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/almanac-analysis")
+async def analyze_almanac(
+    request: AlmanacAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Plain-language AI day-guide from the almanac (panchanga + hora) for a
+    place/date. Location-driven, not tied to a birth chart."""
+    _enforce_rate_limit(current_user)
+    try:
+        loc = dict(place=request.place, lat=request.latitude,
+                   lon=request.longitude, tz=request.timezone)
+        data = {
+            "panchanga": AstrologyCompute.get_panchanga(
+                date=request.date, system=request.system, **loc),
+            "hours": AstrologyCompute.get_planetary_hours(date=request.date, **loc),
+        }
+        if data["panchanga"].get("status") != "success":
+            raise HTTPException(status_code=400,
+                                detail=data["panchanga"].get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_almanac(data=data, config=cfg)
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
                 "model": cfg.model}
     except HTTPException:

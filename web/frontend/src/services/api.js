@@ -93,6 +93,25 @@ export const astrologyService = {
     api.get("/api/astrology/almanac/conjunctions", {
       params: { place, latitude, longitude, timezone, start, end, max_sep: maxSep },
     }),
+  // Plain-language AI day-guide from the almanac (panchanga + hora), location-driven.
+  analyzeAlmanacAI: ({ place, latitude, longitude, timezone, date, system } = {}, model = {}) =>
+    api.post(
+      "/api/astrology/almanac-analysis",
+      {
+        place,
+        latitude,
+        longitude,
+        timezone,
+        date,
+        system,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+      },
+      { timeout: 300000 }
+    ),
   getDoshas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/doshas", birthDetails, { params: { ayanamsa } }),
   getYogas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>

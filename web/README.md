@@ -11,8 +11,12 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   Yogas/Doshas, dedicated Raja Yogas, Graha Drishti (aspects, with strength-weighted lines
   on the chart), Vimsottari Dhasa (+ 13 other dasha systems & Sudarsana Chakra), Transits,
   Varshaphal / Tajaka annual horoscope (with year-ahead AI reading),
-  an Almanac (planetary hours, eclipses, festival/vratha dates),
+  an Almanac (planetary hours, eclipses, festival/vratha dates, a Drik ⇄ Surya-Siddhanta
+  engine toggle, the Hijri date, and an AI day-guide),
   Pancha Pakshi Sastra (bird-cycle day timing, with AI day-guide),
+  Sensitive Points (Sphutas, the 36 Sahams, and Argala — with AI reading),
+  a Vedic Clock & Retrograde page (a live ghati/vighati clock + vakra-gathi retrograde
+  loops, with AI reading),
   Sarvatobhadra Chakra (with layman AI reading), Compatibility, an Advanced page
   (Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala, Ayu/longevity), and
   experimental Birth-Time Rectification (BV Raman śuddhi methods, with before/after charts)
@@ -406,6 +410,12 @@ REACT_APP_API_TIMEOUT=30000
 - **Conjunctions (Graha Yuddha)**: date-range scan of the five tara grahas (Mars, Mercury,
   Jupiter, Venus, Saturn — Sun/Moon/nodes excluded by tradition); each event shows the
   closest approach (min separation + date) and flags a **planetary war** when under 1°
+- **Engine toggle & Hijri date**: the Today/Panchanga panel switches between the modern
+  **Drik** engine and the classical **Surya-Siddhanta** ayanamsa, and shows the day's
+  **Hijri (Islamic) date** alongside the five limbs
+- **AI day-guide**: an optional plain-language reading of the day's panchanga + planetary
+  hours (Abhijit/benefic-hora good windows, Rahu Kalam/Yamaganda/Gulika to avoid), using
+  the model picked in Ask AI Astrologer
 - Same current-DST timezone caveat as the rest of the almanac (fine for picking a day)
 
 ### 10. Pancha Pakshi Sastra (`/pancha-pakshi`)
@@ -460,13 +470,37 @@ Three approaches, chosen with a mode toggle:
 - **Clearly framed as experimental** — a suggestion to verify against known life
   events, never an authoritative correction (PyJHora flags these methods experimental)
 
-### 13. Export & Share
+### 13. Sensitive Points (`/sensitive-points`)
+- The chart's **supporting sensitive points**, on one page:
+- **Sphutas** — 12 sensitive longitudes derived from the natal chart (Tri/Chatur/Pancha/
+  Prana/Deha/Mrityu/Beeja/Kshetra/Tithi/Yoga/Yogi/Avayogi), each as a sign + degree + house
+- **Sahams** — the **36 natal Sahams** (Arabic-part-like points), each tied to a life
+  theme (Punya/Vidya/Karma/Artha/Vivaha/Puthra/Rajya/Laabha…), placed by sign + house
+- **Argala & Virodhargala** — per bhava, which houses receive strong planetary
+  **intervention** (argala) vs **obstruction** (virodhargala), with a net verdict
+- Optional **AI reading** (model from Ask AI Astrologer) + smart-lookup **tools**
+  (`get_sphuta`, `get_sahams`, `get_argala`)
+
+### 14. Vedic Clock & Retrograde (`/vedic-clock`)
+- A **live Vedic day-clock** (SVG): a 60-ghati dial with a shaded day arc and a hand that
+  ticks client-side (advancing the snapshot ghati by real elapsed seconds — timezone-
+  independent), a digital **ghati:vighati** readout, the running **hora lord**, and the
+  current panchanga limbs
+- A **Vakra-gathi retrograde plot** (SVG): the geocentric apparent-path loop for a chosen
+  planet (Mars/Mercury/Jupiter/Venus/Saturn), reimplemented server-side with numpy (no
+  pyqtgraph)
+- A **retrograde status table**: which grahas are retrograde now + the next station
+  (direction-change) dates (Rahu/Ketu flagged perpetually retrograde)
+- Optional **AI reading** of the current sky + smart-lookup **tools** (`get_vedic_clock`,
+  `get_retrograde`)
+
+### 15. Export & Share
 - **Export** any chart as **PNG** or **PDF** (buttons on each chart card) — on Birth
   Chart, Compare, Transit and the shared view
 - **Share** a chart as a **public, read-only link** (`/share/:token`) — no login needed
   to view; offers a "create a free account" CTA
 
-### 14. LLM Integration (Optional)
+### 16. LLM Integration (Optional)
 - Enhanced predictions with a local Ollama model or any configured provider
 - Contextual astrological interpretations
 - Personalized analysis

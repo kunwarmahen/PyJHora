@@ -563,6 +563,15 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
         return await self._complete(prompt, cfg)
 
+    async def analyze_almanac(self,
+                              data: Dict[str, Any],
+                              provider: LLMProvider = LLMProvider.QWEN,
+                              config: Optional[ModelConfig] = None) -> str:
+        """Plain-language day-guide from the almanac (panchanga + planetary hours)."""
+        prompt = self._build_almanac_prompt(data)
+        cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        return await self._complete(prompt, cfg)
+
     # ------------------------------------------------------------------ #
     # "Learn the Chart" — AI quiz generation + grading
     # ------------------------------------------------------------------ #
@@ -1768,6 +1777,50 @@ Write a friendly ~250-word note:
 2. **Retrograde now** — for any planet currently retrograde, explain in everyday terms what retrograde traditionally invites (review, revisit, slow down) — NOT doom.
 3. **What's coming** — mention the next station date(s) as gentle "watch for a shift" notes.
 End with one encouraging line. Do NOT make fated, medical or financial claims; frame retrogrades as invitations to reflect, not warnings."""
+
+    def _build_almanac_prompt(self, d: Dict[str, Any]) -> str:
+        """Turn the day's panchanga + planetary hours into a friendly day-guide."""
+        p = d.get("panchanga") or {}
+        hours = (d.get("hours") or {}).get("horas", [])
+        tithi = p.get("tithi") or {}
+        nak = p.get("nakshatra") or {}
+        yoga = p.get("yoga") or {}
+        karana = p.get("karana") or {}
+        vaara = p.get("vaara") or {}
+        hijri = p.get("hijri") or {}
+
+        def _rng(x):
+            return f"{x.get('start')}–{x.get('end')}" if x and x.get("start") else "—"
+
+        # A couple of upcoming benefic day-horas as favourable windows.
+        good = [h for h in hours if h.get("period") == "day" and h.get("benefic")]
+        good_lines = "\n".join(
+            f"- {h['planet']} hora {h['start']}–{h['end']}" for h in good[:4]
+        ) or "- (none listed)"
+        engine = "Surya-Siddhanta" if p.get("system") == "surya_siddhanta" else "Drik"
+
+        return f"""You are a warm, plain-spoken almanac guide explaining today's PANCHANGA (the Vedic daily almanac) in everyday language. Keep it simple, practical and encouraging — no heavy jargon.
+
+Date: {p.get('date')} ({vaara.get('name')}) at {p.get('place') or 'the chosen place'} — computed with the {engine} engine.
+Sunrise {p.get('sunrise')}, sunset {p.get('sunset')}.
+The five limbs:
+- Tithi (lunar day): {tithi.get('name')} ({tithi.get('paksha')} paksha){', ends ' + tithi.get('ends') if tithi.get('ends') else ''}
+- Nakshatra (star): {nak.get('name')}{' pada ' + str(nak.get('pada')) if nak.get('pada') else ''}
+- Yoga: {yoga.get('name')}
+- Karana: {karana.get('name')}
+Auspicious window — Abhijit muhurta: {_rng(p.get('abhijit'))}.
+Periods to avoid — Rahu Kalam {_rng(p.get('rahu_kalam'))}, Yamaganda {_rng(p.get('yamaganda'))}, Gulika {_rng(p.get('gulika'))}.
+Favourable planetary hours (benefic day-horas):
+{good_lines}
+Hijri (Islamic) date: {(str(hijri.get('day')) + ' ' + hijri.get('month_name') + ' ' + str(hijri.get('year')) + ' AH') if hijri else 'n/a'}.
+
+Write a friendly ~250-300 word day-guide:
+1. **The day's mood** — what this tithi + nakshatra + weekday combination traditionally feels like, in a sentence or two.
+2. **Good windows** — point to the Abhijit muhurta and a benefic hora as good times for important tasks (starting things, meetings, decisions), with the clock times.
+3. **Go gently** — note the Rahu Kalam / Yamaganda / Gulika windows as times to avoid launching anything important, framed lightly.
+4. End with one short, encouraging line.
+
+Use only the times given; do NOT invent windows. Do NOT make medical, financial, legal or fated claims. Close with a one-line reminder that the panchanga is a traditional rhythm-of-the-day aid for reflection, not a rule to live by."""
 
     def _build_rectification_prompt(self, r: Dict[str, Any], name: str) -> str:
         """Explain, in plain terms, why the suggested birth time fits better than
