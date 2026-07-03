@@ -25,6 +25,8 @@ import {
   CalendarCheck,
   HelpCircle,
   Sun,
+  Waypoints,
+  Gem,
 } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
@@ -109,6 +111,18 @@ export const DashboardPage = () => {
       icon: <HelpCircle size={32} />,
       path: "/prashna",
       gradient: "linear-gradient(135deg, #2D3561 0%, #5A5F7A 100%)",
+    },
+    {
+      key: "bhrigu",
+      icon: <Waypoints size={32} />,
+      path: "/bhrigu-markers",
+      gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
+    },
+    {
+      key: "remedies",
+      icon: <Gem size={32} />,
+      path: "/remedies",
+      gradient: "linear-gradient(135deg, #E27B5A 0%, #D4AF37 100%)",
     },
     {
       key: "panchaPakshi",

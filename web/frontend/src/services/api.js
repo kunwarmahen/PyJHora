@@ -521,6 +521,58 @@ export const astrologyService = {
       { timeout: 300000 }
     ),
 
+  // ---- Muhurta sub-tools: Choghadiya / Panchaka / Tarabala / Chandrabala ----
+  // Location-driven; pass birthDetails to personalize Tarabala + Chandrabala.
+  getMuhurtaSubtools: ({ date, place, latitude, longitude, timezone, birthDetails } = {}) =>
+    api.post("/api/astrology/muhurta/subtools", {
+      date, place, latitude, longitude, timezone,
+      birth_details: birthDetails || undefined,
+    }),
+
+  // ---- Nadi / Bhrigu-style yearly markers ----
+  getBhriguMarkers: (birthDetails, { fromAge, years = 12, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+    api.post("/api/astrology/bhrigu-markers", birthDetails, {
+      params: { from_age: fromAge, years, ayanamsa },
+    }),
+  analyzeBhriguMarkersAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/bhrigu-markers-analysis",
+      {
+        birth_details: birthDetails,
+        from_age: opts.fromAge,
+        years: opts.years || 12,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
+  // ---- Remedies (gemstones / mantras / deities per weak planet) ----
+  getRemedies: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/remedies", birthDetails, { params: { ayanamsa } }),
+  analyzeRemediesAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/remedies-analysis",
+      {
+        birth_details: birthDetails,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
   // New LLM Q&A endpoints
   getLlmProviders: () => api.get("/api/llm/providers"),
 

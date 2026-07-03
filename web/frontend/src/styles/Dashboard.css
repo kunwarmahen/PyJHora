@@ -1677,6 +1677,145 @@
 .muh-day__rating { font-size: 0.8rem; font-weight: 600; margin: 0.1rem 0; }
 .muh-day__limbs { font-size: 0.78rem; }
 
+/* ── Muhurta sub-tools (Choghadiya / Panchaka / Tarabala / Chandrabala) ───── */
+.muh-sub-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.muh-chog-col h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary, #7a6a52);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.muh-chog-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.muh-chog {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border-color, #e7dccb);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: var(--card-bg, #fffaf2);
+  font-size: 0.85rem;
+}
+.muh-chog--good { border-left-color: #1e7a34; }
+.muh-chog--bad { border-left-color: #b4342a; }
+.muh-chog--neutral { border-left-color: #d4a017; }
+.muh-chog--current { box-shadow: 0 0 0 2px var(--saffron, #FF9933) inset; }
+.muh-chog__name { font-weight: 600; }
+.muh-chog__time { font-variant-numeric: tabular-nums; color: var(--text-secondary, #7a6a52); }
+.muh-chog__now {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--saffron, #FF9933);
+  text-transform: uppercase;
+}
+.muh-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+.muh-status {
+  border: 1px solid var(--border-color, #e7dccb);
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+  background: var(--card-bg, #fffaf2);
+}
+.muh-status__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #7a6a52);
+}
+.muh-status__value { font-weight: 700; margin: 0.15rem 0; }
+.muh-status__note { font-size: 0.82rem; color: var(--text-secondary, #7a6a52); }
+.muh-badge {
+  display: inline-block;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 0.35rem;
+}
+.muh-badge--good, .muh-badge--very_good { background: #e6f4ea; color: #1e7a34; }
+.muh-badge--bad, .muh-badge--caution { background: #fdeaea; color: #b4342a; }
+.muh-badge--neutral { background: #fdf3e2; color: #9a6a13; }
+
+/* ── Bhrigu / Nadi yearly markers ─────────────────────────────────────────── */
+.bhrigu-prog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+.bhrigu-prog {
+  border: 1px solid var(--border-color, #e7dccb);
+  border-left-width: 4px;
+  border-left-color: var(--border-color, #e7dccb);
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+  background: var(--card-bg, #fffaf2);
+}
+.bhrigu-prog--active { border-left-color: var(--saffron, #FF9933); }
+.bhrigu-prog--moon { border-left-color: #5A5F7A; }
+.bhrigu-prog--bb { border-left-color: #D4AF37; box-shadow: 0 0 0 1px #D4AF37 inset; }
+.bhrigu-prog__year { font-weight: 800; font-size: 0.9rem; }
+.bhrigu-prog__sign { font-weight: 600; font-size: 0.9rem; margin: 0.1rem 0; }
+.bhrigu-prog__planets { font-size: 0.82rem; color: var(--saffron, #FF9933); font-weight: 600; }
+.bhrigu-prog__tag {
+  margin-top: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary, #7a6a52);
+}
+
+/* ── Remedies ─────────────────────────────────────────────────────────────── */
+.rem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.rem-card {
+  border: 1px solid var(--border-color, #e7dccb);
+  border-left: 4px solid var(--terracotta, #E27B5A);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  background: var(--card-bg, #fffaf2);
+}
+.rem-card__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dashed var(--border-color, #e7dccb);
+}
+.rem-card__planet { font-weight: 800; font-size: 1.05rem; color: var(--terracotta, #E27B5A); }
+.rem-card__reason { font-size: 0.8rem; color: var(--text-secondary, #7a6a52); }
+.rem-card__body { margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.rem-card__body > div { display: flex; flex-direction: column; gap: 0.05rem; }
+.rem-card__body dt {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary, #7a6a52);
+}
+.rem-card__body dd { margin: 0; font-size: 0.9rem; }
+.rem-row--weak { background: #fdf3e2; font-weight: 600; }
+
 /* ── Prashna (horary) ───────────────────────────────────────────────────── */
 .prashna-composer {
   display: flex;

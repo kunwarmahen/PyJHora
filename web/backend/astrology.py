@@ -437,6 +437,115 @@ FESTIVAL_TYPES = {
 }
 DEFAULT_FESTIVAL_TYPES = ["ekadashi", "pradosham", "purnima", "amavasya", "sankashti"]
 
+# ── Muhurta sub-tools (Tarabala / Chandrabala / Panchaka / Choghadiya) ──────
+# The 9 Taras (from the birth star, counting to the day's star). Index =
+# count_stars(birth, today) % 9; each carries a name + quality.
+TARABALA_NAMES = [
+    ("Parama Mitra", "very_good"),   # 0 (9th, 18th, 27th)
+    ("Janma", "caution"),            # 1 (same star)
+    ("Sampat", "very_good"),         # 2
+    ("Vipat", "bad"),                # 3
+    ("Kshema", "good"),              # 4
+    ("Pratyak", "caution"),          # 5
+    ("Sadhaka", "very_good"),        # 6
+    ("Vadha", "bad"),                # 7 (Naidhana)
+    ("Mitra", "good"),               # 8
+]
+# Chandrabala: the Moon's transit sign counted from the natal Moon. 1/3/6/7/10/11
+# are favourable, 4/8/12 are to be avoided, the rest are neutral.
+CHANDRABALA_GOOD = {1, 3, 6, 7, 10, 11}
+CHANDRABALA_BAD = {4, 8, 12}
+
+# Panchaka: the five "sticks" that fall when the Moon is in the last five
+# nakshatras (Dhanishta 3rd pada → Revati). The dosha type is read from
+# (tithi + nakshatra + vaara + lagna-rasi) mod 9.
+PANCHAKA_NAKSHATRAS = {23, 24, 25, 26, 27}  # Dhanishta..Revati (1-based)
+PANCHAKA_TYPES = {
+    1: ("Mrityu Panchaka", "Risk to health/life — avoid new ventures"),
+    2: ("Agni Panchaka", "Fire risk — avoid fire-related work"),
+    4: ("Raja Panchaka", "Government/authority matters — actually favourable"),
+    6: ("Chora Panchaka", "Theft/loss risk — guard valuables"),
+    8: ("Roga Panchaka", "Illness risk — avoid beginnings"),
+}
+# Choghadiya: the day (sunrise→sunset) and night (sunset→next sunrise) are each
+# split into 8 parts. The first part's lord depends on the weekday; the sequence
+# then follows a fixed rota. Each choghadiya carries a nature.
+CHOGHADIYA_NATURE = {
+    "Amrit": "good", "Shubh": "good", "Labh": "good", "Char": "neutral",
+    "Rog": "bad", "Kaal": "bad", "Udveg": "bad",
+}
+# Day sequence starting index per weekday (0=Sun..6=Sat), into this rota:
+_CHOG_DAY_ROTA = ["Udveg", "Char", "Labh", "Amrit", "Kaal", "Shubh", "Rog"]
+# The daytime first-choghadiya per weekday (classical): Sun→Udveg, Mon→Amrit,
+# Tue→Rog, Wed→Labh, Thu→Shubh, Fri→Char, Sat→Kaal.
+_CHOG_DAY_START = {0: "Udveg", 1: "Amrit", 2: "Rog", 3: "Labh",
+                   4: "Shubh", 5: "Char", 6: "Kaal"}
+# Night first-choghadiya per weekday: the 6th from the day-start (classical).
+_CHOG_NIGHT_START = {0: "Shubh", 1: "Char", 2: "Kaal", 3: "Udveg",
+                     4: "Amrit", 5: "Rog", 6: "Labh"}
+
+
+def _choghadiya_sequence(start_name):
+    """Eight choghadiya names following the fixed rota from `start_name`."""
+    i = _CHOG_DAY_ROTA.index(start_name)
+    return [_CHOG_DAY_ROTA[(i + k) % 7] for k in range(8)]
+
+
+# ── Dignity + Remedies (traditional guidance, drawn from dignity/shadbala) ───
+# Rasi (sign) lords, 0-based rasi → planet name.
+RASI_LORDS = ["Mars", "Venus", "Mercury", "Moon", "Sun", "Mercury",
+              "Venus", "Mars", "Jupiter", "Saturn", "Saturn", "Jupiter"]
+# Exaltation sign (0-based rasi) per planet; debilitation is the opposite sign.
+EXALTATION_SIGN = {"Sun": 0, "Moon": 1, "Mars": 9, "Mercury": 5,
+                   "Jupiter": 3, "Venus": 11, "Saturn": 6}
+# Own signs (0-based) per planet.
+OWN_SIGNS = {
+    "Sun": {4}, "Moon": {3}, "Mars": {0, 7}, "Mercury": {2, 5},
+    "Jupiter": {8, 11}, "Venus": {1, 6}, "Saturn": {9, 10},
+    "Rahu": set(), "Ketu": set(),
+}
+# Curated per-planet remedies (clearly traditional guidance, NOT prescriptive
+# advice). Each carries the classical gemstone, beeja mantra, presiding deity,
+# weekday, charitable donation and colour.
+REMEDIES_TABLE = {
+    "Sun": {"gemstone": "Ruby (Manikya)", "metal": "Gold/Copper",
+            "mantra": "Om Hraam Hreem Hraum Sah Suryaya Namah", "mantra_count": "7,000",
+            "deity": "Surya / Lord Shiva", "day": "Sunday",
+            "donation": "Wheat, jaggery, copper to the needy", "color": "Red / Orange"},
+    "Moon": {"gemstone": "Pearl (Moti)", "metal": "Silver",
+             "mantra": "Om Shraam Shreem Shraum Sah Chandraya Namah", "mantra_count": "11,000",
+             "deity": "Parvati / Lord Shiva", "day": "Monday",
+             "donation": "Milk, rice, silver, white cloth", "color": "White"},
+    "Mars": {"gemstone": "Red Coral (Moonga)", "metal": "Copper/Gold",
+             "mantra": "Om Kraam Kreem Kraum Sah Bhaumaya Namah", "mantra_count": "10,000",
+             "deity": "Hanuman / Kartikeya", "day": "Tuesday",
+             "donation": "Red lentils (masoor), copper, red cloth", "color": "Red"},
+    "Mercury": {"gemstone": "Emerald (Panna)", "metal": "Gold",
+                "mantra": "Om Braam Breem Braum Sah Budhaya Namah", "mantra_count": "9,000",
+                "deity": "Lord Vishnu / Ganesha", "day": "Wednesday",
+                "donation": "Green gram (moong), green cloth", "color": "Green"},
+    "Jupiter": {"gemstone": "Yellow Sapphire (Pukhraj)", "metal": "Gold",
+                "mantra": "Om Graam Greem Graum Sah Gurave Namah", "mantra_count": "19,000",
+                "deity": "Brihaspati / Lord Vishnu", "day": "Thursday",
+                "donation": "Turmeric, gram dal (chana), gold, yellow cloth", "color": "Yellow"},
+    "Venus": {"gemstone": "Diamond (Heera) / White Sapphire", "metal": "Silver/Platinum",
+              "mantra": "Om Draam Dreem Draum Sah Shukraya Namah", "mantra_count": "16,000",
+              "deity": "Goddess Lakshmi", "day": "Friday",
+              "donation": "Curd, white cloth, silver, sugar", "color": "White / Pastel"},
+    "Saturn": {"gemstone": "Blue Sapphire (Neelam)", "metal": "Iron/Steel",
+               "mantra": "Om Praam Preem Praum Sah Shanaischaraya Namah", "mantra_count": "23,000",
+               "deity": "Shani Dev / Hanuman", "day": "Saturday",
+               "donation": "Sesame (til), mustard oil, iron, black cloth", "color": "Dark Blue / Black"},
+    "Rahu": {"gemstone": "Hessonite (Gomed)", "metal": "Silver/Ashtadhatu",
+             "mantra": "Om Bhraam Bhreem Bhraum Sah Rahave Namah", "mantra_count": "18,000",
+             "deity": "Goddess Durga", "day": "Saturday",
+             "donation": "Coconut, black gram (urad), mustard", "color": "Smoky / Grey"},
+    "Ketu": {"gemstone": "Cat's Eye (Lehsunia)", "metal": "Silver/Ashtadhatu",
+             "mantra": "Om Sraam Sreem Sraum Sah Ketave Namah", "mantra_count": "17,000",
+             "deity": "Lord Ganesha", "day": "Tuesday",
+             "donation": "Multicoloured blanket, sesame", "color": "Variegated / Brown"},
+}
+
 
 def _tithi_name(n):
     """Map a 1..30 tithi index to '<Paksha> <Name>'."""
@@ -2801,6 +2910,168 @@ class AstrologyCompute:
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
 
+    # ── Muhurta sub-tools: Tarabala, Chandrabala, Panchaka, Choghadiya ──────
+    @staticmethod
+    def get_muhurta_subtools(date: Optional[str] = None, place: str = "",
+                             lat: Optional[float] = None, lon: Optional[float] = None,
+                             tz: Optional[float] = None,
+                             birth_dob: Optional[str] = None,
+                             birth_tob: Optional[str] = None,
+                             birth_lat: Optional[float] = None,
+                             birth_lon: Optional[float] = None,
+                             birth_tz: Optional[float] = None) -> Dict:
+        """Day-level muhurta helpers for a date + place: the Choghadiya table
+        (day + night, each part with its nature), the Panchaka status, and — if
+        birth details are supplied — the personal Tarabala (from the birth star)
+        and Chandrabala (the transit Moon counted from the natal Moon). These are
+        the small classical "should I act today?" checks that sit alongside the
+        electional (muhurta) search. `date` defaults to today at `place`."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            from datetime import datetime, timezone as _utc, timedelta
+
+            tz_offset = tz if tz is not None else 5.5
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            if date:
+                year, month, day = map(int, date.split("-"))
+            else:
+                local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+                year, month, day = local_now.year, local_now.month, local_now.day
+            date_str = f"{year:04d}-{month:02d}-{day:02d}"
+
+            place_obj = drik.Place(place or "", lat, lon, tz_offset)
+            jd_noon = swe.julday(year, month, day, 12)
+            sr = drik.sunrise(jd_noon, place_obj)
+            ss = drik.sunset(jd_noon, place_obj)
+            jd_sr = sr[2]  # sunrise jd (for the day's limbs)
+
+            weekday = drik.vaara(jd_noon, place_obj)  # 0=Sun..6=Sat
+            nak = drik.nakshatra(jd_sr, place_obj)
+            nak_idx = nak[0]  # 1..27
+            tithi_idx = drik.tithi(jd_sr, place_obj)[0]  # 1..30
+            # Transit Moon sign (0-based) at sunrise.
+            moon_long = drik.lunar_longitude(jd_sr - tz_offset / 24.0)
+            moon_rasi0 = int(moon_long // 30) % 12
+
+            sr_h = sr[0]; ss_h = ss[0]
+            # Next sunrise (end of night) — in hours past this day's sunrise.
+            nsr = drik.sunrise(jd_noon + 1, place_obj)
+            next_sr_h = nsr[0] + 24.0  # normalise onto the same 0..48 axis
+
+            def _fmt_clock(h):
+                h = h % 24
+                hh = int(h); mm = int(round((h - hh) * 60))
+                if mm == 60:
+                    hh, mm = (hh + 1) % 24, 0
+                return f"{hh:02d}:{mm:02d}"
+
+            # ── Choghadiya (8 day + 8 night parts) ─────────────────────────
+            day_len = (ss_h - sr_h) / 8.0
+            night_len = (next_sr_h - ss_h) / 8.0
+            day_seq = _choghadiya_sequence(_CHOG_DAY_START[weekday])
+            night_seq = _choghadiya_sequence(_CHOG_NIGHT_START[weekday])
+            now_local = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+            is_today = (now_local.year, now_local.month, now_local.day) == (year, month, day)
+            now_h = now_local.hour + now_local.minute / 60.0 if is_today else None
+
+            def _build_chog(seq, base, length, period):
+                out = []
+                for k, name in enumerate(seq):
+                    s = base + k * length
+                    e = base + (k + 1) * length
+                    current = (now_h is not None and s <= (now_h if period == "day" else now_h + (0 if now_h >= sr_h else 24)) < e)
+                    out.append({
+                        "name": name, "period": period,
+                        "start": _fmt_clock(s), "end": _fmt_clock(e),
+                        "nature": CHOGHADIYA_NATURE.get(name, "neutral"),
+                        "current": bool(current),
+                    })
+                return out
+
+            choghadiya = (_build_chog(day_seq, sr_h, day_len, "day")
+                          + _build_chog(night_seq, ss_h, night_len, "night"))
+
+            # ── Panchaka ───────────────────────────────────────────────────
+            # The classical day-panchaka dosha: (tithi + nakshatra + vaara +
+            # lagna-rasi) mod 9; a result of 1/2/4/6/8 names an active dosha,
+            # otherwise the day is Panchaka-rahita (free). A separate almanac
+            # "Panchak" marks the Moon in the last five nakshatras.
+            asc_rasi = drik.ascendant(jd_sr, place_obj)[0] + 1  # 1-based lagna sign
+            rem = (tithi_idx + nak_idx + (weekday + 1) + asc_rasi) % 9
+            ptype, pmeaning = PANCHAKA_TYPES.get(rem, (None, None))
+            active = ptype is not None
+            panchaka = {
+                "active": active,
+                "type": ptype,
+                "meaning": pmeaning if active
+                else "Panchaka-rahita — free of the Panchaka dosha today",
+                "moon_in_panchaka_nakshatra": nak_idx in PANCHAKA_NAKSHATRAS,
+                "nakshatra": NAKSHATRA_NAMES[nak_idx - 1],
+            }
+
+            result = {
+                "status": "success",
+                "date": date_str,
+                "place": place,
+                "weekday": WEEKDAY_NAMES[weekday],
+                "sunrise": _fmt_clock(sr_h),
+                "sunset": _fmt_clock(ss_h),
+                "choghadiya": choghadiya,
+                "panchaka": panchaka,
+                "today_nakshatra": NAKSHATRA_NAMES[nak_idx - 1],
+                "moon_sign": ZODIAC_NAMES[moon_rasi0],
+                "tarabala": None,
+                "chandrabala": None,
+            }
+
+            # ── Personal Tarabala + Chandrabala (need the natal Moon) ──────
+            if birth_dob and birth_tob:
+                try:
+                    by, bm, bd = map(int, birth_dob.split("-"))
+                    btp = birth_tob.split(":")
+                    bh = int(btp[0]); bmin = int(btp[1]) if len(btp) > 1 else 0
+                    blat = birth_lat if birth_lat else lat
+                    blon = birth_lon if birth_lon else lon
+                    btz = birth_tz if birth_tz is not None else tz_offset
+                    bplace = drik.Place(place or "", blat, blon, btz)
+                    bjd = swe.julday(by, bm, bd, bh + bmin / 60.0)
+                    b_moon_long = drik.lunar_longitude(bjd - btz / 24.0)
+                    birth_star = int(b_moon_long // (360.0 / 27.0)) + 1  # 1..27
+                    birth_moon_rasi0 = int(b_moon_long // 30) % 12
+
+                    # Tarabala: count from birth star to today's star.
+                    tb_div = utils.count_stars(birth_star, nak_idx) % 9
+                    tname, tquality = TARABALA_NAMES[tb_div]
+                    result["tarabala"] = {
+                        "birth_star": NAKSHATRA_NAMES[birth_star - 1],
+                        "today_star": NAKSHATRA_NAMES[nak_idx - 1],
+                        "tara": tname,
+                        "quality": tquality,
+                        "count": utils.count_stars(birth_star, nak_idx),
+                    }
+
+                    # Chandrabala: transit Moon sign from the natal Moon sign.
+                    pos = utils.count_rasis(birth_moon_rasi0 + 1, moon_rasi0 + 1)
+                    cb_quality = ("good" if pos in CHANDRABALA_GOOD
+                                  else "bad" if pos in CHANDRABALA_BAD else "neutral")
+                    result["chandrabala"] = {
+                        "birth_moon_sign": ZODIAC_NAMES[birth_moon_rasi0],
+                        "transit_moon_sign": ZODIAC_NAMES[moon_rasi0],
+                        "position": pos,
+                        "quality": cb_quality,
+                    }
+                except Exception:
+                    import traceback
+                    traceback.print_exc()
+
+            return result
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+
     # ── Prashna / horary (§16) ─────────────────────────────────────────────
     @staticmethod
     def get_prashna(question: Optional[str] = None, date: Optional[str] = None,
@@ -2996,6 +3267,226 @@ class AstrologyCompute:
             import traceback
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
+
+    # ── Nadi / Bhrigu-style yearly markers ─────────────────────────────────
+    @staticmethod
+    def get_bhrigu_markers(dob: str, tob: str, place: str,
+                           lat: Optional[float] = None, lon: Optional[float] = None,
+                           tz: Optional[float] = None, from_age: Optional[int] = None,
+                           years: int = 12,
+                           ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Bhrigu / Nadi-style yearly markers for a birth chart.
+
+        Two grounded, clearly-labelled classical devices:
+          1. **Annual progression** — the Nadi one-sign-per-year progression from
+             the natal Moon: age 0 = the Moon's sign, and each year the "marker
+             sign" advances by one rasi. The natal planets sitting in that sign
+             (and its lord) are what the year is said to activate.
+          2. **Bhrigu Bindu activation** — the natal Bhrigu Bindu (the Rahu–Moon
+             midpoint, a Nadi sensitive point). The next transits of Jupiter and
+             Saturn into the Bhrigu Bindu sign and the Moon sign are the concrete
+             "trigger" dates for the milestone years.
+
+        This is a traditional predictive aid, not a deterministic forecast."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            from datetime import datetime, timezone as _utc, timedelta
+            _set_ayanamsa(ayanamsa)
+
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+            jd = swe.julday(year, month, day, hour + minute / 60.0)
+
+            pp = charts.rasi_chart(jd, place_obj)
+            # planet index -> 0-based rasi (skip lagna at index 0).
+            planet_sign = {}
+            for pidx, (rasi, _deg) in pp[1:]:
+                planet_sign[pidx] = rasi
+            moon_rasi0 = planet_sign.get(1, 0)  # 1 = Moon
+
+            # Natal Bhrigu Bindu (Rahu-Moon midpoint), D1.
+            bb = drik.bhrigu_bindhu_lagna(jd, place_obj)  # [sign0, deg]
+            bb_sign0 = int(bb[0]) % 12
+            bb_deg = round(float(bb[1]), 2)
+            # House of the Bhrigu Bindu from the Lagna (1-based).
+            lagna_rasi0 = pp[0][1][0]
+            bb_house = ((bb_sign0 - lagna_rasi0) % 12) + 1
+
+            # Sign -> natal planets in it (names), for annotating progressed years.
+            signs_planets = {s: [] for s in range(12)}
+            for pidx, rasi in planet_sign.items():
+                signs_planets[rasi].append(PLANET_NAMES.get(pidx, str(pidx)))
+
+            # Current age (integer years since birth).
+            today = datetime.now()
+            age_now = today.year - year - ((today.month, today.day) < (month, day))
+            if from_age is None:
+                from_age = max(0, age_now)
+            years = max(1, min(int(years or 12), 40))
+
+            # ── Annual progression table ───────────────────────────────────
+            progression = []
+            for a in range(from_age, from_age + years):
+                sign0 = (moon_rasi0 + a) % 12
+                planets_here = signs_planets.get(sign0, [])
+                progression.append({
+                    "age": a,
+                    "year": year + a,
+                    "sign_name": ZODIAC_NAMES[sign0],
+                    "sign_lord": RASI_LORDS[sign0],
+                    "planets": planets_here,
+                    "is_bhrigu_bindu": sign0 == bb_sign0,
+                    "is_moon_sign": sign0 == moon_rasi0,
+                })
+
+            # ── Bhrigu Bindu / Moon activations (Jupiter + Saturn ingresses) ─
+            activations = []
+            search_place = drik.Place(place, lat, lon, tz_offset)
+            jd_now = swe.julday(today.year, today.month, today.day, 12)
+            for pl_idx, pl_name in ((4, "Jupiter"), (6, "Saturn")):
+                for tgt_sign0, tgt_label in ((bb_sign0, "Bhrigu Bindu"),
+                                             (moon_rasi0, "Moon")):
+                    try:
+                        ret = drik.next_planet_entry_date(
+                            pl_idx, jd_now, search_place, raasi=tgt_sign0 + 1)
+                        ejd = ret[0] if isinstance(ret, (list, tuple)) else ret
+                        g = utils.jd_to_gregorian(ejd)
+                        activations.append({
+                            "planet": pl_name,
+                            "target": tgt_label,
+                            "sign_name": ZODIAC_NAMES[tgt_sign0],
+                            "date": f"{g[0]:04d}-{g[1]:02d}-{g[2]:02d}",
+                        })
+                    except Exception:
+                        pass
+            activations.sort(key=lambda x: x["date"])
+
+            return {
+                "status": "success",
+                "dob": dob,
+                "age_now": age_now,
+                "moon_sign": ZODIAC_NAMES[moon_rasi0],
+                "bhrigu_bindu": {
+                    "sign_name": ZODIAC_NAMES[bb_sign0],
+                    "degrees": bb_deg,
+                    "house_from_lagna": bb_house,
+                    "sign_lord": RASI_LORDS[bb_sign0],
+                },
+                "from_age": from_age,
+                "years": years,
+                "progression": progression,
+                "activations": activations,
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    # ── Remedies (traditional guidance from dignity + shadbala) ─────────────
+    @staticmethod
+    def get_remedies(dob: str, tob: str, place: str,
+                     lat: Optional[float] = None, lon: Optional[float] = None,
+                     tz: Optional[float] = None,
+                     ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Classical remedial suggestions per weak / afflicted planet.
+
+        A planet is flagged when it is **debilitated**, **shadbala-deficient**
+        (six-fold strength ratio < 1.0), or sits in a **dusthana** (6th/8th/12th
+        from the Lagna). For each flagged graha the curated traditional remedy
+        (gemstone, beeja mantra, presiding deity, weekday, charity, colour) is
+        returned. This is traditional guidance drawn from the chart's own dignity
+        and strength — NOT medical, legal or financial advice, and gemstones in
+        particular should be taken up only after qualified consultation."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd = swe.julday(year, month, day, hour + minute / 60.0)
+
+            pp = charts.rasi_chart(jd, place_obj)
+            lagna_rasi0 = pp[0][1][0]
+            planet_sign = {pidx: rasi for pidx, (rasi, _d) in pp[1:]}
+
+            # Shadbala ratio per planet (Sun..Saturn); Rahu/Ketu have no shadbala.
+            ratios = {}
+            sb = AstrologyCompute.get_shadbala(dob, tob, place, lat, lon, tz, ayanamsa=ayanamsa)
+            if sb.get("status") == "success":
+                for row in sb.get("planets", []):
+                    ratios[row["planet"]] = row.get("strength_ratio")
+
+            def _dignity(name, sign0):
+                if name in EXALTATION_SIGN:
+                    if sign0 == EXALTATION_SIGN[name]:
+                        return "exalted"
+                    if sign0 == (EXALTATION_SIGN[name] + 6) % 12:
+                        return "debilitated"
+                if sign0 in OWN_SIGNS.get(name, set()):
+                    return "own"
+                return "neutral"
+
+            DUSTHANAS = {6, 8, 12}
+            all_planets = []
+            remedies = []
+            # Assess the seven grahas + Rahu/Ketu (0..8).
+            for pidx in range(9):
+                name = PLANET_NAMES.get(pidx, str(pidx))
+                if pidx not in planet_sign:
+                    continue
+                sign0 = planet_sign[pidx]
+                dignity = _dignity(name, sign0)
+                house = ((sign0 - lagna_rasi0) % 12) + 1
+                ratio = ratios.get(name)
+                reasons = []
+                if dignity == "debilitated":
+                    reasons.append("debilitated (fallen dignity)")
+                if ratio is not None and ratio < 1.0:
+                    reasons.append(f"shadbala-deficient (strength {ratio:.2f} < required)")
+                if house in DUSTHANAS:
+                    reasons.append(f"in a dusthana (house {house} from Lagna)")
+                entry = {
+                    "planet": name,
+                    "sign_name": ZODIAC_NAMES[sign0],
+                    "house": house,
+                    "dignity": dignity,
+                    "strength_ratio": ratio,
+                    "weak": bool(reasons),
+                    "reasons": reasons,
+                }
+                all_planets.append(entry)
+                if reasons and name in REMEDIES_TABLE:
+                    rem = dict(REMEDIES_TABLE[name])
+                    rem["planet"] = name
+                    rem["reason"] = "; ".join(reasons)
+                    rem["dignity"] = dignity
+                    rem["house"] = house
+                    remedies.append(rem)
+
+            return {
+                "status": "success",
+                "remedies": remedies,
+                "planets": all_planets,
+                "weak_count": len(remedies),
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
     def get_eclipses(place: str = "", lat: Optional[float] = None,

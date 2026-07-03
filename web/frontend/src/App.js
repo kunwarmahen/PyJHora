@@ -29,6 +29,8 @@ import { VedicClockPage } from "./pages/VedicClockPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { MuhurtaPage } from "./pages/MuhurtaPage";
 import { PrashnaPage } from "./pages/PrashnaPage";
+import { BhriguMarkersPage } from "./pages/BhriguMarkersPage";
+import { RemediesPage } from "./pages/RemediesPage";
 import { DailyDigestPage } from "./pages/DailyDigestPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
@@ -125,6 +127,24 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PrashnaPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/bhrigu-markers"
+              element={
+                <ProtectedRoute>
+                  <BhriguMarkersPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/remedies"
+              element={
+                <ProtectedRoute>
+                  <RemediesPage />
                 </ProtectedRoute>
               }
             />

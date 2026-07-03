@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CalendarCheck, Sparkles, MapPin, Clock, Star } from "lucide-react";
+import { CalendarCheck, Sparkles, MapPin, Clock, Star, Compass, Moon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
@@ -76,6 +76,12 @@ export const MuhurtaPage = () => {
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [aiModel, setAiModel] = useState("");
 
+  // Day sub-tools (Choghadiya / Panchaka / Tarabala / Chandrabala).
+  const [subDate, setSubDate] = useState(todayISO);
+  const [subData, setSubData] = useState(null);
+  const [subLoading, setSubLoading] = useState(false);
+  const [subError, setSubError] = useState("");
+
   const loc = useMemo(
     () =>
       selectedProfile
@@ -105,6 +111,35 @@ export const MuhurtaPage = () => {
       setLoading(false);
     }
   }, [loc, activity, startDate, endDate, t]);
+
+  const runSubtools = useCallback(async () => {
+    if (!loc) return;
+    setSubLoading(true);
+    setSubError("");
+    try {
+      const birthDetails = selectedProfile
+        ? {
+            name: selectedProfile.birth_details.name,
+            dob: selectedProfile.birth_details.dob,
+            tob: selectedProfile.birth_details.tob,
+            place: selectedProfile.birth_details.place,
+            latitude: selectedProfile.birth_details.latitude,
+            longitude: selectedProfile.birth_details.longitude,
+            timezone: selectedProfile.birth_details.timezone,
+          }
+        : undefined;
+      const res = await astrologyService.getMuhurtaSubtools({
+        date: subDate,
+        ...loc,
+        birthDetails,
+      });
+      setSubData(res.data);
+    } catch (err) {
+      setSubError(err.response?.data?.detail || t("muhurta.subtools.error"));
+    } finally {
+      setSubLoading(false);
+    }
+  }, [loc, subDate, selectedProfile, t]);
 
   const handleAi = async () => {
     if (!loc) return;
@@ -184,6 +219,117 @@ export const MuhurtaPage = () => {
         <p className="card-note">
           <MapPin size={13} /> {t("muhurta.locationNote", { place: loc.place || "—" })}
         </p>
+
+        {/* Day sub-tools: Choghadiya / Panchaka / Tarabala / Chandrabala */}
+        <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
+          <h3 className="ui-card-header ui-card-header--sm">
+            <Compass size={18} /> {t("muhurta.subtools.title")}
+          </h3>
+          <p className="card-note">{t("muhurta.subtools.intro")}</p>
+          <div className="page-controls">
+            <div className="controls-group">
+              <label className="control-label">{t("muhurta.subtools.date")}</label>
+              <input
+                type="date"
+                className="control-input"
+                value={subDate}
+                onChange={(e) => setSubDate(e.target.value)}
+              />
+              <button className="control-btn" onClick={runSubtools} disabled={subLoading}>
+                <Star size={14} /> {t("muhurta.subtools.check")}
+              </button>
+            </div>
+          </div>
+          <ErrorBanner message={subError} />
+          {subLoading && <LoadingState message={t("muhurta.subtools.loading")} />}
+          {subData && !subLoading && (
+            <div className="fade-in">
+              {/* Personal status: Panchaka / Tarabala / Chandrabala */}
+              <div className="muh-status-grid">
+                <div className="muh-status">
+                  <div className="muh-status__label">{t("muhurta.subtools.panchaka")}</div>
+                  <div className="muh-status__value">
+                    {subData.panchaka?.active
+                      ? subData.panchaka?.type
+                      : t("muhurta.subtools.panchakaFree")}
+                    <span
+                      className={`muh-badge muh-badge--${subData.panchaka?.active ? "bad" : "good"}`}
+                    >
+                      {subData.panchaka?.active ? t("muhurta.subtools.avoid") : t("muhurta.subtools.clear")}
+                    </span>
+                  </div>
+                  <div className="muh-status__note">{subData.panchaka?.meaning}</div>
+                </div>
+
+                {subData.tarabala && (
+                  <div className="muh-status">
+                    <div className="muh-status__label">{t("muhurta.subtools.tarabala")}</div>
+                    <div className="muh-status__value">
+                      {subData.tarabala.tara}
+                      <span className={`muh-badge muh-badge--${subData.tarabala.quality}`}>
+                        {t(`muhurta.subtools.quality.${subData.tarabala.quality}`)}
+                      </span>
+                    </div>
+                    <div className="muh-status__note">
+                      {t("muhurta.subtools.tarabalaNote", {
+                        birth: subData.tarabala.birth_star,
+                        today: subData.tarabala.today_star,
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {subData.chandrabala && (
+                  <div className="muh-status">
+                    <div className="muh-status__label">
+                      <Moon size={12} /> {t("muhurta.subtools.chandrabala")}
+                    </div>
+                    <div className="muh-status__value">
+                      {t("muhurta.subtools.house", { n: subData.chandrabala.position })}
+                      <span className={`muh-badge muh-badge--${subData.chandrabala.quality}`}>
+                        {t(`muhurta.subtools.quality.${subData.chandrabala.quality}`)}
+                      </span>
+                    </div>
+                    <div className="muh-status__note">
+                      {t("muhurta.subtools.chandrabalaNote", {
+                        birth: subData.chandrabala.birth_moon_sign,
+                        transit: subData.chandrabala.transit_moon_sign,
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Choghadiya day + night */}
+              <div className="muh-sub-columns mt-xl">
+                {["day", "night"].map((period) => (
+                  <div key={period} className="muh-chog-col">
+                    <h4>{t(`muhurta.subtools.${period}`)}</h4>
+                    <ul className="muh-chog-list">
+                      {(subData.choghadiya || [])
+                        .filter((c) => c.period === period)
+                        .map((c, i) => (
+                          <li
+                            key={i}
+                            className={`muh-chog muh-chog--${c.nature}${c.current ? " muh-chog--current" : ""}`}
+                          >
+                            <span className="muh-chog__name">
+                              {t(`muhurta.subtools.chog.${c.name}`, c.name)}
+                            </span>
+                            <span className="muh-chog__time">
+                              {c.start}–{c.end}
+                            </span>
+                            {c.current && <span className="muh-chog__now">{t("muhurta.subtools.now")}</span>}
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <p className="card-note">{t("muhurta.subtools.note")}</p>
+            </div>
+          )}
+        </div>
 
         <ErrorBanner message={error} />
 

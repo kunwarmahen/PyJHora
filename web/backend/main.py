@@ -354,6 +354,40 @@ class DailyDigestAnalysisRequest(BaseModel):
     max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
+class MuhurtaSubtoolsRequest(BaseModel):
+    # Day-level muhurta helpers. Location-driven; birth_details optional and only
+    # used to personalize Tarabala / Chandrabala.
+    date: Optional[str] = None
+    place: str = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    timezone: Optional[float] = None
+    birth_details: Optional[BirthDetails] = None
+
+class BhriguMarkersAnalysisRequest(BaseModel):
+    birth_details: BirthDetails
+    from_age: Optional[int] = None
+    years: Optional[int] = 12
+    person_name: Optional[str] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
+
+class RemediesAnalysisRequest(BaseModel):
+    birth_details: BirthDetails
+    person_name: Optional[str] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
+
 class NotificationPrefsRequest(BaseModel):
     daily_digest: Optional[bool] = None
     email: Optional[bool] = None
@@ -2319,6 +2353,32 @@ async def analyze_muhurta(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/astrology/muhurta/subtools")
+async def get_muhurta_subtools(
+    request: MuhurtaSubtoolsRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Day-level muhurta helpers: Choghadiya + Panchaka (location) and, when
+    birth details are supplied, personal Tarabala + Chandrabala."""
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_muhurta_subtools(
+            date=request.date, place=request.place,
+            lat=request.latitude, lon=request.longitude, tz=request.timezone,
+            birth_dob=bd.dob if bd else None,
+            birth_tob=bd.tob if bd else None,
+            birth_lat=bd.latitude if bd else None,
+            birth_lon=bd.longitude if bd else None,
+            birth_tz=bd.timezone if bd else None,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/astrology/prashna")
 async def get_prashna(
     question: Optional[str] = None,
@@ -2411,6 +2471,101 @@ async def analyze_daily_digest(
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_daily_digest(
             digest_data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============= NADI / BHRIGU YEARLY MARKERS + REMEDIES =============
+
+@app.post("/api/astrology/bhrigu-markers")
+async def get_bhrigu_markers(
+    birth_details: BirthDetails,
+    from_age: Optional[int] = None,
+    years: int = 12,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Nadi / Bhrigu-style yearly markers: the Moon-based annual progression +
+    the Bhrigu Bindu and its Jupiter/Saturn activations."""
+    try:
+        result = AstrologyCompute.get_bhrigu_markers(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, from_age=from_age, years=years, ayanamsa=ayanamsa)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/bhrigu-markers-analysis")
+async def analyze_bhrigu_markers(
+    request: BhriguMarkersAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Plain-language reading of the Bhrigu / Nadi yearly markers."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_bhrigu_markers(
+            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+            lon=bd.longitude, tz=bd.timezone, from_age=request.from_age,
+            years=request.years or 12, ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_bhrigu_markers(
+            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/remedies")
+async def get_remedies(
+    birth_details: BirthDetails,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Traditional remedial suggestions per weak / afflicted planet (dignity +
+    shadbala driven). Clearly labelled traditional guidance, not advice."""
+    try:
+        result = AstrologyCompute.get_remedies(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, ayanamsa=ayanamsa)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/remedies-analysis")
+async def analyze_remedies(
+    request: RemediesAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Warm, plain-language explanation of the suggested remedies."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_remedies(
+            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+            lon=bd.longitude, tz=bd.timezone, ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_remedies(
+            data=result, name=request.person_name or bd.name or "this person", config=cfg)
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
                 "model": cfg.model}
     except HTTPException:

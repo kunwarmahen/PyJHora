@@ -2004,16 +2004,47 @@ server-injects birth details + resets global state, auth endpoint, saffron page,
       `src/jhora` for KP/sublord). A dedicated KP page + significator tables + AI reading.
 
 **Fuller brainstorm (P2, unprioritized — pick as capacity allows):**
-- [ ] 🔴 **Muhurta sub-tools**: Tarabala/Chandrabala, Panchaka, choghadiya — small additions to Muhurta.
+- [x] **Muhurta sub-tools**: Tarabala/Chandrabala, Panchaka, choghadiya. DONE 2026-07-03:
+      `AstrologyCompute.get_muhurta_subtools(date, place…, birth_dob/tob…)` returns the day's
+      **Choghadiya** (8 day + 8 night parts from sunrise/sunset with the weekday-driven rota, each
+      tagged good/neutral/bad + a "current" flag), the **Panchaka** dosha ((tithi+nakshatra+vaara+
+      lagna) mod 9 → Mrityu/Agni/Raja/Chora/Roga or Panchaka-rahita, plus a Moon-in-last-5-nakshatras
+      note), and — when birth details are passed — the personal **Tarabala** (engine `count_stars`
+      from the natal star to today's star → the 9 taras + quality) and **Chandrabala** (transit Moon
+      counted from the natal Moon → favourable 1/3/6/7/10/11). New constants `TARABALA_NAMES`/
+      `CHANDRABALA_*`/`PANCHAKA_*`/`CHOGHADIYA_*` + `_choghadiya_sequence`. `POST /api/astrology/
+      muhurta/subtools` (no AI — factual tables). Added as a **"Day tools"** section on `MuhurtaPage`
+      (date picker → status cards for Panchaka/Tarabala/Chandrabala + day/night Choghadiya lists),
+      passing the selected profile for personalization. i18n `muhurta.subtools.*` (en; hi/sa fall back).
 - [ ] 🔴 **Bhava/house-cusp chart (Sripati/Placidus)** if the engine exposes bhava madhya — a
       cusp-based house chart alongside the whole-sign one.
 - [ ] 🔴 **Jaimini deep-dive** (Chara dasha already exists elsewhere): Arudha-based reasoning page,
       Karakamsa/Swamsa, Jaimini aspects — surface more of the Jaimini toolkit.
-- [ ] 🔴 **Nadi / Bhrigu-style yearly markers** if any engine support exists (else skip).
+- [x] **Nadi / Bhrigu-style yearly markers**. DONE 2026-07-03 (engine support exists —
+      `drik.bhrigu_bindhu_lagna` + `next_planet_entry_date`). `AstrologyCompute.get_bhrigu_markers(
+      dob,tob,place…, from_age, years)` gives two grounded, clearly-labelled classical devices:
+      (1) the **Nadi annual progression** — the one-sign-per-year advance from the natal Moon (age 0 =
+      Moon sign; each year's "marker sign" + its lord + the natal planets sitting there, flagging the
+      Bhrigu-Bindu and Moon-sign years); and (2) **Bhrigu Bindu activations** — the natal Bhrigu Bindu
+      (Rahu–Moon midpoint, sign/deg/house-from-Lagna) plus the next Jupiter & Saturn ingresses into the
+      Bhrigu-Bindu and Moon signs as the turning-point trigger dates. `POST /api/astrology/bhrigu-markers`
+      + `.../bhrigu-markers-analysis` (`_build_bhrigu_markers_prompt`, framed as an indicative aid not a
+      fated forecast). Frontend `BhriguMarkersPage` (route `/bhrigu-markers`, card + drawer, `Waypoints`):
+      horizon picker (8/12/20/30 yrs), BB info pills, progression grid, activations list, AI reading.
+      New constant `RASI_LORDS`. i18n `bhrigu.*` (en; hi/sa nav+card labels).
 - [ ] 🔴 **Transit calendar / ephemeris view** — a month/year timeline of ingresses, retrogrades,
       eclipses, and personal dasha changes (builds on §9.2 eclipse/vratha finders + transits).
-- [ ] 🔴 **Remedies suggestions** (gemstones/mantras/deities per weak planet) — clearly-labelled
-      as traditional-guidance-not-advice; drive from dignity/shadbala already computed.
+- [x] **Remedies suggestions** (gemstones/mantras/deities per weak planet). DONE 2026-07-03:
+      `AstrologyCompute.get_remedies(dob,tob,place…)` flags a planet as weak/afflicted when it is
+      **debilitated** (from hard-coded exaltation/own-sign tables), **shadbala-deficient** (reuses
+      `get_shadbala`, ratio < 1.0) or in a **dusthana** (6/8/12 from Lagna), then emits the curated
+      traditional remedy per graha — gemstone, beeja mantra (+japa count), presiding deity, weekday,
+      charity (daana) and colour — from a new `REMEDIES_TABLE` (Sun…Ketu) with `EXALTATION_SIGN`/
+      `OWN_SIGNS`. Also returns a per-planet dignity+strength overview. `POST /api/astrology/remedies`
+      + `.../remedies-analysis` (`_build_remedies_prompt` — leads with the gentle upayas, warns gemstones
+      need qualified consultation). Frontend `RemediesPage` (route `/remedies`, card + drawer, `Gem`):
+      remedy cards per weak planet, a dignity/shadbala table, AI reading, prominent
+      traditional-guidance-not-advice banner. i18n `remedies.*` (en; hi/sa nav+card labels).
 - [ ] 🔴 **Print-ready "full report" PDF** — one polished multi-page document bundling chart +
       dashas + yogas/doshas + a narrative AI reading (extends the existing PNG/PDF export).
 - [ ] 🔴 **Chart-of-the-moment / "now" chart** widget on the Dashboard (current sky), tapping

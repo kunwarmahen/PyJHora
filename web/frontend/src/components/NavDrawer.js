@@ -26,6 +26,8 @@ import {
   CalendarCheck,
   HelpCircle,
   Sun,
+  Waypoints,
+  Gem,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
@@ -43,6 +45,8 @@ const LINKS = [
   { to: "/daily-digest", labelKey: "nav.dailyDigest", icon: <Sun size={20} /> },
   { to: "/muhurta", labelKey: "nav.muhurta", icon: <CalendarCheck size={20} /> },
   { to: "/prashna", labelKey: "nav.prashna", icon: <HelpCircle size={20} /> },
+  { to: "/bhrigu-markers", labelKey: "nav.bhrigu", icon: <Waypoints size={20} /> },
+  { to: "/remedies", labelKey: "nav.remedies", icon: <Gem size={20} /> },
   { to: "/pancha-pakshi", labelKey: "nav.panchaPakshi", icon: <Bird size={20} /> },
   { to: "/sarvatobhadra", labelKey: "nav.sarvatobhadra", icon: <Grid3x3 size={20} /> },
   { to: "/sensitive-points", labelKey: "nav.sensitivePoints", icon: <Crosshair size={20} /> },

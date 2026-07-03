@@ -601,6 +601,25 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
+    async def analyze_bhrigu_markers(self,
+                                     data: Dict[str, Any],
+                                     name: str = "this person",
+                                     config: Optional[ModelConfig] = None) -> str:
+        """Reading of the Bhrigu / Nadi yearly markers (annual progression +
+        Bhrigu Bindu activations)."""
+        prompt = self._build_bhrigu_markers_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
+    async def analyze_remedies(self,
+                               data: Dict[str, Any],
+                               name: str = "this person",
+                               config: Optional[ModelConfig] = None) -> str:
+        """Warm explanation of the suggested per-planet remedies."""
+        prompt = self._build_remedies_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
     # ------------------------------------------------------------------ #
     # "Learn the Chart" — AI quiz generation + grading
     # ------------------------------------------------------------------ #
@@ -1958,6 +1977,67 @@ Write a friendly ~200-word daily note:
 2. **Your bigger arc** — a line tying it to the current dasha/bhukti (and Sade-Sati or a nearing dasha change if flagged), framed constructively.
 3. **A gentle nudge** — one practical suggestion for making the most of today.
 End on an encouraging line. Do NOT make fated, medical, legal or financial claims; keep it a supportive daily reflection."""
+
+    def _build_bhrigu_markers_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """Read the Nadi/Bhrigu yearly markers: the Moon-based annual progression
+        and the Bhrigu Bindu activations."""
+        bb = d.get("bhrigu_bindu") or {}
+        prog = d.get("progression") or []
+        acts = d.get("activations") or []
+
+        prog_lines = "\n".join(
+            f"- Age {p['age']} ({p['year']}): {p['sign_name']} (lord {p['sign_lord']})"
+            + (f", natal {', '.join(p['planets'])} here" if p.get("planets") else ", empty sign")
+            + (" ← Bhrigu Bindu sign" if p.get("is_bhrigu_bindu") else "")
+            + (" ← natal Moon sign" if p.get("is_moon_sign") else "")
+            for p in prog
+        ) or "- (none)"
+
+        act_lines = "\n".join(
+            f"- {a['date']}: {a['planet']} enters {a['sign_name']} ({a['target']} sign)"
+            for a in acts
+        ) or "- (none in the searched horizon)"
+
+        return f"""You are a thoughtful Vedic astrologer explaining {name}'s **Bhrigu / Nadi-style yearly markers**. Two classical, clearly-labelled devices have been pre-computed — read them, do not recompute or invent placements.
+
+**1. Annual progression (Nadi one-sign-per-year from the Moon).** The natal Moon is in {d.get('moon_sign')}. Each year of life the "marker sign" advances by one rasi; the natal planets sitting in that sign are what the year activates. Current age: {d.get('age_now')}.
+{prog_lines}
+
+**2. Bhrigu Bindu (the Rahu–Moon midpoint, a Nadi sensitive point).** It sits in {bb.get('sign_name')} at {bb.get('degrees')}°, house {bb.get('house_from_lagna')} from the Lagna (lord {bb.get('sign_lord')}). The next Jupiter/Saturn transits that activate the Bhrigu Bindu and Moon signs:
+{act_lines}
+
+Write a grounded ~280-word note:
+1. **The theme of the coming years** — walk through 2–3 of the most notable progressed years above (those with natal planets, or the Bhrigu-Bindu / Moon-sign years) and what area of life the sign + its occupants suggest.
+2. **Milestone triggers** — mention the nearest Jupiter or Saturn activation date and why a slow-planet touching the Bhrigu Bindu is treated as a turning-point in Nadi thought.
+3. **How to use it** — one calm, practical line.
+Reason only from the markers given. Frame everything as a traditional predictive *aid* — evocative, not fated. Do NOT make medical, legal or financial predictions. Close with one line noting these are indicative markers, and free will shapes the outcome."""
+
+    def _build_remedies_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """Explain the suggested per-planet remedies, warmly and responsibly."""
+        rems = d.get("remedies") or []
+        if not rems:
+            body = "No planet came out clearly weak or afflicted in this chart — a reassuring sign."
+            rem_lines = ""
+        else:
+            body = (f"{len(rems)} planet(s) came out weak or afflicted "
+                    "(debilitated, shadbala-deficient, or in a dusthana).")
+            rem_lines = "\n".join(
+                f"- **{r['planet']}** ({r['reason']}): gemstone {r['gemstone']}, "
+                f"mantra \"{r['mantra']}\" (~{r.get('mantra_count')} times), deity {r['deity']}, "
+                f"day {r['day']}, charity: {r['donation']}, colour {r['color']}."
+                for r in rems
+            )
+
+        return f"""You are a warm, responsible Vedic astrologer explaining traditional **remedial measures (upaya)** for {name}. The chart's weak/afflicted planets and the classical remedies for each have already been computed — explain them, do not invent new ones.
+
+{body}
+{rem_lines}
+
+Write a caring ~260-word note:
+1. **What's asking for support** — in plain language, which planet(s) are running weak and what life-areas they touch (keep it constructive, never alarming).
+2. **The gentlest remedies first** — emphasise that mantra, charity (daana), fasting on the planet's weekday, and devotion are the safe, accessible upayas anyone can begin; walk through 1–2 concretely.
+3. **On gemstones** — note clearly that gemstones and yantras are powerful and should be worn ONLY after consulting a qualified astrologer, never self-prescribed.
+Frame all of this as **traditional guidance and devotional practice, not medical, psychological, legal or financial advice**, and not a guarantee of results. Close by reminding them that sincere effort and good conduct are themselves the strongest remedy."""
 
     def _build_rectification_prompt(self, r: Dict[str, Any], name: str) -> str:
         """Explain, in plain terms, why the suggested birth time fits better than
