@@ -14,6 +14,7 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { TransitChat } from "../components/TransitChat";
+import { RecentReadings } from "../components/RecentReadings";
 import { PLANET_ABBR, AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
@@ -187,6 +188,7 @@ export const TransitPage = () => {
 
       <div className="dashboard-content">
         <ProfileBanner profile={selectedProfile} />
+        <RecentReadings source="transit" profileId={selectedProfile?._id} />
 
         {/* Controls */}
         <div className="page-controls">

@@ -220,7 +220,7 @@ export const TransitChat = ({ birthDetails, profile, result, ayanamsa = DEFAULT_
           {/* Where the model comes from — inherited from "Ask AI Astrologer". */}
           <p className="transit-chat__model">
             {t("transitChat.modelSource", { model: configuredModelLabel })}{" "}
-            <Link to="/ask-astrologer">{t("transitChat.modelChange")}</Link>
+            <Link to="/settings">{t("transitChat.modelChange")}</Link>
           </p>
 
           {/* Messages */}
