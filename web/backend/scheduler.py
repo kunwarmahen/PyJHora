@@ -2,8 +2,11 @@
 
 An opt-in asyncio background task (enabled with `DIGEST_SCHEDULER_ENABLED=true`)
 that wakes every `DIGEST_SCHEDULER_INTERVAL_MINUTES` and, for each user who has
-the daily digest enabled, delivers it once per day at *their* preferred local
-hour (interpreted in the target birth profile's timezone).
+the daily digest enabled, delivers it once per day at *or after* their preferred
+local hour (interpreted in the target birth profile's timezone). "At or after"
+(rather than only during the exact hour) means the digest still goes out if the
+process was down or restarting during the target hour — the user gets it later
+that day instead of missing the day entirely.
 
 **Once-per-day + multi-worker safety.** Before sending, a tick atomically
 *claims* the user for today's local date via a conditional
@@ -59,7 +62,11 @@ async def _tick() -> int:
         try:
             tz = await _profile_tz(user_id, prefs)
             local = _local_now(tz)
-            if local.hour != int(prefs.get("hour", 7)):
+            # Deliver at *or after* the preferred hour (once per day). Using ">="
+            # rather than an exact-hour match means a missed window — the process
+            # was down or restarting during that single hour — still gets the
+            # user their digest later the same day instead of skipping it.
+            if local.hour < int(prefs.get("hour", 7)):
                 continue
             local_date = local.strftime("%Y-%m-%d")
 

@@ -12,6 +12,23 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
 
 ## 1. Bugs & correctness (P0 — fix first)
 
+- [x] **(P1) Notifications — digest email "never came" & push shows "unavailable"** (owner report
+      2026-07-04): two independent, environmental causes, each with a fix:
+      - **Email.** SMTP + the digest pipeline both work (verified end-to-end: `send_digest_for_user`
+        returns `email:True`). The *scheduled* mail never fired because `scheduler.py` only sent when
+        the local hour *exactly* equalled the preferred hour (7am IST) **and** the process happened to
+        be running during that single hour — a restart/downtime skipped the whole day. FIXED
+        2026-07-04: send at **or after** the preferred hour (`local.hour >= hour`), still once-per-day
+        via the atomic `last_sent_date` claim, so a missed hour is delivered later the same day.
+        (The "Send me a test now" button was and is the immediate path.)
+      - **Browser push.** Server VAPID keys *are* configured; the badge reads "unavailable" because
+        the app was opened over a plain-HTTP LAN hostname (`http://…:3000`). Service Workers + Push
+        only exist in a **secure context** (HTTPS or `http://localhost`) — a browser rule, unfixable
+        in JS. FIXED 2026-07-04 (UX): `push.js` gains `pushUnavailableReason()` (`isSecureContext`
+        check), and Settings → Notifications now shows a tooltip + hint distinguishing the three cases
+        (server not configured / insecure page / unsupported browser) instead of a bare "unavailable".
+        To actually enable push: serve over HTTPS or use `localhost`. README + `.env.example` document
+        the secure-context requirement.
 - [x] **(P1) Today / Daily Digest — label/value run together** (owner report 2026-07-03):
       the panchanga & dasha detail rows rendered "TithiKrishna Tritiya", "MahadashaRahu" etc —
       the shared `.kv-label`/`.kv-value` spans had no separator/layout (the inline pattern elsewhere

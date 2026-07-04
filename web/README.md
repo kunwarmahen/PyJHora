@@ -335,7 +335,9 @@ PASSWORD_RESET_TTL_MINUTES=30
 
 # Web Push (PWA daily-digest notifications) via VAPID. Generate once with
 # `python -m notifications genkeys`. Leave blank to disable browser push (email +
-# in-app digest still work).
+# in-app digest still work). NOTE: even with keys set, browsers only allow push on
+# a secure context — an HTTPS page or http://localhost. Over plain-HTTP LAN
+# hostnames the Settings toggle shows "unavailable" (a browser rule, not this key).
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 VAPID_SUBJECT=mailto:admin@example.com
@@ -646,8 +648,16 @@ Three approaches, chosen with a mode toggle:
 - **Delivery channels** (opt-in, in **Settings → Notifications**): in-app always; **email** digest
   (via SMTP); **browser push** (Web Push / VAPID). A "send me a test now" button and per-user
   profile/hour preferences
+  - **Browser push requires a secure context.** Service Workers and the Push API only exist on
+    HTTPS pages or `http://localhost` / `127.0.0.1`. Opened over a plain-HTTP LAN hostname (e.g.
+    `http://host.lan:3000`) the toggle shows **"unavailable"** with a tooltip/hint explaining why —
+    this is a browser rule, not a server problem (email + in-app digest still work). Serve the app
+    over HTTPS, or use `localhost`, to enable push. The badge distinguishes three cases: server not
+    configured (no VAPID keys), insecure page (needs HTTPS/localhost), or an unsupported browser.
 - **Scheduler**: an opt-in in-process scheduler (`DIGEST_SCHEDULER_ENABLED`) delivers each user's
-  digest once a day at their preferred local hour — multi-worker-safe via an atomic DB claim
+  digest once a day at **or after** their preferred local hour — using "at or after" (not only the
+  exact hour) means a target hour missed because the process was down/restarting still delivers
+  later the same day instead of skipping it. Multi-worker-safe via an atomic DB claim
   (`notifications.last_sent_date`). Or leave it off and point your own cron at
   `POST /api/notifications/digest/send` per user (both share `digest.send_digest_for_user`)
 

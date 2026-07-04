@@ -7,7 +7,7 @@ import { useSettings } from "../contexts/SettingsContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
 import { authService, astrologyService, notificationsService, setTokens } from "../services/api";
-import { enablePush, disablePush, pushSupported } from "../utils/push";
+import { enablePush, disablePush, pushSupported, pushUnavailableReason } from "../utils/push";
 import { formatDate } from "../utils/format";
 import { AYANAMSAS } from "../constants/jyotish";
 import { LANGUAGES } from "../i18n";
@@ -646,24 +646,39 @@ export const SettingsPage = () => {
                   </label>
                 </div>
 
-                {/* Push channel */}
-                <div className="settings-row">
-                  <label className="settings-label">
-                    {t("settings.notifications.push")}
-                    {(!notifMeta.push_available || !pushSupported()) && (
-                      <span className="settings-badge">{t("settings.notifications.pushUnavailable")}</span>
-                    )}
-                  </label>
-                  <label className="settings-switch">
-                    <input
-                      type="checkbox"
-                      disabled={!notifMeta.push_available || !pushSupported()}
-                      checked={!!notif?.push}
-                      onChange={(e) => togglePush(e.target.checked)}
-                    />
-                    <span />
-                  </label>
-                </div>
+                {/* Push channel. Reason precedence: server not configured →
+                    insecure page (needs HTTPS/localhost) → old browser. */}
+                {(() => {
+                  const pushReason = !notifMeta.push_available
+                    ? "server"
+                    : pushUnavailableReason() || (!pushSupported() ? "unsupported" : "");
+                  const pushBlocked = !!pushReason;
+                  const reasonText = t(`settings.notifications.pushReason.${pushReason || "unsupported"}`);
+                  return (
+                    <>
+                      <div className="settings-row">
+                        <label className="settings-label">
+                          {t("settings.notifications.push")}
+                          {pushBlocked && (
+                            <span className="settings-badge" title={reasonText}>
+                              {t("settings.notifications.pushUnavailable")}
+                            </span>
+                          )}
+                        </label>
+                        <label className="settings-switch">
+                          <input
+                            type="checkbox"
+                            disabled={pushBlocked}
+                            checked={!!notif?.push}
+                            onChange={(e) => togglePush(e.target.checked)}
+                          />
+                          <span />
+                        </label>
+                      </div>
+                      {pushBlocked && <p className="settings-hint">{reasonText}</p>}
+                    </>
+                  );
+                })()}
 
                 <button type="button" className="settings-link" onClick={sendTestDigest}>
                   {t("settings.notifications.sendTest")}

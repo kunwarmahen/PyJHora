@@ -937,6 +937,11 @@
       "emailUnavailable": "email not configured",
       "push": "Browser push notification",
       "pushUnavailable": "unavailable",
+      "pushReason": {
+        "server": "Browser push isn't configured on this server (no VAPID keys).",
+        "insecure": "Browser push needs a secure page — open PyJHora over HTTPS or via http://localhost. It's unavailable on a plain-HTTP address.",
+        "unsupported": "This browser doesn't support push notifications."
+      },
       "sendTest": "Send me a test now",
       "testSent": "Sent — email {{email}}, push to {{push}} device(s).",
       "testError": "Couldn't send the digest.",

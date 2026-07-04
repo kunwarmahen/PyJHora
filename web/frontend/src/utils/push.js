@@ -12,6 +12,20 @@ export const pushSupported = () =>
   "PushManager" in window &&
   "Notification" in window;
 
+/** Why this browser can't use push, or "" if it can.
+ *
+ * Browsers only expose Service Workers + the Push API in a *secure context*
+ * (HTTPS, or http://localhost / 127.0.0.1). Served over plain HTTP on a LAN
+ * hostname the APIs simply don't exist, so `pushSupported()` is false. We check
+ * `isSecureContext` first so we can tell the user the actionable reason
+ * ("insecure") apart from a genuinely old browser ("unsupported"). */
+export const pushUnavailableReason = () => {
+  if (typeof window === "undefined") return "unsupported";
+  if ("isSecureContext" in window && !window.isSecureContext) return "insecure";
+  if (!pushSupported()) return "unsupported";
+  return "";
+};
+
 // VAPID public keys are base64url; the PushManager wants a Uint8Array.
 const urlBase64ToUint8Array = (base64String) => {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
