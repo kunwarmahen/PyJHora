@@ -28,6 +28,9 @@ import {
   Waypoints,
   Gem,
   History,
+  CalendarRange,
+  Home,
+  FileText,
 } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
@@ -82,6 +85,24 @@ export const DashboardPage = () => {
       icon: <Orbit size={32} />,
       path: "/transit",
       gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
+    },
+    {
+      key: "ephemeris",
+      icon: <CalendarRange size={32} />,
+      path: "/ephemeris",
+      gradient: "linear-gradient(135deg, #2D3561 0%, #D4AF37 100%)",
+    },
+    {
+      key: "bhava",
+      icon: <Home size={32} />,
+      path: "/bhava",
+      gradient: "linear-gradient(135deg, #E27B5A 0%, #D4AF37 100%)",
+    },
+    {
+      key: "report",
+      icon: <FileText size={32} />,
+      path: "/report",
+      gradient: "linear-gradient(135deg, #D4AF37 0%, #FF9933 100%)",
     },
     {
       key: "varshaphal",

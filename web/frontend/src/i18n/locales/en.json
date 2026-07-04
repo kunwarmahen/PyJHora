@@ -408,6 +408,18 @@
         "title": "Transits (Gochara)",
         "description": "See where the planets are moving today over your natal chart"
       },
+      "ephemeris": {
+        "title": "Ephemeris & Calendar",
+        "description": "Day-by-day graha positions with sign-ingress dates"
+      },
+      "bhava": {
+        "title": "Bhava (House-Cusp) Chart",
+        "description": "Bhava Chalit — Sripati, Placidus, KP or Equal houses"
+      },
+      "report": {
+        "title": "Full Report",
+        "description": "A print-ready PDF summary of the whole chart"
+      },
       "sarvatobhadra": {
         "title": "Sarvatobhadra Chakra",
         "description": "Today's transits on the 9×9 star grid, with a plain-language AI reading"
