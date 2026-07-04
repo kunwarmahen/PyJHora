@@ -2016,8 +2016,8 @@ server-injects birth details + resets global state, auth endpoint, saffron page,
       muhurta/subtools` (no AI — factual tables). Added as a **"Day tools"** section on `MuhurtaPage`
       (date picker → status cards for Panchaka/Tarabala/Chandrabala + day/night Choghadiya lists),
       passing the selected profile for personalization. i18n `muhurta.subtools.*` (en; hi/sa fall back).
-- [ ] 🔴 **Bhava/house-cusp chart (Sripati/Placidus)** if the engine exposes bhava madhya — a
-      cusp-based house chart alongside the whole-sign one.
+- [x] **Bhava/house-cusp chart (Sripati/Placidus)** — DONE 2026-07-04, see **§18**. Cusp-based
+      Bhava Chalit chart (Sripati/Placidus/KP/Equal) alongside the whole-sign Rasi chart.
 - [ ] 🔴 **Jaimini deep-dive** (Chara dasha already exists elsewhere): Arudha-based reasoning page,
       Karakamsa/Swamsa, Jaimini aspects — surface more of the Jaimini toolkit.
 - [x] **Nadi / Bhrigu-style yearly markers**. DONE 2026-07-03 (engine support exists —
@@ -2039,8 +2039,8 @@ server-injects birth details + resets global state, auth endpoint, saffron page,
       at one Saturn cycle (~36 yr); ~0.2 s/request now, dates verified identical to the old engine. Also
       fixed the activations-list formatting (date + text ran together — the `.detail-list`/`.kv-*` combo
       didn't space `<li>` children) with a dedicated `.bhrigu-activation` flex row.
-- [ ] 🔴 **Transit calendar / ephemeris view** — a month/year timeline of ingresses, retrogrades,
-      eclipses, and personal dasha changes (builds on §9.2 eclipse/vratha finders + transits).
+- [x] **Transit calendar / ephemeris view** — DONE 2026-07-04, see **§18**. Daily sidereal
+      ephemeris grid + a sign-ingress calendar over a selectable window (30/60/92 days).
 - [x] **Remedies suggestions** (gemstones/mantras/deities per weak planet). DONE 2026-07-03:
       `AstrologyCompute.get_remedies(dob,tob,place…)` flags a planet as weak/afflicted when it is
       **debilitated** (from hard-coded exaltation/own-sign tables), **shadbala-deficient** (reuses
@@ -2052,8 +2052,9 @@ server-injects birth details + resets global state, auth endpoint, saffron page,
       need qualified consultation). Frontend `RemediesPage` (route `/remedies`, card + drawer, `Gem`):
       remedy cards per weak planet, a dignity/shadbala table, AI reading, prominent
       traditional-guidance-not-advice banner. i18n `remedies.*` (en; hi/sa nav+card labels).
-- [ ] 🔴 **Print-ready "full report" PDF** — one polished multi-page document bundling chart +
-      dashas + yogas/doshas + a narrative AI reading (extends the existing PNG/PDF export).
+- [x] **Print-ready "full report" PDF** — DONE 2026-07-04, see **§18**. Single print-ready
+      document (chart + D9 + positions + dashas + yogas/doshas + transits) → browser Save-as-PDF
+      via `window.print()` + a `@media print` stylesheet.
 - [ ] 🔴 **Chart-of-the-moment / "now" chart** widget on the Dashboard (current sky), tapping
       the transit compute already built.
 - [ ] 🔴 **Compatibility upgrades**: Kuja-dosha cancellation nuances, Rajju/Vedha detail, and a
