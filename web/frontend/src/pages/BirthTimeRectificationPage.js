@@ -17,6 +17,7 @@ import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
+import { RecentReadings } from "../components/RecentReadings";
 import { errorMessage } from "../utils/format";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
@@ -369,6 +370,7 @@ export const BirthTimeRectificationPage = () => {
       />
 
       <div className="dashboard-content">
+        <RecentReadings source="rectification" profileId={selectedProfile?._id} />
         <ProfileBanner profile={selectedProfile} />
 
         {/* Experimental disclaimer — always visible, this is the core caveat. */}

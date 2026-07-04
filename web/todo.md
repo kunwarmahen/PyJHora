@@ -2130,9 +2130,13 @@ double-stored here.
 - [x] **i18n** — `nav.history` (en/hi/sa) + a `history.*` block (en; hi/sa fall back).
 - [x] **Verify** — frontend production build compiles (+2.49 kB); backend `main.py`+`conversations.py`
       import clean; live Mongo round-trip + prune confirmed. ESLint clean on all touched files.
-- [ ] **Follow-up (not yet done): per-page "Recent readings" control.** Owner asked for BOTH global +
-      per-page access; the global page + deep-link restore ship now. A lightweight per-tool history
-      popover (reusing the Ask panel pattern, filtered to that `source`) is still to add.
+- [x] **Per-page "Recent readings" control** (DONE 2026-07-03) — reusable `components/RecentReadings.js`
+      (collapsible saffron toggle → list, filtered to the page's `source` + optional `profileId`;
+      click deep-links `?reading=<id>` on the *current* page so the page's `useRestoreReading` reopens
+      it in place; per-item delete; renders nothing when the tool has no saved readings). Wired into all
+      14 tool pages (profile-bound pages pass `profileId={selectedProfile?._id}`; location/two-people
+      tools omit it). i18n `recent.*` (en; hi/sa fall back). This completes the owner's BOTH global +
+      per-page ask. **Quiz stays out of the unified history** (keeps its own dedicated history/stats).
 
 **Resolved:** dedupe → **pile up** (individual delete); retention cap → **`AI_HISTORY_MAX` env**
 (default 100, pruned on write); tools with **no birth profile**

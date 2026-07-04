@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
+import { RecentReadings } from "../components/RecentReadings";
 import { intlLocale } from "../utils/format";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
@@ -173,6 +174,7 @@ export const PanchaPakshiPage = () => {
       />
 
       <div className="dashboard-content">
+        <RecentReadings source="panchapakshi" profileId={selectedProfile?._id} />
         <ProfileBanner profile={selectedProfile} />
 
         {/* Controls */}

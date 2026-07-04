@@ -7,6 +7,7 @@ import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash, errorMessage } from "../utils/format";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
+import { RecentReadings } from "../components/RecentReadings";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
@@ -167,6 +168,7 @@ export const CompatibilityPage = () => {
 
       {/* Content */}
       <div className="dashboard-content">
+        <RecentReadings source="compatibility" />
         <ErrorBanner message={error} />
 
         {/* Profile Selection Card */}

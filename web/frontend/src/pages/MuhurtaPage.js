@@ -5,6 +5,7 @@ import { CalendarCheck, Sparkles, MapPin, Clock, Star, Compass, Moon } from "luc
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useRestoreReading } from "../hooks/useRestoreReading";
+import { RecentReadings } from "../components/RecentReadings";
 import { astrologyService } from "../services/api";
 import { intlLocale } from "../utils/format";
 import { PageHeader } from "../components/PageHeader";
@@ -195,6 +196,7 @@ export const MuhurtaPage = () => {
 
       <div className="dashboard-content">
         <ProfileBanner profile={selectedProfile} />
+        <RecentReadings source="muhurta" />
 
         <div className="page-controls">
           <div className="controls-group">

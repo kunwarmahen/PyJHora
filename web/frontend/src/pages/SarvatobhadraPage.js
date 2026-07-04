@@ -7,6 +7,7 @@ import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
+import { RecentReadings } from "../components/RecentReadings";
 import { intlLocale } from "../utils/format";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
@@ -340,6 +341,7 @@ export const SarvatobhadraPage = () => {
       />
 
       <div className="dashboard-content">
+        <RecentReadings source="sarvatobhadra" profileId={selectedProfile?._id} />
         <ProfileBanner profile={selectedProfile} />
 
         {/* Controls */}

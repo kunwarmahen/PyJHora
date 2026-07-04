@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { useRestoreReading } from "../hooks/useRestoreReading";
+import { RecentReadings } from "../components/RecentReadings";
 import { astrologyService } from "../services/api";
 import { intlLocale } from "../utils/format";
 import { NorthIndianChart } from "../components/NorthIndianChart";
@@ -220,6 +221,7 @@ export const VarshaphalPage = () => {
 
       <div className="dashboard-content">
         <ProfileBanner profile={selectedProfile} />
+        <RecentReadings source="varshaphal" profileId={selectedProfile?._id} />
 
         {/* Controls */}
         <div className="page-controls">

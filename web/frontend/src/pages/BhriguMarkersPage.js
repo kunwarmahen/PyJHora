@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
+import { RecentReadings } from "../components/RecentReadings";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { Card } from "../components/Card";
@@ -149,6 +150,7 @@ export const BhriguMarkersPage = () => {
       />
 
       <div className="dashboard-content">
+        <RecentReadings source="bhrigu" profileId={selectedProfile?._id} />
         <ProfileBanner profile={selectedProfile} />
 
         <p className="card-note">{t("bhrigu.intro")}</p>

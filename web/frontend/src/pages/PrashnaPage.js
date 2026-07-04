@@ -7,6 +7,7 @@ import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
+import { RecentReadings } from "../components/RecentReadings";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
@@ -122,6 +123,7 @@ export const PrashnaPage = () => {
 
       <div className="dashboard-content">
         <ProfileBanner profile={selectedProfile} />
+        <RecentReadings source="prashna" />
 
         <Card>
           <p className="card-intro">{t("prashna.intro")}</p>

@@ -7,6 +7,7 @@ import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
+import { RecentReadings } from "../components/RecentReadings";
 import { intlLocale } from "../utils/format";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
@@ -159,6 +160,7 @@ export const DailyDigestPage = () => {
       />
 
       <div className="dashboard-content">
+        <RecentReadings source="daily_digest" profileId={selectedProfile?._id} />
         <ProfileBanner profile={selectedProfile} />
 
         <div className="page-controls">

@@ -7,6 +7,7 @@ import { useProfile } from "../contexts/ProfileContext";
 import { errorMessage } from "../utils/format";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
+import { RecentReadings } from "../components/RecentReadings";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
@@ -177,6 +178,7 @@ export const ComparePage = () => {
       />
 
       <div className="dashboard-content">
+        <RecentReadings source="compare" />
         <Card title={t("compare.selectSecond")} icon={<Users size={24} />} accent="saffron">
           <div className="ui-field-grid">
             <div className="ui-datafield">

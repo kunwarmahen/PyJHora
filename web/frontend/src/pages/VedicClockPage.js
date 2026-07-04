@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
+import { RecentReadings } from "../components/RecentReadings";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { Card } from "../components/Card";
@@ -250,6 +251,7 @@ export const VedicClockPage = () => {
       />
 
       <div className="dashboard-content">
+        <RecentReadings source="celestial" profileId={selectedProfile?._id} />
         <ProfileBanner profile={selectedProfile} />
 
         {loading && (

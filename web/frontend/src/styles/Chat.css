@@ -1067,6 +1067,37 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
+/* Per-page "Recent readings" collapsible (RecentReadings component) */
+.recent-readings {
+  margin-bottom: var(--space-lg, 1rem);
+}
+.recent-readings__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 153, 51, 0.08);
+  border: 1px solid rgba(255, 153, 51, 0.25);
+  color: var(--saffron, #ff9933);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.recent-readings__toggle:hover {
+  background: rgba(255, 153, 51, 0.14);
+}
+.recent-readings__chev {
+  transition: transform 0.15s ease;
+}
+.recent-readings__chev.is-open {
+  transform: rotate(180deg);
+}
+.recent-readings__list {
+  margin-top: 0.5rem;
+  max-height: 22rem;
+  overflow-y: auto;
+}
 .history-item__meta {
   font-size: 0.75rem;
   color: var(--text-secondary);
