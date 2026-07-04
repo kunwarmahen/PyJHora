@@ -266,6 +266,24 @@ export const astrologyService = {
         ayanamsa,
       },
     }),
+  // Bhava (house-cusp) chart — Bhava Chalit / cuspal division (Sripati/Placidus/KP/Equal).
+  getBhavaChart: (birthDetails, method = "SRIPATI", ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/bhava-chart", birthDetails, {
+      params: { method, ayanamsa },
+    }),
+  // Sidereal ephemeris + ingress calendar over a date window.
+  getEphemeris: ({ startDate, days = 30, place, latitude, longitude, timezone, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+    api.get("/api/astrology/ephemeris", {
+      params: {
+        start_date: startDate,
+        days,
+        place,
+        latitude,
+        longitude,
+        timezone,
+        ayanamsa,
+      },
+    }),
   // Other (non-Vimsottari) dasha systems.
   getDashaSystems: () => api.get("/api/astrology/dasha-systems"),
   getDashaPeriods: (birthDetails, dhasaType) =>

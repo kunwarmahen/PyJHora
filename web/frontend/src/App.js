@@ -35,6 +35,9 @@ import { DailyDigestPage } from "./pages/DailyDigestPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { EphemerisPage } from "./pages/EphemerisPage";
+import { BhavaChartPage } from "./pages/BhavaChartPage";
+import { FullReportPage } from "./pages/FullReportPage";
 import "./App.css";
 import "./styles/Responsive.css";
 
@@ -101,6 +104,33 @@ function App() {
               element={
                 <ProtectedRoute>
                   <TransitPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/ephemeris"
+              element={
+                <ProtectedRoute>
+                  <EphemerisPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/bhava"
+              element={
+                <ProtectedRoute>
+                  <BhavaChartPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/report"
+              element={
+                <ProtectedRoute>
+                  <FullReportPage />
                 </ProtectedRoute>
               }
             />

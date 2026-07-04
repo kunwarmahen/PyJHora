@@ -1553,6 +1553,67 @@ async def get_transits(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/astrology/bhava-chart")
+async def get_bhava_chart(
+    birth_details: BirthDetails,
+    method: str = "SRIPATI",
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user)
+):
+    """Bhava (house-cusp) chart — Bhava Chalit / cuspal division (Sripati, Placidus,
+    KP, Equal). Returns each bhava's start/cusp/end longitudes + occupants, plus a
+    `planets` map for the Kundali component (Bhava Chalit rendering)."""
+    try:
+        result = AstrologyCompute.get_bhava_chart(
+            dob=birth_details.dob,
+            tob=birth_details.tob,
+            place=birth_details.place,
+            lat=birth_details.latitude,
+            lon=birth_details.longitude,
+            tz=birth_details.timezone,
+            method=method,
+            ayanamsa=ayanamsa,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/astrology/ephemeris")
+async def get_ephemeris(
+    start_date: str,
+    days: int = 30,
+    place: str = "",
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    timezone: Optional[float] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Sidereal ephemeris + ingress calendar over a date window (max 92 days).
+    Each day carries every graha's sign/degree/retrograde at local noon; ingresses
+    list the sign changes. Powers the transit-calendar / ephemeris view."""
+    try:
+        result = AstrologyCompute.get_ephemeris(
+            start_date=start_date,
+            days=days,
+            place=place,
+            lat=latitude,
+            lon=longitude,
+            tz=timezone,
+            ayanamsa=ayanamsa,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/astrology/compatibility")
 async def get_compatibility(
     request: CompatibilityRequest,

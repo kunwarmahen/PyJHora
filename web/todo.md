@@ -2164,3 +2164,48 @@ double-stored here.
 **Resolved:** dedupe → **pile up** (individual delete); retention cap → **`AI_HISTORY_MAX` env**
 (default 100, pruned on write); tools with **no birth profile**
 (Muhurta/Almanac/Prashna-by-place) group under a "no profile" bucket in history.
+
+---
+
+## 18. Ephemeris, Bhava-cusp chart & print-ready Full Report (owner ask 2026-07-04)
+
+Three engine-grounded features shipped together. All three are wired into the nav
+drawer (`/ephemeris`, `/bhava`, `/report`), follow the Settings-driven chart-style +
+ayanamsa convention, and reuse the shared PageHeader / ProfileBanner / Kundali /
+data-table components.
+
+- [x] **Transit calendar / ephemeris view** — `GET /api/astrology/ephemeris`
+      (`AstrologyCompute.get_ephemeris`). Walks a date window (default 30, selectable
+      30/60/92, clamped ≤92 for payload/perf) computing every graha's sign, degree-in-sign,
+      nakshatra and retrograde state at **local noon** each day, and derives the
+      **sign-ingress calendar** by watching for a sign change between consecutive days.
+      `EphemerisPage` renders (a) an ingress card-grid ("Sign Ingresses" with from→to +
+      date + ℞) and (b) a dense **daily ephemeris grid** (dates × 9 grahas, each cell
+      `deg° SignAbbr` + ℞), with prev/next window paging, a "Today" jump, and today's row
+      highlighted. Anchored to the active profile's place/tz.
+- [x] **Bhava / house-cusp chart (Sripati/Placidus)** — `POST /api/astrology/bhava-chart`
+      (`AstrologyCompute.get_bhava_chart`), method ∈ {SRIPATI ('O' Porphyry — matches
+      Jagannatha Hora's Bhava Chalit), PLACIDUS ('P'), KP (3), EQUAL (1, KN Rao)} via
+      `charts.bhava_chart(bhava_madhya_method=…)`. Unlike the Rasi chart (sign = house),
+      it divides by **house cusps**, so a graha near a sign boundary can fall in a
+      different bhava than its sign. Returns each of the 12 bhavas with start / madhya
+      (cusp) / end longitudes + occupants, plus a `planets` map (each graha placed in the
+      SIGN of the bhava it occupies) for the North/South Kundali. `BhavaChartPage` has a
+      house-system selector, the Bhava Chalit Kundali, and a **house-cusp table**
+      (bhava · sign · cusp `d°mm' Sign` · grahas).
+- [x] **Print-ready "Full Report" PDF** — `FullReportPage` (`/report`) fans out to the
+      existing endpoints (`birth-chart`, `yogas`, `doshas`, `transit`, `dhasa`) with
+      `Promise.allSettled` so one failing source (e.g. the env-specific dasha path)
+      degrades that section instead of blanking the report. Assembles a single document:
+      masthead (name/born/place/ayanamsa/generated), vitals (Lagna/Moon/Nakshatra/Sun),
+      Rasi (D1) + Navamsa (D9) charts, planetary-positions table, Vimsottari mahadasha
+      timeline (when available), yogas, doshas, and current transits. A **Print / Save as
+      PDF** button calls `window.print()`; `Report.css` `@media print` strips the app
+      chrome (navbar, drawer, toolbar, background) and adds `break-inside: avoid` +
+      `@page` margins so the browser's Save-as-PDF yields a clean paginated report.
+
+Backend compute verified in the venv (all four bhava methods, ephemeris incl. the
+92-day clamp, transit `house_from_moon`); routes registered; frontend `npx react-scripts
+build` green. NOTE: the running container (:8000) still serves the pre-2026-07-04 build,
+so it 404s the two new routes until it's redeployed — the code is correct, it just needs
+a rebuild/restart to go live.

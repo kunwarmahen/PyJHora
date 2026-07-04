@@ -167,6 +167,22 @@
 .mt-xl {
   margin-top: var(--space-xl);
 }
+.mb-xl {
+  margin-bottom: var(--space-xl);
+}
+
+/* ---- Ephemeris grid ---- */
+.ephemeris-table th,
+.ephemeris-table td {
+  font-size: 0.8125rem;
+  padding: var(--space-xs) var(--space-sm);
+}
+.ephemeris-table tr.is-today {
+  background: color-mix(in srgb, var(--saffron) 12%, transparent);
+}
+.ephemeris-table tr.is-today td:first-child {
+  box-shadow: inset 3px 0 0 var(--saffron);
+}
 
 /* ---- Button ---- */
 .ui-btn {

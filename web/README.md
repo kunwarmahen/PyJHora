@@ -10,6 +10,9 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Features**: Birth Chart (Rasi D1 + Navamsa D9), divisional charts D1–D60, Panchanga,
   Yogas/Doshas, dedicated Raja Yogas, Graha Drishti (aspects, with strength-weighted lines
   on the chart), Vimsottari Dhasa (+ 13 other dasha systems & Sudarsana Chakra), Transits,
+  an Ephemeris & transit calendar (daily sidereal grid + sign-ingress dates),
+  a Bhava / house-cusp chart (Sripati / Placidus / KP / Equal),
+  a print-ready Full Report (Save-as-PDF),
   Varshaphal / Tajaka annual horoscope (with year-ahead AI reading),
   an Almanac (planetary hours, eclipses, festival/vratha dates, a Drik ⇄ Surya-Siddhanta
   engine toggle, the Hijri date, and an AI day-guide),
@@ -448,6 +451,35 @@ REACT_APP_API_TIMEOUT=30000
 - House counted from both the natal Lagna and natal Moon, retrograde flagged
 - Key upcoming sign-ingress dates for Jupiter and Saturn
 - North / South Indian chart styles, respects the selected ayanamsa
+
+### 6a. Ephemeris & Transit Calendar (`/ephemeris`)
+- A **daily sidereal ephemeris**: for each day in the window every graha's sign,
+  degree-in-sign, nakshatra and retrograde state (taken at local noon), rendered as a
+  dense dates × grahas grid (`deg° SignAbbr`, ℞ for retrograde), with today's row
+  highlighted
+- A **sign-ingress calendar** — the sign changes inside the window (planet, from → to
+  sign, date, ℞) as a card grid
+- Selectable window span (30 / 60 / 92 days), prev/next paging and a "Today" jump;
+  respects the selected ayanamsa
+
+### 6b. Bhava / House-Cusp Chart (`/bhava`)
+- A **Bhava Chalit / cuspal chart**: unlike the Rasi chart (where each sign *is* a
+  house), it divides the ecliptic by **house cusps**, so a graha near a sign boundary can
+  fall in a different bhava than its sign
+- **House systems**: Sripati (Porphyry — matches Jagannatha Hora's Bhava Chalit),
+  Placidus, KP (Krishnamurti), and Equal (KN Rao)
+- Renders the Bhava Chalit Kundali (North / South style) plus a **house-cusp table** —
+  each bhava with its sign, cusp (bhava madhya as `d°mm' Sign`), and the grahas in it
+
+### 6c. Full Report (print-ready PDF) (`/report`)
+- A single **print-ready document** assembling the whole chart: masthead
+  (name / born / place / ayanamsa / generated date), vitals (Lagna, Moon sign, birth
+  nakshatra, Sun sign), Rasi (D1) + Navamsa (D9) charts, planetary-positions table,
+  Vimsottari mahadasha timeline, yogas, doshas, and current transits
+- **Print / Save as PDF** button (`window.print()`); a print stylesheet strips the app
+  chrome and paginates cleanly so the browser's "Save as PDF" yields a tidy report
+- Sources are fetched independently, so one unavailable section degrades gracefully
+  instead of blanking the report
 
 ### 7. Sarvatobhadra Chakra (`/sarvatobhadra`)
 - The authentic **9×9 "auspicious-in-every-direction" grid** — 28 nakshatras (incl.

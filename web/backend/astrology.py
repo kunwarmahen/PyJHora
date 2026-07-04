@@ -3944,6 +3944,204 @@ class AstrologyCompute:
         finally:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
+    # Bhava (house) systems exposed to the UI. Value -> (PyJHora bhava_madhya_method,
+    # label, short blurb). 'O' (Sripati/Porphyrius) is what Jagannatha Hora draws for
+    # its Bhava Chalit; 'P' is true Placidus; 3 is the KP cuspal method; 1 is the
+    # equal Bhava Chalit (KN Rao) — PyJHora's own default.
+    BHAVA_METHODS = {
+        "SRIPATI":   ("O", "Sripati (Porphyry)", "Matches Jagannatha Hora's Bhava Chalit"),
+        "PLACIDUS":  ("P", "Placidus", "Western time-based house division"),
+        "KP":        (3,   "KP (Krishnamurti)", "Placidus cusps, KP padhati"),
+        "EQUAL":     (1,   "Equal (KN Rao)", "Cusp ±15° around the Lagna degree"),
+    }
+
+    @staticmethod
+    def get_bhava_chart(dob: str, tob: str, place: str,
+                        lat: Optional[float] = None, lon: Optional[float] = None,
+                        tz: Optional[float] = None, method: str = "SRIPATI",
+                        ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Bhava (house-cusp) chart — a Bhava Chalit / cuspal chart.
+
+        Unlike the Rasi chart (which equates each sign with a house), a bhava chart
+        divides the ecliptic by house *cusps* (Sripati/Porphyry, Placidus, KP…), so a
+        graha near a sign boundary can fall in a different bhava than its sign. Returns
+        each of the 12 bhavas with its start / madhya (cusp) / end longitudes, the sign
+        the cusp sits in, and the grahas occupying it — plus a `planets` map keyed by
+        name for the North/South Kundali component (each graha placed in the SIGN of the
+        bhava it occupies, i.e. a Bhava Chalit rendering)."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available"}
+
+        method_key = (method or "SRIPATI").upper()
+        madhya_method, method_label, method_note = AstrologyCompute.BHAVA_METHODS.get(
+            method_key, AstrologyCompute.BHAVA_METHODS["SRIPATI"])
+
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            time_parts = tob.split(":")
+            hour = int(time_parts[0])
+            minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707  # Chennai default
+            tz_offset = tz or 5.5
+
+            jd = swe.julday(year, month, day, hour + minute / 60.0)
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+
+            # Rasi positions give each graha's own sign + degree (for the table/tooltip);
+            # the bhava chart gives which bhava (house) each graha falls in by cusp.
+            d1 = charts.rasi_chart(jd, place_obj)
+            rasi_of_planet = {}
+            for pidx, (rasi, degrees) in d1[1:]:
+                rasi_of_planet[pidx] = (rasi, degrees)
+
+            bhava = charts.bhava_chart(jd, place_obj, bhava_madhya_method=madhya_method)
+
+            houses = []
+            planets = {}
+            planet_bhava = {}  # planet index -> bhava number (1..12)
+            for i, row in enumerate(bhava):
+                bhava_rasi = row[0]
+                start, cusp, end = row[1]
+                occupants = row[2]
+                bhava_no = i + 1
+                planet_names_here = []
+                for occ in occupants:
+                    if occ == const._ascendant_symbol:
+                        continue  # the Lagna is drawn separately
+                    name = PLANET_NAMES.get(occ)
+                    if name:
+                        planet_names_here.append(name)
+                        planet_bhava[occ] = bhava_no
+                        r, d = rasi_of_planet.get(occ, (bhava_rasi, 0.0))
+                        planets[name] = {
+                            # Placed in the SIGN of its bhava → Bhava Chalit layout.
+                            "house": bhava_rasi + 1,
+                            "bhava": bhava_no,
+                            "degrees": round(d, 2),
+                            "rasi": r,
+                            "sign_name": ZODIAC_NAMES[r],
+                        }
+                houses.append({
+                    "bhava": bhava_no,
+                    "sign": bhava_rasi + 1,
+                    "sign_name": ZODIAC_NAMES[bhava_rasi],
+                    "start": round(start % 360.0, 2),
+                    "cusp": round(cusp % 360.0, 2),
+                    "end": round(end % 360.0, 2),
+                    "planets": planet_names_here,
+                })
+
+            # Lagna = first bhava; drawn on the Kundali at the sign of bhava 1.
+            asc_rasi, asc_deg = d1[0][1]
+            lagna = {
+                "house": bhava[0][0] + 1,
+                "degrees": round(asc_deg, 2),
+                "sign_name": ZODIAC_NAMES[bhava[0][0]],
+            }
+
+            return {
+                "status": "success",
+                "method": method_key,
+                "method_label": method_label,
+                "method_note": method_note,
+                "lagna": lagna,
+                "planets": planets,
+                "houses": houses,
+            }
+        except Exception as e:
+            print(f"Bhava chart error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_ephemeris(start_date: str, days: int = 30, place: str = "",
+                      lat: Optional[float] = None, lon: Optional[float] = None,
+                      tz: Optional[float] = None, ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Sidereal ephemeris + ingress calendar over a date window.
+
+        For each day in [start_date, start_date+days) computes every graha's sign,
+        degree-in-sign and retrograde state at local noon, and derives the sign-change
+        (ingress) events by watching for a sign change between consecutive days. Powers
+        the transit-calendar / ephemeris table and the ingress list."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available"}
+
+        try:
+            _set_ayanamsa(ayanamsa)
+            from datetime import date as _date, timedelta
+
+            days = max(1, min(int(days or 30), 92))  # clamp the window (perf + payload)
+            y, m, d = map(int, start_date.split("-"))
+            start = _date(y, m, d)
+
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707  # Chennai default
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place or "", lat, lon, tz_offset)
+
+            nak_span = 360.0 / 27.0
+            order = [0, 1, 2, 3, 4, 5, 6, 7, 8]  # Sun..Ketu
+
+            rows = []
+            ingresses = []
+            prev_sign = {}  # planet index -> previous day's sign
+            for offset in range(days):
+                cur = start + timedelta(days=offset)
+                cur_iso = cur.isoformat()
+                jd = swe.julday(cur.year, cur.month, cur.day, 12.0)
+                chart = charts.rasi_chart(jd, place_obj)
+                retro_ids = set(drik.planets_in_retrograde(jd, place_obj))
+                pos = {pidx: (rasi, degrees) for pidx, (rasi, degrees) in chart[1:]}
+
+                row_planets = {}
+                for pidx in order:
+                    rasi, degrees = pos.get(pidx, (0, 0.0))
+                    abs_long = rasi * 30.0 + degrees
+                    name = PLANET_NAMES[pidx]
+                    row_planets[name] = {
+                        "sign": rasi + 1,
+                        "sign_name": ZODIAC_NAMES[rasi],
+                        "degrees": round(degrees, 2),
+                        "nakshatra": NAKSHATRA_NAMES[int(abs_long / nak_span) % 27],
+                        "retrograde": pidx in retro_ids,
+                    }
+                    # Ingress = a sign change vs. the previous day (skip the first row).
+                    if pidx in prev_sign and prev_sign[pidx] != rasi:
+                        ingresses.append({
+                            "date": cur_iso,
+                            "planet": name,
+                            "from_sign": ZODIAC_NAMES[prev_sign[pidx]],
+                            "to_sign": ZODIAC_NAMES[rasi],
+                            "retrograde": pidx in retro_ids,
+                        })
+                    prev_sign[pidx] = rasi
+
+                rows.append({"date": cur_iso, "planets": row_planets})
+
+            end = start + timedelta(days=days - 1)
+            return {
+                "status": "success",
+                "start_date": start.isoformat(),
+                "end_date": end.isoformat(),
+                "days": days,
+                "planet_order": [PLANET_NAMES[p] for p in order],
+                "rows": rows,
+                "ingresses": ingresses,
+            }
+        except Exception as e:
+            print(f"Ephemeris error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
     @staticmethod
     def get_sarvatobhadra_chakra(dob: str, tob: str, place: str,
                                  lat: Optional[float] = None, lon: Optional[float] = None,

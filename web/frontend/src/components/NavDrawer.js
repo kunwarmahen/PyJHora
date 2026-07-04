@@ -29,6 +29,9 @@ import {
   Waypoints,
   Gem,
   History,
+  CalendarRange,
+  Home,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
@@ -41,6 +44,9 @@ const LINKS = [
   { to: "/birth-chart", labelKey: "nav.birthChart", icon: <Calendar size={20} /> },
   { to: "/dhasa", labelKey: "nav.dhasa", icon: <Clock size={20} /> },
   { to: "/transit", labelKey: "nav.transit", icon: <Orbit size={20} /> },
+  { to: "/ephemeris", labelKey: "nav.ephemeris", icon: <CalendarRange size={20} /> },
+  { to: "/bhava", labelKey: "nav.bhava", icon: <Home size={20} /> },
+  { to: "/report", labelKey: "nav.report", icon: <FileText size={20} /> },
   { to: "/varshaphal", labelKey: "nav.varshaphal", icon: <CalendarClock size={20} /> },
   { to: "/almanac", labelKey: "nav.almanac", icon: <CalendarDays size={20} /> },
   { to: "/daily-digest", labelKey: "nav.dailyDigest", icon: <Sun size={20} /> },

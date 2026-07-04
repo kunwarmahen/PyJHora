@@ -1,0 +1,186 @@
+/* Print-ready "full report" sheet.
+   On screen it looks like a bordered document; @media print strips the app chrome
+   (nav drawer, toolbar, background) so the browser's Save-as-PDF yields a clean,
+   paginated report. */
+
+.report-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
+}
+.report-print-btn {
+  background: var(--saffron);
+  color: white;
+  border-color: var(--saffron);
+  font-size: 0.9375rem;
+  padding: var(--space-sm) var(--space-lg);
+}
+.report-print-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.report-sheet {
+  background: white;
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-2xl, 2rem);
+  max-width: 900px;
+  margin: 0 auto;
+  color: var(--text-primary);
+}
+
+.report-masthead {
+  text-align: center;
+  border-bottom: 3px double var(--saffron);
+  padding-bottom: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+.report-name {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--cosmic-indigo);
+  margin: 0;
+}
+.report-tagline {
+  color: var(--saffron);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.8125rem;
+  margin: var(--space-xs) 0 var(--space-md);
+}
+.report-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xs) var(--space-lg);
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+}
+
+.report-section {
+  margin-bottom: var(--space-xl);
+}
+.report-h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  border-left: 4px solid var(--saffron);
+  padding-left: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.report-count {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.report-vitals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-md);
+}
+.report-vital {
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+.report-vital__label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.report-vital__value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+}
+.report-vital__value em {
+  font-style: normal;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.report-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-lg);
+  justify-items: center;
+}
+
+.report-table {
+  width: 100%;
+}
+.report-list {
+  margin: 0;
+  padding-left: var(--space-lg);
+  line-height: 1.7;
+}
+.report-list__note {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+.report-footer {
+  border-top: 1px solid var(--sandalwood);
+  padding-top: var(--space-md);
+  margin-top: var(--space-xl);
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+/* ---------- PRINT ---------- */
+@media print {
+  /* Strip app chrome — the report-sheet carries its own masthead */
+  .navbar,
+  .nav-drawer,
+  .nav-drawer-toggle,
+  .nav-drawer-overlay,
+  .nav-right,
+  .page-back-btn,
+  .no-print,
+  .report-toolbar {
+    display: none !important;
+  }
+  body,
+  .dashboard-container,
+  .report-page,
+  .dashboard-content {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .report-sheet {
+    border: none;
+    box-shadow: none;
+    max-width: 100%;
+    padding: 0;
+  }
+  .report-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .report-h2 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  .report-chart-grid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  a[href]::after {
+    content: "";
+  }
+  @page {
+    margin: 1.5cm;
+  }
+}
