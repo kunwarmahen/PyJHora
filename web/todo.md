@@ -2209,3 +2209,11 @@ Backend compute verified in the venv (all four bhava methods, ephemeris incl. th
 build` green. NOTE: the running container (:8000) still serves the pre-2026-07-04 build,
 so it 404s the two new routes until it's redeployed — the code is correct, it just needs
 a rebuild/restart to go live.
+
+- [x] **DESKTOP DISCOVERABILITY FIX (2026-07-04, commit 23dfffc):** owner reported "I do
+      not see [them] on the desktop". Root cause: the NavDrawer hamburger is **mobile-only
+      (≤768px)** — desktop navigates via the **Dashboard feature tiles**, and the initial
+      commit only added nav-drawer links. Added three Dashboard tiles (Ephemeris / Bhava /
+      Full Report) with `dashboard.features.{ephemeris,bhava,report}` i18n titles+descriptions
+      (en; hi/sa fall back). Build green. LESSON: every new page needs BOTH a NavDrawer link
+      (mobile) AND a DashboardPage tile (desktop) to be reachable on all viewports.
