@@ -66,15 +66,28 @@ export function useRestoreReading(onRestore) {
   }, [readingId]);
 }
 
-// Scroll the restored reading into view once it renders (the page may still be
-// loading its factual data, so retry for a few seconds before giving up).
-function revealReading(tries = 0) {
-  const el = document.querySelector(
-    ".ai-panel__reading, .sbc-ai-markdown, .transit-chat__messages"
-  );
-  if (el) {
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
+// Scroll the restored reading into view once it renders. The page may still be
+// loading its factual data (some pages — e.g. Vedic Clock's retrograde epicycle —
+// take a few seconds and only mount the reading card afterwards), so watch the DOM
+// with a MutationObserver rather than a short poll, and give up after 15s.
+const READING_SELECTOR =
+  ".ai-panel__reading, .sbc-ai-markdown, .transit-chat__messages";
+
+function revealReading() {
+  const scroll = (el) => el.scrollIntoView({ behavior: "smooth", block: "center" });
+  const now = document.querySelector(READING_SELECTOR);
+  if (now) {
+    scroll(now);
     return;
   }
-  if (tries < 24) setTimeout(() => revealReading(tries + 1), 150);
+  if (typeof MutationObserver === "undefined") return;
+  const obs = new MutationObserver(() => {
+    const el = document.querySelector(READING_SELECTOR);
+    if (el) {
+      obs.disconnect();
+      scroll(el);
+    }
+  });
+  obs.observe(document.body, { childList: true, subtree: true });
+  setTimeout(() => obs.disconnect(), 15000);
 }
