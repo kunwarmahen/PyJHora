@@ -83,13 +83,27 @@ export const ComparePage = () => {
   const [aiError, setAiError] = useState("");
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [aiModel, setAiModel] = useState("");
-  // Reopen a saved reading from History (shows the exact saved comparison text).
+  // Reopen a saved reading from History: recompute both charts from the saved
+  // pair so the (chart-gated) comparison + saved reading are visible. Factual
+  // only — no AI re-generation.
   const [pendingReading, setPendingReading] = useState(null);
-  useRestoreReading((r) => setPendingReading({ reading: r.reading, model: r.model }));
+  useRestoreReading((r) => setPendingReading({ reading: r.reading, model: r.model, context: r.context }));
   useEffect(() => {
     if (pendingReading && !loading) {
+      const c = pendingReading.context || {};
       setAiAnalysis(pendingReading.reading);
       setAiModel(pendingReading.model);
+      if (c.person1_details && c.person2_details) {
+        Promise.all([
+          astrologyService.calculateBirthChart(c.person1_details, c.ayanamsa),
+          astrologyService.calculateBirthChart(c.person2_details, c.ayanamsa),
+        ])
+          .then(([ra, rb]) => {
+            setChartA(ra.data);
+            setChartB(rb.data);
+          })
+          .catch(() => {});
+      }
       setPendingReading(null);
     }
   }, [pendingReading, loading]);

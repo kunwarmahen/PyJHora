@@ -28,6 +28,7 @@ import { useProfile } from "../contexts/ProfileContext";
 import { formatDate } from "../utils/format";
 import { VARGAS, VARGA_SUGGESTIONS } from "../constants/jyotish";
 import { astrologyService, streamAskQuestion } from "../services/api";
+import { useRestoreReading } from "../hooks/useRestoreReading";
 import { exportConversationPdf } from "../utils/exportConversation";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { PageHeader } from "../components/PageHeader";
@@ -793,6 +794,12 @@ export const AskAstrologerPage = () => {
       setError(t("ask.errLoadConv"));
     }
   };
+
+  // Reopen a saved astrologer thread from the unified History page
+  // (/ask-astrologer?reading=<id>) — load the whole conversation into the chat.
+  useRestoreReading((r) => {
+    if (r.data?.id) loadConversation(r.data.id);
+  });
 
   const handleDeleteConversation = async (id, e) => {
     e.stopPropagation();

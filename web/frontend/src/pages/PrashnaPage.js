@@ -43,16 +43,27 @@ export const PrashnaPage = () => {
   const [chart, setChart] = useState(null);
   const [reading, setReading] = useState("");
   const [model, setModel] = useState("");
-  // Reopen a saved Prashna reading from History (restore the question + text).
+  // Reopen a saved Prashna reading from History: restore the question + text, and
+  // recast the (deterministic) chart from the saved inputs so the reading — which
+  // renders next to the chart — is visible. No AI re-generation.
   const [pendingReading, setPendingReading] = useState(null);
   useRestoreReading((r) => {
     if (r.context?.question) setQuestion(r.context.question);
-    setPendingReading({ reading: r.reading, model: r.model });
+    setPendingReading({ reading: r.reading, model: r.model, context: r.context });
   });
   useEffect(() => {
     if (pendingReading && !loading) {
+      const c = pendingReading.context || {};
       setReading(pendingReading.reading);
       setModel(pendingReading.model);
+      astrologyService
+        .getPrashna({
+          question: c.question, date: c.date, time: c.time, place: c.place,
+          latitude: c.latitude, longitude: c.longitude, timezone: c.timezone,
+          ayanamsa: c.ayanamsa,
+        })
+        .then((res) => setChart(res.data))
+        .catch(() => {});
       setPendingReading(null);
     }
   }, [pendingReading, loading]);

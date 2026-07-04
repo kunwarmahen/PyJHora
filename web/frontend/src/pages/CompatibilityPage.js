@@ -64,13 +64,31 @@ export const CompatibilityPage = () => {
   const [aiError, setAiError] = useState("");
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [aiModel, setAiModel] = useState("");
-  // Reopen a saved reading from History (shows the exact saved compatibility text).
+  // Reopen a saved reading from History: recompute the (result-gated) score +
+  // both charts from the saved pair so the saved reading is visible. Factual
+  // only — no AI re-generation.
   const [pendingReading, setPendingReading] = useState(null);
-  useRestoreReading((r) => setPendingReading({ reading: r.reading, model: r.model }));
+  useRestoreReading((r) => setPendingReading({ reading: r.reading, model: r.model, context: r.context }));
   useEffect(() => {
     if (pendingReading && !loading) {
+      const c = pendingReading.context || {};
       setAiAnalysis(pendingReading.reading);
       setAiModel(pendingReading.model);
+      if (c.male_details && c.female_details) {
+        Promise.all([
+          astrologyService.getCompatibility(c.male_details, c.female_details),
+          astrologyService.calculateBirthChart(c.male_details, c.ayanamsa),
+          astrologyService.calculateBirthChart(c.female_details, c.ayanamsa),
+        ])
+          .then(([compat, ra, rb]) => {
+            if (!compat.data?.error) {
+              setResult(compat.data);
+              setChartA(ra.data);
+              setChartB(rb.data);
+            }
+          })
+          .catch(() => {});
+      }
       setPendingReading(null);
     }
   }, [pendingReading, loading]);

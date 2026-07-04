@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -105,11 +105,24 @@ export const BirthTimeRectificationPage = () => {
   const [aiError, setAiError] = useState("");
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [aiModel, setAiModel] = useState("");
-  // Reopen a saved reading from History (restore method/gender + saved text).
+  // Reopen a saved reading from History. Rule mode auto-runs on mount, so just
+  // restore method/gender + text. Events mode isn't auto-run, so restore the
+  // events form + window and re-run the (factual) event rectification so the
+  // result-gated reading is visible. No AI re-generation either way.
   const [pendingReading, setPendingReading] = useState(null);
+  const restoreEventsRef = useRef(null);
   useRestoreReading((r) => {
-    if (r.context?.method) setMethod(r.context.method);
-    if (r.context?.gender != null) setGender(r.context.gender);
+    const c = r.context || {};
+    if (c.mode === "events") {
+      setMode("events");
+      if (Array.isArray(c.events)) setEvents(c.events);
+      if (c.window_minutes != null) setWindowMinutes(c.window_minutes);
+      // defer the actual compute until runRectifyForEvents is in scope (below)
+      restoreEventsRef.current = Array.isArray(c.events) ? c.events : null;
+    } else {
+      if (c.method) setMethod(c.method);
+      if (c.gender != null) setGender(c.gender);
+    }
     setPendingReading({ reading: r.reading, model: r.model });
   });
   useEffect(() => {
@@ -231,6 +244,16 @@ export const BirthTimeRectificationPage = () => {
   // Event mode runs on explicit submit (needs dated events).
   const validEvents = events.filter((e) => e.type && e.date);
   const runEventRectify = () => runRectifyForEvents(validEvents);
+
+  // When an events-mode reading is reopened from History, re-run the (factual)
+  // event rectification once so its result-gated view + saved text appear.
+  useEffect(() => {
+    if (restoreEventsRef.current && restoreEventsRef.current.length) {
+      const evts = restoreEventsRef.current;
+      restoreEventsRef.current = null;
+      runRectifyForEvents(evts);
+    }
+  });
 
   const addEvent = () => setEvents((ev) => [...ev, { type: "childbirth", date: "" }]);
   const removeEvent = (i) => setEvents((ev) => ev.filter((_, idx) => idx !== i));

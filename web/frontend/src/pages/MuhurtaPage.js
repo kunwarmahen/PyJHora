@@ -83,12 +83,23 @@ export const MuhurtaPage = () => {
     if (r.context?.activity) setActivity(r.context.activity);
     if (r.context?.start_date) setStartDate(r.context.start_date);
     if (r.context?.end_date) setEndDate(r.context.end_date);
-    setPendingReading({ reading: r.reading, model: r.model });
+    setPendingReading({ reading: r.reading, model: r.model, context: r.context });
   });
   useEffect(() => {
     if (pendingReading && !loading) {
+      const c = pendingReading.context || {};
       setAiAnalysis(pendingReading.reading);
       setAiModel(pendingReading.model);
+      // Recompute the (result-gated) windows from the saved inputs so the reading
+      // is visible. Factual only — no AI re-generation.
+      astrologyService
+        .getMuhurta({
+          activity: c.activity, startDate: c.start_date, endDate: c.end_date,
+          place: c.place, latitude: c.latitude, longitude: c.longitude,
+          timezone: c.timezone,
+        })
+        .then((res) => setResult(res.data))
+        .catch(() => {});
       setPendingReading(null);
     }
   }, [pendingReading, loading]);
