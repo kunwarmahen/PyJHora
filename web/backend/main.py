@@ -3745,7 +3745,7 @@ async def health_check():
     """Health check"""
     return {
         "status": "healthy",
-        "pyjhora_available": AstrologyCompute.PYJHORA_AVAILABLE,
+        "engine_available": AstrologyCompute.ENGINE_AVAILABLE,
         "qwen_enabled": settings.USE_QWEN,
         "map_picker_enabled": settings.MAP_PICKER_ENABLED
     }

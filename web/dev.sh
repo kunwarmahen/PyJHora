@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# dev.sh — start/stop/restart the PyJHora web app (backend + frontend)
+# dev.sh — start/stop/restart the Jyotir AI web app (backend + frontend)
 #
 # Usage:
 #   ./dev.sh start            # start both backend and frontend

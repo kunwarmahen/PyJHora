@@ -1,4 +1,8 @@
-# PyJHora Web Application - Setup & Deployment Guide
+# Jyotir AI — Vedic Astrology Web App (Setup & Deployment Guide)
+
+> **Branding.** The product is **Jyotir AI** (configurable via `REACT_APP_SITE_TITLE` /
+> backend `SITE_NAME`). References to **PyJHora** below name the underlying `jhora`
+> calculation library / fork (`github.com/kunwarmahen/PyJHora`), which is unchanged.
 
 ## Overview
 

@@ -29,7 +29,7 @@ def is_configured() -> bool:
 
 def _from_address() -> str:
     """The From header — SMTP_FROM if set, else SMTP_USER, else a safe default."""
-    return (settings.SMTP_FROM or settings.SMTP_USER or "no-reply@pyjhora.local").strip()
+    return (settings.SMTP_FROM or settings.SMTP_USER or "no-reply@jyotirai.local").strip()
 
 
 def _send_blocking(to: str, subject: str, text: str, html: Optional[str]) -> None:

@@ -22,7 +22,7 @@ import tools as tool_registry
 
 # Product/brand name surfaced to the model as the source of the chart data.
 # Overridable via the SITE_NAME env var (kept in sync with the frontend brand).
-SITE_NAME = os.getenv("SITE_NAME", "PyJHora")
+SITE_NAME = os.getenv("SITE_NAME", "Jyotir AI")
 
 # Agentic ("tool-call") mode tuning.
 MAX_TOOL_ROUNDS = 6

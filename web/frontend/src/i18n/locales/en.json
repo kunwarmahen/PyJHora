@@ -844,7 +844,7 @@
     "system": {
       "title": "System health",
       "server": "API server",
-      "pyjhora": "Astrology engine (PyJHora)",
+      "pyjhora": "Astrology engine (Jyotir AI)",
       "qwen": "Local AI model (Qwen)",
       "mapPicker": "Map location picker",
       "ok": "OK",

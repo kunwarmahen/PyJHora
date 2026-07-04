@@ -67,7 +67,7 @@ export const PanchangaPanel = ({
         const lat = Number(pos.coords.latitude.toFixed(4));
         const lon = Number(pos.coords.longitude.toFixed(4));
         // getTimezoneOffset() is (UTC - local) in minutes; negate for the
-        // east-positive offset PyJHora expects (e.g. IST -330 → +5.5).
+        // east-positive offset Jyotir AI expects (e.g. IST -330 → +5.5).
         const tz = -new Date().getTimezoneOffset() / 60;
         const name = (await reverseGeocode(lat, lon)) || t("panchanga.currentLocation");
         setCurrentLoc({ place: name, latitude: lat, longitude: lon, timezone: tz });

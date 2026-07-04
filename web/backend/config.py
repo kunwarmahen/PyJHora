@@ -11,7 +11,7 @@ except Exception:
 
 class Settings(BaseSettings):
     MONGODB_URL: str = "mongodb://localhost:27017"
-    DATABASE_NAME: str = "pyjhora_db"
+    DATABASE_NAME: str = "jyotirai_db"
     SECRET_KEY: str = "your-secret-key-change-this"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
@@ -39,8 +39,8 @@ class Settings(BaseSettings):
 
     # Product / brand name used in outbound email and the API docs title. Keep in
     # sync with the frontend's REACT_APP_SITE_TITLE. (This is the app brand, not
-    # the underlying "jhora"/PyJHora calculation library.)
-    SITE_NAME: str = "PyJHora"
+    # the underlying "jhora" calculation library.)
+    SITE_NAME: str = "Jyotir AI"
 
     # Transactional email (SMTP). Provider-agnostic — works with Gmail (app
     # password), SendGrid, Mailgun, Amazon SES SMTP, etc. When SMTP_HOST is unset

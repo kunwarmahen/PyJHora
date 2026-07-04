@@ -20,28 +20,28 @@ try:
     import swisseph as swe
 
     # Match Jagannatha Hora's default ayanamsa: True Chitra Paksha (Spica fixed
-    # at 180°). PyJHora defaults to TRUE_PUSHYA. Note True Chitra differs from
+    # at 180°). Jyotir AI defaults to TRUE_PUSHYA. Note True Chitra differs from
     # traditional Lahiri by only ~1', but that's enough to flip a body sitting on
     # a navamsa/varga cusp into the next division vs JHora.
     const._DEFAULT_AYANAMSA_MODE = 'TRUE_CITRA'
     drik.set_ayanamsa_mode('TRUE_CITRA')
 
-    # Match Jagannatha Hora's default lunar nodes (Mean). PyJHora defaults to
+    # Match Jagannatha Hora's default lunar nodes (Mean). Jyotir AI defaults to
     # True nodes, which differ from Mean by up to ~1.6°. In wide D1 signs this is
     # invisible, but in finer vargas (e.g. D10's 3° divisions) it flips Rahu/Ketu
     # one division/house off vs JHora. set_planet_list rebuilds the swe planet
     # mapping the chart code actually iterates (const.set_node_mode alone won't).
     drik.set_planet_list(set_rahu_ketu_as_true_nodes=False)
 
-    PYJHORA_AVAILABLE = True
+    ENGINE_AVAILABLE = True
 except ImportError as e:
-    print(f"PyJHora import error: {e}")
-    PYJHORA_AVAILABLE = False
+    print(f"Jyotir AI import error: {e}")
+    ENGINE_AVAILABLE = False
 
 DEFAULT_AYANAMSA = "TRUE_CITRA"
 
 # Curated, user-facing ayanamsa options (value -> label). Values must exist in
-# PyJHora's const.available_ayanamsa_modes. True Chitra is listed first as the
+# Jyotir AI's const.available_ayanamsa_modes. True Chitra is listed first as the
 # default (matches Jagannatha Hora's "True Lahiri/Chitrapaksha").
 SUPPORTED_AYANAMSAS = {
     "TRUE_CITRA": "True Chitra Paksha (Lahiri)",
@@ -60,12 +60,12 @@ def _set_ayanamsa(name):
     key = (name or DEFAULT_AYANAMSA).upper()
     if key not in SUPPORTED_AYANAMSAS:
         key = DEFAULT_AYANAMSA
-    if PYJHORA_AVAILABLE:
+    if ENGINE_AVAILABLE:
         drik.set_ayanamsa_mode(key)
     return key
 
 
-# PyJHora planet indexing: 0=Sun … 8=Ketu.
+# Jyotir AI planet indexing: 0=Sun … 8=Ketu.
 PLANET_NAMES = {
     0: "Sun", 1: "Moon", 2: "Mars", 3: "Mercury",
     4: "Jupiter", 5: "Venus", 6: "Saturn", 7: "Rahu", 8: "Ketu",
@@ -132,7 +132,7 @@ _WEEKDAY_LORD = {6: 0, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6}
 
 def _kp_lords(planet_key, abs_long):
     """Sign / star (nakshatra) / sub / sub-sub lord names for an absolute
-    longitude (0-360), via PyJHora's KP micro-lord calculator. Also returns the
+    longitude (0-360), via Jyotir AI's KP micro-lord calculator. Also returns the
     raw star-lord index (for significator maths)."""
     info = utils.kp_lords_for_longitude(
         planet_key, abs_long % 360.0, include_sign_lord=True,
@@ -228,7 +228,7 @@ def _kp_ruling_planets(y, m, d, hh, mm, place_obj):
 
 # Curated divisional charts (Parashara's Shodasavarga). Each entry:
 #   factor -> (code, name, significance). The factor is passed straight to
-#   PyJHora's charts.divisional_chart(divisional_chart_factor=...).
+#   Jyotir AI's charts.divisional_chart(divisional_chart_factor=...).
 SUPPORTED_VARGAS = {
     1:  ("D1",  "Rasi",            "Body, overall life"),
     2:  ("D2",  "Hora",            "Wealth, prosperity"),
@@ -432,7 +432,7 @@ WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday
 
 # ── Almanac (§9.2) name tables ─────────────────────────────────────────────
 # The seven graha that rule the planetary hours (hora), indexed 0=Sun .. 6=Saturn
-# — the order PyJHora's shubha_hora tables return. Benefics vs malefics give the
+# — the order Jyotir AI's shubha_hora tables return. Benefics vs malefics give the
 # hora a supportive/inauspicious tone (Moon/Mercury/Jupiter/Venus vs Sun/Mars/Saturn).
 HORA_PLANETS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
 HORA_BENEFICS = {"Moon", "Mercury", "Jupiter", "Venus"}
@@ -698,7 +698,7 @@ HIJRI_MONTHS = [
 def _hijri_tabular(jd):
     """Islamic (Hijri) date from a Julian day via the standard *tabular* civil
     calendar — pure arithmetic, place-independent. Reimplemented inline because
-    PyJHora's `panchanga/hijri.py` imports pyIslam/hijridate (not installed) at
+    Jyotir AI's `panchanga/hijri.py` imports pyIslam/hijridate (not installed) at
     module top. Returns {year, month, month_name, day} or None on failure."""
     import math
     try:
@@ -727,7 +727,7 @@ def _hijri_tabular(jd):
 # the chakra — the saamne (frontal) vedha — i.e. the cell mirrored through the
 # centre. We compute occupation (a planet sitting on a sensitive cell) and that
 # facing vedha onto the native's anchor cells (birth star, sign, name star,
-# birth tithi & weekday). The grid layout below mirrors PyJHora's desktop
+# birth tithi & weekday). The grid layout below mirrors Jyotir AI's desktop
 # `jhora.ui.chakra.Sarvatobadra` so the web view is faithful to the library.
 #
 # Raw grid: ints on the border are nakshatras (1..28); ints inside are rasis
@@ -800,7 +800,7 @@ def _build_sbc_grid():
 
 
 _SBC_GRID, _SBC_NAK_CELL, _SBC_RASI_CELL, _SBC_GROUP_CELL, _SBC_WEEKDAY_CELL = (
-    _build_sbc_grid() if PYJHORA_AVAILABLE else (None, {}, {}, {}, {}))
+    _build_sbc_grid() if ENGINE_AVAILABLE else (None, {}, {}, {}, {}))
 
 
 def _sbc_nature(planet):
@@ -827,7 +827,7 @@ def _varsha_lord_name(system_key, lord_repr):
             return ZODIAC_NAMES[int(val)]
         except (TypeError, ValueError, IndexError):
             return str(val)
-    if val == "L" or (PYJHORA_AVAILABLE and val == const._ascendant_symbol):
+    if val == "L" or (ENGINE_AVAILABLE and val == const._ascendant_symbol):
         return "Lagna"
     try:
         return PLANET_NAMES.get(int(val), str(val))
@@ -904,19 +904,19 @@ def _annual_dasha(system_key, jd_dob, place_obj, age, dob_date, tob_tuple):
 
 
 class AstrologyCompute:
-    """Core astrology calculations using PyJHora"""
+    """Core astrology calculations using Jyotir AI"""
 
     # Expose the module-level availability flag as a class attribute so callers
-    # (e.g. the /health endpoint) can read AstrologyCompute.PYJHORA_AVAILABLE.
-    PYJHORA_AVAILABLE = PYJHORA_AVAILABLE
+    # (e.g. the /health endpoint) can read AstrologyCompute.ENGINE_AVAILABLE.
+    ENGINE_AVAILABLE = ENGINE_AVAILABLE
 
     @staticmethod
     def calculate_birth_chart(dob: str, tob: str, place: str,
                              lat: Optional[float] = None, lon: Optional[float] = None,
                              tz: Optional[float] = None, ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """Calculate birth chart with planetary positions"""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
 
         try:
             _set_ayanamsa(ayanamsa)
@@ -947,7 +947,7 @@ class AstrologyCompute:
             # Get ascendant from D1 chart (first element)
             ascendant = d1_chart[0][1]  # [planet_name, (rasi, degrees)]
 
-            # Planet name mapping (PyJHora convention: 0=Sun, 1=Moon, 2=Mars, 3=Mercury, 4=Jupiter, 5=Venus, 6=Saturn, 7=Rahu, 8=Ketu)
+            # Planet name mapping (Jyotir AI convention: 0=Sun, 1=Moon, 2=Mars, 3=Mercury, 4=Jupiter, 5=Venus, 6=Saturn, 7=Rahu, 8=Ketu)
             planet_names = {
                 0: "Sun", 1: "Moon", 2: "Mars", 3: "Mercury",
                 4: "Jupiter", 5: "Venus", 6: "Saturn", 7: "Rahu", 8: "Ketu"
@@ -1091,8 +1091,8 @@ class AstrologyCompute:
         """Compute a single divisional (varga) chart, formatted for the frontend
         Kundali component (planets keyed by name with a 1-based `house`, plus a
         `lagna`). `varga_factor` must be one of SUPPORTED_VARGAS."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
 
         if varga_factor not in SUPPORTED_VARGAS:
             return {"error": f"Unsupported varga factor: {varga_factor}", "status": "failed"}
@@ -1163,10 +1163,10 @@ class AstrologyCompute:
     def get_dashas(dob: str, tob: str, place: str, dhasa_type: str = "vimsottari",
                 lat: Optional[float] = None, lon: Optional[float] = None, tz: Optional[float] = None) -> Dict:
         """
-        Calculate Dasha periods (life periods) using PyJHora's accurate calculations
+        Calculate Dasha periods (life periods) using Jyotir AI's accurate calculations
         """
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
 
         try:
             from datetime import datetime
@@ -1190,10 +1190,10 @@ class AstrologyCompute:
             # Create Place object
             place_obj = drik.Place(place, lat, lon, tz_offset)
 
-            # Get Mahadasha using PyJHora's built-in function
+            # Get Mahadasha using Jyotir AI's built-in function
             mahadashas = vimsottari.vimsottari_mahadasa(jd, place_obj)
 
-            # Planet name mapping (PyJHora standard indexing)
+            # Planet name mapping (Jyotir AI standard indexing)
             # 0=Sun, 1=Moon, 2=Mars, 3=Mercury, 4=Jupiter, 5=Venus, 6=Saturn, 7=Rahu, 8=Ketu
             planet_names = {
                 0: "Sun",
@@ -1235,7 +1235,7 @@ class AstrologyCompute:
 
                 duration_years = (end_jd - start_jd) / vimsottari.year_duration
 
-                # Calculate bhuktis (sub-periods) using PyJHora
+                # Calculate bhuktis (sub-periods) using Jyotir AI
                 bhuktis = vimsottari._vimsottari_bhukti(lord, start_jd)
                 sub_periods = []
                 bhukti_lords = list(bhuktis.keys())
@@ -1305,7 +1305,7 @@ class AstrologyCompute:
                 "current_nakshatra_index": nakshatra_index,
                 "dasha_sequence": dasha_periods,
                 "total_cycle_years": 120,
-                "note": "Vimsottari Dasha cycle is 120 years. Calculations based on PyJHora."
+                "note": "Vimsottari Dasha cycle is 120 years. Calculations based on Jyotir AI."
             }
 
             # Add current dasha if found
@@ -1349,11 +1349,11 @@ class AstrologyCompute:
         `lords_path` is the chain of planet names from the Maha Dasha down to the
         node whose children we want, e.g. ["Venus"] -> Bhuktis, ["Venus","Saturn"]
         -> Antaras, ["Venus","Saturn","Mercury"] -> Sookshmas. We walk the path
-        from the natal chart with PyJHora's `vimsottari_immediate_children` so every
+        from the natal chart with Jyotir AI's `vimsottari_immediate_children` so every
         level is recomputed at full (sub-day) precision rather than from rounded
         dates. Levels: 1=Maha, 2=Bhukti, 3=Antara, 4=Sookshma (leaf)."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
 
         if not lords_path:
             return {"error": "lords_path is required", "status": "failed"}
@@ -1372,7 +1372,7 @@ class AstrologyCompute:
             jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
             place_obj = drik.Place(place, lat, lon, tz_offset)
 
-            # Resolve the requested lord-path (names -> PyJHora indices).
+            # Resolve the requested lord-path (names -> Jyotir AI indices).
             try:
                 path_idx = [PLANET_INDICES[name] for name in lords_path]
             except KeyError as bad:
@@ -1461,8 +1461,8 @@ class AstrologyCompute:
         return rasi signs. Output is normalized to a flat list of periods with
         ISO start/end dates so the frontend can render any system uniformly.
         """
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         meta = SUPPORTED_DASHAS.get(dhasa_type)
         if not meta:
             return {"error": f"Unsupported dhasa type: {dhasa_type}", "status": "failed"}
@@ -1566,8 +1566,8 @@ class AstrologyCompute:
                          tz: Optional[float] = None,
                          ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """Bhinna (per-contributor) + Sarva (combined) Ashtakavarga bindu tables."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa(ayanamsa)
             year, month, day = map(int, dob.split("-"))
@@ -1580,7 +1580,7 @@ class AstrologyCompute:
             pp = charts.rasi_chart(jd, place_obj)
             h2p = utils.get_house_planet_list_from_planet_positions(pp)
             bav, sav, _ = ashtakavarga.get_ashtaka_varga(h2p)
-            # The 8 BAV contributors, in PyJHora's order.
+            # The 8 BAV contributors, in Jyotir AI's order.
             contributors = ["Sun", "Moon", "Mars", "Mercury", "Jupiter",
                             "Venus", "Saturn", "Ascendant"]
             bhinna = {
@@ -1611,7 +1611,7 @@ class AstrologyCompute:
                                      gender: Optional[int] = None) -> Dict:
         """EXPERIMENTAL birth-time rectification (BV Raman suddhi methods).
 
-        PyJHora itself flags these "experimental - accuracy not guaranteed", so the
+        Jyotir AI itself flags these "experimental - accuracy not guaranteed", so the
         result is framed as a *suggestion to verify*, never an authoritative correction.
         Nudges the entered time within +/-(step*loop) minutes until the chosen suddhi
         check is satisfied and returns entered-vs-suggested time, the delta, which rule
@@ -1621,8 +1621,8 @@ class AstrologyCompute:
                 "lagna" (lagna suddhi) or "janma" (janma suddhi, needs `gender`:
                 0=male, 1=female).
         """
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
 
         method_labels = {
             "nakshatra": "Nakshatra Suddhi",
@@ -1801,8 +1801,8 @@ class AstrologyCompute:
         window_minutes: half-window searched around the entered time (clamped to the
                         same calendar day). e.g. 120 => +/-2h; 720 => whole day.
         """
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
 
         # Validate + normalise events.
         clean_events = []
@@ -2020,8 +2020,8 @@ class AstrologyCompute:
         (maya), Upapada (UL) the marriage/spouse; the intermediate A2..A11 mirror the
         arudhas of houses 2-11. A focused slice of `get_chart_details` for the AI to
         pull on demand (and to seed the pass-all context)."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa(ayanamsa)
             year, month, day = map(int, dob.split("-"))
@@ -2055,8 +2055,8 @@ class AstrologyCompute:
                           tz: Optional[float] = None,
                           ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """Advanced chart factors: Arudha padas, Chara karakas, Special lagnas, Upagrahas."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa(ayanamsa)
             year, month, day = map(int, dob.split("-"))
@@ -2139,8 +2139,8 @@ class AstrologyCompute:
                      tz: Optional[float] = None,
                      ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """Shadbala (six-fold strength) for the seven planets Sun..Saturn."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa(ayanamsa)
             year, month, day = map(int, dob.split("-"))
@@ -2202,8 +2202,8 @@ class AstrologyCompute:
         aspects), the planets it aspects by rasi drishti, and a strength % per
         graha→planet aspect so partial aspects can be weighed against full ones.
         """
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa(ayanamsa)
             year, month, day = map(int, dob.split("-"))
@@ -2287,8 +2287,8 @@ class AstrologyCompute:
         annual Mudda (Varsha Vimsottari) maha-dasha periods. Birth details +
         ayanamsa are server-injected; global ayanamsa is reset afterwards.
         """
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
 
         try:
             birth_year = int(dob.split("-")[0])
@@ -2536,8 +2536,8 @@ class AstrologyCompute:
                    lat: Optional[float] = None, lon: Optional[float] = None,
                    tz: Optional[float] = None, ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """Detect the common doshas for a birth chart (present/absent + description)."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
         try:
             _set_ayanamsa(ayanamsa)
             year, month, day = map(int, dob.split("-"))
@@ -2600,8 +2600,8 @@ class AstrologyCompute:
                   lat: Optional[float] = None, lon: Optional[float] = None,
                   tz: Optional[float] = None, ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """Detect the yogas present in the Rasi chart (name + description + benefits)."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
         try:
             _set_ayanamsa(ayanamsa)
             year, month, day = map(int, dob.split("-"))
@@ -2648,8 +2648,8 @@ class AstrologyCompute:
         modern Drik-ganita under the app ayanamsa) or "surya_siddhanta" (the
         classical Surya-Siddhanta ayanamsa mode). Also includes the Hijri
         (Islamic tabular) date for the day."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
         # Surya-Siddhanta = compute the limbs under the SURYASIDDHANTA ayanamsa
         # (the vendored surya_sidhantha.py module itself is buggy). Reset after.
         use_ss = (system or "drik").lower() in ("surya_siddhanta", "surya-siddhanta", "ss")
@@ -2744,8 +2744,8 @@ class AstrologyCompute:
         ruled by the weekday lord; the sequence follows the Chaldean order. Each
         hora is tagged benefic/malefic and, for the current day, the running hora
         is flagged. `date` defaults to today at `place`."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
         try:
             from datetime import datetime, timezone as _utc, timedelta
 
@@ -2833,8 +2833,8 @@ class AstrologyCompute:
         Gulika. Returns the per-day summaries plus a ranked `best_windows` list.
         Location-driven (not birth-chart bound); reuses `get_panchanga` and
         `get_planetary_hours`."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
         try:
             from datetime import datetime, timezone as _utc, timedelta
 
@@ -3027,8 +3027,8 @@ class AstrologyCompute:
         and Chandrabala (the transit Moon counted from the natal Moon). These are
         the small classical "should I act today?" checks that sit alongside the
         electional (muhurta) search. `date` defaults to today at `place`."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             from datetime import datetime, timezone as _utc, timedelta
 
@@ -3185,8 +3185,8 @@ class AstrologyCompute:
         querent and the mind/question; the rest of the chart answers it. Reuses
         the natal compute at "now + current location" and layers the day's
         Panchanga + running planetary hour on top for classical horary context."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
         try:
             from datetime import datetime, timezone as _utc, timedelta
 
@@ -3258,8 +3258,8 @@ class AstrologyCompute:
         (KP) cuspal sub-lords, the four-fold house significators, and the current
         Ruling Planets. KP always reads on the Krishnamurti ayanamsa, so this
         endpoint forces it regardless of the app's selected ayanamsa."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa("KP")
             from datetime import datetime, timezone as _utc, timedelta
@@ -3326,8 +3326,8 @@ class AstrologyCompute:
         classical 249-fold table fixes the Ascendant's sign/star/sub division, the
         rest of the chart is cast for the moment (defaults to now + here), and the
         Ruling Planets are read for the same instant. Uses the KP ayanamsa."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             number = int(number)
             if number < 1 or number > 249:
@@ -3396,9 +3396,9 @@ class AstrologyCompute:
         """Jaimini toolkit: the 8 Chara Karakas (with sign/house), the Karakamsa
         (the Atmakaraka's Navamsa sign) and Swamsa (D9 Lagna) with their occupants
         and Jaimini (rasi-drishti) aspects, plus the Argala (intervention) on the
-        Lagna and 7th house. Grounded in PyJHora's house/arudha engine."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        Lagna and 7th house. Grounded in Jyotir AI's house/arudha engine."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa(ayanamsa)
             year, month, day = map(int, dob.split("-"))
@@ -3488,8 +3488,8 @@ class AstrologyCompute:
         now + here). Reuses the natal compute at the present moment and layers the
         day's Panchanga + running planetary-hour lord. Powers the Dashboard
         'chart of the moment' widget and the standalone Now page."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             from datetime import datetime, timezone as _utc, timedelta
             tz_off = current_tz if current_tz is not None else (tz if tz is not None else 5.5)
@@ -3553,8 +3553,8 @@ class AstrologyCompute:
         from natal Moon, retrograde grahas, next Jupiter/Saturn ingress), and a
         list of plain highlight strings. Assembled from the existing panchanga /
         dasha / transit computes."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
         try:
             from datetime import datetime, timezone as _utc, timedelta
 
@@ -3680,8 +3680,8 @@ class AstrologyCompute:
              "trigger" dates for the milestone years.
 
         This is a traditional predictive aid, not a deterministic forecast."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             from datetime import datetime, timezone as _utc, timedelta
             _set_ayanamsa(ayanamsa)
@@ -3828,8 +3828,8 @@ class AstrologyCompute:
         returned. This is traditional guidance drawn from the chart's own dignity
         and strength — NOT medical, legal or financial advice, and gemstones in
         particular should be taken up only after qualified consultation."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa(ayanamsa)
             year, month, day = map(int, dob.split("-"))
@@ -3920,8 +3920,8 @@ class AstrologyCompute:
         instants (begin / maximum / end) in the place's local time. Solar and
         lunar are searched independently, each stepping past the previous
         maximum. `from_date` defaults to today at `place`."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
         try:
             from datetime import datetime, timezone as _utc, timedelta
             from jhora.panchanga.eclipse import (
@@ -4021,8 +4021,8 @@ class AstrologyCompute:
         occurrence between `start` and `end` via the tithi finder, returning the
         date, the tithi window, and the vratha's meaning. Defaults to the next
         ~45 days from today at `place`."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
         try:
             from datetime import datetime, timezone as _utc, timedelta
             from jhora.panchanga import vratha
@@ -4094,8 +4094,8 @@ class AstrologyCompute:
         the closest approach (minimum separation) and the date it occurs; a
         separation under 1° is flagged as an actual Graha Yuddha (war).
         Defaults to the next ~90 days from today at `place`."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
         try:
             from datetime import datetime, timezone as _utc, timedelta
             from itertools import combinations
@@ -4202,8 +4202,8 @@ class AstrologyCompute:
         dates for the slow movers (Jupiter/Saturn/Rahu/Ketu). Transit positions are
         rendered against the natal Lagna so the frontend can draw them on the same
         North/South Kundali component."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
 
         try:
             _set_ayanamsa(ayanamsa)
@@ -4244,7 +4244,7 @@ class AstrologyCompute:
             else:
                 t_hour, t_min = 12, 0  # local noon fallback (stable daily snapshot)
 
-            # PyJHora's drik functions take a *local* JD and subtract place.timezone
+            # Jyotir AI's drik functions take a *local* JD and subtract place.timezone
             # to reach UT, so the transit place must carry the viewer's current tz for
             # the local→UT conversion to land on the right instant.
             transit_tz = current_tz if current_tz is not None else tz_offset
@@ -4281,7 +4281,7 @@ class AstrologyCompute:
             # ── Upcoming sign ingresses for the slow movers ─────────────────
             # Only Jupiter & Saturn: these are the headline gochara events
             # (Jupiter transit, Saturn Sade Sati). The lunar nodes are skipped —
-            # PyJHora's retrograde node-ingress search returns a full ~18yr nodal
+            # Jyotir AI's retrograde node-ingress search returns a full ~18yr nodal
             # cycle rather than the next boundary, so its dates aren't trustworthy.
             upcoming = []
             for pidx in (4, 6):  # Jupiter, Saturn
@@ -4336,10 +4336,10 @@ class AstrologyCompute:
         finally:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
-    # Bhava (house) systems exposed to the UI. Value -> (PyJHora bhava_madhya_method,
+    # Bhava (house) systems exposed to the UI. Value -> (Jyotir AI bhava_madhya_method,
     # label, short blurb). 'O' (Sripati/Porphyrius) is what Jagannatha Hora draws for
     # its Bhava Chalit; 'P' is true Placidus; 3 is the KP cuspal method; 1 is the
-    # equal Bhava Chalit (KN Rao) — PyJHora's own default.
+    # equal Bhava Chalit (KN Rao) — Jyotir AI's own default.
     BHAVA_METHODS = {
         "SRIPATI":   ("O", "Sripati (Porphyry)", "Matches Jagannatha Hora's Bhava Chalit"),
         "PLACIDUS":  ("P", "Placidus", "Western time-based house division"),
@@ -4361,8 +4361,8 @@ class AstrologyCompute:
         the cusp sits in, and the grahas occupying it — plus a `planets` map keyed by
         name for the North/South Kundali component (each graha placed in the SIGN of the
         bhava it occupies, i.e. a Bhava Chalit rendering)."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
 
         method_key = (method or "SRIPATI").upper()
         madhya_method, method_label, method_note = AstrologyCompute.BHAVA_METHODS.get(
@@ -4461,8 +4461,8 @@ class AstrologyCompute:
         degree-in-sign and retrograde state at local noon, and derives the sign-change
         (ingress) events by watching for a sign change between consecutive days. Powers
         the transit-calendar / ephemeris table and the ingress list."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
 
         try:
             _set_ayanamsa(ayanamsa)
@@ -4549,8 +4549,8 @@ class AstrologyCompute:
         birth weekday) — both *occupation* (a graha sitting on the cell) and
         *facing (saamne) vedha* (a graha on the cell mirrored across the chakra's
         centre). The structured `findings` feed the layman AI reading."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
 
         try:
             _set_ayanamsa(ayanamsa)
@@ -4718,12 +4718,12 @@ class AstrologyCompute:
                           tz: Optional[float] = 5.5) -> Dict:
         """Ashtakoot (Guna Milan) compatibility between two charts.
 
-        Computes each person's Moon nakshatra+pada and runs PyJHora's North-Indian
+        Computes each person's Moon nakshatra+pada and runs Jyotir AI's North-Indian
         Ashtakoota (the classic 36-point system). Returns the eight kootas with
         their *correct* individual maxima plus a verdict, so the frontend can render
         an accurate breakdown."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
 
         nakshatra_names = [
             "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra",
@@ -4894,8 +4894,8 @@ class AstrologyCompute:
         The birth bird is fixed from birth; the timeline is for `date` (defaults
         to today at `place`). This system is independent of ayanamsa.
         """
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             from datetime import datetime, timezone as _utc, timedelta
             from jhora.panchanga import pancha_paksha as pp
@@ -5059,8 +5059,8 @@ class AstrologyCompute:
         classical descriptions/benefits. A light dignity check labels each pair's
         strength. Birth details + ayanamsa are server-injected; ayanamsa reset.
         """
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa(ayanamsa)
             from jhora.horoscope.chart import raja_yoga as ry
@@ -5164,8 +5164,8 @@ class AstrologyCompute:
         a Py3 `dict.keys()[0]` bug in the all-three-agree branch) while reusing
         its per-pair rule and the same chart inputs.
         """
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa(ayanamsa)
             import collections
@@ -5264,8 +5264,8 @@ class AstrologyCompute:
         plus the three reference lagnas so the frontend can render three Kundalis.
         Ayanamsa server-injected + reset.
         """
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa(ayanamsa)
             y, m, d = map(int, dob.split("-"))
@@ -5341,8 +5341,8 @@ class AstrologyCompute:
         chart (Tri/Chatur/Pancha/Prana/Deha/Mrityu/Beeja/Kshetra/Tithi/Yoga/
         Yogi/Avayogi). Each is returned as a sign + degree + house-from-Lagna.
         Ayanamsa server-injected + reset."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa(ayanamsa)
             from jhora.horoscope.chart import sphuta as sphuta_mod
@@ -5389,8 +5389,8 @@ class AstrologyCompute:
         longitude → sign + degree + house-from-Lagna. Day/night birth (from the
         natal sunrise/sunset) drives each saham's day/night formula. Ayanamsa
         server-injected + reset."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa(ayanamsa)
             from jhora.horoscope.transit import saham as saham_mod
@@ -5453,8 +5453,8 @@ class AstrologyCompute:
         for each of the 12 bhavas. Planets in the 2nd/4th/5th/11th from a house
         cause argala on it; planets in the 12th/10th/9th/3rd obstruct it. Returns
         one row per bhava with the contributing planets. Ayanamsa injected + reset."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa(ayanamsa)
             jd, place_obj, *_ = \
@@ -5516,8 +5516,8 @@ class AstrologyCompute:
         the running hora lord, and the panchanga limbs (tithi/nakshatra/yoga) —
         enough for the frontend to render and live-tick a ghati/vighati clock.
         `date` defaults to today at `place`."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             from datetime import datetime, timezone as _utc, timedelta
 
@@ -5626,8 +5626,8 @@ class AstrologyCompute:
         Saturn, and the Vakra-gathi epicycle loop (x,y) for each — the geocentric
         apparent path that produces the classic retrograde loop, computed with
         numpy (no pyqtgraph). `date` defaults to today at `place`."""
-        if not PYJHORA_AVAILABLE:
-            return {"error": "PyJHora not available", "status": "failed"}
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             import numpy as np
             from datetime import datetime, timezone as _utc, timedelta
@@ -5711,11 +5711,11 @@ class AstrologyCompute:
         """Geocode a free-text place query to [display_name, lat, lon, tz_offset].
 
         Coordinates come from OpenStreetMap (Nominatim via geopy) and the UTC
-        offset from timezonefinder (both already PyJHora dependencies). The tz
+        offset from timezonefinder (both already Jyotir AI dependencies). The tz
         offset reflects the place's *current* rules (incl. DST), which is what
         the form needs when picking a location. Returns None when nothing
         matches so the endpoint can report a friendly "not found"."""
-        if not PYJHORA_AVAILABLE:
+        if not ENGINE_AVAILABLE:
             return None
         q = (query or "").strip()
         if not q:
@@ -5723,7 +5723,7 @@ class AstrologyCompute:
         try:
             from geopy.geocoders import Nominatim
 
-            geolocator = Nominatim(user_agent="PyJHoraWeb", timeout=10)
+            geolocator = Nominatim(user_agent="JyotirAIWeb", timeout=10)
             loc = geolocator.geocode(q, language="en")
             if not loc:
                 return None
@@ -5744,7 +5744,7 @@ class AstrologyCompute:
         needed) and Nominatim reverse-geocoding only supplies a friendly place
         name. If the reverse lookup fails we still return coordinates + tz with a
         synthesised label so a clicked point is always usable."""
-        if not PYJHORA_AVAILABLE:
+        if not ENGINE_AVAILABLE:
             return None
         try:
             lat = round(float(latitude), 6)
@@ -5761,7 +5761,7 @@ class AstrologyCompute:
         try:
             from geopy.geocoders import Nominatim
 
-            geolocator = Nominatim(user_agent="PyJHoraWeb", timeout=10)
+            geolocator = Nominatim(user_agent="JyotirAIWeb", timeout=10)
             loc = geolocator.reverse((lat, lon), language="en", zoom=10)
             if loc and loc.address:
                 place = loc.address

@@ -2317,8 +2317,20 @@ a rebuild/restart to go live.
         "Jyotir AI"): digest email subject/body (`digest.py`), password-reset email subject/body
         (`email_service.py`), the FastAPI docs title (`main.py`), and the AI system-prompt phrasing
         that names the chart-data source (`llm_service.py`). Documented in `backend/.env.example`.
-- NOTE: **Engine vs brand.** "PyJHora" is *kept* wherever it names the underlying `jhora`
-  calculation library — `astrology.py` comments + `{"error": "PyJHora not available"}` dicts,
-  the `PanchangaPanel.js` offset comment, the `pyjhora_db` DB name, the `pyjhora-v1` SW cache
-  key, and the geocoder `PyJHoraWeb` User-Agent — renaming those would be factually wrong.
+- [x] **Full engine/infra rebrand (2026-07-04, owner ask "update engine references too")** —
+      swept the remaining internal "PyJHora" mentions to the brand/engine-neutral names:
+      - `astrology.py` — comments → "Jyotir AI", the `PYJHORA_AVAILABLE` flag → `ENGINE_AVAILABLE`,
+        the `{"error": "PyJHora not available"}` dicts → `"Jyotir AI engine not available"`, and the
+        Nominatim `user_agent` → `JyotirAIWeb`.
+      - `/health` field `pyjhora_available` → `engine_available` (both `main.py` and the SettingsPage
+        consumer). Settings → System label now reads "Astrology engine (Jyotir AI)".
+      - `sw.js` cache key → `jyotir-ai-v1`; `dev.sh`, `docker-compose.yml` (container/network names
+        `jyotirai-*`) and `Dockerfile`/compose comments rebranded.
+      - **Database renamed `pyjhora_db` → `jyotirai_db`** in `config.py` default, `backend/.env(.example)`
+        and `docker-compose.yml`. Requires a one-time Mongo data migration (mongodump/restore
+        `--nsFrom pyjhora_db.* --nsTo jyotirai_db.*`) — the config change alone points the app at a
+        fresh empty DB, so migrate before restarting.
+- NOTE: **Real library refs kept.** `jhora` imports, `requirements.txt` PyJHora-4.8.7 deps, the
+  README pip-install/fork URLs (`github.com/kunwarmahen/PyJHora`) and the Dockerfile "relative to
+  PyJHora/" build-context path still say PyJHora — that's the actual upstream package/repo name.
   CRA bakes `REACT_APP_*` at build time, so title/tagline/icon changes need a rebuild/restart.

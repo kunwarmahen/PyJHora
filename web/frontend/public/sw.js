@@ -1,4 +1,4 @@
-/* Minimal, conservative service worker for PyJHora.
+/* Minimal, conservative service worker for Jyotir AI.
  * Goal: make the app installable + give a basic offline shell, WITHOUT caching
  * API responses (which are per-user and auth-scoped).
  *
@@ -7,7 +7,7 @@
  *   - same-origin static GETs: stale-while-revalidate
  *   - anything under /api or cross-origin: passthrough (never cached)
  */
-const CACHE = "pyjhora-v1";
+const CACHE = "jyotir-ai-v1";
 const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png"];
 
 self.addEventListener("install", (event) => {

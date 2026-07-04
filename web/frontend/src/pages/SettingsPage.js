@@ -286,7 +286,7 @@ export const SettingsPage = () => {
   const healthChecks = health
     ? [
         { key: "server", label: t("settings.system.server"), ok: health.status === "healthy" },
-        { key: "pyjhora", label: t("settings.system.pyjhora"), ok: !!health.pyjhora_available },
+        { key: "pyjhora", label: t("settings.system.pyjhora"), ok: !!health.engine_available },
         { key: "qwen", label: t("settings.system.qwen"), ok: !!health.qwen_enabled, optional: true },
         { key: "mapPicker", label: t("settings.system.mapPicker"), ok: !!health.map_picker_enabled, optional: true },
       ]
