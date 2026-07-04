@@ -2151,6 +2151,15 @@ double-stored here.
       long pages (e.g. Bhrigu's AI card sits after the markers grid) → the hook now polls for the
       reading element and `scrollIntoView`s it. Also: reset the re-restore guard when the param clears
       so clicking the *same* item twice works. Build + eslint green.
+- [x] **RESTORE FIXES round 2 (2026-07-03)** — reopening set the saved text but it stayed **invisible**
+      on pages whose AI card is gated behind computed data that only loads on user action (looked like
+      nothing happened). On restore we now re-run the **factual (non-AI, no-duplicate) computation** from
+      the saved `context` so the gated view renders with the saved reading: Prashna → `getPrashna`,
+      Muhurta → `getMuhurta`, Compatibility → `getCompatibility` + both charts, Compare → both charts,
+      Rectify → rule mode already auto-runs, events mode re-runs `rectifyByEvents`. Also the
+      **Ask-Astrologer chat page had no restore hook** (`/ask-astrologer?reading=<id>` did nothing) →
+      wired `useRestoreReading` → `loadConversation`. Transit page also got its own Recent-readings panel
+      + its model caption now points to Settings (was "Ask AI Astrologer").
 
 **Resolved:** dedupe → **pile up** (individual delete); retention cap → **`AI_HISTORY_MAX` env**
 (default 100, pruned on write); tools with **no birth profile**
