@@ -20,7 +20,13 @@ export function useRestoreReading(onRestore) {
   cbRef.current = onRestore;
 
   useEffect(() => {
-    if (!readingId || doneRef.current === readingId) return;
+    // Clearing the param (below) drops readingId to null — reset the guard so
+    // clicking the *same* item again later re-restores it.
+    if (!readingId) {
+      doneRef.current = null;
+      return;
+    }
+    if (doneRef.current === readingId) return;
     doneRef.current = readingId;
     let cancelled = false;
     (async () => {
@@ -37,6 +43,10 @@ export function useRestoreReading(onRestore) {
           source: data.source,
           data,
         });
+        // The reading renders lower on a long page (and only once the page's
+        // factual data loads), so bring it into view — otherwise the user lands
+        // at the top and it looks like nothing happened. Poll briefly for it.
+        if (!cancelled) revealReading();
       } catch (e) {
         /* reading may have been deleted — ignore */
       } finally {
@@ -54,4 +64,17 @@ export function useRestoreReading(onRestore) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readingId]);
+}
+
+// Scroll the restored reading into view once it renders (the page may still be
+// loading its factual data, so retry for a few seconds before giving up).
+function revealReading(tries = 0) {
+  const el = document.querySelector(
+    ".ai-panel__reading, .sbc-ai-markdown, .transit-chat__messages"
+  );
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  if (tries < 24) setTimeout(() => revealReading(tries + 1), 150);
 }

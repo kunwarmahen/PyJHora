@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { streamAskQuestion } from "../services/api";
+import { useRestoreReading } from "../hooks/useRestoreReading";
 import { DEFAULT_AYANAMSA } from "../constants/jyotish";
 import { ChatBubble } from "./chat/ChatBubble";
 import { ChatComposer } from "./chat/ChatComposer";
@@ -43,6 +44,24 @@ export const TransitChat = ({ birthDetails, profile, result, ayanamsa = DEFAULT_
   const convIdRef = useRef(null);
   const abortRef = useRef(null);
   const scrollRef = useRef(null);
+
+  // Reopen a saved transit chat from History: load the whole thread, expand the
+  // panel, and adopt its conversation id so a follow-up continues the same thread.
+  useRestoreReading((r) => {
+    const msgs = (r.data?.messages || [])
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => ({
+        role: m.role === "assistant" ? "ai" : "user",
+        content: m.content,
+        model: m.model,
+        provider: m.provider,
+      }));
+    if (msgs.length) {
+      setMessages(msgs);
+      convIdRef.current = r.data?.id || null;
+      setOpen(true);
+    }
+  });
 
   // The model is inherited from "Ask AI Astrologer" (same localStorage keys). Show
   // the current selection; fall back to the provider name when no specific model is

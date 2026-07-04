@@ -18,7 +18,7 @@ export const HistoryPage = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
-  const { profiles, selectProfile } = useProfile();
+  const { profiles, selectProfile, loadProfiles } = useProfile();
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +51,11 @@ export const HistoryPage = () => {
 
   useEffect(() => {
     load();
+    // The provider only auto-loads the *selected* profile, so pull the full list
+    // here — needed to label groups by profile and to switch to a reading's
+    // profile before opening it.
+    if (profiles.length === 0 && loadProfiles) loadProfiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
 
   const profileName = useCallback(

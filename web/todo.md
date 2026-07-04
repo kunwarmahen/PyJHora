@@ -2138,6 +2138,19 @@ double-stored here.
       14 tool pages (profile-bound pages pass `profileId={selectedProfile?._id}`; location/two-people
       tools omit it). i18n `recent.*` (en; hi/sa fall back). This completes the owner's BOTH global +
       per-page ask. **Quiz stays out of the unified history** (keeps its own dedicated history/stats).
+- [x] **Dashboard tile** (DONE 2026-07-03) — `/history` reachable from a desktop Dashboard tile
+      (`dashboard.features.history`, en/hi/sa) as well as the nav drawer.
+- [x] **RESTORE FIXES (2026-07-03)** — three real bugs found on reopen:
+      (1) **Transit chat didn't restore** (route `/transit`, but `TransitChat` had no restore + is
+      collapsed by default) → wired `useRestoreReading` into `TransitChat`: loads the whole thread,
+      maps `assistant`→`ai`, adopts the conversation id (so a follow-up continues it), and expands the
+      panel. (2) **History page never loaded the `profiles` list** (the provider only auto-loads the
+      *selected* profile) → it grouped everything under "No profile" and couldn't switch to a reading's
+      profile before navigating (so profile-gated pages like Bhrigu loaded the wrong/empty chart) →
+      `HistoryPage` now calls `loadProfiles()` on mount. (3) **Restored reading was below the fold** on
+      long pages (e.g. Bhrigu's AI card sits after the markers grid) → the hook now polls for the
+      reading element and `scrollIntoView`s it. Also: reset the re-restore guard when the param clears
+      so clicking the *same* item twice works. Build + eslint green.
 
 **Resolved:** dedupe → **pile up** (individual delete); retention cap → **`AI_HISTORY_MAX` env**
 (default 100, pruned on write); tools with **no birth profile**
