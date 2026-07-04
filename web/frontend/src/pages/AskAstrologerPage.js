@@ -199,8 +199,6 @@ export const AskAstrologerPage = () => {
   const [conversationId, setConversationId] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
-  // Filter the history list by where a thread originated (all / astrologer / transit)
-  const [historyFilter, setHistoryFilter] = useState("all");
 
   // 8.7 polish: in-flight stream control + per-answer affordances
   const abortRef = useRef(null);
@@ -725,11 +723,17 @@ export const AskAstrologerPage = () => {
   };
 
   // ── Conversation history ────────────────────────────────────────────
+  // This panel is the Ask-Astrologer chat's own history: show only its threads.
+  // Transit chats and every one-shot tool reading live in the unified History
+  // page (/history) — the shared list endpoint returns them all, so filter here.
   const refreshConversations = async () => {
     if (!selectedProfile?._id) return;
     try {
       const resp = await astrologyService.listConversations(selectedProfile._id);
-      setConversations(resp.data.conversations || []);
+      const astrologerOnly = (resp.data.conversations || []).filter(
+        (c) => (c.source || "astrologer") === "astrologer"
+      );
+      setConversations(astrologerOnly);
     } catch (e) {
       /* non-fatal */
     }
@@ -854,12 +858,9 @@ export const AskAstrologerPage = () => {
       }));
     });
 
-  // History list filtered by origin (Transit-page chats are saved here too).
-  const convSource = (c) => c.source || "astrologer";
-  const hasTransitConvos = conversations.some((c) => convSource(c) === "transit");
-  const visibleConversations = conversations.filter(
-    (c) => historyFilter === "all" || convSource(c) === historyFilter
-  );
+  // Only Ask-Astrologer threads reach here (transit chats + one-shot tool
+  // readings are filtered out in refreshConversations and live on /history).
+  const visibleConversations = conversations;
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -935,21 +936,6 @@ export const AskAstrologerPage = () => {
               <History size={20} />
               {t("ask.savedConversations")}
             </h3>
-            {/* Filter chips — only shown once a Transit-page reading exists, so the
-                main Ask page stays uncluttered for users who never use that chat. */}
-            {hasTransitConvos && (
-              <div className="history-filters">
-                {["all", "astrologer", "transit"].map((f) => (
-                  <button
-                    key={f}
-                    className={`history-filter${historyFilter === f ? " is-active" : ""}`}
-                    onClick={() => setHistoryFilter(f)}
-                  >
-                    {t(`ask.filter.${f}`)}
-                  </button>
-                ))}
-              </div>
-            )}
             {visibleConversations.length === 0 ? (
               <p className="text-secondary" style={{ fontSize: "0.875rem", margin: 0 }}>
                 {t("ask.noConversations")}
@@ -963,12 +949,7 @@ export const AskAstrologerPage = () => {
                     onClick={() => loadConversation(c.id)}
                   >
                     <div className="history-item__main">
-                      <div className="history-item__title">
-                        {convSource(c) === "transit" && (
-                          <span className="history-source-badge">{t("ask.sourceTransit")}</span>
-                        )}
-                        {c.title}
-                      </div>
+                      <div className="history-item__title">{c.title}</div>
                       <div className="history-item__meta">
                         {Math.floor((c.message_count || 0) / 2)} {t("ask.qa")}
                         {c.last_model ? ` · ${c.last_model}` : ""}
