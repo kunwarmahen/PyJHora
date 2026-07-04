@@ -67,7 +67,7 @@ self.addEventListener("push", (event) => {
   } catch (e) {
     data = { body: event.data && event.data.text() };
   }
-  const title = data.title || "PyJHora";
+  const title = data.title || "Jyotir AI";
   const options = {
     body: data.body || "Your daily Vedic digest is ready.",
     icon: "./icon-192.png",

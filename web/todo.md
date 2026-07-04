@@ -2298,12 +2298,27 @@ a rebuild/restart to go live.
       forgot / reset / shared-chart pages. `App.js` sets `document.title = SITE_TITLE` on mount
       (the static `index.html` keeps a sensible default for the pre-hydration shell, since CRA
       leaves an *unset* `%REACT_APP_%` placeholder as a literal). Owner deployment set to
-      **Jyotir Ai** / "Where Vedic Wisdom Meets AI".
+      **Jyotir AI** / "Where Vedic Wisdom Meets AI".
 - [x] **Brand icon instead of the generic star** — new shared `src/components/BrandLogo.js`
       renders the built app icon (`public/icon-192.png`, the saffron sunburst badge) at any
       size, replacing the lucide `<Star>` in the nav drawer and dashboard header. The dashboard
       keeps the `.brand-icon` class so the saffron `pulse-glow` halo still animates around it.
-- NOTE: CRA bakes `REACT_APP_*` at build time, so changing the title/tagline needs a
-  rebuild/restart. Still on the original branding (out of scope here): PWA `manifest.json`,
-  the `apple-mobile-web-app-title` meta + `pyjhora-v1` SW cache name, the Full-Report PDF
-  footer (`report.footer`), and `nav.openApp`.
+- [x] **Full brand sweep across the `web/` tree (2026-07-04, follow-up)** — extended the
+      rebrand so no *product* surface still hardcodes "PyJHora":
+      - **Frontend i18n** — `shared.openApp`, `report.footer` and the push-`insecure` hint now
+        interpolate `{{brand}}` (passed `SITE_TITLE` at each call site in SharedChartPage,
+        FullReportPage, SettingsPage), across en/hi/sa.
+      - **Static shell** — `index.html` uses CRA `%REACT_APP_SITE_TITLE%` substitution for the
+        `<title>`/description/apple-title; `App.js` also sets `document.title` + those meta tags
+        at runtime as a fallback for an unset build var. `manifest.json` (PWA name) and the
+        `sw.js` push-fallback title are static brand assets (CRA can't inject env there), set to
+        the owner brand alongside the icons.
+      - **Backend** — new `SITE_NAME` setting (`config.py`, default "PyJHora", owner set to
+        "Jyotir AI"): digest email subject/body (`digest.py`), password-reset email subject/body
+        (`email_service.py`), the FastAPI docs title (`main.py`), and the AI system-prompt phrasing
+        that names the chart-data source (`llm_service.py`). Documented in `backend/.env.example`.
+- NOTE: **Engine vs brand.** "PyJHora" is *kept* wherever it names the underlying `jhora`
+  calculation library — `astrology.py` comments + `{"error": "PyJHora not available"}` dicts,
+  the `PanchangaPanel.js` offset comment, the `pyjhora_db` DB name, the `pyjhora-v1` SW cache
+  key, and the geocoder `PyJHoraWeb` User-Agent — renaming those would be factually wrong.
+  CRA bakes `REACT_APP_*` at build time, so title/tagline/icon changes need a rebuild/restart.

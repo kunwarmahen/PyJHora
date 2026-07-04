@@ -20,6 +20,10 @@ from enum import Enum
 
 import tools as tool_registry
 
+# Product/brand name surfaced to the model as the source of the chart data.
+# Overridable via the SITE_NAME env var (kept in sync with the frontend brand).
+SITE_NAME = os.getenv("SITE_NAME", "PyJHora")
+
 # Agentic ("tool-call") mode tuning.
 MAX_TOOL_ROUNDS = 6
 # Cap on how many times the SAME tool may be re-executed (identical name + args)
@@ -1451,11 +1455,11 @@ Planetary Positions (All 9 Grahas):"""
             )
 
         header = ("Below is birth chart data for this person, calculated using precise "
-                  "astronomical calculations from the PyJHora Vedic astrology software. "
+                  f"astronomical calculations from the {SITE_NAME} Vedic astrology software. "
                   "This is REAL, VERIFIED CHART DATA - not hypothetical."
                   if tool_mode else
                   "Below is the COMPLETE BIRTH CHART DATA for this person, calculated "
-                  "using precise astronomical calculations from the PyJHora Vedic "
+                  f"using precise astronomical calculations from the {SITE_NAME} Vedic "
                   "astrology software. This is REAL, VERIFIED CHART DATA - not "
                   "hypothetical.")
         title = "=== BIRTH CHART ===" if tool_mode else "=== COMPLETE BIRTH CHART ==="
@@ -1543,7 +1547,7 @@ IMPORTANT INSTRUCTIONS:
         female_moon = female_chart.get("moon_sign", {})
         female_sun = female_chart.get("sun_sign", {})
 
-        prompt = f"""You are an expert Vedic astrologer specializing in marriage compatibility. Below are the COMPLETE, ACCURATELY CALCULATED birth charts for both partners from PyJHora software.
+        prompt = f"""You are an expert Vedic astrologer specializing in marriage compatibility. Below are the COMPLETE, ACCURATELY CALCULATED birth charts for both partners from {SITE_NAME} software.
 
 === MALE BIRTH CHART ===
 Lagna (Ascendant): {male_lagna.get('sign_name', 'Unknown')} in {male_lagna.get('nakshatra', 'Unknown')} nakshatra
@@ -1599,7 +1603,7 @@ IMPORTANT: Use the actual chart data provided above. Be balanced, specific to th
                 f"Planets:\n{self._format_planets(chart.get('planetary_positions', {}))}"
             )
 
-        prompt = f"""You are an expert Vedic astrologer. Below are two COMPLETE, ACCURATELY CALCULATED birth charts from PyJHora software. Compare and contrast them as two individuals. This is NOT a marriage/compatibility (Guna Milan) reading — make no assumptions about the nature of any relationship between them.
+        prompt = f"""You are an expert Vedic astrologer. Below are two COMPLETE, ACCURATELY CALCULATED birth charts from {SITE_NAME} software. Compare and contrast them as two individuals. This is NOT a marriage/compatibility (Guna Milan) reading — make no assumptions about the nature of any relationship between them.
 
 {block(name_a, chart_a)}
 

@@ -9,6 +9,7 @@ delivery logic lives in exactly one place.
 from typing import Any, Dict, Optional
 
 from astrology import AstrologyCompute, DEFAULT_AYANAMSA
+from config import settings
 from database import get_database
 import email_service
 import notifications
@@ -56,11 +57,11 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
     name = bd.get("name") or profile.get("profile_name") or "there"
     highlights = digest.get("highlights", [])
     date = digest.get("date")
-    subject = f"Your PyJHora digest — {date}"
+    subject = f"Your {settings.SITE_NAME} digest — {date}"
     text = (
         f"Hi {name},\n\nHere's your Vedic digest for {date}:\n\n"
         + "\n".join(f"• {h}" for h in highlights)
-        + "\n\nOpen PyJHora for the full reading."
+        + f"\n\nOpen {settings.SITE_NAME} for the full reading."
     )
     html = (
         f"<p>Hi {name}, here's your Vedic digest for <b>{date}</b>:</p><ul>"

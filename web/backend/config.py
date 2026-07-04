@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     # email (e.g. the password-reset link). No trailing slash.
     APP_BASE_URL: str = "http://localhost:3000"
 
+    # Product / brand name used in outbound email and the API docs title. Keep in
+    # sync with the frontend's REACT_APP_SITE_TITLE. (This is the app brand, not
+    # the underlying "jhora"/PyJHora calculation library.)
+    SITE_NAME: str = "PyJHora"
+
     # Transactional email (SMTP). Provider-agnostic — works with Gmail (app
     # password), SendGrid, Mailgun, Amazon SES SMTP, etc. When SMTP_HOST is unset
     # the email layer becomes a graceful no-op that only logs the message, so
@@ -46,7 +51,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
-    SMTP_FROM: str = ""            # e.g. "PyJHora <no-reply@example.com>"; falls back to SMTP_USER
+    SMTP_FROM: str = ""            # e.g. "Jyotir Ai <no-reply@example.com>"; falls back to SMTP_USER
     SMTP_USE_TLS: bool = True      # STARTTLS (587). Set False + port 465 for implicit SSL.
 
     # Password-reset token lifetime (minutes).

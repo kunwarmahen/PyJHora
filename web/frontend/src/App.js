@@ -46,10 +46,17 @@ import "./App.css";
 import "./styles/Responsive.css";
 
 function App() {
-  // Reflect the configurable brand name in the browser tab (index.html carries a
-  // sensible static default for the pre-hydration shell).
+  // Reflect the configurable brand name in the browser tab + PWA/meta tags at
+  // runtime. index.html carries build-time %REACT_APP_SITE_TITLE% substitution,
+  // but this also covers the case where that var wasn't set at build time.
   useEffect(() => {
     document.title = SITE_TITLE;
+    const setMeta = (selector, value) => {
+      const el = document.querySelector(selector);
+      if (el) el.setAttribute("content", value);
+    };
+    setMeta('meta[name="apple-mobile-web-app-title"]', SITE_TITLE);
+    setMeta('meta[name="description"]', `${SITE_TITLE} - Vedic Astrology Web Application`);
   }, []);
 
   return (

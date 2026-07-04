@@ -53,7 +53,7 @@ export const SharedChartPage = () => {
         <div className="nav-right">
           <Link to="/login" className="change-profile-btn">
             <Star size={16} />
-            <span>{t("shared.openApp")}</span>
+            <span>{t("shared.openApp", { brand: SITE_TITLE })}</span>
           </Link>
         </div>
       </nav>

@@ -93,20 +93,20 @@ def _shell_html(title: str, body: str) -> str:
     return (
         f'<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;'
         f'max-width:520px;margin:0 auto;color:#2b2b2b;">'
-        f'<h2 style="color:#B8541A;">🕉 PyJHora</h2>'
+        f'<h2 style="color:#B8541A;">🕉 {settings.SITE_NAME}</h2>'
         f'<h3>{title}</h3>{body}'
         f'<hr style="border:none;border-top:1px solid #eee;margin:24px 0;">'
         f'<p style="font-size:12px;color:#999;">You received this email because an '
-        f'action was requested for your PyJHora account. If it wasn\'t you, you can '
+        f'action was requested for your {settings.SITE_NAME} account. If it wasn\'t you, you can '
         f'safely ignore this message.</p></div>'
     )
 
 
 async def send_password_reset(to: str, reset_url: str, ttl_minutes: int) -> bool:
     """Send a password-reset link."""
-    subject = "Reset your PyJHora password"
+    subject = f"Reset your {settings.SITE_NAME} password"
     text = (
-        "We received a request to reset your PyJHora password.\n\n"
+        f"We received a request to reset your {settings.SITE_NAME} password.\n\n"
         f"Open this link to choose a new password (valid for {ttl_minutes} minutes):\n"
         f"{reset_url}\n\n"
         "If you didn't request this, you can ignore this email — your password "
@@ -114,7 +114,7 @@ async def send_password_reset(to: str, reset_url: str, ttl_minutes: int) -> bool
     )
     html = _shell_html(
         "Reset your password",
-        f"<p>We received a request to reset your PyJHora password. This link is "
+        f"<p>We received a request to reset your {settings.SITE_NAME} password. This link is "
         f"valid for {ttl_minutes} minutes.</p>"
         + _button_html(reset_url, "Choose a new password")
         + f'<p style="font-size:13px;color:#666;">Or paste this URL into your '

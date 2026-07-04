@@ -11,6 +11,7 @@ import { enablePush, disablePush, pushSupported, pushUnavailableReason } from ".
 import { formatDate } from "../utils/format";
 import { AYANAMSAS } from "../constants/jyotish";
 import { LANGUAGES } from "../i18n";
+import { SITE_TITLE } from "../config/branding";
 import "../styles/Settings.css";
 
 const KEYED_PROVIDERS = ["gemini", "openai", "openai-compatible"];
@@ -653,7 +654,7 @@ export const SettingsPage = () => {
                     ? "server"
                     : pushUnavailableReason() || (!pushSupported() ? "unsupported" : "");
                   const pushBlocked = !!pushReason;
-                  const reasonText = t(`settings.notifications.pushReason.${pushReason || "unsupported"}`);
+                  const reasonText = t(`settings.notifications.pushReason.${pushReason || "unsupported"}`, { brand: SITE_TITLE });
                   return (
                     <>
                       <div className="settings-row">

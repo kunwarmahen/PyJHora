@@ -484,7 +484,7 @@ async def lifespan(app: FastAPI):
     await close_mongo_connection()
 
 app = FastAPI(
-    title="PyJHora Web API",
+    title=f"{settings.SITE_NAME} Web API",
     description="Vedic Astrology Web Application",
     version="1.0.0",
     lifespan=lifespan

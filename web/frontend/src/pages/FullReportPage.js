@@ -13,6 +13,7 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { PLANET_ABBR, AYANAMSAS } from "../constants/jyotish";
+import { SITE_TITLE } from "../config/branding";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Report.css";
@@ -340,7 +341,7 @@ export const FullReportPage = () => {
             )}
 
             <footer className="report-footer">
-              <span>{t("report.footer")}</span>
+              <span>{t("report.footer", { brand: SITE_TITLE })}</span>
             </footer>
           </div>
         ) : null}
