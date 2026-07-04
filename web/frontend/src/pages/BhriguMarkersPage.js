@@ -5,6 +5,7 @@ import { Waypoints, Sparkles, Compass, TrendingUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
+import { useRestoreReading } from "../hooks/useRestoreReading";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { Card } from "../components/Card";
@@ -59,6 +60,19 @@ export const BhriguMarkersPage = () => {
   const [aiModel, setAiModel] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
+  // Reopen a saved reading from History (restore the horizon + saved text).
+  const [pendingReading, setPendingReading] = useState(null);
+  useRestoreReading((r) => {
+    if (r.context?.years != null) setYears(r.context.years);
+    setPendingReading({ reading: r.reading, model: r.model });
+  });
+  useEffect(() => {
+    if (pendingReading && !loading) {
+      setAiAnalysis(pendingReading.reading);
+      setAiModel(pendingReading.model);
+      setPendingReading(null);
+    }
+  }, [pendingReading, loading]);
 
   const birthDetails = useMemo(
     () =>

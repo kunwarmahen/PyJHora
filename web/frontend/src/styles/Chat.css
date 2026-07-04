@@ -1057,6 +1057,16 @@
   background: rgba(63, 81, 181, 0.1);
   color: var(--cosmic-indigo);
 }
+.history-item__preview {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 0.15rem 0 0.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
 .history-item__meta {
   font-size: 0.75rem;
   color: var(--text-secondary);

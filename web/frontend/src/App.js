@@ -32,6 +32,7 @@ import { PrashnaPage } from "./pages/PrashnaPage";
 import { BhriguMarkersPage } from "./pages/BhriguMarkersPage";
 import { RemediesPage } from "./pages/RemediesPage";
 import { DailyDigestPage } from "./pages/DailyDigestPage";
+import { HistoryPage } from "./pages/HistoryPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import "./App.css";
@@ -271,6 +272,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/history"
+              element={
+                <ProtectedRoute>
+                  <HistoryPage />
                 </ProtectedRoute>
               }
             />

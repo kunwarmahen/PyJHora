@@ -16,6 +16,7 @@ import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
+import { useRestoreReading } from "../hooks/useRestoreReading";
 import { errorMessage } from "../utils/format";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
@@ -103,6 +104,20 @@ export const BirthTimeRectificationPage = () => {
   const [aiError, setAiError] = useState("");
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [aiModel, setAiModel] = useState("");
+  // Reopen a saved reading from History (restore method/gender + saved text).
+  const [pendingReading, setPendingReading] = useState(null);
+  useRestoreReading((r) => {
+    if (r.context?.method) setMethod(r.context.method);
+    if (r.context?.gender != null) setGender(r.context.gender);
+    setPendingReading({ reading: r.reading, model: r.model });
+  });
+  useEffect(() => {
+    if (pendingReading && !loading) {
+      setAiAnalysis(pendingReading.reading);
+      setAiModel(pendingReading.model);
+      setPendingReading(null);
+    }
+  }, [pendingReading, loading]);
 
   const ayanamsa = settings.ayanamsa;
   const ayanamsaLabel = AYANAMSAS.find((a) => a.value === ayanamsa)?.label || ayanamsa;

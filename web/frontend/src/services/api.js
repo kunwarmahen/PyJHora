@@ -55,6 +55,45 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Birth-chart-bound AI endpoints whose saved readings should be grouped under the
+// currently-selected profile in the unified history. We inject `profile_id` from
+// localStorage so every reading page doesn't have to thread it through by hand.
+// (Location-driven tools — Muhurta / Prashna / Almanac — are intentionally absent
+// so their readings land in the "No profile" bucket. `ask` sends its own id.)
+const PROFILE_READING_PATHS = new Set([
+  "/api/astrology/varshaphal-analysis",
+  "/api/astrology/bhrigu-markers-analysis",
+  "/api/astrology/remedies-analysis",
+  "/api/astrology/daily-digest-analysis",
+  "/api/astrology/sensitive-points-analysis",
+  "/api/astrology/celestial-analysis",
+  "/api/astrology/pancha-pakshi-analysis",
+  "/api/astrology/sarvatobhadra-analysis",
+  "/api/astrology/compatibility-analysis",
+  "/api/astrology/compare-analysis",
+  "/api/astrology/rectify-birth-time/explain",
+  "/api/astrology/rectify-birth-time/events/explain",
+  "/api/astrology/predict",
+]);
+
+api.interceptors.request.use((config) => {
+  if (
+    (config.method || "").toLowerCase() === "post" &&
+    PROFILE_READING_PATHS.has(config.url) &&
+    config.data &&
+    typeof config.data === "object" &&
+    config.data.profile_id == null
+  ) {
+    try {
+      const p = JSON.parse(localStorage.getItem("selectedProfile") || "null");
+      if (p && p._id) config.data = { ...config.data, profile_id: p._id };
+    } catch (e) {
+      /* no selected profile — reading saved without one */
+    }
+  }
+  return config;
+});
+
 // --- Silent refresh on 401 -------------------------------------------------
 // When a call 401s (access token expired), transparently exchange the refresh
 // token for a fresh pair and retry the original request ONCE — so the user
@@ -604,6 +643,9 @@ export const astrologyService = {
   // Conversation history (saved Q&A per profile)
   listConversations: (profileId) =>
     api.get("/api/ai/conversations", { params: { profile_id: profileId } }),
+  // Unified AI history: every chat + saved reading across all tools (no profile
+  // filter → the global History page). Each item carries source/kind/route/context.
+  listHistory: () => api.get("/api/ai/conversations"),
   getConversation: (id) => api.get(`/api/ai/conversations/${id}`),
   // Lazy-load the full "Behind the scenes" tool results for one saved answer.
   getConversationTrace: (conversationId, traceId) =>

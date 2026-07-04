@@ -5,6 +5,7 @@ import { CalendarDays, MapPin, Clock, Moon, Sun, PartyPopper, Swords, Sparkles }
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
+import { useRestoreReading } from "../hooks/useRestoreReading";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { PanchangaPanel } from "../components/PanchangaPanel";
@@ -36,6 +37,19 @@ const AlmanacReading = ({ loc }) => {
   const [model, setModel] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Reopen a saved reading from History (restore the date + saved text).
+  const [pendingReading, setPendingReading] = useState(null);
+  useRestoreReading((r) => {
+    if (r.context?.date) setDate(r.context.date);
+    setPendingReading({ reading: r.reading, model: r.model });
+  });
+  useEffect(() => {
+    if (pendingReading && !loading) {
+      setAnalysis(pendingReading.reading);
+      setModel(pendingReading.model);
+      setPendingReading(null);
+    }
+  }, [pendingReading, loading]);
 
   const run = async () => {
     setLoading(true);

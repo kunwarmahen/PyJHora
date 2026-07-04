@@ -6,6 +6,7 @@ import { GitCompareArrows, Users, Sparkles } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { errorMessage } from "../utils/format";
 import { astrologyService } from "../services/api";
+import { useRestoreReading } from "../hooks/useRestoreReading";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
@@ -81,6 +82,16 @@ export const ComparePage = () => {
   const [aiError, setAiError] = useState("");
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [aiModel, setAiModel] = useState("");
+  // Reopen a saved reading from History (shows the exact saved comparison text).
+  const [pendingReading, setPendingReading] = useState(null);
+  useRestoreReading((r) => setPendingReading({ reading: r.reading, model: r.model }));
+  useEffect(() => {
+    if (pendingReading && !loading) {
+      setAiAnalysis(pendingReading.reading);
+      setAiModel(pendingReading.model);
+      setPendingReading(null);
+    }
+  }, [pendingReading, loading]);
 
   useEffect(() => {
     if (!selectedProfile) {

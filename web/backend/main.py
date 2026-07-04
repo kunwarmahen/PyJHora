@@ -100,6 +100,7 @@ class AskQuestionRequest(BaseModel):
 
 class PredictionRequest(BaseModel):
     birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
     prediction_type: str = "general"  # general, health, career, relationships
     llm_provider: str = "qwen"  # legacy fallback
     # New model-selection fields (optional; fall back to llm_provider when absent)
@@ -143,6 +144,7 @@ class CompatibilityRequest(BaseModel):
 class CompatibilityAnalysisRequest(BaseModel):
     male_details: BirthDetails
     female_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
     llm_provider: str = "qwen"  # legacy fallback
     # New model-selection fields (optional; fall back to llm_provider when absent)
     provider_type: Optional[str] = None
@@ -156,6 +158,7 @@ class CompatibilityAnalysisRequest(BaseModel):
 class CompareAnalysisRequest(BaseModel):
     person1_details: BirthDetails
     person2_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
     person1_name: Optional[str] = None
     person2_name: Optional[str] = None
     llm_provider: str = "qwen"  # legacy fallback
@@ -170,6 +173,7 @@ class CompareAnalysisRequest(BaseModel):
 
 class SarvatobhadraAnalysisRequest(BaseModel):
     birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
     person_name: Optional[str] = None
     name_nakshatra: Optional[int] = None  # 1..27 naama-nakshatra (optional anchor)
     current_date: Optional[str] = None
@@ -186,6 +190,7 @@ class SarvatobhadraAnalysisRequest(BaseModel):
 
 class VarshaphalAnalysisRequest(BaseModel):
     birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
     year: int
     person_name: Optional[str] = None
     llm_provider: str = "qwen"  # legacy fallback
@@ -199,6 +204,7 @@ class VarshaphalAnalysisRequest(BaseModel):
 
 class PanchaPakshiAnalysisRequest(BaseModel):
     birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
     date: Optional[str] = None
     person_name: Optional[str] = None
     llm_provider: str = "qwen"  # legacy fallback
@@ -212,6 +218,7 @@ class PanchaPakshiAnalysisRequest(BaseModel):
 
 class SensitivePointsAnalysisRequest(BaseModel):
     birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
     person_name: Optional[str] = None
     llm_provider: str = "qwen"  # legacy fallback
     provider_type: Optional[str] = None
@@ -224,6 +231,7 @@ class SensitivePointsAnalysisRequest(BaseModel):
 
 class CelestialAnalysisRequest(BaseModel):
     birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
     date: Optional[str] = None
     person_name: Optional[str] = None
     llm_provider: str = "qwen"  # legacy fallback
@@ -253,6 +261,7 @@ class AlmanacAnalysisRequest(BaseModel):
 
 class RectifyExplainRequest(BaseModel):
     birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
     method: str = "nakshatra"        # nakshatra | lagna | janma
     gender: Optional[int] = None     # 0=male, 1=female (janma suddhi only)
     person_name: Optional[str] = None
@@ -277,6 +286,7 @@ class RectifyEventsRequest(BaseModel):
 
 class RectifyEventsExplainRequest(BaseModel):
     birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
     events: List[RectifyEventItem] = []
     window_minutes: int = 120
     person_name: Optional[str] = None
@@ -342,6 +352,7 @@ class PrashnaAnalysisRequest(BaseModel):
 
 class DailyDigestAnalysisRequest(BaseModel):
     birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
     date: Optional[str] = None
     current_time: Optional[str] = None
     current_tz: Optional[float] = None
@@ -366,6 +377,7 @@ class MuhurtaSubtoolsRequest(BaseModel):
 
 class BhriguMarkersAnalysisRequest(BaseModel):
     birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
     from_age: Optional[int] = None
     years: Optional[int] = 12
     person_name: Optional[str] = None
@@ -379,6 +391,7 @@ class BhriguMarkersAnalysisRequest(BaseModel):
 
 class RemediesAnalysisRequest(BaseModel):
     birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
     person_name: Optional[str] = None
     llm_provider: str = "qwen"
     provider_type: Optional[str] = None
@@ -1813,6 +1826,28 @@ async def _save_turn(user_id: str, request: "AskQuestionRequest", cfg, chart_dat
     return conv_id
 
 
+async def _save_reading(user_id: str, *, source: str, title: str, text: str,
+                        context: Optional[dict] = None,
+                        profile_id: Optional[str] = None,
+                        birth_details: Optional[dict] = None,
+                        cfg=None, request_label: Optional[str] = None) -> None:
+    """Best-effort persist of a single-shot AI reading into the unified history so
+    it appears alongside chats and can be reopened on its source page. Failures are
+    swallowed — persistence must never break the actual reading response."""
+    if not text:
+        return
+    try:
+        await convo.save_reading(
+            user_id, source=source, title=title, text=text,
+            context=context, profile_id=profile_id, birth_details=birth_details,
+            model=(cfg.model if cfg else None),
+            provider=(cfg.provider_type.value if cfg else None),
+            request_label=request_label,
+        )
+    except Exception as e:  # pragma: no cover - defensive
+        print(f"Failed to persist reading ({source}): {e}")
+
+
 @app.post("/api/astrology/ask/stream")
 async def ask_question_stream(
     request: AskQuestionRequest,
@@ -2044,6 +2079,14 @@ async def generate_prediction(
             config=cfg,
         )
 
+        await _save_reading(
+            current_user, source="prediction",
+            title=f"Prediction ({request.prediction_type}) — {request.birth_details.name or 'chart'}",
+            text=prediction, cfg=cfg, profile_id=request.profile_id,
+            birth_details=request.birth_details.model_dump(),
+            context={"prediction_type": request.prediction_type,
+                     "ayanamsa": request.ayanamsa},
+        )
         return {
             "prediction_type": request.prediction_type,
             "prediction": prediction,
@@ -2106,6 +2149,15 @@ async def analyze_compatibility(
             config=cfg,
         )
 
+        await _save_reading(
+            current_user, source="compatibility",
+            title=f"Compatibility: {male_details.name or 'Partner A'} & {female_details.name or 'Partner B'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=male_details.model_dump(),
+            context={"male_details": male_details.model_dump(),
+                     "female_details": female_details.model_dump(),
+                     "ayanamsa": request.ayanamsa},
+        )
         return {
             "compatibility_score": compatibility,
             "ai_analysis": ai_analysis,
@@ -2146,6 +2198,17 @@ async def analyze_comparison(
             config=cfg,
         )
 
+        await _save_reading(
+            current_user, source="compare",
+            title=f"Compare: {request.person1_name or 'Person 1'} vs {request.person2_name or 'Person 2'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=p1.model_dump(),
+            context={"person1_details": p1.model_dump(),
+                     "person2_details": p2.model_dump(),
+                     "person1_name": request.person1_name,
+                     "person2_name": request.person2_name,
+                     "ayanamsa": request.ayanamsa},
+        )
         return {
             "ai_analysis": ai_analysis,
             "provider": cfg.provider_type.value,
@@ -2206,6 +2269,18 @@ async def analyze_sarvatobhadra(
         ai_analysis = await llm_service.analyze_sarvatobhadra(
             sbc_data=sbc, name=request.person_name or "this person", config=cfg,
         )
+        await _save_reading(
+            current_user, source="sarvatobhadra",
+            title=f"Sarvatobhadra — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name,
+                     "name_nakshatra": request.name_nakshatra,
+                     "current_date": request.current_date,
+                     "current_time": request.current_time,
+                     "current_tz": request.current_tz,
+                     "ayanamsa": request.ayanamsa},
+        )
         return {
             "ai_analysis": ai_analysis,
             "provider": cfg.provider_type.value,
@@ -2240,6 +2315,14 @@ async def analyze_sensitive_points(
         ai_analysis = await llm_service.analyze_sensitive_points(
             data=data, name=request.person_name or "this person", config=cfg,
         )
+        await _save_reading(
+            current_user, source="sensitive_points",
+            title=f"Sensitive points — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name,
+                     "ayanamsa": request.ayanamsa},
+        )
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
                 "model": cfg.model}
     except HTTPException:
@@ -2267,6 +2350,13 @@ async def analyze_celestial(
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_celestial(
             data=data, name=request.person_name or "this person", config=cfg,
+        )
+        await _save_reading(
+            current_user, source="celestial",
+            title=f"Vedic clock — {request.date or 'now'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name, "date": request.date},
         )
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
                 "model": cfg.model}
@@ -2296,6 +2386,14 @@ async def analyze_almanac(
                                 detail=data["panchanga"].get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_almanac(data=data, config=cfg)
+        await _save_reading(
+            current_user, source="almanac",
+            title=f"Almanac — {request.place or 'location'} · {request.date or 'today'}",
+            text=ai_analysis, cfg=cfg,
+            context={"place": request.place, "latitude": request.latitude,
+                     "longitude": request.longitude, "timezone": request.timezone,
+                     "date": request.date, "system": request.system},
+        )
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
                 "model": cfg.model}
     except HTTPException:
@@ -2346,6 +2444,15 @@ async def analyze_muhurta(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_muhurta(muhurta_data=result, config=cfg)
+        await _save_reading(
+            current_user, source="muhurta",
+            title=f"Muhurta — {request.activity} · {request.start_date or ''}".strip(" ·"),
+            text=ai_analysis, cfg=cfg,
+            context={"activity": request.activity, "start_date": request.start_date,
+                     "end_date": request.end_date, "place": request.place,
+                     "latitude": request.latitude, "longitude": request.longitude,
+                     "timezone": request.timezone},
+        )
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
                 "model": cfg.model}
     except HTTPException:
@@ -2421,6 +2528,15 @@ async def analyze_prashna(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_prashna(prashna_data=result, config=cfg)
+        await _save_reading(
+            current_user, source="prashna",
+            title=f"Prashna — {(request.question or 'question')[:48]}",
+            text=ai_analysis, cfg=cfg, request_label=request.question or "Prashna",
+            context={"question": request.question, "date": request.date,
+                     "time": request.time, "place": request.place,
+                     "latitude": request.latitude, "longitude": request.longitude,
+                     "timezone": request.timezone, "ayanamsa": request.ayanamsa},
+        )
         return {"reading": ai_analysis, "chart": result,
                 "provider": cfg.provider_type.value, "model": cfg.model}
     except HTTPException:
@@ -2471,6 +2587,15 @@ async def analyze_daily_digest(
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_daily_digest(
             digest_data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        await _save_reading(
+            current_user, source="daily_digest",
+            title=f"Daily digest — {request.date or 'today'} · {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name, "date": request.date,
+                     "current_time": request.current_time, "current_tz": request.current_tz,
+                     "ayanamsa": request.ayanamsa},
+        )
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
                 "model": cfg.model}
     except HTTPException:
@@ -2521,6 +2646,14 @@ async def analyze_bhrigu_markers(
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_bhrigu_markers(
             data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        await _save_reading(
+            current_user, source="bhrigu",
+            title=f"Bhrigu markers — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name, "from_age": request.from_age,
+                     "years": request.years or 12, "ayanamsa": request.ayanamsa},
+        )
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
                 "model": cfg.model}
     except HTTPException:
@@ -2566,6 +2699,13 @@ async def analyze_remedies(
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_remedies(
             data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        await _save_reading(
+            current_user, source="remedies",
+            title=f"Remedies — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name, "ayanamsa": request.ayanamsa},
+        )
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
                 "model": cfg.model}
     except HTTPException:
@@ -2650,6 +2790,14 @@ async def analyze_varshaphal(
         ai_analysis = await llm_service.analyze_varshaphal(
             varsha_data=varsha, name=request.person_name or "this person", config=cfg,
         )
+        await _save_reading(
+            current_user, source="varshaphal",
+            title=f"Annual {request.year} — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"year": request.year, "person_name": request.person_name,
+                     "ayanamsa": request.ayanamsa},
+        )
         return {
             "ai_analysis": ai_analysis,
             "provider": cfg.provider_type.value,
@@ -2680,6 +2828,13 @@ async def analyze_pancha_pakshi(
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_pancha_pakshi(
             pp_data=pp, name=request.person_name or "this person", config=cfg,
+        )
+        await _save_reading(
+            current_user, source="panchapakshi",
+            title=f"Pancha Pakshi — {request.date or 'today'} · {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name, "date": request.date},
         )
         return {
             "ai_analysis": ai_analysis,
@@ -2713,6 +2868,14 @@ async def explain_rectification(
         ai_analysis = await llm_service.explain_rectification(
             rectification_data=rect, name=request.person_name or "this person", config=cfg,
         )
+        await _save_reading(
+            current_user, source="rectification",
+            title=f"Rectification ({request.method}) — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"method": request.method, "gender": request.gender,
+                     "person_name": request.person_name, "ayanamsa": request.ayanamsa},
+        )
         return {
             "ai_analysis": ai_analysis,
             "provider": cfg.provider_type.value,
@@ -2745,6 +2908,16 @@ async def explain_event_rectification(
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.explain_event_rectification(
             rectification_data=rect, name=request.person_name or "this person", config=cfg,
+        )
+        await _save_reading(
+            current_user, source="rectification",
+            title=f"Event rectification — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"events": [e.model_dump() for e in request.events],
+                     "window_minutes": request.window_minutes,
+                     "person_name": request.person_name, "ayanamsa": request.ayanamsa,
+                     "mode": "events"},
         )
         return {
             "ai_analysis": ai_analysis,

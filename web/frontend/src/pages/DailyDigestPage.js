@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
+import { useRestoreReading } from "../hooks/useRestoreReading";
 import { intlLocale } from "../utils/format";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
@@ -65,6 +66,16 @@ export const DailyDigestPage = () => {
   const [aiError, setAiError] = useState("");
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [aiModel, setAiModel] = useState("");
+  // Reopen a saved reading from History (apply the saved text once load settles).
+  const [pendingReading, setPendingReading] = useState(null);
+  useRestoreReading((r) => setPendingReading({ reading: r.reading, model: r.model }));
+  useEffect(() => {
+    if (pendingReading && !loading) {
+      setAiAnalysis(pendingReading.reading);
+      setAiModel(pendingReading.model);
+      setPendingReading(null);
+    }
+  }, [pendingReading, loading]);
 
   const birthDetails = useMemo(
     () =>

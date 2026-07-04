@@ -2058,3 +2058,82 @@ server-injects birth details + resets global state, auth endpoint, saffron page,
       the transit compute already built.
 - [ ] 🔴 **Compatibility upgrades**: Kuja-dosha cancellation nuances, Rajju/Vedha detail, and a
       combined Ashtakoot + Dashakoota view.
+
+## 17. Unified AI history — every AI reading/chat saved + reopenable (P1, owner ask 2026-07-03)
+
+**Goal:** *Every* AI output across the whole app — not just the Ask-Astrologer/Transit chats — is
+automatically saved to history, and clicking a history item takes the user **back to the actual page
+that produced it and shows the exact saved reading** (a snapshot, no recomputation).
+
+**Owner decisions (2026-07-03):**
+- **Where:** BOTH a new **global History page** (all tools, filterable) AND per-page access on each
+  tool (e.g. a "Recent readings" affordance / history control on the tool's page). Also: the current
+  Ask-AI history already mixes in saved **Transit** chats — reconcile that into the unified model
+  (don't leave a second, parallel history).
+- **Click behavior:** show the **exact saved snapshot** — navigate to the source page, restore the
+  saved inputs, and render the stored reading text verbatim. No re-running the chart/panchanga
+  compute (avoids drift for time-relative tools like transits/digest).
+- **Scope:** **Everything AI** — all ~20 one-shot `analyze*AI`/reading endpoints + both chats
+  (astrologer, transit) + quiz + rectification interview/explanations.
+- **Save trigger:** **Automatic** on every AI generation; user can **delete each item individually**.
+
+**Current state (audit 2026-07-03):**
+- Only chat threads persist, in the `ai_conversations` Mongo collection (`conversations.py`), tagged
+  `source` = `"astrologer"` | `"transit"`. History UI is a **panel inside `AskAstrologerPage`**
+  (filter all/astrologer/transit); clicking loads the thread *in that page* only.
+- The ~20 one-shot readings (`analyzeVarshaphalAI`, `analyzePrashnaAI`, `analyzeMuhurtaAI`,
+  `analyzeRemediesAI`, `analyzeBhriguMarkersAI`, `analyzeDailyDigestAI`, `analyzeSensitivePointsAI`,
+  `analyzePanchaPakshiAI`, `analyzeSarvatobhadraAI`, `analyzeCompatibilityAI`, `compareChartsAI`,
+  `analyzeAlmanacAI`, `analyzeCelestialAI`, `explainRectificationAI`/`explainEventRectificationAI`,
+  `rectifyChat`, `generateQuiz`, `generatePrediction`, …) return their text **inline and are never
+  persisted**. Backend endpoints live at `POST /api/astrology/*-analysis` in `main.py`; each just
+  returns `ai_analysis` from `llm_service`.
+
+**SHIPPED 2026-07-03 (core storage + global page + restore-on-open for all 14 AI tool pages).**
+Owner follow-up answers baked in: (1) **pile up** a new history item per generation (no dedupe);
+(2) retention cap **configurable via `.env`** (`AI_HISTORY_MAX`, default 100); (3) profile-less tools
+group under a **"No profile"** bucket. Quiz keeps its own dedicated history/stats — intentionally NOT
+double-stored here.
+- [x] **Storage model** — reused the `ai_conversations` collection (option A). `conversations.py` adds
+      a `SOURCE_META` registry (18 sources → `{label, route, kind}`, `kind` = `chat` | `reading`),
+      `save_reading(...)` (one-turn user+assistant doc carrying `source`/`kind`/`route`/`context`/
+      `profile_id`/`birth_details`), `prune_history(user)` (keeps newest `AI_HISTORY_MAX`, deletes the
+      rest on every write), and `history_max()` reading the env var. `create_conversation` also stamps
+      `kind`/`route`/`context`; `list_conversations`/`serialize_conversation` now surface
+      `kind`/`route`/`label`/`preview`/`context`/`birth_details` and honour the cap. Verified live
+      against Mongo: save→list→get round-trips the exact text + context; `AI_HISTORY_MAX=3` prunes 6
+      saves down to the newest 3.
+- [x] **Backend auto-persist** — one shared `_save_reading(...)` helper in `main.py` (best-effort,
+      swallows errors so persistence never breaks a reading) called at the end of **every** analysis
+      endpoint: varshaphal, muhurta, prashna, remedies, bhrigu, daily-digest, sensitive-points,
+      celestial/vedic-clock, almanac, pancha-pakshi, sarvatobhadra, compatibility, compare, both
+      rectification explains, and `predict`. Each passes the exact `context` inputs (year / activity+
+      dates / date / place / question / horizon / method+gender / two-people details …). The chats
+      (astrologer + transit) already persisted via `_save_turn`. `profile_id` added to the birth-bound
+      analysis request models (location tools omit it → "No profile").
+- [x] **API surface** — no new endpoints needed: `GET /api/ai/conversations` (no `profile_id`) returns
+      everything; list items now carry `kind`/`route`/`label`/`context`. Added `listHistory()` alias in
+      `api.js`. A request interceptor injects the selected `profile_id` into the birth-bound
+      `*-analysis` calls so pages don't each thread it through.
+- [x] **Global History page** — `HistoryPage` (route `/history`, nav entry `History` icon). Groups by
+      profile (+ "No profile" bucket), filter chips All / Chats / Readings, each row shows a source
+      badge + kind icon, title, a 2-line preview, model + timestamp, and an individual delete. Clicking
+      selects the item's profile (so the target page recomputes for the right chart) then navigates to
+      `route?reading=<id>`.
+- [x] **Per-page restore** — shared `hooks/useRestoreReading.js`: on `?reading=<id>` it fetches the
+      item and hands the page `{ context, reading, model, birthDetails }`, then drops the query param.
+      Wired into all 14 tool pages with a uniform **pending-reading** pattern (restore inputs from
+      `context`, then apply the exact saved AI text once the page's factual load settles so it isn't
+      clobbered — no re-compute, no re-generation = true snapshot).
+- [x] **Reconcile existing chats** — astrologer/transit now live in the same unified taxonomy/list;
+      transit items deep-link back to `/transit`, astrologer to `/ask-astrologer`.
+- [x] **i18n** — `nav.history` (en/hi/sa) + a `history.*` block (en; hi/sa fall back).
+- [x] **Verify** — frontend production build compiles (+2.49 kB); backend `main.py`+`conversations.py`
+      import clean; live Mongo round-trip + prune confirmed. ESLint clean on all touched files.
+- [ ] **Follow-up (not yet done): per-page "Recent readings" control.** Owner asked for BOTH global +
+      per-page access; the global page + deep-link restore ship now. A lightweight per-tool history
+      popover (reusing the Ask panel pattern, filtered to that `source`) is still to add.
+
+**Resolved:** dedupe → **pile up** (individual delete); retention cap → **`AI_HISTORY_MAX` env**
+(default 100, pruned on write); tools with **no birth profile**
+(Muhurta/Almanac/Prashna-by-place) group under a "no profile" bucket in history.

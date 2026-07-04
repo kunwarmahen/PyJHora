@@ -5,6 +5,7 @@ import { Clock, Sparkles, RotateCcw, Sunrise, Sunset } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
+import { useRestoreReading } from "../hooks/useRestoreReading";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { Card } from "../components/Card";
@@ -134,6 +135,16 @@ export const VedicClockPage = () => {
   const [aiModel, setAiModel] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
+  // Reopen a saved reading from History (apply the saved text once load settles).
+  const [pendingReading, setPendingReading] = useState(null);
+  useRestoreReading((r) => setPendingReading({ reading: r.reading, model: r.model }));
+  useEffect(() => {
+    if (pendingReading && !loading) {
+      setAiAnalysis(pendingReading.reading);
+      setAiModel(pendingReading.model);
+      setPendingReading(null);
+    }
+  }, [pendingReading, loading]);
 
   const loc = useMemo(
     () =>

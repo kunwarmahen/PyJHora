@@ -6,6 +6,7 @@ import { Grid3x3, Calendar, RotateCcw, Sparkles, Crosshair } from "lucide-react"
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
+import { useRestoreReading } from "../hooks/useRestoreReading";
 import { intlLocale } from "../utils/format";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
@@ -117,6 +118,19 @@ export const SarvatobhadraPage = () => {
   const [aiError, setAiError] = useState("");
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [aiModel, setAiModel] = useState("");
+  // Reopen a saved reading from History (restore the name-nakshatra + saved text).
+  const [pendingReading, setPendingReading] = useState(null);
+  useRestoreReading((r) => {
+    if (r.context?.name_nakshatra != null) setNameNak(String(r.context.name_nakshatra));
+    setPendingReading({ reading: r.reading, model: r.model });
+  });
+  useEffect(() => {
+    if (pendingReading && !loading) {
+      setAiAnalysis(pendingReading.reading);
+      setAiModel(pendingReading.model);
+      setPendingReading(null);
+    }
+  }, [pendingReading, loading]);
 
   const setDatePart = (value) => {
     if (!value) return;

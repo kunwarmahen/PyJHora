@@ -60,6 +60,14 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   tool-call steps show inline in the transcript. See
   [`docs/AI_TOOL_CALLING_DESIGN.md`](docs/AI_TOOL_CALLING_DESIGN.md)
 - **Saved history**: every Q&A is stored per profile and can be revisited or deleted
+- **Unified AI History** (`/history`): *every* AI output across the whole app — not just the Ask
+  chat, but every one-shot reading (Varshaphal, Muhurta, Prashna, Remedies, Bhrigu, Daily digest,
+  Sensitive points, Vedic clock, Almanac, Pancha Pakshi, Sarvatobhadra, Compatibility, Compare,
+  Rectification, Predictions) — is saved automatically. The History page groups items by profile
+  (plus a **"No profile"** bucket for location-driven tools) and filters by chat vs. reading;
+  clicking any item **returns to the tool that produced it and re-shows the exact saved reading**
+  (a snapshot — no re-computation). Readings pile up; each is individually deletable. Retention is
+  capped by `AI_HISTORY_MAX` (default 100, pruned on write)
 - **Answer affordances**: copy, **regenerate** (with the same model, or pick a
   *different* provider/model from the split-button menu), thumbs up/down, and
   **export the whole conversation to Markdown or PDF**
@@ -125,7 +133,7 @@ pyjhora-web/
 │   ├── chart_context.py     # Builds the structured chart context sent to the AI
 │   ├── tools.py             # Tool registry for agentic mode (wraps AstrologyCompute) + GET /api/ai/tools catalog
 │   ├── tool_traces.py       # Lazy side-storage for smart-lookup tool results
-│   ├── conversations.py     # Saved AI chat threads (per user + profile)
+│   ├── conversations.py     # Unified AI history: chat threads + one-shot readings (source registry, save_reading, retention cap)
 │   ├── user_settings.py     # Per-user encrypted API keys
 │   ├── ratelimit.py         # Per-user rate limiting for AI endpoints
 │   ├── shares.py            # Read-only shareable chart links

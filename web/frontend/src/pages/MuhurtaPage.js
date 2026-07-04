@@ -1,9 +1,10 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { CalendarCheck, Sparkles, MapPin, Clock, Star, Compass, Moon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
+import { useRestoreReading } from "../hooks/useRestoreReading";
 import { astrologyService } from "../services/api";
 import { intlLocale } from "../utils/format";
 import { PageHeader } from "../components/PageHeader";
@@ -75,6 +76,21 @@ export const MuhurtaPage = () => {
   const [aiError, setAiError] = useState("");
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [aiModel, setAiModel] = useState("");
+  // Reopen a saved reading from History: restore the inputs + saved text.
+  const [pendingReading, setPendingReading] = useState(null);
+  useRestoreReading((r) => {
+    if (r.context?.activity) setActivity(r.context.activity);
+    if (r.context?.start_date) setStartDate(r.context.start_date);
+    if (r.context?.end_date) setEndDate(r.context.end_date);
+    setPendingReading({ reading: r.reading, model: r.model });
+  });
+  useEffect(() => {
+    if (pendingReading && !loading) {
+      setAiAnalysis(pendingReading.reading);
+      setAiModel(pendingReading.model);
+      setPendingReading(null);
+    }
+  }, [pendingReading, loading]);
 
   // Day sub-tools (Choghadiya / Panchaka / Tarabala / Chandrabala).
   const [subDate, setSubDate] = useState(todayISO);

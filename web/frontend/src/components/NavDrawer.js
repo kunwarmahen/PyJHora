@@ -28,6 +28,7 @@ import {
   Sun,
   Waypoints,
   Gem,
+  History,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
@@ -57,6 +58,7 @@ const LINKS = [
   { to: "/compatibility", labelKey: "nav.compatibility", icon: <Heart size={20} /> },
   { to: "/learn", labelKey: "nav.learn", icon: <GraduationCap size={20} /> },
   { to: "/ask-astrologer", labelKey: "nav.ask", icon: <MessageCircle size={20} /> },
+  { to: "/history", labelKey: "nav.history", icon: <History size={20} /> },
   { to: "/settings", labelKey: "nav.settings", icon: <Settings size={20} /> },
 ];
 

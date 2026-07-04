@@ -5,6 +5,7 @@ import { CalendarClock, Sparkles, Star, Compass, Clock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
+import { useRestoreReading } from "../hooks/useRestoreReading";
 import { astrologyService } from "../services/api";
 import { intlLocale } from "../utils/format";
 import { NorthIndianChart } from "../components/NorthIndianChart";
@@ -117,6 +118,20 @@ export const VarshaphalPage = () => {
   const [aiError, setAiError] = useState("");
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [aiModel, setAiModel] = useState("");
+  // Reopen a saved reading from History: restore the year, then apply the exact
+  // saved text once the factual (chart) load has settled so it isn't clobbered.
+  const [pendingReading, setPendingReading] = useState(null);
+  useRestoreReading((r) => {
+    if (r.context?.year != null) setYear(r.context.year);
+    setPendingReading({ reading: r.reading, model: r.model });
+  });
+  useEffect(() => {
+    if (pendingReading && !loading) {
+      setAiAnalysis(pendingReading.reading);
+      setAiModel(pendingReading.model);
+      setPendingReading(null);
+    }
+  }, [pendingReading, loading]);
 
   const birthDetails = useMemo(
     () =>

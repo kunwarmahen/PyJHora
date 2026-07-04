@@ -273,6 +273,7 @@
     "compatibility": "Compatibility",
     "learn": "Learn the Chart",
     "ask": "Ask AI Astrologer",
+    "history": "AI History",
     "settings": "Settings",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
@@ -577,6 +578,22 @@
     "longitude": "Longitude",
     "detailed": "Detailed Predictions",
     "astrological": "Astrological Predictions"
+  },
+  "history": {
+    "title": "AI History",
+    "subtitle": "Every AI reading & chat you've generated — reopen any of them",
+    "loading": "Loading your history…",
+    "loadError": "Couldn't load your history.",
+    "deleteError": "Couldn't delete that item.",
+    "empty": "No saved AI readings or chats yet. Generate a reading on any tool and it will show up here.",
+    "noProfile": "No profile",
+    "delete": "Delete",
+    "openHint": "Open on its page",
+    "filter": {
+      "all": "All",
+      "chat": "Chats",
+      "reading": "Readings"
+    }
   },
   "ask": {
     "title": "Ask AI Astrologer",

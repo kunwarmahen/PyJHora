@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { HelpCircle, Sparkles, MapPin, Moon, Sunrise } from "lucide-react";
@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
+import { useRestoreReading } from "../hooks/useRestoreReading";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
@@ -41,6 +42,19 @@ export const PrashnaPage = () => {
   const [chart, setChart] = useState(null);
   const [reading, setReading] = useState("");
   const [model, setModel] = useState("");
+  // Reopen a saved Prashna reading from History (restore the question + text).
+  const [pendingReading, setPendingReading] = useState(null);
+  useRestoreReading((r) => {
+    if (r.context?.question) setQuestion(r.context.question);
+    setPendingReading({ reading: r.reading, model: r.model });
+  });
+  useEffect(() => {
+    if (pendingReading && !loading) {
+      setReading(pendingReading.reading);
+      setModel(pendingReading.model);
+      setPendingReading(null);
+    }
+  }, [pendingReading, loading]);
 
   if (!selectedProfile) {
     navigate("/profile-selection");
