@@ -72,6 +72,7 @@ const AlmanacReading = ({ loc }) => {
 
   return (
     <Card title={t("almanac.aiTitle")} icon={<Sparkles size={22} />} accent="gold">
+      <RecentReadings source="almanac" />
       <div className="panchanga-controls" style={{ marginBottom: "0.75rem" }}>
         <input
           type="date"
@@ -557,7 +558,6 @@ export const AlmanacPage = () => {
       />
 
       <div className="dashboard-content">
-        <RecentReadings source="almanac" />
         <ProfileBanner profile={selectedProfile} />
 
         {/* Shared location control for every almanac section */}
