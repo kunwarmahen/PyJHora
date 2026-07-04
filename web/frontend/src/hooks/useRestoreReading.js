@@ -15,24 +15,32 @@ import { astrologyService } from "../services/api";
 export function useRestoreReading(onRestore) {
   const [params, setParams] = useSearchParams();
   const readingId = params.get("reading");
-  const doneRef = useRef(null);
+  // Which id we've already restored, so we don't re-run for it. NOTE: we
+  // deliberately do NOT abort the async on effect-cleanup — React 18 StrictMode
+  // double-invokes effects (setup → cleanup → setup) in dev, and aborting the
+  // first run while the guard skips the second means onRestore would never fire.
+  // Letting the async complete is safe (setState on an unmounted component is a
+  // no-op in React 18).
+  const handledRef = useRef(null);
   const cbRef = useRef(onRestore);
   cbRef.current = onRestore;
+  // Latest search params for the clear-the-param step (avoids a stale closure).
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
 
   useEffect(() => {
     // Clearing the param (below) drops readingId to null — reset the guard so
     // clicking the *same* item again later re-restores it.
     if (!readingId) {
-      doneRef.current = null;
+      handledRef.current = null;
       return;
     }
-    if (doneRef.current === readingId) return;
-    doneRef.current = readingId;
-    let cancelled = false;
+    if (handledRef.current === readingId) return;
+    handledRef.current = readingId;
     (async () => {
       try {
         const { data } = await astrologyService.getConversation(readingId);
-        if (cancelled || !data) return;
+        if (!data) return;
         const msgs = data.messages || [];
         const lastAi = [...msgs].reverse().find((m) => m.role === "assistant");
         cbRef.current({
@@ -45,23 +53,18 @@ export function useRestoreReading(onRestore) {
         });
         // The reading renders lower on a long page (and only once the page's
         // factual data loads), so bring it into view — otherwise the user lands
-        // at the top and it looks like nothing happened. Poll briefly for it.
-        if (!cancelled) revealReading();
+        // at the top and it looks like nothing happened.
+        revealReading();
       } catch (e) {
         /* reading may have been deleted — ignore */
       } finally {
-        // Drop the query param so a page refresh / manual regenerate isn't stuck
+        // Drop the query param so a refresh / manual regenerate isn't stuck
         // re-restoring the same snapshot.
-        if (!cancelled) {
-          const next = new URLSearchParams(params);
-          next.delete("reading");
-          setParams(next, { replace: true });
-        }
+        const next = new URLSearchParams(paramsRef.current);
+        next.delete("reading");
+        setParams(next, { replace: true });
       }
     })();
-    return () => {
-      cancelled = true;
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readingId]);
 }
