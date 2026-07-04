@@ -38,6 +38,9 @@ import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { EphemerisPage } from "./pages/EphemerisPage";
 import { BhavaChartPage } from "./pages/BhavaChartPage";
 import { FullReportPage } from "./pages/FullReportPage";
+import { KPPage } from "./pages/KPPage";
+import { JaiminiPage } from "./pages/JaiminiPage";
+import { NowChartPage } from "./pages/NowChartPage";
 import "./App.css";
 import "./styles/Responsive.css";
 
@@ -185,6 +188,33 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DailyDigestPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/kp"
+              element={
+                <ProtectedRoute>
+                  <KPPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/jaimini"
+              element={
+                <ProtectedRoute>
+                  <JaiminiPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/now"
+              element={
+                <ProtectedRoute>
+                  <NowChartPage />
                 </ProtectedRoute>
               }
             />

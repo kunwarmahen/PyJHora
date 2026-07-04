@@ -1999,9 +1999,23 @@ server-injects birth details + resets global state, auth endpoint, saffron page,
         so only the winner sends. Delivery logic is shared with the manual endpoint via a new `digest.py`
         (`send_digest_for_user`). A deployer can leave the scheduler off and cron `/digest/send` instead.
         Verified: tick sends once + claims the date, a second tick no-ops, wrong-hour users are skipped.
-- [ ] 🔴 **KP system (Krishnamurti Paddhati)** (P2→P1) — sub-lords, star-lord, ruling planets,
-      significators, KP horary (1–249). Engine has KP ayanamsa + likely sub-lord helpers (audit
-      `src/jhora` for KP/sublord). A dedicated KP page + significator tables + AI reading.
+- [x] **KP system (Krishnamurti Paddhati)** (P2→P1). DONE 2026-07-04 (full, incl. horary — owner
+      pick). `AstrologyCompute.get_kp_details(dob,tob,place…)` forces the **KP (Krishnamurti)
+      ayanamsa** and returns, for the Ascendant + all nine grahas, the sign / star (nakshatra) / sub
+      / sub-sub lord (via PyJHora's `utils.kp_lords_for_longitude`), the **12 Placidus cuspal
+      sub-lords** (`drik.bhaava_madhya_kp`), the **four-fold house significators** (A = planet in the
+      star of a house's occupant, B = occupants, C = planet in the star of the owner, D = owner —
+      computed from the rasi chart) and the current **Ruling Planets** (day-lord + Moon & Ascendant
+      sign/star/sub lords). `get_kp_horary(number 1-249,…)` looks up the classical `prasna_kp_249_dict`
+      to fix the horary Ascendant's sign/star/sub, casts the planets for the moment (now+here) and
+      reads the ruling planets. Endpoints `POST /api/astrology/kp`, `.../kp-analysis`, `.../kp-horary`,
+      `.../kp-horary-analysis` (AI via `_build_kp_prompt` / `_build_kp_horary_prompt`). New module
+      helpers `_kp_lords` / `_kp_significators` / `_kp_ruling_planets`. Frontend `KPPage` (route
+      `/kp`, card + drawer, `Compass`): **Natal KP** tab (sub-lord table, cuspal sub-lords, house
+      significator grid, ruling-planet pills, AI reading) + **Horary** tab (number 1-249 + question →
+      casts using browser geolocation, renders the moment-chart on the shared North/South `Kundali`
+      + judgement). §8.9 smart-lookup tool `get_kp`. i18n `kp.*` (en; hi/sa nav+card). Verified live
+      (KP details, horary #108, HTTP 200 through the app).
 
 **Fuller brainstorm (P2, unprioritized — pick as capacity allows):**
 - [x] **Muhurta sub-tools**: Tarabala/Chandrabala, Panchaka, choghadiya. DONE 2026-07-03:
@@ -2018,8 +2032,17 @@ server-injects birth details + resets global state, auth endpoint, saffron page,
       passing the selected profile for personalization. i18n `muhurta.subtools.*` (en; hi/sa fall back).
 - [x] **Bhava/house-cusp chart (Sripati/Placidus)** — DONE 2026-07-04, see **§18**. Cusp-based
       Bhava Chalit chart (Sripati/Placidus/KP/Equal) alongside the whole-sign Rasi chart.
-- [ ] 🔴 **Jaimini deep-dive** (Chara dasha already exists elsewhere): Arudha-based reasoning page,
-      Karakamsa/Swamsa, Jaimini aspects — surface more of the Jaimini toolkit.
+- [x] **Jaimini deep-dive**. DONE 2026-07-04. `AstrologyCompute.get_jaimini(dob,tob,place…)` surfaces
+      the **8 Chara Karakas** (Atma…Dara, ranked by longitude via `house.chara_karakas`, each with its
+      D1 sign + house), the **Karakamsa** (the Atmakaraka's Navamsa sign — read as a second ascendant
+      for the soul's agenda) and **Swamsa** (D9 Lagna), each with its occupants and **Jaimini
+      rasi-drishti** aspects (`house.aspected_planets_of_the_raasi` on the D9), plus the **Argala /
+      Virodhargala** (intervention vs counter) on the Lagna & 7th (`house.get_argala`). `POST
+      /api/astrology/jaimini` + `.../jaimini-analysis` (AI via `_build_jaimini_prompt`). Frontend
+      `JaiminiPage` (route `/jaimini`, card + drawer, `Layers`): Chara-karaka table, Karakamsa/Swamsa
+      cards, argala table, AI reading. §8.9 tool `get_jaimini`. i18n `jaimini.*` (en; hi/sa nav+card).
+      (Arudha padas + Chara karakas already existed on the Advanced page; this adds the Karakamsa-
+      centred reasoning the item asked for.) Verified live.
 - [x] **Nadi / Bhrigu-style yearly markers**. DONE 2026-07-03 (engine support exists —
       `drik.bhrigu_bindhu_lagna` + `next_planet_entry_date`). `AstrologyCompute.get_bhrigu_markers(
       dob,tob,place…, from_age, years)` gives two grounded, clearly-labelled classical devices:
@@ -2055,10 +2078,25 @@ server-injects birth details + resets global state, auth endpoint, saffron page,
 - [x] **Print-ready "full report" PDF** — DONE 2026-07-04, see **§18**. Single print-ready
       document (chart + D9 + positions + dashas + yogas/doshas + transits) → browser Save-as-PDF
       via `window.print()` + a `@media print` stylesheet.
-- [ ] 🔴 **Chart-of-the-moment / "now" chart** widget on the Dashboard (current sky), tapping
-      the transit compute already built.
-- [ ] 🔴 **Compatibility upgrades**: Kuja-dosha cancellation nuances, Rajju/Vedha detail, and a
-      combined Ashtakoot + Dashakoota view.
+- [x] **Chart-of-the-moment / "now" chart**. DONE 2026-07-04 (widget **+** standalone page — owner
+      pick). `AstrologyCompute.get_now_chart(place,lat,lon,tz,current_time,current_tz,ayanamsa)` casts
+      the current sky as a chart for now+here (reuses `calculate_birth_chart` at the present instant,
+      like Prashna but no question) + the day's Panchanga + running hora lord. `POST
+      /api/astrology/now-chart` + `.../now-chart-analysis` (AI via `_build_now_chart_prompt`).
+      Frontend: `NowChartWidget` (a compact current-sky mini-kundali tile at the top of the Dashboard,
+      browser-geolocation → falls back to profile place, silent on failure, links to `/now`) **and**
+      `NowChartPage` (route `/now`, card + drawer, `Globe`): full moment-chart on the shared North/
+      South `Kundali` + panchanga pills + Refresh + AI reading. i18n `now.*`. Verified live.
+- [x] **Compatibility upgrades**. DONE 2026-07-04 (combined tabs — owner pick). `get_compatibility`
+      now also returns **Dashakoota** (the South/Tamil 10-porutham via `Ashtakoota(method="South")` —
+      adds Mahendra, **Rajju**, **Vedha** and Stree-Deergha to the Ashtakoot 8, score /10) and
+      **Mangal (Kuja) dosha** for both charts with **cancellation nuances** (new `_mangal_dosha`:
+      Mars in 1/2/4/7/8/12 from Lagna/Moon/Venus flags it; parihara from own/exalt sign, sign-specific
+      house exceptions, and Jupiter conjunction softens it; both-Manglik → mutual cancellation
+      verdict). `CompatibilityPage` gained a three-way tab bar (Ashtakoot / Dashakoota / Mangal) under
+      the score box — the Ashtakoot koota grid, the Dashakoota porutham table (Rajju/Vedha shown), and
+      per-partner Manglik cards with the cancellation list + verdict. i18n `compat.tabs/dashakoota/
+      mangal.*`. Verified live (Dashakoota 7/10, both-Manglik cancellation).
 
 ## 17. Unified AI history — every AI reading/chat saved + reopenable (P1, owner ask 2026-07-03)
 

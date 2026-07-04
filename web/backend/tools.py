@@ -271,6 +271,27 @@ def _argala(bd, ayanamsa, **_):
     return {"houses": houses}
 
 
+def _kp(bd, ayanamsa, **_):
+    a = _args(bd)
+    r = AstrologyCompute.get_kp_details(dob=a["dob"], tob=a["tob"], place=a["place"],
+                                        lat=a["lat"], lon=a["lon"], tz=a["tz"])
+    if r.get("status") != "success":
+        return r
+    return {"planets": r.get("planets", []), "cusps": r.get("cusps", []),
+            "significators": r.get("significators", {}),
+            "ruling_planets": (r.get("ruling_planets") or {}).get("planets", [])}
+
+
+def _jaimini(bd, ayanamsa, **_):
+    r = AstrologyCompute.get_jaimini(ayanamsa=ayanamsa, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    return {"chara_karakas": r.get("chara_karakas", []),
+            "atmakaraka": r.get("atmakaraka"),
+            "karakamsa": r.get("karakamsa", {}), "swamsa": r.get("swamsa", {}),
+            "argala": r.get("argala", [])}
+
+
 def _vedic_clock(bd, ayanamsa, date: Optional[str] = None, **_):
     # Ephemeris-only (no ayanamsa): pass just the location fields.
     a = _args(bd)
@@ -558,6 +579,24 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
          "required": []},
         _retrograde,
     ),
+    _Tool(
+        "get_kp",
+        "Krishnamurti Paddhati (KP) view: the sign/star(nakshatra)/sub lord of the "
+        "Ascendant and every graha, the 12 Placidus cuspal sub-lords, the four-fold "
+        "house significators, and the current ruling planets. Use for KP-style "
+        "questions ('what does the 7th cuspal sub-lord say', significators, ruling planets).",
+        _EMPTY_PARAMS,
+        _kp,
+    ),
+    _Tool(
+        "get_jaimini",
+        "Jaimini toolkit: the 8 Chara Karakas (with sign/house), the Karakamsa (the "
+        "Atmakaraka's Navamsa sign) and Swamsa (D9 Lagna) with their occupants and "
+        "Jaimini rasi-drishti aspects, and the argala on the Lagna & 7th. Use for "
+        "Jaimini/Karakamsa questions about calling, soul-agenda, and self/partner.",
+        _EMPTY_PARAMS,
+        _jaimini,
+    ),
 ]}
 
 
@@ -587,6 +626,7 @@ ALWAYS_TOOLS: List[str] = [
     "get_raja_yogas", "get_longevity", "get_pancha_pakshi",
     "get_sphuta", "get_sahams", "get_argala",
     "get_vedic_clock", "get_retrograde", "get_muhurta",
+    "get_kp", "get_jaimini",
 ]
 
 
@@ -652,6 +692,8 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_sphuta":           {"label": "Sphutas (sensitive points)", "category": "Sensitive points"},
     "get_sahams":           {"label": "Sahams (36 points)",     "category": "Sensitive points"},
     "get_argala":           {"label": "Argala (intervention)",  "category": "Sensitive points"},
+    "get_kp":               {"label": "KP sub-lords & significators", "category": "Systems"},
+    "get_jaimini":          {"label": "Jaimini (Karakamsa)",     "category": "Systems"},
 }
 
 

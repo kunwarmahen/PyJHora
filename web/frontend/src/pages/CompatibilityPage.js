@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
-import { Heart, User, Users, Sparkles, GitCompareArrows } from "lucide-react";
+import { Heart, User, Users, Sparkles, GitCompareArrows, Grid3x3, ListChecks, Flame } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash, errorMessage } from "../utils/format";
 import { astrologyService } from "../services/api";
@@ -53,6 +53,7 @@ export const CompatibilityPage = () => {
   const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
 
   const [secondProfile, setSecondProfile] = useState(null);
+  const [ctab, setCtab] = useState("ashtakoot");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
@@ -321,27 +322,114 @@ export const CompatibilityPage = () => {
               )}
             </div>
 
-            {/* Ashtakoot Breakdown */}
-            <h4 className="card-subhead">{t("compat.breakdown")}</h4>
-            <div className="koota-grid">
-              {(result.kootas || []).map((koota) => {
-                const tier =
-                  koota.score >= koota.max * 0.7
-                    ? "good"
-                    : koota.score >= koota.max * 0.4
-                      ? "mid"
-                      : "low";
-                return (
-                  <div key={koota.key} className="koota-card" title={koota.description}>
-                    <div className="koota-card__name">{koota.name}</div>
-                    <div className={`koota-card__score koota-card__score--${tier}`}>
-                      {koota.score}
-                    </div>
-                    <div className="koota-card__max">{t("compat.outOf", { max: koota.max })}</div>
-                  </div>
-                );
-              })}
+            {/* System tabs: Ashtakoot / Dashakoota / Mangal dosha */}
+            <div className="chart-toggle" style={{ marginTop: "var(--space-lg)" }}>
+              <button className={`chart-toggle__btn ${ctab === "ashtakoot" ? "is-active" : ""}`} onClick={() => setCtab("ashtakoot")}>
+                <Grid3x3 size={16} /> {t("compat.tabs.ashtakoot")}
+              </button>
+              <button className={`chart-toggle__btn ${ctab === "dashakoota" ? "is-active" : ""}`} onClick={() => setCtab("dashakoota")}>
+                <ListChecks size={16} /> {t("compat.tabs.dashakoota")}
+              </button>
+              <button className={`chart-toggle__btn ${ctab === "mangal" ? "is-active" : ""}`} onClick={() => setCtab("mangal")}>
+                <Flame size={16} /> {t("compat.tabs.mangal")}
+              </button>
             </div>
+
+            {/* Ashtakoot Breakdown */}
+            {ctab === "ashtakoot" && (
+              <>
+                <h4 className="card-subhead">{t("compat.breakdown")}</h4>
+                <div className="koota-grid">
+                  {(result.kootas || []).map((koota) => {
+                    const tier =
+                      koota.score >= koota.max * 0.7
+                        ? "good"
+                        : koota.score >= koota.max * 0.4
+                          ? "mid"
+                          : "low";
+                    return (
+                      <div key={koota.key} className="koota-card" title={koota.description}>
+                        <div className="koota-card__name">{koota.name}</div>
+                        <div className={`koota-card__score koota-card__score--${tier}`}>
+                          {koota.score}
+                        </div>
+                        <div className="koota-card__max">{t("compat.outOf", { max: koota.max })}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* Dashakoota (South / Tamil 10-porutham) */}
+            {ctab === "dashakoota" && result.dashakoota && (
+              <>
+                <h4 className="card-subhead">
+                  {t("compat.dashakoota.title")} — {result.dashakoota.score}/{result.dashakoota.max}
+                </h4>
+                <p className="card-note">{t("compat.dashakoota.intro")}</p>
+                <div className="table-scroll">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>{t("compat.dashakoota.porutham")}</th>
+                        <th>{t("compat.dashakoota.status")}</th>
+                        <th>{t("compat.dashakoota.meaning")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result.dashakoota.poruthams.map((p) => (
+                        <tr key={p.key} className={p.ok ? "" : "rem-row--weak"}>
+                          <td><strong>{p.name}</strong></td>
+                          <td>{p.ok ? "✓ " + t("compat.dashakoota.ok") : "✕ " + t("compat.dashakoota.no")}</td>
+                          <td className="text-secondary">{p.description}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* Mangal (Kuja) dosha */}
+            {ctab === "mangal" && result.mangal_dosha && (
+              <>
+                <h4 className="card-subhead">{t("compat.mangal.title")}</h4>
+                <p className="score-box__status" style={{ marginBottom: "var(--space-md)" }}>
+                  {result.mangal_dosha.verdict}
+                </p>
+                <div className="person-grid">
+                  {[
+                    { key: "boy", name: nameA, m: result.mangal_dosha.boy },
+                    { key: "girl", name: nameB, m: result.mangal_dosha.girl },
+                  ].map(({ key, name, m }) => (
+                    <div key={key} className="ui-card ui-card--pad-lg">
+                      <h5 className="compat-person__name">{name}</h5>
+                      <p>
+                        <strong>{t("compat.mangal.status")}:</strong>{" "}
+                        {m.manglik ? t("compat.mangal.manglik") : t("compat.mangal.notManglik")}
+                        {" "}({t("compat.mangal.marsIn", { sign: m.mars_sign })})
+                      </p>
+                      {Object.keys(m.from || {}).length > 0 && (
+                        <p className="text-secondary">
+                          {t("compat.mangal.from")}:{" "}
+                          {Object.entries(m.from)
+                            .map(([ref, h]) => `${ref} (${h})`)
+                            .join(", ")}
+                        </p>
+                      )}
+                      {(m.cancellations || []).length > 0 && (
+                        <ul className="detail-list">
+                          {m.cancellations.map((c, i) => (
+                            <li key={i}>{c}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
 
             {/* Side-by-side charts for visual comparison */}
             {chartA && chartB && (

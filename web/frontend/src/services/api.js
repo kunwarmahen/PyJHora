@@ -630,6 +630,92 @@ export const astrologyService = {
       { timeout: 300000 }
     ),
 
+  // ---- KP (Krishnamurti Paddhati) (§16) ----
+  // KP always reads on the KP ayanamsa (forced server-side).
+  getKpDetails: (birthDetails) =>
+    api.post("/api/astrology/kp", birthDetails),
+  analyzeKpAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/kp-analysis",
+      {
+        birth_details: birthDetails,
+        person_name: opts.personName,
+        profile_id: opts.profileId,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+      },
+      { timeout: 300000 }
+    ),
+  // KP horary (Prasna) — a number 1-249 fixes the ascendant, cast for now+here.
+  getKpHorary: ({ number, date, time, place, latitude, longitude, timezone } = {}) =>
+    api.post("/api/astrology/kp-horary", null, {
+      params: { number, date, time, place, latitude, longitude, timezone },
+    }),
+  analyzeKpHoraryAI: ({ number, question, date, time, place, latitude, longitude, timezone } = {}, model = {}) =>
+    api.post(
+      "/api/astrology/kp-horary-analysis",
+      {
+        number, question, date, time, place, latitude, longitude, timezone,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+      },
+      { timeout: 300000 }
+    ),
+
+  // ---- Jaimini deep-dive (§16) ----
+  getJaimini: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/jaimini", birthDetails, { params: { ayanamsa } }),
+  analyzeJaiminiAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/jaimini-analysis",
+      {
+        birth_details: birthDetails,
+        person_name: opts.personName,
+        profile_id: opts.profileId,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
+  // ---- Chart of the moment / "now" chart (§16) ----
+  getNowChart: ({ place, latitude, longitude, timezone, currentTime, currentTz, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+    api.post("/api/astrology/now-chart", null, {
+      params: {
+        place, latitude, longitude, timezone,
+        current_time: currentTime, current_tz: currentTz, ayanamsa,
+      },
+    }),
+  analyzeNowChartAI: ({ place, latitude, longitude, timezone, currentTime, currentTz } = {}, model = {}) =>
+    api.post(
+      "/api/astrology/now-chart-analysis",
+      {
+        place, latitude, longitude, timezone,
+        current_time: currentTime, current_tz: currentTz,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
   // New LLM Q&A endpoints
   getLlmProviders: () => api.get("/api/llm/providers"),
 

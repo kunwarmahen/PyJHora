@@ -31,9 +31,13 @@ import {
   CalendarRange,
   Home,
   FileText,
+  Compass,
+  Layers,
+  Globe,
 } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
+import { NowChartWidget } from "../components/NowChartWidget";
 import "../styles/Dashboard.css";
 
 export const DashboardPage = () => {
@@ -177,6 +181,24 @@ export const DashboardPage = () => {
       gradient: "linear-gradient(135deg, #5A5F7A 0%, #FF9933 100%)",
     },
     {
+      key: "kp",
+      icon: <Compass size={32} />,
+      path: "/kp",
+      gradient: "linear-gradient(135deg, #2D3561 0%, #5A5F7A 100%)",
+    },
+    {
+      key: "jaimini",
+      icon: <Layers size={32} />,
+      path: "/jaimini",
+      gradient: "linear-gradient(135deg, #E27B5A 0%, #E34234 100%)",
+    },
+    {
+      key: "now",
+      icon: <Globe size={32} />,
+      path: "/now",
+      gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
+    },
+    {
       key: "advanced",
       icon: <Sparkles size={32} />,
       path: "/advanced",
@@ -236,6 +258,8 @@ export const DashboardPage = () => {
           onChangeProfile={handleChangeProfile}
           changeIcon={<Sparkles size={16} />}
         />
+
+        <NowChartWidget />
 
         <div className="section-header fade-in">
           <h3>{t("dashboard.sectionTitle")}</h3>

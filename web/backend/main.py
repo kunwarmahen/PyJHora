@@ -401,6 +401,63 @@ class RemediesAnalysisRequest(BaseModel):
     max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
+class KPAnalysisRequest(BaseModel):
+    birth_details: BirthDetails
+    profile_id: Optional[str] = None
+    person_name: Optional[str] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None  # KP forces its own ayanamsa; kept for parity
+
+class KPHoraryAnalysisRequest(BaseModel):
+    number: int
+    question: Optional[str] = None
+    date: Optional[str] = None
+    time: Optional[str] = None
+    place: str = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    timezone: Optional[float] = None
+    profile_id: Optional[str] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+
+class JaiminiAnalysisRequest(BaseModel):
+    birth_details: BirthDetails
+    profile_id: Optional[str] = None
+    person_name: Optional[str] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
+
+class NowChartAnalysisRequest(BaseModel):
+    # Location-driven "chart of the moment" (not birth-chart bound).
+    place: str = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    timezone: Optional[float] = None
+    current_time: Optional[str] = None
+    current_tz: Optional[float] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
+
 class NotificationPrefsRequest(BaseModel):
     daily_digest: Optional[bool] = None
     email: Optional[bool] = None
@@ -2769,6 +2826,222 @@ async def analyze_remedies(
         )
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
                 "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============= KP (KRISHNAMURTI PADDHATI) · JAIMINI · NOW-CHART (§16) =============
+
+@app.post("/api/astrology/kp")
+async def get_kp(
+    birth_details: BirthDetails,
+    current_user: str = Depends(get_current_user),
+):
+    """KP natal: sub-lords, cuspal sub-lords, significators, ruling planets."""
+    try:
+        result = AstrologyCompute.get_kp_details(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/kp-analysis")
+async def analyze_kp(
+    request: KPAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """AI KP reading of the natal chart."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_kp_details(
+            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+            lon=bd.longitude, tz=bd.timezone)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_kp(
+            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        await _save_reading(
+            current_user, source="kp",
+            title=f"KP reading — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name},
+        )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/kp-horary")
+async def get_kp_horary(
+    number: int,
+    date: Optional[str] = None,
+    time: Optional[str] = None,
+    place: str = "",
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    timezone: Optional[float] = None,
+    current_user: str = Depends(get_current_user),
+):
+    """KP horary (Prasna) chart for a number 1-249 (cast for now + here)."""
+    try:
+        result = AstrologyCompute.get_kp_horary(
+            number=number, date=date, time=time, place=place,
+            lat=latitude, lon=longitude, tz=timezone)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/kp-horary-analysis")
+async def analyze_kp_horary(
+    request: KPHoraryAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """AI KP horary judgement for the number + question."""
+    _enforce_rate_limit(current_user)
+    try:
+        result = AstrologyCompute.get_kp_horary(
+            number=request.number, date=request.date, time=request.time,
+            place=request.place, lat=request.latitude, lon=request.longitude,
+            tz=request.timezone)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_kp_horary(
+            data=result, question=request.question or "", config=cfg)
+        await _save_reading(
+            current_user, source="kp_horary",
+            title=f"KP horary #{request.number} — {(request.question or 'question')[:40]}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            request_label=request.question or f"KP horary #{request.number}",
+            context={"number": request.number, "question": request.question,
+                     "date": request.date, "time": request.time, "place": request.place,
+                     "latitude": request.latitude, "longitude": request.longitude,
+                     "timezone": request.timezone},
+        )
+        return {"reading": ai_analysis, "chart": result,
+                "provider": cfg.provider_type.value, "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/jaimini")
+async def get_jaimini(
+    birth_details: BirthDetails,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Jaimini toolkit: Chara Karakas, Karakamsa/Swamsa, argala."""
+    try:
+        result = AstrologyCompute.get_jaimini(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, ayanamsa=ayanamsa)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/jaimini-analysis")
+async def analyze_jaimini(
+    request: JaiminiAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """AI Jaimini reading of the natal chart."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_jaimini(
+            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+            lon=bd.longitude, tz=bd.timezone, ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_jaimini(
+            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        await _save_reading(
+            current_user, source="jaimini",
+            title=f"Jaimini reading — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name, "ayanamsa": request.ayanamsa},
+        )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/now-chart")
+async def get_now_chart(
+    place: str = "",
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    timezone: Optional[float] = None,
+    current_time: Optional[str] = None,
+    current_tz: Optional[float] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Chart of the moment — the current sky at now + here."""
+    try:
+        result = AstrologyCompute.get_now_chart(
+            place=place, lat=latitude, lon=longitude, tz=timezone,
+            current_time=current_time, current_tz=current_tz, ayanamsa=ayanamsa)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/now-chart-analysis")
+async def analyze_now_chart(
+    request: NowChartAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """AI reading of the chart of the moment."""
+    _enforce_rate_limit(current_user)
+    try:
+        result = AstrologyCompute.get_now_chart(
+            place=request.place, lat=request.latitude, lon=request.longitude,
+            tz=request.timezone, current_time=request.current_time,
+            current_tz=request.current_tz, ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_now_chart(data=result, config=cfg)
+        await _save_reading(
+            current_user, source="now_chart",
+            title=f"Chart of the moment — {result.get('moment', {}).get('date', 'now')}",
+            text=ai_analysis, cfg=cfg,
+            context={"place": request.place, "latitude": request.latitude,
+                     "longitude": request.longitude, "timezone": request.timezone,
+                     "current_time": request.current_time, "current_tz": request.current_tz},
+        )
+        return {"reading": ai_analysis, "chart": result,
+                "provider": cfg.provider_type.value, "model": cfg.model}
     except HTTPException:
         raise
     except Exception as e:

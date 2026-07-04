@@ -125,6 +125,107 @@ EVENT_SIGNIFICATORS = {
     "mother_death": {"houses": [4, 8],        "karakas": [1, 6]},    # Moon/Saturn
 }
 
+# ── Krishnamurti Paddhati (KP) & Jaimini helpers ───────────────────────────
+# Python weekday (0=Mon .. 6=Sun) → KP/vedic day-lord planet index.
+_WEEKDAY_LORD = {6: 0, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6}
+
+
+def _kp_lords(planet_key, abs_long):
+    """Sign / star (nakshatra) / sub / sub-sub lord names for an absolute
+    longitude (0-360), via PyJHora's KP micro-lord calculator. Also returns the
+    raw star-lord index (for significator maths)."""
+    info = utils.kp_lords_for_longitude(
+        planet_key, abs_long % 360.0, include_sign_lord=True,
+        include_kp_index=True, levels=2)[planet_key]
+    kp_no, sign_lord, star_lord, sub_lord, sub_sub_lord = info[:5]
+    return {
+        "kp_no": int(kp_no),
+        "sign_lord": PLANET_NAMES.get(sign_lord, str(sign_lord)),
+        "star_lord": PLANET_NAMES.get(star_lord, str(star_lord)),
+        "sub_lord": PLANET_NAMES.get(sub_lord, str(sub_lord)),
+        "sub_sub_lord": PLANET_NAMES.get(sub_sub_lord, str(sub_sub_lord)),
+        "star_lord_idx": int(star_lord),
+    }
+
+
+def _kp_significators(planet_positions):
+    """KP four-fold significators from a rasi chart (list of [pid,(sign,long)]
+    with the Ascendant 'L' at index 0).
+
+    Returns (per_planet, per_house):
+      per_planet[name] = {star_lord, houses[]} — the houses a planet signifies,
+        ordered strongest → weakest (its star-lord's occupation, its star-lord's
+        ownerships, its own occupation, its own ownerships).
+      per_house[h] = {A,B,C,D} — the planets that signify house h grouped by the
+        classical KP level:  A = planets in the star of the house's occupant
+        (their star-lord occupies h), B = the house's occupants, C = planets in
+        the star of the house's owner (their star-lord owns h), D = the owner(s)."""
+    lagna_sign = planet_positions[0][1][0]
+    house_of = lambda sign: ((sign - lagna_sign) % 12) + 1
+    ppos = {pid: (sign, sign * 30.0 + long)
+            for pid, (sign, long) in planet_positions[1:] if pid in PLANET_NAMES}
+    occ_house = {p: house_of(s) for p, (s, _l) in ppos.items()}
+    owned = {p: [] for p in ppos}
+    for sign in range(12):
+        lord = SIGN_LORD[sign]
+        if lord in owned:
+            owned[lord].append(house_of(sign))
+    star_lord = {p: utils.kp_lords_for_longitude(
+        p, ppos[p][1] % 360.0, include_sign_lord=False,
+        include_kp_index=False, levels=1)[p][0] for p in ppos}
+
+    per_planet = {}
+    for p in ppos:
+        sl = star_lord[p]
+        houses = []
+        for h in ([occ_house[sl]] if sl in occ_house else []) + owned.get(sl, []) \
+                + [occ_house[p]] + owned.get(p, []):
+            if h not in houses:
+                houses.append(h)
+        per_planet[PLANET_NAMES[p]] = {
+            "star_lord": PLANET_NAMES.get(sl, str(sl)),
+            "houses": houses,
+        }
+
+    per_house = {}
+    for h in range(1, 13):
+        per_house[h] = {
+            "A": [PLANET_NAMES[p] for p in ppos
+                  if star_lord[p] in occ_house and occ_house[star_lord[p]] == h],
+            "B": [PLANET_NAMES[p] for p in ppos if occ_house[p] == h],
+            "C": [PLANET_NAMES[p] for p in ppos if h in owned.get(star_lord[p], [])],
+            "D": [PLANET_NAMES[p] for p in ppos if h in owned.get(p, [])],
+        }
+    return per_planet, per_house
+
+
+def _kp_ruling_planets(y, m, d, hh, mm, place_obj):
+    """KP Ruling Planets for a moment: the day-lord, the Moon's sign/star/sub
+    lords and the Ascendant's sign/star/sub lords, plus the ordered unique set."""
+    from datetime import date as _date
+    jd = swe.julday(y, m, d, hh + mm / 60.0)
+    pp = charts.rasi_chart(jd, place_obj)
+    asc_sign, asc_long = pp[0][1]
+    moon_sign, moon_long = pp[2][1]  # [Asc, Sun, Moon, ...]
+    asc = _kp_lords("L", asc_sign * 30.0 + asc_long)
+    moon = _kp_lords(1, moon_sign * 30.0 + moon_long)
+    day_lord = PLANET_NAMES[_WEEKDAY_LORD[_date(y, m, d).weekday()]]
+    order = [day_lord, moon["star_lord"], moon["sign_lord"],
+             asc["star_lord"], asc["sign_lord"], asc["sub_lord"], moon["sub_lord"]]
+    rp = []
+    for x in order:
+        if x not in rp:
+            rp.append(x)
+    return {
+        "day_lord": day_lord,
+        "moon": {"sign_lord": moon["sign_lord"], "star_lord": moon["star_lord"],
+                 "sub_lord": moon["sub_lord"]},
+        "ascendant": {"sign_lord": asc["sign_lord"], "star_lord": asc["star_lord"],
+                      "sub_lord": asc["sub_lord"]},
+        "planets": rp,
+    }
+
+
 # Curated divisional charts (Parashara's Shodasavarga). Each entry:
 #   factor -> (code, name, significance). The factor is passed straight to
 #   PyJHora's charts.divisional_chart(divisional_chart_factor=...).
@@ -3147,6 +3248,297 @@ class AstrologyCompute:
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
 
+    # ── Krishnamurti Paddhati (KP) (§16) ───────────────────────────────────
+    @staticmethod
+    def get_kp_details(dob: str, tob: str, place: str,
+                       lat: Optional[float] = None, lon: Optional[float] = None,
+                       tz: Optional[float] = None, ayanamsa: str = "KP") -> Dict:
+        """Krishnamurti Paddhati view of a natal chart: the sign / star (nakshatra)
+        / sub / sub-sub lord of the Ascendant and every graha, the 12 Placidus
+        (KP) cuspal sub-lords, the four-fold house significators, and the current
+        Ruling Planets. KP always reads on the Krishnamurti ayanamsa, so this
+        endpoint forces it regardless of the app's selected ayanamsa."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            _set_ayanamsa("KP")
+            from datetime import datetime, timezone as _utc, timedelta
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            second = int(tp[2]) if len(tp) > 2 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_off = tz if tz is not None else 5.5
+            place_obj = drik.Place(place, lat, lon, tz_off)
+            jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
+            pp = charts.rasi_chart(jd, place_obj)
+            lagna_sign = pp[0][1][0]
+
+            def _body(label, pid, sign, long):
+                d = _kp_lords(pid, sign * 30.0 + long)
+                return {"body": label, "sign_name": ZODIAC_NAMES[sign % 12],
+                        "degrees": round(long, 2),
+                        "house": ((sign - lagna_sign) % 12) + 1,
+                        "kp_no": d["kp_no"], "sign_lord": d["sign_lord"],
+                        "star_lord": d["star_lord"], "sub_lord": d["sub_lord"],
+                        "sub_sub_lord": d["sub_sub_lord"]}
+
+            asc_sign, asc_long = pp[0][1]
+            planets = [_body("Ascendant", "L", asc_sign, asc_long)]
+            for pid, (sign, long) in pp[1:]:
+                if pid in PLANET_NAMES:
+                    planets.append(_body(PLANET_NAMES[pid], pid, sign, long))
+
+            # 12 Placidus (KP) house cusps with their sub-lords.
+            cusps = []
+            try:
+                for i, cl in enumerate(drik.bhaava_madhya_kp(jd, place_obj)):
+                    sign = int(cl // 30) % 12
+                    d = _kp_lords("C%d" % (i + 1), cl)
+                    cusps.append({"house": i + 1, "sign_name": ZODIAC_NAMES[sign],
+                                  "degrees": round(cl % 30, 2), "sign_lord": d["sign_lord"],
+                                  "star_lord": d["star_lord"], "sub_lord": d["sub_lord"]})
+            except Exception:
+                pass
+
+            per_planet, per_house = _kp_significators(pp)
+            local_now = datetime.now(_utc.utc) + timedelta(hours=tz_off)
+            rp = _kp_ruling_planets(local_now.year, local_now.month, local_now.day,
+                                    local_now.hour, local_now.minute, place_obj)
+            return {"status": "success", "ayanamsa": "KP", "planets": planets,
+                    "cusps": cusps, "significators": per_planet,
+                    "house_significators": per_house, "ruling_planets": rp,
+                    "ruling_time": local_now.strftime("%Y-%m-%d %H:%M")}
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_kp_horary(number: int, date: Optional[str] = None,
+                      time: Optional[str] = None, place: str = "",
+                      lat: Optional[float] = None, lon: Optional[float] = None,
+                      tz: Optional[float] = None) -> Dict:
+        """KP horary (Prasna) for a number 1-249. The querent picks a number; the
+        classical 249-fold table fixes the Ascendant's sign/star/sub division, the
+        rest of the chart is cast for the moment (defaults to now + here), and the
+        Ruling Planets are read for the same instant. Uses the KP ayanamsa."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            number = int(number)
+            if number < 1 or number > 249:
+                return {"error": "Horary number must be between 1 and 249", "status": "failed"}
+            _set_ayanamsa("KP")
+            from datetime import datetime, timezone as _utc, timedelta
+            tz_off = tz if tz is not None else 5.5
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            local_now = datetime.now(_utc.utc) + timedelta(hours=tz_off)
+            if date:
+                y, m, dd = map(int, date.split("-"))
+            else:
+                y, m, dd = local_now.year, local_now.month, local_now.day
+            if time:
+                tpp = time.split(":"); hh = int(tpp[0]); mi = int(tpp[1]) if len(tpp) > 1 else 0
+            else:
+                hh, mi = local_now.hour, local_now.minute
+            date_str = f"{y:04d}-{m:02d}-{dd:02d}"; time_str = f"{hh:02d}:{mi:02d}"
+            place_obj = drik.Place(place, lat, lon, tz_off)
+            jd = swe.julday(y, m, dd, hh + mi / 60.0)
+
+            # 249 table: [rasi, nakshatra, start_deg, end_deg, sign_lord, star_lord, sub_lord]
+            rasi, nak, start, end, sl, stl, subl = const.prasna_kp_249_dict[number]
+            asc_deg = (float(start) + float(end)) / 2.0
+            ascendant = {"number": number, "sign_name": ZODIAC_NAMES[int(rasi) % 12],
+                         "degrees": round(asc_deg, 2), "sign_lord": PLANET_NAMES.get(sl, str(sl)),
+                         "star_lord": PLANET_NAMES.get(stl, str(stl)),
+                         "sub_lord": PLANET_NAMES.get(subl, str(subl))}
+
+            # Planet sub-lords at the moment (rendered on the horary Ascendant sign).
+            pp = charts.rasi_chart(jd, place_obj)
+            planets, planets_for_chart = [], {}
+            for pid, (sign, long) in pp[1:]:
+                if pid not in PLANET_NAMES:
+                    continue
+                name = PLANET_NAMES[pid]
+                d = _kp_lords(pid, sign * 30.0 + long)
+                planets.append({"body": name, "sign_name": ZODIAC_NAMES[sign % 12],
+                                "degrees": round(long, 2), "house": ((sign - int(rasi)) % 12) + 1,
+                                "sign_lord": d["sign_lord"], "star_lord": d["star_lord"],
+                                "sub_lord": d["sub_lord"], "retrograde": long < 0})
+                planets_for_chart[name] = {"house": sign + 1, "degrees": round(long, 2),
+                                           "sign_name": ZODIAC_NAMES[sign % 12]}
+
+            rp = _kp_ruling_planets(y, m, dd, hh, mi, place_obj)
+            return {"status": "success", "number": number, "ascendant": ascendant,
+                    "planets": planets, "ruling_planets": rp,
+                    "moment": {"date": date_str, "time": time_str, "tz": tz_off},
+                    "place": place,
+                    "chart": {"planets": planets_for_chart,
+                              "lagna": {"house": int(rasi) + 1, "degrees": round(asc_deg, 2),
+                                        "sign_name": ZODIAC_NAMES[int(rasi) % 12]}}}
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    # ── Jaimini deep-dive (§16) ────────────────────────────────────────────
+    @staticmethod
+    def get_jaimini(dob: str, tob: str, place: str,
+                    lat: Optional[float] = None, lon: Optional[float] = None,
+                    tz: Optional[float] = None, ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Jaimini toolkit: the 8 Chara Karakas (with sign/house), the Karakamsa
+        (the Atmakaraka's Navamsa sign) and Swamsa (D9 Lagna) with their occupants
+        and Jaimini (rasi-drishti) aspects, plus the Argala (intervention) on the
+        Lagna and 7th house. Grounded in PyJHora's house/arudha engine."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            second = int(tp[2]) if len(tp) > 2 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
+            pp = charts.rasi_chart(jd, place_obj)
+            d9 = charts.divisional_chart(jd, place_obj, divisional_chart_factor=9)
+            lagna_sign = pp[0][1][0]
+
+            karaka_names = ["Atma (AK)", "Amatya (AmK)", "Bhratri (BK)", "Matri (MK)",
+                            "Pitri (PiK)", "Putra (PK)", "Jnati (GK)", "Dara (DK)"]
+            ck = house.chara_karakas(pp)
+            # sign each planet occupies in the D1
+            d1_sign = {pid: sign for pid, (sign, _l) in pp[1:] if pid in PLANET_NAMES}
+            chara_karakas = []
+            for i, idx in enumerate(ck):
+                if i >= len(karaka_names):
+                    break
+                sign = d1_sign.get(idx)
+                chara_karakas.append({
+                    "karaka": karaka_names[i], "planet": PLANET_NAMES.get(idx, str(idx)),
+                    "sign_name": ZODIAC_NAMES[sign % 12] if sign is not None else "—",
+                    "house": (((sign - lagna_sign) % 12) + 1) if sign is not None else None,
+                })
+            atma = ck[0]  # Atmakaraka planet index
+
+            # Karakamsa = the Navamsa sign of the Atmakaraka. Swamsa = D9 Lagna.
+            d9_sign = {pid: sign for pid, (sign, _l) in d9[1:] if pid in PLANET_NAMES}
+            karakamsa_sign = d9_sign.get(atma)
+            swamsa_sign = d9[0][1][0]
+            h2p_d9 = utils.get_house_planet_list_from_planet_positions(d9)
+
+            def _occ_and_aspects(target_sign):
+                if target_sign is None:
+                    return {"sign_name": "—", "occupants": [], "aspecting_planets": []}
+                occ = [PLANET_NAMES[pid] for pid, s in d9_sign.items() if s == target_sign]
+                asp = house.aspected_planets_of_the_raasi(h2p_d9, target_sign)
+                asp_names = [PLANET_NAMES.get(int(p), str(p)) for p in asp]
+                return {"sign_name": ZODIAC_NAMES[target_sign % 12], "occupants": occ,
+                        "aspecting_planets": asp_names}
+
+            karakamsa = {"planet": PLANET_NAMES.get(atma, str(atma)), **_occ_and_aspects(karakamsa_sign)}
+            swamsa = _occ_and_aspects(swamsa_sign)
+
+            # Argala (intervention) on the Lagna (1st) and 7th house, from the D1.
+            h2p = utils.get_house_planet_list_from_planet_positions(pp)
+            argala_all, virodha_all = house.get_argala(h2p)
+
+            def _clean(lst):
+                out = []
+                for cell in lst:
+                    for p in str(cell).replace("/", " ").split():
+                        if p.isdigit() and int(p) in PLANET_NAMES:
+                            out.append(PLANET_NAMES[int(p)])
+                return out
+
+            argala = []
+            for h in (1, 7):
+                r = (lagna_sign + h - 1) % 12
+                argala.append({"house": h, "sign_name": ZODIAC_NAMES[r],
+                               "argala": _clean(argala_all[r]),
+                               "virodhargala": _clean(virodha_all[r])})
+
+            return {"status": "success", "chara_karakas": chara_karakas,
+                    "atmakaraka": PLANET_NAMES.get(atma, str(atma)),
+                    "karakamsa": karakamsa, "swamsa": swamsa, "argala": argala}
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    # ── Chart-of-the-moment / "now" chart (§16) ────────────────────────────
+    @staticmethod
+    def get_now_chart(place: str = "", lat: Optional[float] = None,
+                      lon: Optional[float] = None, tz: Optional[float] = None,
+                      current_time: Optional[str] = None,
+                      current_tz: Optional[float] = None,
+                      ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """The current sky cast as a chart for this instant + location (defaults to
+        now + here). Reuses the natal compute at the present moment and layers the
+        day's Panchanga + running planetary-hour lord. Powers the Dashboard
+        'chart of the moment' widget and the standalone Now page."""
+        if not PYJHORA_AVAILABLE:
+            return {"error": "PyJHora not available", "status": "failed"}
+        try:
+            from datetime import datetime, timezone as _utc, timedelta
+            tz_off = current_tz if current_tz is not None else (tz if tz is not None else 5.5)
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            local_now = datetime.now(_utc.utc) + timedelta(hours=tz_off)
+            if current_time:
+                # ISO 'YYYY-MM-DDTHH:MM' or 'YYYY-MM-DD HH:MM'
+                s = current_time.replace("T", " ")
+                dpart, _, tpart = s.partition(" ")
+                y, m, dd = map(int, dpart.split("-"))
+                tps = tpart.split(":") if tpart else [str(local_now.hour), str(local_now.minute)]
+                hh = int(tps[0]); mi = int(tps[1]) if len(tps) > 1 else 0
+            else:
+                y, m, dd, hh, mi = (local_now.year, local_now.month, local_now.day,
+                                    local_now.hour, local_now.minute)
+            date_str = f"{y:04d}-{m:02d}-{dd:02d}"; time_str = f"{hh:02d}:{mi:02d}"
+
+            chart = AstrologyCompute.calculate_birth_chart(
+                dob=date_str, tob=time_str, place=place, lat=lat, lon=lon,
+                tz=tz_off, ayanamsa=ayanamsa)
+            if "error" in chart:
+                return {"error": chart["error"], "status": "failed"}
+
+            panch = AstrologyCompute.get_panchanga(
+                date=date_str, place=place, lat=lat, lon=lon, tz=tz_off)
+            hrs = AstrologyCompute.get_planetary_hours(
+                date=date_str, place=place, lat=lat, lon=lon, tz=tz_off)
+            hora_lord = None
+            for h in (hrs.get("horas", []) if hrs.get("status") == "success" else []):
+                if h.get("current"):
+                    hora_lord = h.get("planet")
+                    break
+
+            return {
+                "status": "success",
+                "moment": {"date": date_str, "time": time_str, "tz": tz_off},
+                "place": place,
+                "lagna": chart.get("lagna", {}),
+                "planets": chart.get("planets", {}),
+                "d1_chart": chart.get("d1_chart", {}),
+                "panchanga": panch if panch.get("status") == "success" else None,
+                "hora_lord": hora_lord,
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+
     # ── Daily digest (§16) ─────────────────────────────────────────────────
     @staticmethod
     def get_daily_digest(dob: str, tob: str, place: str,
@@ -4341,8 +4733,8 @@ class AstrologyCompute:
             "Purva Bhadrapada", "Uttara Bhadrapada", "Revati"
         ]
 
-        def _moon_nakshatra_pada(dob, tob, place, lat, lon, person_tz):
-            """1-based Moon nakshatra number (1-27) and pada (1-4)."""
+        def _person_chart(dob, tob, place, lat, lon, person_tz):
+            """Returns (moon nakshatra 1-27, pada 1-4, rasi planet_positions)."""
             year, month, day = map(int, dob.split("-"))
             time_parts = tob.split(":")
             hour = int(time_parts[0])
@@ -4355,12 +4747,46 @@ class AstrologyCompute:
             moon_rasi, moon_long = pp[2][1]  # pp[0]=Asc, pp[1]=Sun, pp[2]=Moon
             absolute_longitude = moon_rasi * 30.0 + moon_long
             nak, pada = drik.nakshatra_pada(absolute_longitude)[:2]
-            return nak, pada
+            return nak, pada, pp
+
+        def _mangal_dosha(pp):
+            """Kuja / Mangal (Manglik) dosha with cancellation nuances. Mars in
+            houses 1/2/4/7/8/12 counted from the Lagna, the Moon and Venus flags
+            the dosha; classical parihara (own/exalt sign, sign-specific house
+            exceptions, benefic conjunction) softens or cancels it."""
+            signs = {pid: s for pid, (s, _l) in pp[1:] if pid in PLANET_NAMES}
+            lagna = pp[0][1][0]
+            mars_s = signs.get(2)
+            refs = {"Lagna": lagna, "Moon": signs.get(1), "Venus": signs.get(5)}
+            dosha_houses = {1, 2, 4, 7, 8, 12}
+            hits = {}
+            for name, rs in refs.items():
+                if rs is None or mars_s is None:
+                    continue
+                h = ((mars_s - rs) % 12) + 1
+                if h in dosha_houses:
+                    hits[name] = h
+            cancellations = []
+            if mars_s in (0, 7):
+                cancellations.append(f"Mars is in its own sign ({ZODIAC_NAMES[mars_s]}).")
+            if mars_s == 9:
+                cancellations.append("Mars is exalted in Capricorn.")
+            # Sign-specific house exceptions (traditional parihara).
+            exceptions = {1: {0}, 2: {2, 5}, 4: {0, 7}, 7: {3, 9}, 8: {8, 11}, 12: {1, 6}}
+            for name, h in hits.items():
+                if mars_s in exceptions.get(h, set()):
+                    cancellations.append(
+                        f"Mars in the {h}th from {name} sits in {ZODIAC_NAMES[mars_s]} — a classical exception.")
+            if signs.get(4) is not None and signs.get(4) == mars_s:
+                cancellations.append("Jupiter is conjunct Mars, tempering the dosha.")
+            return {"manglik": len(hits) > 0,
+                    "mars_sign": ZODIAC_NAMES[mars_s] if mars_s is not None else "—",
+                    "from": hits, "cancellations": cancellations}
 
         try:
-            boy_nak, boy_pada = _moon_nakshatra_pada(
+            boy_nak, boy_pada, boy_pp = _person_chart(
                 male_dob, male_tob, male_place, male_lat, male_lon, male_tz)
-            girl_nak, girl_pada = _moon_nakshatra_pada(
+            girl_nak, girl_pada, girl_pp = _person_chart(
                 female_dob, female_tob, female_place, female_lat, female_lon, female_tz)
 
             ak = compat_module.Ashtakoota(boy_nak, boy_pada, girl_nak, girl_pada, method="North")
@@ -4399,6 +4825,47 @@ class AstrologyCompute:
             else:
                 status = "Not Recommended"
 
+            # ── Dashakoota (South / Tamil 10-porutham) — adds Mahendra, Vedha,
+            #    Rajju and Stree-Deergha over the Ashtakoot 8. Each is worth 1.
+            dashakoota = []
+            dashakoota_score = 0
+            try:
+                sk = compat_module.Ashtakoota(boy_nak, boy_pada, girl_nak, girl_pada, method="South")
+                ss = sk.compatibility_score()
+                (_sv, s_vasiya, s_gana, s_dina, s_yoni, s_raasi_adhi, s_raasi,
+                 _sn, _sscore, s_mahendra, s_vedha, s_rajju, s_sthree) = ss[:13]
+                _dk = [
+                    ("dina", "Dina (Tara)", s_dina, "Health, longevity & prosperity"),
+                    ("gana", "Gana", s_gana, "Temperament & nature"),
+                    ("mahendra", "Mahendra", s_mahendra, "Progeny & well-being"),
+                    ("sthree", "Stree Deergha", s_sthree, "Longevity of the union & the wife's welfare"),
+                    ("yoni", "Yoni", s_yoni, "Physical & intimate compatibility"),
+                    ("rasi", "Rasi", s_raasi, "Family welfare & prosperity"),
+                    ("rasiadhi", "Rasi Adhipati", s_raasi_adhi, "Mental affinity (lords' friendship)"),
+                    ("vasiya", "Vasiya", s_vasiya, "Mutual attraction & influence"),
+                    ("rajju", "Rajju", s_rajju, "Longevity of the husband (body-part clash to avoid)"),
+                    ("vedha", "Vedha", s_vedha, "Absence of mutual affliction between stars"),
+                ]
+                for key, name, ok, desc in _dk:
+                    ok_b = bool(ok)
+                    dashakoota.append({"key": key, "name": name, "ok": ok_b, "description": desc})
+                    if ok_b:
+                        dashakoota_score += 1
+            except Exception as e:
+                print(f"Dashakoota calculation error: {e}")
+
+            # ── Mangal (Kuja) dosha for both, with cancellation nuances.
+            boy_mangal = _mangal_dosha(boy_pp)
+            girl_mangal = _mangal_dosha(girl_pp)
+            if boy_mangal["manglik"] and girl_mangal["manglik"]:
+                mangal_verdict = "Both partners are Manglik — the dosha is traditionally considered mutually cancelled."
+            elif boy_mangal["manglik"] or girl_mangal["manglik"]:
+                who = "The groom" if boy_mangal["manglik"] else "The bride"
+                mangal_verdict = (f"{who} is Manglik while the partner is not — "
+                                  "weigh the cancellations before concluding.")
+            else:
+                mangal_verdict = "Neither partner is Manglik — no Kuja dosha to reconcile."
+
             return {
                 "total_score": round(float(total), 1),
                 "max_score": 36,
@@ -4406,6 +4873,8 @@ class AstrologyCompute:
                 "kootas": kootas,
                 "boy": {"nakshatra": nakshatra_names[boy_nak - 1], "pada": boy_pada},
                 "girl": {"nakshatra": nakshatra_names[girl_nak - 1], "pada": girl_pada},
+                "dashakoota": {"poruthams": dashakoota, "score": dashakoota_score, "max": 10},
+                "mangal_dosha": {"boy": boy_mangal, "girl": girl_mangal, "verdict": mangal_verdict},
             }
         except Exception as e:
             print(f"Compatibility calculation error: {e}")

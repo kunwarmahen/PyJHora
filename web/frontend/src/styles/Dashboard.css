@@ -1899,3 +1899,76 @@
 .digest-retro .kv-label {
   margin-right: 0.35rem;
 }
+
+/* ── Chart-of-the-moment dashboard widget (§16) ───────────────────────────── */
+.now-widget {
+  display: flex;
+  gap: var(--space-lg);
+  align-items: center;
+  padding: var(--space-lg);
+  margin-bottom: var(--space-xl);
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e8dcc8);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(45, 53, 97, 0.06);
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.now-widget:hover {
+  box-shadow: 0 6px 20px rgba(45, 53, 97, 0.12);
+  transform: translateY(-2px);
+}
+.now-widget__chart {
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
+}
+.now-widget__body {
+  flex: 1;
+  min-width: 0;
+}
+.now-widget__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--indigo, #2D3561);
+}
+.now-widget__moment {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #7a7160);
+}
+.now-widget__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.6rem;
+}
+.now-widget__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--saffron, #FF9933);
+}
+@media (max-width: 640px) {
+  .now-widget {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  .now-widget__chart {
+    width: 200px;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+  .now-widget__head,
+  .now-widget__pills {
+    justify-content: center;
+  }
+}

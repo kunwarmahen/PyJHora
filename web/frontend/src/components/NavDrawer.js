@@ -32,6 +32,9 @@ import {
   CalendarRange,
   Home,
   FileText,
+  Compass,
+  Layers,
+  Globe,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
@@ -58,6 +61,9 @@ const LINKS = [
   { to: "/sarvatobhadra", labelKey: "nav.sarvatobhadra", icon: <Grid3x3 size={20} /> },
   { to: "/sensitive-points", labelKey: "nav.sensitivePoints", icon: <Crosshair size={20} /> },
   { to: "/vedic-clock", labelKey: "nav.vedicClock", icon: <Timer size={20} /> },
+  { to: "/kp", labelKey: "nav.kp", icon: <Compass size={20} /> },
+  { to: "/jaimini", labelKey: "nav.jaimini", icon: <Layers size={20} /> },
+  { to: "/now", labelKey: "nav.now", icon: <Globe size={20} /> },
   { to: "/advanced", labelKey: "nav.advanced", icon: <Sparkles size={20} /> },
   { to: "/compare", labelKey: "nav.compare", icon: <GitCompareArrows size={20} /> },
   { to: "/rectify", labelKey: "nav.rectify", icon: <Clock4 size={20} /> },

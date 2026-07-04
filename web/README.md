@@ -28,7 +28,14 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   Sensitive Points (Sphutas, the 36 Sahams, and Argala — with AI reading),
   a Vedic Clock & Retrograde page (a live ghati/vighati clock + vakra-gathi retrograde
   loops, with AI reading),
-  Sarvatobhadra Chakra (with layman AI reading), Compatibility, an Advanced page
+  a **KP (Krishnamurti Paddhati)** page (planet & cuspal sub-lords, four-fold house
+  significators, ruling planets, and KP horary 1–249, with AI readings),
+  a **Jaimini** deep-dive (Chara Karakas, Karakamsa/Swamsa with rasi-drishti aspects, and
+  argala, with AI reading),
+  a **Chart of the Moment** (the current sky as a chart — a Dashboard mini-kundali widget
+  plus a full `/now` page with panchanga & AI reading),
+  Sarvatobhadra Chakra (with layman AI reading), Compatibility (Ashtakoot **+ Dashakoota
+  10-porutham + Mangal/Kuja-dosha with cancellation nuances**), an Advanced page
   (Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala, Ayu/longevity), and
   experimental Birth-Time Rectification (BV Raman śuddhi methods, with before/after charts)
 - **AI Integration**: Multi-model LLM support (Ollama/local, OpenAI-compatible, Gemini, ChatGPT)
@@ -66,7 +73,8 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Unified AI History** (`/history`): *every* AI output across the whole app — not just the Ask
   chat, but every one-shot reading (Varshaphal, Muhurta, Prashna, Remedies, Bhrigu, Daily digest,
   Sensitive points, Vedic clock, Almanac, Pancha Pakshi, Sarvatobhadra, Compatibility, Compare,
-  Rectification, Predictions) — is saved automatically. The History page groups items by profile
+  KP, KP horary, Jaimini, Chart of the moment, Rectification, Predictions) — is saved automatically.
+  The History page groups items by profile
   (plus a **"No profile"** bucket for location-driven tools) and filters by chat vs. reading;
   clicking any item **returns to the tool that produced it and re-shows the exact saved reading**
   (a snapshot — no re-computation). Every tool page also has its own collapsible **"Recent readings"**

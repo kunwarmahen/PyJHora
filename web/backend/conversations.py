@@ -50,6 +50,10 @@ SOURCE_META: Dict[str, Dict[str, str]] = {
     "rectification":    {"label": "Rectification",      "route": "/rectify",           "kind": "reading"},
     "quiz":             {"label": "Learn quiz",         "route": "/learn",             "kind": "reading"},
     "prediction":       {"label": "Prediction",         "route": "/predictions",       "kind": "reading"},
+    "kp":               {"label": "KP system",          "route": "/kp",                "kind": "reading"},
+    "kp_horary":        {"label": "KP horary",          "route": "/kp",                "kind": "reading"},
+    "jaimini":          {"label": "Jaimini",            "route": "/jaimini",           "kind": "reading"},
+    "now_chart":        {"label": "Chart of the moment","route": "/now",               "kind": "reading"},
 }
 
 

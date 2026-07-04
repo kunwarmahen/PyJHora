@@ -620,6 +620,42 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
+    async def analyze_kp(self,
+                         data: Dict[str, Any],
+                         name: str = "this person",
+                         config: Optional[ModelConfig] = None) -> str:
+        """KP (Krishnamurti Paddhati) reading — cuspal sub-lords, significators,
+        ruling planets."""
+        prompt = self._build_kp_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
+    async def analyze_kp_horary(self,
+                                data: Dict[str, Any],
+                                question: str = "",
+                                config: Optional[ModelConfig] = None) -> str:
+        """KP horary (1-249) judgement of the querent's question."""
+        prompt = self._build_kp_horary_prompt(data, question)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
+    async def analyze_jaimini(self,
+                              data: Dict[str, Any],
+                              name: str = "this person",
+                              config: Optional[ModelConfig] = None) -> str:
+        """Jaimini reading — Chara Karakas, Karakamsa/Swamsa, argala."""
+        prompt = self._build_jaimini_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
+    async def analyze_now_chart(self,
+                                data: Dict[str, Any],
+                                config: Optional[ModelConfig] = None) -> str:
+        """Read the chart of the moment (current sky) — the tenor of the present."""
+        prompt = self._build_now_chart_prompt(data)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
     # ------------------------------------------------------------------ #
     # "Learn the Chart" — AI quiz generation + grading
     # ------------------------------------------------------------------ #
@@ -2038,6 +2074,127 @@ Write a caring ~260-word note:
 2. **The gentlest remedies first** — emphasise that mantra, charity (daana), fasting on the planet's weekday, and devotion are the safe, accessible upayas anyone can begin; walk through 1–2 concretely.
 3. **On gemstones** — note clearly that gemstones and yantras are powerful and should be worn ONLY after consulting a qualified astrologer, never self-prescribed.
 Frame all of this as **traditional guidance and devotional practice, not medical, psychological, legal or financial advice**, and not a guarantee of results. Close by reminding them that sincere effort and good conduct are themselves the strongest remedy."""
+
+    def _build_kp_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """A Krishnamurti Paddhati (KP) reading grounded in cuspal sub-lords,
+        the four-fold significators and the ruling planets."""
+        planets = d.get("planets") or []
+        cusps = d.get("cusps") or []
+        sig = d.get("significators") or {}
+        rp = (d.get("ruling_planets") or {}).get("planets") or []
+
+        p_lines = "\n".join(
+            f"- {p['body']}: {p['sign_name']} {p['degrees']}° (house {p['house']}), "
+            f"sign lord {p['sign_lord']}, star lord {p['star_lord']}, sub lord {p['sub_lord']}"
+            for p in planets)
+        c_lines = "\n".join(
+            f"- Cusp {c['house']}: {c['sign_name']}, sub lord {c['sub_lord']}"
+            for c in cusps)
+        s_lines = "\n".join(
+            f"- {planet}: signifies houses {', '.join(str(h) for h in info.get('houses', []))} "
+            f"(star lord {info.get('star_lord')})"
+            for planet, info in sig.items())
+
+        return f"""You are an expert **KP (Krishnamurti Paddhati)** astrologer reading {name}'s chart. KP judges results by the **sub-lord** of the relevant cusp and by a planet's **star (nakshatra) lord** — a planet gives the results of the houses signified by its star lord first. Everything below is already computed on the KP (Krishnamurti) ayanamsa — read it, do not recompute.
+
+Ascendant & planets (sign / star / sub lords):
+{p_lines}
+
+Cuspal sub-lords:
+{c_lines}
+
+Four-fold significators (houses each planet signifies):
+{s_lines}
+
+Ruling planets right now: {', '.join(rp) if rp else 'n/a'}.
+
+Write a focused ~320-word KP reading:
+1. **How to read this chart in KP** — one or two lines on what the Ascendant sub-lord and the chart's overall significator pattern suggest.
+2. **Two or three life areas** — pick houses that matter (e.g. 7th for marriage, 10th for career, 2nd/11th for wealth) and judge them from their **cuspal sub-lord** and its significations; name the planets that promise each result.
+3. **Timing hint** — note that KP times events by the dasha of a house's significators, and mention the ruling planets as the day's active lords.
+Reason strictly from the sub-lords and significators given; cite them. Frame it as astrological guidance, not certainty, and avoid medical/legal/financial guarantees."""
+
+    def _build_kp_horary_prompt(self, d: Dict[str, Any], question: str) -> str:
+        """A KP horary (1-249) judgement for the querent's number + question."""
+        asc = d.get("ascendant") or {}
+        planets = d.get("planets") or []
+        rp = (d.get("ruling_planets") or {}).get("planets") or []
+        moment = d.get("moment") or {}
+        p_lines = "\n".join(
+            f"- {p['body']}: {p['sign_name']} {p['degrees']}°, star lord {p['star_lord']}, sub lord {p['sub_lord']}"
+            for p in planets)
+        q = question or "(no specific question given — read the general tenor)"
+        return f"""You are an expert **KP horary (Prasna)** astrologer. The querent chose the number **{asc.get('number')}** (of 1-249), which fixes the horary Ascendant at **{asc.get('sign_name')} {asc.get('degrees')}°** — sign lord {asc.get('sign_lord')}, star lord {asc.get('star_lord')}, **sub lord {asc.get('sub_lord')}**. The planets are cast for the moment the question was asked ({moment.get('date')} {moment.get('time')}).
+
+The question: "{q}"
+
+Planetary sub-lords at the moment:
+{p_lines}
+
+Ruling planets: {', '.join(rp) if rp else 'n/a'}.
+
+Write a ~280-word KP horary judgement:
+1. **The Ascendant sub-lord** — in KP horary this is decisive; read what {asc.get('sub_lord')} as the Ascendant sub-lord indicates for the matter (its house significations and whether it favours the querent).
+2. **The answer** — lean toward a "likely yes", "likely no", or "conditional", grounded in the sub-lord of the house that governs the question and the ruling planets. Be honest about ambiguity.
+3. **Timing** — a gentle sense of when, from the significators/ruling planets.
+Reason from the sub-lords given; cite them. Frame it as guidance, not certainty; no medical/legal/financial guarantees."""
+
+    def _build_jaimini_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """A Jaimini reading built on the Chara Karakas, Karakamsa/Swamsa and argala."""
+        ck = d.get("chara_karakas") or []
+        kk = d.get("karakamsa") or {}
+        sw = d.get("swamsa") or {}
+        argala = d.get("argala") or []
+        ck_lines = "\n".join(
+            f"- {k['karaka']}: {k['planet']} in {k['sign_name']}"
+            + (f" (house {k['house']})" if k.get('house') else "")
+            for k in ck)
+        arg_lines = "\n".join(
+            f"- House {a['house']} ({a['sign_name']}): argala from {', '.join(a['argala']) or 'none'}; "
+            f"virodhargala (counter) from {', '.join(a['virodhargala']) or 'none'}"
+            for a in argala)
+        return f"""You are an expert **Jaimini** astrologer reading {name}'s chart. Jaimini reasons from the **Chara Karakas** (the eight variable significators, ranked by longitude), the **Karakamsa** (the Atmakaraka's Navamsa sign — read like a second ascendant for the soul's agenda) and **argala** (planetary intervention on a house). Everything below is pre-computed — interpret it, do not recompute.
+
+Chara Karakas:
+{ck_lines}
+
+Atmakaraka (soul planet): **{d.get('atmakaraka')}**.
+Karakamsa: the Atmakaraka {kk.get('planet')} is in **{kk.get('sign_name')}** in the Navamsa; occupants there: {', '.join(kk.get('occupants', [])) or 'none'}; planets aspecting it (rasi drishti): {', '.join(kk.get('aspecting_planets', [])) or 'none'}.
+Swamsa (Navamsa Lagna): **{sw.get('sign_name')}**; occupants: {', '.join(sw.get('occupants', [])) or 'none'}; aspected by: {', '.join(sw.get('aspecting_planets', [])) or 'none'}.
+
+Argala (intervention) on the Lagna & 7th:
+{arg_lines}
+
+Write a ~320-word Jaimini reading:
+1. **The soul's agenda (Karakamsa)** — what the Karakamsa sign, its occupants and the planets aspecting it say about calling, temperament and the deeper life theme (this is the heart of Karakamsa analysis).
+2. **The Chara Karakas** — read 2-3 of the key karakas (Atma, Amatya, Dara) and what their placement suggests for self, career and partnership.
+3. **Argala** — one line on where the Lagna receives supportive intervention vs a counter (virodhargala).
+Reason from the factors given; cite them. Frame it as astrological insight, not fate; no medical/legal/financial guarantees."""
+
+    def _build_now_chart_prompt(self, d: Dict[str, Any]) -> str:
+        """Read the chart of the moment (the current sky) as a general tenor."""
+        lagna = d.get("lagna") or {}
+        planets = d.get("planets") or {}
+        panch = d.get("panchanga") or {}
+        moment = d.get("moment") or {}
+        tithi = (panch.get("tithi") or {}) if panch else {}
+        nak = (panch.get("nakshatra") or {}) if panch else {}
+        vaara = (panch.get("vaara") or {}) if panch else {}
+        p_lines = "\n".join(
+            f"- {name}: {info.get('sign_name')} (house {info.get('house')})"
+            for name, info in planets.items())
+        return f"""You are a Vedic astrologer reading the **chart of the moment** — the current sky cast for {moment.get('date')} {moment.get('time')} at {d.get('place') or 'this place'}. This is not a birth chart; it reflects the tenor of the present time itself (like a mundane/prasna snapshot). Read it in that spirit.
+
+Ascendant now: {lagna.get('sign_name')} {round(lagna.get('degrees', 0), 1)}°.
+Panchanga: {vaara.get('name', 'n/a')}, {tithi.get('name', 'n/a')}, {nak.get('name', 'n/a')} nakshatra. Running hora lord: {d.get('hora_lord') or 'n/a'}.
+Planets now:
+{p_lines}
+
+Write a short ~220-word reading of the moment:
+1. **The mood of now** — what the rising sign + Moon's placement + the panchanga invite, in a couple of sentences.
+2. **What's favoured / what to be mindful of** — 2-3 practical notes on the kinds of activity the current planetary positions support or caution against right now.
+3. **A gentle close** — one grounding line.
+Reason from the placements given; cite them. This is a reflective snapshot of the present, not a personal fated prediction — avoid medical/legal/financial claims."""
 
     def _build_rectification_prompt(self, r: Dict[str, Any], name: str) -> str:
         """Explain, in plain terms, why the suggested birth time fits better than
