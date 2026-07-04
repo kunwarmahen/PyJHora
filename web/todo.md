@@ -1797,6 +1797,18 @@ Plan:
       - Note: the "view what was sent to the AI" inspector button was preserved (moved into the model
         summary card header).
 - [x] i18n `settings.*` (en; hi/sa fall back) + `nav.settings`. DONE 2026-07-03.
+- [x] **System-health tab (owner ask 2026-07-04).** DONE: surfaced the backend `/health`
+      endpoint (previously never shown in the UI) as a new **Settings → System** tab.
+      `astrologyService.getHealth()` (`GET /health`) is fetched on mount; the panel renders one
+      status row per service — **API server** (`status==="healthy"`), **Astrology engine
+      (PyJHora)** (`pyjhora_available`), **Local AI model (Qwen)** (`qwen_enabled`, optional),
+      **Map location picker** (`map_picker_enabled`, optional) — each with a pill: green **OK**,
+      grey **Off** for optional/disabled features, red **Down** for required ones. A **Re-check**
+      button re-runs the fetch; an unreachable server shows a warning line instead. New
+      `.settings-health-*` styles in `Settings.css`; `settings.tabs.system` + `settings.system.*`
+      i18n (en full, hi/sa translated). Build + eslint green. Note: `/health` is thin today
+      (4 booleans) — extend the endpoint (DB/ephemeris-path/per-provider key readiness) and the
+      panel picks up new checks automatically.
 - [x] **AI Capabilities + language → Settings-only** (owner ask 2026-07-03). DONE: removed the
       **AI Capabilities** dashboard tile + its NavDrawer link (page still reachable via Settings → AI
       → "View AI capabilities"; route `/ai-tools` intact). Removed the **`<LanguageSwitcher>`** from

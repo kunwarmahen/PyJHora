@@ -762,6 +762,9 @@ export const astrologyService = {
       rating,
     }),
 
+  // System health / diagnostics
+  getHealth: () => api.get("/health"),
+
   // Per-user API keys (encrypted server-side; status returns masked values only)
   getApiKeys: () => api.get("/api/user/api-keys"),
   setApiKey: (provider, apiKey) => api.put(`/api/user/api-keys/${provider}`, { api_key: apiKey }),

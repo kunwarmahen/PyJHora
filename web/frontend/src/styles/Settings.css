@@ -225,6 +225,53 @@
   min-width: 180px;
 }
 
+/* System health */
+.settings-health-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border-color, #f0e8da);
+}
+
+.settings-health-row:last-of-type {
+  border-bottom: none;
+}
+
+.settings-health-name {
+  font-weight: 600;
+  color: var(--text-primary, #3a2e22);
+  font-size: 0.9rem;
+}
+
+.settings-health-badge {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: var(--border-color, #f0e8da);
+  color: var(--text-secondary, #8a7c6a);
+}
+
+.settings-health-badge.is-ok {
+  background: rgba(46, 125, 50, 0.14);
+  color: #2e7d32;
+}
+
+.settings-health-badge.is-off {
+  background: rgba(138, 124, 106, 0.16);
+  color: var(--text-secondary, #8a7c6a);
+}
+
+.settings-health-badge.is-bad {
+  background: rgba(192, 57, 43, 0.14);
+  color: var(--vermillion, #c0392b);
+}
+
 /* Account */
 .settings-section-title {
   margin: 0 0 12px;

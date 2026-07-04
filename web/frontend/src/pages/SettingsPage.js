@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Settings as SettingsIcon, Sliders, Key, CalendarDays, User, Sparkles, Check, LogOut, Mail, ShieldOff, Trash2, Bell } from "lucide-react";
+import { Settings as SettingsIcon, Sliders, Key, CalendarDays, User, Sparkles, Check, LogOut, Mail, ShieldOff, Trash2, Bell, Activity, AlertTriangle } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { useSettings } from "../contexts/SettingsContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -39,6 +39,11 @@ export const SettingsPage = () => {
   // API keys status
   const [keyStatus, setKeyStatus] = useState({});
   const [keyInputs, setKeyInputs] = useState({});
+
+  // System health / diagnostics
+  const [health, setHealth] = useState(null);
+  const [healthErr, setHealthErr] = useState(false);
+  const [healthLoading, setHealthLoading] = useState(false);
 
   // Account
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
@@ -81,6 +86,20 @@ export const SettingsPage = () => {
       .catch(() => setKeyStatus({}));
   };
   useEffect(loadKeys, []);
+
+  const loadHealth = () => {
+    setHealthLoading(true);
+    setHealthErr(false);
+    astrologyService
+      .getHealth()
+      .then((resp) => setHealth(resp.data || null))
+      .catch(() => {
+        setHealth(null);
+        setHealthErr(true);
+      })
+      .finally(() => setHealthLoading(false));
+  };
+  useEffect(loadHealth, []);
 
   // Load notification prefs + profiles once.
   useEffect(() => {
@@ -258,8 +277,19 @@ export const SettingsPage = () => {
     { key: "apiKeys", label: t("settings.tabs.apiKeys"), icon: <Key size={16} /> },
     { key: "almanac", label: t("settings.tabs.almanac"), icon: <CalendarDays size={16} /> },
     { key: "notifications", label: t("settings.tabs.notifications"), icon: <Bell size={16} /> },
+    { key: "system", label: t("settings.tabs.system"), icon: <Activity size={16} /> },
     { key: "account", label: t("settings.tabs.account"), icon: <User size={16} /> },
   ];
+
+  // Health-check items surfaced in the System tab. `ok` maps to a green/grey pill.
+  const healthChecks = health
+    ? [
+        { key: "server", label: t("settings.system.server"), ok: health.status === "healthy" },
+        { key: "pyjhora", label: t("settings.system.pyjhora"), ok: !!health.pyjhora_available },
+        { key: "qwen", label: t("settings.system.qwen"), ok: !!health.qwen_enabled, optional: true },
+        { key: "mapPicker", label: t("settings.system.mapPicker"), ok: !!health.map_picker_enabled, optional: true },
+      ]
+    : [];
 
   const mtOn = Number(settings.aiMaxTokens) > 0;
 
@@ -641,6 +671,44 @@ export const SettingsPage = () => {
               </>
             )}
             <p className="settings-hint">{t("settings.notifications.note")}</p>
+          </div>
+        )}
+
+        {/* SYSTEM HEALTH */}
+        {tab === "system" && (
+          <div className="ui-card settings-panel">
+            <div className="settings-key-head" style={{ marginBottom: 12 }}>
+              <h3 className="settings-section-title" style={{ margin: 0 }}>
+                {t("settings.system.title")}
+              </h3>
+              <button
+                type="button"
+                className="settings-link"
+                onClick={loadHealth}
+                disabled={healthLoading}
+              >
+                {healthLoading ? t("settings.system.checking") : t("settings.system.recheck")}
+              </button>
+            </div>
+
+            {healthErr && (
+              <p className="settings-hint settings-hint--warn">
+                <AlertTriangle size={14} style={{ verticalAlign: "-2px", marginRight: 4 }} />
+                {t("settings.system.unreachable")}
+              </p>
+            )}
+
+            {!healthErr &&
+              healthChecks.map((c) => (
+                <div className="settings-health-row" key={c.key}>
+                  <span className="settings-health-name">{c.label}</span>
+                  <span className={`settings-health-badge${c.ok ? " is-ok" : c.optional ? " is-off" : " is-bad"}`}>
+                    {c.ok ? t("settings.system.ok") : c.optional ? t("settings.system.disabled") : t("settings.system.down")}
+                  </span>
+                </div>
+              ))}
+
+            <p className="settings-hint">{t("settings.system.note")}</p>
           </div>
         )}
 

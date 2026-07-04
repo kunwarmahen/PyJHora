@@ -838,7 +838,22 @@
       "apiKeys": "API Keys",
       "almanac": "Almanac",
       "account": "Account",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "system": "System"
+    },
+    "system": {
+      "title": "System health",
+      "server": "API server",
+      "pyjhora": "Astrology engine (PyJHora)",
+      "qwen": "Local AI model (Qwen)",
+      "mapPicker": "Map location picker",
+      "ok": "OK",
+      "disabled": "Off",
+      "down": "Down",
+      "recheck": "Re-check",
+      "checking": "Checking…",
+      "unreachable": "Could not reach the server. Check your connection and try again.",
+      "note": "A quick health check of the services this app depends on. “Off” items are optional features you can enable in configuration."
     },
     "general": {
       "language": "Language",
