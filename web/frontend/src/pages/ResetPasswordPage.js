@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Lock, AlertCircle } from "lucide-react";
 import { authService, setTokens } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
+import { SITE_TITLE } from "../config/branding";
 import "../styles/Auth.css";
 
 export const ResetPasswordPage = () => {
@@ -50,7 +51,7 @@ export const ResetPasswordPage = () => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1>PyJHora</h1>
+        <h1>{SITE_TITLE}</h1>
         <p className="subtitle">{t("auth.reset.subtitle")}</p>
 
         <form onSubmit={handleSubmit}>

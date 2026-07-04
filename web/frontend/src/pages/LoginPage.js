@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import { Mail, Lock, AlertCircle } from "lucide-react";
+import { SITE_TITLE, SITE_TAGLINE } from "../config/branding";
 import "../styles/Auth.css";
 
 export const LoginPage = () => {
@@ -27,8 +28,8 @@ export const LoginPage = () => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1>PyJHora</h1>
-        <p className="subtitle">{t("auth.tagline")}</p>
+        <h1>{SITE_TITLE}</h1>
+        <p className="subtitle">{SITE_TAGLINE || t("auth.tagline")}</p>
 
         <form onSubmit={handleSubmit}>
           {error && (

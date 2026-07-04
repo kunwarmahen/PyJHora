@@ -355,11 +355,20 @@ CORS_ORIGINS=["http://localhost:3000","http://localhost:8000"]
 ### Frontend (.env)
 
 ```env
+# Brand name + tagline — white-label the app (nav bar, dashboard, auth pages,
+# browser tab) without touching source. Optional; SITE_TITLE defaults to
+# "PyJHora" and the tagline falls back to a translated default when unset.
+REACT_APP_SITE_TITLE=Jyotir Ai
+REACT_APP_SITE_TAGLINE=Where Vedic Wisdom Meets AI
+
 # Optional — when unset, the app calls the same host it was served from on :8000
 # (so it works over the LAN from a phone with no per-device config). Set to pin it.
 REACT_APP_API_URL=http://localhost:8000
 REACT_APP_API_TIMEOUT=30000
 ```
+
+The brand mark next to the title uses the built app icon (`public/icon-192.png`),
+rendered via the shared `BrandLogo` component.
 
 ## Quick Start Guide
 

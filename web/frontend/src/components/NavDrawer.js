@@ -12,7 +12,6 @@ import {
   Sparkles,
   Heart,
   MessageCircle,
-  Star,
   Grid3x3,
   GitCompareArrows,
   GraduationCap,
@@ -38,6 +37,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
+import { BrandLogo } from "./BrandLogo";
+import { SITE_TITLE } from "../config/branding";
 import "../styles/NavDrawer.css";
 
 // `labelKey` is resolved through i18next at render time so the drawer follows
@@ -117,8 +118,8 @@ export const NavDrawer = () => {
       <aside className={`nav-drawer ${open ? "open" : ""}`} aria-hidden={!open}>
         <div className="nav-drawer-head">
           <div className="nav-drawer-brand">
-            <Star size={22} />
-            <span>PyJHora</span>
+            <BrandLogo size={26} />
+            <span>{SITE_TITLE}</span>
           </div>
           <button
             className="nav-drawer-close"

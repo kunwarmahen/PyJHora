@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
@@ -41,10 +41,17 @@ import { FullReportPage } from "./pages/FullReportPage";
 import { KPPage } from "./pages/KPPage";
 import { JaiminiPage } from "./pages/JaiminiPage";
 import { NowChartPage } from "./pages/NowChartPage";
+import { SITE_TITLE } from "./config/branding";
 import "./App.css";
 import "./styles/Responsive.css";
 
 function App() {
+  // Reflect the configurable brand name in the browser tab (index.html carries a
+  // sensible static default for the pre-hydration shell).
+  useEffect(() => {
+    document.title = SITE_TITLE;
+  }, []);
+
   return (
     <Router>
       <AuthProvider>

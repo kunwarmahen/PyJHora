@@ -9,7 +9,6 @@ import {
   Clock,
   MessageCircle,
   LogOut,
-  Star,
   Sparkles,
   Orbit,
   CalendarClock,
@@ -38,6 +37,8 @@ import {
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
 import { NowChartWidget } from "../components/NowChartWidget";
+import { BrandLogo } from "../components/BrandLogo";
+import { SITE_TITLE } from "../config/branding";
 import "../styles/Dashboard.css";
 
 export const DashboardPage = () => {
@@ -228,8 +229,8 @@ export const DashboardPage = () => {
     <div className="dashboard-container mandala-bg">
       <nav className="navbar">
         <div className="navbar-brand">
-          <Star className="brand-icon" size={28} />
-          <h1>PyJHora</h1>
+          <BrandLogo className="brand-icon" size={32} />
+          <h1>{SITE_TITLE}</h1>
         </div>
         <div className="nav-right">
           <div className="user-info">

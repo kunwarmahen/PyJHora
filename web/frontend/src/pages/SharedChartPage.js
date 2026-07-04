@@ -11,6 +11,7 @@ import { DataField } from "../components/DataField";
 import { formatDate, orDash } from "../utils/format";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { SITE_TITLE } from "../config/branding";
 
 /** Public, read-only view of a shared chart (no auth required). */
 export const SharedChartPage = () => {
@@ -47,7 +48,7 @@ export const SharedChartPage = () => {
       <nav className="navbar">
         <div className="navbar-brand">
           <Star className="brand-icon" size={28} />
-          <h1>PyJHora</h1>
+          <h1>{SITE_TITLE}</h1>
         </div>
         <div className="nav-right">
           <Link to="/login" className="change-profile-btn">

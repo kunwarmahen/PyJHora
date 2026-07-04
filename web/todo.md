@@ -2285,3 +2285,25 @@ a rebuild/restart to go live.
       Full Report) with `dashboard.features.{ephemeris,bhava,report}` i18n titles+descriptions
       (en; hi/sa fall back). Build green. LESSON: every new page needs BOTH a NavDrawer link
       (mobile) AND a DashboardPage tile (desktop) to be reachable on all viewports.
+
+---
+
+## 19. Configurable branding / white-labelling (owner ask 2026-07-04)
+
+- [x] **Site title + tagline via `.env`** — the hardcoded "PyJHora" wordmark is now driven by
+      two build-time CRA vars (`web/frontend/.env`): `REACT_APP_SITE_TITLE` (defaults to
+      "PyJHora") and `REACT_APP_SITE_TAGLINE` (blank → falls back to the translated
+      `auth.tagline`). A new `src/config/branding.js` exposes `SITE_TITLE` / `SITE_TAGLINE`;
+      the wordmark is wired through the nav drawer, dashboard header, and the login / register /
+      forgot / reset / shared-chart pages. `App.js` sets `document.title = SITE_TITLE` on mount
+      (the static `index.html` keeps a sensible default for the pre-hydration shell, since CRA
+      leaves an *unset* `%REACT_APP_%` placeholder as a literal). Owner deployment set to
+      **Jyotir Ai** / "Where Vedic Wisdom Meets AI".
+- [x] **Brand icon instead of the generic star** — new shared `src/components/BrandLogo.js`
+      renders the built app icon (`public/icon-192.png`, the saffron sunburst badge) at any
+      size, replacing the lucide `<Star>` in the nav drawer and dashboard header. The dashboard
+      keeps the `.brand-icon` class so the saffron `pulse-glow` halo still animates around it.
+- NOTE: CRA bakes `REACT_APP_*` at build time, so changing the title/tagline needs a
+  rebuild/restart. Still on the original branding (out of scope here): PWA `manifest.json`,
+  the `apple-mobile-web-app-title` meta + `pyjhora-v1` SW cache name, the Full-Report PDF
+  footer (`report.footer`), and `nav.openApp`.
