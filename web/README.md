@@ -286,6 +286,20 @@ remember the engine-specific commands:
 DEV_COMPOSE="podman compose" ./dev.sh up
 ```
 
+It also builds and serves an **optimized production frontend** (via
+`npm run build`) without containers — handy for testing the real bundle or
+serving over the LAN:
+
+```bash
+./dev.sh build-web        # build the optimized bundle -> frontend/build
+./dev.sh serve            # serve that build on :3000 with SPA routing
+                          #   (builds first if frontend/build is missing)
+./dev.sh stop frontend    # stop the served build
+```
+
+Unlike `./dev.sh start` (the hot-reloading `npm start` dev server), `serve`
+runs the minified production build, so it reflects exactly what ships.
+
 ## Configuration
 
 ### Backend (.env)

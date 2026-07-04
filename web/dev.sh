@@ -15,6 +15,11 @@
 #   ./dev.sh logs             # tail both logs
 #   ./dev.sh logs backend     # tail one log
 #
+# Production frontend (optimized static build via `npm run build`):
+#   ./dev.sh build-web        # build the optimized bundle -> frontend/build
+#   ./dev.sh serve            # serve the production build (:3000, SPA routing)
+#                             #   builds first if frontend/build is missing
+#
 # Containers (docker / podman compose, auto-detected):
 #   ./dev.sh build            # build image(s)
 #   ./dev.sh up               # build + deploy containers (detached)
@@ -161,6 +166,38 @@ stop_frontend() {
   ok "frontend stopped"
 }
 
+# --- production frontend build ------------------------------------------
+build_web() {  # produce an optimized static bundle in frontend/build
+  info "building production frontend bundle ..."
+  ( cd "$FRONTEND_DIR" && npm run build )
+  ok "production build ready — $FRONTEND_DIR/build"
+}
+
+serve_frontend() {  # serve the optimized build with SPA (client-side routing) fallback
+  if is_running "$FRONTEND_PID"; then
+    ok "frontend already running (pid $(cat "$FRONTEND_PID"), :$FRONTEND_PORT)"
+    return
+  fi
+  if [ ! -d "$FRONTEND_DIR/build" ]; then
+    info "no production build found — building first ..."
+    build_web
+  fi
+  info "serving production build on :$FRONTEND_PORT ..."
+  (
+    cd "$FRONTEND_DIR"
+    # `serve -s` rewrites unknown paths to index.html so React Router deep links work
+    exec npx --yes serve -s build -l "$FRONTEND_PORT"
+  ) >"$FRONTEND_LOG" 2>&1 &
+  echo $! >"$FRONTEND_PID"
+  sleep 1
+  if is_running "$FRONTEND_PID"; then
+    ok "frontend (prod) serving (pid $(cat "$FRONTEND_PID")) — logs: $FRONTEND_LOG"
+  else
+    err "frontend failed to serve — see $FRONTEND_LOG"
+    tail -n 20 "$FRONTEND_LOG" || true
+  fi
+}
+
 # --- status -------------------------------------------------------------
 status_one() {  # status_one <name> <pidfile> <port>
   local name="$1" f="$2" port="$3"
@@ -248,13 +285,15 @@ case "$ACTION" in
       *) err "unknown target '$TARGET'"; exit 1 ;;
     esac
     ;;
+  build-web|webbuild) build_web ;;
+  serve)   serve_frontend ;;
   build)   container_build ;;
   up)      container_up ;;
   down)    container_down ;;
   ps)      container_ps ;;
   clogs)   container_clogs ;;
   ""|-h|--help|help)
-    sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,22p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     ;;
   *)
     err "unknown action '$ACTION'"
