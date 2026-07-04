@@ -52,6 +52,7 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 ## What's New - AI-Powered Features 🆕
 
 ### Ask AI Astrologer
+
 - **Interactive Chat Interface**: Multi-turn conversation with memory about your birth chart
 - **Provider & model selection**: Ollama (local, auto-detected models), any OpenAI-compatible
   local server (LM Studio / llama.cpp / vLLM), Google Gemini, or OpenAI — pick the exact model.
@@ -74,7 +75,7 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   tool-call steps show inline in the transcript. See
   [`docs/AI_TOOL_CALLING_DESIGN.md`](docs/AI_TOOL_CALLING_DESIGN.md)
 - **Saved history**: every Q&A is stored per profile and can be revisited or deleted
-- **Unified AI History** (`/history`): *every* AI output across the whole app — not just the Ask
+- **Unified AI History** (`/history`): _every_ AI output across the whole app — not just the Ask
   chat, but every one-shot reading (Varshaphal, Muhurta, Prashna, Remedies, Bhrigu, Daily digest,
   Sensitive points, Vedic clock, Almanac, Pancha Pakshi, Sarvatobhadra, Compatibility, Compare,
   KP, KP horary, Jaimini, Chart of the moment, Rectification, Predictions) — is saved automatically.
@@ -86,7 +87,7 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   individually deletable. Retention is capped by `AI_HISTORY_MAX` (default 100, pruned on write).
   (The Learn-the-Chart quiz keeps its own dedicated history and is not stored here.)
 - **Answer affordances**: copy, **regenerate** (with the same model, or pick a
-  *different* provider/model from the split-button menu), thumbs up/down, and
+  _different_ provider/model from the split-button menu), thumbs up/down, and
   **export the whole conversation to Markdown or PDF**
 - **Per-user API keys (encrypted)**: each user stores their own provider keys — managed in the
   **Settings → API Keys** tab — no shared `.env` key required
@@ -94,6 +95,7 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Safety disclaimer**: clear "guidance, not professional advice" footer
 
 ### Settings (single source of truth)
+
 - **One place for preferences**: a dedicated **Settings** page (gear icon in the Dashboard
   navbar + nav drawer, or `/settings`) with tabs — **General** (language, chart style North/South,
   ayanamsa), **AI** (provider / model / endpoint, answer-mode default, **Max response length**
@@ -110,6 +112,7 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   question-specific)
 
 ### AI Capabilities page
+
 - **Tool catalog / capability disclosure**: the **AI Capabilities** page (reached from
   **Settings → AI → "View AI capabilities"**, or `/ai-tools`) lists every tool the AI astrologer
   can call while answering — grouped by Core chart / Timing / Strengths & afflictions, each
@@ -119,8 +122,9 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   `tools.py` registry the model actually uses, so it never drifts from the real toolset
 
 ### Transit chat (in-context gochara reading)
-- **Ask about *these* transits, right on the Transits page**: an embedded chat below
-  the gochara chart, seeded with *only* the current transits + your running dasha
+
+- **Ask about _these_ transits, right on the Transits page**: an embedded chat below
+  the gochara chart, seeded with _only_ the current transits + your running dasha
   (`pass_all` mode) so the AI interprets exactly what you're looking at — no redundant
   recompute, no drift from the displayed chart
 - **Smart suggestion chips from the live sky**: surfaces questions from what's actually
@@ -131,6 +135,7 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   conversation thread
 
 ### Enhanced Predictions
+
 - **AI-Powered Analysis**: All prediction endpoints now support AI enhancement
 - **Comprehensive Data**: Uses complete planetary positions, nakshatras, and chart details
 - **Compatibility Analysis**: Deep AI analysis of relationship compatibility beyond just scores
@@ -267,6 +272,7 @@ docker-compose up --build
 ```
 
 To stop:
+
 ```bash
 docker-compose down
 ```
@@ -311,7 +317,7 @@ runs the minified production build, so it reflects exactly what ships.
 ```env
 # MongoDB
 MONGODB_URL=mongodb://localhost:27017
-DATABASE_NAME=pyjhora_db
+DATABASE_NAME=jyotirai_db
 
 # Security (CHANGE IN PRODUCTION)
 SECRET_KEY=your-secret-key-change-this
@@ -415,6 +421,7 @@ DB name), which is deliberate.
 ## Features
 
 ### 1. Authentication
+
 - User registration with username, email, password (with a live password-strength hint)
 - JWT-based login with a **"Keep me signed in"** option, and a per-IP **brute-force rate-limit**
   (default 10 failed attempts / 15 min → HTTP 429; env `LOGIN_RATE_MAX_FAILS` / `LOGIN_RATE_WINDOW_SEC`)
@@ -436,6 +443,7 @@ DB name), which is deliberate.
 - Protected routes; tokens in localStorage (access + refresh)
 
 ### 2. Birth Chart Calculator
+
 - Calculate Rasi (D1) and Navamsa (D9) charts from birth details
 - Divisional (varga) charts D1–D60 with a picker
 - North / South Indian chart styles, selectable ayanamsa
@@ -458,6 +466,7 @@ DB name), which is deliberate.
 - Display planetary positions
 
 ### 3. Horoscope & Predictions
+
 - General horoscope predictions
 - Health predictions
 - Career predictions
@@ -465,6 +474,7 @@ DB name), which is deliberate.
 - Optional AI enhancement with Qwen
 
 ### 4. Marriage Compatibility
+
 - Ashtakoot (Guna Milan) score out of 36, computed from each person's Moon nakshatra+pada
 - Per-koota breakdown with correct maxima (Varna 1, Vashya 2, Tara 3, Yoni 4, Graha Maitri 5,
   Gana 6, Bhakoot 7, Nadi 8) and a verdict
@@ -472,6 +482,7 @@ DB name), which is deliberate.
 - On-demand "Get detailed AI analysis" using the model picked in Ask AI Astrologer
 
 ### 5. Dhasa Periods
+
 - **Vimsottari**: full drill-down tree Maha Dasha → Bhukti → Antara → Sookshma.
   Maha + Bhukti load up front; deeper levels lazy-load on expand (computed at full
   precision from the natal chart). The currently running period auto-expands the
@@ -485,6 +496,7 @@ DB name), which is deliberate.
   rendered as three Kundalis in the selected chart style.
 
 ### 6. Transits (Gochara)
+
 - Current planetary positions for the present moment (anchored to the viewer's local
   time and timezone) or any chosen date/time, drawn over the natal chart
 - Date + time pickers plus ±1 steppers (minute / hour / day / year) and a "Now" reset
@@ -494,6 +506,7 @@ DB name), which is deliberate.
 - North / South Indian chart styles, respects the selected ayanamsa
 
 ### 6a. Ephemeris & Transit Calendar (`/ephemeris`)
+
 - A **daily sidereal ephemeris**: for each day in the window every graha's sign,
   degree-in-sign, nakshatra and retrograde state (taken at local noon), rendered as a
   dense dates × grahas grid (`deg° SignAbbr`, ℞ for retrograde), with today's row
@@ -504,7 +517,8 @@ DB name), which is deliberate.
   respects the selected ayanamsa
 
 ### 6b. Bhava / House-Cusp Chart (`/bhava`)
-- A **Bhava Chalit / cuspal chart**: unlike the Rasi chart (where each sign *is* a
+
+- A **Bhava Chalit / cuspal chart**: unlike the Rasi chart (where each sign _is_ a
   house), it divides the ecliptic by **house cusps**, so a graha near a sign boundary can
   fall in a different bhava than its sign
 - **House systems**: Sripati (Porphyry — matches Jagannatha Hora's Bhava Chalit),
@@ -513,6 +527,7 @@ DB name), which is deliberate.
   each bhava with its sign, cusp (bhava madhya as `d°mm' Sign`), and the grahas in it
 
 ### 6c. Full Report (print-ready PDF) (`/report`)
+
 - A single **print-ready document** assembling the whole chart: masthead
   (name / born / place / ayanamsa / generated date), vitals (Lagna, Moon sign, birth
   nakshatra, Sun sign), Rasi (D1) + Navamsa (D9) charts, planetary-positions table,
@@ -523,6 +538,7 @@ DB name), which is deliberate.
   instead of blanking the report
 
 ### 7. Sarvatobhadra Chakra (`/sarvatobhadra`)
+
 - The authentic **9×9 "auspicious-in-every-direction" grid** — 28 nakshatras (incl.
   Abhijit), the 50 aksharas, 12 rasis, and the central tithi-group / weekday block —
   with **today's grahas mapped onto it** (each placed on both its nakshatra and rasi cell)
@@ -536,6 +552,7 @@ DB name), which is deliberate.
   **plain-language AI reading** of what to expect — uses the model picked in Ask AI Astrologer
 
 ### 8. Varshaphal / Annual Horoscope (`/varshaphal`)
+
 - The **Tajaka annual (solar-return) chart** for a chosen year — cast for the moment
   the Sun returns to its natal longitude — with a **year stepper** (floored at the
   birth year) and North / South chart styles, exportable, respecting the selected ayanamsa
@@ -548,9 +565,10 @@ DB name), which is deliberate.
 - On-demand **plain-language AI year-ahead reading** grounded in the above, using the model
   picked in Ask AI Astrologer
 - Also published as a smart-lookup **tool** (`get_varshaphal`) so the AI astrologer can pull
-  an annual snapshot when asked "how is *&lt;year&gt;* for me?"
+  an annual snapshot when asked "how is _&lt;year&gt;_ for me?"
 
 ### 9. Almanac (`/almanac`)
+
 - A location-driven almanac (not birth-chart bound) with a **shared location toggle**
   — birth place vs the device's current location (browser geolocation) — feeding four
   self-contained sections:
@@ -576,6 +594,7 @@ DB name), which is deliberate.
 - Same current-DST timezone caveat as the rest of the almanac (fine for picking a day)
 
 ### 10. Pancha Pakshi Sastra (`/pancha-pakshi`)
+
 - The **bird-cycle daily-timing system** (Tamil Siddha tradition): assigns you a
   **birth bird** from your birth star + paksha, then rates the day's windows by that
   bird's state — **Ruling / Eating / Walking / Sleeping / Dying** (strongest to weakest)
@@ -588,6 +607,7 @@ DB name), which is deliberate.
   and a smart-lookup **tool** (`get_pancha_pakshi`) so the AI can pull today's timing
 
 ### 11. Advanced Details (`/advanced`)
+
 - **Ashtakavarga**: Bhinna (per-contributor) + Sarva (combined) bindu tables, with
   a Sarva heatmap (grand total 337)
 - **Chart factors**: Arudha padas (A1–A12), Chara karakas (Jaimini), Special lagnas
@@ -603,7 +623,9 @@ DB name), which is deliberate.
 - Each section loads independently and respects the selected ayanamsa
 
 ### 12. Birth-Time Rectification (`/rectify`) — experimental
+
 Three approaches, chosen with a mode toggle:
+
 - **By rule (śuddhi)** — classical BV Raman checks: **Nakshatra Śuddhi** (default;
   self-serve — no extra input), **Lagna Śuddhi**, and **Janma Śuddhi** (needs a
   gender selection). Searches ±30 min and suggests the nearest time that satisfies
@@ -612,12 +634,12 @@ Three approaches, chosen with a mode toggle:
   illness, relocation, a parent's passing, …); the app scans candidate birth times
   and picks the one whose **Vimsottari dasha** (the maha/bhukti running at each
   event) plus **Jupiter/Saturn transits** best match each event's classical
-  significators. Deterministic and **auditable** — a per-event table shows *why*
+  significators. Deterministic and **auditable** — a per-event table shows _why_
   each time fits (which period lord rules/occupies the event's houses, or is its
   karaka), with a rough **fit %** that strengthens as you add events
 - **Conversational** — an AI astrologer **interviews you in chat**, asking about one
   dated life event at a time and extracting them as it goes; when it has enough it
-  invites you to run the (same deterministic) rectification. The AI only *collects*
+  invites you to run the (same deterministic) rectification. The AI only _collects_
   the events — the engine still decides the time, so the result stays auditable
 - Both show the **signed shift**, a **what-moved** before→after summary (Moon
   star/pada + rising sign), the **before/after charts side by side**, an optional
@@ -628,6 +650,7 @@ Three approaches, chosen with a mode toggle:
   events, never an authoritative correction (PyJHora flags these methods experimental)
 
 ### 13. Sensitive Points (`/sensitive-points`)
+
 - The chart's **supporting sensitive points**, on one page:
 - **Sphutas** — 12 sensitive longitudes derived from the natal chart (Tri/Chatur/Pancha/
   Prana/Deha/Mrityu/Beeja/Kshetra/Tithi/Yoga/Yogi/Avayogi), each as a sign + degree + house
@@ -639,6 +662,7 @@ Three approaches, chosen with a mode toggle:
   (`get_sphuta`, `get_sahams`, `get_argala`)
 
 ### 14. Vedic Clock & Retrograde (`/vedic-clock`)
+
 - A **live Vedic day-clock** (SVG): a 60-ghati dial with a shaded day arc and a hand that
   ticks client-side (advancing the snapshot ghati by real elapsed seconds — timezone-
   independent), a digital **ghati:vighati** readout, the running **hora lord**, and the
@@ -652,6 +676,7 @@ Three approaches, chosen with a mode toggle:
   `get_retrograde`)
 
 ### 15. Muhurta / Electional Astrology (`/muhurta`)
+
 - Find **auspicious time windows** for an activity (general, marriage, travel, new business,
   housewarming, education, medical) over a date range, computed at your profile's place
 - Each day is scored from its Panchanga — per-activity favourable **nakshatra**, **weekday**,
@@ -666,6 +691,7 @@ Three approaches, chosen with a mode toggle:
   day's star) and **Chandrabala** (the transit Moon counted from your natal Moon)
 
 ### 16. Prashna / Horary (`/prashna`)
+
 - Ask a question and cast a chart for the **exact moment you ask** — no birth data needed
 - Uses your browser location (with permission; falls back to the profile place) at the current
   instant; renders the moment-chart via the shared North/South Kundali
@@ -673,6 +699,7 @@ Three approaches, chosen with a mode toggle:
   with a likely-yes / no / mixed answer and a sense of timing
 
 ### 17. Today — Daily Digest & Notifications (`/daily-digest`)
+
 - A personalized **daily card**: today's Panchanga + your running Vimsottari dasha (flagging a
   Bhukti change within 30 days) + headline transits (Sade-Sati, Jupiter-from-Moon, retrogrades,
   next Jupiter/Saturn ingress), plus a warm **AI reading**
@@ -693,6 +720,7 @@ Three approaches, chosen with a mode toggle:
   `POST /api/notifications/digest/send` per user (both share `digest.send_digest_for_user`)
 
 ### 18. Bhrigu / Nadi Yearly Markers (`/bhrigu-markers`)
+
 - Two clearly-labelled traditional predictive devices for a birth chart:
   - **Nadi annual progression** — the one-sign-per-year advance from the natal Moon (age 0 = Moon
     sign); each year's marker sign + its lord + the natal planets sitting there (Bhrigu-Bindu and
@@ -704,6 +732,7 @@ Three approaches, chosen with a mode toggle:
   fated forecast
 
 ### 19. Remedies (`/remedies`)
+
 - Traditional **remedial suggestions per weak / afflicted planet**. A planet is flagged when it is
   **debilitated**, **shadbala-deficient** (six-fold strength ratio < 1.0), or in a **dusthana**
   (6th/8th/12th from the Lagna)
@@ -714,19 +743,22 @@ Three approaches, chosen with a mode toggle:
   advice**; gemstones should be worn only after qualified consultation
 
 ### 20. Export & Share
+
 - **Export** any chart as **PNG** or **PDF** (buttons on each chart card) — on Birth
   Chart, Compare, Transit and the shared view
 - **Share** a chart as a **public, read-only link** (`/share/:token`) — no login needed
   to view; offers a "create a free account" CTA
 
 ### 21. LLM Integration (Optional)
+
 - Enhanced predictions with a local Ollama model or any configured provider
 - Contextual astrological interpretations
 - Personalized analysis
 
 ### 22. AI History (`/history`)
+
 - Reachable from a **dashboard tile** (desktop) and the **nav drawer** (mobile)
-- **Every AI output is saved automatically** — the Ask/Transit chats *and* every one-shot reading
+- **Every AI output is saved automatically** — the Ask/Transit chats _and_ every one-shot reading
   (Varshaphal, Muhurta, Prashna, Remedies, Bhrigu, Daily digest, Sensitive points, Vedic clock,
   Almanac, Pancha Pakshi, Sarvatobhadra, Compatibility, Compare, Rectification, Predictions)
 - **Global History page** grouped by profile (+ a **"No profile"** bucket for location-driven tools),
@@ -795,6 +827,7 @@ OPENAI_API_KEY=your-openai-api-key-here
 ### Switching Between AI Models
 
 Users can select their preferred provider **and model** in the frontend:
+
 - Go to **Settings → AI**
 - Pick a provider (Ollama / OpenAI-compatible / Gemini / OpenAI) and a specific model
 - Optionally raise the **Max response length** if answers get cut off
@@ -810,6 +843,7 @@ masked, and used ahead of any global env key for that user's requests.
 ## API Endpoints
 
 ### Authentication
+
 - `POST /api/auth/register` - Register new user (returns access + refresh token)
 - `POST /api/auth/login` - Login user (`remember_me` picks the refresh-token TTL)
 - `POST /api/auth/refresh` - Exchange a refresh token for a fresh access token (rotates the refresh token)
@@ -818,6 +852,7 @@ masked, and used ahead of any global env key for that user's requests.
 - `GET /api/user/profile` - Get current user profile
 
 ### Astrology
+
 - `POST /api/astrology/birth-chart` - Calculate birth chart
 - `GET /api/astrology/birth-chart/{chart_id}` - Retrieve stored chart
 - `GET /api/astrology/vargas` - List supported divisional charts
@@ -849,6 +884,7 @@ masked, and used ahead of any global env key for that user's requests.
 - `POST /api/astrology/compatibility` - Check marriage compatibility
 
 ### AI Q&A (New) 🆕
+
 - `GET /api/llm/providers` - List AI providers, reachability, and available models (reflects per-user keys)
 - `POST /api/astrology/ask` - Ask a question about the birth chart (multi-turn, rich context)
 - `POST /api/astrology/ask/stream` - Same, streamed token-by-token over SSE
@@ -861,18 +897,21 @@ masked, and used ahead of any global env key for that user's requests.
 - `POST /api/astrology/compare-analysis` - Get a neutral AI comparison of two charts (not marriage matching)
 
 ### Saved Profiles
+
 - `POST /api/profiles/save` - Save a new birth profile
 - `GET /api/profiles/list` - List all saved profiles for the current user
 - `PUT /api/profiles/{profile_id}` - Update an existing birth profile
 - `DELETE /api/profiles/{profile_id}` - Delete a saved profile
 
 ### User
+
 - `GET /api/user/charts` - Get user's saved charts
 - `GET /api/user/api-keys` - Per-provider key status (masked; never the raw key)
 - `PUT /api/user/api-keys/{provider}` - Store (encrypted) your API key for a provider
 - `DELETE /api/user/api-keys/{provider}` - Remove a stored API key
 
 ### Health
+
 - `GET /health` - Health check endpoint
 
 ## Frontend Pages
@@ -1078,4 +1117,4 @@ https://github.com/kunwarmahen/PyJHora
 
 ## License
 
-Check the PyJHora license for terms of use.
+Check the JyotirAI license for terms of use.
