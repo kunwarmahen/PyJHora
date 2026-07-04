@@ -27,6 +27,7 @@ import {
   Sun,
   Waypoints,
   Gem,
+  History,
 } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
@@ -171,6 +172,12 @@ export const DashboardPage = () => {
       icon: <Clock4 size={32} />,
       path: "/rectify",
       gradient: "linear-gradient(135deg, #E27B5A 0%, #2D3561 100%)",
+    },
+    {
+      key: "history",
+      icon: <History size={32} />,
+      path: "/history",
+      gradient: "linear-gradient(135deg, #FF9933 0%, #2D3561 100%)",
     },
   ];
 

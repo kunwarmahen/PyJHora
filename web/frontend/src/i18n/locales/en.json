@@ -386,6 +386,10 @@
       "remedies": {
         "title": "Remedies",
         "description": "Traditional gemstone, mantra and charity remedies for weak planets."
+      },
+      "history": {
+        "title": "AI History",
+        "description": "Every AI reading and chat you've generated — reopen any of them on its own page."
       }
     }
   },

@@ -2115,7 +2115,8 @@ double-stored here.
       everything; list items now carry `kind`/`route`/`label`/`context`. Added `listHistory()` alias in
       `api.js`. A request interceptor injects the selected `profile_id` into the birth-bound
       `*-analysis` calls so pages don't each thread it through.
-- [x] **Global History page** — `HistoryPage` (route `/history`, nav entry `History` icon). Groups by
+- [x] **Global History page** — `HistoryPage` (route `/history`, reachable from a **Dashboard tile**
+      (desktop) + the **nav-drawer** `History` entry (mobile)). Groups by
       profile (+ "No profile" bucket), filter chips All / Chats / Readings, each row shows a source
       badge + kind icon, title, a 2-line preview, model + timestamp, and an individual delete. Clicking
       selects the item's profile (so the target page recomputes for the right chart) then navigates to

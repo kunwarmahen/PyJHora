@@ -644,6 +644,7 @@ Three approaches, chosen with a mode toggle:
 - Personalized analysis
 
 ### 22. AI History (`/history`)
+- Reachable from a **dashboard tile** (desktop) and the **nav drawer** (mobile)
 - **Every AI output is saved automatically** — the Ask/Transit chats *and* every one-shot reading
   (Varshaphal, Muhurta, Prashna, Remedies, Bhrigu, Daily digest, Sensitive points, Vedic clock,
   Almanac, Pancha Pakshi, Sarvatobhadra, Compatibility, Compare, Rectification, Predictions)
