@@ -66,8 +66,10 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   Rectification, Predictions) — is saved automatically. The History page groups items by profile
   (plus a **"No profile"** bucket for location-driven tools) and filters by chat vs. reading;
   clicking any item **returns to the tool that produced it and re-shows the exact saved reading**
-  (a snapshot — no re-computation). Readings pile up; each is individually deletable. Retention is
-  capped by `AI_HISTORY_MAX` (default 100, pruned on write)
+  (a snapshot — no re-computation). Every tool page also has its own collapsible **"Recent readings"**
+  control (filtered to that tool) for reopening a past reading in place. Readings pile up; each is
+  individually deletable. Retention is capped by `AI_HISTORY_MAX` (default 100, pruned on write).
+  (The Learn-the-Chart quiz keeps its own dedicated history and is not stored here.)
 - **Answer affordances**: copy, **regenerate** (with the same model, or pick a
   *different* provider/model from the split-button menu), thumbs up/down, and
   **export the whole conversation to Markdown or PDF**
@@ -640,6 +642,18 @@ Three approaches, chosen with a mode toggle:
 - Enhanced predictions with a local Ollama model or any configured provider
 - Contextual astrological interpretations
 - Personalized analysis
+
+### 22. AI History (`/history`)
+- **Every AI output is saved automatically** — the Ask/Transit chats *and* every one-shot reading
+  (Varshaphal, Muhurta, Prashna, Remedies, Bhrigu, Daily digest, Sensitive points, Vedic clock,
+  Almanac, Pancha Pakshi, Sarvatobhadra, Compatibility, Compare, Rectification, Predictions)
+- **Global History page** grouped by profile (+ a **"No profile"** bucket for location-driven tools),
+  filterable by chat vs. reading; each item has a source badge, preview, and individual delete
+- **Reopen = exact snapshot**: clicking an item returns to the tool that produced it, restores the
+  inputs, and re-shows the saved reading verbatim (no re-computation)
+- **Per-page "Recent readings"** control on each tool page for reopening a past reading in place
+- Readings pile up (each generation is its own item); retention capped by `AI_HISTORY_MAX`
+  (default 100, pruned on write). The Learn-the-Chart quiz keeps its own separate history
 
 ## AI Models Setup (Optional but Recommended)
 
