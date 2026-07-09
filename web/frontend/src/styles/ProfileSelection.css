@@ -92,6 +92,40 @@
   cursor: not-allowed;
 }
 
+.toolbar-btn.primary {
+  background: var(--saffron, #e07b39);
+  color: white;
+  border-color: var(--saffron, #e07b39);
+}
+
+.toolbar-btn.primary:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.profiles-toolbar.export-mode {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.export-hint {
+  margin-right: auto;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cosmic-indigo);
+}
+
+.export-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--saffron, #e07b39);
+}
+
+.profile-card.selected-for-export {
+  outline: 2px solid var(--saffron, #e07b39);
+  outline-offset: 2px;
+}
+
 .profiles-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));

@@ -748,11 +748,12 @@ Three approaches, chosen with a mode toggle:
   Chart, Compare, Transit and the shared view
 - **Share** a chart as a **public, read-only link** (`/share/:token`) — no login needed
   to view; offers a "create a free account" CTA
-- **Export / import birth profiles** (Profile selection screen) — download **all** your
-  saved profiles (name, DOB, time, place, coordinates, timezone) as a portable JSON file,
-  and import that file back into any account. Imports **skip duplicates** (same profile
-  name + date + time of birth), so re-importing the same file is safe, and never override
-  the account's current default profile
+- **Export / import birth profiles** (Profile selection screen) — download your saved
+  profiles (name, DOB, time, place, coordinates, timezone) as a portable JSON file, and
+  import that file back into any account. **Export** lets you **pick which profiles** to
+  include (all pre-selected; toggle individually or select-all/none) — or export everything.
+  Imports **skip duplicates** (same profile name + date + time of birth), so re-importing
+  the same file is safe, and never override the account's current default profile
 
 ### 21. LLM Integration (Optional)
 

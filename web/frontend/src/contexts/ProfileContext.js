@@ -123,15 +123,17 @@ export const ProfileProvider = ({ children }) => {
     }
   };
 
-  // Export all profiles to a downloadable JSON file
-  const exportProfiles = () => {
+  // Export profiles to a downloadable JSON file. Pass a subset to export only
+  // those; omit to export all.
+  const exportProfiles = (subset) => {
+    const list = Array.isArray(subset) && subset.length ? subset : profiles;
     const envelope = {
       app: "Jyotir AI",
       type: "profiles",
       version: 1,
       exported_at: new Date().toISOString(),
-      count: profiles.length,
-      profiles: profiles.map((p) => ({
+      count: list.length,
+      profiles: list.map((p) => ({
         profile_name: p.profile_name,
         birth_details: p.birth_details,
         is_default: p.is_default || false,
@@ -149,7 +151,7 @@ export const ProfileProvider = ({ children }) => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    return { success: true, count: profiles.length };
+    return { success: true, count: list.length };
   };
 
   // Import profiles from a parsed JSON file (envelope or bare array)

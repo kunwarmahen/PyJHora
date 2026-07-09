@@ -2400,9 +2400,14 @@ between accounts/devices as a portable JSON file. Lives on the profile-selection
 - [x] **Portable JSON envelope** — `{app, type:"profiles", version:1, exported_at, count, profiles:[]}`,
       where each profile is just `{profile_name, birth_details, is_default}` (no user/DB ids), so a
       file exported from one account imports cleanly into any other.
-- [x] **Export** — done client-side in `ProfileContext.exportProfiles()` from the already-loaded
-      `profiles` list (no round-trip); downloads `jyotirai-profiles-YYYY-MM-DD.json`. A matching
-      **`GET /api/profiles/export`** endpoint returns the same envelope for API/testing symmetry.
+- [x] **Export** — done client-side in `ProfileContext.exportProfiles(subset?)` from the already-
+      loaded `profiles` list (no round-trip); downloads `jyotirai-profiles-YYYY-MM-DD.json`. A
+      matching **`GET /api/profiles/export`** endpoint returns the same envelope for API/testing.
+- [x] **Selectable export** (owner ask 2026-07-09) — Export enters a selection mode on the
+      profile-selection screen: each card shows a checkbox (all pre-selected), with select-all/none
+      and a live count; "Export (N)" downloads only the chosen profiles. Edit/delete + the create-new
+      card are hidden while selecting. i18n `profile.{cancel,exportSelectHint,exportSelectAria,
+      exportSelected,selectedForExport,tapToSelect,selectAll,selectNone}` (en/hi/sa).
 - [x] **Import** — **`POST /api/profiles/import`** (`ImportProfilesRequest`) bulk-inserts via one
       `insert_many`. **Dedups** on `(profile_name, dob, tob)` against existing + within the file, so
       re-importing the same file is a no-op; forces `is_default=False` so imports never clobber the

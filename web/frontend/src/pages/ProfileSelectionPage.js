@@ -15,6 +15,9 @@ import {
   Edit2,
   Download,
   Upload,
+  CheckSquare,
+  Square,
+  X,
 } from "lucide-react";
 import LocationSearch from "../components/LocationSearch";
 import MapPicker from "../components/MapPicker";
@@ -35,6 +38,8 @@ export const ProfileSelectionPage = () => {
     selectProfile,
   } = useProfile();
   const fileInputRef = useRef(null);
+  const [exportMode, setExportMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
   const [formData, setFormData] = useState({
@@ -145,8 +150,21 @@ export const ProfileSelectionPage = () => {
   };
 
   const handleSelectProfile = (profile) => {
+    if (exportMode) {
+      toggleSelected(profile._id);
+      return;
+    }
     selectProfile(profile);
     navigate("/dashboard");
+  };
+
+  const toggleSelected = (profileId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(profileId)) next.delete(profileId);
+      else next.add(profileId);
+      return next;
+    });
   };
 
   const handleDeleteProfile = async (e, profileId) => {
@@ -156,12 +174,32 @@ export const ProfileSelectionPage = () => {
     }
   };
 
+  // Enter export-selection mode (all profiles pre-selected for convenience)
   const handleExport = () => {
     if (!profiles.length) {
       window.alert(t("profile.exportEmpty"));
       return;
     }
-    exportProfiles();
+    setSelectedIds(new Set(profiles.map((p) => p._id)));
+    setExportMode(true);
+  };
+
+  const cancelExport = () => {
+    setExportMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) =>
+      prev.size === profiles.length ? new Set() : new Set(profiles.map((p) => p._id)),
+    );
+  };
+
+  const handleExportSelected = () => {
+    const chosen = profiles.filter((p) => selectedIds.has(p._id));
+    if (!chosen.length) return;
+    exportProfiles(chosen);
+    cancelExport();
   };
 
   const handleImportClick = () => {
@@ -219,54 +257,94 @@ export const ProfileSelectionPage = () => {
               </div>
             ) : (
               <>
-                <div className="profiles-toolbar">
-                  <button className="toolbar-btn" onClick={handleImportClick}>
-                    <Upload size={16} />
-                    <span>{t("profile.import")}</span>
-                  </button>
-                  <button
-                    className="toolbar-btn"
-                    onClick={handleExport}
-                    disabled={!profiles.length}
-                  >
-                    <Download size={16} />
-                    <span>{t("profile.export")}</span>
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="application/json,.json"
-                    onChange={handleImportFile}
-                    style={{ display: "none" }}
-                  />
-                </div>
+                {exportMode ? (
+                  <div className="profiles-toolbar export-mode">
+                    <span className="export-hint">
+                      {t("profile.exportSelectHint", { count: selectedIds.size })}
+                    </span>
+                    <button className="toolbar-btn" onClick={toggleSelectAll}>
+                      {selectedIds.size === profiles.length
+                        ? t("profile.selectNone")
+                        : t("profile.selectAll")}
+                    </button>
+                    <button className="toolbar-btn" onClick={cancelExport}>
+                      <X size={16} />
+                      <span>{t("profile.cancel")}</span>
+                    </button>
+                    <button
+                      className="toolbar-btn primary"
+                      onClick={handleExportSelected}
+                      disabled={!selectedIds.size}
+                    >
+                      <Download size={16} />
+                      <span>{t("profile.exportSelected", { count: selectedIds.size })}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="profiles-toolbar">
+                    <button className="toolbar-btn" onClick={handleImportClick}>
+                      <Upload size={16} />
+                      <span>{t("profile.import")}</span>
+                    </button>
+                    <button
+                      className="toolbar-btn"
+                      onClick={handleExport}
+                      disabled={!profiles.length}
+                    >
+                      <Download size={16} />
+                      <span>{t("profile.export")}</span>
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="application/json,.json"
+                      onChange={handleImportFile}
+                      style={{ display: "none" }}
+                    />
+                  </div>
+                )}
                 <div className="profiles-grid">
                   {profiles.map((profile, index) => (
                     <div
                       key={profile._id}
-                      className={`profile-card fade-in stagger-${Math.min(index + 1, 5)}`}
+                      className={`profile-card fade-in stagger-${Math.min(index + 1, 5)}${
+                        exportMode && selectedIds.has(profile._id) ? " selected-for-export" : ""
+                      }`}
                       onClick={() => handleSelectProfile(profile)}
                     >
                       <div className="profile-card-header">
                         <div className="profile-avatar">
                           <User size={24} />
                         </div>
-                        <div style={{ display: "flex", gap: "8px" }}>
-                          <button
-                            className="edit-btn"
-                            onClick={(e) => handleEditProfile(e, profile)}
-                            aria-label={t("profile.editAria")}
+                        {exportMode ? (
+                          <div
+                            className="export-checkbox"
+                            aria-label={t("profile.exportSelectAria")}
                           >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            className="delete-btn"
-                            onClick={(e) => handleDeleteProfile(e, profile._id)}
-                            aria-label={t("profile.deleteAria")}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
+                            {selectedIds.has(profile._id) ? (
+                              <CheckSquare size={22} />
+                            ) : (
+                              <Square size={22} />
+                            )}
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            <button
+                              className="edit-btn"
+                              onClick={(e) => handleEditProfile(e, profile)}
+                              aria-label={t("profile.editAria")}
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              className="delete-btn"
+                              onClick={(e) => handleDeleteProfile(e, profile._id)}
+                              aria-label={t("profile.deleteAria")}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                       <h3>{profile.profile_name}</h3>
                       <div className="profile-details">
@@ -288,7 +366,13 @@ export const ProfileSelectionPage = () => {
                         </div>
                       </div>
                       <div className="select-indicator">
-                        <span>{t("profile.continueWith")}</span>
+                        <span>
+                          {exportMode
+                            ? selectedIds.has(profile._id)
+                              ? t("profile.selectedForExport")
+                              : t("profile.tapToSelect")
+                            : t("profile.continueWith")}
+                        </span>
                         <ChevronRight size={18} />
                       </div>
                     </div>
@@ -297,6 +381,7 @@ export const ProfileSelectionPage = () => {
                   <div
                     className={`profile-card create-new-card fade-in stagger-${Math.min(profiles.length + 1, 5)}`}
                     onClick={() => setShowCreateForm(true)}
+                    style={{ display: exportMode ? "none" : undefined }}
                   >
                     <div className="create-icon">
                       <Plus size={48} />
