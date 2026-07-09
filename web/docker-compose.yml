@@ -25,8 +25,10 @@ services:
       SECRET_KEY: your-secret-key-change-in-production
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
-      QWEN_API_URL: http://localhost:5000
-      USE_QWEN: "false"
+      # Local AI (Ollama). Point at the host's Ollama; from inside the container
+      # "localhost" is the container itself, so use host.docker.internal / LAN IP.
+      OLLAMA_URL: http://host.docker.internal:11434
+      OLLAMA_DEFAULT_MODEL: qwen2.5:14b
       CORS_ORIGINS: '["http://localhost:3000", "http://localhost:8000"]'
     ports:
       - "8000:8000"

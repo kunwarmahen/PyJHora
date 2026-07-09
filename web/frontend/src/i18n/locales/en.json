@@ -696,7 +696,7 @@
     "typeHealth": "Health Predictions",
     "typeCareer": "Career Predictions",
     "typeTransit": "Current Transits",
-    "useAi": "Use AI (Qwen) for enhanced predictions",
+    "useAi": "Use AI for an enhanced, written reading",
     "generating": "Generating…",
     "generate": "Generate Predictions",
     "generated": "Predictions Generated",
@@ -705,7 +705,9 @@
     "planetaryPositions": "Planetary Positions",
     "longitude": "Longitude",
     "detailed": "Detailed Predictions",
-    "astrological": "Astrological Predictions"
+    "astrological": "Astrological Predictions",
+    "aiError": "Could not generate the AI reading. Check the AI provider in Settings.",
+    "aiModel": "Model: {{model}}"
   },
   "recent": {
     "title": "Recent readings",
@@ -861,7 +863,7 @@
       "title": "System health",
       "server": "API server",
       "pyjhora": "Astrology engine (Jyotir AI)",
-      "qwen": "Local AI model (Qwen)",
+      "localAi": "Local AI (Ollama)",
       "mapPicker": "Map location picker",
       "ok": "OK",
       "disabled": "Off",

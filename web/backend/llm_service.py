@@ -143,13 +143,10 @@ class LLMService:
         self.openai_api_key = os.getenv("OPENAI_API_KEY", "")
         self.openai_compat_key = os.getenv("OPENAI_COMPATIBLE_API_KEY", "")
 
-        # Endpoints (QWEN_API_URL kept as a fallback for older configs)
-        # rstrip("/") so a trailing slash can't produce a "//api/tags" double slash,
-        # which Ollama answers with a 307 redirect that httpx won't follow.
+        # Endpoints. rstrip("/") so a trailing slash can't produce a "//api/tags"
+        # double slash, which Ollama answers with a 307 redirect httpx won't follow.
         self.ollama_url = (
-            os.getenv("OLLAMA_URL")
-            or os.getenv("QWEN_API_URL")
-            or "http://localhost:11434"
+            os.getenv("OLLAMA_URL") or "http://localhost:11434"
         ).rstrip("/")
         self.openai_compat_url = os.getenv(
             "OPENAI_COMPATIBLE_URL", "http://localhost:1234/v1"

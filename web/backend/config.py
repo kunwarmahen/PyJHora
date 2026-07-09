@@ -22,9 +22,6 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     REFRESH_TOKEN_SHORT_DAYS: int = 1
 
-    QWEN_API_URL: str = "http://localhost:5000"
-    USE_QWEN: bool = False
-
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
 
     # Interactive map location picker (Leaflet + OpenStreetMap). When False the

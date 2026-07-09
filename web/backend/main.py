@@ -15,7 +15,6 @@ from auth import create_access_token, decode_token, get_password_hash, verify_pa
 from database import User, BirthDetails, ChartData
 from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, SUPPORTED_VARGAS, SUPPORTED_DASHAS
 from chart_context import build_chart_context
-from qwen_predictor import QwenPredictor
 from llm_service import llm_service, LLMProvider
 import tools as tool_registry
 import conversations as convo
@@ -139,7 +138,6 @@ class CompatibilityRequest(BaseModel):
     female_latitude: Optional[float] = None
     female_longitude: Optional[float] = None
     female_timezone: Optional[float] = None
-    use_qwen: bool = False
 
 class CompatibilityAnalysisRequest(BaseModel):
     male_details: BirthDetails
@@ -1084,10 +1082,11 @@ async def get_birth_chart(chart_id: str, current_user: str = Depends(get_current
 @app.post("/api/astrology/horoscope")
 async def get_horoscope(
     birth_details: BirthDetails,
-    use_qwen: bool = False,
     current_user: str = Depends(get_current_user)
 ):
-    """Get horoscope predictions"""
+    """Get the deterministic horoscope chart data (lagna, moon/sun signs,
+    planetary positions). For an AI-written reading use /api/astrology/predict,
+    which runs through the unified LLM service (Ollama/OpenAI/Gemini)."""
     try:
         chart_data = AstrologyCompute.get_horoscope_predictions(
             dob=birth_details.dob,
@@ -1097,62 +1096,9 @@ async def get_horoscope(
             lon=birth_details.longitude,
             tz=birth_details.timezone
         )
-
-        if use_qwen and settings.USE_QWEN:
-            qwen_prediction = await QwenPredictor.generate_horoscope_prediction(chart_data)
-            chart_data["ai_prediction"] = qwen_prediction
-        elif use_qwen:
-            # Basic predictions when AI is not available
-            chart_data["ai_prediction"] = generate_basic_predictions(chart_data)
-
         return chart_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-def generate_basic_predictions(chart_data):
-    """Generate basic astrological predictions from chart data"""
-    lagna = chart_data.get("lagna", {})
-    moon = chart_data.get("moon_sign", {})
-    sun = chart_data.get("sun_sign", {})
-
-    predictions = []
-
-    # Lagna predictions
-    lagna_sign = lagna.get("sign_name", "")
-    if lagna_sign:
-        predictions.append(f"**Ascendant in {lagna_sign}:** Your rising sign suggests your outer personality and how others perceive you.")
-
-    # Moon sign predictions
-    moon_sign = moon.get("sign_name", "")
-    moon_nak = moon.get("nakshatra", "")
-    if moon_sign:
-        predictions.append(f"**Moon in {moon_sign}** ({moon_nak} nakshatra): This placement influences your emotions, mind, and instincts.")
-
-    # Sun sign predictions
-    sun_sign = sun.get("sign_name", "")
-    if sun_sign:
-        predictions.append(f"**Sun in {sun_sign}:** Represents your core self, ego, and vitality.")
-
-    # Planetary strength analysis
-    planets = chart_data.get("planetary_positions", {})
-
-    # Check for exalted planets
-    exalted = {
-        "Sun": "Aries", "Moon": "Taurus", "Mars": "Capricorn",
-        "Mercury": "Virgo", "Jupiter": "Cancer", "Venus": "Pisces", "Saturn": "Libra"
-    }
-
-    for planet, data in planets.items():
-        if planet in exalted and data.get("sign_name") == exalted[planet]:
-            predictions.append(f"✨ **{planet} is exalted in {data['sign_name']}** - This is a very strong placement bringing positive results.")
-
-    # General life areas
-    predictions.append("\n**General Outlook:**")
-    predictions.append(f"- Your birth chart shows a combination of {lagna_sign} Ascendant with Moon in {moon_sign}")
-    predictions.append(f"- The nakshatra {moon_nak} adds specific qualities to your personality")
-    predictions.append("- Consult an astrologer for detailed life predictions and remedies")
-
-    return "\n\n".join(predictions)
 
 @app.post("/api/astrology/doshas")
 async def get_doshas(
@@ -1693,21 +1639,8 @@ async def get_compatibility(
             female_tz=request.female_timezone,
             tz=request.male_timezone or request.female_timezone or 5.5
         )
-
-        if request.use_qwen and settings.USE_QWEN:
-            chart1 = AstrologyCompute.get_horoscope_predictions(
-                request.male_dob, request.male_tob, request.male_place,
-                lat=request.male_latitude, lon=request.male_longitude, tz=request.male_timezone
-            )
-            chart2 = AstrologyCompute.get_horoscope_predictions(
-                request.female_dob, request.female_tob, request.female_place,
-                lat=request.female_latitude, lon=request.female_longitude, tz=request.female_timezone
-            )
-            qwen_analysis = await QwenPredictor.generate_compatibility_prediction(
-                chart1, chart2, compatibility.get("total_score", 0)
-            )
-            compatibility["ai_analysis"] = qwen_analysis
-        
+        # AI compatibility analysis lives at /api/astrology/compatibility-analysis
+        # (unified LLM service); this endpoint returns the deterministic score only.
         return compatibility
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -3889,19 +3822,15 @@ async def delete_profile(profile_id: str, current_user: str = Depends(get_curren
 async def health_check():
     """Health check.
 
-    Also probes the local Ollama endpoint (OLLAMA_URL / OLLAMA_DEFAULT_MODEL) so
-    the Settings › System tab reflects the *actual* local-AI status and the
-    configured model, rather than the legacy USE_QWEN flag alone."""
+    Probes the local Ollama endpoint (OLLAMA_URL / OLLAMA_DEFAULT_MODEL) so the
+    Settings › System tab reflects the actual local-AI status and configured
+    model."""
     local = await llm_service._ollama_status()
-    local_available = bool(local.get("available"))
     return {
         "status": "healthy",
         "engine_available": AstrologyCompute.ENGINE_AVAILABLE,
-        # Legacy field retained for compatibility: "local AI" is on whenever the
-        # Ollama endpoint is reachable (or the legacy USE_QWEN flag is set).
-        "qwen_enabled": settings.USE_QWEN or local_available,
         "local_ai": {
-            "available": local_available,
+            "available": bool(local.get("available")),
             "base_url": local.get("base_url"),
             "model": local.get("default_model"),
             "reason": local.get("reason"),

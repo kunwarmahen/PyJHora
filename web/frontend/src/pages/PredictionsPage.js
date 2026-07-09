@@ -1,9 +1,28 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import ReactMarkdown from "react-markdown";
 import { AlertCircle, CheckCircle, MapPin } from "lucide-react";
 import { astrologyService } from "../services/api";
 import LocationSearch from "../components/LocationSearch";
 import "../styles/Forms.css";
+
+// Read the user's AI provider/model choice (Settings → AI, persisted in
+// localStorage) so predictions run through the unified LLM service — the same
+// path every other AI page uses. A blank model lets the server fall back to its
+// configured default (e.g. OLLAMA_DEFAULT_MODEL).
+const readModelConfig = () => {
+  const providerType = localStorage.getItem("ai_provider_type") || "ollama";
+  return {
+    providerType,
+    model: localStorage.getItem("ai_model") || "",
+    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    legacyProvider: providerType === "ollama" ? "qwen" : providerType,
+    maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
+  };
+};
+
+// UI prediction type → the LLM service's prediction_type keyword.
+const AI_TYPE = { horoscope: "general", health: "health", career: "career" };
 
 export const PredictionsPage = () => {
   const { t } = useTranslation();
@@ -17,10 +36,13 @@ export const PredictionsPage = () => {
     timezone: null,
   });
   const [predictionType, setPredictionType] = useState("horoscope");
-  const [useQwen, setUseQwen] = useState(false);
+  const [useAi, setUseAi] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [aiReading, setAiReading] = useState("");
+  const [aiModel, setAiModel] = useState("");
+  const [aiError, setAiError] = useState("");
 
   const predictionTypes = [
     { value: "horoscope", label: t("predictions.typeHoroscope") },
@@ -58,9 +80,11 @@ export const PredictionsPage = () => {
 
     setLoading(true);
     setError("");
+    setAiError("");
+    setAiReading("");
+    setAiModel("");
 
     try {
-      let response;
       const birthDetails = {
         name: formData.name,
         dob: formData.dob,
@@ -71,18 +95,30 @@ export const PredictionsPage = () => {
         timezone: formData.timezone,
       };
 
-      switch (predictionType) {
-        case "horoscope":
-          response = await astrologyService.getHoroscope(birthDetails, useQwen);
-          break;
-        case "transit":
-          response = await astrologyService.getTransits(birthDetails);
-          break;
-        default:
-          response = await astrologyService.getHoroscope(birthDetails, useQwen);
+      // Transits are a separate deterministic view; everything else shows the
+      // horoscope chart data (optionally with an AI-written reading below it).
+      if (predictionType === "transit") {
+        const response = await astrologyService.getTransits(birthDetails);
+        setResult(response.data);
+        return;
       }
 
+      const response = await astrologyService.getHoroscope(birthDetails);
       setResult(response.data);
+
+      if (useAi) {
+        try {
+          const aiRes = await astrologyService.generatePrediction(
+            birthDetails,
+            AI_TYPE[predictionType] || "general",
+            readModelConfig()
+          );
+          setAiReading(aiRes.data?.prediction || "");
+          setAiModel(aiRes.data?.model || aiRes.data?.provider || "");
+        } catch (err) {
+          setAiError(err.response?.data?.detail || t("predictions.aiError"));
+        }
+      }
     } catch (err) {
       setError(err.response?.data?.detail || t("predictions.genError"));
     } finally {
@@ -179,11 +215,12 @@ export const PredictionsPage = () => {
           <div className="form-group checkbox">
             <input
               type="checkbox"
-              id="useQwen"
-              checked={useQwen}
-              onChange={(e) => setUseQwen(e.target.checked)}
+              id="useAi"
+              checked={useAi}
+              onChange={(e) => setUseAi(e.target.checked)}
+              disabled={predictionType === "transit"}
             />
-            <label htmlFor="useQwen">{t("predictions.useAi")}</label>
+            <label htmlFor="useAi">{t("predictions.useAi")}</label>
           </div>
 
           <button type="submit" className="submit-btn" disabled={loading}>
@@ -263,14 +300,24 @@ export const PredictionsPage = () => {
                 </div>
               )}
 
-              {result.ai_prediction && (
+              {aiError && (
+                <div className="error-box">
+                  <AlertCircle size={18} />
+                  <span>{aiError}</span>
+                </div>
+              )}
+
+              {aiReading && (
                 <div className="ai-prediction">
                   <h3>{t("predictions.astrological")}</h3>
-                  <div style={{ whiteSpace: "pre-line" }}>
-                    {result.ai_prediction
-                      .split("**")
-                      .map((part, i) => (i % 2 === 1 ? <strong key={i}>{part}</strong> : part))}
+                  <div className="sbc-ai-markdown">
+                    <ReactMarkdown>{aiReading}</ReactMarkdown>
                   </div>
+                  {aiModel && (
+                    <p className="subtitle" style={{ marginTop: 8 }}>
+                      {t("predictions.aiModel", { model: aiModel })}
+                    </p>
+                  )}
                 </div>
               )}
             </div>

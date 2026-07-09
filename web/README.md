@@ -159,7 +159,6 @@ pyjhora-web/
 │   ├── user_settings.py     # Per-user encrypted API keys
 │   ├── ratelimit.py         # Per-user rate limiting for AI endpoints
 │   ├── shares.py            # Read-only shareable chart links
-│   ├── qwen_predictor.py    # Legacy Qwen LLM integration
 │   ├── requirements.txt     # Python dependencies
 │   ├── Dockerfile           # Docker image for backend
 │   └── .env.example         # Environment template
@@ -800,7 +799,7 @@ ollama serve
 # 3. Pull Qwen 2.5 model
 ollama pull qwen2.5
 
-# 4. Update backend/.env (QWEN_API_URL is still honored as a fallback)
+# 4. Update backend/.env
 OLLAMA_URL=http://localhost:11434
 OLLAMA_DEFAULT_MODEL=qwen2.5:14b
 
@@ -962,7 +961,7 @@ The backend uses a layered architecture:
 - **database.py**: MongoDB models and async connection
 - **auth.py**: JWT and password utilities
 - **astrology.py**: PyJHora wrapper functions
-- **qwen_predictor.py**: LLM integration for enhanced predictions
+- **llm_service.py**: Unified LLM service (Ollama / OpenAI-compatible / Gemini / OpenAI)
 
 ### Frontend Architecture
 
@@ -1039,7 +1038,7 @@ curl -X POST http://localhost:8000/api/astrology/birth-chart \
 2. **Set CORS_ORIGINS** to your production domain
 3. **Use production MongoDB**: Update MONGODB_URL
 4. **Enable SSL/HTTPS**: Use reverse proxy (nginx, traefik)
-5. **Set USE_QWEN to false** if not using local LLM
+5. **Point OLLAMA_URL** at your local model host (or leave the AI providers unset to run without local AI)
 6. **Add environment variables** for production database credentials
 
 ### Docker Production Build

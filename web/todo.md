@@ -2442,20 +2442,45 @@ retyped it by hand every deploy and lost it (it only lived in per-browser `local
       (Ollama unreachable at load, or no models installed yet) it bound to the empty
       `settings.aiModel` with a generic placeholder, hiding `OLLAMA_DEFAULT_MODEL` entirely.
 - [x] **Backend `/health` now probes Ollama** (`main.py`) — calls `llm_service._ollama_status()`
-      and returns `qwen_enabled = USE_QWEN or <ollama reachable>` plus a new
-      **`local_ai: {available, base_url, model, reason}`** block (model = effective
+      and returns a **`local_ai: {available, base_url, model, reason}`** block (model = effective
       `OLLAMA_DEFAULT_MODEL`, or the first installed model when that isn't pulled). No new docker
       healthcheck depends on `/health`, so the short probe is safe.
-- [x] **Settings → System** (`SettingsPage.js`) — the "Local AI model (Qwen)" row now flips to
-      **OK** when Ollama is reachable and shows the value **`<model> · <base_url>`** underneath
-      (new `.settings-health-value` style). Visible even when unreachable so the owner can confirm
-      what's configured.
+- [x] **Settings → System** (`SettingsPage.js`) — the local-AI row is driven by
+      `health.local_ai.available` (not the legacy flag), flips to **OK** when Ollama is reachable,
+      and shows the value **`<model> · <base_url>`** underneath (new `.settings-health-value`
+      style). Visible even when unreachable so the owner can confirm what's configured. Row
+      relabelled **"Local AI (Ollama)"** (`settings.system.localAi`, en/hi/sa).
 - [x] **Settings → AI** (`SettingsPage.js`) — the model **text input** now placeholders the
       server default (`activeProvider.default_model`), and when the field is blank a hint reads
       *"Using the server default: <model>…"* (`settings.ai.serverDefault`, en; hi/sa fall back).
       Blank = use the server's `OLLAMA_DEFAULT_MODEL`, which is **server-side and survives
       redeploys** — no per-browser setting to redo. The backend already resolves an empty model to
       `OLLAMA_DEFAULT_MODEL`, so this is purely making the existing behaviour visible.
-- [x] Docs: README env comment on `OLLAMA_DEFAULT_MODEL` + a new AI-Provider troubleshooting
-      entry ("Local AI shows Off / model blank after redeploy"). Verified end-to-end against a live
-      local Ollama (`qwen_enabled:true`, model surfaced).
+
+### 22.1 Rip out the dead pre-Ollama "Qwen" path (owner ask 2026-07-09 — "do we really need it?")
+
+The `USE_QWEN` / `QWEN_API_URL` / `QwenPredictor` integration was a **separate, pre-Ollama**
+local-LLM client (hit its own server at `QWEN_API_URL` = `localhost:5000/v1/completions`, gated
+behind `USE_QWEN`, default off) that the unified `llm_service` (Ollama/OpenAI/Gemini) fully
+superseded. It was dead — off by default and never wired into any modern page. Removed it and
+moved its one remaining consumer onto the real service.
+
+- [x] **Backend removal** — deleted `qwen_predictor.py`, its import, the `use_qwen && USE_QWEN`
+      branches in `/api/astrology/horoscope` (+ the `generate_basic_predictions` rule-based
+      fallback) and `/api/astrology/compatibility`, the `use_qwen` request field, the `USE_QWEN` /
+      `QWEN_API_URL` settings, the `QWEN_API_URL` fallback in `llm_service`, and the `qwen_enabled`
+      `/health` field. `horoscope` and `compatibility` now return deterministic data only; AI lives
+      at `/api/astrology/predict` and `/api/astrology/compatibility-analysis`.
+- [x] **Predictions page rewired to the unified LLM service** (`PredictionsPage.js`) — the old
+      "Use AI (Qwen)" checkbox called `/horoscope?use_qwen=true`, which (USE_QWEN off) silently
+      returned the rule-based `generate_basic_predictions`, not real AI. Now: the page fetches chart
+      data from `/horoscope`, and when "Use AI" is ticked calls `astrologyService.generatePrediction`
+      (→ `/api/astrology/predict`) with the user's Settings → AI provider/model (`readModelConfig()`
+      from localStorage), rendering the reading as Markdown (`ReactMarkdown`) with the model name.
+      i18n `predictions.{useAi,aiError,aiModel}` refreshed (Qwen wording dropped) in en/hi/sa.
+      `api.js`: dropped the `use_qwen` params from `getHoroscope`/`getCompatibility`.
+- [x] Docs: README (removed `qwen_predictor.py` / `USE_QWEN` / `QWEN_API_URL` mentions, backend
+      component list now lists `llm_service.py`), `backend/.env.example`, and `docker-compose.yml`
+      (dropped `QWEN_API_URL`/`USE_QWEN`, added `OLLAMA_URL`/`OLLAMA_DEFAULT_MODEL` with a
+      host.docker.internal note). Backend `py_compile` + frontend production build both green;
+      `/health` verified against live Ollama (`local_ai.available:true`, model surfaced).

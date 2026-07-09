@@ -197,10 +197,8 @@ export const astrologyService = {
     api.post("/api/astrology/divisional-chart", birthDetails, {
       params: { varga, ayanamsa },
     }),
-  getHoroscope: (birthDetails, useQwen = false) =>
-    api.post("/api/astrology/horoscope", birthDetails, {
-      params: { use_qwen: useQwen },
-    }),
+  getHoroscope: (birthDetails) =>
+    api.post("/api/astrology/horoscope", birthDetails),
   getPanchanga: ({ place, latitude, longitude, timezone, date, system } = {}) =>
     api.get("/api/astrology/panchanga", {
       params: { place, latitude, longitude, timezone, date, system },
@@ -495,7 +493,7 @@ export const astrologyService = {
       profile_name: profileName,
     }),
   getSharedChart: (token) => api.get(`/api/astrology/share/${token}`),
-  getCompatibility: (maleBirthDetails, femaleBirthDetails, useQwen = false) =>
+  getCompatibility: (maleBirthDetails, femaleBirthDetails) =>
     api.post("/api/astrology/compatibility", {
       male_dob: maleBirthDetails.dob,
       male_tob: maleBirthDetails.tob,
@@ -509,7 +507,6 @@ export const astrologyService = {
       female_latitude: femaleBirthDetails.latitude,
       female_longitude: femaleBirthDetails.longitude,
       female_timezone: femaleBirthDetails.timezone,
-      use_qwen: useQwen,
     }),
   getUserCharts: () => api.get("/api/user/charts"),
 

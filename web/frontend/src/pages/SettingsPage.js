@@ -288,9 +288,9 @@ export const SettingsPage = () => {
         { key: "server", label: t("settings.system.server"), ok: health.status === "healthy" },
         { key: "pyjhora", label: t("settings.system.pyjhora"), ok: !!health.engine_available },
         {
-          key: "qwen",
-          label: t("settings.system.qwen"),
-          ok: !!health.qwen_enabled,
+          key: "localAi",
+          label: t("settings.system.localAi"),
+          ok: !!health.local_ai?.available,
           optional: true,
           // Show the actual configured local model + endpoint (from OLLAMA_URL /
           // OLLAMA_DEFAULT_MODEL) so the value is visible even when unreachable.
