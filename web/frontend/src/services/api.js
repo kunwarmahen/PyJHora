@@ -775,6 +775,10 @@ export const astrologyService = {
   setApiKey: (provider, apiKey) => api.put(`/api/user/api-keys/${provider}`, { api_key: apiKey }),
   deleteApiKey: (provider) => api.delete(`/api/user/api-keys/${provider}`),
 
+  // Cross-device UI preferences (non-secret; e.g. the chosen LLM provider/model)
+  getPreferences: () => api.get("/api/user/preferences"),
+  putPreferences: (preferences) => api.put("/api/user/preferences", { preferences }),
+
   generatePrediction: (birthDetails, predictionType = "general", model = {}) =>
     api.post(
       "/api/astrology/predict",

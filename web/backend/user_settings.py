@@ -9,7 +9,7 @@ stored in the database. Everything here is scoped to the owning `user_id`.
 import base64
 import hashlib
 import os
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -20,6 +20,18 @@ COLLECTION = "user_settings"
 
 # Providers that actually consume an API key (Ollama is local/keyless).
 KEYED_PROVIDERS = ("gemini", "openai", "openai-compatible")
+
+# Non-secret UI preferences synced across a user's devices (stored under
+# `preferences` on the user_settings doc, values kept as strings to mirror the
+# frontend's localStorage). Only the LLM/model choice is synced today — it drives
+# both cross-device consistency and the scheduled daily digest's AI narrative.
+PREFERENCE_KEYS = (
+    "ai_provider_type",
+    "ai_model",
+    "ai_base_url",
+    "ai_mode",
+    "ai_max_tokens",
+)
 
 
 def _fernet() -> Fernet:
@@ -96,3 +108,29 @@ async def get_key_status(user_id: str) -> Dict[str, Dict[str, object]]:
         p: {"has_key": p in keys, "masked": _mask(keys.get(p, ""))}
         for p in KEYED_PROVIDERS
     }
+
+
+# --------------------------------------------------------------------------- #
+# Synced UI preferences (non-secret; e.g. the chosen LLM provider/model)
+# --------------------------------------------------------------------------- #
+async def get_preferences(user_id: str) -> Dict[str, str]:
+    """The user's stored, cross-device UI preferences (whitelisted keys only)."""
+    db = get_database()
+    doc = await db[COLLECTION].find_one({"user_id": user_id})
+    prefs = (doc or {}).get("preferences") or {}
+    return {k: prefs[k] for k in PREFERENCE_KEYS if k in prefs}
+
+
+async def set_preferences(user_id: str, prefs: Dict[str, Any]) -> Dict[str, str]:
+    """Upsert a partial set of preferences. Unknown keys are ignored; values are
+    coerced to strings so they round-trip with the frontend's localStorage."""
+    clean = {
+        f"preferences.{k}": ("" if prefs[k] is None else str(prefs[k]))
+        for k in PREFERENCE_KEYS
+        if k in prefs
+    }
+    if clean:
+        db = get_database()
+        await db[COLLECTION].update_one(
+            {"user_id": user_id}, {"$set": clean}, upsert=True)
+    return await get_preferences(user_id)

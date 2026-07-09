@@ -2516,3 +2516,27 @@ terse rule-based highlights — add a warm **"how the day looks"** reading. Deci
       `include_ai`; migrates a legacy `profile_id` into the checklist on first toggle. New i18n keys
       `settings.notifications.{profiles,allProfiles,noProfiles,includeAi}` + refreshed `intro` (en;
       hi/sa fall back to English as the rest of this block already does).
+
+### 23.1 Sync the LLM/model choice across devices (owner ask 2026-07-09)
+
+The AI provider/model/base-url/mode/max-tokens lived only in per-browser `localStorage`, so the
+choice didn't follow the user across devices — and, more importantly, the **scheduled** digest had
+no request context to read it from, so its AI narrative always used the server default. Now the
+LLM preference is persisted server-side per user.
+
+- [x] **Backend store** (`user_settings.py`) — new `PREFERENCE_KEYS`
+      (`ai_provider_type`/`ai_model`/`ai_base_url`/`ai_mode`/`ai_max_tokens`) + `get_preferences` /
+      `set_preferences` (whitelisted, string-coerced, upserted under `preferences.<key>` on the
+      existing `user_settings` doc — sibling of `api_keys`/`notifications`; non-secret, so plain).
+      Endpoints `GET`/`PUT /api/user/preferences` (`PreferencesRequest`).
+- [x] **Digest uses it** (`digest.py` `_digest_cfg`) — rebuilds the `ModelConfig` from the user's
+      stored preferences (provider/model/base-url + clamped max-tokens) instead of only the server
+      default, still topping up the API key from the encrypted `api_keys` store. So a scheduled
+      narrative renders with the model the user actually picked. Verified: stored openai-compatible
+      prefs → that provider/model/base-url/key; empty prefs → server-default Ollama.
+- [x] **Frontend sync** (`SettingsContext.js`) — on login it **pulls** the server copy of the synced
+      keys (server = source of truth; seeds the server from this device if it has none yet), and each
+      change is **debounced (600 ms) back up** via `authService.putPreferences`. localStorage stays
+      the fast local cache so pages read values unchanged and offline still works. `api.js`
+      `getPreferences`/`putPreferences`. Only the LLM keys sync today (language/ayanamsa/chart-style
+      remain local by design); `SYNCED_KEYS` makes extending trivial.

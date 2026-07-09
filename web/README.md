@@ -99,7 +99,9 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **One place for preferences**: a dedicated **Settings** page (gear icon in the Dashboard
   navbar + nav drawer, or `/settings`) with tabs — **General** (language, chart style North/South,
   ayanamsa), **AI** (provider / model / endpoint, answer-mode default, **Max response length**
-  slider, links to API Keys + AI Capabilities), **API Keys**, **Almanac** (Drik / Surya-Siddhanta
+  slider, links to API Keys + AI Capabilities — the LLM/model choice is saved **server-side per user
+  so it follows you across devices** and is what the scheduled daily digest renders with),
+  **API Keys**, **Almanac** (Drik / Surya-Siddhanta
   engine), **Notifications** (daily-digest opt-in, target profiles — a subset or "all" — AI-reading
   toggle + preferred hour, email + browser-push toggles, "send test now"), and **Account** (account overview, update email, change password,
   log out other devices, and a danger-zone **Delete account**)

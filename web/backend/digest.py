@@ -77,13 +77,32 @@ async def resolve_profiles(user_id: str, prefs: Dict[str, Any]) -> List[Dict[str
 
 
 async def _digest_cfg(user_id: str):
-    """LLM config for a scheduled/background narrative: the server default
-    provider, topped up with the user's stored API key for keyed providers.
-    There's no request here, so we can't use the per-request resolver."""
+    """LLM config for a scheduled/background narrative. There's no request here,
+    so we rebuild it from the user's server-stored preferences (the same
+    provider/model they picked in Settings, synced across devices), falling back
+    to the server default, and top it up with their stored API key for keyed
+    providers."""
     from llm_service import llm_service
-    cfg = llm_service.resolve_config()
+    import user_settings
+
+    prefs = {}
     try:
-        import user_settings
+        prefs = await user_settings.get_preferences(user_id)
+    except Exception:
+        prefs = {}
+
+    cfg = llm_service.resolve_config(
+        provider_type=prefs.get("ai_provider_type") or None,
+        model=prefs.get("ai_model") or None,
+        base_url=prefs.get("ai_base_url") or None,
+    )
+    try:
+        mt = int(prefs.get("ai_max_tokens") or 0)
+        if mt:
+            cfg.max_tokens = max(256, min(mt, 32768))
+    except (TypeError, ValueError):
+        pass
+    try:
         if not cfg.api_key and cfg.provider_type.value in user_settings.KEYED_PROVIDERS:
             stored = await user_settings.get_api_key(user_id, cfg.provider_type.value)
             if stored:

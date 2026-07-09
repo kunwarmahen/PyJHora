@@ -4,7 +4,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import json
 import re
 from pydantic import BaseModel
@@ -2101,6 +2101,26 @@ async def remove_api_key(
         raise HTTPException(status_code=400, detail=f"Unknown provider '{provider}'.")
     await user_settings.delete_api_key(current_user, provider)
     return {"success": True, "provider": provider}
+
+
+class PreferencesRequest(BaseModel):
+    preferences: Dict[str, Any] = {}
+
+
+@app.get("/api/user/preferences")
+async def get_preferences(current_user: str = Depends(get_current_user)):
+    """The user's cross-device UI preferences (currently the LLM provider/model)."""
+    return {"preferences": await user_settings.get_preferences(current_user)}
+
+
+@app.put("/api/user/preferences")
+async def put_preferences(
+    request: PreferencesRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Store a partial set of the user's synced UI preferences."""
+    prefs = await user_settings.set_preferences(current_user, request.preferences or {})
+    return {"preferences": prefs}
 
 
 @app.post("/api/astrology/predict")

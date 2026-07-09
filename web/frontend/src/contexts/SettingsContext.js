@@ -1,6 +1,15 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import i18n from "i18next";
 import { DEFAULT_AYANAMSA } from "../constants/jyotish";
+import { authService } from "../services/api";
+import { useAuth } from "./AuthContext";
 
 /**
  * A single, app-wide home for the user-tunable preferences that used to be
@@ -8,6 +17,12 @@ import { DEFAULT_AYANAMSA } from "../constants/jyotish";
  * SAME localStorage keys those pages already use, so the Settings page is the
  * canonical editor while every page continues to pick the values up. Values
  * that shouldn't be here (page-local ephemera like a transit date) are left out.
+ *
+ * The LLM/model preferences (SYNCED_KEYS) are ALSO persisted server-side per
+ * user, so the choice follows them across devices and the scheduled daily digest
+ * can render its AI narrative with the model they actually picked. localStorage
+ * stays the fast local cache; on login we pull the server copy, and each change
+ * is debounced back up.
  */
 
 // localStorage key for each setting. Kept identical to the historical keys so
@@ -23,6 +38,14 @@ export const SETTING_KEYS = {
   aiMode: "ai_mode",
   aiMaxTokens: "ai_max_tokens",
 };
+
+// The preferences synced to the server (cross-device). Only the non-secret
+// LLM/model choice for now — API keys have their own encrypted store.
+const SYNCED_KEYS = ["aiProviderType", "aiModel", "aiBaseUrl", "aiMode", "aiMaxTokens"];
+// storageKey -> settingKey, to apply a server payload (keyed by storage key).
+const STORAGE_TO_SETTING = Object.fromEntries(
+  Object.entries(SETTING_KEYS).map(([settingKey, storageKey]) => [storageKey, settingKey]),
+);
 
 const DEFAULTS = {
   language: "en",
@@ -50,9 +73,18 @@ const readNumber = (key) => {
   return Number.isFinite(n) ? n : DEFAULTS[key];
 };
 
+// Coerce a stored (string) value to the in-state type for one setting key.
+const coerce = (key, value) =>
+  key === "aiMaxTokens"
+    ? Number.isFinite(parseInt(value, 10))
+      ? parseInt(value, 10)
+      : DEFAULTS.aiMaxTokens
+    : value;
+
 const SettingsContext = createContext(null);
 
 export const SettingsProvider = ({ children }) => {
+  const { user } = useAuth();
   const [settings, setSettings] = useState(() => ({
     language: read("language"),
     ayanamsa: read("ayanamsa"),
@@ -65,24 +97,109 @@ export const SettingsProvider = ({ children }) => {
     aiMaxTokens: readNumber("aiMaxTokens"),
   }));
 
-  const updateSetting = useCallback((key, value) => {
-    const storageKey = SETTING_KEYS[key];
-    if (!storageKey) return;
-    try {
-      localStorage.setItem(storageKey, String(value));
-    } catch {
-      // ignore quota / privacy-mode failures
-    }
-    // Language is special: drive i18next so the switch is immediate app-wide.
-    if (key === "language") {
-      try {
-        i18n.changeLanguage(value);
-      } catch {
-        // ignore
-      }
-    }
-    setSettings((prev) => ({ ...prev, [key]: value }));
+  // Debounced server push of synced preferences.
+  const pendingPush = useRef({});
+  const pushTimer = useRef(null);
+  const loggedIn = useRef(!!user);
+  loggedIn.current = !!user;
+
+  const flushPush = useCallback(() => {
+    const patch = pendingPush.current;
+    pendingPush.current = {};
+    if (Object.keys(patch).length === 0) return;
+    authService.putPreferences(patch).catch(() => {
+      // Best-effort — the value is already saved locally; try again next change.
+    });
   }, []);
+
+  const schedulePush = useCallback(
+    (settingKey, value) => {
+      pendingPush.current[SETTING_KEYS[settingKey]] = String(value);
+      if (pushTimer.current) clearTimeout(pushTimer.current);
+      pushTimer.current = setTimeout(flushPush, 600);
+    },
+    [flushPush],
+  );
+
+  const updateSetting = useCallback(
+    (key, value) => {
+      const storageKey = SETTING_KEYS[key];
+      if (!storageKey) return;
+      try {
+        localStorage.setItem(storageKey, String(value));
+      } catch {
+        // ignore quota / privacy-mode failures
+      }
+      // Language is special: drive i18next so the switch is immediate app-wide.
+      if (key === "language") {
+        try {
+          i18n.changeLanguage(value);
+        } catch {
+          // ignore
+        }
+      }
+      setSettings((prev) => ({ ...prev, [key]: value }));
+      // Mirror synced prefs up to the server so they follow the user's devices.
+      if (loggedIn.current && SYNCED_KEYS.includes(key)) {
+        schedulePush(key, value);
+      }
+    },
+    [schedulePush],
+  );
+
+  // On login, pull the server copy of the synced prefs (server is source of
+  // truth). If the server has nothing yet, seed it from this device so an
+  // existing user's current choice starts syncing.
+  useEffect(() => {
+    if (!user) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await authService.getPreferences();
+        if (cancelled) return;
+        const serverPrefs = res.data?.preferences || {};
+        const applied = {};
+        let anyServer = false;
+        Object.entries(serverPrefs).forEach(([storageKey, value]) => {
+          const settingKey = STORAGE_TO_SETTING[storageKey];
+          if (!settingKey || !SYNCED_KEYS.includes(settingKey)) return;
+          anyServer = true;
+          try {
+            localStorage.setItem(storageKey, String(value));
+          } catch {
+            // ignore
+          }
+          applied[settingKey] = coerce(settingKey, value);
+        });
+        if (Object.keys(applied).length) {
+          setSettings((prev) => ({ ...prev, ...applied }));
+        }
+        if (!anyServer) {
+          const seed = {};
+          SYNCED_KEYS.forEach((k) => {
+            seed[SETTING_KEYS[k]] = String(read(k));
+          });
+          authService.putPreferences(seed).catch(() => {});
+        }
+      } catch {
+        // Offline / not critical — local cache still applies.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  // Flush any pending push on unmount.
+  useEffect(
+    () => () => {
+      if (pushTimer.current) {
+        clearTimeout(pushTimer.current);
+        flushPush();
+      }
+    },
+    [flushPush],
+  );
 
   return (
     <SettingsContext.Provider value={{ settings, updateSetting }}>
