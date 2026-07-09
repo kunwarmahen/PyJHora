@@ -3662,19 +3662,13 @@ async def update_profile(profile_id: str, req: SaveProfileRequest, current_user:
 
         profiles_collection = database["saved_profiles"]
 
-        # If this is set as default, unset all other defaults
-        if req.is_default:
-            await profiles_collection.update_many(
-                {"user_id": current_user},
-                {"$set": {"is_default": False}}
-            )
-
+        # Note: default status is managed only via /api/profiles/{id}/default,
+        # so editing a profile never changes which profile is the default.
         result = await profiles_collection.update_one(
             {"_id": ObjectId(profile_id), "user_id": current_user},
             {"$set": {
                 "profile_name": req.profile_name,
                 "birth_details": req.birth_details.model_dump(),
-                "is_default": req.is_default,
             }}
         )
 
@@ -3685,6 +3679,56 @@ async def update_profile(profile_id: str, req: SaveProfileRequest, current_user:
             "success": True,
             "message": f"Profile '{req.profile_name}' updated successfully"
         }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class SetDefaultRequest(BaseModel):
+    is_default: bool = True
+
+
+@app.put("/api/profiles/{profile_id}/default")
+async def set_default_profile(
+    profile_id: str,
+    req: SetDefaultRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Mark a profile as the user's default (or clear it).
+
+    Setting a profile default first clears every other profile's default, so at
+    most one profile is ever the default. Passing ``is_default=false`` just clears
+    this profile's flag, leaving the account with no default.
+    """
+    try:
+        from database import database
+        from bson import ObjectId
+
+        if database is None:
+            raise HTTPException(status_code=500, detail="Database not connected")
+
+        profiles_collection = database["saved_profiles"]
+
+        # Confirm the profile belongs to this user before mutating anything.
+        target = await profiles_collection.find_one(
+            {"_id": ObjectId(profile_id), "user_id": current_user}
+        )
+        if not target:
+            raise HTTPException(status_code=404, detail="Profile not found")
+
+        if req.is_default:
+            await profiles_collection.update_many(
+                {"user_id": current_user},
+                {"$set": {"is_default": False}},
+            )
+
+        await profiles_collection.update_one(
+            {"_id": ObjectId(profile_id), "user_id": current_user},
+            {"$set": {"is_default": req.is_default}},
+        )
+
+        return {"success": True, "is_default": req.is_default}
     except HTTPException:
         raise
     except Exception as e:

@@ -754,6 +754,11 @@ Three approaches, chosen with a mode toggle:
   include (all pre-selected; toggle individually or select-all/none) — or export everything.
   Imports **skip duplicates** (same profile name + date + time of birth), so re-importing
   the same file is safe, and never override the account's current default profile
+- **Default profile** — mark one saved profile as your default with the ⭐ toggle on its card
+  (a "Default" badge shows which one). At most one profile is default at a time; clicking the
+  star again clears it. The **daily digest** uses this default when no specific profile is
+  chosen in notification preferences (falling back to your first saved profile if none is set).
+  Editing a profile no longer changes which one is the default
 
 ### 21. LLM Integration (Optional)
 
@@ -907,6 +912,7 @@ masked, and used ahead of any global env key for that user's requests.
 - `POST /api/profiles/save` - Save a new birth profile
 - `GET /api/profiles/list` - List all saved profiles for the current user
 - `PUT /api/profiles/{profile_id}` - Update an existing birth profile
+- `PUT /api/profiles/{profile_id}/default` - Mark a profile as the default (or clear it); at most one default per user
 - `DELETE /api/profiles/{profile_id}` - Delete a saved profile
 - `GET /api/profiles/export` - Export all of the current user's profiles as a portable JSON envelope
 - `POST /api/profiles/import` - Bulk-import profiles from an exported file (skips duplicates)

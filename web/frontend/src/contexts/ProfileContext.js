@@ -123,6 +123,28 @@ export const ProfileProvider = ({ children }) => {
     }
   };
 
+  // Mark a profile as the default (or clear it). At most one is ever default.
+  const setDefaultProfile = async (profileId, isDefault = true) => {
+    try {
+      const response = await fetch(`${API_URL}/api/profiles/${profileId}/default`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body: JSON.stringify({ is_default: isDefault }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        await loadProfiles();
+        return { success: true };
+      }
+      return { success: false, error: data.detail || data.message };
+    } catch (err) {
+      return { success: false, error: "Failed to update default profile" };
+    }
+  };
+
   // Export profiles to a downloadable JSON file. Pass a subset to export only
   // those; omit to export all.
   const exportProfiles = (subset) => {
@@ -224,6 +246,7 @@ export const ProfileProvider = ({ children }) => {
     saveProfile,
     updateProfile,
     deleteProfile,
+    setDefaultProfile,
     exportProfiles,
     importProfiles,
     selectProfile,

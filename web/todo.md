@@ -2413,6 +2413,15 @@ between accounts/devices as a portable JSON file. Lives on the profile-selection
       re-importing the same file is a no-op; forces `is_default=False` so imports never clobber the
       account's current default. Returns `{imported, skipped}`. Frontend `importProfiles()` accepts
       either the envelope or a bare array and strips to the expected fields before posting.
+- [x] **Default profile control** (owner ask 2026-07-09) — `is_default` existed in the schema +
+      save/update endpoints but was **unreachable from the UI** (no toggle; `updateProfile` even
+      reset it to false on every edit), so no profile was ever default and the digest's
+      `resolve_profile` always fell through to "first saved profile". Fixed: new **`PUT
+      /api/profiles/{id}/default`** (`SetDefaultRequest`) sets/clears default, clearing every other
+      first so at most one is default; the update endpoint no longer writes `is_default` (edits
+      can't clobber it). Frontend `ProfileContext.setDefaultProfile(id, bool)`; ⭐ star toggle +
+      "Default" badge on each profile card (`ProfileSelectionPage`). i18n `profile.{defaultBadge,
+      setDefaultAria,unsetDefaultAria}` (en/hi/sa). Honored by the daily digest fallback.
 - [x] **UI** — Import/Export buttons in a `.profiles-toolbar` above the profiles grid
       (`ProfileSelectionPage`), hidden `<input type=file accept=.json>`, resets its value so the same
       file can be re-picked. i18n `profile.{export,import,exportEmpty,importDone,importFailed}`

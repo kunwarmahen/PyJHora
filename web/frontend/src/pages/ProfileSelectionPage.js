@@ -33,6 +33,7 @@ export const ProfileSelectionPage = () => {
     saveProfile,
     updateProfile,
     deleteProfile,
+    setDefaultProfile,
     exportProfiles,
     importProfiles,
     selectProfile,
@@ -172,6 +173,11 @@ export const ProfileSelectionPage = () => {
     if (window.confirm(t("profile.confirmDelete"))) {
       await deleteProfile(profileId);
     }
+  };
+
+  const handleToggleDefault = async (e, profile) => {
+    e.stopPropagation();
+    await setDefaultProfile(profile._id, !profile.is_default);
   };
 
   // Enter export-selection mode (all profiles pre-selected for convenience)
@@ -330,6 +336,25 @@ export const ProfileSelectionPage = () => {
                         ) : (
                           <div style={{ display: "flex", gap: "8px" }}>
                             <button
+                              className={`default-btn${profile.is_default ? " is-default" : ""}`}
+                              onClick={(e) => handleToggleDefault(e, profile)}
+                              aria-label={
+                                profile.is_default
+                                  ? t("profile.unsetDefaultAria")
+                                  : t("profile.setDefaultAria")
+                              }
+                              title={
+                                profile.is_default
+                                  ? t("profile.unsetDefaultAria")
+                                  : t("profile.setDefaultAria")
+                              }
+                            >
+                              <Star
+                                size={16}
+                                fill={profile.is_default ? "currentColor" : "none"}
+                              />
+                            </button>
+                            <button
                               className="edit-btn"
                               onClick={(e) => handleEditProfile(e, profile)}
                               aria-label={t("profile.editAria")}
@@ -346,7 +371,15 @@ export const ProfileSelectionPage = () => {
                           </div>
                         )}
                       </div>
-                      <h3>{profile.profile_name}</h3>
+                      <h3>
+                        {profile.profile_name}
+                        {profile.is_default && (
+                          <span className="default-badge">
+                            <Star size={12} fill="currentColor" />
+                            {t("profile.defaultBadge")}
+                          </span>
+                        )}
+                      </h3>
                       <div className="profile-details">
                         <div className="detail-item">
                           <User size={14} />
