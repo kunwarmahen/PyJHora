@@ -156,6 +156,18 @@
   height: 16px;
 }
 
+.settings-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  padding-left: 4px;
+}
+
+.settings-checklist .settings-check {
+  margin-top: 2px;
+}
+
 .settings-links {
   display: flex;
   flex-wrap: wrap;

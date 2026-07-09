@@ -24,8 +24,8 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   Muhurta / electional astrology (auspicious windows for an activity, with AI rationale,
   plus day sub-tools: Choghadiya, Panchaka, Tarabala & Chandrabala),
   Prashna / horary (a chart for the moment you ask, with a horary AI reading),
-  a personalized daily digest ("Today" — panchanga + dasha + transits, with email & push
-  notifications),
+  a personalized daily digest ("Today" — panchanga + dasha + transits across one or many profiles,
+  with an AI "how the day looks" reading and email & push notifications),
   Bhrigu / Nadi-style yearly markers (the Moon-based annual progression + Bhrigu Bindu
   activations, with AI reading),
   Remedies (traditional gemstone / mantra / deity suggestions per weak planet),
@@ -100,8 +100,8 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   navbar + nav drawer, or `/settings`) with tabs — **General** (language, chart style North/South,
   ayanamsa), **AI** (provider / model / endpoint, answer-mode default, **Max response length**
   slider, links to API Keys + AI Capabilities), **API Keys**, **Almanac** (Drik / Surya-Siddhanta
-  engine), **Notifications** (daily-digest opt-in, target profile + preferred hour, email + browser-
-  push toggles, "send test now"), and **Account** (account overview, update email, change password,
+  engine), **Notifications** (daily-digest opt-in, target profiles — a subset or "all" — AI-reading
+  toggle + preferred hour, email + browser-push toggles, "send test now"), and **Account** (account overview, update email, change password,
   log out other devices, and a danger-zone **Delete account**)
 - **Consolidated controls**: the per-page dropdowns/toggles that used to live on individual pages
   (ayanamsa, chart style, almanac engine, AI model/keys) were removed — pages now read these from
@@ -706,9 +706,14 @@ Three approaches, chosen with a mode toggle:
 - A personalized **daily card**: today's Panchanga + your running Vimsottari dasha (flagging a
   Bhukti change within 30 days) + headline transits (Sade-Sati, Jupiter-from-Moon, retrogrades,
   next Jupiter/Saturn ingress), plus a warm **AI reading**
+- **Multiple profiles per digest**: pick a subset of your saved charts (or tick **All my profiles**
+  to always include every one, plus any you add later). The delivered email/push is a **single
+  combined message** with one section per chart. Each section leads with an AI **"how the day looks"**
+  narrative (toggle **Include AI reading**) and falls back to the rule-based highlights when the LLM
+  is unconfigured or unreachable, so a scheduled send never fails on the AI
 - **Delivery channels** (opt-in, in **Settings → Notifications**): in-app always; **email** digest
   (via SMTP); **browser push** (Web Push / VAPID). A "send me a test now" button and per-user
-  profile/hour preferences
+  profiles/hour preferences
   - **Browser push requires a secure context.** Service Workers and the Push API only exist on
     HTTPS pages or `http://localhost` / `127.0.0.1`. Opened over a plain-HTTP LAN hostname (e.g.
     `http://host.lan:3000`) the toggle shows **"unavailable"** with a tooltip/hint explaining why —

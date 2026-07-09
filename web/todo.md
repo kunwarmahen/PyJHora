@@ -2484,3 +2484,35 @@ moved its one remaining consumer onto the real service.
       (dropped `QWEN_API_URL`/`USE_QWEN`, added `OLLAMA_URL`/`OLLAMA_DEFAULT_MODEL` with a
       host.docker.internal note). Backend `py_compile` + frontend production build both green;
       `/health` verified against live Ollama (`local_ai.available:true`, model surfaced).
+
+## 23. Daily digest — multi-profile + "how the day looks" narrative (owner ask 2026-07-09)
+
+Two owner asks: (a) the digest only ever went to **one** profile (the chosen `profile_id`, else
+default) — extend it to cover **several** profiles; (b) the delivered email/push carried only the
+terse rule-based highlights — add a warm **"how the day looks"** reading. Decisions (owner):
+**subset + an "All profiles" shortcut**, **one combined message** (a section per profile), and an
+**AI narrative with a rule-based fallback** so a scheduled send never fails when the LLM is down.
+
+- [x] **Prefs schema** (`notifications.py`) — added `profile_ids: []` (explicit set),
+      `all_profiles: false` (every saved profile, including any added later), and `include_ai: true`
+      (embed the narrative). Legacy `profile_id` kept for back-compat; `set_prefs` whitelists/coerces
+      the new keys (list-of-str / bool / bool).
+- [x] **`digest.py` rewrite** — new `resolve_profiles(user_id, prefs)` returns **every** profile to
+      cover, precedence `all_profiles` → `profile_ids` (order-preserving, owned-only) → legacy
+      `resolve_profile` (chosen/default/first). `send_digest_for_user` now builds one section per
+      profile: `AstrologyCompute.get_daily_digest` + an AI narrative from
+      `llm_service.analyze_daily_digest` (server-default config via new `_digest_cfg`, topped up with
+      the user's stored key for keyed providers). **Fallback**: any LLM error/empty → that section
+      falls back to highlights only (logged, never raised). One combined **email** (`_render_text` /
+      `_render_html`, HTML-escaped, per-profile `<h3>` when >1) and a single **push** ("Digests for
+      Alice, Bob are ready." when multiple, else the first highlight). Returns
+      `{status, sent, profiles:[names], date}`.
+- [x] **Scheduler** (`scheduler.py`) — `_profile_tz` now paces off `resolve_profiles(...)[0]` (the
+      first chosen profile) rather than the single legacy profile, so multi-profile users still get a
+      sensible once-a-day local-hour trigger. The atomic per-day `last_sent_date` claim is unchanged.
+- [x] **Settings → Notifications** (`SettingsPage.js`) — the single-profile `<select>` is replaced by
+      an **"All my profiles"** checkbox + a per-profile checklist (`.settings-checklist`), plus an
+      **"Include AI 'how the day looks' reading"** switch. Saves `profile_ids`/`all_profiles`/
+      `include_ai`; migrates a legacy `profile_id` into the checklist on first toggle. New i18n keys
+      `settings.notifications.{profiles,allProfiles,noProfiles,includeAi}` + refreshed `intro` (en;
+      hi/sa fall back to English as the rest of this block already does).

@@ -29,7 +29,10 @@ DEFAULT_PREFS: Dict[str, Any] = {
     "daily_digest": False,   # master switch
     "email": False,          # deliver by email
     "push": False,           # deliver by browser push
-    "profile_id": None,      # which saved birth profile to compute for
+    "profile_id": None,      # legacy single-profile selection (kept for back-compat)
+    "profile_ids": [],       # explicit set of saved profiles to include
+    "all_profiles": False,   # include every saved profile (and any added later)
+    "include_ai": True,      # embed the AI "how the day looks" narrative (falls back to highlights)
     "hour": 7,               # preferred local hour (0-23) for a scheduler
 }
 
@@ -54,6 +57,13 @@ async def set_prefs(user_id: str, prefs: Dict[str, Any]) -> Dict[str, Any]:
         clean["push"] = bool(prefs["push"])
     if "profile_id" in prefs:
         clean["profile_id"] = prefs["profile_id"] or None
+    if "profile_ids" in prefs:
+        ids = prefs["profile_ids"] or []
+        clean["profile_ids"] = [str(x) for x in ids if x] if isinstance(ids, list) else []
+    if "all_profiles" in prefs:
+        clean["all_profiles"] = bool(prefs["all_profiles"])
+    if "include_ai" in prefs:
+        clean["include_ai"] = bool(prefs["include_ai"])
     if "hour" in prefs:
         try:
             clean["hour"] = max(0, min(23, int(prefs["hour"])))

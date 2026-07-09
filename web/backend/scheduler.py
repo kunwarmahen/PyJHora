@@ -38,7 +38,11 @@ def _local_now(tz_offset: float) -> datetime:
 
 
 async def _profile_tz(user_id: str, prefs: dict) -> float:
-    profile = await digest.resolve_profile(user_id, prefs)
+    # Pace the send off the first profile in the user's chosen set (falling back
+    # to their primary profile). With several profiles across timezones we can
+    # only pick one clock; the first selected one is the least surprising.
+    profiles = await digest.resolve_profiles(user_id, prefs)
+    profile = profiles[0] if profiles else None
     if not profile:
         return 0.0
     tz = (profile.get("birth_details") or {}).get("timezone")

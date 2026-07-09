@@ -613,21 +613,61 @@ export const SettingsPage = () => {
 
             {notif?.daily_digest && (
               <>
-                {/* Which profile */}
+                {/* Which profiles — an "all" shortcut plus a per-profile pick list.
+                    Falls back to the legacy single profile_id when neither is set. */}
+                <div className="settings-row settings-row--stack">
+                  <label className="settings-label">{t("settings.notifications.profiles")}</label>
+                  <label className="settings-check">
+                    <input
+                      type="checkbox"
+                      checked={!!notif?.all_profiles}
+                      onChange={(e) => saveNotif({ all_profiles: e.target.checked })}
+                    />
+                    <span>{t("settings.notifications.allProfiles")}</span>
+                  </label>
+                  {!notif?.all_profiles && (
+                    <div className="settings-checklist">
+                      {(profiles || []).map((p) => {
+                        const selected = notif?.profile_ids || [];
+                        const legacyOnly = selected.length === 0 && notif?.profile_id;
+                        const isOn = selected.includes(p._id) || legacyOnly === p._id;
+                        return (
+                          <label key={p._id} className="settings-check">
+                            <input
+                              type="checkbox"
+                              checked={!!isOn}
+                              onChange={(e) => {
+                                const base = selected.length === 0 && notif?.profile_id
+                                  ? [notif.profile_id]
+                                  : selected;
+                                const next = e.target.checked
+                                  ? [...new Set([...base, p._id])]
+                                  : base.filter((id) => id !== p._id);
+                                saveNotif({ profile_ids: next, profile_id: null });
+                              }}
+                            />
+                            <span>{p.profile_name || p.birth_details?.name}</span>
+                          </label>
+                        );
+                      })}
+                      {(profiles || []).length === 0 && (
+                        <p className="settings-hint">{t("settings.notifications.noProfiles")}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* AI "how the day looks" narrative */}
                 <div className="settings-row">
-                  <label className="settings-label">{t("settings.notifications.profile")}</label>
-                  <select
-                    className="form-select"
-                    value={notif?.profile_id || ""}
-                    onChange={(e) => saveNotif({ profile_id: e.target.value || null })}
-                  >
-                    <option value="">{t("settings.notifications.defaultProfile")}</option>
-                    {(profiles || []).map((p) => (
-                      <option key={p._id} value={p._id}>
-                        {p.profile_name || p.birth_details?.name}
-                      </option>
-                    ))}
-                  </select>
+                  <label className="settings-label">{t("settings.notifications.includeAi")}</label>
+                  <label className="settings-switch">
+                    <input
+                      type="checkbox"
+                      checked={notif?.include_ai !== false}
+                      onChange={(e) => saveNotif({ include_ai: e.target.checked })}
+                    />
+                    <span />
+                  </label>
                 </div>
 
                 {/* Preferred hour */}
