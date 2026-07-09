@@ -144,14 +144,16 @@ class LLMService:
         self.openai_compat_key = os.getenv("OPENAI_COMPATIBLE_API_KEY", "")
 
         # Endpoints (QWEN_API_URL kept as a fallback for older configs)
+        # rstrip("/") so a trailing slash can't produce a "//api/tags" double slash,
+        # which Ollama answers with a 307 redirect that httpx won't follow.
         self.ollama_url = (
             os.getenv("OLLAMA_URL")
             or os.getenv("QWEN_API_URL")
             or "http://localhost:11434"
-        )
+        ).rstrip("/")
         self.openai_compat_url = os.getenv(
             "OPENAI_COMPATIBLE_URL", "http://localhost:1234/v1"
-        )
+        ).rstrip("/")
 
         # Default models per provider
         self.ollama_default_model = os.getenv("OLLAMA_DEFAULT_MODEL", "qwen2.5:14b")
@@ -1153,7 +1155,7 @@ Reply with STRICT JSON only, exactly this shape:
     async def _call_ollama(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
                            system: str = SYSTEM_PROMPT,
                            usage: Optional[Dict[str, Any]] = None) -> str:
-        url = cfg.base_url or self.ollama_url
+        url = (cfg.base_url or self.ollama_url).rstrip("/")
         model = cfg.model or self.ollama_default_model
         try:
             # Local models can be slow to cold-load + generate; allow up to 5 min

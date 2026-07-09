@@ -2334,3 +2334,60 @@ a rebuild/restart to go live.
   README pip-install/fork URLs (`github.com/kunwarmahen/PyJHora`) and the Dockerfile "relative to
   PyJHora/" build-context path still say PyJHora — that's the actual upstream package/repo name.
   CRA bakes `REACT_APP_*` at build time, so title/tagline/icon changes need a rebuild/restart.
+
+## 20. NAS deployment via Cloudflare Tunnel (owner ask 2026-07-05)
+
+Ship the whole stack to the home NAS as Docker containers, fronted by Cloudflare for the
+domain + SSL. Mirrors the calorieapp `deploy.sh` pattern (build locally → ship images over
+SSH → `sudo docker compose up`) but tunnel-only, so **nothing is exposed on the LAN/router**.
+
+- [x] **Single-origin architecture** — because all 109 backend routes live under `/api`
+      (+ `/health`) and the frontend is a static build, one nginx serves the SPA and reverse-
+      proxies `/api`,`/health` → `backend:8000`, giving Cloudflare a single HTTP origin:
+      `Internet → Cloudflare edge (SSL) → cloudflared → nginx :80 → {static SPA, backend → mongodb}`.
+- [x] **`cloudflared` container** (`docker-compose.nas.yml`) runs a *remote-managed* tunnel from
+      a `TUNNEL_TOKEN`; the tunnel dials **out** to Cloudflare, so no port-forwarding and no
+      published ports. Public hostname → service `http://web:80` is set in the CF dashboard.
+- [x] **Same-origin frontend build** — `api.js` now treats `REACT_APP_API_URL=""` as *same-origin
+      relative* (`/api/...`): no port, no cross-origin, no CORS. `Dockerfile.nas` bakes the empty
+      value in (unset still keeps the LAN `:8000` auto-derive for `./dev.sh serve`).
+- [x] **Mongo bundled** as a `mongo:4.4` container (see AVX note below) with a bind-mounted data
+      dir (survives Docker reinstalls/firmware updates) + a healthcheck; the backend `depends_on`
+      it `condition: service_healthy` since `connect_to_mongo()` pings and raises on startup. Data
+      path is configurable via `MONGO_DATA_PATH` in `.env` (absolute, defaults to `./mongo-data`).
+- [x] **`nginx/nginx.conf`** — SPA `try_files` fallback, long-cache `/static/`, and `proxy_buffering
+      off` + 1 h timeouts on `/api/` for the SSE streaming (`/api/astrology/ask/stream`) and slow
+      LLM calls.
+- [x] **`dev.sh nas` command group** — `deploy | up | down | logs | ps | shell`. `deploy` builds
+      both images locally (`jyotirai-backend`, `jyotirai-web`), gzips + scps them over an SSH
+      ControlMaster (one password prompt), loads + retags on the NAS, and `docker compose up -d`.
+      Config comes from `web/.env` / env vars: `NAS_HOST/USER/PATH/SSH_KEY/SSH_PORT`.
+- [x] **`.env.nas.example`** documents every var (NAS conn, `TUNNEL_TOKEN`, `MONGO_PASSWORD`,
+      `MONGO_DATA_PATH`, `SECRET_KEY`, `CORS_ORIGINS`, `APP_BASE_URL`, LLM/SMTP keys, branding
+      build-args). **Comments live on their own lines above each var** — the shell/`env_file`
+      parsers keep everything after `=`, so an inline `# comment` becomes part of the value.
+- NOTE: **One-time owner setup** — create a CF *remote-managed* tunnel (Zero Trust → Networks →
+  Tunnels), add a Public Hostname routed to `http://web:80`, copy the token; `cp .env.nas.example
+  .env` and fill it in; then `./dev.sh nas deploy`. Assumes the NAS has the `docker compose` v2
+  plugin and `sudo` docker (same as calorieapp). Tunnel-only means no LAN-direct fallback by design.
+
+### First real deploy — issues found & fixed (2026-07-08, ASUSTOR AS6102T)
+
+- [x] **Mongo AVX crash → pinned `mongo:4.4`.** The NAS CPU (Celeron J3355 / Apollo Lake) has no
+      AVX, and `mongo:5.0+` dies on startup with `Illegal instruction` (SERVER-54407). 4.4 is the
+      last AVX-free release. Its data files are an older format, so don't "upgrade" the tag without
+      a dump/restore. See the version pin + comment in `docker-compose.nas.yml`.
+- [x] **Healthcheck `mongosh` → `mongo`.** `mongosh` only ships in mongo 5.0+, so on 4.4 the probe
+      was "not found" — `mongod` ran fine but health never went green, so `depends_on:
+      service_healthy` hung and the deploy failed while Portainer showed the container "starting".
+- [x] **`npm ci` lockfile mismatch.** The build box's npm 11 wrote a `package-lock.json` that
+      `node:18-alpine`'s npm 10.8.2 rejected (`Missing: yaml@2.9.0`). Regenerated the lock **with
+      the image's npm** (10.8.2) so both agree; it also validates under npm 11.
+- [x] **`.env` inline comments corrupted values.** `NAS_USER`/`NAS_HOST`/`MONGO_PASSWORD` had the
+      example's trailing `# ...` comments folded into the values (SSH "invalid characters"; broken
+      DB password). Moved all example comments to their own lines (root-cause fix in the template).
+- [x] **`OLLAMA_URL` trailing slash → 307.** A trailing `/` made `{url}/api/tags` a `//api/tags`
+      double slash; Ollama answers `307` and httpx doesn't follow it. `llm_service.py` now
+      `rstrip("/")`s the base URL at every call site so it can't recur.
+- [x] **`MONGO_PASSWORD` must avoid `@`** — it's injected raw into `mongodb://user:pass@host`, and a
+      literal `@` breaks URI parsing. Documented in `.env.nas.example`.

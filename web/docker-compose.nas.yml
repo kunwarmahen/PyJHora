@@ -1,0 +1,88 @@
+# NAS deployment — Cloudflare Tunnel fronts a single-origin nginx.
+#
+#   Internet ─► Cloudflare edge (domain + SSL) ─► cloudflared ─► web (nginx :80)
+#                                                                  ├─ /api ─► backend :8000
+#                                                                  └─ /    ─► static SPA
+#                                                                            backend ─► mongodb
+#
+# Nothing is published to the LAN or the router: the tunnel dials OUT to Cloudflare,
+# so no port-forwarding and no exposed ports. (One localhost-only debug port on the
+# web container is left commented below for on-NAS smoke tests.)
+#
+# Images (jyotirai-backend / jyotirai-web) are built locally and loaded onto the NAS
+# by `./dev.sh nas deploy` — they are never built on the NAS.
+#
+# Required in .env (see .env.nas.example): MONGO_PASSWORD, SECRET_KEY, TUNNEL_TOKEN,
+# CORS_ORIGINS, APP_BASE_URL, plus whichever LLM/SMTP keys you use.
+
+services:
+  mongodb:
+    # 4.4 is the last release that runs without AVX — the NAS CPU (Celeron J3355 /
+    # Apollo Lake) lacks it, and mongo 5.0+ dies with "Illegal instruction". See
+    # https://jira.mongodb.org/browse/SERVER-54407
+    image: mongo:4.4
+    container_name: jyotirai-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?set MONGO_PASSWORD in .env}
+    volumes:
+      # Bind mount → data survives Docker reinstalls / firmware updates on the NAS.
+      # Path is set via MONGO_DATA_PATH in .env (absolute, for easy maintenance);
+      # falls back to ./mongo-data (next to this compose file) when unset.
+      - ${MONGO_DATA_PATH:-./mongo-data}:/data/db
+    healthcheck:
+      # mongo:4.4 ships the legacy `mongo` shell — `mongosh` only exists in 5.0+.
+      test: ["CMD", "mongo", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+    networks: [jyotirai]
+
+  backend:
+    image: jyotirai-backend:latest
+    container_name: jyotirai-backend
+    # Loads SECRET_KEY, CORS_ORIGINS, APP_BASE_URL, SITE_NAME, LLM + SMTP keys, etc.
+    env_file: .env
+    environment:
+      # Assembled from the Mongo credentials; overrides anything in .env.
+      MONGODB_URL: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD}@mongodb:27017
+      DATABASE_NAME: ${DATABASE_NAME:-jyotirai_db}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [jyotirai]
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+
+  web:
+    image: jyotirai-web:latest
+    container_name: jyotirai-web
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    # Uncomment to smoke-test on the NAS itself (localhost only, never the LAN):
+    #   curl http://127.0.0.1:18088/health
+    # ports:
+    #   - "127.0.0.1:18088:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks: [jyotirai]
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: jyotirai-cloudflared
+    command: tunnel --no-autoupdate run
+    environment:
+      # Remote-managed tunnel token from the Cloudflare dashboard. Point the tunnel's
+      # public hostname at the service  http://web:80  in the dashboard's ingress rules.
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN:?set TUNNEL_TOKEN in .env}
+    depends_on:
+      - web
+    restart: unless-stopped
+    networks: [jyotirai]
+
+networks:
+  jyotirai:
+    driver: bridge

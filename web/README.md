@@ -1066,6 +1066,15 @@ docker ps | grep mongodb
 docker-compose logs mongodb
 ```
 
+**Mongo container crashes on startup with `Illegal instruction`** — MongoDB 5.0+
+requires a CPU with **AVX** support (SERVER-54407). Low-power hosts (many NAS boxes,
+older Atom/Celeron chips) don't have it. Check with `grep -qw avx /proc/cpuinfo`; if
+missing, pin the last AVX-free release, **`mongo:4.4`** (its healthcheck must use the
+legacy `mongo` shell, not `mongosh`, which only exists in 5.0+).
+
+**Auth fails against a bundled Mongo** — a literal `@` in `MONGO_PASSWORD` breaks the
+`mongodb://user:pass@host` URL parsing. Avoid `@` (or percent-encode it as `%40`).
+
 ### Backend API Errors
 
 ```bash
@@ -1085,6 +1094,15 @@ ls -la frontend/build/
 # Check REACT_APP_API_URL configuration
 cat frontend/.env
 ```
+
+### AI Provider / Ollama Issues
+
+**"Ollama responded with status 307"** — a trailing slash on `OLLAMA_URL`
+(`http://host:11434/`) produces a `//api/tags` double slash, which Ollama answers with a
+307 redirect that the client won't follow. Drop the trailing slash. (The backend now
+`rstrip("/")`s it defensively, but keep configured URLs clean.) A remote Ollama must also
+bind `0.0.0.0` (`OLLAMA_HOST=0.0.0.0:11434`) to accept connections from the backend host,
+and the model named in `OLLAMA_DEFAULT_MODEL` must be pulled (`ollama list`).
 
 ### Port Already in Use
 

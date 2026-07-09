@@ -14,9 +14,17 @@ const deriveApiUrl = () => {
   return "http://localhost:8000";
 };
 
-export const API_URL = process.env.REACT_APP_API_URL || deriveApiUrl();
+// REACT_APP_API_URL semantics:
+//   unset              -> same host, port 8000 (LAN self-host; see deriveApiUrl above)
+//   "" (empty string)  -> same ORIGIN, relative paths ("/api/..."). For reverse-proxy
+//                         deploys where a single hostname fronts both the app and the
+//                         API (nginx + Cloudflare Tunnel): no port, no cross-origin, no
+//                         CORS. This is what the NAS build (Dockerfile.nas) bakes in.
+//   "http://host:port" -> pinned absolute backend URL
+const rawApiUrl = process.env.REACT_APP_API_URL;
+export const API_URL = rawApiUrl === undefined ? deriveApiUrl() : rawApiUrl;
 
-if (!process.env.REACT_APP_API_URL) {
+if (rawApiUrl === undefined) {
   // eslint-disable-next-line no-console
   console.info(`[config] REACT_APP_API_URL unset; using same-host default ${API_URL}.`);
 }

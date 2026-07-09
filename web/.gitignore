@@ -48,6 +48,7 @@ frontend/.env.local
 
 # MongoDB
 mongodb_data/
+mongo-data/
 
 # Misc
 *.log
