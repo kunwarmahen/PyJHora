@@ -54,6 +54,14 @@ class Settings(BaseSettings):
     # Password-reset token lifetime (minutes).
     PASSWORD_RESET_TTL_MINUTES: int = 30
 
+    # "Sign in with Google" (Google Identity Services). Create an OAuth 2.0 Client
+    # ID of type "Web application" in Google Cloud Console, add your frontend
+    # origins (e.g. http://localhost:3000 and your public domain) as Authorized
+    # JavaScript origins, and paste the Client ID here. The frontend needs the SAME
+    # value baked in as REACT_APP_GOOGLE_CLIENT_ID. When unset, the Google endpoint
+    # returns 503 and the frontend hides the button — password auth is unaffected.
+    GOOGLE_CLIENT_ID: str = ""
+
     # Web Push (PWA notifications) via VAPID. Generate a keypair once with
     # `python -m notifications genkeys` (or vapid CLI) and set these. When unset,
     # push is disabled (subscribe endpoints return 503) but the rest works.

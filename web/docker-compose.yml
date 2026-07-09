@@ -30,6 +30,8 @@ services:
       OLLAMA_URL: http://host.docker.internal:11434
       OLLAMA_DEFAULT_MODEL: qwen2.5:14b
       CORS_ORIGINS: '["http://localhost:3000", "http://localhost:8000"]'
+      # Sign in with Google (optional). Interpolated from web/.env; empty = disabled.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     ports:
       - "8000:8000"
     depends_on:
@@ -48,6 +50,8 @@ services:
     environment:
       REACT_APP_API_URL: http://localhost:8000
       REACT_APP_API_TIMEOUT: 30000
+      # Must match the backend GOOGLE_CLIENT_ID. Interpolated from web/.env.
+      REACT_APP_GOOGLE_CLIENT_ID: ${REACT_APP_GOOGLE_CLIENT_ID:-}
     ports:
       - "3000:3000"
     depends_on:

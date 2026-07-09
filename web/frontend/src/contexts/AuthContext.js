@@ -60,6 +60,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithGoogle = async (credential, rememberMe = true) => {
+    setIsLoading(true);
+    try {
+      const response = await authService.googleLogin(credential, rememberMe);
+      setTokens(response.data);
+      await loadUserProfile();
+      return true;
+    } catch (err) {
+      setError(getErrorMessage(err));
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const register = async (username, email, password, rememberMe = false) => {
     setIsLoading(true);
     try {
@@ -92,7 +107,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, error, login, register, logout, reloadUser: loadUserProfile }}
+      value={{ user, isLoading, error, login, loginWithGoogle, register, logout, reloadUser: loadUserProfile }}
     >
       {children}
     </AuthContext.Provider>

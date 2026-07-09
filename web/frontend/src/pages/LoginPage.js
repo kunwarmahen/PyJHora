@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import { Mail, Lock, AlertCircle } from "lucide-react";
 import { SITE_TITLE, SITE_TAGLINE } from "../config/branding";
+import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import "../styles/Auth.css";
 
 export const LoginPage = () => {
@@ -84,6 +85,8 @@ export const LoginPage = () => {
             <Link to="/forgot-password">{t("auth.forgotPassword")}</Link>
           </p>
         </form>
+
+        <GoogleSignInButton redirectTo="/profile-selection" />
 
         <p className="auth-link">
           {t("auth.noAccount")} <Link to="/register">{t("auth.registerHere")}</Link>

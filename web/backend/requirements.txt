@@ -15,6 +15,11 @@ httpx==0.25.2
 # email (forgot-password, digest) uses the stdlib smtplib, so needs no extra dep.
 pywebpush==2.3.0
 
+# "Sign in with Google" — verifies the Google Identity Services ID token in
+# POST /api/auth/google. Optional: unset GOOGLE_CLIENT_ID disables the feature and
+# this import is only reached when the endpoint is called.
+google-auth==2.38.0
+
 # --- PyJHora runtime deps ---
 # The backend imports PyJHora 4.8.7 from ../../src (see astrology.py). These are the
 # library's runtime dependencies actually exercised by the chart/dasha/compatibility

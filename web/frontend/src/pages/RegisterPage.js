@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import { Mail, Lock, User, AlertCircle } from "lucide-react";
 import { SITE_TITLE } from "../config/branding";
+import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import "../styles/Auth.css";
 
 export const RegisterPage = () => {
@@ -128,6 +129,8 @@ export const RegisterPage = () => {
             {isLoading ? t("auth.registering") : t("auth.register")}
           </button>
         </form>
+
+        <GoogleSignInButton redirectTo="/profile-selection" />
 
         <p className="auth-link">
           {t("auth.haveAccount")} <Link to="/login">{t("auth.loginHere")}</Link>

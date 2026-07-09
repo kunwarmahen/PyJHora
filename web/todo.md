@@ -2544,3 +2544,37 @@ LLM preference is persisted server-side per user.
       the fast local cache so pages read values unchanged and offline still works. `api.js`
       `getPreferences`/`putPreferences`. Only the LLM keys sync today (language/ayanamsa/chart-style
       remain local by design); `SYNCED_KEYS` makes extending trivial.
+
+## 24. Sign in with Google (owner ask 2026-07-09)
+
+Add "Continue with Google" alongside the existing username/password auth. Decisions (owner):
+**username = the Google email**, **auto-link** a Google sign-in to any existing account with the same
+email (same verified email = same account), and use the **Google Identity Services** button flow
+(must also work on `localhost` for testing). Feature is fully optional — unset `GOOGLE_CLIENT_ID`
+and nothing changes; password auth is untouched.
+
+- [x] **Backend endpoint** (`main.py`) — new `POST /api/auth/google` (`GoogleAuthRequest{credential,
+      remember_me}`). Verifies the GIS ID token with `google-auth`
+      (`id_token.verify_oauth2_token`, audience = `GOOGLE_CLIENT_ID`), requires `email_verified`, then
+      **find-or-create** keyed on `google_sub`/`email`/`username==email`: an existing row gets
+      `google_sub`/`auth_provider` backfilled and is signed straight in (links password ↔ Google); a
+      new row is created with `username=email`, `auth_provider:"google"`, **no** `hashed_password`.
+      Issues the normal JWT pair via `_issue_token_pair`. Returns 503 when `GOOGLE_CLIENT_ID` unset.
+- [x] **Password-path hardening** — Google-only users have no `hashed_password`, so `login`,
+      `change-password`, `delete-account` now read `user.get("hashed_password")` (delete lets a
+      password-less account confirm with just its valid token). **BUGFIX:** `GET /api/user/profile`
+      did `del user["hashed_password"]` → `KeyError` on the first load after Google sign-in; now
+      `.pop(..., None)`. A Google-only user can set a password later via forgot-password.
+- [x] **Config** — `GOOGLE_CLIENT_ID` in `config.py` (backend) + `REACT_APP_GOOGLE_CLIENT_ID` baked
+      into the frontend build (must match). `google-auth==2.38.0` added to `requirements.txt`.
+- [x] **Frontend** — new `GoogleSignInButton.js` loads the GIS script once, renders Google's official
+      button, and exchanges the token via `authService.googleLogin` → `AuthContext.loginWithGoogle` →
+      normal JWT session → `/profile-selection`. Renders **nothing** when
+      `REACT_APP_GOOGLE_CLIENT_ID` is unset. Added to `LoginPage`/`RegisterPage` with an "or" divider
+      (`Auth.css`).
+- [x] **Deploy plumbing** — `dev.sh` passes both vars from `web/.env` into local dev (backend env +
+      CRA dev server) and the NAS build arg; `Dockerfile.nas` declares the build ARG;
+      `docker-compose.yml` interpolates both; NAS backend picks up `GOOGLE_CLIENT_ID` via `env_file`.
+      Documented in `.env.nas.example`, `README.md` (backend + frontend env blocks).
+- [ ] **Nice-to-have (deferred):** Settings should show "Set a password" instead of "Change password"
+      when `auth_provider === "google"` (today they use forgot-password to add one).

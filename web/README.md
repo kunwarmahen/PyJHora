@@ -379,6 +379,15 @@ DIGEST_SCHEDULER_INTERVAL_MINUTES=15
 
 # CORS
 CORS_ORIGINS=["http://localhost:3000","http://localhost:8000"]
+
+# Sign in with Google (optional). OAuth 2.0 Client ID (type: Web application) from
+# https://console.cloud.google.com/apis/credentials — add http://localhost:3000 and
+# your public domain as "Authorized JavaScript origins" (no redirect URIs needed).
+# The backend verifies Google's ID token against this; the frontend needs the SAME
+# value as REACT_APP_GOOGLE_CLIENT_ID. Blank = feature disabled, password auth
+# unaffected. A first Google sign-in with an email that matches an existing account
+# links to it; otherwise a new account is created with the email as the username.
+GOOGLE_CLIENT_ID=
 ```
 
 ### Frontend (.env)
@@ -394,6 +403,11 @@ REACT_APP_SITE_TAGLINE=Where Vedic Wisdom Meets AI
 # (so it works over the LAN from a phone with no per-device config). Set to pin it.
 REACT_APP_API_URL=http://localhost:8000
 REACT_APP_API_TIMEOUT=30000
+
+# Sign in with Google (optional) — MUST equal the backend GOOGLE_CLIENT_ID. When set,
+# a "Continue with Google" button appears on the login/register pages; when blank the
+# button is hidden. `./dev.sh` passes this through from web/.env for local testing.
+REACT_APP_GOOGLE_CLIENT_ID=
 ```
 
 The brand mark next to the title uses the built app icon (`public/icon-192.png`),
@@ -428,6 +442,12 @@ DB name), which is deliberate.
 ### 1. Authentication
 
 - User registration with username, email, password (with a live password-strength hint)
+- **Sign in with Google** (optional): a "Continue with Google" button on the login/register pages
+  using Google Identity Services. The verified Google email becomes the username; signing in with an
+  email that already exists **links** to that account (same verified email = same account), so a
+  password user can later log in either way. Google-only accounts have no password (they can add one
+  via forgot-password). Enabled by setting `GOOGLE_CLIENT_ID` + `REACT_APP_GOOGLE_CLIENT_ID` (see
+  Configuration); the button is hidden when unset, leaving password auth unchanged.
 - JWT-based login with a **"Keep me signed in"** option, and a per-IP **brute-force rate-limit**
   (default 10 failed attempts / 15 min → HTTP 429; env `LOGIN_RATE_MAX_FAILS` / `LOGIN_RATE_WINDOW_SEC`)
 - **Refresh tokens**: a short-lived access token is silently refreshed in the background using a
@@ -867,6 +887,7 @@ masked, and used ahead of any global env key for that user's requests.
 
 - `POST /api/auth/register` - Register new user (returns access + refresh token)
 - `POST /api/auth/login` - Login user (`remember_me` picks the refresh-token TTL)
+- `POST /api/auth/google` - Sign in / register with a Google Identity Services ID token (find-or-create by verified email, returns access + refresh token; 503 when `GOOGLE_CLIENT_ID` is unset)
 - `POST /api/auth/refresh` - Exchange a refresh token for a fresh access token (rotates the refresh token)
 - `POST /api/auth/logout` - Revoke a refresh token
 - `POST /api/auth/change-password` - Change password (auth; revokes other sessions, returns a fresh pair)

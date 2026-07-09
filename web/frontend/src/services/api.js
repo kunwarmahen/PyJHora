@@ -159,6 +159,9 @@ export const authService = {
     api.post("/api/auth/register", { username, email, password, remember_me: rememberMe }),
   login: (username, password, rememberMe = false) =>
     api.post("/api/auth/login", { username, password, remember_me: rememberMe }),
+  // Sign in with Google: `credential` is the ID token from Google Identity Services.
+  googleLogin: (credential, rememberMe = false) =>
+    api.post("/api/auth/google", { credential, remember_me: rememberMe }),
   refresh: (refresh_token) => api.post("/api/auth/refresh", { refresh_token }),
   logout: (refresh_token) => api.post("/api/auth/logout", { refresh_token }),
   changePassword: (currentPassword, newPassword) =>

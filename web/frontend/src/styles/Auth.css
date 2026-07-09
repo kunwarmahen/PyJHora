@@ -290,3 +290,29 @@
   margin-bottom: 1rem;
   font-size: 0.92rem;
 }
+
+/* "Sign in with Google" — divider + Google's rendered button */
+.google-signin {
+  margin-top: 1.25rem;
+}
+.google-signin__divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--text-secondary, #9b8c72);
+  font-size: 0.82rem;
+  margin: 0.5rem 0 1rem;
+}
+.google-signin__divider::before,
+.google-signin__divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--border-color, #e6ddca);
+}
+.google-signin__divider span {
+  padding: 0 0.75rem;
+}
+.google-signin__button {
+  display: flex;
+  justify-content: center;
+}

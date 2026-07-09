@@ -128,6 +128,9 @@ start_backend() {
   info "starting backend on :$BACKEND_PORT ..."
   (
     cd "$BACKEND_DIR"
+    # Sign in with Google: surface the client ID from web/.env into the process
+    # env so pydantic-settings picks it up in local (non-docker) dev too.
+    export GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-$(env_val GOOGLE_CLIENT_ID)}"
     # Invoke the venv interpreter directly rather than sourcing activate:
     # a venv resolves from the executable's location, so this is robust even
     # if the venv was created under an old (since-renamed) directory path.
@@ -169,7 +172,11 @@ start_frontend() {
   info "starting frontend on :$FRONTEND_PORT ..."
   (
     cd "$FRONTEND_DIR"
-    exec env BROWSER=none npm start
+    # Pass the Google client ID from web/.env to CRA's dev server (create-react-app
+    # only inlines REACT_APP_* vars present in its environment at build/start).
+    exec env BROWSER=none \
+      REACT_APP_GOOGLE_CLIENT_ID="${REACT_APP_GOOGLE_CLIENT_ID:-$(env_val REACT_APP_GOOGLE_CLIENT_ID)}" \
+      npm start
   ) >"$FRONTEND_LOG" 2>&1 &
   echo $! >"$FRONTEND_PID"
   sleep 1
@@ -333,6 +340,7 @@ nas_build_images() {
   v="$(env_val REACT_APP_SITE_TITLE)";       [ -n "$v" ] && wargs+=(--build-arg "REACT_APP_SITE_TITLE=$v")
   v="$(env_val REACT_APP_SITE_TAGLINE)";      [ -n "$v" ] && wargs+=(--build-arg "REACT_APP_SITE_TAGLINE=$v")
   v="$(env_val REACT_APP_ENABLE_MAP_PICKER)"; [ -n "$v" ] && wargs+=(--build-arg "REACT_APP_ENABLE_MAP_PICKER=$v")
+  v="$(env_val REACT_APP_GOOGLE_CLIENT_ID)";  [ -n "$v" ] && wargs+=(--build-arg "REACT_APP_GOOGLE_CLIENT_ID=$v")
   ( cd "$FRONTEND_DIR" && $ENGINE build "${wargs[@]}" -t "$IMG_WEB" -f Dockerfile.nas . )
   ok "images built"
 }

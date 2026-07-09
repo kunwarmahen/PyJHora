@@ -43,6 +43,11 @@ class RegisterRequest(BaseModel):
     password: str
     remember_me: bool = False
 
+class GoogleAuthRequest(BaseModel):
+    # The ID token (a JWT) returned by Google Identity Services in the browser.
+    credential: str
+    remember_me: bool = False
+
 class RefreshRequest(BaseModel):
     refresh_token: str
 
@@ -568,7 +573,7 @@ async def login(req: LoginRequest, request: Request):
         users_collection = database["users"]
         user = await users_collection.find_one({"username": req.username})
 
-        if not user or not verify_password(req.password, user["hashed_password"]):
+        if not user or not verify_password(req.password, user.get("hashed_password") or ""):
             ratelimit.login_failed(client_ip)
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
@@ -579,6 +584,77 @@ async def login(req: LoginRequest, request: Request):
     except Exception as e:
         print(f"Login error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/auth/google", response_model=Token)
+async def google_auth(req: GoogleAuthRequest):
+    """Sign in (or register) with Google. The frontend obtains a Google Identity
+    Services ID token; here we verify it against our OAuth client, then find-or-
+    create the user keyed on their verified email and issue our normal JWT pair.
+
+    Account model (per product decision):
+      • username == the Google email.
+      • If a user with that email already exists (e.g. a prior password signup),
+        we LINK Google to it and sign them straight in — same verified email is
+        treated as the same account.
+      • A Google-only user has no `hashed_password`; password login/change/delete
+        paths tolerate that (they can set one later via forgot-password).
+    """
+    if not settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=503, detail="Google sign-in is not configured")
+
+    from database import database
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database not connected")
+
+    # Verify the ID token: checks Google's signature, expiry, and that the token's
+    # audience is our client ID. Raises ValueError on any mismatch.
+    try:
+        from google.oauth2 import id_token as google_id_token
+        from google.auth.transport import requests as google_requests
+        idinfo = google_id_token.verify_oauth2_token(
+            req.credential, google_requests.Request(), settings.GOOGLE_CLIENT_ID
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail="Invalid Google token")
+    except Exception as e:
+        print(f"Google auth error: {e}")
+        raise HTTPException(status_code=502, detail="Could not verify Google sign-in")
+
+    email = (idinfo.get("email") or "").strip().lower()
+    google_sub = idinfo.get("sub")
+    if not email or not idinfo.get("email_verified") or not google_sub:
+        raise HTTPException(status_code=401, detail="Google account has no verified email")
+
+    users_collection = database["users"]
+    # Prefer matching a previously linked Google account; fall back to email so an
+    # existing password account with the same email gets linked rather than duping.
+    user = await users_collection.find_one(
+        {"$or": [{"google_sub": google_sub}, {"email": email}, {"username": email}]}
+    )
+
+    if user:
+        username = user["username"]
+        # Backfill link fields on first Google sign-in for a pre-existing account.
+        updates = {}
+        if user.get("google_sub") != google_sub:
+            updates["google_sub"] = google_sub
+        if not user.get("auth_provider"):
+            updates["auth_provider"] = "google"
+        if updates:
+            await users_collection.update_one({"username": username}, {"$set": updates})
+    else:
+        username = email
+        await users_collection.insert_one({
+            "username": username,
+            "email": email,
+            "google_sub": google_sub,
+            "auth_provider": "google",
+            "name": idinfo.get("name"),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+
+    return await _issue_token_pair(username, req.remember_me)
 
 
 @app.post("/api/auth/refresh", response_model=Token)
@@ -624,7 +700,7 @@ async def change_password(req: ChangePasswordRequest, current_user: str = Depend
 
     users_collection = database["users"]
     user = await users_collection.find_one({"username": current_user})
-    if not user or not verify_password(req.current_password, user["hashed_password"]):
+    if not user or not verify_password(req.current_password, user.get("hashed_password") or ""):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
 
     await users_collection.update_one(
@@ -702,8 +778,14 @@ async def delete_account(req: DeleteAccountRequest, current_user: str = Depends(
 
     users_collection = database["users"]
     user = await users_collection.find_one({"username": current_user})
-    if not user or not verify_password(req.password, user["hashed_password"]):
-        raise HTTPException(status_code=400, detail="Password is incorrect")
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    # Password accounts must re-enter their password to confirm. Google-only
+    # accounts have none, so the (already-required) valid access token is the
+    # confirmation — they can set a password first via forgot-password if desired.
+    if user.get("hashed_password"):
+        if not verify_password(req.password, user["hashed_password"]):
+            raise HTTPException(status_code=400, detail="Password is incorrect")
 
     # Cascade: wipe every user-scoped collection, then the user row itself.
     for name, field in _USER_SCOPED_COLLECTIONS:
@@ -1663,7 +1745,8 @@ async def get_user_profile(current_user: str = Depends(get_current_user)):
             raise HTTPException(status_code=404, detail="User not found")
         
         user["_id"] = str(user.get("_id", ""))
-        del user["hashed_password"]
+        # Google-only accounts have no password field — pop defensively.
+        user.pop("hashed_password", None)
         return user
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
