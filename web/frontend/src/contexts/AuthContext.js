@@ -75,10 +75,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (username, email, password, rememberMe = false) => {
+  const register = async (username, email, password, name, rememberMe = false) => {
     setIsLoading(true);
     try {
-      const response = await authService.register(username, email, password, rememberMe);
+      const response = await authService.register(username, email, password, name, rememberMe);
       setTokens(response.data);
       await loadUserProfile();
       return true;

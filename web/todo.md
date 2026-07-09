@@ -2578,3 +2578,24 @@ and nothing changes; password auth is untouched.
       Documented in `.env.nas.example`, `README.md` (backend + frontend env blocks).
 - [ ] **Nice-to-have (deferred):** Settings should show "Set a password" instead of "Change password"
       when `auth_provider === "google"` (today they use forgot-password to add one).
+
+### 24.1 Person's name — collect at signup, pull from Google, show in the UI (owner ask 2026-07-09)
+
+The app only ever knew a `username` (= the email for Google users), so the UI greeted people with a
+raw email. Owner ask: **collect a Name at registration (required)**, **pull it from Google** on
+Google sign-in, and **display it** (dashboard greeting, Settings → Account, nav drawer). Existing
+accounts with no name **silently fall back** to username.
+
+- [x] **Backend** (`main.py`) — `RegisterRequest` gains a required `name` (trimmed, non-empty →
+      stored on the user doc). Google endpoint already stores `name` for new users; now it also
+      **backfills** `name` from the Google profile onto a linked/existing account that has none (never
+      overwrites a user-set name). New `PUT /api/auth/name` (`UpdateNameRequest`, ≤100 chars) to edit
+      it. `GET /api/user/profile` already returns the whole doc, so `name` flows to the client.
+- [x] **Frontend** — `RegisterPage` adds a required Name field (first in the form);
+      `authService.register` / `AuthContext.register` thread `name` through. `DashboardPage` greeting
+      shows `user.name || user.username`. `SettingsPage → Account` shows Name in the overview + an
+      editable Name form (`authService.updateName` → `reloadUser`). `NavDrawer` footer shows the
+      name (email as a secondary line) — `nav-drawer-account` styles in `NavDrawer.css`.
+- [x] **i18n** — `auth.name`/`auth.namePlaceholder` in en/hi/sa; `settings.account.{name,
+      namePlaceholder,updateName,nameUpdated,nameError}` in en (hi/sa fall back to English, as the
+      rest of the settings block already does).

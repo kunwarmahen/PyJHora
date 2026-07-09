@@ -235,7 +235,7 @@ export const DashboardPage = () => {
         <div className="nav-right">
           <div className="user-info">
             <span className="welcome-text">{t("dashboard.welcome")}</span>
-            <span className="username">{user?.username}</span>
+            <span className="username">{user?.name || user?.username}</span>
           </div>
           <button
             onClick={() => navigate("/settings")}

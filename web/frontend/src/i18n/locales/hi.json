@@ -75,6 +75,8 @@
   "auth": {
     "tagline": "वैदिक ज्योतिष वेब अनुप्रयोग",
     "createAccount": "अपना खाता बनाएँ",
+    "name": "नाम",
+    "namePlaceholder": "अपना नाम दर्ज करें",
     "username": "उपयोगकर्ता नाम",
     "usernamePlaceholder": "अपना उपयोगकर्ता नाम दर्ज करें",
     "chooseUsername": "एक उपयोगकर्ता नाम चुनें",

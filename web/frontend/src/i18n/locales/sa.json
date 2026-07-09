@@ -75,6 +75,8 @@
   "auth": {
     "tagline": "वैदिकज्योतिषजालानुप्रयोगः",
     "createAccount": "स्वकीयं खातं रचयतु",
+    "name": "नाम",
+    "namePlaceholder": "स्वकीयं नाम प्रविशतु",
     "username": "उपयोक्तृनाम",
     "usernamePlaceholder": "स्वकीयम् उपयोक्तृनाम प्रविशतु",
     "chooseUsername": "एकम् उपयोक्तृनाम चिनोतु",

@@ -155,8 +155,8 @@ api.interceptors.response.use(
 );
 
 export const authService = {
-  register: (username, email, password, rememberMe = false) =>
-    api.post("/api/auth/register", { username, email, password, remember_me: rememberMe }),
+  register: (username, email, password, name, rememberMe = false) =>
+    api.post("/api/auth/register", { username, email, password, name, remember_me: rememberMe }),
   login: (username, password, rememberMe = false) =>
     api.post("/api/auth/login", { username, password, remember_me: rememberMe }),
   // Sign in with Google: `credential` is the ID token from Google Identity Services.
@@ -170,6 +170,7 @@ export const authService = {
       new_password: newPassword,
     }),
   updateEmail: (email) => api.put("/api/auth/email", { email }),
+  updateName: (name) => api.put("/api/auth/name", { name }),
   logoutOtherDevices: () => api.post("/api/auth/logout-all"),
   deleteAccount: (password) =>
     api.delete("/api/auth/account", { data: { password } }),

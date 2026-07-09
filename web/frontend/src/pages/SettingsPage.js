@@ -51,6 +51,8 @@ export const SettingsPage = () => {
   const [pwMsg, setPwMsg] = useState({ type: "", text: "" });
   const [emailInput, setEmailInput] = useState("");
   const [emailMsg, setEmailMsg] = useState({ type: "", text: "" });
+  const [nameInput, setNameInput] = useState("");
+  const [nameMsg, setNameMsg] = useState({ type: "", text: "" });
   const [acctMsg, setAcctMsg] = useState({ type: "", text: "" });
   const [delConfirm, setDelConfirm] = useState({ open: false, password: "" });
   const [busy, setBusy] = useState("");
@@ -215,6 +217,31 @@ export const SettingsPage = () => {
   useEffect(() => {
     if (user?.email) setEmailInput(user.email);
   }, [user?.email]);
+
+  useEffect(() => {
+    setNameInput(user?.name || "");
+  }, [user?.name]);
+
+  const submitName = async (e) => {
+    e.preventDefault();
+    setNameMsg({ type: "", text: "" });
+    const next = (nameInput || "").trim();
+    if (!next || next === (user?.name || "")) return;
+    setBusy("name");
+    try {
+      await authService.updateName(next);
+      await reloadUser();
+      setNameMsg({ type: "ok", text: t("settings.account.nameUpdated") });
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      setNameMsg({
+        type: "error",
+        text: typeof detail === "string" ? detail : t("settings.account.nameError"),
+      });
+    } finally {
+      setBusy("");
+    }
+  };
 
   const submitEmail = async (e) => {
     e.preventDefault();
@@ -796,6 +823,10 @@ export const SettingsPage = () => {
             <h3 className="settings-section-title">{t("settings.account.title")}</h3>
             <dl className="settings-account-info">
               <div>
+                <dt>{t("settings.account.name")}</dt>
+                <dd>{user?.name || "—"}</dd>
+              </div>
+              <div>
                 <dt>{t("settings.account.username")}</dt>
                 <dd>{user?.username || "—"}</dd>
               </div>
@@ -804,6 +835,31 @@ export const SettingsPage = () => {
                 <dd>{formatDate(user?.created_at)}</dd>
               </div>
             </dl>
+
+            {/* Name */}
+            <hr className="settings-divider" />
+            <h3 className="settings-section-title">{t("settings.account.name")}</h3>
+            {nameMsg.text && (
+              <div className={`settings-pw-msg settings-pw-msg--${nameMsg.type}`}>{nameMsg.text}</div>
+            )}
+            <form onSubmit={submitName} className="settings-pw-form">
+              <input
+                className="control-input"
+                type="text"
+                autoComplete="name"
+                placeholder={t("settings.account.namePlaceholder")}
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                required
+              />
+              <button
+                type="submit"
+                className="control-btn"
+                disabled={busy === "name" || !nameInput.trim() || nameInput.trim() === (user?.name || "")}
+              >
+                <User size={14} /> {t("settings.account.updateName")}
+              </button>
+            </form>
 
             {/* Email */}
             <hr className="settings-divider" />

@@ -441,7 +441,9 @@ DB name), which is deliberate.
 
 ### 1. Authentication
 
-- User registration with username, email, password (with a live password-strength hint)
+- User registration with **name**, username, email, password (with a live password-strength hint).
+  The name is shown in the dashboard greeting, Settings → Account, and the nav drawer, and is editable
+  in Settings. Google sign-in pulls the name from the Google profile automatically.
 - **Sign in with Google** (optional): a "Continue with Google" button on the login/register pages
   using Google Identity Services. The verified Google email becomes the username; signing in with an
   email that already exists **links** to that account (same verified email = same account), so a
@@ -454,8 +456,8 @@ DB name), which is deliberate.
   long-lived, revocable, **rotating** refresh token, so you stay signed in across access-token
   expiry (no more being logged out every ~30 minutes). Refresh tokens are stored hashed and are
   revoked on logout and on password change
-- **Account management** (Settings → Account): account overview (username + member-since),
-  **update email**, **change password** (verifies the current password, signs out other devices),
+- **Account management** (Settings → Account): account overview (name + username + member-since),
+  **update name**, **update email**, **change password** (verifies the current password, signs out other devices),
   **log out other devices** (revokes every other session, keeps this one), and a danger-zone
   **delete account** — password-confirmed and irreversible, cascade-purging all of the user's data
   (birth profiles, saved charts, AI conversations + tool traces, shared-chart links, quiz sessions,
@@ -890,6 +892,7 @@ masked, and used ahead of any global env key for that user's requests.
 - `POST /api/auth/google` - Sign in / register with a Google Identity Services ID token (find-or-create by verified email, returns access + refresh token; 503 when `GOOGLE_CLIENT_ID` is unset)
 - `POST /api/auth/refresh` - Exchange a refresh token for a fresh access token (rotates the refresh token)
 - `POST /api/auth/logout` - Revoke a refresh token
+- `PUT /api/auth/name` - Update the current user's display name (auth)
 - `POST /api/auth/change-password` - Change password (auth; revokes other sessions, returns a fresh pair)
 - `GET /api/user/profile` - Get current user profile
 

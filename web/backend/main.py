@@ -41,6 +41,7 @@ class RegisterRequest(BaseModel):
     username: str
     email: str
     password: str
+    name: str
     remember_me: bool = False
 
 class GoogleAuthRequest(BaseModel):
@@ -60,6 +61,9 @@ class ChangePasswordRequest(BaseModel):
 
 class UpdateEmailRequest(BaseModel):
     email: str
+
+class UpdateNameRequest(BaseModel):
+    name: str
 
 class DeleteAccountRequest(BaseModel):
     # Current password, required to confirm an irreversible account deletion.
@@ -528,18 +532,23 @@ async def register(req: RegisterRequest):
         if database is None:
             raise HTTPException(status_code=500, detail="Database not connected")
         
+        name = (req.name or "").strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Please enter your name")
+
         users_collection = database["users"]
-        
+
         # Check if user exists
         existing = await users_collection.find_one({"username": req.username})
         if existing:
             raise HTTPException(status_code=400, detail="Username already registered")
-        
+
         # Create new user
         hashed_password = get_password_hash(req.password)
         user_doc = {
             "username": req.username,
             "email": req.email,
+            "name": name,
             "hashed_password": hashed_password,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -641,6 +650,10 @@ async def google_auth(req: GoogleAuthRequest):
             updates["google_sub"] = google_sub
         if not user.get("auth_provider"):
             updates["auth_provider"] = "google"
+        # Fill in a display name from Google only if the account doesn't have one
+        # yet — never clobber a name the user set themselves.
+        if not user.get("name") and idinfo.get("name"):
+            updates["name"] = idinfo.get("name")
         if updates:
             await users_collection.update_one({"username": username}, {"$set": updates})
     else:
@@ -740,6 +753,27 @@ async def update_email(req: UpdateEmailRequest, current_user: str = Depends(get_
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
     return {"success": True, "email": email}
+
+
+@app.put("/api/auth/name")
+async def update_name(req: UpdateNameRequest, current_user: str = Depends(get_current_user)):
+    """Update the logged-in user's display name."""
+    from database import database
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database not connected")
+
+    name = (req.name or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Please enter your name")
+    if len(name) > 100:
+        raise HTTPException(status_code=400, detail="Name is too long")
+
+    result = await database["users"].update_one(
+        {"username": current_user}, {"$set": {"name": name}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True, "name": name}
 
 
 @app.post("/api/auth/logout-all", response_model=Token)

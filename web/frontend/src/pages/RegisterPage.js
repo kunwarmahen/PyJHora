@@ -8,6 +8,7 @@ import { GoogleSignInButton } from "../components/GoogleSignInButton";
 import "../styles/Auth.css";
 
 export const RegisterPage = () => {
+  const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,7 +43,7 @@ export const RegisterPage = () => {
     }
 
     setIsLoading(true);
-    const success = await register(username, email, password, true);
+    const success = await register(username, email, password, name.trim(), true);
     setIsLoading(false);
     if (success) {
       navigate("/profile-selection");
@@ -62,6 +63,21 @@ export const RegisterPage = () => {
               <span>{error}</span>
             </div>
           )}
+
+          <div className="form-group">
+            <label>{t("auth.name")}</label>
+            <div className="input-wrapper">
+              <User size={18} />
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t("auth.namePlaceholder")}
+                autoComplete="name"
+                required
+              />
+            </div>
+          </div>
 
           <div className="form-group">
             <label>{t("auth.username")}</label>

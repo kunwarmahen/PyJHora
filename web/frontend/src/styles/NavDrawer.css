@@ -91,6 +91,27 @@
   gap: 4px;
 }
 
+.nav-drawer-account {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--space-md) var(--space-sm);
+  line-height: 1.3;
+}
+.nav-drawer-account-name {
+  font-weight: 600;
+  color: var(--cosmic-indigo);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-drawer-account-sub {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #8a7a5c);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .nav-drawer-link {
   display: flex;
   align-items: center;

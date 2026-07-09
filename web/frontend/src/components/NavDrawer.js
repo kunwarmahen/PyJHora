@@ -82,7 +82,7 @@ export const NavDrawer = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const { clearProfile } = useProfile();
 
   const go = (to) => {
@@ -144,6 +144,14 @@ export const NavDrawer = () => {
         </nav>
 
         <div className="nav-drawer-footer">
+          {user && (
+            <div className="nav-drawer-account">
+              <span className="nav-drawer-account-name">{user.name || user.username}</span>
+              {user.name && user.email && (
+                <span className="nav-drawer-account-sub">{user.email}</span>
+              )}
+            </div>
+          )}
           <button className="nav-drawer-link" onClick={handleChangeChart}>
             <Sparkles size={20} />
             <span>{t("common.changeChart")}</span>
