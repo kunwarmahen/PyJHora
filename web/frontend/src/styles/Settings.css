@@ -245,6 +245,16 @@
   font-size: 0.9rem;
 }
 
+/* Configured value under a health item (e.g. the local AI model + endpoint). */
+.settings-health-value {
+  display: block;
+  margin-top: 2px;
+  font-weight: 500;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #8a7c6a);
+  word-break: break-word;
+}
+
 .settings-health-badge {
   font-size: 0.74rem;
   font-weight: 700;

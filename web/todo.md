@@ -1823,9 +1823,10 @@ Plan:
       grey **Off** for optional/disabled features, red **Down** for required ones. A **Re-check**
       button re-runs the fetch; an unreachable server shows a warning line instead. New
       `.settings-health-*` styles in `Settings.css`; `settings.tabs.system` + `settings.system.*`
-      i18n (en full, hi/sa translated). Build + eslint green. Note: `/health` is thin today
-      (4 booleans) — extend the endpoint (DB/ephemeris-path/per-provider key readiness) and the
-      panel picks up new checks automatically.
+      i18n (en full, hi/sa translated). Build + eslint green. Note: `/health` was thin at first
+      (4 booleans); it now also probes Ollama and returns a `local_ai` block (see §22) — extend it
+      further (DB/ephemeris-path/per-provider key readiness) and the panel picks up new checks
+      automatically.
 - [x] **AI Capabilities + language → Settings-only** (owner ask 2026-07-03). DONE: removed the
       **AI Capabilities** dashboard tile + its NavDrawer link (page still reachable via Settings → AI
       → "View AI capabilities"; route `/ai-tools` intact). Removed the **`<LanguageSwitcher>`** from
@@ -2426,3 +2427,35 @@ between accounts/devices as a portable JSON file. Lives on the profile-selection
       (`ProfileSelectionPage`), hidden `<input type=file accept=.json>`, resets its value so the same
       file can be re-picked. i18n `profile.{export,import,exportEmpty,importDone,importFailed}`
       (en/hi/sa). README Features §20 + API Endpoints updated.
+
+## 22. Local AI (Ollama) — surface the configured model + survive redeploys (owner ask 2026-07-09)
+
+Two owner-reported bugs: (a) **Settings → System** always showed "Local AI model (Qwen)" as
+**Off** and never displayed the model value; (b) `OLLAMA_URL` / `OLLAMA_DEFAULT_MODEL` set on
+the server were **not reflected in Settings → AI** — the model field showed blank, so the owner
+retyped it by hand every deploy and lost it (it only lived in per-browser `localStorage`).
+
+- [x] **Root cause.** The System tab read `health.qwen_enabled`, which is the **legacy
+      `USE_QWEN` flag** (default `False`) — it never looked at the Ollama config, so it read "Off"
+      regardless. And the AI-tab model field only fell back to the server default inside the
+      `<select>` (shown when Ollama is reachable *and* has models); in the **text-input branch**
+      (Ollama unreachable at load, or no models installed yet) it bound to the empty
+      `settings.aiModel` with a generic placeholder, hiding `OLLAMA_DEFAULT_MODEL` entirely.
+- [x] **Backend `/health` now probes Ollama** (`main.py`) — calls `llm_service._ollama_status()`
+      and returns `qwen_enabled = USE_QWEN or <ollama reachable>` plus a new
+      **`local_ai: {available, base_url, model, reason}`** block (model = effective
+      `OLLAMA_DEFAULT_MODEL`, or the first installed model when that isn't pulled). No new docker
+      healthcheck depends on `/health`, so the short probe is safe.
+- [x] **Settings → System** (`SettingsPage.js`) — the "Local AI model (Qwen)" row now flips to
+      **OK** when Ollama is reachable and shows the value **`<model> · <base_url>`** underneath
+      (new `.settings-health-value` style). Visible even when unreachable so the owner can confirm
+      what's configured.
+- [x] **Settings → AI** (`SettingsPage.js`) — the model **text input** now placeholders the
+      server default (`activeProvider.default_model`), and when the field is blank a hint reads
+      *"Using the server default: <model>…"* (`settings.ai.serverDefault`, en; hi/sa fall back).
+      Blank = use the server's `OLLAMA_DEFAULT_MODEL`, which is **server-side and survives
+      redeploys** — no per-browser setting to redo. The backend already resolves an empty model to
+      `OLLAMA_DEFAULT_MODEL`, so this is purely making the existing behaviour visible.
+- [x] Docs: README env comment on `OLLAMA_DEFAULT_MODEL` + a new AI-Provider troubleshooting
+      entry ("Local AI shows Off / model blank after redeploy"). Verified end-to-end against a live
+      local Ollama (`qwen_enabled:true`, model surfaced).

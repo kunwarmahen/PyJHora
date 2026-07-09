@@ -882,6 +882,7 @@
       "provider": "Provider",
       "model": "Model",
       "defaultModel": "Provider default",
+      "serverDefault": "Using the server default: {{model}}. Leave blank to keep this; it's set on the server and survives redeploys.",
       "modelPlaceholder": "Enter a model name",
       "endpoint": "Endpoint URL",
       "unavailable": "unavailable",

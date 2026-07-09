@@ -329,6 +329,10 @@ REFRESH_TOKEN_SHORT_DAYS=1
 
 # LLM providers (endpoints + default models; keys are optional — users can also
 # store their own per-user keys in the app). See backend/.env.example for the full list.
+# OLLAMA_DEFAULT_MODEL is the server-side default: it drives the AI model shown in
+# Settings › AI (as the "server default" when the model field is left blank) and the
+# model reported in Settings › System, so a fresh deployment picks it up automatically
+# — no per-browser setting to redo after each redeploy.
 OLLAMA_URL=http://localhost:11434
 OLLAMA_DEFAULT_MODEL=qwen2.5:14b
 OPENAI_COMPATIBLE_URL=http://localhost:1234/v1
@@ -1117,6 +1121,15 @@ cat frontend/.env
 `rstrip("/")`s it defensively, but keep configured URLs clean.) A remote Ollama must also
 bind `0.0.0.0` (`OLLAMA_HOST=0.0.0.0:11434`) to accept connections from the backend host,
 and the model named in `OLLAMA_DEFAULT_MODEL` must be pulled (`ollama list`).
+
+**Local AI shows "Off" / no model in Settings › System, or the AI model is blank after
+a redeploy** — the System tab and the AI model field are driven by the server's live
+Ollama status (`/health` probes `OLLAMA_URL` and reports `OLLAMA_DEFAULT_MODEL`), not by a
+per-browser setting. If it reads "Off": the backend can't reach `OLLAMA_URL` — check the
+endpoint is correct and reachable *from the backend container* (on the NAS, point it at the
+host, e.g. `http://host.docker.internal:11434` or the LAN IP, not `localhost`). Once
+reachable, the configured model shows automatically in Settings › AI as the "server
+default" — you no longer need to type it in per browser, so it survives redeploys.
 
 ### Port Already in Use
 

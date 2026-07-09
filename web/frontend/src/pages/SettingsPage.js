@@ -287,7 +287,17 @@ export const SettingsPage = () => {
     ? [
         { key: "server", label: t("settings.system.server"), ok: health.status === "healthy" },
         { key: "pyjhora", label: t("settings.system.pyjhora"), ok: !!health.engine_available },
-        { key: "qwen", label: t("settings.system.qwen"), ok: !!health.qwen_enabled, optional: true },
+        {
+          key: "qwen",
+          label: t("settings.system.qwen"),
+          ok: !!health.qwen_enabled,
+          optional: true,
+          // Show the actual configured local model + endpoint (from OLLAMA_URL /
+          // OLLAMA_DEFAULT_MODEL) so the value is visible even when unreachable.
+          value: health.local_ai?.model
+            ? `${health.local_ai.model}${health.local_ai.base_url ? ` · ${health.local_ai.base_url}` : ""}`
+            : "",
+        },
         { key: "mapPicker", label: t("settings.system.mapPicker"), ok: !!health.map_picker_enabled, optional: true },
       ]
     : [];
@@ -425,11 +435,19 @@ export const SettingsPage = () => {
                   className="control-input"
                   type="text"
                   value={settings.aiModel}
-                  placeholder={t("settings.ai.modelPlaceholder")}
+                  placeholder={activeProvider?.default_model || t("settings.ai.modelPlaceholder")}
                   onChange={(e) => set("aiModel", e.target.value)}
                 />
               )}
             </div>
+            {/* When left blank the server falls back to its configured default
+                (OLLAMA_DEFAULT_MODEL), so surface it rather than making the user
+                retype it — this survives redeploys since it lives server-side. */}
+            {!settings.aiModel && activeProvider?.default_model && (
+              <p className="settings-hint">
+                {t("settings.ai.serverDefault", { model: activeProvider.default_model })}
+              </p>
+            )}
 
             {isLocalProvider && (
               <div className="settings-row">
@@ -717,7 +735,10 @@ export const SettingsPage = () => {
             {!healthErr &&
               healthChecks.map((c) => (
                 <div className="settings-health-row" key={c.key}>
-                  <span className="settings-health-name">{c.label}</span>
+                  <span className="settings-health-name">
+                    {c.label}
+                    {c.value && <span className="settings-health-value">{c.value}</span>}
+                  </span>
                   <span className={`settings-health-badge${c.ok ? " is-ok" : c.optional ? " is-off" : " is-bad"}`}>
                     {c.ok ? t("settings.system.ok") : c.optional ? t("settings.system.disabled") : t("settings.system.down")}
                   </span>

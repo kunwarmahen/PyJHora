@@ -3887,11 +3887,25 @@ async def delete_profile(profile_id: str, current_user: str = Depends(get_curren
 
 @app.get("/health")
 async def health_check():
-    """Health check"""
+    """Health check.
+
+    Also probes the local Ollama endpoint (OLLAMA_URL / OLLAMA_DEFAULT_MODEL) so
+    the Settings › System tab reflects the *actual* local-AI status and the
+    configured model, rather than the legacy USE_QWEN flag alone."""
+    local = await llm_service._ollama_status()
+    local_available = bool(local.get("available"))
     return {
         "status": "healthy",
         "engine_available": AstrologyCompute.ENGINE_AVAILABLE,
-        "qwen_enabled": settings.USE_QWEN,
+        # Legacy field retained for compatibility: "local AI" is on whenever the
+        # Ollama endpoint is reachable (or the legacy USE_QWEN flag is set).
+        "qwen_enabled": settings.USE_QWEN or local_available,
+        "local_ai": {
+            "available": local_available,
+            "base_url": local.get("base_url"),
+            "model": local.get("default_model"),
+            "reason": local.get("reason"),
+        },
         "map_picker_enabled": settings.MAP_PICKER_ENABLED
     }
 
