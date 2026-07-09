@@ -31,7 +31,7 @@ DEFAULT_PREFS: Dict[str, Any] = {
     "push": False,           # deliver by browser push
     "profile_id": None,      # legacy single-profile selection (kept for back-compat)
     "profile_ids": [],       # explicit set of saved profiles to include
-    "all_profiles": False,   # include every saved profile (and any added later)
+    "all_profiles": True,    # default: include every saved profile (and any added later)
     "include_ai": True,      # embed the AI "how the day looks" narrative (falls back to highlights)
     "hour": 7,               # preferred local hour (0-23) for a scheduler
 }

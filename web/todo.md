@@ -2494,9 +2494,13 @@ terse rule-based highlights — add a warm **"how the day looks"** reading. Deci
 **AI narrative with a rule-based fallback** so a scheduled send never fails when the LLM is down.
 
 - [x] **Prefs schema** (`notifications.py`) — added `profile_ids: []` (explicit set),
-      `all_profiles: false` (every saved profile, including any added later), and `include_ai: true`
-      (embed the narrative). Legacy `profile_id` kept for back-compat; `set_prefs` whitelists/coerces
-      the new keys (list-of-str / bool / bool).
+      `all_profiles: true` (**default**: every saved profile, including any added later), and
+      `include_ai: true` (embed the narrative). Legacy `profile_id` kept for back-compat; `set_prefs`
+      whitelists/coerces the new keys (list-of-str / bool / bool).
+- [x] **BUGFIX (2026-07-09):** the new prefs never persisted — clicking a profile checkbox reverted
+      it. Root cause: `NotificationPrefsRequest` (main.py) didn't declare `profile_ids`/`all_profiles`/
+      `include_ai`, so Pydantic silently dropped them and the PUT echoed back the old prefs. Added the
+      three fields to the request model. Also flipped the default to **all profiles** per owner ask.
 - [x] **`digest.py` rewrite** — new `resolve_profiles(user_id, prefs)` returns **every** profile to
       cover, precedence `all_profiles` → `profile_ids` (order-preserving, owned-only) → legacy
       `resolve_profile` (chosen/default/first). `send_digest_for_user` now builds one section per

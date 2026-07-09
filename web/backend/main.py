@@ -461,6 +461,9 @@ class NotificationPrefsRequest(BaseModel):
     email: Optional[bool] = None
     push: Optional[bool] = None
     profile_id: Optional[str] = None
+    profile_ids: Optional[List[str]] = None
+    all_profiles: Optional[bool] = None
+    include_ai: Optional[bool] = None
     hour: Optional[int] = None
 
 class PushSubscribeRequest(BaseModel):
