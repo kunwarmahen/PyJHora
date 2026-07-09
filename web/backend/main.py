@@ -3714,6 +3714,107 @@ async def list_profiles(current_user: str = Depends(get_current_user)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+class ImportProfileItem(BaseModel):
+    profile_name: str
+    birth_details: BirthDetails
+    is_default: bool = False
+
+
+class ImportProfilesRequest(BaseModel):
+    profiles: List[ImportProfileItem]
+
+
+@app.get("/api/profiles/export")
+async def export_profiles(current_user: str = Depends(get_current_user)):
+    """Export all of the current user's saved profiles as a portable JSON envelope.
+
+    Only the birth data (profile name + birth details) is exported — no user ids or
+    database ids — so the file can be re-imported into any account.
+    """
+    try:
+        from database import database
+
+        if database is None:
+            raise HTTPException(status_code=500, detail="Database not connected")
+
+        profiles_collection = database["saved_profiles"]
+        profiles = await profiles_collection.find({"user_id": current_user}).sort("created_at", -1).to_list(1000)
+
+        items = [
+            {
+                "profile_name": p.get("profile_name"),
+                "birth_details": p.get("birth_details"),
+                "is_default": p.get("is_default", False),
+            }
+            for p in profiles
+        ]
+
+        return {
+            "app": "Jyotir AI",
+            "type": "profiles",
+            "version": 1,
+            "exported_at": datetime.utcnow().isoformat() + "Z",
+            "count": len(items),
+            "profiles": items,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/profiles/import")
+async def import_profiles(req: ImportProfilesRequest, current_user: str = Depends(get_current_user)):
+    """Import profiles from an exported JSON envelope.
+
+    Duplicates (same profile name + date + time of birth) are skipped so re-importing
+    the same file is safe. Imported profiles never override the account's default.
+    """
+    try:
+        from database import database, SavedProfile
+
+        if database is None:
+            raise HTTPException(status_code=500, detail="Database not connected")
+
+        profiles_collection = database["saved_profiles"]
+
+        existing = await profiles_collection.find({"user_id": current_user}).to_list(1000)
+        seen = {
+            (p.get("profile_name"), (p.get("birth_details") or {}).get("dob"), (p.get("birth_details") or {}).get("tob"))
+            for p in existing
+        }
+
+        docs = []
+        skipped = 0
+        for item in req.profiles:
+            key = (item.profile_name, item.birth_details.dob, item.birth_details.tob)
+            if key in seen:
+                skipped += 1
+                continue
+            seen.add(key)
+            profile = SavedProfile(
+                user_id=current_user,
+                profile_name=item.profile_name,
+                birth_details=item.birth_details,
+                is_default=False,  # never clobber the current default on import
+            )
+            docs.append(profile.model_dump(by_alias=True, exclude={"id"}))
+
+        if docs:
+            await profiles_collection.insert_many(docs)
+
+        return {
+            "success": True,
+            "imported": len(docs),
+            "skipped": skipped,
+            "message": f"Imported {len(docs)} profile(s), skipped {skipped} duplicate(s)",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.delete("/api/profiles/{profile_id}")
 async def delete_profile(profile_id: str, current_user: str = Depends(get_current_user)):
     """Delete a saved profile"""

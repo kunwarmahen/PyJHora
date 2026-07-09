@@ -748,6 +748,11 @@ Three approaches, chosen with a mode toggle:
   Chart, Compare, Transit and the shared view
 - **Share** a chart as a **public, read-only link** (`/share/:token`) — no login needed
   to view; offers a "create a free account" CTA
+- **Export / import birth profiles** (Profile selection screen) — download **all** your
+  saved profiles (name, DOB, time, place, coordinates, timezone) as a portable JSON file,
+  and import that file back into any account. Imports **skip duplicates** (same profile
+  name + date + time of birth), so re-importing the same file is safe, and never override
+  the account's current default profile
 
 ### 21. LLM Integration (Optional)
 
@@ -902,6 +907,8 @@ masked, and used ahead of any global env key for that user's requests.
 - `GET /api/profiles/list` - List all saved profiles for the current user
 - `PUT /api/profiles/{profile_id}` - Update an existing birth profile
 - `DELETE /api/profiles/{profile_id}` - Delete a saved profile
+- `GET /api/profiles/export` - Export all of the current user's profiles as a portable JSON envelope
+- `POST /api/profiles/import` - Bulk-import profiles from an exported file (skips duplicates)
 
 ### User
 

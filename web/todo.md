@@ -2391,3 +2391,24 @@ SSH → `sudo docker compose up`) but tunnel-only, so **nothing is exposed on th
       `rstrip("/")`s the base URL at every call site so it can't recur.
 - [x] **`MONGO_PASSWORD` must avoid `@`** — it's injected raw into `mongodb://user:pass@host`, and a
       literal `@` breaks URI parsing. Documented in `.env.nas.example`.
+
+## 21. Export / import birth profiles (owner ask 2026-07-08)
+
+Let users move their saved birth profiles (name, DOB, time, place, coordinates, timezone)
+between accounts/devices as a portable JSON file. Lives on the profile-selection screen.
+
+- [x] **Portable JSON envelope** — `{app, type:"profiles", version:1, exported_at, count, profiles:[]}`,
+      where each profile is just `{profile_name, birth_details, is_default}` (no user/DB ids), so a
+      file exported from one account imports cleanly into any other.
+- [x] **Export** — done client-side in `ProfileContext.exportProfiles()` from the already-loaded
+      `profiles` list (no round-trip); downloads `jyotirai-profiles-YYYY-MM-DD.json`. A matching
+      **`GET /api/profiles/export`** endpoint returns the same envelope for API/testing symmetry.
+- [x] **Import** — **`POST /api/profiles/import`** (`ImportProfilesRequest`) bulk-inserts via one
+      `insert_many`. **Dedups** on `(profile_name, dob, tob)` against existing + within the file, so
+      re-importing the same file is a no-op; forces `is_default=False` so imports never clobber the
+      account's current default. Returns `{imported, skipped}`. Frontend `importProfiles()` accepts
+      either the envelope or a bare array and strips to the expected fields before posting.
+- [x] **UI** — Import/Export buttons in a `.profiles-toolbar` above the profiles grid
+      (`ProfileSelectionPage`), hidden `<input type=file accept=.json>`, resets its value so the same
+      file can be re-picked. i18n `profile.{export,import,exportEmpty,importDone,importFailed}`
+      (en/hi/sa). README Features §20 + API Endpoints updated.

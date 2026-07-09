@@ -123,6 +123,72 @@ export const ProfileProvider = ({ children }) => {
     }
   };
 
+  // Export all profiles to a downloadable JSON file
+  const exportProfiles = () => {
+    const envelope = {
+      app: "Jyotir AI",
+      type: "profiles",
+      version: 1,
+      exported_at: new Date().toISOString(),
+      count: profiles.length,
+      profiles: profiles.map((p) => ({
+        profile_name: p.profile_name,
+        birth_details: p.birth_details,
+        is_default: p.is_default || false,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(envelope, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `jyotirai-profiles-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return { success: true, count: profiles.length };
+  };
+
+  // Import profiles from a parsed JSON file (envelope or bare array)
+  const importProfiles = async (parsed) => {
+    const list = Array.isArray(parsed) ? parsed : parsed?.profiles;
+    if (!Array.isArray(list) || list.length === 0) {
+      return { success: false, error: "No profiles found in file" };
+    }
+    // Keep only the fields the backend expects
+    const clean = list
+      .filter((p) => p && p.profile_name && p.birth_details)
+      .map((p) => ({
+        profile_name: p.profile_name,
+        birth_details: p.birth_details,
+        is_default: false,
+      }));
+    if (clean.length === 0) {
+      return { success: false, error: "File does not contain valid profiles" };
+    }
+    try {
+      const response = await fetch(`${API_URL}/api/profiles/import`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body: JSON.stringify({ profiles: clean }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        await loadProfiles();
+        return { success: true, imported: data.imported, skipped: data.skipped };
+      }
+      return { success: false, error: data.detail || data.message };
+    } catch (err) {
+      return { success: false, error: "Failed to import profiles" };
+    }
+  };
+
   // Select a profile
   const selectProfile = (profile) => {
     setSelectedProfile(profile);
@@ -156,6 +222,8 @@ export const ProfileProvider = ({ children }) => {
     saveProfile,
     updateProfile,
     deleteProfile,
+    exportProfiles,
+    importProfiles,
     selectProfile,
     clearProfile,
   };

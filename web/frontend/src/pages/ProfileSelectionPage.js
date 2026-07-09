@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useProfile } from "../contexts/ProfileContext";
@@ -13,6 +13,8 @@ import {
   ChevronRight,
   Star,
   Edit2,
+  Download,
+  Upload,
 } from "lucide-react";
 import LocationSearch from "../components/LocationSearch";
 import MapPicker from "../components/MapPicker";
@@ -28,8 +30,11 @@ export const ProfileSelectionPage = () => {
     saveProfile,
     updateProfile,
     deleteProfile,
+    exportProfiles,
+    importProfiles,
     selectProfile,
   } = useProfile();
+  const fileInputRef = useRef(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
   const [formData, setFormData] = useState({
@@ -151,6 +156,36 @@ export const ProfileSelectionPage = () => {
     }
   };
 
+  const handleExport = () => {
+    if (!profiles.length) {
+      window.alert(t("profile.exportEmpty"));
+      return;
+    }
+    exportProfiles();
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-importing the same file
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const result = await importProfiles(parsed);
+      if (result.success) {
+        window.alert(t("profile.importDone", { imported: result.imported, skipped: result.skipped }));
+      } else {
+        window.alert(result.error || t("profile.importFailed"));
+      }
+    } catch (err) {
+      window.alert(t("profile.importFailed"));
+    }
+  };
+
   const timezones = [
     { value: "-12", label: "UTC-12 (Baker Island)" },
     { value: "-11", label: "UTC-11 (Samoa)" },
@@ -184,6 +219,27 @@ export const ProfileSelectionPage = () => {
               </div>
             ) : (
               <>
+                <div className="profiles-toolbar">
+                  <button className="toolbar-btn" onClick={handleImportClick}>
+                    <Upload size={16} />
+                    <span>{t("profile.import")}</span>
+                  </button>
+                  <button
+                    className="toolbar-btn"
+                    onClick={handleExport}
+                    disabled={!profiles.length}
+                  >
+                    <Download size={16} />
+                    <span>{t("profile.export")}</span>
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/json,.json"
+                    onChange={handleImportFile}
+                    style={{ display: "none" }}
+                  />
+                </div>
                 <div className="profiles-grid">
                   {profiles.map((profile, index) => (
                     <div
