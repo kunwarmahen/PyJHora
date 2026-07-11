@@ -313,6 +313,48 @@ runs the minified production build, so it reflects exactly what ships.
 
 ## Configuration
 
+### Which `.env` file does what
+
+There are three real env files (plus their committed `.example` templates). All
+three are gitignored — only the templates are tracked.
+
+| File | Read by | Used when |
+|---|---|---|
+| `web/backend/.env` | the backend process, via pydantic-settings (`config.py` → `env_file = ".env"`, resolved from `web/backend/` as cwd) | **local dev only** — `./dev.sh start`, or running `python main.py` by hand |
+| `web/frontend/.env` | create-react-app, which inlines `REACT_APP_*` at build/start time | **local dev only** — `./dev.sh start` / `npm start` / `npm run build` |
+| `web/.env` | `docker compose` (variable interpolation) and `dev.sh` (via `env_val`) | **Docker + NAS deploy** — `./dev.sh up`, `./dev.sh nas deploy`. Template: `.env.nas.example` |
+
+Rules of thumb:
+
+- **Running locally (`./dev.sh start`)** → edit `backend/.env` and `frontend/.env`.
+  `web/.env` is *mostly* ignored here, with one exception: `dev.sh` pulls
+  `GOOGLE_CLIENT_ID` / `REACT_APP_GOOGLE_CLIENT_ID` out of it and exports them
+  into both processes, so Google sign-in works in local dev without duplicating
+  the client ID. That's the only bridge between the two worlds.
+- **Running in local Docker (`./dev.sh up`)** → `docker-compose.yml` hardcodes the
+  backend/frontend settings in its `environment:` blocks and only interpolates the
+  two Google vars from `web/.env`. Compose auto-loads `web/.env` because it sits
+  next to the compose file. Note `environment:` wins over anything in the
+  bind-mounted `backend/.env`, so editing that file has no effect under Docker.
+- **Deploying to the NAS (`./dev.sh nas deploy`)** → **everything** comes from
+  `web/.env`. `dev.sh` reads `NAS_*` and `REACT_APP_*` from it to build and ship the
+  images, then `scp`s the file to the NAS where `docker-compose.nas.yml` consumes it
+  both as `env_file:` for the backend and for `${VAR}` interpolation.
+  `backend/.env` never reaches the image — the repo-root `.dockerignore` excludes
+  `**/.env`. `frontend/.env` *is* copied into the frontend build context (no `.env`
+  entry in `web/frontend/.dockerignore`), but every var the deploy cares about is
+  passed as a `--build-arg` → `ENV`, and CRA's dotenv loader won't override a var
+  already in the environment. Only vars `dev.sh` doesn't pass (currently just
+  `REACT_APP_API_TIMEOUT`) fall through from your local `frontend/.env` into the
+  production bundle — worth remembering if you add a new `REACT_APP_*` var.
+
+So the same key (e.g. `SECRET_KEY`, `CORS_ORIGINS`, `APP_BASE_URL`, `DATABASE_NAME`)
+lives in `backend/.env` for local dev and again in `web/.env` for production — they
+are independent, and the values *should* differ.
+
+> `src/jhora/ui/.env` is unrelated to the web app: it's a stray editor/launch-config
+> fragment for the desktop PyQt UI, not a dotenv file. Nothing loads it.
+
 ### Backend (.env)
 
 ```env
