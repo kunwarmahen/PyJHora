@@ -2576,8 +2576,13 @@ and nothing changes; password auth is untouched.
       CRA dev server) and the NAS build arg; `Dockerfile.nas` declares the build ARG;
       `docker-compose.yml` interpolates both; NAS backend picks up `GOOGLE_CLIENT_ID` via `env_file`.
       Documented in `.env.nas.example`, `README.md` (backend + frontend env blocks).
-- [ ] **Nice-to-have (deferred):** Settings should show "Set a password" instead of "Change password"
-      when `auth_provider === "google"` (today they use forgot-password to add one).
+- [x] **Nice-to-have (deferred):** Settings shows **"Set a password"** instead of "Change password"
+      for password-less accounts. `GET /api/user/profile` now returns `has_password`; when false the
+      Settings → Account form drops the *Current password* field and titles/button read "Set a
+      password" / "Set password". `POST /api/auth/change-password` skips the current-password check
+      when the account has no `hashed_password` yet (still verifies it for accounts that have one), so
+      a Google-only user can set a first password in-app instead of via forgot-password. i18n:
+      `settings.account.{setPassword,setBtn,passwordSet,setNote}` (en; hi/sa fall back). (2026-07-11)
 
 ### 24.1 Person's name — collect at signup, pull from Google, show in the UI (owner ask 2026-07-09)
 

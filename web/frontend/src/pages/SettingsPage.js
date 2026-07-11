@@ -26,6 +26,10 @@ export const SettingsPage = () => {
   const { user, logout, reloadUser } = useAuth();
   const { profiles, loadProfiles } = useProfile();
 
+  // Google-only accounts have no password yet; offer "Set" instead of "Change".
+  // Undefined (older profile payloads) defaults to true so nothing regresses.
+  const hasPassword = user?.has_password !== false;
+
   const [tab, setTab] = useState("general");
   const [savedFlash, setSavedFlash] = useState("");
 
@@ -205,9 +209,11 @@ export const SettingsPage = () => {
       return;
     }
     try {
-      await authService.changePassword(pw.current, pw.next);
+      // A Google-only account has no password yet; send an empty current password.
+      await authService.changePassword(hasPassword ? pw.current : "", pw.next);
       setPw({ current: "", next: "", confirm: "" });
-      setPwMsg({ type: "ok", text: t("settings.account.changed") });
+      await reloadUser();
+      setPwMsg({ type: "ok", text: t(hasPassword ? "settings.account.changed" : "settings.account.passwordSet") });
     } catch (err) {
       const detail = err?.response?.data?.detail || t("settings.account.changeError");
       setPwMsg({ type: "error", text: typeof detail === "string" ? detail : t("settings.account.changeError") });
@@ -886,22 +892,26 @@ export const SettingsPage = () => {
               </button>
             </form>
 
-            {/* Change password */}
+            {/* Change / set password */}
             <hr className="settings-divider" />
-            <h3 className="settings-section-title">{t("settings.account.changePassword")}</h3>
+            <h3 className="settings-section-title">
+              {t(hasPassword ? "settings.account.changePassword" : "settings.account.setPassword")}
+            </h3>
             {pwMsg.text && (
               <div className={`settings-pw-msg settings-pw-msg--${pwMsg.type}`}>{pwMsg.text}</div>
             )}
             <form onSubmit={submitPassword} className="settings-pw-form">
-              <input
-                className="control-input"
-                type="password"
-                autoComplete="current-password"
-                placeholder={t("settings.account.current")}
-                value={pw.current}
-                onChange={(e) => setPw((p) => ({ ...p, current: e.target.value }))}
-                required
-              />
+              {hasPassword && (
+                <input
+                  className="control-input"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder={t("settings.account.current")}
+                  value={pw.current}
+                  onChange={(e) => setPw((p) => ({ ...p, current: e.target.value }))}
+                  required
+                />
+              )}
               <input
                 className="control-input"
                 type="password"
@@ -921,10 +931,12 @@ export const SettingsPage = () => {
                 required
               />
               <button type="submit" className="control-btn">
-                {t("settings.account.changeBtn")}
+                {t(hasPassword ? "settings.account.changeBtn" : "settings.account.setBtn")}
               </button>
             </form>
-            <p className="settings-hint">{t("settings.account.changeNote")}</p>
+            <p className="settings-hint">
+              {t(hasPassword ? "settings.account.changeNote" : "settings.account.setNote")}
+            </p>
 
             {/* Sessions */}
             <hr className="settings-divider" />

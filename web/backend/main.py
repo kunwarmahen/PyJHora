@@ -702,9 +702,10 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
 @app.post("/api/auth/change-password", response_model=Token)
 async def change_password(req: ChangePasswordRequest, current_user: str = Depends(get_current_user)):
-    """Change the logged-in user's password. Verifies the current password,
-    revokes all existing refresh tokens (logging out other devices), and returns
-    a fresh token pair so the current session stays signed in."""
+    """Change the logged-in user's password. Verifies the current password
+    (unless the account is Google-only and has none yet — then this sets the
+    first password), revokes all existing refresh tokens (logging out other
+    devices), and returns a fresh token pair so the current session stays in."""
     from database import database
     if database is None:
         raise HTTPException(status_code=500, detail="Database not connected")
@@ -713,7 +714,12 @@ async def change_password(req: ChangePasswordRequest, current_user: str = Depend
 
     users_collection = database["users"]
     user = await users_collection.find_one({"username": current_user})
-    if not user or not verify_password(req.current_password, user.get("hashed_password") or ""):
+    if not user:
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    existing_hash = user.get("hashed_password")
+    # A Google-only account has no password yet — let it set a first one without
+    # a current password. An account that already has a password must verify it.
+    if existing_hash and not verify_password(req.current_password, existing_hash):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
 
     await users_collection.update_one(
@@ -1779,6 +1785,9 @@ async def get_user_profile(current_user: str = Depends(get_current_user)):
             raise HTTPException(status_code=404, detail="User not found")
         
         user["_id"] = str(user.get("_id", ""))
+        # Tell the client whether a password is set (Google-only accounts have
+        # none yet) so Settings can offer "Set a password" vs "Change password".
+        user["has_password"] = bool(user.get("hashed_password"))
         # Google-only accounts have no password field — pop defensively.
         user.pop("hashed_password", None)
         return user

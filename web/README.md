@@ -489,8 +489,9 @@ DB name), which is deliberate.
 - **Sign in with Google** (optional): a "Continue with Google" button on the login/register pages
   using Google Identity Services. The verified Google email becomes the username; signing in with an
   email that already exists **links** to that account (same verified email = same account), so a
-  password user can later log in either way. Google-only accounts have no password (they can add one
-  via forgot-password). Enabled by setting `GOOGLE_CLIENT_ID` + `REACT_APP_GOOGLE_CLIENT_ID` (see
+  password user can later log in either way. Google-only accounts have no password; Settings →
+  Account offers **"Set a password"** (no current password required) so they can also sign in with
+  their email. Enabled by setting `GOOGLE_CLIENT_ID` + `REACT_APP_GOOGLE_CLIENT_ID` (see
   Configuration); the button is hidden when unset, leaving password auth unchanged.
 - JWT-based login with a **"Keep me signed in"** option, and a per-IP **brute-force rate-limit**
   (default 10 failed attempts / 15 min → HTTP 429; env `LOGIN_RATE_MAX_FAILS` / `LOGIN_RATE_WINDOW_SEC`)
@@ -499,7 +500,8 @@ DB name), which is deliberate.
   expiry (no more being logged out every ~30 minutes). Refresh tokens are stored hashed and are
   revoked on logout and on password change
 - **Account management** (Settings → Account): account overview (name + username + member-since),
-  **update name**, **update email**, **change password** (verifies the current password, signs out other devices),
+  **update name**, **update email**, **change password** (verifies the current password, signs out other devices;
+  Google-only accounts see **"Set a password"** instead, which needs no current password),
   **log out other devices** (revokes every other session, keeps this one), and a danger-zone
   **delete account** — password-confirmed and irreversible, cascade-purging all of the user's data
   (birth profiles, saved charts, AI conversations + tool traces, shared-chart links, quiz sessions,
@@ -935,7 +937,7 @@ masked, and used ahead of any global env key for that user's requests.
 - `POST /api/auth/refresh` - Exchange a refresh token for a fresh access token (rotates the refresh token)
 - `POST /api/auth/logout` - Revoke a refresh token
 - `PUT /api/auth/name` - Update the current user's display name (auth)
-- `POST /api/auth/change-password` - Change password (auth; revokes other sessions, returns a fresh pair)
+- `POST /api/auth/change-password` - Change password (auth; revokes other sessions, returns a fresh pair; for a password-less Google account it sets the first password without requiring a current one)
 - `GET /api/user/profile` - Get current user profile
 
 ### Astrology
