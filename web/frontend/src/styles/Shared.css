@@ -454,6 +454,11 @@
   box-shadow: var(--shadow-sm);
 }
 .chart-toggle__btn {
+  /* inline-flex + gap so a segment can carry a leading icon (e.g. the
+     Solar/Lunar basis toggle) and still centre cleanly. */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);
   border: none;
@@ -463,6 +468,10 @@
   text-transform: capitalize;
   background: transparent;
   color: var(--text-secondary);
+}
+.chart-toggle__btn:hover:not(.is-active) {
+  background: var(--sandalwood);
+  color: var(--cosmic-indigo);
 }
 .chart-toggle__btn.is-active {
   background: var(--saffron);

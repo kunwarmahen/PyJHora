@@ -2736,32 +2736,63 @@ class AstrologyCompute:
     @staticmethod
     def _paksha_window(jd: float, place_obj) -> Dict:
         """The running paksha (lunar fortnight): Shukla = tithis 1-15, Krishna =
-        16-30. Walks back to that paksha's first tithi and forward to the next
-        paksha's first tithi. Returns {paksha, tithi_index, start_jd, end_jd}."""
+        16-30. The window runs from *this* paksha's first tithi to the *next*
+        paksha's first tithi — i.e. Shukla opens at tithi 1 and closes at 16,
+        Krishna opens at 16 and closes at (the next) 1. Both boundaries are found
+        with the direct tithi-index solver rather than by walking every tithi in
+        between. Returns {paksha, tithi_index, start_jd, end_jd}."""
         n = AstrologyCompute._tithi_num(jd, place_obj)
         shukla = n <= 15
-        cur_start = AstrologyCompute._tithi_bound(jd, place_obj, -1)
-        back = (n - 1) if shukla else (n - 16)   # tithis already elapsed in the paksha
-        fwd = (16 - n) if shukla else (31 - n)   # tithis left until the next paksha
+        opens, closes = (1, 16) if shukla else (16, 1)
         return {
             "paksha": "Shukla" if shukla else "Krishna",
             "tithi_index": n,
-            "start_jd": AstrologyCompute._walk_tithi(cur_start, place_obj, -back),
-            "end_jd": AstrologyCompute._walk_tithi(cur_start, place_obj, fwd),
+            "start_jd": AstrologyCompute._tithi_index_start(jd, place_obj, opens, -1),
+            "end_jd": AstrologyCompute._tithi_index_start(jd, place_obj, closes, +1),
         }
+
+    # Mean synodic month — the period over which a tithi index recurs.
+    _SYNODIC_MONTH = 29.530588
 
     @staticmethod
     def _tithi_index_start(jd: float, place_obj, target: int, direction: int) -> Optional[float]:
         """Start-JD of the nearest tithi whose index == `target`, searching
-        backwards (-1) or forwards (+1). A given index recurs once per lunar
-        month, so 32 boundary steps always suffice."""
-        cur = AstrologyCompute._tithi_bound(jd, place_obj, -1)  # start of the running tithi
-        if direction < 0 and AstrologyCompute._tithi_num(cur + 1e-4, place_obj) == target:
-            return cur
-        for _ in range(32):
-            cur = AstrologyCompute._tithi_bound(cur, place_obj, direction)
-            if AstrologyCompute._tithi_num(cur + 1e-4, place_obj) == target:
-                return cur
+        backwards (-1) or forwards (+1).
+
+        A tithi index recurs once per synodic month, so we **jump straight to the
+        estimated recurrence** (each tithi is 1/30 of a lunation) and then settle
+        onto the exact boundary, correcting at most a couple of tithis for the
+        Moon's non-uniform motion. Walking every boundary in between instead would
+        cost ~30 bisections — ~1250 `tithi()` calls, each an inverse-Lagrange over
+        17 lunar-phase samples — which is fast enough on a dev box but times out
+        the request on slower hardware."""
+        step = AstrologyCompute._SYNODIC_MONTH / 30.0  # ~one tithi
+        cur = AstrologyCompute._tithi_num(jd, place_obj)
+        if direction < 0:
+            # Most recent occurrence at/before jd. If we are already inside the
+            # target tithi, that occurrence is the one we're in.
+            est = jd - ((cur - target) % 30) * step
+        else:
+            # The *next* occurrence strictly after jd. If we are already inside
+            # the target tithi, it does not count — skip a full lunation to the
+            # next recurrence (a tithi can run past 1 day, so "already in it" is
+            # reachable even a day out from its start).
+            ahead = (target - cur) % 30 or 30
+            est = jd + ahead * step
+
+        # Settle: the estimate lands within a tithi or two of the target.
+        for _ in range(8):
+            n = AstrologyCompute._tithi_num(est, place_obj)
+            if n == target:
+                return AstrologyCompute._tithi_bound(est, place_obj, -1)
+            # Signed shortest distance (in tithis) from n to target.
+            d = (target - n) % 30
+            if d > 15:
+                d -= 30
+            if d > 0:  # step forward into the next tithi
+                est = AstrologyCompute._tithi_bound(est, place_obj, +1) + 1e-3
+            else:      # step back into the previous tithi
+                est = AstrologyCompute._tithi_bound(est, place_obj, -1) - 1e-3
         return None
 
     @staticmethod
@@ -4175,51 +4206,105 @@ class AstrologyCompute:
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
 
+    # Grahas scanned for window events. Moon is excluded (it changes sign every
+    # ~2.3 days — pure noise at these horizons); Rahu/Ketu are excluded from the
+    # station scan because as Mean nodes they are perpetually retrograde.
+    _EVENT_PLANETS = (0, 2, 3, 4, 5, 6)      # Sun, Mars, Mercury, Jupiter, Venus, Saturn
+    _STATION_PLANETS = (2, 3, 4, 5, 6)       # the Sun never retrogrades
+
     @staticmethod
     def _transit_events_in_window(place: str, lat: Optional[float], lon: Optional[float],
                                   tz_offset: float, start_date: str, end_jd: float) -> List[Dict]:
-        """Sign-ingress and retrograde-station events falling inside a date
-        window, scanned across the visible grahas. Powers the weekly/monthly
-        digests, where fast movers (Sun/Mercury/Venus/Mars) matter — unlike the
-        daily digest, which only surfaces the slow Jupiter/Saturn ingresses.
-        Rahu/Ketu are skipped (Mean nodes: perpetually retrograde)."""
+        """Sign-ingress and retrograde-station events falling **inside** a date
+        window, across the visible grahas. Powers the fortnightly/monthly digests,
+        where fast movers (Sun/Mercury/Venus/Mars) matter — unlike the daily
+        digest, which only surfaces the slow Jupiter/Saturn ingresses.
+
+        Implementation: sample each graha's sign + retrograde flag once a day
+        across the window, then bisect any change to the hour. Both sampling
+        primitives are cheap (`rasi_chart` ~0.04ms, `planets_in_retrograde`
+        ~0.01ms), so the whole scan is bounded by the window — a few ms.
+
+        We deliberately do NOT use `drik.next_planet_entry_date` /
+        `next_planet_retrograde_change_date` here: those search *forward until they
+        find the event*, which for a slow graha can mean stepping months (Saturn:
+        most of a 29-year cycle). That made this function ~2.8s locally and tens of
+        seconds on slower hardware — enough to time the request out at the gateway.
+        Sampling also catches *several* events per graha in one window (e.g.
+        Mercury stationing twice), which the "next event" helpers structurally
+        cannot."""
         events: List[Dict] = []
         try:
             sy, sm, sd = map(int, start_date.split("-"))
             tplace = drik.Place(place, lat or 13.0827, lon or 80.2707, tz_offset)
             start_jd = swe.julday(sy, sm, sd, 0.0)
-            retro_now = set(drik.planets_in_retrograde(start_jd, tplace))
-            # Sun, Mars, Mercury, Jupiter, Venus, Saturn (skip Moon: too fast; nodes: mean).
-            for pidx in (0, 2, 3, 4, 5, 6):
-                try:
-                    entry_jd, entry_long = drik.next_planet_entry_date(
-                        pidx, start_jd, tplace, increment_days=1, precision=0.1)
-                    if start_jd <= entry_jd <= end_jd:
-                        ey, em, ed, _ = utils.jd_to_gregorian(entry_jd)
-                        to_rasi = int(entry_long // 30) % 12
+            if end_jd <= start_jd:
+                return []
+
+            def state(jd):
+                """(sign per graha, retrograde set) at an instant."""
+                cht = charts.rasi_chart(jd, tplace)
+                signs = {pidx: cht[pidx + 1][1][0] for pidx in AstrologyCompute._EVENT_PLANETS}
+                retro = set(drik.planets_in_retrograde(jd, tplace))
+                return signs, retro
+
+            def bisect(lo, hi, changed):
+                """Narrow [lo, hi] to the instant `changed(jd)` flips. ~20 halvings
+                of a 1-day bracket lands inside a minute — far finer than the day
+                we report."""
+                for _ in range(20):
+                    mid = (lo + hi) / 2.0
+                    if changed(mid):
+                        hi = mid
+                    else:
+                        lo = mid
+                return hi
+
+            def as_date(jd):
+                y, m, d, _ = utils.jd_to_gregorian(jd)
+                return f"{y:04d}-{m:02d}-{d:02d}"
+
+            # Daily samples across the window (plus the exact end). No scanned graha
+            # can cross a whole 30° sign in under a day, so nothing is missed.
+            steps = [start_jd + i for i in range(int(end_jd - start_jd) + 1)]
+            if steps[-1] < end_jd:
+                steps.append(end_jd)
+
+            prev_jd = steps[0]
+            prev_signs, prev_retro = state(prev_jd)
+            for jd in steps[1:]:
+                signs, retro = state(jd)
+
+                for pidx in AstrologyCompute._EVENT_PLANETS:
+                    # ── Sign ingress ──
+                    if signs[pidx] != prev_signs[pidx]:
+                        to_rasi = signs[pidx]
+                        exact = bisect(
+                            prev_jd, jd,
+                            lambda t, p=pidx, s=prev_signs[pidx]:
+                                charts.rasi_chart(t, tplace)[p + 1][1][0] != s)
                         events.append({
-                            "date": f"{ey:04d}-{em:02d}-{ed:02d}",
+                            "date": as_date(exact),
                             "planet": PLANET_NAMES[pidx], "type": "ingress",
                             "text": f"{PLANET_NAMES[pidx]} enters {ZODIAC_NAMES[to_rasi]}",
                         })
-                except Exception as ie:
-                    print(f"[digest] ingress scan planet {pidx}: {ie}")
-            # Retrograde stations (Sun/Moon never retrograde; nodes are mean).
-            for pidx in (2, 3, 4, 5, 6):
-                try:
-                    ch = drik.next_planet_retrograde_change_date(
-                        pidx, drik.Date(sy, sm, sd), tplace, increment_days=1)
-                    ch_jd = ch[0] if isinstance(ch, (tuple, list)) else ch
-                    if ch_jd and start_jd <= ch_jd <= end_jd:
-                        cy, cm, cd, _ = utils.jd_to_gregorian(ch_jd)
-                        turning = "direct" if pidx in retro_now else "retrograde"
-                        events.append({
-                            "date": f"{cy:04d}-{cm:02d}-{cd:02d}",
-                            "planet": PLANET_NAMES[pidx], "type": "station",
-                            "text": f"{PLANET_NAMES[pidx]} turns {turning}",
-                        })
-                except Exception as re:
-                    print(f"[digest] retro scan planet {pidx}: {re}")
+
+                    # ── Retrograde station ──
+                    if pidx in AstrologyCompute._STATION_PLANETS:
+                        was, now = pidx in prev_retro, pidx in retro
+                        if was != now:
+                            exact = bisect(
+                                prev_jd, jd,
+                                lambda t, p=pidx, w=was:
+                                    (p in drik.planets_in_retrograde(t, tplace)) != w)
+                            events.append({
+                                "date": as_date(exact),
+                                "planet": PLANET_NAMES[pidx], "type": "station",
+                                "text": f"{PLANET_NAMES[pidx]} turns "
+                                        f"{'retrograde' if now else 'direct'}",
+                            })
+
+                prev_jd, prev_signs, prev_retro = jd, signs, retro
         except Exception as e:
             print(f"[digest] window-event scan failed: {e}")
         events.sort(key=lambda x: x["date"])

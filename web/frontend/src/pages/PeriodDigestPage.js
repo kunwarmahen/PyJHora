@@ -191,24 +191,32 @@ const PeriodDigestPage = ({ period }) => {
             </button>
           </div>
 
-          {/* Basis toggle — monthly only. The fortnight is a lunar-only rung. */}
+          {/* Basis toggle — monthly only. The fortnight is a lunar-only rung.
+              Uses the shared .chart-toggle segmented control, which is the one
+              pattern in the app that actually paints an active state. */}
           {isMonth && (
             <div className="controls-group">
               <span className="control-label">{t("periodDigest.basis")}</span>
-              <button
-                className={`control-btn ${basis === "solar" ? "is-active" : ""}`}
-                onClick={() => setBasis("solar")}
-                title={t("periodDigest.basisSolarHint")}
-              >
-                <Sun size={14} /> {t("periodDigest.basisSolar")}
-              </button>
-              <button
-                className={`control-btn ${basis === "lunar" ? "is-active" : ""}`}
-                onClick={() => setBasis("lunar")}
-                title={t("periodDigest.basisLunarHint")}
-              >
-                <Moon size={14} /> {t("periodDigest.basisLunar")}
-              </button>
+              <div className="chart-toggle" role="group" aria-label={t("periodDigest.basis")}>
+                <button
+                  type="button"
+                  className={`chart-toggle__btn${basis === "solar" ? " is-active" : ""}`}
+                  aria-pressed={basis === "solar"}
+                  onClick={() => setBasis("solar")}
+                  title={t("periodDigest.basisSolarHint")}
+                >
+                  <Sun size={14} /> {t("periodDigest.basisSolar")}
+                </button>
+                <button
+                  type="button"
+                  className={`chart-toggle__btn${basis === "lunar" ? " is-active" : ""}`}
+                  aria-pressed={basis === "lunar"}
+                  onClick={() => setBasis("lunar")}
+                  title={t("periodDigest.basisLunarHint")}
+                >
+                  <Moon size={14} /> {t("periodDigest.basisLunar")}
+                </button>
+              </div>
             </div>
           )}
         </div>

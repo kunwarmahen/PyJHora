@@ -425,7 +425,7 @@ export const SettingsPage = () => {
                 (Monthly, Varshaphal) can override it locally. */}
             <div className="settings-row settings-row--stack">
               <label className="settings-label">{t("settings.general.praveshaBasis")}</label>
-              <div className="settings-seg">
+              <div className="settings-segment">
                 {[
                   { v: "solar", l: t("settings.general.basisSolar") },
                   { v: "lunar", l: t("settings.general.basisLunar") },

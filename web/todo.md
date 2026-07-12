@@ -2719,3 +2719,33 @@ DONE 2026-07-12:
       collapsible, opens by default when the global basis is lunar) — additive, so the solar annual
       flow is untouched and the two annual charts are read side by side, as tradition has it.
       i18n: `periodDigest.*` reworked + new `tithiPravesha.*`, `settings.general.pravesha*`.
+
+- [x] **(P1) BUGFIX 2026-07-12 — Monthly (lunar) failed to load in prod; basis toggle showed no
+      selection** (owner report on jyotirai.win). Two separate bugs:
+
+      **(a) Timeout — the whole digest was far too slow.** `_transit_events_in_window` used
+      `drik.next_planet_entry_date` / `next_planet_retrograde_change_date`, which search *forward until
+      they find the event* — for a slow graha that can mean stepping months (Saturn: much of a 29-yr
+      cycle). It cost **2.77s** locally, i.e. tens of seconds on the NAS, and the gateway timed the
+      request out; a 504 returns HTML with no `detail` field, which is exactly why the UI showed the
+      *generic* "Couldn't build your reading" rather than a real message. Additionally
+      `_tithi_index_start` walked every tithi boundary (**1254** `tithi()` calls, each an
+      inverse-Lagrange over 17 lunar-phase samples) — lunar-only extra cost on top.
+      FIXED: (1) `_transit_events_in_window` now **samples the window daily and bisects any change**
+      (`rasi_chart` is 0.04ms, `planets_in_retrograde` 0.01ms, so the scan is bounded by the window,
+      not by how far away the next event is); (2) `_tithi_index_start` **jumps straight to the
+      estimated recurrence** off the synodic month and settles (69 calls, not 1254) — verified
+      **identical** to the old boundary-walk for all 30 tithi indices, both directions; `_paksha_window`
+      reuses it (31/31 days of a lunation land exactly on tithi 1↔16).
+      Result: **2.7–3.9s → 12–65ms** per digest (~60–100×). The rewrite is also **more correct**: the
+      old "next event per planet" scan could only ever report *one* event per graha, so it missed most
+      of them (solar month: **2 events → 7**, incl. Mercury stationing *and* re-ingressing in the same
+      window). Same events it did find reproduce on identical dates.
+
+      **(b) Toggle had no active state.** The Monthly Solar/Lunar toggle used
+      `control-btn is-active` — a class combination that **exists in no stylesheet** (`.control-btn` has
+      no active variant). Switched to the app's real segmented control, `.chart-toggle` /
+      `.chart-toggle__btn.is-active` (saffron fill), + `aria-pressed`; gave `.chart-toggle__btn`
+      `inline-flex`/`gap` so it can carry a leading icon, and a hover state. Same bug in Settings →
+      General, where the new basis control wrote `settings-seg` instead of the real
+      **`settings-segment`** container — fixed.
