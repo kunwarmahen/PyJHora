@@ -2604,3 +2604,60 @@ accounts with no name **silently fall back** to username.
 - [x] **i18n** — `auth.name`/`auth.namePlaceholder` in en/hi/sa; `settings.account.{name,
       namePlaceholder,updateName,nameUpdated,nameError}` in en (hi/sa fall back to English, as the
       rest of the settings block already does).
+
+## 25. Weekly & monthly readings (owner ask 2026-07-12)
+
+Extend the digest concept beyond the day: a **Weekly** and a **Monthly** reading, delivered the same
+three ways as the daily digest (**in-app page**, **email**, **push**) with **independent opt-in per
+cadence**. Content should blend **current Vimshottari dasha/bhukti** with the window's **transits**,
+and — where a genuine technique exists — layer in a **Varshaphal-style progressed chart**.
+
+**Engine capability (verified 2026-07-12):** `src/jhora/horoscope/transit/tajaka.py` already
+supports Tajaka progressions the same way `get_varshaphal` uses annual:
+- **Monthly = real technique.** `tajaka.maasa_pravesh` / `monthly_chart(jd_dob, place, dcf, years,
+  months)` builds the **Maasa Pravesha** (monthly solar-return) chart. Mirror
+  `AstrologyCompute.get_varshaphal` (`astrology.py:2277`) → new `get_masa_pravesh` for the current
+  lunar/solar month, then run tajaka yogas + dasha on it exactly as annual does.
+- **Weekly = no native Tajaka unit.** Below the month Tajaka only has the ~2.5-day "sixty-hour"
+  (`next_solar_date(..., sixty_hours=n)`), not a 7-day unit. So the weekly reading is a **dasha +
+  7-day transit aggregate** (ingresses, retrograde stations, key natal aspects over the coming week),
+  optionally anchored to the active Maasa-pravesha chart — not a literal "week pravesh."
+
+DONE 2026-07-12 (mirrors §23 daily-digest plumbing throughout):
+- [x] **Compute** (`astrology.py`) — `get_masa_pravesh(dob,tob,place,…,date/year/month)` wraps
+      `tajaka.maasa_pravesh` (auto-selects the pravesh window containing the date via the linear
+      solar-year fraction; returns chart/lagna/planets/muntha/year-lord/sahams/tajaka-yogas + the
+      window start→end). `_period_digest(period,…)` is the shared builder behind `get_weekly_digest`
+      / `get_monthly_digest`: blends the running dasha with `_transit_events_in_window` (all-graha
+      ingresses + retrograde stations scanned across the window via `next_planet_entry_date` /
+      `next_planet_retrograde_change_date`) + the opening Panchanga; **weekly = today→+7 days**,
+      **monthly = the whole Maasa Pravesha window** (~30.4 days), which also carries the pravesh chart.
+- [x] **Endpoints** (`main.py`) — `POST /api/astrology/{weekly,monthly}-digest`
+      (+ `…-analysis`). Prompts: one shared `llm_service._build_period_digest_prompt(d,name,period)`
+      behind `analyze_weekly_digest` / `analyze_monthly_digest`; readings saved to AI history (§17) as
+      new sources `weekly_digest` / `monthly_digest` (registered in `conversations.py` with routes).
+- [x] **Notification prefs** (`notifications.py`) — added per-cadence `weekly`/`monthly` switches,
+      each with its own day (`weekly_dow` 0-6 / `monthly_dom` 1-28) + hour (`weekly_hour`/
+      `monthly_hour`); daily keeps `daily_digest`/`hour`. Channels + `profile_ids`/`all_profiles`/
+      `include_ai` are **shared** across cadences. Legacy daily keys untouched (back-compat).
+- [x] **Delivery** (`digest.py` + `scheduler.py`) — `send_digest_for_user(user_id,prefs,cadence)`
+      + `_profile_block(...,cadence)` route to the right compute + `analyze_*` via a `_CADENCES` map;
+      renders cadence-aware subject/noun/push-URL. Scheduler runs a pass per cadence (`_run_cadence`):
+      weekly gated on chosen weekday+hour (claim key `%G-W%V`), monthly on day-of-month+hour (claim
+      key `%Y-%m`), each with its own atomic `last_sent_weekly`/`last_sent_monthly` claim so only one
+      worker sends per window. Manual `POST /api/notifications/digest/send?cadence=` for cron fallback.
+- [x] **Frontend** — one shared `PeriodDigestPage` (props `period`) exports `WeeklyDigestPage`
+      (`/weekly-digest`) + `MonthlyDigestPage` (`/monthly-digest`): highlights, opening panchanga,
+      dasha, transit-events list, the Maasa Pravesha card (monthly only), AI reading + RecentReadings.
+      Nav-drawer + dashboard tiles added. Settings → Notifications now has three cadence toggles, each
+      with its own day/hour picker, shared channel/profile controls, and per-cadence "send test" links.
+- [x] **Tools + conversations** — `get_weekly_digest` / `get_monthly_digest` tools registered in
+      `tools.py` (ALWAYS_TOOLS + display catalog) so Ask-Astrologer can pull them; sources + routes
+      added to `conversations.py`.
+- [x] **i18n** — new `periodDigest.*` block + `nav.weeklyDigest`/`nav.monthlyDigest`,
+      `dashboard.features.{weekly,monthly}Digest`, and `settings.notifications.*` cadence keys (en;
+      hi/sa fall back to English).
+
+**Note — the monthly window is a *solar-return* month, not a calendar month.** The Monthly page shows
+the Maasa Pravesha window the day falls in (e.g. "Jun 15 → Jul 17"), matching how Varshaphal shows the
+whole solar year. Weekly is deliberately forward-looking (today → +7 days).

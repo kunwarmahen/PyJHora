@@ -52,12 +52,48 @@ async def _profile_tz(user_id: str, prefs: dict) -> float:
         return 0.0
 
 
-async def _tick() -> int:
-    """One pass over all digest-enabled users. Returns how many were sent."""
-    db = get_database()
+# Each cadence: the prefs switch that enables it, the "is it due now?" gate
+# (given the user's local datetime + prefs), the claim field that guarantees
+# once-per-window delivery, and how to derive that window's claim key.
+_CADENCES = [
+    {
+        "cadence": "daily",
+        "switch": "daily_digest",
+        "due": lambda local, p: local.hour >= int(p.get("hour", 7)),
+        "claim_field": "last_sent_date",
+        "claim_key": lambda local: local.strftime("%Y-%m-%d"),
+    },
+    {
+        "cadence": "weekly",
+        "switch": "weekly",
+        # On the chosen weekday (0=Mon..6=Sun), at/after the chosen hour.
+        "due": lambda local, p: (local.weekday() == int(p.get("weekly_dow", 6))
+                                 and local.hour >= int(p.get("weekly_hour", 7))),
+        "claim_field": "last_sent_weekly",
+        "claim_key": lambda local: local.strftime("%G-W%V"),  # ISO year-week
+    },
+    {
+        "cadence": "monthly",
+        "switch": "monthly",
+        # On the chosen day-of-month (1-28), at/after the chosen hour.
+        "due": lambda local, p: (local.day == int(p.get("monthly_dom", 1))
+                                 and local.hour >= int(p.get("monthly_hour", 7))),
+        "claim_field": "last_sent_monthly",
+        "claim_key": lambda local: local.strftime("%Y-%m"),
+    },
+]
+
+
+async def _run_cadence(db, spec: dict) -> int:
+    """One pass over users who enabled `spec`'s cadence. Returns how many sent.
+
+    "At or after" the preferred hour (rather than only during the exact hour)
+    means a missed window — the process was down during that hour — still gets
+    the user their reading later that day. The atomic per-window claim keeps this
+    idempotent across ticks and across workers."""
     sent_count = 0
     cursor = db[notifications.SETTINGS_COLLECTION].find(
-        {"notifications.daily_digest": True})
+        {f"notifications.{spec['switch']}": True})
     async for doc in cursor:
         user_id = doc.get("user_id")
         if not user_id:
@@ -66,30 +102,41 @@ async def _tick() -> int:
         try:
             tz = await _profile_tz(user_id, prefs)
             local = _local_now(tz)
-            # Deliver at *or after* the preferred hour (once per day). Using ">="
-            # rather than an exact-hour match means a missed window — the process
-            # was down or restarting during that single hour — still gets the
-            # user their digest later the same day instead of skipping it.
-            if local.hour < int(prefs.get("hour", 7)):
+            if not spec["due"](local, prefs):
                 continue
-            local_date = local.strftime("%Y-%m-%d")
+            claim_field = spec["claim_field"]
+            claim_key = spec["claim_key"](local)
 
-            # Atomically claim today's slot — only the winner proceeds to send.
+            # Atomically claim this window's slot — only the winner sends.
             claimed = await db[notifications.SETTINGS_COLLECTION].find_one_and_update(
                 {"user_id": user_id,
-                 "notifications.last_sent_date": {"$ne": local_date}},
-                {"$set": {"notifications.last_sent_date": local_date}},
+                 f"notifications.{claim_field}": {"$ne": claim_key}},
+                {"$set": {f"notifications.{claim_field}": claim_key}},
             )
             if not claimed:
-                continue  # already sent today (this worker or another)
+                continue  # already sent this window (this worker or another)
 
-            result = await digest.send_digest_for_user(user_id, prefs)
+            result = await digest.send_digest_for_user(user_id, prefs, spec["cadence"])
             if result.get("status") == "ok":
                 sent_count += 1
             else:
-                print(f"[scheduler] digest for {user_id} not sent: {result.get('reason')}")
+                print(f"[scheduler] {spec['cadence']} digest for {user_id} "
+                      f"not sent: {result.get('reason')}")
         except Exception as e:  # never let one user break the loop
-            print(f"[scheduler] error for {user_id}: {e}")
+            print(f"[scheduler] {spec['cadence']} error for {user_id}: {e}")
+    return sent_count
+
+
+async def _tick() -> int:
+    """One pass over all digest-enabled users, across every cadence
+    (daily/weekly/monthly). Returns how many digests were sent."""
+    db = get_database()
+    sent_count = 0
+    for spec in _CADENCES:
+        try:
+            sent_count += await _run_cadence(db, spec)
+        except Exception as e:
+            print(f"[scheduler] {spec['cadence']} pass failed: {e}")
     return sent_count
 
 

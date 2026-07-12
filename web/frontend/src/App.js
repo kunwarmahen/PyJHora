@@ -32,6 +32,7 @@ import { PrashnaPage } from "./pages/PrashnaPage";
 import { BhriguMarkersPage } from "./pages/BhriguMarkersPage";
 import { RemediesPage } from "./pages/RemediesPage";
 import { DailyDigestPage } from "./pages/DailyDigestPage";
+import { WeeklyDigestPage, MonthlyDigestPage } from "./pages/PeriodDigestPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
@@ -202,6 +203,24 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DailyDigestPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/weekly-digest"
+              element={
+                <ProtectedRoute>
+                  <WeeklyDigestPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/monthly-digest"
+              element={
+                <ProtectedRoute>
+                  <MonthlyDigestPage />
                 </ProtectedRoute>
               }
             />

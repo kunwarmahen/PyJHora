@@ -24,8 +24,10 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   Muhurta / electional astrology (auspicious windows for an activity, with AI rationale,
   plus day sub-tools: Choghadiya, Panchaka, Tarabala & Chandrabala),
   Prashna / horary (a chart for the moment you ask, with a horary AI reading),
-  a personalized daily digest ("Today" — panchanga + dasha + transits across one or many profiles,
-  with an AI "how the day looks" reading and email & push notifications),
+  personalized daily / weekly / monthly readings ("Today" — panchanga + dasha + transits across one or
+  many profiles; "This Week" — the 7-day-ahead dasha + transit events; "This Month" — the Maasa
+  Pravesha solar-month chart + dasha + transits), each with an AI reading and per-cadence email & push
+  notifications,
   Bhrigu / Nadi-style yearly markers (the Moon-based annual progression + Bhrigu Bindu
   activations, with AI reading),
   Remedies (traditional gemstone / mantra / deity suggestions per weak planet),
@@ -794,6 +796,30 @@ Three approaches, chosen with a mode toggle:
   later the same day instead of skipping it. Multi-worker-safe via an atomic DB claim
   (`notifications.last_sent_date`). Or leave it off and point your own cron at
   `POST /api/notifications/digest/send` per user (both share `digest.send_digest_for_user`)
+
+#### Weekly & Monthly readings (`/weekly-digest`, `/monthly-digest`)
+
+The same idea over a longer horizon, on **independent per-cadence opt-ins**:
+
+- **This Week** (`/weekly-digest`) — the next **7 days**: your running dasha/bhukti plus the transit
+  events landing in the window (all-graha **sign-ingresses** and **retrograde stations**, not just the
+  slow movers), the opening Panchanga, and a warm week-ahead **AI reading**. There is no native Tajaka
+  7-day unit, so the week is a dasha + transit aggregate.
+- **This Month** (`/monthly-digest`) — anchored to the **Maasa Pravesha** (Tajaka *monthly*
+  solar-return) chart, the real classical monthly technique (the monthly analogue of Varshaphal). Shows
+  the monthly Lagna/Muntha, its Tajaka yogas and year-lord, the running dasha, and the month's transit
+  events, with a month-ahead AI reading. **The "month" is the ~30.4-day solar-return window the date
+  falls in (e.g. "Jun 15 → Jul 17"), not a calendar month** — matching how Varshaphal shows the whole
+  solar year.
+- **Per-cadence delivery**: **Settings → Notifications** has separate **daily / weekly / monthly**
+  toggles, each with its own preferred **day** (weekly: day-of-week; monthly: day-of-month) and
+  **hour**. The delivery channels (email/push), profile selection ("all" or a subset) and the AI-reading
+  toggle are **shared** across cadences. The scheduler fires each cadence on its own schedule with its
+  own atomic once-per-window claim (`last_sent_weekly` = ISO week, `last_sent_monthly` = year-month);
+  cron users can hit `POST /api/notifications/digest/send?cadence=weekly|monthly`.
+- Both readings are saved to the **unified AI history** (§17-equivalent, sources `weekly_digest` /
+  `monthly_digest`) and are also exposed to Ask-Astrologer as `get_weekly_digest` / `get_monthly_digest`
+  tools.
 
 ### 18. Bhrigu / Nadi Yearly Markers (`/bhrigu-markers`)
 

@@ -474,6 +474,13 @@ class NotificationPrefsRequest(BaseModel):
     all_profiles: Optional[bool] = None
     include_ai: Optional[bool] = None
     hour: Optional[int] = None
+    # Per-cadence weekly / monthly readings (each with its own day + hour).
+    weekly: Optional[bool] = None
+    weekly_dow: Optional[int] = None       # 0=Mon..6=Sun
+    weekly_hour: Optional[int] = None
+    monthly: Optional[bool] = None
+    monthly_dom: Optional[int] = None      # 1-28
+    monthly_hour: Optional[int] = None
 
 class PushSubscribeRequest(BaseModel):
     # A browser PushSubscription JSON (endpoint + keys).
@@ -2803,6 +2810,115 @@ async def analyze_daily_digest(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/astrology/weekly-digest")
+async def get_weekly_digest(
+    birth_details: BirthDetails,
+    date: Optional[str] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Personalized 'This Week' reading — dasha context + the next 7 days' transits."""
+    try:
+        result = AstrologyCompute.get_weekly_digest(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, date=date, ayanamsa=ayanamsa)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/monthly-digest")
+async def get_monthly_digest(
+    birth_details: BirthDetails,
+    date: Optional[str] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Personalized 'This Month' reading — dasha context + the Maasa Pravesha
+    (Tajaka monthly) chart and the solar month's transit events."""
+    try:
+        result = AstrologyCompute.get_monthly_digest(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, date=date, ayanamsa=ayanamsa)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/weekly-digest-analysis")
+async def analyze_weekly_digest(
+    request: DailyDigestAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Warm, personalized AI reading of the week-ahead digest."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_weekly_digest(
+            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+            lon=bd.longitude, tz=bd.timezone, date=request.date,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_weekly_digest(
+            digest_data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        await _save_reading(
+            current_user, source="weekly_digest",
+            title=f"Weekly digest — {result.get('start_date')} · {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name, "date": request.date,
+                     "ayanamsa": request.ayanamsa},
+        )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/monthly-digest-analysis")
+async def analyze_monthly_digest(
+    request: DailyDigestAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Warm, personalized AI reading of the month-ahead (Maasa Pravesha) digest."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_monthly_digest(
+            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+            lon=bd.longitude, tz=bd.timezone, date=request.date,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_monthly_digest(
+            digest_data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        await _save_reading(
+            current_user, source="monthly_digest",
+            title=f"Monthly digest — {result.get('start_date')} · {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name, "date": request.date,
+                     "ayanamsa": request.ayanamsa},
+        )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============= NADI / BHRIGU YEARLY MARKERS + REMEDIES =============
 
 @app.post("/api/astrology/bhrigu-markers")
@@ -3169,16 +3285,24 @@ async def push_unsubscribe(
     return {"status": "ok", "removed": removed}
 
 @app.post("/api/notifications/digest/send")
-async def send_digest_now(current_user: str = Depends(get_current_user)):
-    """Compute the current user's daily digest and deliver it on their enabled
-    channels (email / push). Returns what was sent. Shares its delivery logic with
-    the background scheduler (`digest.send_digest_for_user`); a user triggers this
-    as a test from Settings, or a deployer's cron can hit it per user."""
+async def send_digest_now(cadence: str = "daily",
+                          current_user: str = Depends(get_current_user)):
+    """Compute the current user's digest for `cadence` (daily/weekly/monthly) and
+    deliver it on their enabled channels (email / push). Returns what was sent.
+    Shares its delivery logic with the background scheduler
+    (`digest.send_digest_for_user`); a user triggers this as a test from Settings,
+    or a deployer's cron can hit it per user + cadence."""
+    cadence = (cadence or "daily").lower()
+    if cadence not in ("daily", "weekly", "monthly"):
+        raise HTTPException(status_code=400, detail="cadence must be daily, weekly or monthly")
     prefs = await notifications.get_prefs(current_user)
-    if not prefs.get("daily_digest"):
-        raise HTTPException(status_code=400, detail="Daily digest is not enabled in your settings")
+    # The daily switch is `daily_digest`; weekly/monthly are named for the cadence.
+    switch = "daily_digest" if cadence == "daily" else cadence
+    if not prefs.get(switch):
+        raise HTTPException(status_code=400,
+                            detail=f"The {cadence} digest is not enabled in your settings")
 
-    result = await digest_service.send_digest_for_user(current_user, prefs)
+    result = await digest_service.send_digest_for_user(current_user, prefs, cadence)
     if result.get("status") != "ok":
         if result.get("reason") == "no_profile":
             raise HTTPException(status_code=400, detail="No birth profile found to build the digest from")

@@ -73,6 +73,8 @@ const PROFILE_READING_PATHS = new Set([
   "/api/astrology/bhrigu-markers-analysis",
   "/api/astrology/remedies-analysis",
   "/api/astrology/daily-digest-analysis",
+  "/api/astrology/weekly-digest-analysis",
+  "/api/astrology/monthly-digest-analysis",
   "/api/astrology/sensitive-points-analysis",
   "/api/astrology/celestial-analysis",
   "/api/astrology/pancha-pakshi-analysis",
@@ -190,7 +192,8 @@ export const notificationsService = {
     api.post("/api/notifications/push/subscribe", { subscription }),
   unsubscribePush: (endpoint) =>
     api.post("/api/notifications/push/unsubscribe", { endpoint }),
-  sendDigestNow: () => api.post("/api/notifications/digest/send"),
+  sendDigestNow: (cadence = "daily") =>
+    api.post("/api/notifications/digest/send", null, { params: { cadence } }),
 };
 
 export const astrologyService = {
@@ -575,6 +578,29 @@ export const astrologyService = {
         date: opts.date,
         current_time: opts.currentTime,
         current_tz: opts.currentTz,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
+  // ---- Weekly & monthly digests (§25) ----
+  getWeeklyDigest: (birthDetails, { date, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+    api.post("/api/astrology/weekly-digest", birthDetails, { params: { date, ayanamsa } }),
+  getMonthlyDigest: (birthDetails, { date, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+    api.post("/api/astrology/monthly-digest", birthDetails, { params: { date, ayanamsa } }),
+  analyzePeriodDigestAI: (period, birthDetails, opts = {}, model = {}) =>
+    api.post(
+      `/api/astrology/${period}-digest-analysis`,
+      {
+        birth_details: birthDetails,
+        date: opts.date,
         person_name: opts.personName,
         llm_provider: model.legacyProvider || "qwen",
         provider_type: model.providerType,

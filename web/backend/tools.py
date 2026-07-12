@@ -219,6 +219,36 @@ def _varshaphal(bd, ayanamsa, year: Optional[int] = None, **_):
     }
 
 
+def _weekly_digest(bd, ayanamsa, date: Optional[str] = None, **_):
+    w = AstrologyCompute.get_weekly_digest(date=date, ayanamsa=ayanamsa, **_args(bd))
+    if w.get("status") != "success":
+        return w
+    return {
+        "start_date": w.get("start_date"), "end_date": w.get("end_date"),
+        "span_days": w.get("span_days"),
+        "dasha": w.get("dasha"), "events": w.get("events", []),
+        "highlights": w.get("highlights", []),
+    }
+
+
+def _monthly_digest(bd, ayanamsa, date: Optional[str] = None, **_):
+    m = AstrologyCompute.get_monthly_digest(date=date, ayanamsa=ayanamsa, **_args(bd))
+    if m.get("status") != "success":
+        return m
+    pravesh = m.get("pravesh") or {}
+    return {
+        "start_date": m.get("start_date"), "end_date": m.get("end_date"),
+        "span_days": m.get("span_days"),
+        "dasha": m.get("dasha"), "events": m.get("events", []),
+        "maasa_pravesh": {
+            "lagna": pravesh.get("lagna"), "muntha": pravesh.get("muntha"),
+            "year_lord": pravesh.get("year_lord"),
+            "tajaka_yogas": pravesh.get("tajaka_yogas", []),
+        } if pravesh else None,
+        "highlights": m.get("highlights", []),
+    }
+
+
 def _raja_yogas(bd, ayanamsa, **_):
     r = AstrologyCompute.get_raja_yogas(ayanamsa=ayanamsa, **_args(bd))
     if r.get("status") != "success":
@@ -480,6 +510,30 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _varshaphal,
     ),
     _Tool(
+        "get_weekly_digest",
+        "A personalized week-ahead reading: the running Vimsottari dasha/bhukti "
+        "plus the transit events (sign-ingresses & retrograde stations) landing in "
+        "the next 7 days. Use for 'how is my week / the coming week?' questions.",
+        {"type": "object", "properties": {
+            "date": {"type": "string",
+                     "description": "Start date as YYYY-MM-DD; defaults to today."}},
+         "required": []},
+        _weekly_digest,
+    ),
+    _Tool(
+        "get_monthly_digest",
+        "A personalized month reading anchored to the Maasa Pravesha (Tajaka "
+        "monthly solar-return) chart: the monthly Lagna/Muntha, its Tajaka yogas, "
+        "the running dasha, and the solar month's transit events. The month is the "
+        "~30-day pravesh window the date falls in, not a calendar month. Use for "
+        "'how is my month / this month?' questions.",
+        {"type": "object", "properties": {
+            "date": {"type": "string",
+                     "description": "A date within the target month as YYYY-MM-DD; defaults to today."}},
+         "required": []},
+        _monthly_digest,
+    ),
+    _Tool(
         "get_raja_yogas",
         "Dedicated Raja Yoga analysis of the natal (Rasi) chart: the fundamental "
         "Kendra-Trikona raja yogas (quadrant lord + trine lord, with a coarse "
@@ -623,6 +677,7 @@ SECTION_TOOL: Dict[str, str] = {
 ALWAYS_TOOLS: List[str] = [
     "get_natal_chart", "get_chart_details", "get_dasha_children",
     "get_divisional_chart", "get_panchanga", "get_varshaphal",
+    "get_weekly_digest", "get_monthly_digest",
     "get_raja_yogas", "get_longevity", "get_pancha_pakshi",
     "get_sphuta", "get_sahams", "get_argala",
     "get_vedic_clock", "get_retrograde", "get_muhurta",
@@ -679,6 +734,8 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_transits":         {"label": "Current transits (Gochara)", "category": "Timing"},
     "get_panchanga":        {"label": "Panchanga almanac",      "category": "Timing"},
     "get_varshaphal":       {"label": "Varshaphal (annual chart)", "category": "Timing"},
+    "get_weekly_digest":    {"label": "Weekly digest",         "category": "Timing"},
+    "get_monthly_digest":   {"label": "Monthly digest (Maasa Pravesha)", "category": "Timing"},
     "get_pancha_pakshi":    {"label": "Pancha Pakshi timing",  "category": "Timing"},
     "get_vedic_clock":      {"label": "Vedic clock (ghati/hora)", "category": "Timing"},
     "get_retrograde":       {"label": "Retrograde (Vakra) status", "category": "Timing"},

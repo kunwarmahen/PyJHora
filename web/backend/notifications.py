@@ -26,14 +26,22 @@ SETTINGS_COLLECTION = "user_settings"
 PUSH_COLLECTION = "push_subscriptions"
 
 DEFAULT_PREFS: Dict[str, Any] = {
-    "daily_digest": False,   # master switch
-    "email": False,          # deliver by email
-    "push": False,           # deliver by browser push
+    "daily_digest": False,   # daily digest master switch
+    "email": False,          # deliver by email (shared across cadences)
+    "push": False,           # deliver by browser push (shared across cadences)
     "profile_id": None,      # legacy single-profile selection (kept for back-compat)
     "profile_ids": [],       # explicit set of saved profiles to include
     "all_profiles": True,    # default: include every saved profile (and any added later)
-    "include_ai": True,      # embed the AI "how the day looks" narrative (falls back to highlights)
-    "hour": 7,               # preferred local hour (0-23) for a scheduler
+    "include_ai": True,      # embed the AI "how the day/week/month looks" narrative
+    "hour": 7,               # preferred local hour (0-23) for the DAILY send
+    # Weekly reading (a 7-day-ahead dasha + transit digest).
+    "weekly": False,         # weekly digest enabled
+    "weekly_dow": 6,         # preferred weekday 0=Mon..6=Sun (default Sunday)
+    "weekly_hour": 7,        # preferred local hour (0-23) for the weekly send
+    # Monthly reading (Maasa Pravesha / Tajaka monthly solar-return digest).
+    "monthly": False,        # monthly digest enabled
+    "monthly_dom": 1,        # preferred day-of-month 1-28 (kept <=28 so it always exists)
+    "monthly_hour": 7,       # preferred local hour (0-23) for the monthly send
 }
 
 
@@ -64,9 +72,24 @@ async def set_prefs(user_id: str, prefs: Dict[str, Any]) -> Dict[str, Any]:
         clean["all_profiles"] = bool(prefs["all_profiles"])
     if "include_ai" in prefs:
         clean["include_ai"] = bool(prefs["include_ai"])
-    if "hour" in prefs:
+    for hour_key in ("hour", "weekly_hour", "monthly_hour"):
+        if hour_key in prefs:
+            try:
+                clean[hour_key] = max(0, min(23, int(prefs[hour_key])))
+            except (TypeError, ValueError):
+                pass
+    if "weekly" in prefs:
+        clean["weekly"] = bool(prefs["weekly"])
+    if "monthly" in prefs:
+        clean["monthly"] = bool(prefs["monthly"])
+    if "weekly_dow" in prefs:
         try:
-            clean["hour"] = max(0, min(23, int(prefs["hour"])))
+            clean["weekly_dow"] = max(0, min(6, int(prefs["weekly_dow"])))
+        except (TypeError, ValueError):
+            pass
+    if "monthly_dom" in prefs:
+        try:
+            clean["monthly_dom"] = max(1, min(28, int(prefs["monthly_dom"])))
         except (TypeError, ValueError):
             pass
     await get_database()[SETTINGS_COLLECTION].update_one(

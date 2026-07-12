@@ -2491,6 +2491,204 @@ class AstrologyCompute:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
+    def get_masa_pravesh(dob: str, tob: str, place: str,
+                         lat: Optional[float] = None, lon: Optional[float] = None,
+                         tz: Optional[float] = None, date: Optional[str] = None,
+                         year: Optional[int] = None, month: Optional[int] = None,
+                         ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Maasa Pravesha / Tajaka **monthly** (solar-return) horoscope.
+
+        The Tajaka month is 1/12 of a solar-return year (~30.4 days), the Sun
+        advancing 30° from its natal longitude per month — *not* a calendar month.
+        By default the window containing `date` (today) is selected; pass an
+        explicit solar `year` (native's age → year) + `month` (1-12) to target a
+        specific window. Returns the monthly chart, the pravesh window
+        (start/end instants), the progressed Muntha, the year-lord and the current
+        Tajaka yogas — the monthly analogue of :meth:`get_varshaphal`."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
+        try:
+            from datetime import datetime, timezone as _utc, timedelta
+            import contextlib, io
+            from jhora.horoscope.transit import tajaka, saham, tajaka_yoga
+            from jhora import const as _const
+
+            _set_ayanamsa(ayanamsa)
+
+            y, m, d = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+            jd_dob = swe.julday(y, m, d, hour + minute / 60.0)
+
+            # ── Pick the (years, months) window ────────────────────────────
+            birth_year = int(dob.split("-")[0])
+            if year is not None and month is not None:
+                years_param = int(year) - birth_year + 1
+                months_param = max(1, min(12, int(month)))
+            else:
+                # Which monthly window contains the reference date? Use the
+                # linear solar-year fraction from birth (good enough to select
+                # the window; the engine then solves the exact pravesh instant).
+                tz_now = tz_offset
+                if date:
+                    ry, rm, rd = map(int, date.split("-"))
+                    jd_ref = swe.julday(ry, rm, rd, 12.0)
+                else:
+                    now = datetime.now(_utc.utc) + timedelta(hours=tz_now)
+                    jd_ref = swe.julday(now.year, now.month, now.day, 12.0)
+                frac = (jd_ref - jd_dob) / _const.tropical_year
+                if frac < 0:
+                    return {"error": "Date must be on or after the birth date",
+                            "status": "failed"}
+                years_elapsed = int(frac)
+                month_idx = int((frac - years_elapsed) * 12)  # 0-11
+                years_param = years_elapsed + 1
+                months_param = month_idx + 1
+            age = years_param - 1
+
+            # ── Monthly (Tajaka) chart + window boundaries ─────────────────
+            cht, entry = tajaka.maasa_pravesh(jd_dob, place_obj,
+                                              divisional_chart_factor=1,
+                                              years=years_param, months=months_param)
+            (ey, em, ed), etime = entry
+            start_jd = drik.next_solar_date(jd_dob, place_obj,
+                                            years=years_param, months=months_param)
+            # Next month's entry closes this window (rolling 12 → next year).
+            if months_param >= 12:
+                next_yp, next_mp = years_param + 1, 1
+            else:
+                next_yp, next_mp = years_param, months_param + 1
+            end_jd = drik.next_solar_date(jd_dob, place_obj,
+                                          years=next_yp, months=next_mp)
+            ny, nm, nd, _nf = utils.jd_to_gregorian(end_jd)
+            month_entry = {"date": f"{ey:04d}-{em:02d}-{ed:02d}", "time": str(etime)}
+            window = {
+                "start": f"{ey:04d}-{em:02d}-{ed:02d}",
+                "end": f"{ny:04d}-{nm:02d}-{nd:02d}",
+                "month_index": months_param,
+                "year": birth_year + age,
+                "age": age,
+            }
+
+            asc_rasi, asc_deg = cht[0][1]
+            lagna = {"house": asc_rasi + 1, "degrees": round(asc_deg, 2),
+                     "sign_name": ZODIAC_NAMES[asc_rasi]}
+            planets = {}
+            for planet_index, (rasi, degrees) in cht[1:]:
+                name = PLANET_NAMES.get(planet_index, f"Planet_{planet_index}")
+                planets[name] = {"rasi": rasi, "house": rasi + 1,
+                                 "degrees": round(degrees, 2),
+                                 "sign_name": ZODIAC_NAMES[rasi]}
+
+            # ── Muntha (natal Lagna advanced one sign per completed year) ──
+            natal_chart = charts.divisional_chart(jd_dob, place_obj,
+                                                  divisional_chart_factor=1)
+            natal_asc = natal_chart[0][1][0]
+            muntha_sign = tajaka.muntha_house(natal_asc, age)
+            muntha = {"sign": muntha_sign, "sign_name": ZODIAC_NAMES[muntha_sign],
+                      "house": ((muntha_sign - asc_rasi) % 12) + 1}
+
+            year_lord = None
+            try:
+                yl_idx = tajaka.lord_of_the_year(jd_dob, place_obj, age)
+                if yl_idx is not None and yl_idx in PLANET_NAMES:
+                    year_lord = {"index": yl_idx, "planet": PLANET_NAMES[yl_idx]}
+            except Exception as e:
+                print(f"Masa-pravesh year-lord error: {e}")
+
+            # Day/night of the month entry drives the Sahams' day/night formula.
+            night_entry = False
+            try:
+                entry_hrs = drik.jd_to_gregorian(start_jd)[3]
+                sr = utils.from_dms_str_to_dms(drik.sunrise(start_jd, place_obj)[1])
+                ss = utils.from_dms_str_to_dms(drik.sunset(start_jd, place_obj)[1])
+                sr_h = sr[0] + sr[1] / 60.0 + sr[2] / 3600.0
+                ss_h = ss[0] + ss[1] / 60.0 + ss[2] / 3600.0
+                night_entry = entry_hrs > ss_h or entry_hrs < sr_h
+            except Exception as e:
+                print(f"Masa-pravesh night-entry error: {e}")
+
+            sahams = []
+            for label, fn_name, significance in VARSHAPHAL_SAHAMS:
+                try:
+                    fn = getattr(saham, fn_name)
+                    try:
+                        s_long = fn(cht, night_entry)
+                    except TypeError:
+                        s_long = fn(cht)
+                    s_long = float(s_long) % 360
+                    s_sign = int(s_long // 30)
+                    sahams.append({
+                        "name": label, "significance": significance,
+                        "sign": s_sign, "sign_name": ZODIAC_NAMES[s_sign],
+                        "degrees": round(s_long % 30, 2),
+                        "house": ((s_sign - asc_rasi) % 12) + 1,
+                    })
+                except Exception as e:
+                    print(f"Masa-pravesh saham {label} error: {e}")
+
+            tajaka_yogas = []
+            p2h = utils.get_planet_house_dictionary_from_planet_positions(cht)
+            _sink = io.StringIO()
+            try:
+                if tajaka_yoga.ishkavala_yoga(p2h):
+                    tajaka_yogas.append({"name": "Ishkavala",
+                        "description": "Planets confined to kendras and panapharas — "
+                                       "wealth, happiness and good fortune this month."})
+            except Exception:
+                pass
+            try:
+                if tajaka_yoga.induvara_yoga(p2h):
+                    tajaka_yogas.append({"name": "Induvara",
+                        "description": "Planets confined to apoklimas — cautions of "
+                                       "worries, obstacles and ill health this month."})
+            except Exception:
+                pass
+            try:
+                with contextlib.redirect_stdout(_sink):
+                    ith_pairs = tajaka_yoga.get_ithasala_yoga_planet_pairs(cht)
+                for p1, p2, _t in ith_pairs:
+                    a, b = PLANET_NAMES.get(p1, p1), PLANET_NAMES.get(p2, p2)
+                    tajaka_yogas.append({"name": "Ithasala", "pair": [a, b],
+                        "description": f"Applying aspect between {a} and {b} — the "
+                                       "matter they signify tends to fructify this month."})
+            except Exception:
+                pass
+            try:
+                with contextlib.redirect_stdout(_sink):
+                    ees_pairs = tajaka_yoga.get_eesarpha_yoga_planet_pairs(cht)
+                for p1, p2 in ees_pairs:
+                    a, b = PLANET_NAMES.get(p1, p1), PLANET_NAMES.get(p2, p2)
+                    tajaka_yogas.append({"name": "Eesarpha", "pair": [a, b],
+                        "description": f"Separating aspect between {a} and {b} — the "
+                                       "matter they signify tends to slip away or delay."})
+            except Exception:
+                pass
+
+            return {
+                "status": "success",
+                "window": window,
+                "month_entry": month_entry,
+                "lagna": lagna,
+                "planets": planets,
+                "muntha": muntha,
+                "year_lord": year_lord,
+                "sahams": sahams,
+                "tajaka_yogas": tajaka_yogas,
+            }
+        except Exception as e:
+            print(f"Masa-pravesh error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
     def get_horoscope_predictions(dob: str, tob: str, place: str,
                                   lat: Optional[float] = None, lon: Optional[float] = None,
                                   tz: Optional[float] = None,
@@ -3659,6 +3857,245 @@ class AstrologyCompute:
             import traceback
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
+
+    @staticmethod
+    def _transit_events_in_window(place: str, lat: Optional[float], lon: Optional[float],
+                                  tz_offset: float, start_date: str, end_jd: float) -> List[Dict]:
+        """Sign-ingress and retrograde-station events falling inside a date
+        window, scanned across the visible grahas. Powers the weekly/monthly
+        digests, where fast movers (Sun/Mercury/Venus/Mars) matter — unlike the
+        daily digest, which only surfaces the slow Jupiter/Saturn ingresses.
+        Rahu/Ketu are skipped (Mean nodes: perpetually retrograde)."""
+        events: List[Dict] = []
+        try:
+            sy, sm, sd = map(int, start_date.split("-"))
+            tplace = drik.Place(place, lat or 13.0827, lon or 80.2707, tz_offset)
+            start_jd = swe.julday(sy, sm, sd, 0.0)
+            retro_now = set(drik.planets_in_retrograde(start_jd, tplace))
+            # Sun, Mars, Mercury, Jupiter, Venus, Saturn (skip Moon: too fast; nodes: mean).
+            for pidx in (0, 2, 3, 4, 5, 6):
+                try:
+                    entry_jd, entry_long = drik.next_planet_entry_date(
+                        pidx, start_jd, tplace, increment_days=1, precision=0.1)
+                    if start_jd <= entry_jd <= end_jd:
+                        ey, em, ed, _ = utils.jd_to_gregorian(entry_jd)
+                        to_rasi = int(entry_long // 30) % 12
+                        events.append({
+                            "date": f"{ey:04d}-{em:02d}-{ed:02d}",
+                            "planet": PLANET_NAMES[pidx], "type": "ingress",
+                            "text": f"{PLANET_NAMES[pidx]} enters {ZODIAC_NAMES[to_rasi]}",
+                        })
+                except Exception as ie:
+                    print(f"[digest] ingress scan planet {pidx}: {ie}")
+            # Retrograde stations (Sun/Moon never retrograde; nodes are mean).
+            for pidx in (2, 3, 4, 5, 6):
+                try:
+                    ch = drik.next_planet_retrograde_change_date(
+                        pidx, drik.Date(sy, sm, sd), tplace, increment_days=1)
+                    ch_jd = ch[0] if isinstance(ch, (tuple, list)) else ch
+                    if ch_jd and start_jd <= ch_jd <= end_jd:
+                        cy, cm, cd, _ = utils.jd_to_gregorian(ch_jd)
+                        turning = "direct" if pidx in retro_now else "retrograde"
+                        events.append({
+                            "date": f"{cy:04d}-{cm:02d}-{cd:02d}",
+                            "planet": PLANET_NAMES[pidx], "type": "station",
+                            "text": f"{PLANET_NAMES[pidx]} turns {turning}",
+                        })
+                except Exception as re:
+                    print(f"[digest] retro scan planet {pidx}: {re}")
+        except Exception as e:
+            print(f"[digest] window-event scan failed: {e}")
+        events.sort(key=lambda x: x["date"])
+        return events
+
+    @staticmethod
+    def _period_digest(period: str, dob: str, tob: str, place: str,
+                       lat: Optional[float] = None, lon: Optional[float] = None,
+                       tz: Optional[float] = None, date: Optional[str] = None,
+                       ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Shared builder for the weekly and monthly readings — a longer-horizon
+        cousin of :meth:`get_daily_digest`. Blends the running Vimsottari
+        dasha/bhukti with the transit events (ingresses + retrograde stations)
+        landing inside the window, plus the window's opening Panchanga. For the
+        **month** it additionally anchors to the Maasa Pravesha (Tajaka monthly)
+        chart and uses that pravesh window's real start/end dates."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
+        try:
+            from datetime import datetime, timezone as _utc, timedelta
+
+            tz_offset = tz if tz is not None else 5.5
+            local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+            today_str = date or f"{local_now.year:04d}-{local_now.month:02d}-{local_now.day:02d}"
+
+            # The **scan window** (over which events are gathered + the header
+            # dates) differs from the **snapshot day** (today's live positions):
+            #   • week  → the next 7 days, starting today (forward-looking).
+            #   • month → the whole Maasa Pravesha solar month today falls in
+            #             (the pravesh window ~30.4 days, like Varshaphal's year).
+            pravesh = None
+            label = "week" if period == "week" else "month"
+            if period == "month":
+                pravesh = AstrologyCompute.get_masa_pravesh(
+                    dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz,
+                    date=today_str, ayanamsa=ayanamsa)
+                if pravesh.get("status") == "success":
+                    start_str = pravesh["window"]["start"]
+                    end_str = pravesh["window"]["end"]
+                else:
+                    pravesh = None
+                    start_str = today_str
+                    _sy, _sm, _sd = map(int, start_str.split("-"))
+                    ey, em, ed, _ = utils.jd_to_gregorian(swe.julday(_sy, _sm, _sd, 12.0) + 31)
+                    end_str = f"{ey:04d}-{em:02d}-{ed:02d}"
+            else:  # week
+                start_str = today_str
+                _sy, _sm, _sd = map(int, start_str.split("-"))
+                ey, em, ed, _ = utils.jd_to_gregorian(swe.julday(_sy, _sm, _sd, 12.0) + 7)
+                end_str = f"{ey:04d}-{em:02d}-{ed:02d}"
+
+            sy, sm, sd = map(int, start_str.split("-"))
+            start_jd = swe.julday(sy, sm, sd, 12.0)
+            ey, em, ed = map(int, end_str.split("-"))
+            end_jd = swe.julday(ey, em, ed, 12.0)
+            span_days = int(round(end_jd - start_jd))
+
+            # Live snapshot is anchored to today; Panchanga to the window's opening.
+            panch = AstrologyCompute.get_panchanga(
+                date=start_str, place=place, lat=lat, lon=lon, tz=tz_offset)
+            transits = AstrologyCompute.get_transits(
+                dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz,
+                current_date=today_str, ayanamsa=ayanamsa)
+            dashas = AstrologyCompute.get_dashas(
+                dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz)
+            events = AstrologyCompute._transit_events_in_window(
+                place, lat, lon, tz_offset, start_str, end_jd)
+
+            when = "week ahead" if period == "week" else "solar month"
+            highlights: List[str] = [
+                f"Your {when}: {start_str} → {end_str} ({span_days} days)"]
+
+            # Panchanga headline at the window's opening.
+            if panch.get("status") == "success":
+                verb = "Opens on" if period == "week" else "Month began on"
+                highlights.append(
+                    f"{verb} {panch['vaara']['name']} · {panch['tithi']['name']}, "
+                    f"{panch['nakshatra']['name']} nakshatra")
+
+            # Dasha snapshot + any change inside the window.
+            dasha_block = None
+            if dashas.get("status") != "failed" and dashas.get("current_dasha"):
+                cur = dashas["current_dasha"]
+                bhukti_periods = (dashas.get("current_bhukthi") or {}).get("periods", [])
+                today = datetime.strptime(today_str, "%Y-%m-%d")
+                running_bhukti = None
+                for b in bhukti_periods:
+                    try:
+                        bs = datetime.strptime(b["start_date"], "%Y-%m-%d")
+                        be = datetime.strptime(b["end_date"], "%Y-%m-%d")
+                    except Exception:
+                        continue
+                    if bs <= today <= be:
+                        running_bhukti = b
+                        break
+                dasha_block = {
+                    "maha_lord": cur["lord"],
+                    "maha_end": cur["end_date"],
+                    "bhukti": running_bhukti,
+                    "next_maha": (dashas.get("next_dasha") or {}).get("lord"),
+                }
+                highlights.append(
+                    f"{cur['lord']} Mahadasha"
+                    + (f", {running_bhukti['lord']} Bhukti" if running_bhukti else ""))
+                if running_bhukti:
+                    try:
+                        be = datetime.strptime(running_bhukti["end_date"], "%Y-%m-%d")
+                        days_left = (be - today).days
+                        days_to_end = (datetime.strptime(end_str, "%Y-%m-%d") - today).days
+                        if 0 <= days_left <= max(0, days_to_end):
+                            highlights.append(
+                                f"⚠ {running_bhukti['lord']} Bhukti ends {running_bhukti['end_date']} "
+                                f"— a dasha change falls within this {label}")
+                    except Exception:
+                        pass
+
+            # Transit snapshot (positions/retro now) + all window events.
+            transit_block = None
+            if transits.get("status") == "success":
+                planets = transits.get("planets", {})
+                sat = planets.get("Saturn", {})
+                jup = planets.get("Jupiter", {})
+                if sat.get("house_from_moon") in (12, 1, 2):
+                    phase = {12: "first (rising)", 1: "peak (janma)",
+                             2: "final (setting)"}[sat["house_from_moon"]]
+                    highlights.append(f"Saturn in your {sat['house_from_moon']}th from the "
+                                      f"Moon — Sade-Sati {phase} phase")
+                if jup:
+                    highlights.append(
+                        f"Jupiter transits your {jup.get('house_from_moon')}th from the Moon "
+                        f"({jup.get('sign_name')})")
+                retro = [name for name, p in planets.items() if p.get("retrograde")]
+                if retro:
+                    highlights.append("Retrograde now: " + ", ".join(retro))
+                transit_block = {
+                    "planets": planets,
+                    "natal": transits.get("natal", {}),
+                    "retrograde": retro,
+                    "sade_sati": sat.get("house_from_moon") in (12, 1, 2),
+                }
+            for ev in events:
+                highlights.append(f"{ev['text']} on {ev['date']}")
+
+            # Monthly Tajaka (Maasa Pravesha) headline.
+            if pravesh:
+                highlights.append(
+                    f"Maasa Pravesha lagna: {pravesh['lagna']['sign_name']}; "
+                    f"Muntha in {pravesh['muntha']['sign_name']} "
+                    f"(house {pravesh['muntha']['house']})")
+                for yg in pravesh.get("tajaka_yogas", [])[:3]:
+                    pair = f" ({'/'.join(yg['pair'])})" if yg.get("pair") else ""
+                    highlights.append(f"Tajaka yoga — {yg['name']}{pair}")
+
+            return {
+                "status": "success",
+                "period": period,
+                "start_date": start_str,
+                "end_date": end_str,
+                "span_days": span_days,
+                "place": place,
+                "panchanga": panch if panch.get("status") == "success" else None,
+                "dasha": dasha_block,
+                "transits": transit_block,
+                "events": events,
+                "pravesh": pravesh,
+                "highlights": highlights,
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+
+    @staticmethod
+    def get_weekly_digest(dob: str, tob: str, place: str,
+                          lat: Optional[float] = None, lon: Optional[float] = None,
+                          tz: Optional[float] = None, date: Optional[str] = None,
+                          ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """A personalized "This Week" reading: dasha context + the transit events
+        (ingresses / retrograde stations) landing over the next 7 days. There is
+        no native Tajaka 7-day unit, so the week is a dasha+transit aggregate."""
+        return AstrologyCompute._period_digest(
+            "week", dob, tob, place, lat=lat, lon=lon, tz=tz, date=date, ayanamsa=ayanamsa)
+
+    @staticmethod
+    def get_monthly_digest(dob: str, tob: str, place: str,
+                           lat: Optional[float] = None, lon: Optional[float] = None,
+                           tz: Optional[float] = None, date: Optional[str] = None,
+                           ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """A personalized "This Month" reading: dasha context + the month's transit
+        events, anchored to the Maasa Pravesha (Tajaka monthly solar-return) chart,
+        whose pravesh window (~30.4 days) defines the reading's start/end."""
+        return AstrologyCompute._period_digest(
+            "month", dob, tob, place, lat=lat, lon=lon, tz=tz, date=date, ayanamsa=ayanamsa)
 
     # ── Nadi / Bhrigu-style yearly markers ─────────────────────────────────
     @staticmethod

@@ -40,6 +40,8 @@ SOURCE_META: Dict[str, Dict[str, str]] = {
     "remedies":         {"label": "Remedies",           "route": "/remedies",          "kind": "reading"},
     "bhrigu":           {"label": "Bhrigu markers",     "route": "/bhrigu-markers",    "kind": "reading"},
     "daily_digest":     {"label": "Daily digest",       "route": "/daily-digest",      "kind": "reading"},
+    "weekly_digest":    {"label": "Weekly digest",      "route": "/weekly-digest",     "kind": "reading"},
+    "monthly_digest":   {"label": "Monthly digest",     "route": "/monthly-digest",    "kind": "reading"},
     "sensitive_points": {"label": "Sensitive points",   "route": "/sensitive-points",  "kind": "reading"},
     "celestial":        {"label": "Vedic clock",        "route": "/vedic-clock",       "kind": "reading"},
     "almanac":          {"label": "Almanac",            "route": "/almanac",           "kind": "reading"},

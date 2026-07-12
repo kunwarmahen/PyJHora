@@ -604,6 +604,24 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
+    async def analyze_weekly_digest(self,
+                                    digest_data: Dict[str, Any],
+                                    name: str = "this person",
+                                    config: Optional[ModelConfig] = None) -> str:
+        """Warm, personalized reading of the week-ahead digest."""
+        prompt = self._build_period_digest_prompt(digest_data, name, "week")
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
+    async def analyze_monthly_digest(self,
+                                     digest_data: Dict[str, Any],
+                                     name: str = "this person",
+                                     config: Optional[ModelConfig] = None) -> str:
+        """Warm, personalized reading of the month-ahead (Maasa Pravesha) digest."""
+        prompt = self._build_period_digest_prompt(digest_data, name, "month")
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
     async def analyze_bhrigu_markers(self,
                                      data: Dict[str, Any],
                                      name: str = "this person",
@@ -2016,6 +2034,65 @@ Write a friendly ~200-word daily note:
 2. **Your bigger arc** — a line tying it to the current dasha/bhukti (and Sade-Sati or a nearing dasha change if flagged), framed constructively.
 3. **A gentle nudge** — one practical suggestion for making the most of today.
 End on an encouraging line. Do NOT make fated, medical, legal or financial claims; keep it a supportive daily reflection."""
+
+    def _build_period_digest_prompt(self, d: Dict[str, Any], name: str, period: str) -> str:
+        """A warm week-ahead / month-ahead reading tying the running dasha to the
+        window's transit events (and, for the month, the Maasa Pravesha chart)."""
+        is_month = period == "month"
+        label = "MONTH" if is_month else "WEEK"
+        panch = d.get("panchanga") or {}
+        dasha = d.get("dasha") or {}
+        transits = d.get("transits") or {}
+        pravesh = d.get("pravesh") or {}
+        tithi = panch.get("tithi") or {}
+        nak = panch.get("nakshatra") or {}
+        vaara = panch.get("vaara") or {}
+        bhukti = (dasha.get("bhukti") or {})
+        retro = transits.get("retrograde", [])
+        events = d.get("events", [])
+        event_lines = "\n".join(
+            f"- {e['date']}: {e['text']}" for e in events
+        ) or "- (no sign-changes or stations this window)"
+
+        pravesh_block = ""
+        if is_month and pravesh:
+            muntha = pravesh.get("muntha") or {}
+            lagna = pravesh.get("lagna") or {}
+            yl = pravesh.get("year_lord") or {}
+            yogas = pravesh.get("tajaka_yogas") or []
+            yoga_lines = "\n".join(
+                f"- {y['name']}"
+                + (f" ({'/'.join(y['pair'])})" if y.get("pair") else "")
+                + (f": {y['description']}" if y.get("description") else "")
+                for y in yogas
+            ) or "- (none notable)"
+            pravesh_block = f"""
+Maasa Pravesha (Tajaka monthly solar-return) chart for this month:
+- Monthly Lagna: {lagna.get('sign_name')}; Muntha (progressed ascendant) in {muntha.get('sign_name')} (house {muntha.get('house')} of the monthly chart).
+- Year-lord: {yl.get('planet', 'n/a')}.
+- Active Tajaka yogas this month:
+{yoga_lines}
+"""
+
+        window = f"{d.get('start_date')} → {d.get('end_date')} ({d.get('span_days')} days)"
+        horizon = "the solar month you are in (a Maasa Pravesha window)" if is_month else "the week ahead"
+
+        return f"""You are a warm, encouraging personal Vedic astrologer writing {name}'s {label}-ahead briefing for {horizon}: {window}. Weave their current dasha period together with the sky's movements across this window into one grounded, supportive note. Speak TO them ("you"), plainly.
+
+Window opens on: {vaara.get('name')}, {tithi.get('name')}, {nak.get('name')} nakshatra.
+Current dasha: {dasha.get('maha_lord', 'n/a')} Mahadasha{', ' + bhukti.get('lord') + ' Bhukti' if bhukti.get('lord') else ''} (Mahadasha runs to {dasha.get('maha_end', 'n/a')}).
+Sade-Sati active: {'yes' if transits.get('sade_sati') else 'no'}. Retrograde now: {', '.join(retro) if retro else 'none'}.
+Transit events falling inside this window (sign-ingresses & retrograde stations):
+{event_lines}
+{pravesh_block}
+Key highlights the engine flagged:
+{chr(10).join(f'- {h}' for h in d.get('highlights', [])) or '- (a steady window)'}
+
+Write a friendly ~{'260' if is_month else '210'}-word {period}-ahead note:
+1. **The theme of this {period}** — what the dasha/bhukti{' and the Maasa Pravesha Lagna/Muntha' if is_month else ''} set as the backdrop, framed constructively.
+2. **What shifts and when** — walk through the 2–3 most meaningful transit events above (an ingress, a retrograde station{', a Tajaka yoga' if is_month else ''}), naming their dates so they can plan around them.
+3. **A gentle plan** — one or two practical suggestions for making the most of this {period}.
+End on an encouraging line. Do NOT make fated, medical, legal or financial claims; keep it a supportive forward-looking reflection."""
 
     def _build_bhrigu_markers_prompt(self, d: Dict[str, Any], name: str) -> str:
         """Read the Nadi/Bhrigu yearly markers: the Moon-based annual progression

@@ -128,6 +128,18 @@ export const DashboardPage = () => {
       gradient: "linear-gradient(135deg, #FF9933 0%, #E27B5A 100%)",
     },
     {
+      key: "weeklyDigest",
+      icon: <CalendarDays size={32} />,
+      path: "/weekly-digest",
+      gradient: "linear-gradient(135deg, #F0883E 0%, #D4AF37 100%)",
+    },
+    {
+      key: "monthlyDigest",
+      icon: <CalendarRange size={32} />,
+      path: "/monthly-digest",
+      gradient: "linear-gradient(135deg, #E27B5A 0%, #B5651D 100%)",
+    },
+    {
       key: "muhurta",
       icon: <CalendarCheck size={32} />,
       path: "/muhurta",

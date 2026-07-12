@@ -112,12 +112,36 @@ async def _digest_cfg(user_id: str):
     return cfg
 
 
+# Per-cadence wiring: which compute + which AI narrative + how to label the window.
+_CADENCES = {
+    "daily": {
+        "compute": "get_daily_digest", "analyze": "analyze_daily_digest",
+        "noun": "digest", "route": "/daily-digest",
+    },
+    "weekly": {
+        "compute": "get_weekly_digest", "analyze": "analyze_weekly_digest",
+        "noun": "week ahead", "route": "/weekly-digest",
+    },
+    "monthly": {
+        "compute": "get_monthly_digest", "analyze": "analyze_monthly_digest",
+        "noun": "month ahead", "route": "/monthly-digest",
+    },
+}
+
+
+def _cadence(cadence: str) -> Dict[str, str]:
+    return _CADENCES.get(cadence, _CADENCES["daily"])
+
+
 async def _profile_block(user_id: str, profile: Dict[str, Any],
-                         include_ai: bool) -> Optional[Dict[str, Any]]:
-    """Compute one profile's digest section: name, date, highlights, and an
-    optional AI narrative. Returns None if the underlying calc failed."""
+                         include_ai: bool, cadence: str = "daily") -> Optional[Dict[str, Any]]:
+    """Compute one profile's digest section for the given cadence (daily/weekly/
+    monthly): name, window label, highlights, and an optional AI narrative.
+    Returns None if the underlying calc failed."""
+    spec = _cadence(cadence)
     bd = profile.get("birth_details") or {}
-    digest = AstrologyCompute.get_daily_digest(
+    compute = getattr(AstrologyCompute, spec["compute"])
+    digest = compute(
         dob=bd["dob"], tob=bd["tob"], place=bd.get("place", ""),
         lat=bd.get("latitude"), lon=bd.get("longitude"), tz=bd.get("timezone"),
         ayanamsa=DEFAULT_AYANAMSA)
@@ -126,13 +150,18 @@ async def _profile_block(user_id: str, profile: Dict[str, Any],
 
     name = bd.get("name") or profile.get("profile_name") or "there"
     highlights = digest.get("highlights", [])
+    # Daily carries a single `date`; weekly/monthly carry a start→end window.
+    if cadence == "daily":
+        window = digest.get("date")
+    else:
+        window = f"{digest.get('start_date')} → {digest.get('end_date')}"
     narrative = None
     if include_ai:
         try:
             from llm_service import llm_service
             cfg = await _digest_cfg(user_id)
-            text = await llm_service.analyze_daily_digest(
-                digest_data=digest, name=name, config=cfg)
+            analyze = getattr(llm_service, spec["analyze"])
+            text = await analyze(digest_data=digest, name=name, config=cfg)
             narrative = (text or "").strip() or None
         except Exception as e:  # LLM down/unconfigured/slow → fall back to highlights
             print(f"[digest] AI narrative skipped for {user_id}/{name}: {e}")
@@ -140,15 +169,15 @@ async def _profile_block(user_id: str, profile: Dict[str, Any],
 
     return {
         "name": name,
-        "date": digest.get("date"),
+        "date": window,
         "highlights": highlights,
         "narrative": narrative,
     }
 
 
-def _render_text(blocks: List[Dict[str, Any]], date: str) -> str:
+def _render_text(blocks: List[Dict[str, Any]], date: str, noun: str) -> str:
     """Plain-text combined digest, one section per profile."""
-    parts = [f"Your {settings.SITE_NAME} Vedic digest for {date}", ""]
+    parts = [f"Your {settings.SITE_NAME} Vedic {noun} for {date}", ""]
     multi = len(blocks) > 1
     for b in blocks:
         if multi:
@@ -160,14 +189,14 @@ def _render_text(blocks: List[Dict[str, Any]], date: str) -> str:
             parts.append(b["narrative"])
             parts.append("")
         if b.get("highlights"):
-            parts.append("Today's highlights:")
+            parts.append("Highlights:")
             parts.extend(f"• {h}" for h in b["highlights"])
             parts.append("")
     parts.append(f"Open {settings.SITE_NAME} for the full reading.")
     return "\n".join(parts)
 
 
-def _render_html(blocks: List[Dict[str, Any]], date: str) -> str:
+def _render_html(blocks: List[Dict[str, Any]], date: str, noun: str) -> str:
     """HTML combined digest, one section per profile."""
     import html as _html
 
@@ -180,7 +209,7 @@ def _render_html(blocks: List[Dict[str, Any]], date: str) -> str:
         return "".join(f"<p>{esc(p)}</p>" for p in paras)
 
     multi = len(blocks) > 1
-    out = [f"<p>Your {esc(settings.SITE_NAME)} Vedic digest for <b>{esc(date)}</b>:</p>"]
+    out = [f"<p>Your {esc(settings.SITE_NAME)} Vedic {esc(noun)} for <b>{esc(date)}</b>:</p>"]
     for b in blocks:
         out.append(f"<h3 style=\"margin:18px 0 6px\">{esc(b['name'])}</h3>"
                    if multi else f"<p>Hi {esc(b['name'])},</p>")
@@ -192,14 +221,16 @@ def _render_html(blocks: List[Dict[str, Any]], date: str) -> str:
     return "".join(out)
 
 
-async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Build + deliver the daily digest for one user, covering every profile they
-    chose in a single combined message. Returns
-    `{status, sent:{email,push}, profiles:[names], date}` or `{status:"error",...}`.
-    Never raises — the scheduler must survive one bad user."""
+async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = None,
+                               cadence: str = "daily") -> Dict[str, Any]:
+    """Build + deliver a digest for one user at the given cadence (daily/weekly/
+    monthly), covering every profile they chose in a single combined message.
+    Returns `{status, sent:{email,push}, profiles:[names], date, cadence}` or
+    `{status:"error",...}`. Never raises — the scheduler must survive one bad user."""
     db = get_database()
     if prefs is None:
         prefs = await notifications.get_prefs(user_id)
+    spec = _cadence(cadence)
 
     profiles = await resolve_profiles(user_id, prefs)
     if not profiles:
@@ -209,7 +240,7 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
     blocks: List[Dict[str, Any]] = []
     for profile in profiles:
         try:
-            block = await _profile_block(user_id, profile, include_ai)
+            block = await _profile_block(user_id, profile, include_ai, cadence)
         except Exception as e:  # one bad profile shouldn't sink the whole digest
             print(f"[digest] profile calc failed for {user_id}: {e}")
             block = None
@@ -220,10 +251,11 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
         return {"status": "error", "reason": "calc_failed"}
 
     date = blocks[0]["date"]
+    noun = spec["noun"]
     names = [b["name"] for b in blocks]
-    subject = f"Your {settings.SITE_NAME} digest — {date}"
-    text = _render_text(blocks, date)
-    html = _render_html(blocks, date)
+    subject = f"Your {settings.SITE_NAME} {noun} — {date}"
+    text = _render_text(blocks, date, noun)
+    html = _render_html(blocks, date, noun)
 
     sent = {"email": False, "push": 0}
     if prefs.get("email"):
@@ -232,14 +264,14 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
             sent["email"] = await email_service.send_daily_digest(user["email"], subject, text, html)
     if prefs.get("push"):
         if len(blocks) > 1:
-            body = f"Digests for {', '.join(names)} are ready."
+            body = f"Your {noun} for {', '.join(names)} is ready."
         else:
             hl = blocks[0]["highlights"]
-            body = hl[0] if hl else "Your daily Vedic digest is ready."
+            body = hl[0] if hl else f"Your Vedic {noun} is ready."
         sent["push"] = await notifications.send_push(user_id, {
             "title": subject,
             "body": body,
-            "url": "/daily-digest",
+            "url": spec["route"],
         })
 
-    return {"status": "ok", "sent": sent, "profiles": names, "date": date}
+    return {"status": "ok", "sent": sent, "profiles": names, "date": date, "cadence": cadence}

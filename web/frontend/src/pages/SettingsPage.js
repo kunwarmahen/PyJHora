@@ -8,7 +8,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
 import { authService, astrologyService, notificationsService, setTokens } from "../services/api";
 import { enablePush, disablePush, pushSupported, pushUnavailableReason } from "../utils/push";
-import { formatDate } from "../utils/format";
+import { formatDate, intlLocale } from "../utils/format";
 import { AYANAMSAS } from "../constants/jyotish";
 import { LANGUAGES } from "../i18n";
 import { SITE_TITLE } from "../config/branding";
@@ -20,7 +20,7 @@ const MT_MAX = 8192;
 const MT_STEP = 256;
 
 export const SettingsPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { settings, updateSetting } = useSettings();
   const { user, logout, reloadUser } = useAuth();
@@ -152,10 +152,10 @@ export const SettingsPage = () => {
     }
   };
 
-  const sendTestDigest = async () => {
+  const sendTestDigest = async (cadence = "daily") => {
     setNotifMsg({ type: "", text: "" });
     try {
-      const r = await notificationsService.sendDigestNow();
+      const r = await notificationsService.sendDigestNow(cadence);
       const s = r.data?.sent || {};
       setNotifMsg({
         type: "ok",
@@ -631,21 +631,99 @@ export const SettingsPage = () => {
               <div className={`settings-msg settings-msg--${notifMsg.type}`}>{notifMsg.text}</div>
             )}
 
-            {/* Master switch */}
-            <div className="settings-row">
-              <label className="settings-label">{t("settings.notifications.dailyDigest")}</label>
-              <label className="settings-switch">
-                <input
-                  type="checkbox"
-                  checked={!!notif?.daily_digest}
-                  onChange={(e) => saveNotif({ daily_digest: e.target.checked })}
-                />
-                <span />
-              </label>
-            </div>
+            {/* Cadence switches: daily / weekly / monthly, each with its own
+                schedule. The delivery channels + profile picks below are shared. */}
+            {(() => {
+              const hourOptions = Array.from({ length: 24 }, (_, h) => (
+                <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>
+              ));
+              // dow value 0=Mon..6=Sun → a localized weekday name (2024-01-01 is a Monday).
+              const dowName = (v) =>
+                new Date(2024, 0, 1 + v).toLocaleDateString(intlLocale(i18n.language), { weekday: "long" });
+              const anyDigest = !!(notif?.daily_digest || notif?.weekly || notif?.monthly);
+              return (
+                <>
+                  {/* Daily */}
+                  <div className="settings-row">
+                    <label className="settings-label">{t("settings.notifications.dailyDigest")}</label>
+                    <label className="settings-switch">
+                      <input type="checkbox" checked={!!notif?.daily_digest}
+                        onChange={(e) => saveNotif({ daily_digest: e.target.checked })} />
+                      <span />
+                    </label>
+                  </div>
+                  {notif?.daily_digest && (
+                    <div className="settings-row">
+                      <label className="settings-label">{t("settings.notifications.hour")}</label>
+                      <select className="form-select" value={notif?.hour ?? 7}
+                        onChange={(e) => saveNotif({ hour: parseInt(e.target.value, 10) })}>
+                        {hourOptions}
+                      </select>
+                    </div>
+                  )}
 
-            {notif?.daily_digest && (
-              <>
+                  {/* Weekly */}
+                  <div className="settings-row">
+                    <label className="settings-label">{t("settings.notifications.weeklyDigest")}</label>
+                    <label className="settings-switch">
+                      <input type="checkbox" checked={!!notif?.weekly}
+                        onChange={(e) => saveNotif({ weekly: e.target.checked })} />
+                      <span />
+                    </label>
+                  </div>
+                  {notif?.weekly && (
+                    <>
+                      <div className="settings-row">
+                        <label className="settings-label">{t("settings.notifications.weekday")}</label>
+                        <select className="form-select" value={notif?.weekly_dow ?? 6}
+                          onChange={(e) => saveNotif({ weekly_dow: parseInt(e.target.value, 10) })}>
+                          {Array.from({ length: 7 }, (_, v) => (
+                            <option key={v} value={v}>{dowName(v)}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="settings-row">
+                        <label className="settings-label">{t("settings.notifications.hour")}</label>
+                        <select className="form-select" value={notif?.weekly_hour ?? 7}
+                          onChange={(e) => saveNotif({ weekly_hour: parseInt(e.target.value, 10) })}>
+                          {hourOptions}
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Monthly */}
+                  <div className="settings-row">
+                    <label className="settings-label">{t("settings.notifications.monthlyDigest")}</label>
+                    <label className="settings-switch">
+                      <input type="checkbox" checked={!!notif?.monthly}
+                        onChange={(e) => saveNotif({ monthly: e.target.checked })} />
+                      <span />
+                    </label>
+                  </div>
+                  {notif?.monthly && (
+                    <>
+                      <div className="settings-row">
+                        <label className="settings-label">{t("settings.notifications.dayOfMonth")}</label>
+                        <select className="form-select" value={notif?.monthly_dom ?? 1}
+                          onChange={(e) => saveNotif({ monthly_dom: parseInt(e.target.value, 10) })}>
+                          {Array.from({ length: 28 }, (_, i) => (
+                            <option key={i + 1} value={i + 1}>{i + 1}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="settings-row">
+                        <label className="settings-label">{t("settings.notifications.hour")}</label>
+                        <select className="form-select" value={notif?.monthly_hour ?? 7}
+                          onChange={(e) => saveNotif({ monthly_hour: parseInt(e.target.value, 10) })}>
+                          {hourOptions}
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {!anyDigest ? null : (
+                  <>
                 {/* Which profiles — an "all" shortcut plus a per-profile pick list.
                     Falls back to the legacy single profile_id when neither is set. */}
                 <div className="settings-row settings-row--stack">
@@ -690,7 +768,7 @@ export const SettingsPage = () => {
                   )}
                 </div>
 
-                {/* AI "how the day looks" narrative */}
+                {/* AI "how the day/week/month looks" narrative */}
                 <div className="settings-row">
                   <label className="settings-label">{t("settings.notifications.includeAi")}</label>
                   <label className="settings-switch">
@@ -701,22 +779,6 @@ export const SettingsPage = () => {
                     />
                     <span />
                   </label>
-                </div>
-
-                {/* Preferred hour */}
-                <div className="settings-row">
-                  <label className="settings-label">{t("settings.notifications.hour")}</label>
-                  <select
-                    className="form-select"
-                    value={notif?.hour ?? 7}
-                    onChange={(e) => saveNotif({ hour: parseInt(e.target.value, 10) })}
-                  >
-                    {Array.from({ length: 24 }, (_, h) => (
-                      <option key={h} value={h}>
-                        {String(h).padStart(2, "0")}:00
-                      </option>
-                    ))}
-                  </select>
                 </div>
 
                 {/* Email channel */}
@@ -772,11 +834,29 @@ export const SettingsPage = () => {
                   );
                 })()}
 
-                <button type="button" className="settings-link" onClick={sendTestDigest}>
-                  {t("settings.notifications.sendTest")}
-                </button>
-              </>
-            )}
+                {/* Per-cadence "send me one now" tests, only for enabled cadences. */}
+                <div className="settings-test-row">
+                  {notif?.daily_digest && (
+                    <button type="button" className="settings-link" onClick={() => sendTestDigest("daily")}>
+                      {t("settings.notifications.sendTestDaily")}
+                    </button>
+                  )}
+                  {notif?.weekly && (
+                    <button type="button" className="settings-link" onClick={() => sendTestDigest("weekly")}>
+                      {t("settings.notifications.sendTestWeekly")}
+                    </button>
+                  )}
+                  {notif?.monthly && (
+                    <button type="button" className="settings-link" onClick={() => sendTestDigest("monthly")}>
+                      {t("settings.notifications.sendTestMonthly")}
+                    </button>
+                  )}
+                </div>
+                  </>
+                  )}
+                </>
+              );
+            })()}
             <p className="settings-hint">{t("settings.notifications.note")}</p>
           </div>
         )}
