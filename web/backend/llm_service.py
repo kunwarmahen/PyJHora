@@ -604,12 +604,12 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
-    async def analyze_weekly_digest(self,
-                                    digest_data: Dict[str, Any],
-                                    name: str = "this person",
-                                    config: Optional[ModelConfig] = None) -> str:
-        """Warm, personalized reading of the week-ahead digest."""
-        prompt = self._build_period_digest_prompt(digest_data, name, "week")
+    async def analyze_fortnightly_digest(self,
+                                         digest_data: Dict[str, Any],
+                                         name: str = "this person",
+                                         config: Optional[ModelConfig] = None) -> str:
+        """Warm, personalized reading of the fortnight (Paksha Pravesha) digest."""
+        prompt = self._build_period_digest_prompt(digest_data, name, "fortnight")
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
@@ -617,8 +617,19 @@ Reply with STRICT JSON only, exactly this shape:
                                      digest_data: Dict[str, Any],
                                      name: str = "this person",
                                      config: Optional[ModelConfig] = None) -> str:
-        """Warm, personalized reading of the month-ahead (Maasa Pravesha) digest."""
+        """Warm, personalized reading of the monthly digest — the Maasa Pravesha
+        (solar) or birth-tithi-return (lunar) chart, per the digest's basis."""
         prompt = self._build_period_digest_prompt(digest_data, name, "month")
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
+    async def analyze_tithi_pravesha(self,
+                                     tp_data: Dict[str, Any],
+                                     name: str = "this person",
+                                     config: Optional[ModelConfig] = None) -> str:
+        """Plain-language year-ahead reading of the Tithi Pravesha (annual
+        lunar-return) chart — the lunar counterpart of Varshaphal."""
+        prompt = self._build_tithi_pravesha_prompt(tp_data, name)
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
@@ -2036,10 +2047,13 @@ Write a friendly ~200-word daily note:
 End on an encouraging line. Do NOT make fated, medical, legal or financial claims; keep it a supportive daily reflection."""
 
     def _build_period_digest_prompt(self, d: Dict[str, Any], name: str, period: str) -> str:
-        """A warm week-ahead / month-ahead reading tying the running dasha to the
-        window's transit events (and, for the month, the Maasa Pravesha chart)."""
-        is_month = period == "month"
-        label = "MONTH" if is_month else "WEEK"
+        """A warm fortnight / month reading tying the running dasha to the window's
+        transit events and its progressed (pravesha) chart. Which chart that is
+        depends on the rung + basis the compute layer actually cast:
+        Paksha Pravesha (fortnight), Maasa Pravesha (solar month) or the
+        birth-tithi return (lunar month)."""
+        is_fortnight = period == "fortnight"
+        basis = d.get("basis") or "solar"
         panch = d.get("panchanga") or {}
         dasha = d.get("dasha") or {}
         transits = d.get("transits") or {}
@@ -2054,8 +2068,22 @@ End on an encouraging line. Do NOT make fated, medical, legal or financial claim
             f"- {e['date']}: {e['text']}" for e in events
         ) or "- (no sign-changes or stations this window)"
 
+        # Name the rung honestly — the reader should know which chart they're being read.
+        noun = "fortnight" if is_fortnight else "month"
+        if is_fortnight:
+            paksha = pravesh.get("paksha") or "lunar"
+            chart_name = f"{paksha} Paksha Pravesha chart (the lunar fortnight)"
+            horizon = (f"the {paksha} Paksha you are in — the lunar fortnight, the half of "
+                       f"the lunar month running from its first tithi to the next paksha")
+        elif basis == "lunar":
+            chart_name = "lunar-month chart (your birth tithi returning, ~29.5 days)"
+            horizon = "the lunar month you are in (your natal tithi recurring)"
+        else:
+            chart_name = "Maasa Pravesha chart (the Tajaka monthly solar return)"
+            horizon = "the solar month you are in (a Maasa Pravesha window)"
+
         pravesh_block = ""
-        if is_month and pravesh:
+        if pravesh:
             muntha = pravesh.get("muntha") or {}
             lagna = pravesh.get("lagna") or {}
             yl = pravesh.get("year_lord") or {}
@@ -2067,19 +2095,18 @@ End on an encouraging line. Do NOT make fated, medical, legal or financial claim
                 for y in yogas
             ) or "- (none notable)"
             pravesh_block = f"""
-Maasa Pravesha (Tajaka monthly solar-return) chart for this month:
-- Monthly Lagna: {lagna.get('sign_name')}; Muntha (progressed ascendant) in {muntha.get('sign_name')} (house {muntha.get('house')} of the monthly chart).
+Progressed chart for this {noun} — the {chart_name}, cast at the moment the window opened:
+- Lagna: {lagna.get('sign_name')}; Muntha (progressed ascendant) in {muntha.get('sign_name')} (house {muntha.get('house')} of that chart).
 - Year-lord: {yl.get('planet', 'n/a')}.
-- Active Tajaka yogas this month:
+- Active Tajaka yogas in it:
 {yoga_lines}
 """
 
         window = f"{d.get('start_date')} → {d.get('end_date')} ({d.get('span_days')} days)"
-        horizon = "the solar month you are in (a Maasa Pravesha window)" if is_month else "the week ahead"
 
-        return f"""You are a warm, encouraging personal Vedic astrologer writing {name}'s {label}-ahead briefing for {horizon}: {window}. Weave their current dasha period together with the sky's movements across this window into one grounded, supportive note. Speak TO them ("you"), plainly.
+        return f"""You are a warm, encouraging personal Vedic astrologer writing {name}'s briefing for {horizon}: {window}. Weave their current dasha period together with the progressed chart for this {noun} and the sky's movements across the window into one grounded, supportive note. Speak TO them ("you"), plainly.
 
-Window opens on: {vaara.get('name')}, {tithi.get('name')}, {nak.get('name')} nakshatra.
+Window opened on: {vaara.get('name')}, {tithi.get('name')}, {nak.get('name')} nakshatra.
 Current dasha: {dasha.get('maha_lord', 'n/a')} Mahadasha{', ' + bhukti.get('lord') + ' Bhukti' if bhukti.get('lord') else ''} (Mahadasha runs to {dasha.get('maha_end', 'n/a')}).
 Sade-Sati active: {'yes' if transits.get('sade_sati') else 'no'}. Retrograde now: {', '.join(retro) if retro else 'none'}.
 Transit events falling inside this window (sign-ingresses & retrograde stations):
@@ -2088,11 +2115,52 @@ Transit events falling inside this window (sign-ingresses & retrograde stations)
 Key highlights the engine flagged:
 {chr(10).join(f'- {h}' for h in d.get('highlights', [])) or '- (a steady window)'}
 
-Write a friendly ~{'260' if is_month else '210'}-word {period}-ahead note:
-1. **The theme of this {period}** — what the dasha/bhukti{' and the Maasa Pravesha Lagna/Muntha' if is_month else ''} set as the backdrop, framed constructively.
-2. **What shifts and when** — walk through the 2–3 most meaningful transit events above (an ingress, a retrograde station{', a Tajaka yoga' if is_month else ''}), naming their dates so they can plan around them.
-3. **A gentle plan** — one or two practical suggestions for making the most of this {period}.
-End on an encouraging line. Do NOT make fated, medical, legal or financial claims; keep it a supportive forward-looking reflection."""
+Write a friendly ~{'230' if is_fortnight else '260'}-word note on this {noun}:
+1. **The theme of this {noun}** — what the dasha/bhukti and the progressed Lagna/Muntha set as the backdrop, framed constructively.
+2. **What shifts and when** — walk through the 2–3 most meaningful transit events above (an ingress, a retrograde station, a Tajaka yoga), naming their dates so they can plan around them.
+3. **A gentle plan** — one or two practical suggestions for making the most of this {noun}.
+Reason only from the data above; do not invent placements. End on an encouraging line. Do NOT make fated, medical, legal or financial claims; keep it a supportive forward-looking reflection."""
+
+    def _build_tithi_pravesha_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """Year-ahead reading of the Tithi Pravesha (annual lunar-return) chart."""
+        lagna = d.get("lagna") or {}
+        muntha = d.get("muntha") or {}
+        yl = d.get("year_lord") or {}
+        window = d.get("window") or {}
+        planets = d.get("planets") or {}
+        yogas = d.get("tajaka_yogas") or []
+
+        planet_lines = "\n".join(
+            f"- {p}: {v.get('sign_name')} {v.get('degrees')}°"
+            for p, v in planets.items()
+        ) or "- (none)"
+        yoga_lines = "\n".join(
+            f"- {y['name']}"
+            + (f" ({'/'.join(y['pair'])})" if y.get("pair") else "")
+            + (f": {y['description']}" if y.get("description") else "")
+            for y in yogas
+        ) or "- (none notable)"
+
+        return f"""You are a warm, grounded Vedic astrologer reading {name}'s **Tithi Pravesha** chart — the *annual lunar-return* horoscope. Explain what has already been computed; do not recompute or invent placements.
+
+**What this chart is.** Tithi Pravesha (the "TP chart") is cast for the moment {name}'s **natal tithi and lunar month recur** — a lunar-year return of roughly 354 days. It is the *lunar* counterpart of the solar-return Varshaphal: where Varshaphal times the year from the Sun's return, this times it from the Moon–Sun relationship at birth. Traditionally it is read for the emotional, domestic and mental texture of the year, alongside (not instead of) the solar annual chart.
+
+This year's Tithi Pravesha: **{d.get('label', 'n/a')}**, running {window.get('start')} → {window.get('end')} ({window.get('span_days')} days). Age at entry: {window.get('age')}.
+
+Chart cast at the pravesha moment:
+- Lagna: {lagna.get('sign_name')} {lagna.get('degrees')}°
+- Muntha (progressed ascendant): {muntha.get('sign_name')}, house {muntha.get('house')} of this chart
+- Year-lord: {yl.get('planet', 'n/a')}
+Planets:
+{planet_lines}
+Active Tajaka yogas:
+{yoga_lines}
+
+Write a grounded ~280-word reading:
+1. **The tone of the year** — what the TP Lagna and its lord set as the backdrop, and what the Muntha's house activates.
+2. **Where the emphasis falls** — 2–3 of the most telling placements or Tajaka yogas above, and the areas of life they touch.
+3. **How to work with it** — one or two calm, practical suggestions.
+Close with a line noting that the TP chart is read *alongside* the solar annual chart, and that it is indicative rather than fated. Do NOT make medical, legal or financial predictions."""
 
     def _build_bhrigu_markers_prompt(self, d: Dict[str, Any], name: str) -> str:
         """Read the Nadi/Bhrigu yearly markers: the Moon-based annual progression

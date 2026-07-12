@@ -73,8 +73,9 @@ const PROFILE_READING_PATHS = new Set([
   "/api/astrology/bhrigu-markers-analysis",
   "/api/astrology/remedies-analysis",
   "/api/astrology/daily-digest-analysis",
-  "/api/astrology/weekly-digest-analysis",
+  "/api/astrology/fortnightly-digest-analysis",
   "/api/astrology/monthly-digest-analysis",
+  "/api/astrology/tithi-pravesha-analysis",
   "/api/astrology/sensitive-points-analysis",
   "/api/astrology/celestial-analysis",
   "/api/astrology/pancha-pakshi-analysis",
@@ -590,16 +591,42 @@ export const astrologyService = {
       { timeout: 300000 }
     ),
 
-  // ---- Weekly & monthly digests (§25) ----
-  getWeeklyDigest: (birthDetails, { date, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
-    api.post("/api/astrology/weekly-digest", birthDetails, { params: { date, ayanamsa } }),
-  getMonthlyDigest: (birthDetails, { date, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
-    api.post("/api/astrology/monthly-digest", birthDetails, { params: { date, ayanamsa } }),
+  // ---- Fortnightly & monthly digests (§25) ----
+  // `basis` selects the pravesha ladder: "solar" (Tajaka: Maasa Pravesha) or
+  // "lunar" (tithi: birth-tithi return). The fortnight is lunar-only (there is no
+  // solar fortnight rung), so it takes no basis.
+  getFortnightlyDigest: (birthDetails, { date, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+    api.post("/api/astrology/fortnightly-digest", birthDetails, { params: { date, ayanamsa } }),
+  getMonthlyDigest: (birthDetails, { date, basis = "solar", ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+    api.post("/api/astrology/monthly-digest", birthDetails, { params: { date, basis, ayanamsa } }),
   analyzePeriodDigestAI: (period, birthDetails, opts = {}, model = {}) =>
     api.post(
       `/api/astrology/${period}-digest-analysis`,
       {
         birth_details: birthDetails,
+        date: opts.date,
+        basis: opts.basis,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
+  // ---- Tithi Pravesha — the annual *lunar*-return chart (§25.1) ----
+  getTithiPravesha: (birthDetails, { year, date, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+    api.post("/api/astrology/tithi-pravesha", birthDetails, { params: { year, date, ayanamsa } }),
+  analyzeTithiPraveshaAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/tithi-pravesha-analysis",
+      {
+        birth_details: birthDetails,
+        year: opts.year,
         date: opts.date,
         person_name: opts.personName,
         llm_provider: model.legacyProvider || "qwen",

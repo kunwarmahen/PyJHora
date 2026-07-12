@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CalendarDays, CalendarRange, Sparkles, Bell, Clock, Orbit, Star, Compass } from "lucide-react";
+import { CalendarDays, CalendarRange, Sparkles, Bell, Clock, Orbit, Star, Compass, Moon, Sun } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -46,9 +46,15 @@ const formatDate = (dateStr, locale = "en-US") => {
   }
 };
 
-// One page, two cadences. `period` is "weekly" or "monthly"; everything below
-// (compute call, source tag, copy, and whether the Maasa Pravesha card shows)
-// keys off it, so the weekly and monthly pages stay in lockstep.
+// One page, two cadences on the pravesha ladders.
+//
+//   period="fortnightly" → the running paksha (Shukla/Krishna, ~14.8d) and its
+//        Paksha Pravesha chart. Lunar-only: Tajaka's solar ladder has no
+//        fortnight rung, so no basis toggle is offered here.
+//   period="monthly"     → the month, on whichever ladder `basis` selects:
+//        solar = Maasa Pravesha (~30.4d), lunar = birth-tithi return (~29.5d).
+//
+// The basis defaults to the global Settings value and can be overridden locally.
 const PeriodDigestPage = ({ period }) => {
   const isMonth = period === "monthly";
   const navigate = useNavigate();
@@ -57,7 +63,11 @@ const PeriodDigestPage = ({ period }) => {
   const { selectedProfile } = useProfile();
   const { settings } = useSettings();
   const ayanamsa = settings.ayanamsa;
-  const source = isMonth ? "monthly_digest" : "weekly_digest";
+  const source = isMonth ? "monthly_digest" : "fortnightly_digest";
+
+  // Per-page override of the global pravesha basis (monthly only).
+  const [basis, setBasis] = useState(settings.praveshaBasis || "solar");
+  useEffect(() => setBasis(settings.praveshaBasis || "solar"), [settings.praveshaBasis]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -99,17 +109,16 @@ const PeriodDigestPage = ({ period }) => {
     setError("");
     setAiAnalysis("");
     try {
-      const opts = { date: todayStr(), ayanamsa };
       const res = isMonth
-        ? await astrologyService.getMonthlyDigest(birthDetails, opts)
-        : await astrologyService.getWeeklyDigest(birthDetails, opts);
+        ? await astrologyService.getMonthlyDigest(birthDetails, { date: todayStr(), basis, ayanamsa })
+        : await astrologyService.getFortnightlyDigest(birthDetails, { date: todayStr(), ayanamsa });
       setDigest(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || t("periodDigest.error"));
     } finally {
       setLoading(false);
     }
-  }, [birthDetails, ayanamsa, isMonth, t]);
+  }, [birthDetails, ayanamsa, isMonth, basis, t]);
 
   useEffect(() => {
     if (!selectedProfile) {
@@ -125,9 +134,9 @@ const PeriodDigestPage = ({ period }) => {
     setAiError("");
     try {
       const res = await astrologyService.analyzePeriodDigestAI(
-        period === "monthly" ? "monthly" : "weekly",
+        isMonth ? "monthly" : "fortnightly",
         birthDetails,
-        { date: todayStr(), personName: birthDetails.name },
+        { date: todayStr(), basis: isMonth ? basis : undefined, personName: birthDetails.name },
         { ...readModelConfig(), ayanamsa }
       );
       setAiAnalysis(res.data.ai_analysis || "");
@@ -148,12 +157,19 @@ const PeriodDigestPage = ({ period }) => {
   const highlights = digest?.highlights || [];
   const pravesh = digest?.pravesh;
 
+  // Name the progressed chart for whichever rung was actually cast.
+  const praveshTitle = isMonth
+    ? basis === "lunar"
+      ? t("periodDigest.praveshLunarMonth")
+      : t("periodDigest.praveshMaasa")
+    : t("periodDigest.praveshPaksha", { paksha: pravesh?.paksha || "" });
+
   return (
     <div className="dashboard-container mandala-bg">
       <PageHeader
         icon={isMonth ? <CalendarRange size={24} /> : <CalendarDays size={24} />}
-        title={t(isMonth ? "periodDigest.monthTitle" : "periodDigest.weekTitle")}
-        subtitle={t(isMonth ? "periodDigest.monthSubtitle" : "periodDigest.weekSubtitle")}
+        title={t(isMonth ? "periodDigest.monthTitle" : "periodDigest.fortnightTitle")}
+        subtitle={t(isMonth ? "periodDigest.monthSubtitle" : "periodDigest.fortnightSubtitle")}
         accent="saffron"
       />
 
@@ -174,13 +190,39 @@ const PeriodDigestPage = ({ period }) => {
               <Bell size={14} /> {t("periodDigest.notifySettings")}
             </button>
           </div>
+
+          {/* Basis toggle — monthly only. The fortnight is a lunar-only rung. */}
+          {isMonth && (
+            <div className="controls-group">
+              <span className="control-label">{t("periodDigest.basis")}</span>
+              <button
+                className={`control-btn ${basis === "solar" ? "is-active" : ""}`}
+                onClick={() => setBasis("solar")}
+                title={t("periodDigest.basisSolarHint")}
+              >
+                <Sun size={14} /> {t("periodDigest.basisSolar")}
+              </button>
+              <button
+                className={`control-btn ${basis === "lunar" ? "is-active" : ""}`}
+                onClick={() => setBasis("lunar")}
+                title={t("periodDigest.basisLunarHint")}
+              >
+                <Moon size={14} /> {t("periodDigest.basisLunar")}
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* What window the reading actually covers — this is not a calendar month/week. */}
+        {digest?.window_label && (
+          <p className="settings-hint">{t("periodDigest.windowNote", { window: digest.window_label })}</p>
+        )}
 
         <ErrorBanner message={error} />
 
         {loading ? (
           <Card>
-            <LoadingState message={t(isMonth ? "periodDigest.loadingMonth" : "periodDigest.loadingWeek")} />
+            <LoadingState message={t(isMonth ? "periodDigest.loadingMonth" : "periodDigest.loadingFortnight")} />
           </Card>
         ) : digest ? (
           <div className="fade-in">
@@ -232,11 +274,11 @@ const PeriodDigestPage = ({ period }) => {
               )}
             </div>
 
-            {/* Maasa Pravesha (monthly only) */}
-            {isMonth && pravesh && (
+            {/* The progressed (pravesha) chart backing this window */}
+            {pravesh && (
               <div className="ui-card ui-card--accent-gold ui-card--pad-lg ui-card--flush mt-xl">
                 <h3 className="ui-card-header ui-card-header--sm">
-                  <Compass size={18} /> {t("periodDigest.pravesh")}
+                  <Compass size={18} /> {praveshTitle}
                 </h3>
                 <div className="detail-list digest-details">
                   <div><span className="kv-label">{t("periodDigest.praveshLagna")}</span><span className="kv-value">{pravesh.lagna?.sign_name}</span></div>
@@ -298,13 +340,15 @@ const PeriodDigestPage = ({ period }) => {
             {/* AI reading */}
             <div className="mt-xl">
               <Card
-                title={t(isMonth ? "periodDigest.aiTitleMonth" : "periodDigest.aiTitleWeek")}
+                title={t(isMonth ? "periodDigest.aiTitleMonth" : "periodDigest.aiTitleFortnight")}
                 icon={<Sparkles size={24} />}
                 accent="saffron"
               >
                 <ErrorBanner message={aiError} />
                 {!aiAnalysis && !aiLoading && (
-                  <p className="ai-panel__hint">{t(isMonth ? "periodDigest.aiHintMonth" : "periodDigest.aiHintWeek")}</p>
+                  <p className="ai-panel__hint">
+                    {t(isMonth ? "periodDigest.aiHintMonth" : "periodDigest.aiHintFortnight")}
+                  </p>
                 )}
                 {aiLoading && <LoadingState message={t("periodDigest.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
@@ -318,7 +362,7 @@ const PeriodDigestPage = ({ period }) => {
                     <Sparkles size={18} />
                     {aiAnalysis
                       ? t("periodDigest.aiRegenerate")
-                      : t(isMonth ? "periodDigest.aiGenerateMonth" : "periodDigest.aiGenerateWeek")}
+                      : t(isMonth ? "periodDigest.aiGenerateMonth" : "periodDigest.aiGenerateFortnight")}
                   </button>
                 )}
                 <p className="card-note">{t("periodDigest.disclaimer")}</p>
@@ -331,7 +375,7 @@ const PeriodDigestPage = ({ period }) => {
   );
 };
 
-export const WeeklyDigestPage = () => <PeriodDigestPage period="weekly" />;
+export const FortnightlyDigestPage = () => <PeriodDigestPage period="fortnightly" />;
 export const MonthlyDigestPage = () => <PeriodDigestPage period="monthly" />;
 
 export default PeriodDigestPage;

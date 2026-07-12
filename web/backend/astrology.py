@@ -2688,6 +2688,299 @@ class AstrologyCompute:
         finally:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
+    # ── Lunar (tithi) pravesha ladder ──────────────────────────────────────
+    #
+    # Tajaka's *solar* ladder only has chart-bearing rungs at the year
+    # (Varshaphal) and the month (Maasa Pravesha) — below that it drops to the
+    # ~2.53-day "sixty-hour", so there is no solar week or fortnight.
+    #
+    # The *lunar* (tithi) ladder — which is the family Jagannatha Hora exposes as
+    # daily / fortnightly / monthly / annual — is complete:
+    #
+    #   tithi (~0.98d) → paksha (~14.8d) → lunar month (~29.5d) → Tithi Pravesha (~354d)
+    #
+    # Each window is solved off drik's tithi-boundary primitives
+    # (`_tithi_number_at_jd` + `_tithi_boundary_jd`, a bisection on the tithi
+    # change). NOTE: `drik.next_tithi` is marked UNDER EXPERIMENTATION and its
+    # backward branch is wrong (it sums the indices instead of differencing), so
+    # we never use it — we walk boundaries ourselves.
+
+    @staticmethod
+    def _tithi_num(jd: float, place_obj) -> int:
+        """Instantaneous tithi number (1-30) at `jd`."""
+        return int(drik._tithi_number_at_jd(jd, place_obj))
+
+    @staticmethod
+    def _tithi_bound(jd: float, place_obj, direction: int) -> float:
+        """Nearest tithi boundary before (-1) or after (+1) `jd`."""
+        return drik._tithi_boundary_jd(jd, place_obj, direction=direction)
+
+    @staticmethod
+    def _walk_tithi(jd: float, place_obj, steps: int) -> float:
+        """Advance `steps` tithi boundaries from `jd` (negative walks backwards)."""
+        direction = 1 if steps >= 0 else -1
+        cur = jd
+        for _ in range(abs(int(steps))):
+            cur = AstrologyCompute._tithi_bound(cur, place_obj, direction)
+        return cur
+
+    @staticmethod
+    def _tithi_window(jd: float, place_obj) -> Dict:
+        """The running tithi's window: {index, start_jd, end_jd}."""
+        return {
+            "index": AstrologyCompute._tithi_num(jd, place_obj),
+            "start_jd": AstrologyCompute._tithi_bound(jd, place_obj, -1),
+            "end_jd": AstrologyCompute._tithi_bound(jd, place_obj, +1),
+        }
+
+    @staticmethod
+    def _paksha_window(jd: float, place_obj) -> Dict:
+        """The running paksha (lunar fortnight): Shukla = tithis 1-15, Krishna =
+        16-30. Walks back to that paksha's first tithi and forward to the next
+        paksha's first tithi. Returns {paksha, tithi_index, start_jd, end_jd}."""
+        n = AstrologyCompute._tithi_num(jd, place_obj)
+        shukla = n <= 15
+        cur_start = AstrologyCompute._tithi_bound(jd, place_obj, -1)
+        back = (n - 1) if shukla else (n - 16)   # tithis already elapsed in the paksha
+        fwd = (16 - n) if shukla else (31 - n)   # tithis left until the next paksha
+        return {
+            "paksha": "Shukla" if shukla else "Krishna",
+            "tithi_index": n,
+            "start_jd": AstrologyCompute._walk_tithi(cur_start, place_obj, -back),
+            "end_jd": AstrologyCompute._walk_tithi(cur_start, place_obj, fwd),
+        }
+
+    @staticmethod
+    def _tithi_index_start(jd: float, place_obj, target: int, direction: int) -> Optional[float]:
+        """Start-JD of the nearest tithi whose index == `target`, searching
+        backwards (-1) or forwards (+1). A given index recurs once per lunar
+        month, so 32 boundary steps always suffice."""
+        cur = AstrologyCompute._tithi_bound(jd, place_obj, -1)  # start of the running tithi
+        if direction < 0 and AstrologyCompute._tithi_num(cur + 1e-4, place_obj) == target:
+            return cur
+        for _ in range(32):
+            cur = AstrologyCompute._tithi_bound(cur, place_obj, direction)
+            if AstrologyCompute._tithi_num(cur + 1e-4, place_obj) == target:
+                return cur
+        return None
+
+    @staticmethod
+    def _lunar_month_window(jd: float, place_obj, birth_tithi: int) -> Optional[Dict]:
+        """The lunar month as a *birth-tithi return*: from the most recent
+        recurrence of the natal tithi at/before `jd` to its next recurrence
+        (~29.5 days). Returns {tithi_index, start_jd, end_jd}."""
+        start = AstrologyCompute._tithi_index_start(jd, place_obj, birth_tithi, -1)
+        if start is None:
+            return None
+        end = AstrologyCompute._tithi_index_start(start + 1.0, place_obj, birth_tithi, +1)
+        if end is None:
+            return None
+        return {"tithi_index": birth_tithi, "start_jd": start, "end_jd": end}
+
+    @staticmethod
+    def _pravesha_block(cht, jd_dob, place_obj, age: int) -> Dict:
+        """The standard progressed-chart block shared by every pravesha rung
+        (solar or lunar): Lagna, planets, Muntha, year-lord and the Tajaka yogas
+        present in the cast chart. `cht` is a D1 planet-positions list."""
+        import contextlib, io
+        from jhora.horoscope.transit import tajaka, tajaka_yoga
+
+        asc_rasi, asc_deg = cht[0][1]
+        lagna = {"house": asc_rasi + 1, "degrees": round(asc_deg, 2),
+                 "sign_name": ZODIAC_NAMES[asc_rasi]}
+        planets = {}
+        for planet_index, (rasi, degrees) in cht[1:]:
+            name = PLANET_NAMES.get(planet_index, f"Planet_{planet_index}")
+            planets[name] = {"rasi": rasi, "house": rasi + 1,
+                             "degrees": round(degrees, 2),
+                             "sign_name": ZODIAC_NAMES[rasi]}
+
+        natal_chart = charts.divisional_chart(jd_dob, place_obj, divisional_chart_factor=1)
+        natal_asc = natal_chart[0][1][0]
+        muntha_sign = tajaka.muntha_house(natal_asc, age)
+        muntha = {"sign": muntha_sign, "sign_name": ZODIAC_NAMES[muntha_sign],
+                  "house": ((muntha_sign - asc_rasi) % 12) + 1}
+
+        year_lord = None
+        try:
+            yl_idx = tajaka.lord_of_the_year(jd_dob, place_obj, age)
+            if yl_idx is not None and yl_idx in PLANET_NAMES:
+                year_lord = {"index": yl_idx, "planet": PLANET_NAMES[yl_idx]}
+        except Exception as e:
+            print(f"[pravesha] year-lord error: {e}")
+
+        yogas = []
+        p2h = utils.get_planet_house_dictionary_from_planet_positions(cht)
+        _sink = io.StringIO()
+        try:
+            if tajaka_yoga.ishkavala_yoga(p2h):
+                yogas.append({"name": "Ishkavala",
+                              "description": "Planets confined to kendras and panapharas — "
+                                             "wealth, happiness and good fortune."})
+        except Exception:
+            pass
+        try:
+            if tajaka_yoga.induvara_yoga(p2h):
+                yogas.append({"name": "Induvara",
+                              "description": "Planets confined to apoklimas — cautions of "
+                                             "worries, obstacles and ill health."})
+        except Exception:
+            pass
+        for fn, label, blurb in (
+            (tajaka_yoga.get_ithasala_yoga_planet_pairs, "Ithasala",
+             "Applying aspect between {a} and {b} — the matter they signify tends to fructify."),
+            (tajaka_yoga.get_eesarpha_yoga_planet_pairs, "Eesarpha",
+             "Separating aspect between {a} and {b} — the matter they signify tends to slip away."),
+        ):
+            try:
+                with contextlib.redirect_stdout(_sink):
+                    pairs = fn(cht)
+                for pair in pairs:
+                    p1, p2 = pair[0], pair[1]
+                    a, b = PLANET_NAMES.get(p1, p1), PLANET_NAMES.get(p2, p2)
+                    yogas.append({"name": label, "pair": [a, b],
+                                  "description": blurb.format(a=a, b=b)})
+            except Exception:
+                pass
+
+        return {"lagna": lagna, "planets": planets, "muntha": muntha,
+                "year_lord": year_lord, "tajaka_yogas": yogas}
+
+    @staticmethod
+    def get_lunar_pravesha(rung: str, dob: str, tob: str, place: str,
+                           lat: Optional[float] = None, lon: Optional[float] = None,
+                           tz: Optional[float] = None, date: Optional[str] = None,
+                           year: Optional[int] = None,
+                           ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """A chart on the **lunar (tithi) pravesha ladder**, cast at the moment the
+        window opens. `rung` is one of:
+
+          * ``"tithi"``   — the running tithi (~0.98 days)
+          * ``"paksha"``  — the running lunar fortnight, Shukla or Krishna (~14.8 days)
+          * ``"month"``   — the birth-tithi return, i.e. the lunar month (~29.5 days)
+          * ``"annual"``  — **Tithi Pravesha**: the natal tithi *and* lunar month
+                            recurring (~354 days). This is Jagannatha Hora's TP chart,
+                            the lunar-return counterpart of the solar Varshaphal.
+
+        Returns the pravesha window (start/end), the chart cast at its opening
+        instant, and the standard Muntha / year-lord / Tajaka-yoga block."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            from datetime import datetime, timezone as _utc, timedelta
+            from jhora.panchanga import vratha
+
+            _set_ayanamsa(ayanamsa)
+
+            y, m, d = map(int, dob.split("-"))
+            tp_ = tob.split(":")
+            hour = int(tp_[0]); minute = int(tp_[1]) if len(tp_) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+            jd_dob = swe.julday(y, m, d, hour + minute / 60.0)
+
+            if date:
+                ry, rm, rd = map(int, date.split("-"))
+            else:
+                now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+                ry, rm, rd = now.year, now.month, now.day
+            jd_ref = swe.julday(ry, rm, rd, 12.0)
+
+            birth_tithi = AstrologyCompute._tithi_num(jd_dob, place_obj)
+            label = None
+            paksha = None
+
+            if rung == "annual":
+                # Tithi Pravesha: the engine finds the date in `year` where the natal
+                # tithi + lunar month recur. Pick the TP window containing the date.
+                target_year = int(year) if year else ry
+                tp = vratha.tithi_pravesha(drik.Date(y, m, d), (hour, minute, 0),
+                                           place_obj, target_year)
+                if not tp:
+                    return {"error": "Tithi Pravesha could not be resolved for that year",
+                            "status": "failed"}
+                (ty, tm, td), _t0, _t1, tp_label = tp[0]
+                start_jd = swe.julday(ty, tm, td, 12.0)
+                if not year and start_jd > jd_ref:
+                    # This year's TP hasn't happened yet — we're still in last year's window.
+                    target_year -= 1
+                    tp = vratha.tithi_pravesha(drik.Date(y, m, d), (hour, minute, 0),
+                                               place_obj, target_year)
+                    (ty, tm, td), _t0, _t1, tp_label = tp[0]
+                    start_jd = swe.julday(ty, tm, td, 12.0)
+                nxt = vratha.tithi_pravesha(drik.Date(y, m, d), (hour, minute, 0),
+                                            place_obj, target_year + 1)
+                (ny, nm, nd), _n0, _n1, _nl = nxt[0]
+                end_jd = swe.julday(ny, nm, nd, 12.0)
+                label = (tp_label or "").strip(" /")
+                age = target_year - y
+                window_extra = {"tp_year": target_year}
+            else:
+                if rung == "tithi":
+                    w = AstrologyCompute._tithi_window(jd_ref, place_obj)
+                    label = f"Tithi {w['index']}"
+                elif rung == "paksha":
+                    w = AstrologyCompute._paksha_window(jd_ref, place_obj)
+                    paksha = w["paksha"]
+                    label = f"{w['paksha']} Paksha"
+                elif rung == "month":
+                    w = AstrologyCompute._lunar_month_window(jd_ref, place_obj, birth_tithi)
+                    if not w:
+                        return {"error": "Could not resolve the lunar month window",
+                                "status": "failed"}
+                    label = f"Birth-tithi ({birth_tithi}) return"
+                else:
+                    return {"error": f"Unknown lunar rung '{rung}'", "status": "failed"}
+                start_jd, end_jd = w["start_jd"], w["end_jd"]
+                age = max(0, int((jd_ref - jd_dob) / 365.2425))
+                window_extra = {"tithi_index": w.get("tithi_index")}
+
+            sy_, sm_, sd_, _sf = utils.jd_to_gregorian(start_jd)
+            ey_, em_, ed_, _ef = utils.jd_to_gregorian(end_jd)
+
+            # Cast the D1 chart at the instant the window opens.
+            cht = charts.divisional_chart(start_jd, place_obj, divisional_chart_factor=1)
+            block = AstrologyCompute._pravesha_block(cht, jd_dob, place_obj, age)
+
+            return {
+                "status": "success",
+                "basis": "lunar",
+                "rung": rung,
+                "label": label,
+                "paksha": paksha,
+                "birth_tithi": birth_tithi,
+                "window": {
+                    "start": f"{sy_:04d}-{sm_:02d}-{sd_:02d}",
+                    "end": f"{ey_:04d}-{em_:02d}-{ed_:02d}",
+                    "span_days": round(end_jd - start_jd, 2),
+                    "age": age,
+                    **window_extra,
+                },
+                **block,
+            }
+        except Exception as e:
+            print(f"Lunar-pravesha ({rung}) error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_tithi_pravesha(dob: str, tob: str, place: str,
+                           lat: Optional[float] = None, lon: Optional[float] = None,
+                           tz: Optional[float] = None, year: Optional[int] = None,
+                           date: Optional[str] = None,
+                           ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """**Tithi Pravesha** — the annual *lunar*-return chart (the natal tithi and
+        lunar month recurring, ~354 days). The lunar counterpart of Varshaphal's
+        solar return, and the chart Jagannatha Hora calls the TP chart."""
+        return AstrologyCompute.get_lunar_pravesha(
+            "annual", dob, tob, place, lat=lat, lon=lon, tz=tz, date=date,
+            year=year, ayanamsa=ayanamsa)
+
     @staticmethod
     def get_horoscope_predictions(dob: str, tob: str, place: str,
                                   lat: Optional[float] = None, lon: Optional[float] = None,
@@ -3744,13 +4037,19 @@ class AstrologyCompute:
                          tz: Optional[float] = None, date: Optional[str] = None,
                          current_time: Optional[str] = None,
                          current_tz: Optional[float] = None,
+                         basis: str = "solar",
                          ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """A personalized "Today" card: the day's Panchanga at the person's place,
         their running Vimsottari dasha (flagging a change if the current Bhukti
         ends within ~30 days), the headline transits (Sade-Sati / Jupiter's house
         from natal Moon, retrograde grahas, next Jupiter/Saturn ingress), and a
         list of plain highlight strings. Assembled from the existing panchanga /
-        dasha / transit computes."""
+        dasha / transit computes.
+
+        With `basis="lunar"` the card also carries the **tithi pravesha** chart —
+        the D1 cast at the moment the running tithi opened, with its Muntha and
+        Tajaka yogas. (The solar ladder has no daily rung, so `basis="solar"`
+        leaves the card chart-less, exactly as before.)"""
         if not ENGINE_AVAILABLE:
             return {"error": "Jyotir AI engine not available"}
         try:
@@ -3844,13 +4143,31 @@ class AstrologyCompute:
                     highlights.append(
                         f"{u['planet']} enters {u['to_sign']} on {u['date']}")
 
+            # On the lunar basis the day carries its tithi-pravesha chart.
+            pravesh = None
+            if basis == "lunar":
+                tp = AstrologyCompute.get_lunar_pravesha(
+                    "tithi", dob, tob, place, lat=lat, lon=lon, tz=tz,
+                    date=date_str, ayanamsa=ayanamsa)
+                if tp.get("status") == "success":
+                    pravesh = tp
+                    highlights.append(
+                        f"Tithi Pravesha lagna: {tp['lagna']['sign_name']}; "
+                        f"Muntha in {tp['muntha']['sign_name']} "
+                        f"(house {tp['muntha']['house']})")
+                    for yg in tp.get("tajaka_yogas", [])[:3]:
+                        pair = f" ({'/'.join(yg['pair'])})" if yg.get("pair") else ""
+                        highlights.append(f"Tajaka yoga — {yg['name']}{pair}")
+
             return {
                 "status": "success",
                 "date": date_str,
                 "place": place,
+                "basis": basis,
                 "panchanga": panch if panch.get("status") == "success" else None,
                 "dasha": dasha_block,
                 "transits": transit_block,
+                "pravesh": pravesh,
                 "highlights": highlights,
             }
         except Exception as e:
@@ -3912,13 +4229,24 @@ class AstrologyCompute:
     def _period_digest(period: str, dob: str, tob: str, place: str,
                        lat: Optional[float] = None, lon: Optional[float] = None,
                        tz: Optional[float] = None, date: Optional[str] = None,
+                       basis: str = "solar",
                        ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
-        """Shared builder for the weekly and monthly readings — a longer-horizon
-        cousin of :meth:`get_daily_digest`. Blends the running Vimsottari
-        dasha/bhukti with the transit events (ingresses + retrograde stations)
-        landing inside the window, plus the window's opening Panchanga. For the
-        **month** it additionally anchors to the Maasa Pravesha (Tajaka monthly)
-        chart and uses that pravesh window's real start/end dates."""
+        """Shared builder for the fortnightly and monthly readings — a
+        longer-horizon cousin of :meth:`get_daily_digest`. Blends the running
+        Vimsottari dasha/bhukti with the transit events (ingresses + retrograde
+        stations) landing inside the window, plus the window's opening Panchanga,
+        and anchors the whole reading to a **progressed (pravesha) chart**.
+
+        Which chart — and therefore which window — depends on `basis`:
+
+          * ``period="fortnight"`` → always the **Paksha Pravesha** (the running
+            Shukla/Krishna fortnight, ~14.8d). The solar ladder has no fortnight
+            rung, so this rung is lunar by definition.
+          * ``period="month"``, ``basis="solar"`` → **Maasa Pravesha** (Tajaka
+            monthly solar return, ~30.4d).
+          * ``period="month"``, ``basis="lunar"`` → the **birth-tithi return**
+            (lunar month, ~29.5d).
+        """
         if not ENGINE_AVAILABLE:
             return {"error": "Jyotir AI engine not available"}
         try:
@@ -3928,30 +4256,38 @@ class AstrologyCompute:
             local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
             today_str = date or f"{local_now.year:04d}-{local_now.month:02d}-{local_now.day:02d}"
 
-            # The **scan window** (over which events are gathered + the header
-            # dates) differs from the **snapshot day** (today's live positions):
-            #   • week  → the next 7 days, starting today (forward-looking).
-            #   • month → the whole Maasa Pravesha solar month today falls in
-            #             (the pravesh window ~30.4 days, like Varshaphal's year).
+            # The **scan window** (events + header dates) is the pravesha window the
+            # day falls in; the **snapshot** (live positions/dasha) stays anchored to
+            # today. The fortnight rung is lunar-only — there is no solar fortnight.
+            if period == "fortnight":
+                basis = "lunar"
             pravesh = None
-            label = "week" if period == "week" else "month"
-            if period == "month":
+
+            if period == "fortnight":
+                pravesh = AstrologyCompute.get_lunar_pravesha(
+                    "paksha", dob, tob, place, lat=lat, lon=lon, tz=tz,
+                    date=today_str, ayanamsa=ayanamsa)
+            elif basis == "lunar":
+                pravesh = AstrologyCompute.get_lunar_pravesha(
+                    "month", dob, tob, place, lat=lat, lon=lon, tz=tz,
+                    date=today_str, ayanamsa=ayanamsa)
+            else:
                 pravesh = AstrologyCompute.get_masa_pravesh(
                     dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz,
                     date=today_str, ayanamsa=ayanamsa)
-                if pravesh.get("status") == "success":
-                    start_str = pravesh["window"]["start"]
-                    end_str = pravesh["window"]["end"]
-                else:
-                    pravesh = None
-                    start_str = today_str
-                    _sy, _sm, _sd = map(int, start_str.split("-"))
-                    ey, em, ed, _ = utils.jd_to_gregorian(swe.julday(_sy, _sm, _sd, 12.0) + 31)
-                    end_str = f"{ey:04d}-{em:02d}-{ed:02d}"
-            else:  # week
+
+            if pravesh and pravesh.get("status") == "success":
+                start_str = pravesh["window"]["start"]
+                end_str = pravesh["window"]["end"]
+            else:
+                # Pravesha failed — fall back to a plain forward window so the
+                # reading still renders (transits + dasha remain valid).
+                pravesh = None
                 start_str = today_str
                 _sy, _sm, _sd = map(int, start_str.split("-"))
-                ey, em, ed, _ = utils.jd_to_gregorian(swe.julday(_sy, _sm, _sd, 12.0) + 7)
+                _fallback = 14 if period == "fortnight" else 30
+                ey, em, ed, _ = utils.jd_to_gregorian(
+                    swe.julday(_sy, _sm, _sd, 12.0) + _fallback)
                 end_str = f"{ey:04d}-{em:02d}-{ed:02d}"
 
             sy, sm, sd = map(int, start_str.split("-"))
@@ -3971,13 +4307,19 @@ class AstrologyCompute:
             events = AstrologyCompute._transit_events_in_window(
                 place, lat, lon, tz_offset, start_str, end_jd)
 
-            when = "week ahead" if period == "week" else "solar month"
+            # What the window is *called* — this is what the reading leads with.
+            if period == "fortnight":
+                when = f"{(pravesh or {}).get('paksha') or 'lunar'} Paksha (fortnight)"
+            elif basis == "lunar":
+                when = "lunar month (birth-tithi return)"
+            else:
+                when = "solar month (Maasa Pravesha)"
             highlights: List[str] = [
                 f"Your {when}: {start_str} → {end_str} ({span_days} days)"]
 
             # Panchanga headline at the window's opening.
             if panch.get("status") == "success":
-                verb = "Opens on" if period == "week" else "Month began on"
+                verb = "Opened on"
                 highlights.append(
                     f"{verb} {panch['vaara']['name']} · {panch['tithi']['name']}, "
                     f"{panch['nakshatra']['name']} nakshatra")
@@ -4013,9 +4355,10 @@ class AstrologyCompute:
                         days_left = (be - today).days
                         days_to_end = (datetime.strptime(end_str, "%Y-%m-%d") - today).days
                         if 0 <= days_left <= max(0, days_to_end):
+                            period_noun = "fortnight" if period == "fortnight" else "month"
                             highlights.append(
                                 f"⚠ {running_bhukti['lord']} Bhukti ends {running_bhukti['end_date']} "
-                                f"— a dasha change falls within this {label}")
+                                f"— a dasha change falls within this {period_noun}")
                     except Exception:
                         pass
 
@@ -4046,10 +4389,16 @@ class AstrologyCompute:
             for ev in events:
                 highlights.append(f"{ev['text']} on {ev['date']}")
 
-            # Monthly Tajaka (Maasa Pravesha) headline.
+            # Progressed-chart headline, named for the rung it was actually cast on.
             if pravesh:
+                if period == "fortnight":
+                    chart_name = f"{pravesh.get('paksha', 'Paksha')} Paksha Pravesha"
+                elif basis == "lunar":
+                    chart_name = "Lunar-month (birth-tithi return)"
+                else:
+                    chart_name = "Maasa Pravesha"
                 highlights.append(
-                    f"Maasa Pravesha lagna: {pravesh['lagna']['sign_name']}; "
+                    f"{chart_name} lagna: {pravesh['lagna']['sign_name']}; "
                     f"Muntha in {pravesh['muntha']['sign_name']} "
                     f"(house {pravesh['muntha']['house']})")
                 for yg in pravesh.get("tajaka_yogas", [])[:3]:
@@ -4059,6 +4408,8 @@ class AstrologyCompute:
             return {
                 "status": "success",
                 "period": period,
+                "basis": basis,
+                "window_label": when,
                 "start_date": start_str,
                 "end_date": end_str,
                 "span_days": span_days,
@@ -4076,26 +4427,33 @@ class AstrologyCompute:
             return {"error": str(e), "status": "failed"}
 
     @staticmethod
-    def get_weekly_digest(dob: str, tob: str, place: str,
-                          lat: Optional[float] = None, lon: Optional[float] = None,
-                          tz: Optional[float] = None, date: Optional[str] = None,
-                          ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
-        """A personalized "This Week" reading: dasha context + the transit events
-        (ingresses / retrograde stations) landing over the next 7 days. There is
-        no native Tajaka 7-day unit, so the week is a dasha+transit aggregate."""
+    def get_fortnightly_digest(dob: str, tob: str, place: str,
+                               lat: Optional[float] = None, lon: Optional[float] = None,
+                               tz: Optional[float] = None, date: Optional[str] = None,
+                               basis: str = "lunar",
+                               ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """A personalized "This Fortnight" reading: dasha context + the transit
+        events across the running **paksha** (Shukla or Krishna, ~14.8 days),
+        anchored to that paksha's Pravesha chart. The fortnight is a lunar-only
+        rung — Tajaka's solar ladder has no fortnight — so `basis` is ignored."""
         return AstrologyCompute._period_digest(
-            "week", dob, tob, place, lat=lat, lon=lon, tz=tz, date=date, ayanamsa=ayanamsa)
+            "fortnight", dob, tob, place, lat=lat, lon=lon, tz=tz, date=date,
+            basis="lunar", ayanamsa=ayanamsa)
 
     @staticmethod
     def get_monthly_digest(dob: str, tob: str, place: str,
                            lat: Optional[float] = None, lon: Optional[float] = None,
                            tz: Optional[float] = None, date: Optional[str] = None,
+                           basis: str = "solar",
                            ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """A personalized "This Month" reading: dasha context + the month's transit
-        events, anchored to the Maasa Pravesha (Tajaka monthly solar-return) chart,
-        whose pravesh window (~30.4 days) defines the reading's start/end."""
+        events, anchored to a progressed monthly chart. `basis="solar"` uses the
+        **Maasa Pravesha** (Tajaka monthly solar return, ~30.4d); `basis="lunar"`
+        uses the **birth-tithi return** (lunar month, ~29.5d). The chosen window
+        defines the reading's start/end."""
         return AstrologyCompute._period_digest(
-            "month", dob, tob, place, lat=lat, lon=lon, tz=tz, date=date, ayanamsa=ayanamsa)
+            "month", dob, tob, place, lat=lat, lon=lon, tz=tz, date=date,
+            basis=basis, ayanamsa=ayanamsa)
 
     # ── Nadi / Bhrigu-style yearly markers ─────────────────────────────────
     @staticmethod

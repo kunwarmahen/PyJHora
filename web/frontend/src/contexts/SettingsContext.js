@@ -32,6 +32,7 @@ export const SETTING_KEYS = {
   ayanamsa: "ayanamsa",
   chartStyle: "chartStyle",
   panchangaSystem: "panchanga_system",
+  praveshaBasis: "pravesha_basis",
   aiProviderType: "ai_provider_type",
   aiModel: "ai_model",
   aiBaseUrl: "ai_base_url",
@@ -52,6 +53,10 @@ const DEFAULTS = {
   ayanamsa: DEFAULT_AYANAMSA,
   chartStyle: "north",
   panchangaSystem: "drik",
+  // Which pravesha ladder the period readings default to:
+  // "solar" (Tajaka: Varshaphal / Maasa Pravesha) or "lunar" (tithi: Tithi
+  // Pravesha / birth-tithi return). Pages may override it locally.
+  praveshaBasis: "solar",
   aiProviderType: "ollama",
   aiModel: "",
   aiBaseUrl: "",
@@ -90,6 +95,7 @@ export const SettingsProvider = ({ children }) => {
     ayanamsa: read("ayanamsa"),
     chartStyle: read("chartStyle"),
     panchangaSystem: read("panchangaSystem"),
+    praveshaBasis: read("praveshaBasis"),
     aiProviderType: read("aiProviderType"),
     aiModel: read("aiModel"),
     aiBaseUrl: read("aiBaseUrl"),

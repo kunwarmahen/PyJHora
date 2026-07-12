@@ -24,10 +24,10 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   Muhurta / electional astrology (auspicious windows for an activity, with AI rationale,
   plus day sub-tools: Choghadiya, Panchaka, Tarabala & Chandrabala),
   Prashna / horary (a chart for the moment you ask, with a horary AI reading),
-  personalized daily / weekly / monthly readings ("Today" — panchanga + dasha + transits across one or
-  many profiles; "This Week" — the 7-day-ahead dasha + transit events; "This Month" — the Maasa
-  Pravesha solar-month chart + dasha + transits), each with an AI reading and per-cadence email & push
-  notifications,
+  personalized daily / fortnightly / monthly readings, each anchored to a real progressed (pravesha)
+  chart on the solar (Tajaka) or lunar (tithi) ladder — "Today", "This Fortnight" (Paksha Pravesha) and
+  "This Month" (Maasa Pravesha or the birth-tithi return) — plus Tithi Pravesha, the annual lunar
+  return; all with AI readings and per-cadence email & push notifications,
   Bhrigu / Nadi-style yearly markers (the Moon-based annual progression + Bhrigu Bindu
   activations, with AI reading),
   Remedies (traditional gemstone / mantra / deity suggestions per weak planet),
@@ -797,29 +797,50 @@ Three approaches, chosen with a mode toggle:
   (`notifications.last_sent_date`). Or leave it off and point your own cron at
   `POST /api/notifications/digest/send` per user (both share `digest.send_digest_for_user`)
 
-#### Weekly & Monthly readings (`/weekly-digest`, `/monthly-digest`)
+#### Fortnightly & Monthly readings (`/fortnightly-digest`, `/monthly-digest`)
 
-The same idea over a longer horizon, on **independent per-cadence opt-ins**:
+The same idea over longer horizons, on **independent per-cadence opt-ins**. Every period reading is
+anchored to a real **progressed (pravesha) chart** — not an invented window.
 
-- **This Week** (`/weekly-digest`) — the next **7 days**: your running dasha/bhukti plus the transit
-  events landing in the window (all-graha **sign-ingresses** and **retrograde stations**, not just the
-  slow movers), the opening Panchanga, and a warm week-ahead **AI reading**. There is no native Tajaka
-  7-day unit, so the week is a dasha + transit aggregate.
-- **This Month** (`/monthly-digest`) — anchored to the **Maasa Pravesha** (Tajaka *monthly*
-  solar-return) chart, the real classical monthly technique (the monthly analogue of Varshaphal). Shows
-  the monthly Lagna/Muntha, its Tajaka yogas and year-lord, the running dasha, and the month's transit
-  events, with a month-ahead AI reading. **The "month" is the ~30.4-day solar-return window the date
-  falls in (e.g. "Jun 15 → Jul 17"), not a calendar month** — matching how Varshaphal shows the whole
-  solar year.
-- **Per-cadence delivery**: **Settings → Notifications** has separate **daily / weekly / monthly**
-  toggles, each with its own preferred **day** (weekly: day-of-week; monthly: day-of-month) and
-  **hour**. The delivery channels (email/push), profile selection ("all" or a subset) and the AI-reading
-  toggle are **shared** across cadences. The scheduler fires each cadence on its own schedule with its
-  own atomic once-per-window claim (`last_sent_weekly` = ISO week, `last_sent_monthly` = year-month);
-  cron users can hit `POST /api/notifications/digest/send?cadence=weekly|monthly`.
-- Both readings are saved to the **unified AI history** (§17-equivalent, sources `weekly_digest` /
-  `monthly_digest`) and are also exposed to Ask-Astrologer as `get_weekly_digest` / `get_monthly_digest`
+**Why these cadences, and not "weekly".** Vedic astrology has two pravesha ladders, and a 7-day week
+sits on neither. This is also why Jagannatha Hora offers daily / fortnightly / monthly / annually:
+
+| Cadence     | Solar basis (Tajaka)            | Lunar basis (tithi)             |
+|-------------|---------------------------------|----------------------------------|
+| Daily       | — *(no rung; sixty-hour ≈ 2.5d)* | **Tithi** (~0.98d)               |
+| Fortnightly | — *(no rung)*                   | **Paksha Pravesha** (~14.8d)     |
+| Monthly     | **Maasa Pravesha** (~30.4d)     | **Birth-tithi return** (~29.5d)  |
+| Annual      | **Varshaphal** (~365d)          | **Tithi Pravesha** (~354d)       |
+
+- **This Fortnight** (`/fortnightly-digest`) — the running **paksha** (Shukla or Krishna, ~14.8 days)
+  with its **Paksha Pravesha** chart (Lagna / Muntha / Tajaka yogas), the running dasha, the transit
+  events inside the window (all-graha **sign-ingresses** and **retrograde stations**), and an AI
+  reading. Lunar-only — there is no solar fortnight.
+- **This Month** (`/monthly-digest`) — the month on **either ladder**, switchable on the page:
+  **Solar** = the **Maasa Pravesha** (Tajaka monthly solar return, the monthly analogue of Varshaphal);
+  **Lunar** = the **birth-tithi return** (your natal tithi recurring). Either way **the "month" is that
+  pravesha window (e.g. "Jun 15 → Jul 17"), not a calendar month.**
+- **Chart basis** — Settings → General has a global **Solar / Lunar** default (`praveshaBasis`); the
+  Monthly page can override it per reading. The Daily digest also gains the day's tithi chart on the
+  lunar basis.
+- **Per-cadence delivery**: **Settings → Notifications** has separate **daily / fortnightly / monthly**
+  toggles. Daily takes an hour; monthly takes a day-of-month + hour; **fortnightly takes only an hour —
+  the paksha boundary *is* the schedule**, so it fires once when each new lunar fortnight opens. The
+  channels (email/push), profile selection ("all" or a subset), AI-reading toggle and chart basis are
+  **shared** across cadences. Each cadence has its own atomic once-per-window claim
+  (`last_sent_fortnightly` = the running paksha's start, `last_sent_monthly` = year-month); cron users
+  can hit `POST /api/notifications/digest/send?cadence=fortnightly|monthly`.
+- All readings are saved to the **unified AI history** (sources `fortnightly_digest` /
+  `monthly_digest`) and exposed to Ask-Astrologer as `get_fortnightly_digest` / `get_monthly_digest`
   tools.
+
+#### Tithi Pravesha — the annual lunar return (on `/varshaphal`)
+
+The **TP chart**: cast for the moment your **natal tithi and lunar month recur** (~354 days — a lunar
+year, so it drifts ~11 days earlier each year). It is the *lunar* counterpart of the solar-return
+Varshaphal and is traditionally read **alongside** it, so it lives as its own section on the Varshaphal
+page rather than replacing the solar annual chart. Shows the TP Lagna, planets, Muntha, year-lord and
+Tajaka yogas, with its own AI reading. Also available as the `get_tithi_pravesha` tool.
 
 ### 18. Bhrigu / Nadi Yearly Markers (`/bhrigu-markers`)
 

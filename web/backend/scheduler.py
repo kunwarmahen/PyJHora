@@ -55,6 +55,12 @@ async def _profile_tz(user_id: str, prefs: dict) -> float:
 # Each cadence: the prefs switch that enables it, the "is it due now?" gate
 # (given the user's local datetime + prefs), the claim field that guarantees
 # once-per-window delivery, and how to derive that window's claim key.
+#
+# Daily and monthly are calendar-scheduled (a date / a day-of-month). The
+# **fortnightly** cadence is different: the *paksha boundary is the schedule*.
+# Its claim key is the current paksha's start date, so the key only changes when
+# a new Shukla/Krishna fortnight opens — which makes the send fire exactly once
+# per paksha, with no day-picker needed (only an hour).
 _CADENCES = [
     {
         "cadence": "daily",
@@ -64,13 +70,12 @@ _CADENCES = [
         "claim_key": lambda local: local.strftime("%Y-%m-%d"),
     },
     {
-        "cadence": "weekly",
-        "switch": "weekly",
-        # On the chosen weekday (0=Mon..6=Sun), at/after the chosen hour.
-        "due": lambda local, p: (local.weekday() == int(p.get("weekly_dow", 6))
-                                 and local.hour >= int(p.get("weekly_hour", 7))),
-        "claim_field": "last_sent_weekly",
-        "claim_key": lambda local: local.strftime("%G-W%V"),  # ISO year-week
+        "cadence": "fortnightly",
+        "switch": "fortnightly",
+        # Any day, at/after the chosen hour — the paksha claim key does the gating.
+        "due": lambda local, p: local.hour >= int(p.get("fortnightly_hour", 7)),
+        "claim_field": "last_sent_fortnightly",
+        "claim_key": None,  # resolved per-user from the running paksha (see below)
     },
     {
         "cadence": "monthly",
@@ -82,6 +87,32 @@ _CADENCES = [
         "claim_key": lambda local: local.strftime("%Y-%m"),
     },
 ]
+
+
+async def _paksha_claim_key(user_id: str, prefs: dict, local) -> Optional[str]:
+    """The running paksha's start date, used as the fortnightly claim key. Derived
+    from the pacing profile's place (a paksha is a sky event, so any of the user's
+    places gives the same fortnight to within a few hours)."""
+    from astrology import AstrologyCompute
+    import swisseph as swe
+
+    profiles = await digest.resolve_profiles(user_id, prefs)
+    if not profiles:
+        return None
+    bd = (profiles[0].get("birth_details") or {})
+    try:
+        from jhora.panchanga import drik
+        place = drik.Place(bd.get("place", ""), bd.get("latitude") or 13.0827,
+                           bd.get("longitude") or 80.2707,
+                           float(bd.get("timezone") or 0.0))
+        jd = swe.julday(local.year, local.month, local.day, 12.0)
+        w = AstrologyCompute._paksha_window(jd, place)
+        from jhora import utils
+        sy, sm, sd, _ = utils.jd_to_gregorian(w["start_jd"])
+        return f"{w['paksha']}-{sy:04d}-{sm:02d}-{sd:02d}"
+    except Exception as e:
+        print(f"[scheduler] paksha claim-key failed for {user_id}: {e}")
+        return None
 
 
 async def _run_cadence(db, spec: dict) -> int:
@@ -105,7 +136,12 @@ async def _run_cadence(db, spec: dict) -> int:
             if not spec["due"](local, prefs):
                 continue
             claim_field = spec["claim_field"]
-            claim_key = spec["claim_key"](local)
+            if spec["claim_key"] is None:  # fortnightly → key off the running paksha
+                claim_key = await _paksha_claim_key(user_id, prefs, local)
+                if not claim_key:
+                    continue
+            else:
+                claim_key = spec["claim_key"](local)
 
             # Atomically claim this window's slot — only the winner sends.
             claimed = await db[notifications.SETTINGS_COLLECTION].find_one_and_update(

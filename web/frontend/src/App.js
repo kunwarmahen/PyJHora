@@ -32,7 +32,7 @@ import { PrashnaPage } from "./pages/PrashnaPage";
 import { BhriguMarkersPage } from "./pages/BhriguMarkersPage";
 import { RemediesPage } from "./pages/RemediesPage";
 import { DailyDigestPage } from "./pages/DailyDigestPage";
-import { WeeklyDigestPage, MonthlyDigestPage } from "./pages/PeriodDigestPage";
+import { FortnightlyDigestPage, MonthlyDigestPage } from "./pages/PeriodDigestPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
@@ -208,10 +208,10 @@ function App() {
             />
 
             <Route
-              path="/weekly-digest"
+              path="/fortnightly-digest"
               element={
                 <ProtectedRoute>
-                  <WeeklyDigestPage />
+                  <FortnightlyDigestPage />
                 </ProtectedRoute>
               }
             />

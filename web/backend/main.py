@@ -357,6 +357,12 @@ class PrashnaAnalysisRequest(BaseModel):
     max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
+def _basis(value: Optional[str]) -> str:
+    """Normalize the pravesha basis: 'solar' (Tajaka) or 'lunar' (tithi).
+    Anything unrecognized falls back to solar, the historical behaviour."""
+    return "lunar" if (value or "").strip().lower() == "lunar" else "solar"
+
+
 class DailyDigestAnalysisRequest(BaseModel):
     birth_details: BirthDetails
     profile_id: Optional[str] = None  # for grouping the saved reading in history
@@ -364,6 +370,9 @@ class DailyDigestAnalysisRequest(BaseModel):
     current_time: Optional[str] = None
     current_tz: Optional[float] = None
     person_name: Optional[str] = None
+    # Pravesha basis: "solar" (Tajaka ladder) or "lunar" (tithi ladder).
+    basis: Optional[str] = None
+    year: Optional[int] = None  # Tithi Pravesha: target lunar-return year
     llm_provider: str = "qwen"
     provider_type: Optional[str] = None
     model: Optional[str] = None
@@ -474,13 +483,15 @@ class NotificationPrefsRequest(BaseModel):
     all_profiles: Optional[bool] = None
     include_ai: Optional[bool] = None
     hour: Optional[int] = None
-    # Per-cadence weekly / monthly readings (each with its own day + hour).
-    weekly: Optional[bool] = None
-    weekly_dow: Optional[int] = None       # 0=Mon..6=Sun
-    weekly_hour: Optional[int] = None
+    # Per-cadence fortnightly / monthly readings. The fortnight fires on the paksha
+    # boundary, so it takes only an hour (no day picker).
+    fortnightly: Optional[bool] = None
+    fortnightly_hour: Optional[int] = None
     monthly: Optional[bool] = None
     monthly_dom: Optional[int] = None      # 1-28
     monthly_hour: Optional[int] = None
+    # Pravesha ladder for the delivered readings: "solar" (Tajaka) or "lunar" (tithi).
+    basis: Optional[str] = None
 
 class PushSubscribeRequest(BaseModel):
     # A browser PushSubscription JSON (endpoint + keys).
@@ -2757,16 +2768,18 @@ async def get_daily_digest(
     date: Optional[str] = None,
     current_time: Optional[str] = None,
     current_tz: Optional[float] = None,
+    basis: str = "solar",
     ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user),
 ):
-    """Personalized 'Today' digest — panchanga + dasha + headline transits."""
+    """Personalized 'Today' digest — panchanga + dasha + headline transits.
+    `basis=lunar` additionally casts the day's tithi-pravesha chart."""
     try:
         result = AstrologyCompute.get_daily_digest(
             dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
             lat=birth_details.latitude, lon=birth_details.longitude,
             tz=birth_details.timezone, date=date, current_time=current_time,
-            current_tz=current_tz, ayanamsa=ayanamsa)
+            current_tz=current_tz, basis=_basis(basis), ayanamsa=ayanamsa)
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         return result
@@ -2784,11 +2797,12 @@ async def analyze_daily_digest(
     _enforce_rate_limit(current_user)
     try:
         bd = request.birth_details
+        basis = _basis(request.basis)
         result = AstrologyCompute.get_daily_digest(
             dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
             lon=bd.longitude, tz=bd.timezone, date=request.date,
             current_time=request.current_time, current_tz=request.current_tz,
-            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+            basis=basis, ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
@@ -2801,7 +2815,7 @@ async def analyze_daily_digest(
             birth_details=bd.model_dump(),
             context={"person_name": request.person_name, "date": request.date,
                      "current_time": request.current_time, "current_tz": request.current_tz,
-                     "ayanamsa": request.ayanamsa},
+                     "basis": basis, "ayanamsa": request.ayanamsa},
         )
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
                 "model": cfg.model}
@@ -2810,16 +2824,17 @@ async def analyze_daily_digest(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/astrology/weekly-digest")
-async def get_weekly_digest(
+@app.post("/api/astrology/fortnightly-digest")
+async def get_fortnightly_digest(
     birth_details: BirthDetails,
     date: Optional[str] = None,
     ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user),
 ):
-    """Personalized 'This Week' reading — dasha context + the next 7 days' transits."""
+    """Personalized 'This Fortnight' reading — dasha context + the running paksha's
+    transit events, anchored to that paksha's Pravesha chart (~14.8 days)."""
     try:
-        result = AstrologyCompute.get_weekly_digest(
+        result = AstrologyCompute.get_fortnightly_digest(
             dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
             lat=birth_details.latitude, lon=birth_details.longitude,
             tz=birth_details.timezone, date=date, ayanamsa=ayanamsa)
@@ -2835,16 +2850,18 @@ async def get_weekly_digest(
 async def get_monthly_digest(
     birth_details: BirthDetails,
     date: Optional[str] = None,
+    basis: str = "solar",
     ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user),
 ):
-    """Personalized 'This Month' reading — dasha context + the Maasa Pravesha
-    (Tajaka monthly) chart and the solar month's transit events."""
+    """Personalized 'This Month' reading. `basis=solar` anchors to the Maasa
+    Pravesha (Tajaka monthly solar return, ~30.4d); `basis=lunar` anchors to the
+    birth-tithi return (lunar month, ~29.5d)."""
     try:
         result = AstrologyCompute.get_monthly_digest(
             dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
             lat=birth_details.latitude, lon=birth_details.longitude,
-            tz=birth_details.timezone, date=date, ayanamsa=ayanamsa)
+            tz=birth_details.timezone, date=date, basis=_basis(basis), ayanamsa=ayanamsa)
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         return result
@@ -2853,27 +2870,50 @@ async def get_monthly_digest(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/astrology/weekly-digest-analysis")
-async def analyze_weekly_digest(
+@app.post("/api/astrology/tithi-pravesha")
+async def get_tithi_pravesha(
+    birth_details: BirthDetails,
+    year: Optional[int] = None,
+    date: Optional[str] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Tithi Pravesha — the annual *lunar*-return chart (natal tithi + lunar month
+    recurring, ~354 days). The lunar counterpart of Varshaphal's solar return."""
+    try:
+        result = AstrologyCompute.get_tithi_pravesha(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, year=year, date=date, ayanamsa=ayanamsa)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/fortnightly-digest-analysis")
+async def analyze_fortnightly_digest(
     request: DailyDigestAnalysisRequest,
     current_user: str = Depends(get_current_user),
 ):
-    """Warm, personalized AI reading of the week-ahead digest."""
+    """Warm, personalized AI reading of the fortnight (Paksha Pravesha) digest."""
     _enforce_rate_limit(current_user)
     try:
         bd = request.birth_details
-        result = AstrologyCompute.get_weekly_digest(
+        result = AstrologyCompute.get_fortnightly_digest(
             dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
             lon=bd.longitude, tz=bd.timezone, date=request.date,
             ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
-        ai_analysis = await llm_service.analyze_weekly_digest(
+        ai_analysis = await llm_service.analyze_fortnightly_digest(
             digest_data=result, name=request.person_name or bd.name or "this person", config=cfg)
         await _save_reading(
-            current_user, source="weekly_digest",
-            title=f"Weekly digest — {result.get('start_date')} · {request.person_name or bd.name or 'chart'}",
+            current_user, source="fortnightly_digest",
+            title=f"Fortnightly digest — {result.get('start_date')} · {request.person_name or bd.name or 'chart'}",
             text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
             birth_details=bd.model_dump(),
             context={"person_name": request.person_name, "date": request.date,
@@ -2891,13 +2931,15 @@ async def analyze_monthly_digest(
     request: DailyDigestAnalysisRequest,
     current_user: str = Depends(get_current_user),
 ):
-    """Warm, personalized AI reading of the month-ahead (Maasa Pravesha) digest."""
+    """Warm, personalized AI reading of the monthly digest (solar Maasa Pravesha
+    or lunar birth-tithi return, per `basis`)."""
     _enforce_rate_limit(current_user)
     try:
         bd = request.birth_details
+        basis = _basis(request.basis)
         result = AstrologyCompute.get_monthly_digest(
             dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
-            lon=bd.longitude, tz=bd.timezone, date=request.date,
+            lon=bd.longitude, tz=bd.timezone, date=request.date, basis=basis,
             ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
@@ -2906,11 +2948,44 @@ async def analyze_monthly_digest(
             digest_data=result, name=request.person_name or bd.name or "this person", config=cfg)
         await _save_reading(
             current_user, source="monthly_digest",
-            title=f"Monthly digest — {result.get('start_date')} · {request.person_name or bd.name or 'chart'}",
+            title=f"Monthly digest ({basis}) — {result.get('start_date')} · {request.person_name or bd.name or 'chart'}",
             text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
             birth_details=bd.model_dump(),
             context={"person_name": request.person_name, "date": request.date,
-                     "ayanamsa": request.ayanamsa},
+                     "basis": basis, "ayanamsa": request.ayanamsa},
+        )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/tithi-pravesha-analysis")
+async def analyze_tithi_pravesha(
+    request: DailyDigestAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Warm AI reading of the Tithi Pravesha (annual lunar-return) chart."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_tithi_pravesha(
+            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+            lon=bd.longitude, tz=bd.timezone, year=request.year, date=request.date,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_tithi_pravesha(
+            tp_data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        await _save_reading(
+            current_user, source="tithi_pravesha",
+            title=f"Tithi Pravesha — {result.get('window', {}).get('start')} · {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name, "year": request.year,
+                     "date": request.date, "ayanamsa": request.ayanamsa},
         )
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
                 "model": cfg.model}
@@ -3293,10 +3368,11 @@ async def send_digest_now(cadence: str = "daily",
     (`digest.send_digest_for_user`); a user triggers this as a test from Settings,
     or a deployer's cron can hit it per user + cadence."""
     cadence = (cadence or "daily").lower()
-    if cadence not in ("daily", "weekly", "monthly"):
-        raise HTTPException(status_code=400, detail="cadence must be daily, weekly or monthly")
+    if cadence not in ("daily", "fortnightly", "monthly"):
+        raise HTTPException(status_code=400,
+                            detail="cadence must be daily, fortnightly or monthly")
     prefs = await notifications.get_prefs(current_user)
-    # The daily switch is `daily_digest`; weekly/monthly are named for the cadence.
+    # The daily switch is `daily_digest`; fortnightly/monthly are named for the cadence.
     switch = "daily_digest" if cadence == "daily" else cadence
     if not prefs.get(switch):
         raise HTTPException(status_code=400,

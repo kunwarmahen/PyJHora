@@ -113,38 +113,44 @@ async def _digest_cfg(user_id: str):
 
 
 # Per-cadence wiring: which compute + which AI narrative + how to label the window.
+# `basis` (solar/lunar) is only meaningful where both pravesha ladders have a rung —
+# the fortnight is lunar-only (there is no solar fortnight), so it never takes one.
 _CADENCES = {
     "daily": {
         "compute": "get_daily_digest", "analyze": "analyze_daily_digest",
-        "noun": "digest", "route": "/daily-digest",
+        "noun": "digest", "route": "/daily-digest", "takes_basis": True,
     },
-    "weekly": {
-        "compute": "get_weekly_digest", "analyze": "analyze_weekly_digest",
-        "noun": "week ahead", "route": "/weekly-digest",
+    "fortnightly": {
+        "compute": "get_fortnightly_digest", "analyze": "analyze_fortnightly_digest",
+        "noun": "fortnight", "route": "/fortnightly-digest", "takes_basis": False,
     },
     "monthly": {
         "compute": "get_monthly_digest", "analyze": "analyze_monthly_digest",
-        "noun": "month ahead", "route": "/monthly-digest",
+        "noun": "month", "route": "/monthly-digest", "takes_basis": True,
     },
 }
 
 
-def _cadence(cadence: str) -> Dict[str, str]:
+def _cadence(cadence: str) -> Dict[str, Any]:
     return _CADENCES.get(cadence, _CADENCES["daily"])
 
 
 async def _profile_block(user_id: str, profile: Dict[str, Any],
-                         include_ai: bool, cadence: str = "daily") -> Optional[Dict[str, Any]]:
-    """Compute one profile's digest section for the given cadence (daily/weekly/
-    monthly): name, window label, highlights, and an optional AI narrative.
-    Returns None if the underlying calc failed."""
+                         include_ai: bool, cadence: str = "daily",
+                         basis: str = "solar") -> Optional[Dict[str, Any]]:
+    """Compute one profile's digest section for the given cadence (daily/
+    fortnightly/monthly): name, window label, highlights, and an optional AI
+    narrative. Returns None if the underlying calc failed."""
     spec = _cadence(cadence)
     bd = profile.get("birth_details") or {}
     compute = getattr(AstrologyCompute, spec["compute"])
-    digest = compute(
+    kwargs = dict(
         dob=bd["dob"], tob=bd["tob"], place=bd.get("place", ""),
         lat=bd.get("latitude"), lon=bd.get("longitude"), tz=bd.get("timezone"),
         ayanamsa=DEFAULT_AYANAMSA)
+    if spec["takes_basis"]:
+        kwargs["basis"] = basis
+    digest = compute(**kwargs)
     if digest.get("status") != "success":
         return None
 
@@ -223,14 +229,15 @@ def _render_html(blocks: List[Dict[str, Any]], date: str, noun: str) -> str:
 
 async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = None,
                                cadence: str = "daily") -> Dict[str, Any]:
-    """Build + deliver a digest for one user at the given cadence (daily/weekly/
-    monthly), covering every profile they chose in a single combined message.
-    Returns `{status, sent:{email,push}, profiles:[names], date, cadence}` or
-    `{status:"error",...}`. Never raises — the scheduler must survive one bad user."""
+    """Build + deliver a digest for one user at the given cadence (daily/
+    fortnightly/monthly), covering every profile they chose in a single combined
+    message. Returns `{status, sent:{email,push}, profiles:[names], date, cadence}`
+    or `{status:"error",...}`. Never raises — the scheduler must survive one bad user."""
     db = get_database()
     if prefs is None:
         prefs = await notifications.get_prefs(user_id)
     spec = _cadence(cadence)
+    basis = "lunar" if str(prefs.get("basis", "solar")).lower() == "lunar" else "solar"
 
     profiles = await resolve_profiles(user_id, prefs)
     if not profiles:
@@ -240,7 +247,7 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
     blocks: List[Dict[str, Any]] = []
     for profile in profiles:
         try:
-            block = await _profile_block(user_id, profile, include_ai, cadence)
+            block = await _profile_block(user_id, profile, include_ai, cadence, basis)
         except Exception as e:  # one bad profile shouldn't sink the whole digest
             print(f"[digest] profile calc failed for {user_id}: {e}")
             block = None

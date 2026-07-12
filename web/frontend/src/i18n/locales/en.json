@@ -383,7 +383,7 @@
     "sensitivePoints": "Sensitive Points",
     "vedicClock": "Vedic Clock",
     "dailyDigest": "Today",
-    "weeklyDigest": "This Week",
+    "fortnightlyDigest": "This Fortnight",
     "monthlyDigest": "This Month",
     "muhurta": "Muhurta",
     "prashna": "Prashna",
@@ -487,13 +487,13 @@
         "title": "Today",
         "description": "Your personalized daily digest — panchanga, dasha & transits"
       },
-      "weeklyDigest": {
-        "title": "This Week",
-        "description": "Your week ahead — running dasha plus the transits and retrogrades landing in the next 7 days."
+      "fortnightlyDigest": {
+        "title": "This Fortnight",
+        "description": "Your lunar fortnight (paksha) — its Paksha Pravesha chart, running dasha, and the transits inside the window."
       },
       "monthlyDigest": {
         "title": "This Month",
-        "description": "Your solar month via Maasa Pravesha — the monthly chart, its Tajaka yogas, dasha and transit events."
+        "description": "Your month on either pravesha ladder — Maasa Pravesha (solar) or the birth-tithi return (lunar) — with dasha and transit events."
       },
       "muhurta": {
         "title": "Muhurta",
@@ -890,7 +890,11 @@
       "chartStyle": "Chart style",
       "north": "North Indian",
       "south": "South Indian",
-      "ayanamsa": "Ayanamsa"
+      "ayanamsa": "Ayanamsa",
+      "praveshaBasis": "Chart basis (period readings)",
+      "basisSolar": "Solar (Tajaka)",
+      "basisLunar": "Lunar (tithi)",
+      "praveshaBasisHint": "Which pravesha ladder the Monthly and annual readings default to. Solar = Varshaphal / Maasa Pravesha (solar returns). Lunar = Tithi Pravesha / birth-tithi return. Pages can override this. The Fortnight is always lunar — there is no solar fortnight."
     },
     "ai": {
       "provider": "Provider",
@@ -970,7 +974,7 @@
       "title": "Daily digest & notifications",
       "intro": "Get a Vedic reading delivered on your schedule — daily, weekly, and monthly.",
       "dailyDigest": "Enable daily digest",
-      "weeklyDigest": "Weekly reading",
+      "fortnightlyDigest": "Fortnightly reading",
       "monthlyDigest": "Monthly reading",
       "profile": "For which chart",
       "defaultProfile": "Default profile",
@@ -979,7 +983,6 @@
       "noProfiles": "Save a birth profile first to receive a digest.",
       "includeAi": "Include AI 'how the day looks' reading",
       "hour": "Preferred time",
-      "weekday": "Day of week",
       "dayOfMonth": "Day of month",
       "email": "Email me the digest",
       "emailUnavailable": "email not configured",
@@ -992,7 +995,7 @@
       },
       "sendTest": "Send me a test now",
       "sendTestDaily": "Send a test daily digest now",
-      "sendTestWeekly": "Send a test weekly reading now",
+      "sendTestFortnightly": "Send a test fortnightly reading now",
       "sendTestMonthly": "Send a test monthly reading now",
       "testSent": "Sent — email {{email}}, push to {{push}} device(s).",
       "testError": "Couldn't send the digest.",
@@ -1003,7 +1006,12 @@
         "denied": "Notification permission was denied. Enable it in your browser settings.",
         "no_vapid_key": "Push isn't configured on this server.",
         "error": "Couldn't enable push notifications."
-      }
+      },
+      "fortnightlyNote": "Sent once each paksha, when a new lunar fortnight begins.",
+      "basis": "Chart basis for readings",
+      "basisSolar": "Solar (Tajaka — Maasa Pravesha)",
+      "basisLunar": "Lunar (tithi — birth-tithi return)",
+      "basisHint": "Which pravesha ladder the delivered readings are cast on. The fortnight is always lunar (there is no solar fortnight)."
     }
   },
   "compat": {
@@ -1448,13 +1456,10 @@
     "disclaimer": "A supportive daily reflection — not fated, and not medical, legal or financial advice."
   },
   "periodDigest": {
-    "weekTitle": "This Week",
-    "weekSubtitle": "Your week ahead — dasha & transits",
     "monthTitle": "This Month",
-    "monthSubtitle": "Your solar month — Maasa Pravesha, dasha & transits",
+    "monthSubtitle": "Your month — pravesha chart, dasha & transits",
     "refresh": "Refresh",
     "notifySettings": "Notifications",
-    "loadingWeek": "Building your week…",
     "loadingMonth": "Building your month…",
     "window": "Window",
     "spanDays": "{{count}} days",
@@ -1474,24 +1479,35 @@
     "station": "Station",
     "retrograde": "Retrograde now",
     "sadeSati": "Saturn is transiting near your natal Moon — a Sade-Sati phase is active.",
-    "pravesh": "Maasa Pravesha (monthly chart)",
     "praveshLagna": "Monthly Lagna",
     "muntha": "Muntha",
     "yearLord": "Year-lord",
     "tajakaYogas": "Tajaka yogas",
     "house": "house {{n}}",
-    "aiTitleWeek": "Your week, read aloud",
     "aiTitleMonth": "Your month, read aloud",
-    "aiHintWeek": "Get a warm, personalized reading of the week ahead.",
-    "aiHintMonth": "Get a warm, personalized reading of your solar month.",
+    "aiHintMonth": "Get a warm, personalized reading of your month.",
     "aiLoading": "Reading the sky…",
-    "aiGenerateWeek": "Read my week",
     "aiGenerateMonth": "Read my month",
     "aiRegenerate": "Regenerate",
     "aiModel": "Read by {{model}}",
     "aiError": "Couldn't generate this reading.",
     "error": "Couldn't build your reading.",
-    "disclaimer": "A supportive forward-looking reflection — not fated, and not medical, legal or financial advice."
+    "disclaimer": "A supportive forward-looking reflection — not fated, and not medical, legal or financial advice.",
+    "fortnightTitle": "This Fortnight",
+    "fortnightSubtitle": "Your paksha — Paksha Pravesha, dasha & transits",
+    "loadingFortnight": "Building your fortnight…",
+    "basis": "Chart basis",
+    "basisSolar": "Solar",
+    "basisLunar": "Lunar",
+    "basisSolarHint": "Maasa Pravesha — the Tajaka monthly solar return (~30.4 days).",
+    "basisLunarHint": "The birth-tithi return — the lunar month (~29.5 days).",
+    "windowNote": "This reading covers your {{window}} — a pravesha window, not a calendar period.",
+    "praveshPaksha": "{{paksha}} Paksha Pravesha (fortnightly chart)",
+    "praveshMaasa": "Maasa Pravesha (monthly solar-return chart)",
+    "praveshLunarMonth": "Lunar-month chart (birth-tithi return)",
+    "aiTitleFortnight": "Your fortnight, read aloud",
+    "aiHintFortnight": "Get a warm, personalized reading of this paksha.",
+    "aiGenerateFortnight": "Read my fortnight"
   },
   "bhrigu": {
     "title": "Bhrigu / Nadi Markers",
@@ -1657,5 +1673,27 @@
     "aiRegenerate": "Regenerate",
     "widgetTitle": "Chart of the moment",
     "widgetCta": "Open now chart"
+  },
+  "tithiPravesha": {
+    "title": "Tithi Pravesha — the lunar year",
+    "intro": "The annual *lunar*-return chart, cast when your natal tithi and lunar month recur (~354 days). It is the lunar counterpart of the solar-return Varshaphal above, and is traditionally read alongside it.",
+    "loading": "Casting your Tithi Pravesha…",
+    "window": "Lunar year",
+    "entryTithi": "Entry tithi",
+    "lagna": "TP Lagna",
+    "muntha": "Muntha",
+    "yearLord": "Year-lord",
+    "house": "house {{n}}",
+    "planet": "Planet",
+    "sign": "Sign",
+    "degrees": "Degrees",
+    "tajakaYogas": "Tajaka yogas",
+    "aiGenerate": "Read my lunar year",
+    "aiRegenerate": "Regenerate",
+    "aiLoading": "Reading your lunar year…",
+    "aiModel": "Read by {{model}}",
+    "aiError": "Couldn't generate the Tithi Pravesha reading.",
+    "error": "Couldn't compute the Tithi Pravesha chart.",
+    "disclaimer": "Read alongside the solar annual chart — indicative, not fated, and not medical, legal or financial advice."
   }
 }

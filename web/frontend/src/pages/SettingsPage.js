@@ -8,7 +8,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
 import { authService, astrologyService, notificationsService, setTokens } from "../services/api";
 import { enablePush, disablePush, pushSupported, pushUnavailableReason } from "../utils/push";
-import { formatDate, intlLocale } from "../utils/format";
+import { formatDate } from "../utils/format";
 import { AYANAMSAS } from "../constants/jyotish";
 import { LANGUAGES } from "../i18n";
 import { SITE_TITLE } from "../config/branding";
@@ -20,7 +20,7 @@ const MT_MAX = 8192;
 const MT_STEP = 256;
 
 export const SettingsPage = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { settings, updateSetting } = useSettings();
   const { user, logout, reloadUser } = useAuth();
@@ -420,6 +420,28 @@ export const SettingsPage = () => {
                 ))}
               </select>
             </div>
+
+            {/* Default pravesha ladder for the period readings. Individual pages
+                (Monthly, Varshaphal) can override it locally. */}
+            <div className="settings-row settings-row--stack">
+              <label className="settings-label">{t("settings.general.praveshaBasis")}</label>
+              <div className="settings-seg">
+                {[
+                  { v: "solar", l: t("settings.general.basisSolar") },
+                  { v: "lunar", l: t("settings.general.basisLunar") },
+                ].map((o) => (
+                  <button
+                    key={o.v}
+                    type="button"
+                    className={`settings-seg-btn${settings.praveshaBasis === o.v ? " is-active" : ""}`}
+                    onClick={() => set("praveshaBasis", o.v)}
+                  >
+                    {o.l}
+                  </button>
+                ))}
+              </div>
+              <p className="settings-hint">{t("settings.general.praveshaBasisHint")}</p>
+            </div>
           </div>
         )}
 
@@ -631,16 +653,13 @@ export const SettingsPage = () => {
               <div className={`settings-msg settings-msg--${notifMsg.type}`}>{notifMsg.text}</div>
             )}
 
-            {/* Cadence switches: daily / weekly / monthly, each with its own
+            {/* Cadence switches: daily / fortnightly / monthly, each with its own
                 schedule. The delivery channels + profile picks below are shared. */}
             {(() => {
               const hourOptions = Array.from({ length: 24 }, (_, h) => (
                 <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>
               ));
-              // dow value 0=Mon..6=Sun → a localized weekday name (2024-01-01 is a Monday).
-              const dowName = (v) =>
-                new Date(2024, 0, 1 + v).toLocaleDateString(intlLocale(i18n.language), { weekday: "long" });
-              const anyDigest = !!(notif?.daily_digest || notif?.weekly || notif?.monthly);
+              const anyDigest = !!(notif?.daily_digest || notif?.fortnightly || notif?.monthly);
               return (
                 <>
                   {/* Daily */}
@@ -662,33 +681,26 @@ export const SettingsPage = () => {
                     </div>
                   )}
 
-                  {/* Weekly */}
+                  {/* Fortnightly — the paksha boundary IS the schedule, so there's
+                      no day picker: it fires when a new lunar fortnight opens. */}
                   <div className="settings-row">
-                    <label className="settings-label">{t("settings.notifications.weeklyDigest")}</label>
+                    <label className="settings-label">{t("settings.notifications.fortnightlyDigest")}</label>
                     <label className="settings-switch">
-                      <input type="checkbox" checked={!!notif?.weekly}
-                        onChange={(e) => saveNotif({ weekly: e.target.checked })} />
+                      <input type="checkbox" checked={!!notif?.fortnightly}
+                        onChange={(e) => saveNotif({ fortnightly: e.target.checked })} />
                       <span />
                     </label>
                   </div>
-                  {notif?.weekly && (
+                  {notif?.fortnightly && (
                     <>
                       <div className="settings-row">
-                        <label className="settings-label">{t("settings.notifications.weekday")}</label>
-                        <select className="form-select" value={notif?.weekly_dow ?? 6}
-                          onChange={(e) => saveNotif({ weekly_dow: parseInt(e.target.value, 10) })}>
-                          {Array.from({ length: 7 }, (_, v) => (
-                            <option key={v} value={v}>{dowName(v)}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="settings-row">
                         <label className="settings-label">{t("settings.notifications.hour")}</label>
-                        <select className="form-select" value={notif?.weekly_hour ?? 7}
-                          onChange={(e) => saveNotif({ weekly_hour: parseInt(e.target.value, 10) })}>
+                        <select className="form-select" value={notif?.fortnightly_hour ?? 7}
+                          onChange={(e) => saveNotif({ fortnightly_hour: parseInt(e.target.value, 10) })}>
                           {hourOptions}
                         </select>
                       </div>
+                      <p className="settings-hint">{t("settings.notifications.fortnightlyNote")}</p>
                     </>
                   )}
 
@@ -768,7 +780,21 @@ export const SettingsPage = () => {
                   )}
                 </div>
 
-                {/* AI "how the day/week/month looks" narrative */}
+                {/* Which pravesha ladder the delivered readings are cast on. */}
+                <div className="settings-row settings-row--stack">
+                  <label className="settings-label">{t("settings.notifications.basis")}</label>
+                  <select
+                    className="form-select"
+                    value={notif?.basis || "solar"}
+                    onChange={(e) => saveNotif({ basis: e.target.value })}
+                  >
+                    <option value="solar">{t("settings.notifications.basisSolar")}</option>
+                    <option value="lunar">{t("settings.notifications.basisLunar")}</option>
+                  </select>
+                  <p className="settings-hint">{t("settings.notifications.basisHint")}</p>
+                </div>
+
+                {/* AI "how the day/fortnight/month looks" narrative */}
                 <div className="settings-row">
                   <label className="settings-label">{t("settings.notifications.includeAi")}</label>
                   <label className="settings-switch">
@@ -841,9 +867,9 @@ export const SettingsPage = () => {
                       {t("settings.notifications.sendTestDaily")}
                     </button>
                   )}
-                  {notif?.weekly && (
-                    <button type="button" className="settings-link" onClick={() => sendTestDigest("weekly")}>
-                      {t("settings.notifications.sendTestWeekly")}
+                  {notif?.fortnightly && (
+                    <button type="button" className="settings-link" onClick={() => sendTestDigest("fortnightly")}>
+                      {t("settings.notifications.sendTestFortnightly")}
                     </button>
                   )}
                   {notif?.monthly && (

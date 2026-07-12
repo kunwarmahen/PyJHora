@@ -7,6 +7,7 @@ import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { useRestoreReading } from "../hooks/useRestoreReading";
 import { RecentReadings } from "../components/RecentReadings";
+import { TithiPraveshaCard } from "../components/TithiPraveshaCard";
 import { astrologyService } from "../services/api";
 import { intlLocale } from "../utils/format";
 import { NorthIndianChart } from "../components/NorthIndianChart";
@@ -509,6 +510,15 @@ export const VarshaphalPage = () => {
                 <p className="card-note">{t("varshaphal.disclaimer")}</p>
               </Card>
             </div>
+
+            {/* The *lunar* annual return, read alongside the solar one. */}
+            <TithiPraveshaCard
+              birthDetails={birthDetails}
+              year={year}
+              ayanamsa={ayanamsa}
+              basis={settings.praveshaBasis}
+              profileId={selectedProfile?._id}
+            />
           </div>
         ) : null}
       </div>

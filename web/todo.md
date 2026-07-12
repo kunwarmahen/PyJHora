@@ -2660,4 +2660,62 @@ DONE 2026-07-12 (mirrors §23 daily-digest plumbing throughout):
 
 **Note — the monthly window is a *solar-return* month, not a calendar month.** The Monthly page shows
 the Maasa Pravesha window the day falls in (e.g. "Jun 15 → Jul 17"), matching how Varshaphal shows the
-whole solar year. Weekly is deliberately forward-looking (today → +7 days).
+whole solar year.
+
+### 25.1 Weekly → **Fortnightly**, and the lunar (Tithi Pravesha) ladder (owner ask 2026-07-12)
+
+Owner pushed back on the weekly rung ("why can't weekly be like monthly — at least give an option")
+and then made the key observation: **Jagannatha Hora only offers daily / fortnightly / monthly /
+annually.** Investigating why closed the question — those four are the **lunar (tithi) ladder**, and
+it is complete, whereas the solar one is not:
+
+| Cadence     | Solar basis (Tajaka)              | Lunar basis (tithi)                        |
+|-------------|-----------------------------------|--------------------------------------------|
+| Daily       | — *(no rung; sixty-hour ≈ 2.5d)*   | **Tithi** (~0.98d)                          |
+| Fortnightly | — *(no rung)*                     | **Paksha Pravesha** (~14.8d)                |
+| Monthly     | **Maasa Pravesha** (~30.4d)       | **Birth-tithi return** (~29.5d)             |
+| Annual      | **Varshaphal** (~365d)            | **Tithi Pravesha** (~354d)                  |
+
+A 7-day week has **no rung on either ladder** — which is exactly why JHora has no "weekly" and why the
+first cut of §25 couldn't give weekly a chart. Owner decisions: **replace Weekly with Fortnightly**,
+**global basis default + per-page override**, and **build all four lunar rungs**.
+
+DONE 2026-07-12:
+- [x] **Engine facts pinned.** `vratha.tithi_pravesha(birth_date, birth_time, place, year)` exists and
+      works (also reachable as `charts.rasi_chart(..., pravesha_type=2)`; `const._PRAVESHA_LIST` names
+      it) — it is **annual only** (the natal tithi *and* lunar month recurring, ~354d). The sub-annual
+      lunar rungs are NOT in the engine, so we solve them off drik's tithi-boundary primitives
+      (`_tithi_number_at_jd` + `_tithi_boundary_jd`, a bisection on the tithi change).
+      **GOTCHA:** `drik.next_tithi` is marked *UNDER EXPERIMENTATION* and its backward branch is wrong
+      (`inc_days = -tithi_ - required_tithi` sums the indices instead of differencing) — never use it;
+      walk boundaries instead.
+- [x] **Compute** (`astrology.py`) — `_tithi_num` / `_tithi_bound` / `_walk_tithi` primitives; window
+      solvers `_tithi_window`, `_paksha_window` (Shukla = tithis 1-15, Krishna = 16-30; walks back to
+      the paksha's first tithi and forward to the next paksha's), `_lunar_month_window` (birth-tithi
+      return via `_tithi_index_start`); shared `_pravesha_block` (Lagna/planets/Muntha/year-lord/Tajaka
+      yogas) now backs **every** rung, solar or lunar. Public: `get_lunar_pravesha(rung=…)` +
+      `get_tithi_pravesha()`. Verified: tithi 0.85d · paksha 14.41d (boundaries land exactly on tithi
+      16→1) · lunar month 29.44d (both ends on birth tithi #20) · TP 354.00d.
+- [x] **Digests reworked** — `get_weekly_digest` → **`get_fortnightly_digest`** (the running paksha +
+      its Paksha Pravesha chart; lunar-only by definition). `get_monthly_digest(basis=…)` and
+      `get_daily_digest(basis=…)` now take the ladder: solar → Maasa Pravesha, lunar → birth-tithi
+      return (monthly) / the day's tithi chart (daily). `_period_digest` returns `basis` +
+      `window_label` so the UI/prompt can name the rung honestly.
+- [x] **Endpoints** — `POST /api/astrology/fortnightly-digest`(+`-analysis`), `tithi-pravesha`
+      (+`-analysis`); `basis` param on daily/monthly (`_basis()` normalizer). New AI-history sources
+      `fortnightly_digest` + `tithi_pravesha`. Prompts: `_build_period_digest_prompt` names whichever
+      chart was actually cast; new `_build_tithi_pravesha_prompt` (explains TP as the lunar-return
+      counterpart, read *alongside* Varshaphal).
+- [x] **Notifications** — cadence `weekly` → **`fortnightly`**. The **paksha boundary IS the schedule**:
+      no day picker, just an hour; the scheduler's claim key is the running paksha's start date
+      (`_paksha_claim_key`, e.g. `Krishna-2026-06-30`), so it fires exactly once per fortnight. New
+      shared `basis` pref feeds the delivered readings.
+- [x] **Tools** — `get_fortnightly_digest`, `get_monthly_digest(basis)`, `get_tithi_pravesha` (replaces
+      `get_weekly_digest`).
+- [x] **Frontend** — `WeeklyDigestPage` → **`FortnightlyDigestPage`** (`/fortnightly-digest`); Monthly
+      gains a **Solar / Lunar** toggle (defaults to the global setting, overridable per page); new
+      global **`praveshaBasis`** in `SettingsContext` (localStorage `pravesha_basis`) surfaced in
+      Settings → General; new **`TithiPraveshaCard`** on the Varshaphal page (own fetch + AI reading,
+      collapsible, opens by default when the global basis is lunar) — additive, so the solar annual
+      flow is untouched and the two annual charts are read side by side, as tradition has it.
+      i18n: `periodDigest.*` reworked + new `tithiPravesha.*`, `settings.general.pravesha*`.

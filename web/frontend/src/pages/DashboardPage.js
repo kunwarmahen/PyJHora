@@ -128,9 +128,9 @@ export const DashboardPage = () => {
       gradient: "linear-gradient(135deg, #FF9933 0%, #E27B5A 100%)",
     },
     {
-      key: "weeklyDigest",
+      key: "fortnightlyDigest",
       icon: <CalendarDays size={32} />,
-      path: "/weekly-digest",
+      path: "/fortnightly-digest",
       gradient: "linear-gradient(135deg, #F0883E 0%, #D4AF37 100%)",
     },
     {
