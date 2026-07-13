@@ -2964,8 +2964,48 @@ days *before* the new moon that opens Chaitra).
 Remaining smaller questions:
 - **Balance at the first period?** Venus shows 74.0d vs a full 74.61d — genuine balance, or rounding?
   Settled automatically once the anchor is solved.
-- **Drill-down?** JHora's panel shows **maha only**. Do we also want bhukti/antara within each compressed
-  maha, or is the maha table enough?
+
+### 26.6b ✅ Drill-down: owner confirms JHora goes all the way to **Deha-antardasa** — and it's FREE
+
+Owner (2026-07-13): *"it has all the breakup until Deha-antardasas."* The screenshot's maha table is just
+the top level. Investigated — this is the **easy** part, and it settles the design:
+
+- **The engine's depth levels line up exactly** (`const.MAHA_DHASA_DEPTH`):
+  `1 = Maha · 2 = Antara (Bhukthi) · 3 = Pratyantara · 4 = Sookshma · 5 = Prana · 6 = Deha`.
+  `tithi_ashtottari` supports `dhasa_level_index` 1..6, so **Deha is reachable**.
+- **🔑 KEY FINDING — compression propagates down the tree for free.**
+  `tithi_ashtottari.tithi_ashtottari_immediate_children(parent_lords, parent_start, parent_end, …)`
+  returns ONE level of children for a given parent span, and its arithmetic is **scale-free**:
+
+  ```
+  parent_years = (end_jd - start_jd) / year_duration
+  child_years  = parent_years * (Y / H)          # Y = lord allotment, H = 108
+  child_end    = jd_cursor + child_years * year_duration
+  ```
+
+  `year_duration` **cancels out** — each child is simply `allot/108 × (parent span)`. So once we compute
+  the **compressed maha** periods ourselves, we hand each maha's `(start, end)` to
+  `immediate_children` and **every level below (Antara → Deha) is automatically compressed**. No
+  per-level compression logic needed, and no `year_duration` fiddling.
+  **VERIFIED** against JHora's own compressed Venus maha span from the screenshot (73.92 d): the 8
+  children come back exactly proportional (Venus 14.37 / Sun 4.11 / Moon 10.27 / Mars 5.48 /
+  Mercury 11.64 / Saturn 6.84 / Jupiter 13.00 / Rahu 8.21) and sum **exactly** to the parent — the helper
+  even snaps the last child to the parent end (`children[-1][2] = end_jd`), so there is zero drift.
+- **⇒ Build it as a lazy expandable tree, not a flat table.** Full expansion to Deha is 8⁶ ≈ **262,144
+  rows** — it must be expand-on-demand. `immediate_children` is purpose-built for that, and we already
+  have the UI pattern: the Dasha page's tree + `tools.get_dasha_children(lords_path)`.
+  `tithi_ashtottari.get_running_dhasa_for_given_date(current_jd, jd_at_dob, place,
+  dhasa_level_index=DEHA)` gives the running chain at all 6 levels for "now" highlighting.
+- 🔴 **OPEN — `antardhasa_option`.** It decides where each child sequence *starts*. Engine default is
+  `3` = the **next** lord after the parent; option `1` = the **parent** lord itself:
+
+  | option | children of a Venus maha |
+  |---|---|
+  | 1 | **Venus** → Sun → Moon → Mars → Mercury → Saturn → Jupiter → Rahu |
+  | 3 (engine default) | **Sun** → Moon → Mars → Mercury → Saturn → Jupiter → Rahu → Venus |
+
+  Which does JHora use? **A screenshot of any ONE expanded maha in JHora settles this instantly** — if
+  the first sub-period repeats the maha lord, it's option 1; if it starts on the next lord, it's 3.
 
 ### 26.7 Owner ask — ± stepper for day / fortnight / month, like the annual one
 
