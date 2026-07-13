@@ -2832,6 +2832,94 @@ DONE 2026-07-12:
 
 ## 26. 🔴 Tithi Ashtottari must be **compressed** into the pravesha window (+ TP for arbitrary timeframes)
 
+### 26.0 ✅✅ **SOLVED 2026-07-13 — the algorithm is fully reverse-engineered (exact to the second)**
+
+> **Everything below in §26.1 / §26.5 / §26.6 that talks about days, "allot/108 × lunar_year", or a
+> mystery "anchor" is SUPERSEDED.** Those were wrong: the dasha is **not** measured in days at all. The
+> investigation trail is kept for context, but implement from THIS section.
+
+**The rule.** Tithi Ashtottari (JHora's *"Tithi Ashtottari Dasa of Janma tithi in D-1"*) advances by
+**Moon−Sun elongation** — i.e. in *tithis* (12° each) — **not by elapsed days**:
+
+1. **Cycle = `N × 360°`**, where `N` = the number of lunar months in the year.
+   For the owner's 2026 TP year (an **adhika-masa** year) `N = 13` → **4680°**.
+   (Presumably `N = 12` → 4320° in an ordinary year — **this is the one thing still to confirm**, see below.)
+2. **Every level subdivides its parent's DEGREE span**, proportionally by the Ashtottari allotments:
+   `child° = allot_child / 108 × parent°`  (allotments: Sun 6, Moon 15, Mars 8, Mercury 17, Saturn 10,
+   Jupiter 19, Rahu 12, Venus 21 = 108). So a Maha = `allot/108 × 4680°`, an Antara = `allot/108 ×
+   (that Maha's degrees)`, and so on down to Deha.
+3. **A period ends when the elongation has advanced by exactly that many degrees** from its start.
+4. **Start lord** = the **janma-tithi** lord (owner's janma tithi #6 → **Venus**; `ashtottari_adhipathi_dict`
+   maps tithi→lord). No `(lord + years)` advancement (that's Mudda's rule, not this one).
+5. **`antardhasa_option = 3`** — each child sequence starts on the **NEXT** lord after its parent.
+   Confirmed at *every* level from the owner's drill-down: Ven MD→**Sun** AD→**Moon** PD→**Mars** SD→
+   **Merc** PAD→**Sat** Deha.
+
+**Verification — reproduces JHora exactly.** Advancing the elongation from the cycle open
+(Sun MD, 2026-05-30 06:38:52):
+
+| Maha | allot | Δ elongation | predicted end | JHora end | error |
+|---|---|---|---|---|---|
+| Sun | 6 | 260.000° | 2026-06-20 03:27:46 | 03:27:44 | 2 s |
+| Moon | 15 | 650.000° | 2026-08-12 15:13:33 | 15:13:29 | 4 s |
+| Mars | 8 | 346.667° | 2026-09-09 23:55:19 | 23:55:16 | 3 s |
+| Mercury | 17 | 736.667° | 2026-11-09 10:12:24 | 10:12:21 | 3 s |
+| Saturn | 10 | 433.333° | 2026-12-15 21:49:06 | 21:49:03 | 3 s |
+| Jupiter | 19 | 823.333° | 2027-02-20 21:08:27 | 21:08:22 | 5 s |
+| Rahu | 12 | 520.000° | 2027-04-05 04:29:27 | 04:29:23 | 4 s |
+| Venus | 21 | 910.000° | 2027-06-17 23:25:11 | 23:25:07 | 4 s |
+
+(The few seconds are my integration step, not the model.) **Sub-levels verified too**, same rule:
+Sun AD = 6/108 × 910° = 50.5556° → 2026-03-21 06:18:41 vs JHora 06:18:40; Moon PD = 7.0216° → exact;
+Mars SD = 0.5201° → exact. **All to within 1 second.**
+
+**Why every day-based model failed** (and why the ±1-day "noise" in §26.1 was structural, not rounding):
+tithis vary 0.79–1.06 days, so **equal angles give unequal days**. The per-maha implied "year length"
+scattered over 375.6–394.0 days — an 18-day spread — which is exactly what a constant-days model cannot
+produce.
+
+**⚠️ CRITICAL — do NOT use `tithi_ashtottari_immediate_children`.** It is **day**-proportional
+(`child_years = parent_years × Y/H`), which puts the Sun AD ~**5 hours** off. §26.6b's "compression
+propagates for free" finding is therefore a **trap**: it propagates the *wrong* (linear-in-days)
+subdivision. We must implement the elongation subdivision ourselves. The engine is still useful for
+`ashtottari_adhipathi_dict` (tithi→lord + allotments) and `_ashtottari_next_adhipati` (lord order:
+Sun → Moon → Mars → Mercury → Saturn → Jupiter → Rahu → Venus).
+
+**Implementation sketch** (all we need; ~1 helper):
+```
+def _elong(jd, place):                    # Moon - Sun, sidereal, degrees
+    u = jd - place.timezone/24
+    return (sidereal_longitude(u, _MOON) - sidereal_longitude(u, _SUN)) % 360
+
+def _advance_elong(jd0, degrees, place):  # JD where elongation has advanced `degrees`
+    ...coarse walk accumulating (e - prev) % 360, then bisect...   # ~13.2 deg/day
+
+def periods(parent_start_jd, parent_degrees, parent_lord, place):
+    lord = next_adhipati(parent_lord)     # antardhasa_option = 3
+    cur = parent_start_jd
+    for _ in range(8):
+        deg = allot[lord]/108 * parent_degrees
+        end = _advance_elong(cur, deg, place)
+        yield lord, cur, end, deg         # recurse with (cur, deg, lord) for the next level
+        cur, lord = end, next_adhipati(lord)
+```
+Recurse to 6 levels (Maha/Antara/Pratyantara/Sookshma/Prana/Deha) **lazily** — full expansion is
+8⁶ ≈ 262k rows, so expand-on-demand (we already have that UI pattern on the Dasha page).
+
+**Still open (small):**
+- 🔴 **Is the cycle 12 × 360° in an ordinary (non-adhika) year?** We only have an adhika year (N=13) to
+  fit. **One screenshot of a non-adhika TP year settles it.** (If it's always 13 × 360°, that's odd
+  astrologically; 12 vs 13 by adhika status is the natural reading — the count of lunar months in that
+  year.)
+- 🔴 **The anchor / balance from birth.** The cycle opens on the Sun MD at 2026-05-30 06:38:52 — note this
+  is *not* the TP entry (2026-05-21), so the cycle is continuous, not re-anchored each year. With the
+  exact rule we can now derive it: start at birth on the janma-tithi lord (Venus) with a **balance**
+  measured in *elongation* (the un-elapsed part of the birth tithi → the remaining fraction of that
+  Venus period), then advance. Just needs the balance expressed in degrees rather than `t_frac × days`.
+  Owner's note *"3/17 one overlaps with last year's"* confirms the first Venus MD is the tail of the
+  previous cycle — Venus being **last** in the lord order.
+
+
 **Owner report 2026-07-12, with a Jagannatha Hora screenshot of his own TP chart. Our §25.2
 implementation is CONCEPTUALLY WRONG and must be replaced.** Captured here to work in a new session.
 
