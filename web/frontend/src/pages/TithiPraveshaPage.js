@@ -496,12 +496,12 @@ export const TithiPraveshaPage = () => {
                   </div>
                 )}
                 {!aiLoading && (
-                  <button className="btn btn-primary mt-md" onClick={handleAi}>
-                    <Sparkles size={16} />{" "}
+                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                    <Sparkles size={18} />
                     {aiAnalysis ? t("tp.aiRegenerate") : t("tp.aiGenerate")}
                   </button>
                 )}
-                <p className="card-note mt-md">{t("tp.disclaimer")}</p>
+                <p className="card-note">{t("tp.disclaimer")}</p>
               </Card>
             </div>
           </div>
