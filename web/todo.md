@@ -2607,6 +2607,11 @@ accounts with no name **silently fall back** to username.
 
 ## 25. Weekly & monthly readings (owner ask 2026-07-12)
 
+> ⚠️ **Partly superseded — see §25.1.** The **Weekly** rung described below was replaced by a
+> **Fortnightly** one once we established that a 7-day week has no rung on *either* pravesha ladder
+> (which is exactly why Jagannatha Hora offers daily/fortnightly/monthly/annually and no weekly). The
+> Monthly rung and all the notification plumbing here still stand. Kept as-is for the record.
+
 Extend the digest concept beyond the day: a **Weekly** and a **Monthly** reading, delivered the same
 three ways as the daily digest (**in-app page**, **email**, **push**) with **independent opt-in per
 cadence**. Content should blend **current Vimshottari dasha/bhukti** with the window's **transits**,

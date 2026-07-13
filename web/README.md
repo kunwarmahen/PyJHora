@@ -842,9 +842,14 @@ The annual page carries a **Solar / Lunar** toggle, one at a time:
   natal longitude. Annual dasha: **Mudda / Patyayini / Narayana** (selectable).
 - **Lunar → Tithi Pravesha** (the **TP chart**), the *lunar* return (~354 days), cast for the moment your
   **natal tithi and lunar month recur** — so it drifts ~11 days earlier each year. Annual dasha:
-  **Tithi Ashtottari** — the 108-year dasha reckoned from the birth *tithi* rather than the birth
-  nakshatra. That pairing is the point (and is what Jagannatha Hora shows): a tithi-reckoned dasha for a
-  tithi-reckoned chart. The Tajaka annual dashas are solar-return constructs and are not offered here.
+  **Tithi Ashtottari**, the dasha reckoned from the birth *tithi* rather than the birth nakshatra. That
+  pairing is the point (and is what Jagannatha Hora shows): a tithi-reckoned dasha for a tithi-reckoned
+  chart. The Tajaka annual dashas are solar-return constructs and are not offered here.
+  - Note that Tithi Ashtottari is a **108-year life dasha**, not an annual one — its *maha* periods run
+    6–21 years each. (Mudda escapes this only because it *compresses* Vimsottari into the annual chart's
+    single year; Tithi Ashtottari has no such compression.) So the page scopes it to the lunar year and
+    shows the **antara** periods overlapping that window — the granularity that actually subdivides a
+    year, and the direct analogue of Varshaphal's annual-dasha table.
 
 Both sides show the same sections — Kundali chart, Muntha, year-lord, the 8 Sahams, Tajaka yogas, the
 annual dasha, and an AI reading — so switching basis swaps a complete, symmetrical view. The default
