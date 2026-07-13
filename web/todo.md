@@ -2901,7 +2901,85 @@ frame. We only expose the **annual** TP (via the year stepper). Wanted:
   `drik.next_solar_date` already exposes on the solar side, and pairs naturally with our lunar ladder
   from §25.1 (tithi → paksha → lunar month → TP year).
 
-### 26.5 Open questions for the owner (answer these first next session)
+### 26.5 Owner's chart + what we PROVED (2026-07-12 investigation)
+
+Owner supplied his birth data so the rule could be reverse-engineered against the screenshot:
+
+**DOB 1976-06-04 · TOB 05:45:02 · Aligarh, UP, India · lat 27.845709, lon 78.333733, TZ +5.5.**
+Screenshot is his TP chart for **2026**.
+
+**✅ PROVED — the start lord is the janma-tithi lord, with NO year-advancement.**
+His janma tithi is **#6 (Sukla Shasti)**. `tithi_ashtottari.ashtottari_adhipathi_dict` maps tithi 6 →
+**Venus** (Venus tithis = 6, 14, 21, 29) — and JHora's table starts on **Venus**. So *unlike* Mudda
+(which advances the natal lord by the year count, `(lord+years)%9`), this is simply
+`_ashtottari_adhipathi(janma_tithi)`. Rule settled.
+
+**✅ PROVED — the compression is `allot/108 × lunar_year`** (see the table in §26.1; all 8 rows match to
+within ~1 day, cycle = 383.7d).
+
+**✅ PROVED — our TP *date* is right; JHora's dasha is NOT anchored to it.** Tithi is ayanamsa-independent
+(a Moon–Sun elongation), so these are robust:
+
+| Date | tithi | tamil month | lunar month |
+|---|---|---|---|
+| Birth 1976-06-04 | **#6** | 1 | 3 |
+| **Our** TP-2026 start 2026-05-21 | **#6** ✅ | 1 ✅ | 3 ✅ |
+| **JHora's** cycle start 2026-03-17 | #28 ❌ | 11 ❌ | 0 ❌ |
+
+Our TP entry (2026-05-21, Sukla Shasti, Vaikaasi) correctly reproduces the birth tithi + Tamil month +
+lunar month. JHora's 2026-03-17 matches **none** of them — it is **not** a Tithi Pravesha instant. So the
+compressed dasha is a **continuously-running cycle** that the TP screen merely *displays*; it is not
+re-anchored to the TP entry each year. (Also confirmed: 2026 is a genuine **adhika-masa** year — the
+engine flags lunar month 3 as leap — which is why the cycle is 384d, not 354d.)
+
+**❌ REFUTED — a continuous cycle from birth with a CONSTANT year length.** Simulating the engine's own
+balance rule (`_ashtottari_dasha_start_date`: `start = jd_dob − (1 − t_frac) · allot · Y/108`, then
+`+= allot · Y/108` per lord, cycling every `Y`) and solving for the `Y` that lands a Venus period on
+2026-03-17 08:32:03 fits **nothing**:
+
+| Y candidate | days | best Venus start near target | error |
+|---|---|---|---|
+| mean lunar year (12 mo) | 354.367 | 2025-09-28 | −169.9 d |
+| adhika lunar year (13 mo) | 383.897 | 2026-09-12 | +179.5 d |
+| tropical year | 365.242 | 2026-04-04 | **+17.7 d** (best, still bad) |
+| sidereal year | 365.256 | 2026-04-04 | +18.4 d |
+| `true_tithi_year(birth)` | 354.500 | 2025-10-05 | −163.2 d |
+
+### 26.6 The one open question (start here next session)
+
+🔴 **What anchors the cycle at 2026-03-17?** The leading hypothesis, given the negative result above and
+the fact that the observed cycle is 384d (adhika) rather than 354d: **JHora recomputes the lunar-year
+length at each cycle** (true lunar year, alternating ~354 ↔ ~384 as adhika months fall), so a constant
+`Y` cannot reproduce the anchor after ~50 years of accumulated cycles. NOTE the engine sets
+`year_duration = drik.dhasa_year_duration(jd=…)` **once**, from the birth JD — so if this hypothesis is
+right, PyJHora's model is structurally different and we must iterate cycle-by-cycle ourselves.
+
+**Concrete experiment:** iterate forward from birth, recomputing `drik.true_tithi_year(jd, place)` (or
+`dhasa_year_duration(..., TRUE_LUNAR_YEAR)`) at the start of *each* cycle, and check whether a Venus
+period opens at **2026-03-17 08:32:03**. If it does, the algorithm is settled and we assert our output
+byte-matches all 9 rows of the screenshot. If not, try anchoring at a lunar new year (Chaitra Sukla
+Pratipada 2026 ≈ 2026-03-19 — suggestively close to 2026-03-17, though the tithi there is 28, i.e. two
+days *before* the new moon that opens Chaitra).
+
+Remaining smaller questions:
+- **Balance at the first period?** Venus shows 74.0d vs a full 74.61d — genuine balance, or rounding?
+  Settled automatically once the anchor is solved.
+- **Drill-down?** JHora's panel shows **maha only**. Do we also want bhukti/antara within each compressed
+  maha, or is the maha table enough?
+
+### 26.7 Owner ask — ± stepper for day / fortnight / month, like the annual one
+
+> *"add that the person can +/- days, fortnight, month just like annual"*
+
+Today `/varshaphal` has a **year** stepper only. Wanted: step the pravesha window by **day / fortnight /
+month / year**, i.e. walk the **lunar ladder we already built in §25.1**
+(tithi ~0.98d → paksha ~14.8d → lunar month ~29.5d → TP year ~354/384d) — and, on the solar side, the
+Tajaka ladder (`drik.next_solar_date` already takes `years / months / sixty_hours`). The chart + its
+compressed dasha should recompute for whichever window you land on. This subsumes the "TP for today"
+ask: **`get_lunar_pravesha("annual", …)` already auto-selects the window containing a date when `year`
+is None** — the page just always sends an explicit year, so "Today" is a UI affordance, not new math.
+
+### 26.8 Superseded questions (now answered — kept for context)
 
 - 🔴 **Start-lord rule.** Mudda advances the natal lord by the year count (`(lord + years) % 9`). Is the
   annual Tithi Ashtottari the same with 8 lords (`(lord + years) % 8`), seeded from the **janma tithi**?
