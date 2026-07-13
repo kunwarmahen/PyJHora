@@ -836,11 +836,20 @@ sits on neither. This is also why Jagannatha Hora offers daily / fortnightly / m
 
 #### Tithi Pravesha — the annual lunar return (on `/varshaphal`)
 
-The **TP chart**: cast for the moment your **natal tithi and lunar month recur** (~354 days — a lunar
-year, so it drifts ~11 days earlier each year). It is the *lunar* counterpart of the solar-return
-Varshaphal and is traditionally read **alongside** it, so it lives as its own section on the Varshaphal
-page rather than replacing the solar annual chart. Shows the TP Lagna, planets, Muntha, year-lord and
-Tajaka yogas, with its own AI reading. Also available as the `get_tithi_pravesha` tool.
+The annual page carries a **Solar / Lunar** toggle, one at a time:
+
+- **Solar → Varshaphal**, the Tajaka *solar* return (~365 days), cast when the Sun comes back to its
+  natal longitude. Annual dasha: **Mudda / Patyayini / Narayana** (selectable).
+- **Lunar → Tithi Pravesha** (the **TP chart**), the *lunar* return (~354 days), cast for the moment your
+  **natal tithi and lunar month recur** — so it drifts ~11 days earlier each year. Annual dasha:
+  **Tithi Ashtottari** — the 108-year dasha reckoned from the birth *tithi* rather than the birth
+  nakshatra. That pairing is the point (and is what Jagannatha Hora shows): a tithi-reckoned dasha for a
+  tithi-reckoned chart. The Tajaka annual dashas are solar-return constructs and are not offered here.
+
+Both sides show the same sections — Kundali chart, Muntha, year-lord, the 8 Sahams, Tajaka yogas, the
+annual dasha, and an AI reading — so switching basis swaps a complete, symmetrical view. The default
+basis comes from Settings → General and can be overridden on the page. Also exposed to Ask-Astrologer as
+the `get_tithi_pravesha` tool.
 
 ### 18. Bhrigu / Nadi Yearly Markers (`/bhrigu-markers`)
 

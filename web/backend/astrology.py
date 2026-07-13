@@ -95,7 +95,25 @@ SUPPORTED_AYANAMSAS = {
 
 def _set_ayanamsa(name):
     """Set the global ayanamsa for the next computation; fall back to the default
-    for unknown values. Returns the key that was actually applied."""
+    for unknown values. Returns the key that was actually applied.
+
+    ⚠️ **MUST run on the main thread.** Swiss Ephemeris keeps its sidereal mode in
+    process-global C state, and calling `set_ayanamsa_mode` from a *worker* thread
+    corrupts it: every subsequent `swe.calc_ut` then receives a garbage Julian day
+    (`jd -0.001010 outside Moshier planet range`) and each compute returns
+    `{"status": "failed"}`. Verified: on a worker thread the primitives
+    (`swe.julday`, `rasi_chart`, `planets_in_retrograde`) all work *until*
+    `_set_ayanamsa` is called, after which they all fail.
+
+    We are safe today only because **every FastAPI endpoint in `main.py` is
+    `async def`**, so handlers run on the event loop (the main thread). Declaring
+    an endpoint as a plain `def` hands it to Starlette's threadpool and would
+    silently break every chart on the site. Same for `run_in_threadpool` /
+    `asyncio.to_thread` / `ThreadPoolExecutor` around any AstrologyCompute call.
+    (This is also why `TestClient`, which drives the app from a worker thread,
+    reports failed transits where a real request succeeds — a harness artifact of
+    the same root cause, not a production bug.)
+    """
     key = (name or DEFAULT_AYANAMSA).upper()
     if key not in SUPPORTED_AYANAMSAS:
         key = DEFAULT_AYANAMSA
@@ -2848,10 +2866,16 @@ class AstrologyCompute:
         return {"tithi_index": birth_tithi, "start_jd": start, "end_jd": end}
 
     @staticmethod
-    def _pravesha_block(cht, jd_dob, place_obj, age: int) -> Dict:
+    def _pravesha_block(cht, jd_dob, place_obj, age: int,
+                        with_sahams: bool = False, jd_event: Optional[float] = None) -> Dict:
         """The standard progressed-chart block shared by every pravesha rung
         (solar or lunar): Lagna, planets, Muntha, year-lord and the Tajaka yogas
-        present in the cast chart. `cht` is a D1 planet-positions list."""
+        present in the cast chart. `cht` is a D1 planet-positions list.
+
+        `with_sahams` additionally derives the curated Sahams from the cast chart
+        (needs `jd_event`, the pravesha instant, for the day/night formula). Only
+        the *annual* rungs surface Sahams — on a fortnight or a single tithi they
+        are noise."""
         import contextlib, io
         from jhora.horoscope.transit import tajaka, tajaka_yoga
 
@@ -2913,8 +2937,132 @@ class AstrologyCompute:
             except Exception:
                 pass
 
-        return {"lagna": lagna, "planets": planets, "muntha": muntha,
-                "year_lord": year_lord, "tajaka_yogas": yogas}
+        block = {"lagna": lagna, "planets": planets, "muntha": muntha,
+                 "year_lord": year_lord, "tajaka_yogas": yogas}
+
+        if with_sahams:
+            # Sahams are sensitive points derived from the cast chart's planetary
+            # positions, so they are well-defined on any pravesha chart. Their
+            # day/night formula keys off whether the pravesha instant is by day.
+            from jhora.horoscope.transit import saham
+
+            night_entry = False
+            try:
+                entry_hrs = drik.jd_to_gregorian(jd_event)[3]
+                sr = utils.from_dms_str_to_dms(drik.sunrise(jd_event, place_obj)[1])
+                ss = utils.from_dms_str_to_dms(drik.sunset(jd_event, place_obj)[1])
+                sr_h = sr[0] + sr[1] / 60.0 + sr[2] / 3600.0
+                ss_h = ss[0] + ss[1] / 60.0 + ss[2] / 3600.0
+                night_entry = entry_hrs > ss_h or entry_hrs < sr_h
+            except Exception as e:
+                print(f"[pravesha] night-entry error: {e}")
+
+            sahams = []
+            for slabel, fn_name, significance in VARSHAPHAL_SAHAMS:
+                try:
+                    fn = getattr(saham, fn_name)
+                    try:
+                        s_long = fn(cht, night_entry)
+                    except TypeError:
+                        s_long = fn(cht)
+                    s_long = float(s_long) % 360
+                    s_sign = int(s_long // 30)
+                    sahams.append({
+                        "name": slabel, "significance": significance,
+                        "sign": s_sign, "sign_name": ZODIAC_NAMES[s_sign],
+                        "degrees": round(s_long % 30, 2),
+                        "house": ((s_sign - asc_rasi) % 12) + 1,
+                    })
+                except Exception as e:
+                    print(f"[pravesha] saham {slabel} error: {e}")
+            block["sahams"] = sahams
+
+        return block
+
+    @staticmethod
+    def get_tithi_ashtottari(dob: str, tob: str, place: str,
+                             lat: Optional[float] = None, lon: Optional[float] = None,
+                             tz: Optional[float] = None,
+                             ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """**Tithi Ashtottari** — the 108-year dasha reckoned from the birth *tithi*
+        (rather than the birth nakshatra, as Vimsottari/Ashtottari are).
+
+        This is the dasha Jagannatha Hora pairs with the Tithi Pravesha chart, and
+        the pairing is the point: a tithi-based chart read against a tithi-based
+        dasha. Like Vimsottari it is a whole-life timeline computed from the natal
+        moment (PyJHora's own `Horoscope` class drives it from the birth JD), so we
+        return the maha periods with the currently-running one flagged.
+
+        NOTE: the engine's public entry point is `get_dhasa_bhukthi` — PyJHora's
+        `horoscope/main.py` calls a `get_ashtottari_dhasa_bhukthi` that does not
+        exist on this module, so that path is broken upstream; we call the real one.
+        Rows come back as `[(lord,), (y,m,d,fh)]` with **no duration**, so each
+        period's end is derived from the next period's start."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            from datetime import date as _date
+            from jhora.horoscope.dhasa.graha import tithi_ashtottari
+
+            _set_ayanamsa(ayanamsa)
+
+            y, m, d = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+            jd_dob = utils.julian_day_number(drik.Date(y, m, d), (hour, minute, 0))
+
+            raw = tithi_ashtottari.get_dhasa_bhukthi(jd_dob, place_obj, dhasa_level_index=1)
+
+            items = []
+            for row in raw:
+                lords, start_t = row[0], row[1]
+                lord = lords[0] if isinstance(lords, (tuple, list)) else lords
+                items.append({
+                    "lord_name": PLANET_NAMES.get(int(lord), str(lord)),
+                    "start_jd": swe.julday(int(start_t[0]), int(start_t[1]),
+                                           int(start_t[2]), float(start_t[3])),
+                })
+            items.sort(key=lambda x: x["start_jd"])
+
+            def _iso(jd):
+                yy, mm, dd, _ = utils.jd_to_gregorian(jd)
+                return f"{int(yy):04d}-{int(mm):02d}-{int(dd):02d}"
+
+            today = _date.today().isoformat()
+            periods = []
+            for i, it in enumerate(items):
+                start = _iso(it["start_jd"])
+                if i + 1 < len(items):
+                    end = _iso(items[i + 1]["start_jd"])
+                else:
+                    # Ashtottari's cycle is 108 years; close the last period on it.
+                    end = _iso(it["start_jd"] + 108 * 365.25 - sum(
+                        items[j + 1]["start_jd"] - items[j]["start_jd"]
+                        for j in range(len(items) - 1)))
+                periods.append({
+                    "lord_name": it["lord_name"],
+                    "start": start, "end": end,
+                    "current": start <= today < end,
+                })
+
+            return {
+                "status": "success",
+                "system": "Tithi Ashtottari",
+                "system_key": "tithi_ashtottari",
+                "lord_type": "planet",
+                "periods": periods,
+            }
+        except Exception as e:
+            print(f"Tithi-Ashtottari error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
     def _tithi_pravesha_dates(by: int, bm: int, bd: int, hour: int, minute: int,
@@ -3063,9 +3211,25 @@ class AstrologyCompute:
             sy_, sm_, sd_, _sf = utils.jd_to_gregorian(start_jd)
             ey_, em_, ed_, _ef = utils.jd_to_gregorian(end_jd)
 
-            # Cast the D1 chart at the instant the window opens.
+            # Cast the D1 chart at the instant the window opens. The annual rung
+            # (Tithi Pravesha) is the full-dress chart: it also carries the Sahams
+            # and its own dasha, so the Solar/Lunar annual views are symmetrical.
+            is_annual = rung == "annual"
             cht = charts.divisional_chart(start_jd, place_obj, divisional_chart_factor=1)
-            block = AstrologyCompute._pravesha_block(cht, jd_dob, place_obj, age)
+            block = AstrologyCompute._pravesha_block(
+                cht, jd_dob, place_obj, age,
+                with_sahams=is_annual, jd_event=start_jd)
+
+            annual_dasha = None
+            if is_annual:
+                # Jagannatha Hora pairs the Tithi Pravesha chart with **Tithi
+                # Ashtottari** — a tithi-reckoned dasha for a tithi-reckoned chart.
+                # (The Tajaka annual dashas — Mudda/Patyayini/Narayana — belong to
+                # the *solar* return and are not carried over here.)
+                ta = AstrologyCompute.get_tithi_ashtottari(
+                    dob, tob, place, lat=lat, lon=lon, tz=tz, ayanamsa=ayanamsa)
+                if ta.get("status") == "success":
+                    annual_dasha = ta
 
             return {
                 "status": "success",
@@ -3081,6 +3245,7 @@ class AstrologyCompute:
                     "age": age,
                     **window_extra,
                 },
+                "annual_dasha": annual_dasha,
                 **block,
             }
         except Exception as e:

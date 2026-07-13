@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CalendarClock, Sparkles, Star, Compass, Clock } from "lucide-react";
+import { CalendarClock, Sparkles, Star, Compass, Clock, Sun, Moon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { useRestoreReading } from "../hooks/useRestoreReading";
 import { RecentReadings } from "../components/RecentReadings";
-import { TithiPraveshaCard } from "../components/TithiPraveshaCard";
 import { astrologyService } from "../services/api";
 import { intlLocale } from "../utils/format";
 import { NorthIndianChart } from "../components/NorthIndianChart";
@@ -96,6 +95,12 @@ export const VarshaphalPage = () => {
   const ayanamsa = settings.ayanamsa;
   const ayanamsaLabel = AYANAMSAS.find((a) => a.value === ayanamsa)?.label || ayanamsa;
 
+  // Which annual return this page shows: "solar" = Varshaphal (Tajaka solar
+  // return), "lunar" = Tithi Pravesha (the natal tithi + lunar month recurring).
+  // Defaults to the global setting; overridable here per reading.
+  const [basis, setBasis] = useState(settings.praveshaBasis || "solar");
+  useEffect(() => setBasis(settings.praveshaBasis || "solar"), [settings.praveshaBasis]);
+
   const stepYear = (delta) => setYear((y) => Math.max(birthYear, y + delta));
 
   // Switching dasha system only changes the annual-dasha table, so refresh it
@@ -125,6 +130,10 @@ export const VarshaphalPage = () => {
   const [pendingReading, setPendingReading] = useState(null);
   useRestoreReading((r) => {
     if (r.context?.year != null) setYear(r.context.year);
+    // Both annual returns land on this page, so restore the one the reading was
+    // actually generated from (History deep-links tithi_pravesha here too).
+    if (r.source === "tithi_pravesha") setBasis("lunar");
+    else if (r.source === "varshaphal") setBasis("solar");
     setPendingReading({ reading: r.reading, model: r.model });
   });
   useEffect(() => {
@@ -155,24 +164,26 @@ export const VarshaphalPage = () => {
     if (!birthDetails) return;
     setLoading(true);
     setError("");
-    // A new year invalidates the previous AI reading.
+    // A new year (or basis) invalidates the previous AI reading.
     setAiAnalysis("");
     setAiError("");
     setAiModel("");
     try {
-      const res = await astrologyService.getVarshaphal(
-        birthDetails,
-        year,
-        ayanamsa,
-        dashaRef.current
-      );
+      // Solar = Varshaphal (Tajaka solar return). Lunar = Tithi Pravesha (the
+      // lunar return). Both compute layers return the same shape — lagna /
+      // planets / muntha / year_lord / sahams / tajaka_yogas / annual_dasha — so
+      // everything below renders from `result` regardless of which was fetched.
+      const res =
+        basis === "lunar"
+          ? await astrologyService.getTithiPravesha(birthDetails, { year, ayanamsa })
+          : await astrologyService.getVarshaphal(birthDetails, year, ayanamsa, dashaRef.current);
       setResult(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || t("varshaphal.calcError"));
     } finally {
       setLoading(false);
     }
-  }, [birthDetails, year, ayanamsa, t]);
+  }, [birthDetails, year, ayanamsa, basis, t]);
 
   useEffect(() => {
     if (!selectedProfile) {
@@ -187,12 +198,19 @@ export const VarshaphalPage = () => {
     setAiLoading(true);
     setAiError("");
     try {
-      const res = await astrologyService.analyzeVarshaphalAI(
-        birthDetails,
-        year,
-        { personName: birthDetails.name },
-        { ...readModelConfig(), ayanamsa }
-      );
+      const res =
+        basis === "lunar"
+          ? await astrologyService.analyzeTithiPraveshaAI(
+              birthDetails,
+              { year, personName: birthDetails.name },
+              { ...readModelConfig(), ayanamsa }
+            )
+          : await astrologyService.analyzeVarshaphalAI(
+              birthDetails,
+              year,
+              { personName: birthDetails.name },
+              { ...readModelConfig(), ayanamsa }
+            );
       setAiAnalysis(res.data.ai_analysis || "");
       setAiModel(res.data.model || res.data.provider || "");
     } catch (err) {
@@ -204,6 +222,7 @@ export const VarshaphalPage = () => {
 
   if (!selectedProfile) return null;
 
+  const isLunar = basis === "lunar";
   const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
   const planets = result?.planets || {};
   const orderedPlanets = PLANET_ORDER.filter((p) => planets[p]).map((p) => [p, planets[p]]);
@@ -215,14 +234,14 @@ export const VarshaphalPage = () => {
     <div className="dashboard-container mandala-bg">
       <PageHeader
         icon={<CalendarClock size={24} />}
-        title={t("varshaphal.title")}
-        subtitle={t("varshaphal.subtitle")}
+        title={t(isLunar ? "varshaphal.titleLunar" : "varshaphal.title")}
+        subtitle={t(isLunar ? "varshaphal.subtitleLunar" : "varshaphal.subtitle")}
         accent="gold"
       />
 
       <div className="dashboard-content">
         <ProfileBanner profile={selectedProfile} />
-        <RecentReadings source="varshaphal" profileId={selectedProfile?._id} />
+        <RecentReadings source={isLunar ? "tithi_pravesha" : "varshaphal"} profileId={selectedProfile?._id} />
 
         {/* Controls */}
         <div className="page-controls">
@@ -263,25 +282,69 @@ export const VarshaphalPage = () => {
             </div>
           </div>
 
-          {/* Annual-dasha system picker */}
+          {/* Which annual return: solar (Varshaphal) or lunar (Tithi Pravesha). */}
           <div className="controls-group">
             <label className="control-label">
-              <Clock size={18} style={{ color: "var(--saffron)" }} />
-              {t("varshaphal.annualDasha")}
+              <Moon size={18} style={{ color: "var(--saffron)" }} />
+              {t("varshaphal.basis")}
             </label>
-            <div className="chart-toggle">
-              {DASHA_SYSTEMS.map((s) => (
-                <button
-                  key={s.key}
-                  className={`chart-toggle__btn${dashaSystem === s.key ? " is-active" : ""}`}
-                  onClick={() => changeDasha(s.key)}
-                >
-                  {t(s.labelKey)}
-                </button>
-              ))}
+            <div className="chart-toggle" role="group" aria-label={t("varshaphal.basis")}>
+              <button
+                type="button"
+                className={`chart-toggle__btn${!isLunar ? " is-active" : ""}`}
+                aria-pressed={!isLunar}
+                onClick={() => setBasis("solar")}
+                title={t("varshaphal.basisSolarHint")}
+              >
+                <Sun size={14} /> {t("varshaphal.basisSolar")}
+              </button>
+              <button
+                type="button"
+                className={`chart-toggle__btn${isLunar ? " is-active" : ""}`}
+                aria-pressed={isLunar}
+                onClick={() => setBasis("lunar")}
+                title={t("varshaphal.basisLunarHint")}
+              >
+                <Moon size={14} /> {t("varshaphal.basisLunar")}
+              </button>
             </div>
           </div>
+
+          {/* Annual-dasha system picker — solar only. The lunar return is paired
+              with Tithi Ashtottari (a tithi-reckoned dasha for a tithi-reckoned
+              chart), which has no alternatives to choose between. */}
+          {!isLunar && (
+            <div className="controls-group">
+              <label className="control-label">
+                <Clock size={18} style={{ color: "var(--saffron)" }} />
+                {t("varshaphal.annualDasha")}
+              </label>
+              <div className="chart-toggle">
+                {DASHA_SYSTEMS.map((s) => (
+                  <button
+                    key={s.key}
+                    className={`chart-toggle__btn${dashaSystem === s.key ? " is-active" : ""}`}
+                    onClick={() => changeDasha(s.key)}
+                  >
+                    {t(s.labelKey)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* What window this reading actually covers. */}
+        {isLunar && result?.window && (
+          <p className="settings-hint">
+            {t("varshaphal.lunarWindow", {
+              start: result.window.start,
+              end: result.window.end,
+              days: result.window.span_days,
+              tithi: result.label || "",
+            })}
+          </p>
+        )}
 
         <ErrorBanner message={error} />
 
@@ -295,15 +358,23 @@ export const VarshaphalPage = () => {
             <div className="info-pills">
               <span className="info-pill">
                 {t("varshaphal.forYear")}:{" "}
-                <strong className="text-saffron">{result.year}</strong>
+                <strong className="text-saffron">{isLunar ? year : result.year}</strong>
               </span>
               <span className="info-pill">
-                {t("varshaphal.solarYearBegins")}:{" "}
-                <strong>{formatDate(result.year_entry?.date, locale)}</strong>
-                {result.year_entry?.time ? `, ${result.year_entry.time}` : ""}
+                {isLunar ? t("varshaphal.lunarYearBegins") : t("varshaphal.solarYearBegins")}:{" "}
+                <strong>
+                  {formatDate(isLunar ? result.window?.start : result.year_entry?.date, locale)}
+                </strong>
+                {!isLunar && result.year_entry?.time ? `, ${result.year_entry.time}` : ""}
               </span>
+              {isLunar && result.label && (
+                <span className="info-pill">
+                  {t("varshaphal.entryTithi")}:{" "}
+                  <strong className="text-vermillion">{result.label}</strong>
+                </span>
+              )}
               <span className="info-pill">
-                {t("varshaphal.annualLagna")}:{" "}
+                {isLunar ? t("varshaphal.tpLagna") : t("varshaphal.annualLagna")}:{" "}
                 <strong className="text-indigo">{result.lagna?.sign_name}</strong>
               </span>
               <span className="info-pill">
@@ -510,15 +581,6 @@ export const VarshaphalPage = () => {
                 <p className="card-note">{t("varshaphal.disclaimer")}</p>
               </Card>
             </div>
-
-            {/* The *lunar* annual return, read alongside the solar one. */}
-            <TithiPraveshaCard
-              birthDetails={birthDetails}
-              year={year}
-              ayanamsa={ayanamsa}
-              basis={settings.praveshaBasis}
-              profileId={selectedProfile?._id}
-            />
           </div>
         ) : null}
       </div>

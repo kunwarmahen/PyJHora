@@ -2742,6 +2742,7 @@ DONE 2026-07-12:
       of them (solar month: **2 events → 7**, incl. Mercury stationing *and* re-ingressing in the same
       window). Same events it did find reproduce on identical dates.
 
+
       **(b) Toggle had no active state.** The Monthly Solar/Lunar toggle used
       `control-btn is-active` — a class combination that **exists in no stylesheet** (`.control-btn` has
       no active variant). Switched to the app's real segmented control, `.chart-toggle` /
@@ -2749,3 +2750,57 @@ DONE 2026-07-12:
       `inline-flex`/`gap` so it can carry a leading icon, and a hover state. Same bug in Settings →
       General, where the new basis control wrote `settings-seg` instead of the real
       **`settings-segment`** container — fixed.
+
+### 25.2 Varshaphal timeouts, and Tithi Pravesha promoted to a full annual view (owner ask 2026-07-12)
+
+- [x] **(P1) BUGFIX — Varshaphal "fails sometimes"** (owner report; confirmed as *slow, then a generic
+      error* = the gateway-timeout signature). Profiling showed **36,632 `sidereal_longitude` calls per
+      Varshaphal** (73k for Narayana, which pays it twice): `dhasa_year_duration` → `true_sidereal_year`
+      locates the Sun's ingress into sidereal Aries with `previous/next_planet_entry_date`, which default
+      to **0.01-day micro-steps** — so reaching an ingress up to a year away costs ~36,500 steps. ~650ms
+      locally → seconds-to-tens-of-seconds on the NAS. (Same micro-stepping trap already pinned for
+      `next_planet_entry_date` in §11's Bhrigu fix — it keeps resurfacing.)
+      FIXED with a documented module-level patch of `drik.true_sidereal_year` in `astrology.py`: the Sun
+      moves ~0.9856°/day, so we predict each ingress to within a day and **seed the engine's own search
+      ~5 days short of it**. It micro-steps those few days instead of a whole year — its own search, its
+      own tolerance, so the value is **bit-identical** (verified 1970–2075: 18/18 exact) at ~36x fewer
+      calls. Annual-dasha output verified identical across mudda/patyayini/narayana × 4 years (12/12).
+      **get_varshaphal: 651ms → 24ms.** This also speeds up every other dasha that uses
+      `dhasa_year_duration` (chara, sudasa, …).
+- [x] **Tithi Pravesha crashed for 29-Feb births** — the engine centres its ±30-day search on
+      `Date(year, birth_month, birth_day)`, which does not exist in a non-leap target year (numpy
+      datetime error). New `_tithi_pravesha_dates()` clamps the *anchor* to 28 Feb (it only centres the
+      window, so the located date is unchanged) while the birth tithi / lunar month still come from the
+      true birth date. Non-leap births take the engine's own path untouched. Also guarded a latent
+      `IndexError` when next year's TP couldn't be resolved.
+- [x] **Tithi Pravesha → a full annual view with a Solar/Lunar toggle** (owner: *"same toggle for them"*,
+      **strictly one at a time**). The bottom TP card is gone; `/varshaphal` now has a **Solar / Lunar**
+      toggle like Monthly:
+      - **Solar** → Varshaphal (Tajaka solar return) — unchanged.
+      - **Lunar** → **Tithi Pravesha**, now at **full parity**: Kundali chart, Muntha, year-lord, the 8
+        Sahams, Tajaka yogas, **and its own dasha**.
+      - **The dasha is Tithi Ashtottari** — owner confirmed this is what Jagannatha Hora pairs with the
+        TP chart, and the pairing is the point: a *tithi*-reckoned dasha for a *tithi*-reckoned chart.
+        Engine has it at `dhasa/graha/tithi_ashtottari.py`. **GOTCHA:** its public entry point is
+        `get_dhasa_bhukthi`; PyJHora's own `horoscope/main.py` calls a `get_ashtottari_dhasa_bhukthi`
+        that **does not exist on that module** — that upstream path is broken, so call the real one.
+        Rows are `[(lord,), (y,m,d,fh)]` with **no duration**, so ends derive from the next start.
+        Verified: 8 maha periods, Jupiter 19 + Rahu 12 + Venus 21 + Sun 6 + Moon 15 + Mars 8 +
+        Mercury 17 + Saturn 10 = **108 years** (the exact Ashtottari allotments).
+      - The Tajaka annual dashas (Mudda/Patyayini/Narayana) stay **solar-only** — they belong to the
+        solar return — so that picker hides on the Lunar side. Both compute layers return the *same*
+        shape, so the whole page renders from `result` either way. History deep-links restore the right
+        basis (`source === "tithi_pravesha"` → Lunar).
+- [x] **⚠️ LANDMINE PINNED — `_set_ayanamsa()` must run on the MAIN thread.** Swiss Ephemeris keeps its
+      sidereal mode in process-global C state; calling `set_ayanamsa_mode` from a **worker thread**
+      corrupts it, and every later `swe.calc_ut` then gets a garbage JD
+      (`jd -0.001010 outside Moshier planet range`) → every compute returns `failed`. Verified: on a
+      worker thread `swe.julday` / `rasi_chart` / `planets_in_retrograde` all work **until**
+      `_set_ayanamsa` is called, after which they all fail. **We are safe only because all 129 endpoints
+      in `main.py` are `async def`** (checked: zero sync ones), so handlers run on the event loop.
+      Declaring one endpoint as a plain `def` — or wrapping a compute in `run_in_threadpool` /
+      `asyncio.to_thread` — would silently break every chart on the site. This is also why `TestClient`
+      (which drives the app from a worker thread) reports failed transits where a real request succeeds:
+      a harness artifact of the same root cause, **not** a production bug. Documented in `_set_ayanamsa`.
+
+---

@@ -1159,7 +1159,18 @@
     "aiError": "Could not generate the reading. Check your AI model settings in Ask Astrologer.",
     "disclaimer": "For reflection and planning only — not a substitute for professional advice. No death, disease or precise-date predictions.",
     "loading": "Casting the annual chart…",
-    "calcError": "Could not compute the Varshaphal chart."
+    "calcError": "Could not compute the Varshaphal chart.",
+    "titleLunar": "Tithi Pravesha",
+    "subtitleLunar": "Your annual lunar return — the natal tithi recurring",
+    "basis": "Annual return",
+    "basisSolar": "Solar",
+    "basisLunar": "Lunar",
+    "basisSolarHint": "Varshaphal — the Tajaka solar return (~365 days), cast when the Sun returns to its natal longitude.",
+    "basisLunarHint": "Tithi Pravesha — the lunar return (~354 days), cast when your natal tithi and lunar month recur.",
+    "lunarYearBegins": "Lunar year begins",
+    "entryTithi": "Entry tithi",
+    "tpLagna": "TP Lagna",
+    "lunarWindow": "This lunar year runs {{start}} → {{end}} ({{days}} days) — {{tithi}}. Tithi Pravesha is read alongside the solar annual chart, not instead of it."
   },
   "rectify": {
     "title": "Birth-Time Rectification",
@@ -1673,27 +1684,5 @@
     "aiRegenerate": "Regenerate",
     "widgetTitle": "Chart of the moment",
     "widgetCta": "Open now chart"
-  },
-  "tithiPravesha": {
-    "title": "Tithi Pravesha — the lunar year",
-    "intro": "The annual *lunar*-return chart, cast when your natal tithi and lunar month recur (~354 days). It is the lunar counterpart of the solar-return Varshaphal above, and is traditionally read alongside it.",
-    "loading": "Casting your Tithi Pravesha…",
-    "window": "Lunar year",
-    "entryTithi": "Entry tithi",
-    "lagna": "TP Lagna",
-    "muntha": "Muntha",
-    "yearLord": "Year-lord",
-    "house": "house {{n}}",
-    "planet": "Planet",
-    "sign": "Sign",
-    "degrees": "Degrees",
-    "tajakaYogas": "Tajaka yogas",
-    "aiGenerate": "Read my lunar year",
-    "aiRegenerate": "Regenerate",
-    "aiLoading": "Reading your lunar year…",
-    "aiModel": "Read by {{model}}",
-    "aiError": "Couldn't generate the Tithi Pravesha reading.",
-    "error": "Couldn't compute the Tithi Pravesha chart.",
-    "disclaimer": "Read alongside the solar annual chart — indicative, not fated, and not medical, legal or financial advice."
   }
 }
