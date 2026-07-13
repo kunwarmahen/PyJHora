@@ -2829,3 +2829,90 @@ DONE 2026-07-12:
         groups render.
 
 ---
+
+## 26. 🔴 Tithi Ashtottari must be **compressed** into the pravesha window (+ TP for arbitrary timeframes)
+
+**Owner report 2026-07-12, with a Jagannatha Hora screenshot of his own TP chart. Our §25.2
+implementation is CONCEPTUALLY WRONG and must be replaced.** Captured here to work in a new session.
+
+### 26.1 What JHora actually does (verified numerically from the screenshot)
+
+JHora's panel is titled *"Tithi Ashtottari Dasa of Janma tithi in D-1 (useful especially in Tithi
+Pravesha charts)"* and lists **Maha Dasas** whose periods are **days, not years**:
+
+| Lord | JHora span | days | allotment/108 × cycle | diff |
+|---|---|---|---|---|
+| Ven | 2026-03-17 → 2026-05-30 | 74.0 | 74.61 | −0.6 |
+| Sun | 2026-05-30 → 2026-06-20 | 20.87 | 21.32 | −0.45 |
+| Moon | 2026-06-20 → 2026-08-12 | 53.49 | 53.29 | +0.20 |
+| Mars | 2026-08-12 → 2026-09-09 | 28.36 | 28.42 | −0.06 |
+| Merc | 2026-09-09 → 2026-11-09 | 60.43 | 60.40 | +0.03 |
+| Sat | 2026-11-09 → 2026-12-15 | 36.48 | 35.53 | +0.96 |
+| Jup | 2026-12-15 → 2027-02-20 | 66.97 | 67.50 | −0.53 |
+| Rah | 2027-02-20 → 2027-04-05 | 43.31 | 42.63 | +0.67 |
+| Ven | 2027-04-05 → 2027-06-17 | (next cycle) | | |
+
+**Conclusion — JHora COMPRESSES the whole 108-"year" Ashtottari cycle into ONE lunar year**, exactly as
+**Mudda compresses Vimsottari into the solar year**:
+- One full cycle (Ven → … → Rah) = **2026-03-17 → 2027-04-05 = 384 days** = a **13-month adhika-masa
+  lunar year** (12-month = 354.4d; 13-month = 383.9d). The 9th row is the *next* cycle's Venus.
+- Every maha period = `ashtottari_allotment[lord] / 108 × lunar_year_length`
+  (allotments Sun 6, Moon 15, Mars 8, Mercury 17, Saturn 10, Jupiter 19, Rahu 12, Venus 21 = 108).
+  Every row matches to within ~1 day.
+- The sequence **starts at the TP entry** with a (near-)full Venus — so the start lord is *not* simply
+  "whatever is running in the life dasha".
+
+### 26.2 What we shipped in §25.2 (WRONG — replace)
+
+We showed the **antara** periods of the **uncompressed 108-year life dasha**, filtered to the TP window
+(`get_tithi_ashtottari(window_start, window_end)` → `dhasa_level_index=3`). That is a *different
+construct*: different lords, different spans (owner's chart shows `Saturn › Jupiter › Mercury` where
+JHora shows `Ven / Sun / Moon / Mars / …`). It was a reasonable guess at "scope it to the year" but it
+is not the technique. **Rip it out and implement the compressed annual dasha.**
+
+### 26.3 Engine reality
+
+- **PyJHora has NO annual/compressed Tithi Ashtottari.** `dhasa/annual/` ships only `mudda.py`
+  (Varsha Vimsottari) and `patyayini.py`. So this must be written.
+- **`mudda.py` is the exact template to port.** Its compression is
+  `duration = const.varsha_vimsottari_days[lord] * year_duration / 360.0`, and its start lord is the
+  natal Vimsottari lord **advanced by the year count**: `lord = (lord + years) % 9`.
+- The Ashtottari pieces we need already exist in `dhasa/graha/tithi_ashtottari.py`:
+  `ashtottari_adhipathi_dict` (lord → [tithi_list, allotment]), `_ashtottari_adhipathi(tithi_index)`
+  (janma-tithi → lord), `_ashtottari_next_adhipati(lord)`, `human_life_span_for_ashtottari_dhasa = 108`.
+- So: **new `varsha_tithi_ashtottari`** = Mudda's algorithm with the Ashtottari lord table + a **lunar**
+  year length (the real TP window: 354 **or 384** days — the adhika-masa case is NOT an edge case, it's
+  the owner's actual year), anchored at the TP instant.
+- ⚠️ Reminder: `tithi_ashtottari`'s public entry point is `get_dhasa_bhukthi` — PyJHora's own
+  `horoscope/main.py` calls a `get_ashtottari_dhasa_bhukthi` that does not exist (broken upstream).
+
+### 26.4 Second owner ask — **TP for today / arbitrary timeframes**
+
+> *"we should have tp for today also, as jhora has that capability … Looks like you give tithi
+> ashtottari dasa annually or daily or others option and it gets you dasa for that time frame."*
+
+JHora lets you pick the **pravesha timeframe** and computes the chart + its compressed dasha for *that*
+frame. We only expose the **annual** TP (via the year stepper). Wanted:
+- **TP for today** — the TP window containing today. NOTE: `get_lunar_pravesha("annual", …)` **already
+  auto-selects the window containing `date` when `year` is None** — the Varshaphal page just always
+  passes an explicit `year`. So this is mostly a UI affordance (a "Today" button / default), not new math.
+- **Other timeframes** — a selector so the TP-style chart + compressed Tithi Ashtottari can be cast for
+  a day / month / etc. This mirrors the Tajaka ladder (`years → months → sixty_hours`) that
+  `drik.next_solar_date` already exposes on the solar side, and pairs naturally with our lunar ladder
+  from §25.1 (tithi → paksha → lunar month → TP year).
+
+### 26.5 Open questions for the owner (answer these first next session)
+
+- 🔴 **Start-lord rule.** Mudda advances the natal lord by the year count (`(lord + years) % 9`). Is the
+  annual Tithi Ashtottari the same with 8 lords (`(lord + years) % 8`), seeded from the **janma tithi**?
+  The screenshot starts on **Venus** with a near-full period — **to pin this down exactly we need the
+  owner's birth details (dob / tob / place) and the TP year shown**, so we can reverse-engineer the rule
+  and assert our output byte-matches the JHora table above.
+- 🔴 **Is the first period a true balance?** Venus shows 74.0d vs a full 74.61d — is that a genuine
+  (tiny) balance carried from the previous year, or just rounding in our cycle estimate? The birth
+  details would settle this too.
+- 🔴 **Which year length?** Confirm the compression uses the **actual TP window** (354/384d, which is
+  what the data shows) rather than a mean lunar year (354.37d).
+- **Keep a drill-down?** Do we want bhukti/antara *within* each compressed maha (JHora's panel shows
+  maha only), or is the maha table enough?
+- **Which timeframes** should the TP selector offer — today/daily, monthly, annual? Anything else?
