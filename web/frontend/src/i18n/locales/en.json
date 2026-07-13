@@ -1170,7 +1170,20 @@
     "lunarYearBegins": "Lunar year begins",
     "entryTithi": "Entry tithi",
     "tpLagna": "TP Lagna",
-    "lunarWindow": "This lunar year runs {{start}} → {{end}} ({{days}} days) — {{tithi}}. Tithi Pravesha is read alongside the solar annual chart, not instead of it."
+    "lunarWindow": "This lunar year runs {{start}} → {{end}} ({{days}} days) — {{tithi}}. Tithi Pravesha is read alongside the solar annual chart, not instead of it.",
+    "lunarEntryAt": "Pravesha instant: {{at}} — the chart is cast at this exact moment, when the Moon–Sun angle regains its birth value.",
+    "taMaha": "Maha",
+    "taAntara": "Antara",
+    "taPratyantara": "Pratyantara",
+    "taSookshma": "Sookshma",
+    "taPrana": "Prana",
+    "taDeha": "Deha",
+    "taDays": "{{count}} days",
+    "taHours": "{{count}} hours",
+    "taMinutes": "{{count}} min",
+    "taDrillHint": "The full 108-unit Ashtottari cycle, compressed into this lunar year's {{months}} lunar months. Tap a period to open its sub-periods — six levels deep, down to Deha.",
+    "taLoadingChildren": "Computing sub-periods…",
+    "taChildrenError": "Could not compute the sub-periods."
   },
   "rectify": {
     "title": "Birth-Time Rectification",

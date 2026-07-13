@@ -2830,12 +2830,22 @@ DONE 2026-07-12:
 
 ---
 
-## 26. 🔴 Tithi Ashtottari must be **compressed** into the pravesha window (+ TP for arbitrary timeframes)
+## 26. Tithi Ashtottari must be **compressed** into the pravesha window (+ TP for arbitrary timeframes)
 
-### 26.0 ✅✅✅ **FULLY SOLVED 2026-07-13 — verified against TWO JHora charts, exact to seconds**
+### 26.0 ✅✅✅ **SOLVED + SHIPPED 2026-07-13 — verified against TWO JHora charts**
 
 > **§26.1 / §26.5 / §26.6 / §26.6b below are SUPERSEDED.** They reason in *days* and hunt an "anchor
-> from birth" — both wrong. The trail is kept for context; **implement from THIS section only.**
+> from birth" — both wrong. The trail is kept for context; **the shipped code follows THIS section only.**
+
+**What shipped** (see §26.9 for the build log; §26.7's ± stepper is the one piece still open):
+- `web/backend/varsha_tithi_ashtottari.py` — the elongation engine (new module; PyJHora has no
+  annual/compressed Tithi Ashtottari, and its *existing* Tithi Ashtottari functions actively cannot
+  be used — see the warning below).
+- `AstrologyCompute.get_varsha_tithi_ashtottari` / `get_tithi_ashtottari_children`, wired into
+  `get_lunar_pravesha`'s annual rung. The old §26.2 code (life-dasha antaras filtered to the window)
+  is **deleted**.
+- `POST /api/astrology/tithi-ashtottari-children` — one level of the tree, computed on expand.
+- `TithiAshtottariTree.js` — the expandable Maha → … → Deha tree on the lunar Varshaphal page.
 
 **Everything is Moon−Sun ELONGATION.** Nothing is measured in days. (That is why every day-based model
 failed: tithis run 0.79–1.06 days, so equal *angles* give unequal *days* — the ±1-day "noise" was
@@ -2939,6 +2949,43 @@ running one from the previous cycle first — the owner's *"3/17 one overlaps wi
 **Remaining unknown: how JHora decides N (12 vs 13).** Our `get_tithi_pravesha` window span already tells
 us (354/355 d → 12; 383/384 d → 13), so `N = round(span_days / 29.530588)` is a sound derivation and
 matches both verified charts. Confirm on a third year if it ever looks off.
+*(Shipped as `vta.lunar_months_in()`. The 2026 → 2027 step flips 13 → 12 by itself, and both years
+reproduce JHora, so the derivation is holding.)*
+
+### 26.9 Build log — what the implementation found that the spec didn't (2026-07-13)
+
+The algorithm in §26.0 was right, but two things only surfaced once it was wired to the real chart:
+
+**1. 🔑 The pravesha instant itself has to be solved in DEGREES.** This was the whole ballgame. The
+engine's `vratha.tithi_pravesha` finds the right *day*, but interpolates the time linearly between the
+tithi's start and end (`t_time = s_end − t_frac × t_len`) — which lands **~50 minutes early**. Invisible
+in a date; fatal in a dasha, because the balance rule winds the elongation back by up to a full maha span
+(~910°), **amplifying that error ~50× into a 2.5-day shift of every period**. First run with the engine's
+instant put Venus at 2026-03-19 (JHora: 03-17) and *nothing* matched. Refining the instant to the moment
+the Moon−Sun elongation actually regains its birth value (`vta.refine_pravesha`) snapped all nine maha
+rows onto JHora at once. **The pravesha instant is not a date — treat it as an angle.**
+
+**2. ⚠️ Consequence: the TP chart was being cast at NOON.** `get_lunar_pravesha` used
+`swe.julday(ty, tm, td, 12.0)` for the annual rung — so the Tithi Pravesha *chart* (lagna, houses,
+Sahams) was cast at midday of the pravesha date, not at the pravesha moment. Now cast at the exact
+instant, which is ~50 min ≠ noon → **the TP lagna has changed**. The instant is surfaced on the page
+(`window.start_at`) so it can be checked against JHora's own TP chart. *Owner: worth one eyeball.*
+
+**3. ⚠️ The table is hypersensitive to birth SECONDS** — ~**75 seconds of dasha shift per 1 second of
+birth time** (the same ~5.7-days-per-degree amplification). `get_lunar_pravesha` was silently dropping
+the seconds from `tob`; it now honours them when supplied. This also explains the residual vs JHora:
+we land within **~90 s**, which corresponds to ~1 second of difference in the assumed birth instant —
+i.e. we are at the floor of what the input precision supports, not carrying a modelling error. (§26.0's
+"2–5 seconds" was measured by anchoring on JHora's *own* reported TP instant; computing our own instant
+from `tob` is what costs the ~90 s.)
+
+**Verified end-to-end in the browser** against both JHora charts: TP-2026 (adhika, N=13) reproduces all
+nine maha rows; TP-2027 (ordinary, N=12) reproduces Venus at `05:45` vs JHora `05:44:10`. Drill-down to
+Deha works (each level tiles its parent exactly, ~5 ms per expand). Solar/Mudda table unaffected.
+
+**Also fixed in passing:** `VarshaphalPage`'s `formatDate` parsed bare `YYYY-MM-DD` as *UTC* midnight, so
+west of Greenwich every date rendered a day early ("Lunar year begins: May 21" under "Pravesha instant:
+May 22"). Date-only strings are now pinned to local midnight.
 
 ### 26.1 What JHora actually does (verified numerically from the screenshot)
 
@@ -3112,7 +3159,7 @@ the top level. Investigated — this is the **easy** part, and it settles the de
   Which does JHora use? **A screenshot of any ONE expanded maha in JHora settles this instantly** — if
   the first sub-period repeats the maha lord, it's option 1; if it starts on the next lord, it's 3.
 
-### 26.7 Owner ask — ± stepper for day / fortnight / month, like the annual one
+### 26.7 🔴 Owner ask — ± stepper for day / fortnight / month, like the annual one (**STILL OPEN** — the only §26 piece not shipped)
 
 > *"add that the person can +/- days, fortnight, month just like annual"*
 

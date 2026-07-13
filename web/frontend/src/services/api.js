@@ -621,6 +621,11 @@ export const astrologyService = {
   // ---- Tithi Pravesha — the annual *lunar*-return chart (§25.1) ----
   getTithiPravesha: (birthDetails, { year, date, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
     api.post("/api/astrology/tithi-pravesha", birthDetails, { params: { year, date, ayanamsa } }),
+  /** One level of the compressed Tithi Ashtottari tree, fetched when a period is
+   *  expanded. `period` is a row from the table: {start_jd, lord, span_deg, level}
+   *  plus the place — that is all a subdivision needs. */
+  getTithiAshtottariChildren: (period) =>
+    api.post("/api/astrology/tithi-ashtottari-children", period),
   analyzeTithiPraveshaAI: (birthDetails, opts = {}, model = {}) =>
     api.post(
       "/api/astrology/tithi-pravesha-analysis",

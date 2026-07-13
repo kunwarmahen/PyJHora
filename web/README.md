@@ -840,16 +840,23 @@ The annual page carries a **Solar / Lunar** toggle, one at a time:
 
 - **Solar → Varshaphal**, the Tajaka *solar* return (~365 days), cast when the Sun comes back to its
   natal longitude. Annual dasha: **Mudda / Patyayini / Narayana** (selectable).
-- **Lunar → Tithi Pravesha** (the **TP chart**), the *lunar* return (~354 days), cast for the moment your
-  **natal tithi and lunar month recur** — so it drifts ~11 days earlier each year. Annual dasha:
-  **Tithi Ashtottari**, the dasha reckoned from the birth *tithi* rather than the birth nakshatra. That
-  pairing is the point (and is what Jagannatha Hora shows): a tithi-reckoned dasha for a tithi-reckoned
-  chart. The Tajaka annual dashas are solar-return constructs and are not offered here.
-  - Note that Tithi Ashtottari is a **108-year life dasha**, not an annual one — its *maha* periods run
-    6–21 years each. (Mudda escapes this only because it *compresses* Vimsottari into the annual chart's
-    single year; Tithi Ashtottari has no such compression.) So the page scopes it to the lunar year and
-    shows the **antara** periods overlapping that window — the granularity that actually subdivides a
-    year, and the direct analogue of Varshaphal's annual-dasha table.
+- **Lunar → Tithi Pravesha** (the **TP chart**), the *lunar* return (~354 days — or ~384 in an
+  adhika-masa year), cast for the moment your **natal tithi and lunar month recur**, so it drifts ~11 days
+  earlier each year. The chart is cast at the **exact pravesha instant**, solved to the moment the Moon−Sun
+  elongation regains its birth value (not rounded to the day — the page shows the instant). Annual dasha:
+  **Varsha Tithi Ashtottari**, a tithi-reckoned dasha for a tithi-reckoned chart. That pairing is the point,
+  and is what Jagannatha Hora shows. The Tajaka annual dashas are solar-return constructs and are not
+  offered here.
+
+  **Varsha Tithi Ashtottari** is the *compressed* annual form: the whole 108-unit Ashtottari cycle squeezed
+  into this one lunar year, exactly as Mudda compresses Vimsottari into the solar year. The compression is
+  in **Moon−Sun elongation, not in days** — the cycle is `N × 360°` (N = the lunar months the year holds,
+  12 or 13), each lord takes `allotment/108` of it, and the running lord and its balance come from the
+  chart's own elongation. Rendered as an **expandable tree**, six levels deep (Maha → Antara → Pratyantara
+  → Sookshma → Prana → Deha), each level computed on expand — the full depth is 8⁶ ≈ 262k periods, and the
+  deepest last under a minute. Verified against Jagannatha Hora on two charts (an adhika and an ordinary
+  year). PyJHora ships no compressed Tithi Ashtottari, so it lives in `backend/varsha_tithi_ashtottari.py`;
+  the engine's own Tithi Ashtottari functions subdivide proportionally in *days* and cannot be used.
 
 Both sides show the same sections — Kundali chart, Muntha, year-lord, the 8 Sahams, Tajaka yogas, the
 annual dasha, and an AI reading — so switching basis swaps a complete, symmetrical view. The default

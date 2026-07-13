@@ -2893,6 +2893,44 @@ async def get_tithi_pravesha(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+class TithiAshtottariChildrenRequest(BaseModel):
+    """One period of the compressed Tithi Ashtottari, to be subdivided.
+
+    A period is fully described by its start instant, lord and **degree** span, so
+    the drill-down is stateless — no need to re-derive the tree from the pravesha
+    moment on every expand. `start_jd` and `span_deg` come straight back from the
+    parent row."""
+    start_jd: float
+    lord: int
+    span_deg: float
+    level: int
+    latitude: float
+    longitude: float
+    timezone: float
+    place: str = ""
+
+
+@app.post("/api/astrology/tithi-ashtottari-children")
+async def get_tithi_ashtottari_children(
+    request: TithiAshtottariChildrenRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """The eight sub-periods of one Tithi Ashtottari period — one level of the
+    dasha tree, computed on expand. The full six levels (Maha → … → Deha) would be
+    8⁶ ≈ 262k rows, so they are never sent whole."""
+    try:
+        result = AstrologyCompute.get_tithi_ashtottari_children(
+            start_jd=request.start_jd, lord=request.lord, span_deg=request.span_deg,
+            level=request.level, lat=request.latitude, lon=request.longitude,
+            tz=request.timezone, place=request.place)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/astrology/fortnightly-digest-analysis")
 async def analyze_fortnightly_digest(
     request: DailyDigestAnalysisRequest,

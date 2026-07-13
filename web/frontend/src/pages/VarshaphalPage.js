@@ -12,6 +12,7 @@ import { intlLocale } from "../utils/format";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
 import { PageHeader } from "../components/PageHeader";
+import { TithiAshtottariTree } from "../components/TithiAshtottariTree";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
@@ -41,7 +42,11 @@ const ordinal = (n) => {
 const formatDate = (dateStr, locale = "en-US") => {
   if (!dateStr) return "—";
   try {
-    return new Date(dateStr).toLocaleDateString(locale, {
+    // A bare "YYYY-MM-DD" is parsed by JS as *UTC* midnight, so west of Greenwich
+    // it renders as the previous day — the pravesha date would disagree with the
+    // pravesha instant shown beside it. Pin date-only strings to local midnight.
+    const local = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? `${dateStr}T00:00:00` : dateStr;
+    return new Date(local).toLocaleDateString(locale, {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -339,7 +344,9 @@ export const VarshaphalPage = () => {
           </div>
         </div>
 
-        {/* What window this reading actually covers. */}
+        {/* What window this reading actually covers, and the instant the chart is
+            cast at — the pravesha moment is solved in degrees, not rounded to the
+            day, so it is worth showing (it drives both the lagna and the dasha). */}
         {isLunar && result?.window && (
           <p className="settings-hint">
             {t("varshaphal.lunarWindow", {
@@ -348,6 +355,14 @@ export const VarshaphalPage = () => {
               days: result.window.span_days,
               tithi: result.label || "",
             })}
+            {result.window.start_at && (
+              <>
+                <br />
+                {t("varshaphal.lunarEntryAt", {
+                  at: result.window.start_at.replace("T", " "),
+                })}
+              </>
+            )}
           </p>
         )}
 
@@ -524,6 +539,19 @@ export const VarshaphalPage = () => {
 
               {dashaLoading ? (
                 <LoadingState message={t("varshaphal.loading")} />
+              ) : /* The lunar return's dasha is a tree, not a table: the whole
+                     108-unit Ashtottari cycle compressed into this one lunar year,
+                     drillable to six levels. The solar (Tajaka) dashas stay a flat
+                     table — they have no sub-levels to open. */
+              result.annual_dasha?.expandable && periods.length > 0 ? (
+                <>
+                  <p className="card-note">
+                    {t("varshaphal.taDrillHint", {
+                      months: result.annual_dasha?.lunar_months,
+                    })}
+                  </p>
+                  <TithiAshtottariTree periods={periods} birthDetails={birthDetails} />
+                </>
               ) : periods.length > 0 ? (
                 <div className="table-scroll">
                   <table className="data-table">
