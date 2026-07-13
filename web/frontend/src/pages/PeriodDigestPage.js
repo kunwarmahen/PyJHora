@@ -231,34 +231,38 @@ const PeriodDigestPage = ({ period }) => {
             </button>
           </div>
 
-          {/* Basis toggle — monthly only, and it stays because it picks the WINDOW
-              this digest covers (a solar Maasa Pravesha vs the lunar birth-tithi
-              return), not merely a chart. The fortnight is a lunar-only rung, and a
-              *day* is the same calendar day on either ladder — which is why neither
-              of those offers the choice.
+          {/* Monthly only — and this is NOT the chart-basis toggle that was removed
+              from the Daily page and from Varshaphal. It picks **which month the
+              digest covers**: the solar month (Maasa Pravesha, ~30.4d) or the lunar
+              one (your birth tithi returning, ~29.5d). Those are genuinely different
+              windows — for 2026-07-13, 6 Jul→6 Aug versus 19 Jun→19 Jul — with
+              different transit events in them. So it is labelled as the window choice
+              it is, not as a "basis", or it reads as leftover duplication.
+              (A *day* is the same calendar day on either ladder, which is exactly why
+              the Daily page has no such control; the fortnight is lunar by definition.)
               Uses the shared .chart-toggle segmented control, which is the one
               pattern in the app that actually paints an active state. */}
           {isMonth && (
             <div className="controls-group">
-              <span className="control-label">{t("periodDigest.basis")}</span>
-              <div className="chart-toggle" role="group" aria-label={t("periodDigest.basis")}>
+              <span className="control-label">{t("periodDigest.monthType")}</span>
+              <div className="chart-toggle" role="group" aria-label={t("periodDigest.monthType")}>
                 <button
                   type="button"
                   className={`chart-toggle__btn${basis === "solar" ? " is-active" : ""}`}
                   aria-pressed={basis === "solar"}
                   onClick={() => setBasis("solar")}
-                  title={t("periodDigest.basisSolarHint")}
+                  title={t("periodDigest.solarMonthHint")}
                 >
-                  <Sun size={14} /> {t("periodDigest.basisSolar")}
+                  <Sun size={14} /> {t("periodDigest.solarMonth")}
                 </button>
                 <button
                   type="button"
                   className={`chart-toggle__btn${basis === "lunar" ? " is-active" : ""}`}
                   aria-pressed={basis === "lunar"}
                   onClick={() => setBasis("lunar")}
-                  title={t("periodDigest.basisLunarHint")}
+                  title={t("periodDigest.lunarMonthHint")}
                 >
-                  <Moon size={14} /> {t("periodDigest.basisLunar")}
+                  <Moon size={14} /> {t("periodDigest.lunarMonth")}
                 </button>
               </div>
             </div>

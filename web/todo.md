@@ -3316,6 +3316,22 @@ it), and **only Monthly can override**, because only there does the basis pick t
 say exactly what it does: it casts the **Daily and Monthly** readings, Monthly can override, the Fortnight
 is always lunar, and Varshaphal / Tithi Pravesha are untouched by it. Settings → **Notifications** keeps its
 own basis (it drives the delivered emails) and was already accurate.
+**Follow-up — the Monthly toggle was right, its LABEL was wrong (owner: *"monthly still have solar vs
+lunar toggle. Any reason?"*).** It looked like leftover duplication because it was labelled *Basis ·
+Solar / Lunar* — word for word the toggle deleted from Daily and Varshaphal. But it is not the same thing.
+Measured, for 2026-07-13:
+
+| | window | transit events |
+|---|---|---|
+| Monthly, solar | **2026-07-06 → 2026-08-06** (Maasa Pravesha) | 7 |
+| Monthly, lunar | **2026-06-19 → 2026-07-19** (birth-tithi return) | 6 |
+| Daily, solar *vs* lunar | *identical* (same date, same panchanga) | — |
+
+So on Monthly the control answers **"which month are you asking about?"** — two different windows with
+different events — while on Daily it only ever attached a chart. Relabelled **Month · Solar month / Lunar
+month** (i18n `periodDigest.monthType` / `solarMonth` / `lunarMonth`, replacing the `basis*` keys), so it
+reads as the window choice it is. Behaviour unchanged.
+
 Also swept the **18 i18n keys** the removals orphaned (`digest.basis*`, `digest.pravesh*`,
 `periodDigest.muntha` / `yearLord` / `pravesh*` / `taHint` …). Four pre-existing orphans in `periodDigest`
 (`window`, `yoga`, `ingress`, `station`) were left alone — not mine, and out of scope.
