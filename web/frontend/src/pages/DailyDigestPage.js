@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Sun, Moon, Sparkles, Bell, Clock, Orbit, Star, Compass } from "lucide-react";
+import { Sun, Moon, Sparkles, Bell, Clock, Orbit, Star } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -14,7 +14,6 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
-import { TithiAshtottariTree } from "../components/TithiAshtottariTree";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
@@ -78,13 +77,12 @@ export const DailyDigestPage = () => {
   const [anchor, setAnchor] = useState(() => nowParts().date);
   const isToday = anchor === nowParts().date;
 
-  // Which ladder the day's progressed chart sits on — solar (Tajaka) or lunar
-  // (the day's Tithi Pravesha chart + its compressed Tithi Ashtottari). Defaults
-  // to the global Settings value, overridable here, exactly as on the fortnight/
-  // month page.
-  const [basis, setBasis] = useState(settings.praveshaBasis || "solar");
-  useEffect(() => setBasis(settings.praveshaBasis || "solar"), [settings.praveshaBasis]);
-  const isLunar = basis === "lunar";
+  // The day's pravesha ladder, taken from the global Settings value — the same one
+  // the scheduled email digest uses, so the page and the email read alike. There is
+  // no toggle: unlike the month, the *day* is the same calendar day on either ladder,
+  // so the basis only ever coloured the narrative. The chart it used to draw here
+  // lives on the Tithi Pravesha page, which shows every rung of the lunar ladder.
+  const basis = settings.praveshaBasis || "solar";
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
@@ -173,9 +171,6 @@ export const DailyDigestPage = () => {
   const dasha = digest?.dasha;
   const transits = digest?.transits;
   const highlights = digest?.highlights || [];
-  // Present only on the lunar basis — the day's tithi-pravesha chart.
-  const pravesh = digest?.pravesh;
-  const ta = pravesh?.tithi_ashtottari;
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -193,7 +188,7 @@ export const DailyDigestPage = () => {
         <div className="page-controls">
           {/* ± day stepper — the same look-ahead/look-back the annual page has,
               one calendar day at a time. The whole card (panchanga, transits,
-              dasha, tithi-pravesha chart) recomputes for the day you land on. */}
+              dasha) recomputes for the day you land on. */}
           <div className="controls-group">
             <div className="stepper">
               <button
@@ -229,31 +224,12 @@ export const DailyDigestPage = () => {
             </button>
           </div>
 
-          {/* Which ladder the day sits on. Lunar casts the day's Tithi Pravesha
-              chart and its compressed Tithi Ashtottari — the same pairing the
-              annual page shows, one rung down. */}
+          {/* The day's chart lives on the Tithi Pravesha page (its "Day" rung), which
+              carries every rung of the lunar ladder. This page stays a summary. */}
           <div className="controls-group controls-group--end">
-            <span className="control-label">{t("digest.basis")}</span>
-            <div className="chart-toggle" role="group" aria-label={t("digest.basis")}>
-              <button
-                type="button"
-                className={`chart-toggle__btn${!isLunar ? " is-active" : ""}`}
-                aria-pressed={!isLunar}
-                onClick={() => setBasis("solar")}
-                title={t("digest.basisSolarHint")}
-              >
-                <Sun size={14} /> {t("digest.basisSolar")}
-              </button>
-              <button
-                type="button"
-                className={`chart-toggle__btn${isLunar ? " is-active" : ""}`}
-                aria-pressed={isLunar}
-                onClick={() => setBasis("lunar")}
-                title={t("digest.basisLunarHint")}
-              >
-                <Moon size={14} /> {t("digest.basisLunar")}
-              </button>
-            </div>
+            <button className="control-btn" onClick={() => navigate("/tithi-pravesha")}>
+              <Moon size={14} /> {t("digest.tpLink")}
+            </button>
           </div>
         </div>
 
@@ -342,37 +318,6 @@ export const DailyDigestPage = () => {
                       </li>
                     ))}
                   </ul>
-                )}
-              </div>
-            )}
-
-            {/* The day's Tithi Pravesha chart and its compressed Tithi Ashtottari
-                — lunar basis only (there is no tithi chart on the solar ladder). */}
-            {pravesh && (
-              <div className="ui-card ui-card--accent-gold ui-card--pad-lg ui-card--flush mt-xl">
-                <h3 className="ui-card-header ui-card-header--sm">
-                  <Compass size={18} /> {t("digest.praveshTithi")}
-                </h3>
-                <div className="detail-list digest-details">
-                  <div>
-                    <span className="kv-label">{t("digest.praveshLagna")}</span>
-                    <span className="kv-value">{pravesh.lagna?.sign_name}</span>
-                  </div>
-                  <div>
-                    <span className="kv-label">{t("digest.praveshWindow")}</span>
-                    <span className="kv-value">
-                      {(pravesh.window?.start_at || "").replace("T", " ")} →{" "}
-                      {(pravesh.window?.end_at || "").replace("T", " ")}
-                    </span>
-                  </div>
-                </div>
-
-                {ta?.periods?.length > 0 && (
-                  <>
-                    <p className="kv-label mt-md">{ta.system}</p>
-                    <p className="card-note">{t("digest.taHint")}</p>
-                    <TithiAshtottariTree periods={ta.periods} birthDetails={birthDetails} />
-                  </>
                 )}
               </div>
             )}

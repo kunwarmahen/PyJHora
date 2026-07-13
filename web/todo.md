@@ -3271,6 +3271,44 @@ the rung from the saved context and defaults to annual when absent — which is 
 readings were. Verified: an existing Paksha reading reopens on the new page with the Fortnight rung and its
 original window restored.
 
+### 26.12 ✅ One home per thing — digests decluttered, TP button styled (owner ask 2026-07-13)
+
+> *"read this window on TP is not formatted correctly"* · *"why do we still have Lunar under Annual,
+> Monthly, Daily and Fortnight is also there, any reasons"*
+
+**The button.** `Read this window` used `btn btn-primary` — a class that exists in **no stylesheet** (the
+app's AI buttons are `ui-btn ui-btn--ai`), so it rendered unstyled. Fixed, and the rest of the new page's
+49 classes were audited against the CSS: that was the only invented one. *Lesson: when adding a page, grep
+the class names against `styles/*.css` — a bogus class fails silently, it does not error.*
+
+**The Lunar toggles — the honest answer is that "basis" meant two different things:**
+
+| Page | Before | After |
+|---|---|---|
+| `/varshaphal` (Annual) | Solar/Lunar toggle | **gone** (§26.11 — solar-only) |
+| `/daily-digest` | Solar/Lunar toggle | **gone** — it *only* added a chart; a day is the same calendar day on either ladder |
+| `/fortnightly-digest` | (lunar by definition) | unchanged — no toggle to remove |
+| `/monthly-digest` | Solar/Lunar toggle | **KEPT** — here the basis picks the **window itself** (solar Maasa ~30.4d vs lunar birth-tithi return ~29.5d), a real choice about what the reading covers |
+
+**Owner decision: full cleanup.** The digests are *summaries* ("what's happening"); the TP page is where
+*charts* live. So the pravesha chart + Muntha + Tajaka yogas + the Tithi Ashtottari tree came out of all
+three digests, which now link across to `/tithi-pravesha`. One home per thing.
+
+**⚠️ The chart card was not the only place it leaked.** After deleting the card, the browser *still* showed
+"Muntha" on the fortnight and month pages — it was baked into (1) the backend's **highlight strings**
+(`f"…lagna: …; Muntha in …"`) and (2) the digest **AI prompt**, which also fed the model the **year-lord**.
+Both removed. And the prompt's *instruction* line still said "what the dasha and the progressed
+**Lagna/Muntha** set as the backdrop" — left alone, the model would have been asked for a Muntha reading it
+was no longer given, i.e. invited to hallucinate one. *Lesson: removing a panel from the UI does not remove
+it from the payload, the highlights, or the prompt — grep all four.*
+
+Why Muntha had to go below the annual rung: it advances **one sign per year of age**, so it is *identical*
+for every day, fortnight and month of a given year. Presenting it as insight about "this fortnight" is
+dressing a constant up as news. (Tajaka yogas **stay** — they are chart aspects, not age-reckoned.)
+
+The daily page still *sends* the global `praveshaBasis` (it just has no toggle), so the page's narrative
+and the scheduled **email** digest — which drives basis from notification prefs — continue to read alike.
+
 ### 26.8 Superseded questions (now answered — kept for context)
 
 - 🔴 **Start-lord rule.** Mudda advances the natal lord by the year count (`(lord + years) % 9`). Is the

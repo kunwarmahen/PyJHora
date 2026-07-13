@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CalendarDays, CalendarRange, Sparkles, Bell, Clock, Orbit, Star, Compass, Moon, Sun } from "lucide-react";
+import { CalendarDays, CalendarRange, Sparkles, Bell, Clock, Orbit, Star, Moon, Sun } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -14,7 +14,6 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
-import { TithiAshtottariTree } from "../components/TithiAshtottariTree";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
@@ -175,14 +174,6 @@ const PeriodDigestPage = ({ period }) => {
   const transits = digest?.transits;
   const events = digest?.events || [];
   const highlights = digest?.highlights || [];
-  const pravesh = digest?.pravesh;
-
-  // Name the progressed chart for whichever rung was actually cast.
-  const praveshTitle = isMonth
-    ? basis === "lunar"
-      ? t("periodDigest.praveshLunarMonth")
-      : t("periodDigest.praveshMaasa")
-    : t("periodDigest.praveshPaksha", { paksha: pravesh?.paksha || "" });
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -234,9 +225,17 @@ const PeriodDigestPage = ({ period }) => {
             <button className="control-btn" onClick={() => navigate("/settings")}>
               <Bell size={14} /> {t("periodDigest.notifySettings")}
             </button>
+            {/* The window's pravesha chart + Tithi Ashtottari live there now. */}
+            <button className="control-btn" onClick={() => navigate("/tithi-pravesha")}>
+              <Moon size={14} /> {t("periodDigest.tpLink")}
+            </button>
           </div>
 
-          {/* Basis toggle — monthly only. The fortnight is a lunar-only rung.
+          {/* Basis toggle — monthly only, and it stays because it picks the WINDOW
+              this digest covers (a solar Maasa Pravesha vs the lunar birth-tithi
+              return), not merely a chart. The fortnight is a lunar-only rung, and a
+              *day* is the same calendar day on either ladder — which is why neither
+              of those offers the choice.
               Uses the shared .chart-toggle segmented control, which is the one
               pattern in the app that actually paints an active state. */}
           {isMonth && (
@@ -327,53 +326,13 @@ const PeriodDigestPage = ({ period }) => {
               )}
             </div>
 
-            {/* The progressed (pravesha) chart backing this window */}
-            {pravesh && (
-              <div className="ui-card ui-card--accent-gold ui-card--pad-lg ui-card--flush mt-xl">
-                <h3 className="ui-card-header ui-card-header--sm">
-                  <Compass size={18} /> {praveshTitle}
-                </h3>
-                <div className="detail-list digest-details">
-                  <div><span className="kv-label">{t("periodDigest.praveshLagna")}</span><span className="kv-value">{pravesh.lagna?.sign_name}</span></div>
-                  <div>
-                    <span className="kv-label">{t("periodDigest.muntha")}</span>
-                    <span className="kv-value">
-                      {pravesh.muntha?.sign_name} · {t("periodDigest.house", { n: pravesh.muntha?.house })}
-                    </span>
-                  </div>
-                  {pravesh.year_lord && (
-                    <div><span className="kv-label">{t("periodDigest.yearLord")}</span><span className="kv-value">{pravesh.year_lord.planet}</span></div>
-                  )}
-                </div>
-                {pravesh.tajaka_yogas?.length > 0 && (
-                  <>
-                    <p className="kv-label mt-md">{t("periodDigest.tajakaYogas")}</p>
-                    <ul className="digest-highlights">
-                      {pravesh.tajaka_yogas.map((y, i) => (
-                        <li key={i} className="digest-hl">
-                          <strong>{y.name}</strong>
-                          {y.pair ? ` (${y.pair.join(" / ")})` : ""}
-                          {y.description ? ` — ${y.description}` : ""}
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-
-                {/* The window's compressed Tithi Ashtottari. Lunar rungs only — the
-                    solar (Maasa Pravesha) ladder has no tithi-reckoned dasha. */}
-                {pravesh.tithi_ashtottari?.periods?.length > 0 && (
-                  <>
-                    <p className="kv-label mt-md">{pravesh.tithi_ashtottari.system}</p>
-                    <p className="card-note">{t("periodDigest.taHint")}</p>
-                    <TithiAshtottariTree
-                      periods={pravesh.tithi_ashtottari.periods}
-                      birthDetails={birthDetails}
-                    />
-                  </>
-                )}
-              </div>
-            )}
+            {/* The progressed (pravesha) chart that backs this window is no longer
+                drawn here. It — with its Muntha, its Tajaka yogas and its compressed
+                Tithi Ashtottari — lives on the Tithi Pravesha page, which shows every
+                rung of the lunar ladder. This page stays a summary of the period, and
+                links across rather than rendering the same chart twice. (Muntha and
+                the year-lord were the tell: both are reckoned from the age in *years*,
+                so they never meant anything on a fortnight in the first place.) */}
 
             {/* Transit events in the window */}
             <div className="ui-card ui-card--accent-gold ui-card--pad-lg ui-card--flush mt-xl">

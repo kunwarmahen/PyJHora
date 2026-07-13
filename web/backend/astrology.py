@@ -4547,10 +4547,11 @@ class AstrologyCompute:
                     date=date_str, ayanamsa=ayanamsa)
                 if tp.get("status") == "success":
                     pravesh = tp
+                    # No Muntha here: it advances one sign per YEAR of age, so it is
+                    # the same value all year and says nothing about *this day*.
+                    # (Same reason it is hidden on the short rungs of the TP page.)
                     highlights.append(
-                        f"Tithi Pravesha lagna: {tp['lagna']['sign_name']}; "
-                        f"Muntha in {tp['muntha']['sign_name']} "
-                        f"(house {tp['muntha']['house']})")
+                        f"Tithi Pravesha lagna: {tp['lagna']['sign_name']}")
                     for yg in tp.get("tajaka_yogas", [])[:3]:
                         pair = f" ({'/'.join(yg['pair'])})" if yg.get("pair") else ""
                         highlights.append(f"Tajaka yoga — {yg['name']}{pair}")
@@ -4847,10 +4848,12 @@ class AstrologyCompute:
                     chart_name = "Lunar-month (birth-tithi return)"
                 else:
                     chart_name = "Maasa Pravesha"
+                # No Muntha: it advances one sign per YEAR of age, so it is identical
+                # for every fortnight and every month of a given year — a constant
+                # dressed up as news. Hidden on the TP page's short rungs for the
+                # same reason.
                 highlights.append(
-                    f"{chart_name} lagna: {pravesh['lagna']['sign_name']}; "
-                    f"Muntha in {pravesh['muntha']['sign_name']} "
-                    f"(house {pravesh['muntha']['house']})")
+                    f"{chart_name} lagna: {pravesh['lagna']['sign_name']}")
                 for yg in pravesh.get("tajaka_yogas", [])[:3]:
                     pair = f" ({'/'.join(yg['pair'])})" if yg.get("pair") else ""
                     highlights.append(f"Tajaka yoga — {yg['name']}{pair}")

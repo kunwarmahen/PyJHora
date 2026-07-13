@@ -836,11 +836,19 @@ sits on neither. This is also why Jagannatha Hora offers daily / fortnightly / m
   re-anchors off the *current window's own boundaries* (`end + 1d` / `start − 1d`) rather than adding a
   nominal span, which keeps the walk contiguous. **Refresh** becomes **Current** while you are away
   from the present window.
-- **Chart basis** — Settings → General has a global **Solar / Lunar** default (`praveshaBasis`); the
-  Daily and Monthly pages can override it per reading (the fortnight rung is lunar by definition — there
-  is no solar fortnight). On the **lunar** basis every cadence carries its own pravesha chart *and* its
-  **compressed Tithi Ashtottari** tree — the fortnight's cycle spans 180° of Moon−Sun elongation, the
-  lunar month's 360°, and the tithi's 12°, so each window is tiled exactly.
+- **The digests are summaries, not chart views.** The progressed (pravesha) chart that backs each window —
+  with its Muntha, its Tajaka yogas and its compressed Tithi Ashtottari — lives on the
+  **[Tithi Pravesha page](#tithi-pravesha--the-lunar-return-tithi-pravesha)**, which shows every rung of the
+  lunar ladder; each digest links across rather than drawing the same chart twice.
+- **Chart basis** — Settings → General has a global **Solar / Lunar** default (`praveshaBasis`), used for
+  both the pages and the scheduled emails. Only **Monthly** offers a per-reading override, and only because
+  there the basis picks the **window itself** (a solar Maasa Pravesha ~30.4d vs the lunar birth-tithi return
+  ~29.5d) — a real choice about what the reading covers. The fortnight is lunar by definition (there is no
+  solar fortnight), and a *day* is the same calendar day on either ladder, so neither offers the choice.
+- **Muntha and the year-lord appear in annual readings only.** Both advance one sign per *year of age*, so
+  they hold the same value for every day, fortnight and month of a given year — surfacing them in a
+  fortnightly reading dresses a constant up as news. They are omitted from the sub-annual digests' highlights
+  and from their AI prompts.
 - **Per-cadence delivery**: **Settings → Notifications** has separate **daily / fortnightly / monthly**
   toggles. Daily takes an hour; monthly takes a day-of-month + hour; **fortnightly takes only an hour —
   the paksha boundary *is* the schedule**, so it fires once when each new lunar fortnight opens. The

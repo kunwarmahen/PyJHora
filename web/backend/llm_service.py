@@ -2084,9 +2084,7 @@ End on an encouraging line. Do NOT make fated, medical, legal or financial claim
 
         pravesh_block = ""
         if pravesh:
-            muntha = pravesh.get("muntha") or {}
             lagna = pravesh.get("lagna") or {}
-            yl = pravesh.get("year_lord") or {}
             yogas = pravesh.get("tajaka_yogas") or []
             yoga_lines = "\n".join(
                 f"- {y['name']}"
@@ -2094,10 +2092,14 @@ End on an encouraging line. Do NOT make fated, medical, legal or financial claim
                 + (f": {y['description']}" if y.get("description") else "")
                 for y in yogas
             ) or "- (none notable)"
+            # Muntha and the year-lord are deliberately NOT given to the model here.
+            # Both are reckoned from the age in *years*, so they hold the same value
+            # for every fortnight and every month of a given year — feed them to a
+            # fortnightly reading and the model will dutifully explain a constant as
+            # if it were news about this window. (The annual reading still gets them.)
             pravesh_block = f"""
 Progressed chart for this {noun} — the {chart_name}, cast at the moment the window opened:
-- Lagna: {lagna.get('sign_name')}; Muntha (progressed ascendant) in {muntha.get('sign_name')} (house {muntha.get('house')} of that chart).
-- Year-lord: {yl.get('planet', 'n/a')}.
+- Lagna: {lagna.get('sign_name')}
 - Active Tajaka yogas in it:
 {yoga_lines}
 """
@@ -2116,7 +2118,7 @@ Key highlights the engine flagged:
 {chr(10).join(f'- {h}' for h in d.get('highlights', [])) or '- (a steady window)'}
 
 Write a friendly ~{'230' if is_fortnight else '260'}-word note on this {noun}:
-1. **The theme of this {noun}** — what the dasha/bhukti and the progressed Lagna/Muntha set as the backdrop, framed constructively.
+1. **The theme of this {noun}** — what the dasha/bhukti and the progressed Lagna set as the backdrop, framed constructively.
 2. **What shifts and when** — walk through the 2–3 most meaningful transit events above (an ingress, a retrograde station, a Tajaka yoga), naming their dates so they can plan around them.
 3. **A gentle plan** — one or two practical suggestions for making the most of this {noun}.
 Reason only from the data above; do not invent placements. End on an encouraging line. Do NOT make fated, medical, legal or financial claims; keep it a supportive forward-looking reflection."""
