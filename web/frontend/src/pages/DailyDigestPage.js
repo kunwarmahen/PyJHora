@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Sun, Sparkles, Bell, Clock, Orbit, Star } from "lucide-react";
+import { Sun, Moon, Sparkles, Bell, Clock, Orbit, Star, Compass } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -14,6 +14,7 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
+import { TithiAshtottariTree } from "../components/TithiAshtottariTree";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
@@ -77,6 +78,14 @@ export const DailyDigestPage = () => {
   const [anchor, setAnchor] = useState(() => nowParts().date);
   const isToday = anchor === nowParts().date;
 
+  // Which ladder the day's progressed chart sits on — solar (Tajaka) or lunar
+  // (the day's Tithi Pravesha chart + its compressed Tithi Ashtottari). Defaults
+  // to the global Settings value, overridable here, exactly as on the fortnight/
+  // month page.
+  const [basis, setBasis] = useState(settings.praveshaBasis || "solar");
+  useEffect(() => setBasis(settings.praveshaBasis || "solar"), [settings.praveshaBasis]);
+  const isLunar = basis === "lunar";
+
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
   const [aiAnalysis, setAiAnalysis] = useState("");
@@ -119,6 +128,7 @@ export const DailyDigestPage = () => {
         date: anchor,
         currentTime: time,
         currentTz: tz,
+        basis,
         ayanamsa,
       });
       setDigest(res.data);
@@ -127,7 +137,7 @@ export const DailyDigestPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [birthDetails, ayanamsa, anchor, t]);
+  }, [birthDetails, ayanamsa, anchor, basis, t]);
 
   useEffect(() => {
     if (!selectedProfile) {
@@ -145,7 +155,7 @@ export const DailyDigestPage = () => {
       const { time, tz } = nowParts();
       const res = await astrologyService.analyzeDailyDigestAI(
         birthDetails,
-        { date: anchor, currentTime: time, currentTz: tz, personName: birthDetails.name },
+        { date: anchor, currentTime: time, currentTz: tz, basis, personName: birthDetails.name },
         { ...readModelConfig(), ayanamsa }
       );
       setAiAnalysis(res.data.ai_analysis || "");
@@ -163,6 +173,9 @@ export const DailyDigestPage = () => {
   const dasha = digest?.dasha;
   const transits = digest?.transits;
   const highlights = digest?.highlights || [];
+  // Present only on the lunar basis — the day's tithi-pravesha chart.
+  const pravesh = digest?.pravesh;
+  const ta = pravesh?.tithi_ashtottari;
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -214,6 +227,33 @@ export const DailyDigestPage = () => {
             <button className="control-btn" onClick={() => navigate("/settings")}>
               <Bell size={14} /> {t("digest.notifySettings")}
             </button>
+          </div>
+
+          {/* Which ladder the day sits on. Lunar casts the day's Tithi Pravesha
+              chart and its compressed Tithi Ashtottari — the same pairing the
+              annual page shows, one rung down. */}
+          <div className="controls-group controls-group--end">
+            <span className="control-label">{t("digest.basis")}</span>
+            <div className="chart-toggle" role="group" aria-label={t("digest.basis")}>
+              <button
+                type="button"
+                className={`chart-toggle__btn${!isLunar ? " is-active" : ""}`}
+                aria-pressed={!isLunar}
+                onClick={() => setBasis("solar")}
+                title={t("digest.basisSolarHint")}
+              >
+                <Sun size={14} /> {t("digest.basisSolar")}
+              </button>
+              <button
+                type="button"
+                className={`chart-toggle__btn${isLunar ? " is-active" : ""}`}
+                aria-pressed={isLunar}
+                onClick={() => setBasis("lunar")}
+                title={t("digest.basisLunarHint")}
+              >
+                <Moon size={14} /> {t("digest.basisLunar")}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -302,6 +342,37 @@ export const DailyDigestPage = () => {
                       </li>
                     ))}
                   </ul>
+                )}
+              </div>
+            )}
+
+            {/* The day's Tithi Pravesha chart and its compressed Tithi Ashtottari
+                — lunar basis only (there is no tithi chart on the solar ladder). */}
+            {pravesh && (
+              <div className="ui-card ui-card--accent-gold ui-card--pad-lg ui-card--flush mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <Compass size={18} /> {t("digest.praveshTithi")}
+                </h3>
+                <div className="detail-list digest-details">
+                  <div>
+                    <span className="kv-label">{t("digest.praveshLagna")}</span>
+                    <span className="kv-value">{pravesh.lagna?.sign_name}</span>
+                  </div>
+                  <div>
+                    <span className="kv-label">{t("digest.praveshWindow")}</span>
+                    <span className="kv-value">
+                      {(pravesh.window?.start_at || "").replace("T", " ")} →{" "}
+                      {(pravesh.window?.end_at || "").replace("T", " ")}
+                    </span>
+                  </div>
+                </div>
+
+                {ta?.periods?.length > 0 && (
+                  <>
+                    <p className="kv-label mt-md">{ta.system}</p>
+                    <p className="card-note">{t("digest.taHint")}</p>
+                    <TithiAshtottariTree periods={ta.periods} birthDetails={birthDetails} />
+                  </>
                 )}
               </div>
             )}

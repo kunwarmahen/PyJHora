@@ -567,9 +567,12 @@ export const astrologyService = {
     ),
 
   // ---- Daily digest (§16) ----
-  getDailyDigest: (birthDetails, { date, currentTime, currentTz, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+  getDailyDigest: (
+    birthDetails,
+    { date, currentTime, currentTz, basis, ayanamsa = DEFAULT_AYANAMSA } = {}
+  ) =>
     api.post("/api/astrology/daily-digest", birthDetails, {
-      params: { date, current_time: currentTime, current_tz: currentTz, ayanamsa },
+      params: { date, current_time: currentTime, current_tz: currentTz, basis, ayanamsa },
     }),
   analyzeDailyDigestAI: (birthDetails, opts = {}, model = {}) =>
     api.post(
@@ -579,6 +582,7 @@ export const astrologyService = {
         date: opts.date,
         current_time: opts.currentTime,
         current_tz: opts.currentTz,
+        basis: opts.basis,
         person_name: opts.personName,
         llm_provider: model.legacyProvider || "qwen",
         provider_type: model.providerType,

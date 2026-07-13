@@ -167,12 +167,48 @@ def next_lord(lord: int) -> int:
     return ORDER[(ORDER.index(lord) + 1) % len(ORDER)]
 
 
-def lunar_months_in(span_days: float) -> int:
-    """N — how many lunar months the pravesha year holds, and so the cycle
-    `C = N × 360°`. An ordinary year is 12 (~354d); an adhika-masa year is 13
-    (~384d). The synodic month is 29.53d, and the two cases are 30 days apart, so
-    rounding the span cannot land on the wrong one."""
-    return max(1, round(span_days / 29.530588))
+def cycle_degrees(start_jd: float, end_jd: float, place) -> float:
+    """`C` — the elongation the pravesha window sweeps, which is the cycle the whole
+    108-unit dasha is compressed into.
+
+    Every rung of the lunar ladder is a clean fraction or multiple of a turn,
+    because each is *defined* by an elongation boundary — so this is exact, not an
+    estimate (measured, for the owner's chart):
+
+        tithi     0.85 d  →    12°   (one tithi)
+        paksha   14.41 d  →   180°   (half a turn)
+        month    29.45 d  →   360°   (one turn)
+        annual  384.03 d  →  4680°   (13 turns — an adhika-masa year)
+
+    Deriving `C` this way rather than rounding days into lunar months (`round(span /
+    29.53)`) matters twice: it makes the annual case exact instead of heuristic —
+    settling how many months the year holds, 12 or 13, by counting turns rather than
+    guessing — and it is the *only* form that works below a month. Rounding a
+    fortnight's 14.4 days gives 1 lunar month → 360°, twice the true 180°, and the
+    dasha would silently run at half speed.
+
+    Stepped coarsely and summed mod 360: at 5 days a step the elongation advances at
+    most ~72°, far short of a wrap, so no turn can be missed.
+
+    Rounded to a micro-degree (~6 ms of time). The window's own endpoints come from
+    the engine's boundary search, which carries a ~1e-8° residual — so a tithi
+    measures 11.99999997° rather than a clean 12. Rounding keeps the reported cycle
+    honest-looking and, more to the point, keeps it consistent with the period spans
+    derived from it."""
+    total = 0.0
+    prev_jd, prev_e = start_jd, elongation(start_jd, place)
+    while prev_jd < end_jd:
+        jd = min(prev_jd + 5.0, end_jd)
+        e = elongation(jd, place)
+        total += (e - prev_e) % 360.0
+        prev_jd, prev_e = jd, e
+    return round(total, 6)
+
+
+def lunar_months_in(cycle_deg: float) -> int:
+    """How many lunar months the cycle spans — 12 or 13 for a pravesha year. Purely
+    for display; the maths uses the degrees."""
+    return int(round(cycle_deg / 360.0))
 
 
 def seed_period(chart_jd: float, place, cycle_deg: float) -> Tuple[int, float, float]:

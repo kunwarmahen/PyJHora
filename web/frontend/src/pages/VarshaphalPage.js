@@ -233,7 +233,10 @@ export const VarshaphalPage = () => {
   const orderedPlanets = PLANET_ORDER.filter((p) => planets[p]).map((p) => [p, planets[p]]);
   const sahams = result?.sahams || [];
   const tajakaYogas = result?.tajaka_yogas || [];
-  const periods = result?.annual_dasha?.periods || [];
+  // Lunar returns the compressed Tithi Ashtottari; solar returns Mudda/Patyayini/
+  // Narayana. Both land under `annual_dasha`, so the table below reads either.
+  const annualDasha = result?.tithi_ashtottari || result?.annual_dasha;
+  const periods = annualDasha?.periods || [];
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -535,7 +538,7 @@ export const VarshaphalPage = () => {
                 <Clock size={20} />
                 {t("varshaphal.annualDasha")}
               </h3>
-              <p className="card-intro">{result.annual_dasha?.system}</p>
+              <p className="card-intro">{annualDasha?.system}</p>
 
               {dashaLoading ? (
                 <LoadingState message={t("varshaphal.loading")} />
@@ -543,11 +546,11 @@ export const VarshaphalPage = () => {
                      108-unit Ashtottari cycle compressed into this one lunar year,
                      drillable to six levels. The solar (Tajaka) dashas stay a flat
                      table — they have no sub-levels to open. */
-              result.annual_dasha?.expandable && periods.length > 0 ? (
+              annualDasha?.expandable && periods.length > 0 ? (
                 <>
                   <p className="card-note">
                     {t("varshaphal.taDrillHint", {
-                      months: result.annual_dasha?.lunar_months,
+                      months: annualDasha?.lunar_months,
                     })}
                   </p>
                   <TithiAshtottariTree periods={periods} birthDetails={birthDetails} />
@@ -558,7 +561,7 @@ export const VarshaphalPage = () => {
                     <thead>
                       <tr>
                         <th>
-                          {result.annual_dasha?.lord_type === "raasi"
+                          {annualDasha?.lord_type === "raasi"
                             ? t("varshaphal.periodSign")
                             : t("varshaphal.period")}
                         </th>

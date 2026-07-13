@@ -2837,15 +2837,18 @@ DONE 2026-07-12:
 > **§26.1 / §26.5 / §26.6 / §26.6b below are SUPERSEDED.** They reason in *days* and hunt an "anchor
 > from birth" — both wrong. The trail is kept for context; **the shipped code follows THIS section only.**
 
-**What shipped** (see §26.9 for the build log; §26.7's ± stepper landed too — §26 is now complete):
+**What shipped** (see §26.9 for the build log; §26.7's ± stepper and §26.10's all-rungs pass landed too —
+§26 is now complete):
 - `web/backend/varsha_tithi_ashtottari.py` — the elongation engine (new module; PyJHora has no
   annual/compressed Tithi Ashtottari, and its *existing* Tithi Ashtottari functions actively cannot
   be used — see the warning below).
 - `AstrologyCompute.get_varsha_tithi_ashtottari` / `get_tithi_ashtottari_children`, wired into
-  `get_lunar_pravesha`'s annual rung. The old §26.2 code (life-dasha antaras filtered to the window)
+  **every rung** of `get_lunar_pravesha` (§26.10 — the cycle is the elongation the window sweeps, so a
+  day compresses exactly as a year does). The old §26.2 code (life-dasha antaras filtered to the window)
   is **deleted**.
 - `POST /api/astrology/tithi-ashtottari-children` — one level of the tree, computed on expand.
-- `TithiAshtottariTree.js` — the expandable Maha → … → Deha tree on the lunar Varshaphal page.
+- `TithiAshtottariTree.js` — the expandable Maha → … → Deha tree, on **Daily · Fortnightly · Monthly ·
+  Varshaphal**.
 
 **Everything is Moon−Sun ELONGATION.** Nothing is measured in days. (That is why every day-based model
 failed: tithis run 0.79–1.06 days, so equal *angles* give unequal *days* — the ±1-day "noise" was
@@ -3195,6 +3198,49 @@ consecutive windows on each of the three ladders, ± round-tripping back to the 
   would then re-select that same window and appear stuck. The estimate is now **snapped**: solve the
   window boundaries and walk the month index until the date really falls inside. Both the digest and
   the standalone Maasa Pravesha chart benefit.
+
+### 26.10 ✅ Tithi Ashtottari on **every** rung + the daily lunar basis — SHIPPED 2026-07-13
+
+> *"I do not see any lunar for daily, so does it calculate automatically"* · *"we should add tithi
+> ashtottari for each one of them as well"*
+
+**The daily lunar chart was unreachable.** `get_daily_digest(basis="lunar")` has always cast the day's
+Tithi Pravesha chart — but `api.js` never sent `basis` and the backend defaults to `"solar"`, so the whole
+path was **dead code**. `DailyDigestPage` now carries the same Solar/Lunar toggle the fortnight/month page
+has (defaulting to Settings → pravesha basis). The daily *AI* call was missing `basis` too.
+
+**The compressed dasha now runs on all four rungs, not just the annual one** — and the generalization is
+free, because the compression is angular. Every rung is a clean fraction or multiple of a turn, since each
+is *defined* by an elongation boundary (measured, owner's chart):
+
+| rung | span | elongation swept = `C` |
+|---|---|---|
+| tithi (day) | 0.85 d | **12°** (one tithi) |
+| paksha (fortnight) | 14.41 d | **180°** (half a turn) |
+| month | 29.45 d | **360°** (one turn) |
+| annual (TP) | 384.03 d | **4680°** (13 turns — adhika) |
+
+So `C` is just **the elongation the window sweeps** (`vta.cycle_degrees`), and the same construction tiles
+a day exactly as it tiles a year — verified: one full 8-lord cycle sums to `C` to within 1e-6° on all
+four. Sub-annual windows open *on* a tithi boundary, so their balance is zero and the cycle aligns exactly
+with the window; only the annual rung carries a running balance from before the window (as JHora shows).
+
+**⚠️ This killed a trap and settled an open question:**
+- **`C` is no longer `round(span_days / 29.53) × 360`.** That heuristic is fine for a year but **wrong
+  below a month** — it rounds a fortnight's 14.4 days up to *one lunar month*, giving **360° instead of
+  180°**, and the dasha would have silently run at **half speed**. Deriving `C` from the sweep is exact at
+  every rung. (So do NOT reuse `lunar_months_in` to size a cycle; it is display-only now.)
+- It **answers §26.0's last unknown** — *"how does JHora decide N, 12 vs 13?"*. N is simply the whole
+  turns the window sweeps: counted, not rounded. Annual still comes out at exactly 4680° / 4320°, and both
+  JHora charts still reproduce to the second.
+
+Payload: `get_lunar_pravesha` now returns **`tithi_ashtottari`** on every rung, with `annual_dasha` kept as
+an alias on the annual rung so `/varshaphal` reads one key for both the solar (Mudda/Patyayini/Narayana)
+and lunar sides. The expandable tree renders on **Daily · Fortnightly · Monthly · Varshaphal**.
+
+**Not done:** a single *unified* rung selector on one page (day/fortnight/month/year in one dropdown). Each
+cadence lives on its own page with its own ± stepper (§26.7), which covers the ask — but if you want one
+page to switch rung, that is the remaining step.
 
 ### 26.8 Superseded questions (now answered — kept for context)
 

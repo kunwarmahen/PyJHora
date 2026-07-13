@@ -778,6 +778,10 @@ Three approaches, chosen with a mode toggle:
   next Jupiter/Saturn ingress), plus a warm **AI reading**
 - **± day stepper** — look ahead or back a day at a time, like the Varshaphal year stepper. The whole
   card recomputes for the day you land on; **Refresh** becomes **Today** while you are off the present day
+- **Solar / Lunar basis toggle** (defaults to Settings → pravesha basis). On **Lunar**, the day also
+  carries its **Tithi Pravesha chart** — cast at the exact instant the running tithi opens — and that
+  tithi's **compressed Tithi Ashtottari**, the same expandable tree the annual page shows, one rung down:
+  maha periods of a few hours, drillable to sub-periods of minutes
 - **Multiple profiles per digest**: pick a subset of your saved charts (or tick **All my profiles**
   to always include every one, plus any you add later). The delivered email/push is a **single
   combined message** with one section per chart. Each section leads with an AI **"how the day looks"**
@@ -830,8 +834,10 @@ sits on neither. This is also why Jagannatha Hora offers daily / fortnightly / m
   nominal span, which keeps the walk contiguous. **Refresh** becomes **Current** while you are away
   from the present window.
 - **Chart basis** — Settings → General has a global **Solar / Lunar** default (`praveshaBasis`); the
-  Monthly page can override it per reading. The Daily digest also gains the day's tithi chart on the
-  lunar basis.
+  Daily and Monthly pages can override it per reading (the fortnight rung is lunar by definition — there
+  is no solar fortnight). On the **lunar** basis every cadence carries its own pravesha chart *and* its
+  **compressed Tithi Ashtottari** tree — the fortnight's cycle spans 180° of Moon−Sun elongation, the
+  lunar month's 360°, and the tithi's 12°, so each window is tiled exactly.
 - **Per-cadence delivery**: **Settings → Notifications** has separate **daily / fortnightly / monthly**
   toggles. Daily takes an hour; monthly takes a day-of-month + hour; **fortnightly takes only an hour —
   the paksha boundary *is* the schedule**, so it fires once when each new lunar fortnight opens. The
@@ -857,15 +863,21 @@ The annual page carries a **Solar / Lunar** toggle, one at a time:
   and is what Jagannatha Hora shows. The Tajaka annual dashas are solar-return constructs and are not
   offered here.
 
-  **Varsha Tithi Ashtottari** is the *compressed* annual form: the whole 108-unit Ashtottari cycle squeezed
-  into this one lunar year, exactly as Mudda compresses Vimsottari into the solar year. The compression is
-  in **Moon−Sun elongation, not in days** — the cycle is `N × 360°` (N = the lunar months the year holds,
-  12 or 13), each lord takes `allotment/108` of it, and the running lord and its balance come from the
-  chart's own elongation. Rendered as an **expandable tree**, six levels deep (Maha → Antara → Pratyantara
-  → Sookshma → Prana → Deha), each level computed on expand — the full depth is 8⁶ ≈ 262k periods, and the
-  deepest last under a minute. Verified against Jagannatha Hora on two charts (an adhika and an ordinary
-  year). PyJHora ships no compressed Tithi Ashtottari, so it lives in `backend/varsha_tithi_ashtottari.py`;
-  the engine's own Tithi Ashtottari functions subdivide proportionally in *days* and cannot be used.
+  **Varsha Tithi Ashtottari** is the *compressed* form: the whole 108-unit Ashtottari cycle squeezed into
+  the pravesha window, exactly as Mudda compresses Vimsottari into the solar year. The compression is in
+  **Moon−Sun elongation, not in days** — the cycle is the elongation the window *sweeps*, each lord takes
+  `allotment/108` of it, and the running lord and its balance come from the chart's own elongation.
+  Rendered as an **expandable tree**, six levels deep (Maha → Antara → Pratyantara → Sookshma → Prana →
+  Deha), each level computed on expand — the full depth is 8⁶ ≈ 262k periods, and the deepest last under a
+  minute. Verified against Jagannatha Hora on two charts (an adhika and an ordinary year). PyJHora ships no
+  compressed Tithi Ashtottari, so it lives in `backend/varsha_tithi_ashtottari.py`; the engine's own Tithi
+  Ashtottari functions subdivide proportionally in *days* and cannot be used.
+
+  Because the compression is angular, it serves **every rung of the lunar ladder**, not just the year —
+  each rung is a clean fraction or multiple of a turn (a tithi sweeps 12°, a fortnight 180°, a lunar month
+  360°, a pravesha year 12 or 13 × 360°), so a day compresses exactly as a year does. The same tree
+  therefore appears on **Today**, **This Fortnight** and **This Month** (on their lunar basis) as well as
+  here — see the Daily / Period digests below.
 
 Both sides show the same sections — Kundali chart, Muntha, year-lord, the 8 Sahams, Tajaka yogas, the
 annual dasha, and an AI reading — so switching basis swaps a complete, symmetrical view. The default

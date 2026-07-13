@@ -3053,17 +3053,29 @@ class AstrologyCompute:
             })
         return out
 
-    @staticmethod
-    def get_varsha_tithi_ashtottari(anchor_jd: float, place_obj, cycle_deg: float) -> Dict:
-        """**Varsha Tithi Ashtottari** — the compressed annual dasha Jagannatha Hora
-        shows beside the Tithi Pravesha chart ("Tithi Ashtottari Dasa of Janma tithi
-        in D-1"). The whole 108-unit Ashtottari cycle is squeezed into the one lunar
-        year, exactly as Mudda squeezes Vimsottari into the solar year.
+    # What window each lunar rung's dasha is compressed into, for the label.
+    _TA_WINDOW_LABEL = {
+        "tithi": "this tithi",
+        "paksha": "this fortnight",
+        "month": "this lunar month",
+        "annual": "this lunar year",
+    }
 
-        The compression is in **Moon−Sun elongation**, not in days: the cycle is
-        `N × 360°` (N = lunar months in the year) and each lord takes
-        `allotment/108` of it. See `varsha_tithi_ashtottari` for the algorithm and
-        for why the engine's own Tithi Ashtottari functions cannot be used.
+    @staticmethod
+    def get_varsha_tithi_ashtottari(anchor_jd: float, place_obj, cycle_deg: float,
+                                    rung: str = "annual") -> Dict:
+        """**Varsha Tithi Ashtottari** — the compressed dasha Jagannatha Hora shows
+        beside the Tithi Pravesha chart ("Tithi Ashtottari Dasa of Janma tithi in
+        D-1"). The whole 108-unit Ashtottari cycle is squeezed into the pravesha
+        window, exactly as Mudda squeezes Vimsottari into the solar year.
+
+        The compression is in **Moon−Sun elongation**, not in days: `cycle_deg` is
+        the elongation the window sweeps (a tithi 12°, a fortnight 180°, a lunar
+        month 360°, a pravesha year N × 360°) and each lord takes `allotment/108` of
+        it. Because it is angular, the same construction serves every rung of the
+        lunar ladder — a day is compressed exactly as a year is. See
+        `varsha_tithi_ashtottari` for the algorithm and for why the engine's own
+        Tithi Ashtottari functions cannot be used.
 
         Nine maha rows come back, not eight: the first is the balance of the period
         already running when the window opens (JHora lists it too), so a full cycle
@@ -3072,14 +3084,16 @@ class AstrologyCompute:
             return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             rows = vta.maha_periods(anchor_jd, place_obj, cycle_deg)
+            window = AstrologyCompute._TA_WINDOW_LABEL.get(rung, "this window")
             return {
                 "status": "success",
-                "system": "Tithi Ashtottari (compressed into this lunar year)",
+                "system": f"Tithi Ashtottari (compressed into {window})",
                 "system_key": "varsha_tithi_ashtottari",
                 "lord_type": "planet",
                 "level": "maha",
+                "rung": rung,
                 "cycle_deg": cycle_deg,
-                "lunar_months": int(round(cycle_deg / 360.0)),
+                "lunar_months": vta.lunar_months_in(cycle_deg),
                 "expandable": True,
                 "periods": AstrologyCompute._ta_rows(rows, 0),
             }
@@ -3301,23 +3315,21 @@ class AstrologyCompute:
                 cht, jd_dob, place_obj, age,
                 with_sahams=is_annual, jd_event=start_jd)
 
-            annual_dasha = None
-            if is_annual:
-                # Jagannatha Hora pairs the Tithi Pravesha chart with **Tithi
-                # Ashtottari** — a tithi-reckoned dasha for a tithi-reckoned chart.
-                # (The Tajaka annual dashas — Mudda/Patyayini/Narayana — belong to
-                # the *solar* return and are not carried over here.)
-                #
-                # It is the *compressed* form: the whole 108-unit cycle squeezed into
-                # this one lunar year, as Mudda squeezes Vimsottari into the solar
-                # year. The cycle is N x 360 degrees of Moon-Sun elongation, N being
-                # the lunar months the window holds — 13 in an adhika-masa year, and
-                # that case is common enough to be no edge case at all.
-                cycle_deg = vta.lunar_months_in(end_jd - start_jd) * 360.0
-                ta = AstrologyCompute.get_varsha_tithi_ashtottari(
-                    start_jd, place_obj, cycle_deg)
-                if ta.get("status") == "success":
-                    annual_dasha = ta
+            # Jagannatha Hora pairs the Tithi Pravesha chart with **Tithi Ashtottari**
+            # — a tithi-reckoned dasha for a tithi-reckoned chart. (The Tajaka annual
+            # dashas — Mudda/Patyayini/Narayana — belong to the *solar* return and are
+            # not carried over here.)
+            #
+            # It is the *compressed* form: the whole 108-unit cycle squeezed into this
+            # window, as Mudda squeezes Vimsottari into the solar year. Every rung of
+            # the ladder gets one, not just the annual — the compression is in
+            # elongation, and each rung is a clean fraction or multiple of a turn
+            # (tithi 12 deg, paksha 180, month 360, year N x 360), so the same dasha
+            # tiles a day exactly as it tiles a year.
+            cycle_deg = vta.cycle_degrees(start_jd, end_jd, place_obj)
+            ta = AstrologyCompute.get_varsha_tithi_ashtottari(
+                start_jd, place_obj, cycle_deg, rung=rung)
+            tithi_ashtottari = ta if ta.get("status") == "success" else None
 
             return {
                 "status": "success",
@@ -3337,7 +3349,11 @@ class AstrologyCompute:
                     "age": age,
                     **window_extra,
                 },
-                "annual_dasha": annual_dasha,
+                # `tithi_ashtottari` on every rung; `annual_dasha` stays as the
+                # annual rung's alias so the Varshaphal page can read the same key
+                # for the solar (Mudda/Patyayini/Narayana) and lunar sides.
+                "tithi_ashtottari": tithi_ashtottari,
+                "annual_dasha": tithi_ashtottari if is_annual else None,
                 **block,
             }
         except Exception as e:

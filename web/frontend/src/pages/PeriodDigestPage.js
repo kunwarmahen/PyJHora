@@ -14,6 +14,7 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
+import { TithiAshtottariTree } from "../components/TithiAshtottariTree";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
@@ -356,6 +357,19 @@ const PeriodDigestPage = ({ period }) => {
                         </li>
                       ))}
                     </ul>
+                  </>
+                )}
+
+                {/* The window's compressed Tithi Ashtottari. Lunar rungs only — the
+                    solar (Maasa Pravesha) ladder has no tithi-reckoned dasha. */}
+                {pravesh.tithi_ashtottari?.periods?.length > 0 && (
+                  <>
+                    <p className="kv-label mt-md">{pravesh.tithi_ashtottari.system}</p>
+                    <p className="card-note">{t("periodDigest.taHint")}</p>
+                    <TithiAshtottariTree
+                      periods={pravesh.tithi_ashtottari.periods}
+                      birthDetails={birthDetails}
+                    />
                   </>
                 )}
               </div>

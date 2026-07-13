@@ -1480,7 +1480,16 @@
     "disclaimer": "A supportive daily reflection — not fated, and not medical, legal or financial advice.",
     "prevDay": "Previous day",
     "nextDay": "Next day",
-    "today": "Today"
+    "today": "Today",
+    "basis": "Basis",
+    "basisSolar": "Solar",
+    "basisLunar": "Lunar",
+    "basisSolarHint": "The Tajaka (solar) ladder — no progressed chart for a single day.",
+    "basisLunarHint": "The lunar (tithi) ladder — casts the day's Tithi Pravesha chart and its compressed Tithi Ashtottari.",
+    "praveshTithi": "Tithi Pravesha chart (today)",
+    "praveshLagna": "Lagna",
+    "praveshWindow": "Tithi window",
+    "taHint": "The full 108-unit Ashtottari cycle, compressed into this tithi. Tap a period to open its sub-periods."
   },
   "periodDigest": {
     "monthTitle": "This Month",
@@ -1511,6 +1520,7 @@
     "yearLord": "Year-lord",
     "tajakaYogas": "Tajaka yogas",
     "house": "house {{n}}",
+    "taHint": "The full 108-unit Ashtottari cycle, compressed into this window. Tap a period to open its sub-periods.",
     "aiTitleMonth": "Your month, read aloud",
     "aiHintMonth": "Get a warm, personalized reading of your month.",
     "aiLoading": "Reading the sky…",
