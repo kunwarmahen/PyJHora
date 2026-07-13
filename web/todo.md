@@ -3309,6 +3309,17 @@ dressing a constant up as news. (Tajaka yogas **stay** — they are chart aspect
 The daily page still *sends* the global `praveshaBasis` (it just has no toggle), so the page's narrative
 and the scheduled **email** digest — which drives basis from notification prefs — continue to read alike.
 
+**Settings had to follow (owner: *"have we made sure to update our settings page"*).** Settings → General's
+pravesha-basis hint still claimed it drove *"the Monthly and **annual** readings"* and that *"pages can
+override this"* — both now false: Varshaphal is always solar and the TP page always lunar (neither reads
+it), and **only Monthly can override**, because only there does the basis pick the *window*. Rewritten to
+say exactly what it does: it casts the **Daily and Monthly** readings, Monthly can override, the Fortnight
+is always lunar, and Varshaphal / Tithi Pravesha are untouched by it. Settings → **Notifications** keeps its
+own basis (it drives the delivered emails) and was already accurate.
+Also swept the **18 i18n keys** the removals orphaned (`digest.basis*`, `digest.pravesh*`,
+`periodDigest.muntha` / `yearLord` / `pravesh*` / `taHint` …). Four pre-existing orphans in `periodDigest`
+(`window`, `yoga`, `ingress`, `station`) were left alone — not mine, and out of scope.
+
 ### 26.8 Superseded questions (now answered — kept for context)
 
 - 🔴 **Start-lord rule.** Mudda advances the natal lord by the year count (`(lord + years) % 9`). Is the

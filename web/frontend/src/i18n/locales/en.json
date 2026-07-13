@@ -899,7 +899,7 @@
       "praveshaBasis": "Chart basis (period readings)",
       "basisSolar": "Solar (Tajaka)",
       "basisLunar": "Lunar (tithi)",
-      "praveshaBasisHint": "Which pravesha ladder the Monthly and annual readings default to. Solar = Varshaphal / Maasa Pravesha (solar returns). Lunar = Tithi Pravesha / birth-tithi return. Pages can override this. The Fortnight is always lunar — there is no solar fortnight."
+      "praveshaBasisHint": "Which pravesha ladder the Daily and Monthly readings are cast on. Solar = the Tajaka ladder (Maasa Pravesha, a solar month). Lunar = the tithi ladder (the birth-tithi return, a lunar month). Only the Monthly page can override it — there the basis picks the window itself, a solar month or a lunar one. The Fortnight is always lunar (there is no solar fortnight). Varshaphal is always solar and Tithi Pravesha always lunar, so this setting does not touch them."
     },
     "ai": {
       "provider": "Provider",
@@ -1529,16 +1529,7 @@
     "tpLink": "Tithi Pravesha chart",
     "prevDay": "Previous day",
     "nextDay": "Next day",
-    "today": "Today",
-    "basis": "Basis",
-    "basisSolar": "Solar",
-    "basisLunar": "Lunar",
-    "basisSolarHint": "The Tajaka (solar) ladder — no progressed chart for a single day.",
-    "basisLunarHint": "The lunar (tithi) ladder — casts the day's Tithi Pravesha chart and its compressed Tithi Ashtottari.",
-    "praveshTithi": "Tithi Pravesha chart (today)",
-    "praveshLagna": "Lagna",
-    "praveshWindow": "Tithi window",
-    "taHint": "The full 108-unit Ashtottari cycle, compressed into this tithi. Tap a period to open its sub-periods."
+    "today": "Today"
   },
   "periodDigest": {
     "monthTitle": "This Month",
@@ -1564,13 +1555,7 @@
     "station": "Station",
     "retrograde": "Retrograde now",
     "sadeSati": "Saturn is transiting near your natal Moon — a Sade-Sati phase is active.",
-    "praveshLagna": "Monthly Lagna",
-    "muntha": "Muntha",
-    "yearLord": "Year-lord",
-    "tajakaYogas": "Tajaka yogas",
     "tpLink": "Tithi Pravesha chart",
-    "house": "house {{n}}",
-    "taHint": "The full 108-unit Ashtottari cycle, compressed into this window. Tap a period to open its sub-periods.",
     "aiTitleMonth": "Your month, read aloud",
     "aiHintMonth": "Get a warm, personalized reading of your month.",
     "aiLoading": "Reading the sky…",
@@ -1589,9 +1574,6 @@
     "basisSolarHint": "Maasa Pravesha — the Tajaka monthly solar return (~30.4 days).",
     "basisLunarHint": "The birth-tithi return — the lunar month (~29.5 days).",
     "windowNote": "This reading covers your {{window}} — a pravesha window, not a calendar period.",
-    "praveshPaksha": "{{paksha}} Paksha Pravesha (fortnightly chart)",
-    "praveshMaasa": "Maasa Pravesha (monthly solar-return chart)",
-    "praveshLunarMonth": "Lunar-month chart (birth-tithi return)",
     "aiTitleFortnight": "Your fortnight, read aloud",
     "aiHintFortnight": "Get a warm, personalized reading of this paksha.",
     "aiGenerateFortnight": "Read my fortnight",
