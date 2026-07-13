@@ -282,8 +282,36 @@ export const VarshaphalPage = () => {
             </div>
           </div>
 
-          {/* Which annual return: solar (Varshaphal) or lunar (Tithi Pravesha). */}
-          <div className="controls-group">
+          {/* Annual-dasha system picker — MIDDLE, and solar only. The lunar return
+              is paired with Tithi Ashtottari (a tithi-reckoned dasha for a
+              tithi-reckoned chart), which has no alternatives to choose between.
+              It must render BEFORE the basis toggle: `.page-controls` is
+              space-between, so keeping the basis toggle last pins it to the right
+              whether or not this picker is present (otherwise it hops
+              middle↔right as you switch basis). */}
+          {!isLunar && (
+            <div className="controls-group">
+              <label className="control-label">
+                <Clock size={18} style={{ color: "var(--saffron)" }} />
+                {t("varshaphal.annualDasha")}
+              </label>
+              <div className="chart-toggle">
+                {DASHA_SYSTEMS.map((s) => (
+                  <button
+                    key={s.key}
+                    className={`chart-toggle__btn${dashaSystem === s.key ? " is-active" : ""}`}
+                    onClick={() => changeDasha(s.key)}
+                  >
+                    {t(s.labelKey)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Which annual return: solar (Varshaphal) or lunar (Tithi Pravesha).
+              Always rendered LAST so space-between keeps it hard right. */}
+          <div className="controls-group controls-group--end">
             <label className="control-label">
               <Moon size={18} style={{ color: "var(--saffron)" }} />
               {t("varshaphal.basis")}
@@ -309,29 +337,6 @@ export const VarshaphalPage = () => {
               </button>
             </div>
           </div>
-
-          {/* Annual-dasha system picker — solar only. The lunar return is paired
-              with Tithi Ashtottari (a tithi-reckoned dasha for a tithi-reckoned
-              chart), which has no alternatives to choose between. */}
-          {!isLunar && (
-            <div className="controls-group">
-              <label className="control-label">
-                <Clock size={18} style={{ color: "var(--saffron)" }} />
-                {t("varshaphal.annualDasha")}
-              </label>
-              <div className="chart-toggle">
-                {DASHA_SYSTEMS.map((s) => (
-                  <button
-                    key={s.key}
-                    className={`chart-toggle__btn${dashaSystem === s.key ? " is-active" : ""}`}
-                    onClick={() => changeDasha(s.key)}
-                  >
-                    {t(s.labelKey)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* What window this reading actually covers. */}

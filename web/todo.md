@@ -2803,4 +2803,24 @@ DONE 2026-07-12:
       (which drives the app from a worker thread) reports failed transits where a real request succeeds:
       a harness artifact of the same root cause, **not** a production bug. Documented in `_set_ayanamsa`.
 
+- [x] **(P1) FOLLOWUP 2026-07-12 — TP dasha spanned a lifetime; basis toggle hopped position** (owner report):
+      - **Dasha showed 1958–2066.** Tithi Ashtottari is a **108-year life dasha**, so its *maha* periods
+        run 6–21 years each — a whole-life table next to a 354-day Tithi Pravesha window is useless.
+        (Mudda doesn't have this problem because it *compresses* Vimsottari into the annual chart's year;
+        Tithi Ashtottari is not an annual dasha and has no such compression.) FIXED:
+        `get_tithi_ashtottari` now takes `window_start`/`window_end`; when given, it computes at the
+        **antara** level (`dhasa_level_index=3` — the granularity that actually subdivides a year) and
+        keeps every period **overlapping** the window (not merely starting inside it, or the period
+        already running when the lunar year opens would be dropped). Yields ~10–13 rows spanning the
+        window with no gaps, the direct analogue of Varshaphal's 9-row annual table, current row flagged.
+        Sanity-checked against the allotments: Venus maha 21y → Venus bhukti 21×21/108 = 4.08y →
+        Venus antara 4.08×21/108 = 9.5 months, matching the computed row exactly. Without a window the
+        full maha-level life timeline is still returned (the standalone tool path).
+      - **Basis toggle hopped middle↔right.** `.page-controls` is `justify-content: space-between`, and
+        the toggle was rendered *before* the solar-only dasha picker — so with 3 groups it sat in the
+        middle and with 2 (Lunar, picker hidden) it jumped to the right. FIXED by ordering the groups
+        **Year (left) → Annual Dasha (middle) → Annual Return (right)** and pinning the last with a new
+        `.controls-group--end { margin-left: auto }`, so it stays hard right no matter how many sibling
+        groups render.
+
 ---

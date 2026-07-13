@@ -2983,6 +2983,8 @@ class AstrologyCompute:
     def get_tithi_ashtottari(dob: str, tob: str, place: str,
                              lat: Optional[float] = None, lon: Optional[float] = None,
                              tz: Optional[float] = None,
+                             window_start: Optional[str] = None,
+                             window_end: Optional[str] = None,
                              ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """**Tithi Ashtottari** — the 108-year dasha reckoned from the birth *tithi*
         (rather than the birth nakshatra, as Vimsottari/Ashtottari are).
@@ -2990,13 +2992,21 @@ class AstrologyCompute:
         This is the dasha Jagannatha Hora pairs with the Tithi Pravesha chart, and
         the pairing is the point: a tithi-based chart read against a tithi-based
         dasha. Like Vimsottari it is a whole-life timeline computed from the natal
-        moment (PyJHora's own `Horoscope` class drives it from the birth JD), so we
-        return the maha periods with the currently-running one flagged.
+        moment (PyJHora's own `Horoscope` class drives it from the birth JD).
+
+        **Scoping to a year.** Unlike Mudda — which *compresses* Vimsottari into the
+        annual chart's one year — Tithi Ashtottari is not an annual dasha, so its
+        maha periods run 6–21 years each and a life-long table is useless next to a
+        354-day Tithi Pravesha window. Pass `window_start`/`window_end` (the TP
+        window) and we instead return the **antara** periods that *overlap* it —
+        the granularity that actually subdivides the lunar year, and the direct
+        analogue of Varshaphal's annual-dasha table. Without a window, the full
+        maha-level life timeline is returned.
 
         NOTE: the engine's public entry point is `get_dhasa_bhukthi` — PyJHora's
         `horoscope/main.py` calls a `get_ashtottari_dhasa_bhukthi` that does not
         exist on this module, so that path is broken upstream; we call the real one.
-        Rows come back as `[(lord,), (y,m,d,fh)]` with **no duration**, so each
+        Rows come back as `[(lords…), (y,m,d,fh)]` with **no duration**, so each
         period's end is derived from the next period's start."""
         if not ENGINE_AVAILABLE:
             return {"error": "Jyotir AI engine not available", "status": "failed"}
@@ -3015,14 +3025,21 @@ class AstrologyCompute:
             place_obj = drik.Place(place, lat, lon, tz_offset)
             jd_dob = utils.julian_day_number(drik.Date(y, m, d), (hour, minute, 0))
 
-            raw = tithi_ashtottari.get_dhasa_bhukthi(jd_dob, place_obj, dhasa_level_index=1)
+            scoped = bool(window_start and window_end)
+            # Maha periods are 6-21 years; only the antara level subdivides a year.
+            level = 3 if scoped else 1
+            raw = tithi_ashtottari.get_dhasa_bhukthi(
+                jd_dob, place_obj, dhasa_level_index=level)
+
+            def _lords(lords):
+                seq = lords if isinstance(lords, (tuple, list)) else [lords]
+                return " › ".join(PLANET_NAMES.get(int(l), str(l)) for l in seq)
 
             items = []
             for row in raw:
                 lords, start_t = row[0], row[1]
-                lord = lords[0] if isinstance(lords, (tuple, list)) else lords
                 items.append({
-                    "lord_name": PLANET_NAMES.get(int(lord), str(lord)),
+                    "lord_name": _lords(lords),
                     "start_jd": swe.julday(int(start_t[0]), int(start_t[1]),
                                            int(start_t[2]), float(start_t[3])),
                 })
@@ -3033,27 +3050,36 @@ class AstrologyCompute:
                 return f"{int(yy):04d}-{int(mm):02d}-{int(dd):02d}"
 
             today = _date.today().isoformat()
-            periods = []
+            all_periods = []
             for i, it in enumerate(items):
                 start = _iso(it["start_jd"])
                 if i + 1 < len(items):
                     end = _iso(items[i + 1]["start_jd"])
                 else:
                     # Ashtottari's cycle is 108 years; close the last period on it.
-                    end = _iso(it["start_jd"] + 108 * 365.25 - sum(
-                        items[j + 1]["start_jd"] - items[j]["start_jd"]
-                        for j in range(len(items) - 1)))
-                periods.append({
+                    end = _iso(jd_dob + 108 * 365.2425)
+                all_periods.append({
                     "lord_name": it["lord_name"],
                     "start": start, "end": end,
                     "current": start <= today < end,
                 })
 
+            if scoped:
+                # Keep every period that OVERLAPS the window — not just those that
+                # start inside it, or we'd drop the one already running when the
+                # lunar year opens.
+                periods = [p for p in all_periods
+                           if p["end"] > window_start and p["start"] < window_end]
+            else:
+                periods = all_periods
+
             return {
                 "status": "success",
-                "system": "Tithi Ashtottari",
+                "system": ("Tithi Ashtottari (antara periods this lunar year)"
+                           if scoped else "Tithi Ashtottari"),
                 "system_key": "tithi_ashtottari",
                 "lord_type": "planet",
+                "level": "antara" if scoped else "maha",
                 "periods": periods,
             }
         except Exception as e:
@@ -3226,8 +3252,16 @@ class AstrologyCompute:
                 # Ashtottari** — a tithi-reckoned dasha for a tithi-reckoned chart.
                 # (The Tajaka annual dashas — Mudda/Patyayini/Narayana — belong to
                 # the *solar* return and are not carried over here.)
+                #
+                # Scope it to THIS lunar year: Tithi Ashtottari is a 108-year life
+                # dasha, so its maha periods span decades — a full timeline next to a
+                # 354-day window is useless. Passing the window returns the antara
+                # periods overlapping it instead (see get_tithi_ashtottari).
                 ta = AstrologyCompute.get_tithi_ashtottari(
-                    dob, tob, place, lat=lat, lon=lon, tz=tz, ayanamsa=ayanamsa)
+                    dob, tob, place, lat=lat, lon=lon, tz=tz,
+                    window_start=f"{sy_:04d}-{sm_:02d}-{sd_:02d}",
+                    window_end=f"{ey_:04d}-{em_:02d}-{ed_:02d}",
+                    ayanamsa=ayanamsa)
                 if ta.get("status") == "success":
                     annual_dasha = ta
 

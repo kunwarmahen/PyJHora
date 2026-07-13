@@ -414,6 +414,13 @@
   gap: var(--space-sm);
   flex-wrap: wrap;
 }
+/* Pin a control group to the far right of .page-controls regardless of how many
+   sibling groups render. Without this, a group that conditionally disappears
+   (e.g. the solar-only dasha picker) makes space-between reflow its neighbours,
+   so a toggle appears to hop between the middle and the right. */
+.controls-group--end {
+  margin-left: auto;
+}
 .control-label {
   display: flex;
   align-items: center;
