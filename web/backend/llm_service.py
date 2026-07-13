@@ -2172,9 +2172,14 @@ Reason only from the data above; do not invent placements. End on an encouraging
                 + (f": {y['description']}" if y.get("description") else "")
                 for y in yogas
             ) or "- (none notable)"
-            annual_block = f"""- Muntha (progressed ascendant): {muntha.get('sign_name')}, house {muntha.get('house')} of this chart
+            # These are the Tajaka *chart* judgements — Ithasala/Eesarpha (applying and
+            # separating by degree) and Ishkavala/Induvara (house distribution). They
+            # read the geometry of the chart in front of them, so they are at home on a
+            # lunar return; the year-reckoned Tajaka devices are not, and are labelled
+            # for the model as the solar imports they are.
+            annual_block = f"""- Muntha (progressed ascendant, reckoned in solar years): {muntha.get('sign_name')}, house {muntha.get('house')} of this chart
 - Year-lord: {yl.get('planet', 'n/a')}
-Active Tajaka yogas:
+Applying / separating aspects in this chart:
 {yoga_lines}
 """
 
@@ -2202,7 +2207,7 @@ Chart cast at the pravesha moment:
 {dasha_line}
 Write a grounded ~{words}-word reading:
 1. **The tone of the {horizon}** — what the Lagna and its lord set as the backdrop{', and what the Muntha activates' if is_annual else ''}.
-2. **Where the emphasis falls** — 2–3 of the most telling placements above{' or Tajaka yogas' if is_annual else ''}, and the areas of life they touch{', plus what the running dasha lord colours' if running else ''}.
+2. **Where the emphasis falls** — 2–3 of the most telling placements above{' or applying/separating aspects' if is_annual else ''}, and the areas of life they touch{', plus what the running dasha lord colours' if running else ''}.
 3. **How to work with it** — one or two calm, practical suggestions{'' if is_annual else f', scaled to a {horizon} — concrete and near-term, not life-defining'}.
 Close with a line noting that this chart is read *alongside* the solar one, and that it is indicative rather than fated. Do NOT make medical, legal or financial predictions."""
 

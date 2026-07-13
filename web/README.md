@@ -837,7 +837,7 @@ sits on neither. This is also why Jagannatha Hora offers daily / fortnightly / m
   nominal span, which keeps the walk contiguous. **Refresh** becomes **Current** while you are away
   from the present window.
 - **The digests are summaries, not chart views.** The progressed (pravesha) chart that backs each window —
-  with its Muntha, its Tajaka yogas and its compressed Tithi Ashtottari — lives on the
+  with its Muntha, its aspects and its compressed Tithi Ashtottari — lives on the
   **[Tithi Pravesha page](#tithi-pravesha--the-lunar-return-tithi-pravesha)**, which shows every rung of the
   lunar ladder; each digest links across rather than drawing the same chart twice.
 - **Chart basis** — Settings → General has a global **Solar / Lunar** default (`praveshaBasis`), used for
@@ -903,6 +903,16 @@ in *days* and cannot be used.
 
 **Muntha, the year-lord and the 8 Sahams appear on the Year rung only.** They are reckoned from the age in
 *years*, so they carry no meaning for a single tithi — showing them on a day would be inventing precision.
+
+**The Tajaka yogas are shown as what they are on a lunar chart: applying and separating aspects.** The
+backend block is shared with Varshaphal, so the lunar return inherits Ishkavala / Induvara (planets confined
+to kendras+panapharas, or to apoklimas) and Ithasala / Eesarpha (an aspect closing in, or pulling apart, by
+degree). Those four judge the **geometry of the chart in front of them** — Tajika Neelakanthi itself applies
+Ithasala in Prashna, on charts that are no one's annual return — so they hold on a TP chart. What does *not*
+carry over is the year-reckoned apparatus: a Muntha advancing one sign per **solar** year sits oddly on a
+~354-day window, and the TP lineage judges this chart with Parashari / Jaimini tools plus Tithi Ashtottari
+anyway. So the page (and the AI prompt) calls the section **Applying & Separating Aspects**, and the API
+key stays `tajaka_yogas` for the solar side's sake.
 The AI reading is likewise scaled to the window it is cast for (a day gets near-term, concrete suggestions;
 a year gets the year-ahead treatment), and it names the running compressed-dasha lord.
 

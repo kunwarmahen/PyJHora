@@ -253,7 +253,11 @@ export const TithiPraveshaPage = () => {
   // Muntha, year-lord and the Sahams are reckoned from the age in YEARS — they carry
   // no meaning on a tithi or a fortnight, so they show only on the annual rung.
   const sahams = isAnnual ? result?.sahams || [] : [];
-  const tajakaYogas = isAnnual ? result?.tajaka_yogas || [] : [];
+  // Ithasala / Eesarpha (applying / separating by degree) and Ishkavala / Induvara
+  // (whole-chart house distribution) are judgements about the cast chart, not about
+  // the year — the backend calls them tajaka_yogas because Varshaphal shares the
+  // block, but on a lunar return there is no Tajaka year to hang them on.
+  const aspects = isAnnual ? result?.tajaka_yogas || [] : [];
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -423,7 +427,7 @@ export const TithiPraveshaPage = () => {
               </div>
             </div>
 
-            {/* Sahams + Tajaka yogas — annual rung only (see above). */}
+            {/* Sahams + chart aspects — annual rung only (see above). */}
             {sahams.length > 0 && (
               <div className="ui-card ui-card--accent-gold ui-card--flush mt-xl">
                 <h3 className="ui-card-header ui-card-header--sm">
@@ -454,13 +458,14 @@ export const TithiPraveshaPage = () => {
               </div>
             )}
 
-            {tajakaYogas.length > 0 && (
+            {aspects.length > 0 && (
               <div className="ui-card ui-card--accent-indigo ui-card--flush mt-xl">
                 <h3 className="ui-card-header ui-card-header--sm">
-                  <Sparkles size={20} /> {t("tp.tajakaYogas")}
+                  <Sparkles size={20} /> {t("tp.aspects")}
                 </h3>
+                <p className="card-note">{t("tp.aspectsHint")}</p>
                 <div className="digest-highlights">
-                  {tajakaYogas.map((y, i) => (
+                  {aspects.map((y, i) => (
                     <div key={i} className="digest-hl">
                       <strong className="text-saffron">{y.name}</strong>
                       {y.pair ? ` (${y.pair.join(" / ")})` : ""}
