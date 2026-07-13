@@ -2837,7 +2837,7 @@ DONE 2026-07-12:
 > **§26.1 / §26.5 / §26.6 / §26.6b below are SUPERSEDED.** They reason in *days* and hunt an "anchor
 > from birth" — both wrong. The trail is kept for context; **the shipped code follows THIS section only.**
 
-**What shipped** (see §26.9 for the build log; §26.7's ± stepper is the one piece still open):
+**What shipped** (see §26.9 for the build log; §26.7's ± stepper landed too — §26 is now complete):
 - `web/backend/varsha_tithi_ashtottari.py` — the elongation engine (new module; PyJHora has no
   annual/compressed Tithi Ashtottari, and its *existing* Tithi Ashtottari functions actively cannot
   be used — see the warning below).
@@ -3159,17 +3159,42 @@ the top level. Investigated — this is the **easy** part, and it settles the de
   Which does JHora use? **A screenshot of any ONE expanded maha in JHora settles this instantly** — if
   the first sub-period repeats the maha lord, it's option 1; if it starts on the next lord, it's 3.
 
-### 26.7 🔴 Owner ask — ± stepper for day / fortnight / month, like the annual one (**STILL OPEN** — the only §26 piece not shipped)
+### 26.7 ✅ SHIPPED 2026-07-13 — ± stepper for day / fortnight / month, like the annual one
 
 > *"add that the person can +/- days, fortnight, month just like annual"*
+> *"all daily, fortnight, monthly should allow to look ahead and back as well like +/- we have in annual"*
 
-Today `/varshaphal` has a **year** stepper only. Wanted: step the pravesha window by **day / fortnight /
-month / year**, i.e. walk the **lunar ladder we already built in §25.1**
-(tithi ~0.98d → paksha ~14.8d → lunar month ~29.5d → TP year ~354/384d) — and, on the solar side, the
-Tajaka ladder (`drik.next_solar_date` already takes `years / months / sixty_hours`). The chart + its
-compressed dasha should recompute for whichever window you land on. This subsumes the "TP for today"
-ask: **`get_lunar_pravesha("annual", …)` already auto-selects the window containing a date when `year`
-is None** — the page just always sends an explicit year, so "Today" is a UI affordance, not new math.
+`/varshaphal` had a **year** stepper; the three shorter cadences were hard-wired to *today* and could
+only ever show the current window. Each cadence now steps **its own rung of the pravesha ladder**, so
+the ± lands on a real window rather than an arbitrary date offset:
+
+| Page | − / + steps by |
+|---|---|
+| `/daily-digest` | one **calendar day** |
+| `/fortnightly-digest` | one **paksha** (~14.8d) |
+| `/monthly-digest` | one **month** on the selected basis — Maasa Pravesha (~30.4d) or birth-tithi return (~29.5d) |
+
+**No new math — the backend already took a `date` and snapped it to the window containing it.** The
+whole card (opening panchanga, dasha, in-window transit events, the pravesha chart + its Muntha and
+Tajaka yogas, and the AI reading) recomputes for whatever window you land on, because `_period_digest`
+anchors *everything* to the passed date, not to the wall clock. The **Refresh** button becomes
+**Today / Current** whenever you are off the present window.
+
+**Step off the window's own boundaries — never by a nominal length.** Pravesha windows are not a fixed
+number of days (a paksha runs 13–16d, a Maasa 29–32d; the observed spans above are all over the place),
+so the pages hop using the boundaries the backend just returned: `+` re-anchors to `end_date + 1 day`,
+`−` to `start_date − 1 day`. One day past a boundary is always inside the adjacent window whatever its
+true length, so the walk stays contiguous with no gaps and no repeats. Verified through the UI: five
+consecutive windows on each of the three ladders, ± round-tripping back to the same window.
+
+- 🐛 **Fixed en route — `get_masa_pravesh` could return a window that did not contain the date.**
+  It picks the (year, month) index from a *linear* fraction of the tropical year from birth, but the
+  true Maasa Pravesha is where the Sun actually reaches natal-longitude + 30°k — which drifts a day or
+  two off an even 1/12. For 2026-07-13 it returned `2026-07-15 → 2026-08-15`, a window **starting two
+  days after the date being asked about** (so "This Month" was already showing next month), and `−`
+  would then re-select that same window and appear stuck. The estimate is now **snapped**: solve the
+  window boundaries and walk the month index until the date really falls inside. Both the digest and
+  the standalone Maasa Pravesha chart benefit.
 
 ### 26.8 Superseded questions (now answered — kept for context)
 

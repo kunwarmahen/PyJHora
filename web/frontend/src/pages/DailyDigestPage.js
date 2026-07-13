@@ -28,13 +28,24 @@ const readModelConfig = () => {
   };
 };
 
+const ymd = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 const nowParts = () => {
   const d = new Date();
   return {
-    date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+    date: ymd(d),
     time: `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`,
     tz: -d.getTimezoneOffset() / 60,
   };
+};
+
+// Walk the calendar day by day. Built from local Y/M/D parts (not a UTC-parsed
+// timestamp) so the month/year rollover and DST are handled by the Date itself.
+const shiftDays = (dateStr, delta) => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(y, m - 1, d + delta);
+  return ymd(dt);
 };
 
 const formatDate = (dateStr, locale = "en-US") => {
@@ -62,6 +73,9 @@ export const DailyDigestPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [digest, setDigest] = useState(null);
+  // Which day the card is cast for. Defaults to today; the ± stepper walks it.
+  const [anchor, setAnchor] = useState(() => nowParts().date);
+  const isToday = anchor === nowParts().date;
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
@@ -100,9 +114,9 @@ export const DailyDigestPage = () => {
     setError("");
     setAiAnalysis("");
     try {
-      const { date, time, tz } = nowParts();
+      const { time, tz } = nowParts();
       const res = await astrologyService.getDailyDigest(birthDetails, {
-        date,
+        date: anchor,
         currentTime: time,
         currentTz: tz,
         ayanamsa,
@@ -113,7 +127,7 @@ export const DailyDigestPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [birthDetails, ayanamsa, t]);
+  }, [birthDetails, ayanamsa, anchor, t]);
 
   useEffect(() => {
     if (!selectedProfile) {
@@ -128,10 +142,10 @@ export const DailyDigestPage = () => {
     setAiLoading(true);
     setAiError("");
     try {
-      const { date, time, tz } = nowParts();
+      const { time, tz } = nowParts();
       const res = await astrologyService.analyzeDailyDigestAI(
         birthDetails,
-        { date, currentTime: time, currentTz: tz, personName: birthDetails.name },
+        { date: anchor, currentTime: time, currentTz: tz, personName: birthDetails.name },
         { ...readModelConfig(), ayanamsa }
       );
       setAiAnalysis(res.data.ai_analysis || "");
@@ -164,10 +178,38 @@ export const DailyDigestPage = () => {
         <ProfileBanner profile={selectedProfile} />
 
         <div className="page-controls">
+          {/* ± day stepper — the same look-ahead/look-back the annual page has,
+              one calendar day at a time. The whole card (panchanga, transits,
+              dasha, tithi-pravesha chart) recomputes for the day you land on. */}
           <div className="controls-group">
-            <span className="control-label">{formatDate(digest?.date, locale)}</span>
-            <button className="control-btn" onClick={load}>
-              {t("digest.refresh")}
+            <div className="stepper">
+              <button
+                type="button"
+                className="stepper__btn"
+                onClick={() => setAnchor((a) => shiftDays(a, -1))}
+                aria-label={t("digest.prevDay")}
+                title={t("digest.prevDay")}
+              >
+                −
+              </button>
+              <span className="stepper__label" style={{ minWidth: "13rem" }}>
+                {formatDate(anchor, locale)}
+              </span>
+              <button
+                type="button"
+                className="stepper__btn"
+                onClick={() => setAnchor((a) => shiftDays(a, 1))}
+                aria-label={t("digest.nextDay")}
+                title={t("digest.nextDay")}
+              >
+                +
+              </button>
+            </div>
+            <button
+              className="control-btn"
+              onClick={() => (isToday ? load() : setAnchor(nowParts().date))}
+            >
+              {isToday ? t("digest.refresh") : t("digest.today")}
             </button>
             <button className="control-btn" onClick={() => navigate("/settings")}>
               <Bell size={14} /> {t("digest.notifySettings")}

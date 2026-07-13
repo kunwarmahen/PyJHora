@@ -1477,7 +1477,10 @@
     "aiModel": "Read by {{model}}",
     "aiError": "Couldn't generate today's reading.",
     "error": "Couldn't build your daily digest.",
-    "disclaimer": "A supportive daily reflection — not fated, and not medical, legal or financial advice."
+    "disclaimer": "A supportive daily reflection — not fated, and not medical, legal or financial advice.",
+    "prevDay": "Previous day",
+    "nextDay": "Next day",
+    "today": "Today"
   },
   "periodDigest": {
     "monthTitle": "This Month",
@@ -1531,7 +1534,12 @@
     "praveshLunarMonth": "Lunar-month chart (birth-tithi return)",
     "aiTitleFortnight": "Your fortnight, read aloud",
     "aiHintFortnight": "Get a warm, personalized reading of this paksha.",
-    "aiGenerateFortnight": "Read my fortnight"
+    "aiGenerateFortnight": "Read my fortnight",
+    "prevFortnight": "Previous fortnight",
+    "nextFortnight": "Next fortnight",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "current": "Current"
   },
   "bhrigu": {
     "title": "Bhrigu / Nadi Markers",

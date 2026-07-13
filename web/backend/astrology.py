@@ -2625,8 +2625,31 @@ class AstrologyCompute:
                             "status": "failed"}
                 years_elapsed = int(frac)
                 month_idx = int((frac - years_elapsed) * 12)  # 0-11
-                years_param = years_elapsed + 1
-                months_param = month_idx + 1
+
+                # The linear fraction is only an *estimate* — the true Maasa
+                # Pravesha is where the Sun actually reaches natal-longitude+30°k,
+                # which drifts a day or two from an even 1/12 of the year. Snap the
+                # estimate onto the window that really contains the date by solving
+                # the boundaries and walking the index until it does. Without this
+                # the digest could return a window the requested date sits outside
+                # of, and stepping back off a window's start would re-select that
+                # same window instead of the previous one.
+                idx = years_elapsed * 12 + month_idx      # months since birth
+                for _ in range(4):
+                    yp, mp = idx // 12 + 1, idx % 12 + 1
+                    w_start = drik.next_solar_date(jd_dob, place_obj,
+                                                   years=yp, months=mp)
+                    n_yp, n_mp = (yp + 1, 1) if mp >= 12 else (yp, mp + 1)
+                    w_end = drik.next_solar_date(jd_dob, place_obj,
+                                                 years=n_yp, months=n_mp)
+                    if jd_ref < w_start and idx > 0:
+                        idx -= 1
+                    elif jd_ref >= w_end:
+                        idx += 1
+                    else:
+                        break
+                years_param = idx // 12 + 1
+                months_param = idx % 12 + 1
             age = years_param - 1
 
             # ── Monthly (Tajaka) chart + window boundaries ─────────────────

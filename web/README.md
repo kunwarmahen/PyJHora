@@ -776,6 +776,8 @@ Three approaches, chosen with a mode toggle:
 - A personalized **daily card**: today's Panchanga + your running Vimsottari dasha (flagging a
   Bhukti change within 30 days) + headline transits (Sade-Sati, Jupiter-from-Moon, retrogrades,
   next Jupiter/Saturn ingress), plus a warm **AI reading**
+- **± day stepper** — look ahead or back a day at a time, like the Varshaphal year stepper. The whole
+  card recomputes for the day you land on; **Refresh** becomes **Today** while you are off the present day
 - **Multiple profiles per digest**: pick a subset of your saved charts (or tick **All my profiles**
   to always include every one, plus any you add later). The delivered email/push is a **single
   combined message** with one section per chart. Each section leads with an AI **"how the day looks"**
@@ -820,6 +822,13 @@ sits on neither. This is also why Jagannatha Hora offers daily / fortnightly / m
   **Solar** = the **Maasa Pravesha** (Tajaka monthly solar return, the monthly analogue of Varshaphal);
   **Lunar** = the **birth-tithi return** (your natal tithi recurring). Either way **the "month" is that
   pravesha window (e.g. "Jun 15 → Jul 17"), not a calendar month.**
+- **± window stepper** — both pages look ahead and back one **whole pravesha window** at a time (a
+  paksha; a Maasa / lunar month on whichever basis is selected), and the reading — panchanga, dasha,
+  in-window transit events, the pravesha chart and the AI text — recomputes for the window you land on.
+  Because the windows are **not** a fixed length (13–16d for a paksha, 29–32d for a month), the step
+  re-anchors off the *current window's own boundaries* (`end + 1d` / `start − 1d`) rather than adding a
+  nominal span, which keeps the walk contiguous. **Refresh** becomes **Current** while you are away
+  from the present window.
 - **Chart basis** — Settings → General has a global **Solar / Lunar** default (`praveshaBasis`); the
   Monthly page can override it per reading. The Daily digest also gains the day's tithi chart on the
   lunar basis.

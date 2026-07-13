@@ -28,9 +28,14 @@ const readModelConfig = () => {
   };
 };
 
-const todayStr = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const ymd = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+const todayStr = () => ymd(new Date());
+
+const shiftDays = (dateStr, delta) => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return ymd(new Date(y, m - 1, d + delta));
 };
 
 const formatDate = (dateStr, locale = "en-US") => {
@@ -72,6 +77,10 @@ const PeriodDigestPage = ({ period }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [digest, setDigest] = useState(null);
+  // Any date inside the window we want; the backend snaps it to the pravesha
+  // window that contains it. Defaults to today; the ± stepper walks it.
+  const [anchor, setAnchor] = useState(todayStr);
+  const isCurrent = anchor === todayStr();
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
@@ -110,15 +119,15 @@ const PeriodDigestPage = ({ period }) => {
     setAiAnalysis("");
     try {
       const res = isMonth
-        ? await astrologyService.getMonthlyDigest(birthDetails, { date: todayStr(), basis, ayanamsa })
-        : await astrologyService.getFortnightlyDigest(birthDetails, { date: todayStr(), ayanamsa });
+        ? await astrologyService.getMonthlyDigest(birthDetails, { date: anchor, basis, ayanamsa })
+        : await astrologyService.getFortnightlyDigest(birthDetails, { date: anchor, ayanamsa });
       setDigest(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || t("periodDigest.error"));
     } finally {
       setLoading(false);
     }
-  }, [birthDetails, ayanamsa, isMonth, basis, t]);
+  }, [birthDetails, ayanamsa, isMonth, basis, anchor, t]);
 
   useEffect(() => {
     if (!selectedProfile) {
@@ -128,6 +137,16 @@ const PeriodDigestPage = ({ period }) => {
     load();
   }, [selectedProfile, navigate, load]);
 
+  // Hop a whole window at a time. Pravesha windows are not a fixed number of days
+  // (a paksha runs ~13–15d, a lunar month ~29.5d, a Maasa ~30.4d), so we step off
+  // the boundaries the backend just returned rather than adding a nominal length:
+  // one day past the end lands in the next window, one day before the start in the
+  // previous one, whatever their true lengths turn out to be.
+  const stepWindow = (dir) => {
+    if (!digest?.start_date || !digest?.end_date) return;
+    setAnchor(dir > 0 ? shiftDays(digest.end_date, 1) : shiftDays(digest.start_date, -1));
+  };
+
   const handleAi = async () => {
     if (!birthDetails) return;
     setAiLoading(true);
@@ -136,7 +155,7 @@ const PeriodDigestPage = ({ period }) => {
       const res = await astrologyService.analyzePeriodDigestAI(
         isMonth ? "monthly" : "fortnightly",
         birthDetails,
-        { date: todayStr(), basis: isMonth ? basis : undefined, personName: birthDetails.name },
+        { date: anchor, basis: isMonth ? basis : undefined, personName: birthDetails.name },
         { ...readModelConfig(), ayanamsa }
       );
       setAiAnalysis(res.data.ai_analysis || "");
@@ -179,12 +198,37 @@ const PeriodDigestPage = ({ period }) => {
 
         <div className="page-controls">
           <div className="controls-group">
-            <span className="control-label">
-              {formatDate(digest?.start_date, locale)} → {formatDate(digest?.end_date, locale)}
-              {digest?.span_days ? ` · ${t("periodDigest.spanDays", { count: digest.span_days })}` : ""}
-            </span>
-            <button className="control-btn" onClick={load}>
-              {t("periodDigest.refresh")}
+            <div className="stepper">
+              <button
+                type="button"
+                className="stepper__btn"
+                onClick={() => stepWindow(-1)}
+                disabled={loading || !digest}
+                aria-label={t(isMonth ? "periodDigest.prevMonth" : "periodDigest.prevFortnight")}
+                title={t(isMonth ? "periodDigest.prevMonth" : "periodDigest.prevFortnight")}
+              >
+                −
+              </button>
+              <span className="stepper__label" style={{ minWidth: "14rem" }}>
+                {formatDate(digest?.start_date, locale)} → {formatDate(digest?.end_date, locale)}
+                {digest?.span_days ? ` · ${t("periodDigest.spanDays", { count: digest.span_days })}` : ""}
+              </span>
+              <button
+                type="button"
+                className="stepper__btn"
+                onClick={() => stepWindow(1)}
+                disabled={loading || !digest}
+                aria-label={t(isMonth ? "periodDigest.nextMonth" : "periodDigest.nextFortnight")}
+                title={t(isMonth ? "periodDigest.nextMonth" : "periodDigest.nextFortnight")}
+              >
+                +
+              </button>
+            </div>
+            <button
+              className="control-btn"
+              onClick={() => (isCurrent ? load() : setAnchor(todayStr()))}
+            >
+              {isCurrent ? t("periodDigest.refresh") : t("periodDigest.current")}
             </button>
             <button className="control-btn" onClick={() => navigate("/settings")}>
               <Bell size={14} /> {t("periodDigest.notifySettings")}
