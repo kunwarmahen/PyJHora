@@ -2121,46 +2121,88 @@ Write a friendly ~{'230' if is_fortnight else '260'}-word note on this {noun}:
 3. **A gentle plan** — one or two practical suggestions for making the most of this {noun}.
 Reason only from the data above; do not invent placements. End on an encouraging line. Do NOT make fated, medical, legal or financial claims; keep it a supportive forward-looking reflection."""
 
+    # Each rung of the lunar pravesha ladder, as the reading should frame it:
+    # (what the window is, the horizon word, the target length).
+    _PRAVESHA_RUNGS = {
+        "tithi": ("the moment the running **tithi** opens — a lunar 'day' of roughly 24 hours",
+                  "day", 180),
+        "paksha": ("the moment the current **paksha** (lunar fortnight) opens — the waxing or "
+                   "waning half of the lunar month, about 15 days",
+                   "fortnight", 220),
+        "month": ("the moment {name}'s **birth tithi recurs** — a lunar month of about 29.5 days",
+                  "month", 240),
+        "annual": ("the moment {name}'s **natal tithi and lunar month recur** — a lunar-year "
+                   "return of roughly 354 days (384 in an adhika-masa year)",
+                   "year", 280),
+    }
+
     def _build_tithi_pravesha_prompt(self, d: Dict[str, Any], name: str) -> str:
-        """Year-ahead reading of the Tithi Pravesha (annual lunar-return) chart."""
+        """Reading of a chart on the lunar (tithi) pravesha ladder.
+
+        One prompt for all four rungs. The year-reckoned panels — Muntha, year-lord,
+        Sahams — exist only on the annual rung (they are derived from the age in
+        *years*, so they are meaningless for a single tithi), and the prompt simply
+        omits them below it rather than inviting the model to read noise."""
         lagna = d.get("lagna") or {}
-        muntha = d.get("muntha") or {}
-        yl = d.get("year_lord") or {}
         window = d.get("window") or {}
         planets = d.get("planets") or {}
         yogas = d.get("tajaka_yogas") or []
+
+        rung = d.get("rung", "annual")
+        what_it_is, horizon, words = self._PRAVESHA_RUNGS.get(
+            rung, self._PRAVESHA_RUNGS["annual"])
+        what_it_is = what_it_is.format(name=name)
+        is_annual = rung == "annual"
 
         planet_lines = "\n".join(
             f"- {p}: {v.get('sign_name')} {v.get('degrees')}°"
             for p, v in planets.items()
         ) or "- (none)"
-        yoga_lines = "\n".join(
-            f"- {y['name']}"
-            + (f" ({'/'.join(y['pair'])})" if y.get("pair") else "")
-            + (f": {y['description']}" if y.get("description") else "")
-            for y in yogas
-        ) or "- (none notable)"
 
-        return f"""You are a warm, grounded Vedic astrologer reading {name}'s **Tithi Pravesha** chart — the *annual lunar-return* horoscope. Explain what has already been computed; do not recompute or invent placements.
+        # The year-only block. Below the annual rung there is nothing honest to put here.
+        annual_block = ""
+        if is_annual:
+            muntha = d.get("muntha") or {}
+            yl = d.get("year_lord") or {}
+            yoga_lines = "\n".join(
+                f"- {y['name']}"
+                + (f" ({'/'.join(y['pair'])})" if y.get("pair") else "")
+                + (f": {y['description']}" if y.get("description") else "")
+                for y in yogas
+            ) or "- (none notable)"
+            annual_block = f"""- Muntha (progressed ascendant): {muntha.get('sign_name')}, house {muntha.get('house')} of this chart
+- Year-lord: {yl.get('planet', 'n/a')}
+Active Tajaka yogas:
+{yoga_lines}
+"""
 
-**What this chart is.** Tithi Pravesha (the "TP chart") is cast for the moment {name}'s **natal tithi and lunar month recur** — a lunar-year return of roughly 354 days. It is the *lunar* counterpart of the solar-return Varshaphal: where Varshaphal times the year from the Sun's return, this times it from the Moon–Sun relationship at birth. Traditionally it is read for the emotional, domestic and mental texture of the year, alongside (not instead of) the solar annual chart.
+        # The running compressed Tithi Ashtottari lord — the sharpest thing to say about
+        # a short window, where a maha period may last only hours.
+        dasha_line = ""
+        ta = d.get("tithi_ashtottari") or {}
+        running = next((p for p in ta.get("periods") or [] if p.get("current")), None)
+        if running:
+            dasha_line = (
+                f"\nRunning period of this window's **compressed Tithi Ashtottari** "
+                f"(the whole 108-unit cycle fitted into this {horizon}): "
+                f"**{running.get('lord_name')}**, {running.get('start')} → {running.get('end')}.\n")
 
-This year's Tithi Pravesha: **{d.get('label', 'n/a')}**, running {window.get('start')} → {window.get('end')} ({window.get('span_days')} days). Age at entry: {window.get('age')}.
+        return f"""You are a warm, grounded Vedic astrologer reading {name}'s **{'Tithi Pravesha' if is_annual else 'lunar pravesha'}** chart. Explain what has already been computed; do not recompute or invent placements.
+
+**What this chart is.** It is cast for {what_it_is}. This is the *lunar* ladder: where the Tajaka/Varshaphal charts time things from the Sun's return, these time them from the Moon–Sun relationship at birth. Traditionally the lunar side is read for the emotional, domestic and mental texture of a period, alongside (not instead of) the solar chart.
+
+This {horizon}: **{d.get('label', 'n/a')}**, running {window.get('start_at') or window.get('start')} → {window.get('end_at') or window.get('end')} ({window.get('span_days')} days).
 
 Chart cast at the pravesha moment:
 - Lagna: {lagna.get('sign_name')} {lagna.get('degrees')}°
-- Muntha (progressed ascendant): {muntha.get('sign_name')}, house {muntha.get('house')} of this chart
-- Year-lord: {yl.get('planet', 'n/a')}
-Planets:
+{annual_block}Planets:
 {planet_lines}
-Active Tajaka yogas:
-{yoga_lines}
-
-Write a grounded ~280-word reading:
-1. **The tone of the year** — what the TP Lagna and its lord set as the backdrop, and what the Muntha's house activates.
-2. **Where the emphasis falls** — 2–3 of the most telling placements or Tajaka yogas above, and the areas of life they touch.
-3. **How to work with it** — one or two calm, practical suggestions.
-Close with a line noting that the TP chart is read *alongside* the solar annual chart, and that it is indicative rather than fated. Do NOT make medical, legal or financial predictions."""
+{dasha_line}
+Write a grounded ~{words}-word reading:
+1. **The tone of the {horizon}** — what the Lagna and its lord set as the backdrop{', and what the Muntha activates' if is_annual else ''}.
+2. **Where the emphasis falls** — 2–3 of the most telling placements above{' or Tajaka yogas' if is_annual else ''}, and the areas of life they touch{', plus what the running dasha lord colours' if running else ''}.
+3. **How to work with it** — one or two calm, practical suggestions{'' if is_annual else f', scaled to a {horizon} — concrete and near-term, not life-defining'}.
+Close with a line noting that this chart is read *alongside* the solar one, and that it is indicative rather than fated. Do NOT make medical, legal or financial predictions."""
 
     def _build_bhrigu_markers_prompt(self, d: Dict[str, Any], name: str) -> str:
         """Read the Nadi/Bhrigu yearly markers: the Moon-based annual progression

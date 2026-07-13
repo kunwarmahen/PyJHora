@@ -15,6 +15,7 @@ import { TransitPage } from "./pages/TransitPage";
 import { SarvatobhadraPage } from "./pages/SarvatobhadraPage";
 import { LearnChartPage } from "./pages/LearnChartPage";
 import { VarshaphalPage } from "./pages/VarshaphalPage";
+import { TithiPraveshaPage } from "./pages/TithiPraveshaPage";
 import { PanchaPakshiPage } from "./pages/PanchaPakshiPage";
 import { BirthTimeRectificationPage } from "./pages/BirthTimeRectificationPage";
 import { AlmanacPage } from "./pages/AlmanacPage";
@@ -320,6 +321,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <VarshaphalPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/tithi-pravesha"
+              element={
+                <ProtectedRoute>
+                  <TithiPraveshaPage />
                 </ProtectedRoute>
               }
             />

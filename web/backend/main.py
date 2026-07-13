@@ -372,6 +372,8 @@ class DailyDigestAnalysisRequest(BaseModel):
     person_name: Optional[str] = None
     # Pravesha basis: "solar" (Tajaka ladder) or "lunar" (tithi ladder).
     basis: Optional[str] = None
+    # Which rung of the LUNAR ladder: tithi | paksha | month | annual (default).
+    rung: Optional[str] = None
     year: Optional[int] = None  # Tithi Pravesha: target lunar-return year
     llm_provider: str = "qwen"
     provider_type: Optional[str] = None
@@ -2893,6 +2895,49 @@ async def get_tithi_pravesha(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+_LUNAR_RUNGS = ("tithi", "paksha", "month", "annual")
+
+
+@app.post("/api/astrology/lunar-pravesha")
+async def get_lunar_pravesha(
+    birth_details: BirthDetails,
+    rung: str = "annual",
+    year: Optional[int] = None,
+    date: Optional[str] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """A chart anywhere on the **lunar (tithi) pravesha ladder** — the Tithi Pravesha
+    page's one endpoint.
+
+    `rung` picks the window: `tithi` (the running tithi, ~1d), `paksha` (the lunar
+    fortnight, ~14.8d), `month` (the birth-tithi return, ~29.5d), or `annual` (the
+    natal tithi *and* lunar month recurring — the TP chart proper, ~354/384d).
+
+    Each returns the chart cast at the instant the window opens, plus that window's
+    **compressed Tithi Ashtottari**. `year` targets a specific annual window; `date`
+    selects whichever window contains it (and is how the ± stepper walks the ladder).
+    The year-reckoned panels — Muntha, year-lord, Sahams — are meaningful only on the
+    annual rung and are omitted below it."""
+    if rung not in _LUNAR_RUNGS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown rung '{rung}' — expected one of {', '.join(_LUNAR_RUNGS)}")
+    try:
+        result = AstrologyCompute.get_lunar_pravesha(
+            rung, dob=birth_details.dob, tob=birth_details.tob,
+            place=birth_details.place, lat=birth_details.latitude,
+            lon=birth_details.longitude, tz=birth_details.timezone,
+            year=year, date=date, ayanamsa=ayanamsa)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 class TithiAshtottariChildrenRequest(BaseModel):
     """One period of the compressed Tithi Ashtottari, to be subdivided.
 
@@ -3004,12 +3049,20 @@ async def analyze_tithi_pravesha(
     request: DailyDigestAnalysisRequest,
     current_user: str = Depends(get_current_user),
 ):
-    """Warm AI reading of the Tithi Pravesha (annual lunar-return) chart."""
+    """Warm AI reading of a chart on the lunar pravesha ladder.
+
+    `rung` defaults to `annual` — the Tithi Pravesha chart proper — so older clients
+    that never sent one keep the reading they always got. Every rung is saved under
+    the same `tithi_pravesha` history source, so a saved reading reopens on the TP
+    page whichever window it was cast for."""
     _enforce_rate_limit(current_user)
+    rung = request.rung or "annual"
+    if rung not in _LUNAR_RUNGS:
+        raise HTTPException(status_code=400, detail=f"Unknown rung '{rung}'")
     try:
         bd = request.birth_details
-        result = AstrologyCompute.get_tithi_pravesha(
-            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+        result = AstrologyCompute.get_lunar_pravesha(
+            rung, dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
             lon=bd.longitude, tz=bd.timezone, year=request.year, date=request.date,
             ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
         if result.get("status") != "success":
@@ -3017,13 +3070,15 @@ async def analyze_tithi_pravesha(
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_tithi_pravesha(
             tp_data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        label = {"tithi": "Tithi", "paksha": "Paksha", "month": "Lunar month",
+                 "annual": "Tithi Pravesha"}[rung]
         await _save_reading(
             current_user, source="tithi_pravesha",
-            title=f"Tithi Pravesha — {result.get('window', {}).get('start')} · {request.person_name or bd.name or 'chart'}",
+            title=f"{label} — {result.get('window', {}).get('start')} · {request.person_name or bd.name or 'chart'}",
             text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
             birth_details=bd.model_dump(),
             context={"person_name": request.person_name, "year": request.year,
-                     "date": request.date, "ayanamsa": request.ayanamsa},
+                     "date": request.date, "rung": rung, "ayanamsa": request.ayanamsa},
         )
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
                 "model": cfg.model}

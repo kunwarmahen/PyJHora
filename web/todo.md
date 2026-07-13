@@ -3238,9 +3238,38 @@ Payload: `get_lunar_pravesha` now returns **`tithi_ashtottari`** on every rung, 
 an alias on the annual rung so `/varshaphal` reads one key for both the solar (Mudda/Patyayini/Narayana)
 and lunar sides. The expandable tree renders on **Daily · Fortnightly · Monthly · Varshaphal**.
 
-**Not done:** a single *unified* rung selector on one page (day/fortnight/month/year in one dropdown). Each
-cadence lives on its own page with its own ± stepper (§26.7), which covers the ask — but if you want one
-page to switch rung, that is the remaining step.
+### 26.11 ✅ Dedicated Tithi Pravesha page, with the rung selector — SHIPPED 2026-07-13 (**§26 COMPLETE**)
+
+> *"may be can have a dedicated tile and page for TP and user can select daily, fortnight, month and annual"*
+
+**New page `/tithi-pravesha`** (dashboard tile + nav drawer, Moon icon) — one page, four cadences. A
+**Window** selector picks the rung (Day / Fortnight / Month / Year) and a ± stepper walks *that* rung one
+whole window at a time, hopping off the window's own boundaries (`end + 1d` / `start − 1d`) rather than
+adding a nominal length, so the walk stays contiguous whatever the true span. Switching rung **re-anchors
+on the current window's start**, so you stay where you are on the timeline instead of being thrown back to
+today. Each rung shows: the chart cast at the exact pravesha instant, placements, the compressed Tithi
+Ashtottari tree, and an AI reading.
+
+**Owner decisions (2026-07-13):**
+1. **The TP page is TP's home — `/varshaphal` is now SOLAR-ONLY.** The Solar/Lunar toggle is gone; the page
+   is what its name means (the Tajaka solar return) and links across to the lunar side. No more duplicate
+   surface to keep in step.
+2. **Muntha, year-lord and the Sahams show on the Year rung only.** They are reckoned from the age in
+   *years* — a "year-lord" for a 20-hour window is noise. The AI prompt omits them below annual too.
+
+**Backend was nearly free** (the compute layer already did every rung — see §26.10): one generic endpoint
+`POST /api/astrology/lunar-pravesha?rung=` + rung validation. The real work was the **AI prompt**, which was
+hard-coded as a *year-ahead* reading: `_build_tithi_pravesha_prompt` is now rung-aware (horizon word, target
+length 180→280 words, year-only panels omitted, and it names the **running compressed-dasha lord** — the
+sharpest thing to say about a window whose maha periods last hours). Verified live on Ollama: the fortnight
+reading came back framed as a fortnight, 232 words against a 220 target.
+
+**⚠️ Don't miss this when moving a page:** saved AI readings carry a **route** (`conversations.py`
+`SOURCES`), and `tithi_pravesha` pointed at `/varshaphal`. Left alone, every previously-saved TP reading
+would have reopened on a page that no longer renders it. Repointed to `/tithi-pravesha`; the page restores
+the rung from the saved context and defaults to annual when absent — which is exactly what those older
+readings were. Verified: an existing Paksha reading reopens on the new page with the Fortnight rung and its
+original window restored.
 
 ### 26.8 Superseded questions (now answered — kept for context)
 

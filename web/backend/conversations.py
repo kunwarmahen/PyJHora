@@ -42,7 +42,11 @@ SOURCE_META: Dict[str, Dict[str, str]] = {
     "daily_digest":       {"label": "Daily digest",       "route": "/daily-digest",       "kind": "reading"},
     "fortnightly_digest": {"label": "Fortnightly digest", "route": "/fortnightly-digest", "kind": "reading"},
     "monthly_digest":     {"label": "Monthly digest",     "route": "/monthly-digest",     "kind": "reading"},
-    "tithi_pravesha":     {"label": "Tithi Pravesha",     "route": "/varshaphal",         "kind": "reading"},
+    # Tithi Pravesha moved off /varshaphal onto its own page (which also carries the
+    # shorter rungs). Readings saved before the move reopen there too — the page
+    # restores the rung from the saved context, defaulting to annual when absent,
+    # which is exactly what those older readings were.
+    "tithi_pravesha":     {"label": "Tithi Pravesha",     "route": "/tithi-pravesha",     "kind": "reading"},
     "sensitive_points": {"label": "Sensitive points",   "route": "/sensitive-points",  "kind": "reading"},
     "celestial":        {"label": "Vedic clock",        "route": "/vedic-clock",       "kind": "reading"},
     "almanac":          {"label": "Almanac",            "route": "/almanac",           "kind": "reading"},

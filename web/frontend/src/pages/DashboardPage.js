@@ -12,6 +12,7 @@ import {
   Sparkles,
   Orbit,
   CalendarClock,
+  Moon,
   Grid3x3,
   GitCompareArrows,
   GraduationCap,
@@ -114,6 +115,12 @@ export const DashboardPage = () => {
       icon: <CalendarClock size={32} />,
       path: "/varshaphal",
       gradient: "linear-gradient(135deg, #D4AF37 0%, #2D3561 100%)",
+    },
+    {
+      key: "tithiPravesha",
+      icon: <Moon size={32} />,
+      path: "/tithi-pravesha",
+      gradient: "linear-gradient(135deg, #2D3561 0%, #FF9933 100%)",
     },
     {
       key: "almanac",

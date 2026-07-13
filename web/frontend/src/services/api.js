@@ -622,9 +622,17 @@ export const astrologyService = {
       { timeout: 300000 }
     ),
 
-  // ---- Tithi Pravesha — the annual *lunar*-return chart (§25.1) ----
+  // ---- Tithi Pravesha — the *lunar*-return chart, on any rung of the ladder ----
   getTithiPravesha: (birthDetails, { year, date, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
     api.post("/api/astrology/tithi-pravesha", birthDetails, { params: { year, date, ayanamsa } }),
+  /** Any rung of the lunar pravesha ladder: "tithi" (~1d), "paksha" (~14.8d),
+   *  "month" (~29.5d) or "annual" (the TP chart proper). `year` targets an annual
+   *  window; `date` selects whichever window contains it — which is how the ±
+   *  stepper walks the ladder. */
+  getLunarPravesha: (birthDetails, { rung = "annual", year, date, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+    api.post("/api/astrology/lunar-pravesha", birthDetails, {
+      params: { rung, year, date, ayanamsa },
+    }),
   /** One level of the compressed Tithi Ashtottari tree, fetched when a period is
    *  expanded. `period` is a row from the table: {start_jd, lord, span_deg, level}
    *  plus the place — that is all a subdivision needs. */
@@ -635,6 +643,7 @@ export const astrologyService = {
       "/api/astrology/tithi-pravesha-analysis",
       {
         birth_details: birthDetails,
+        rung: opts.rung,
         year: opts.year,
         date: opts.date,
         person_name: opts.personName,

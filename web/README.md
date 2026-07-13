@@ -639,6 +639,9 @@ DB name), which is deliberate.
   picked in Ask AI Astrologer
 - Also published as a smart-lookup **tool** (`get_varshaphal`) so the AI astrologer can pull
   an annual snapshot when asked "how is _&lt;year&gt;_ for me?"
+- **Solar only.** Its lunar counterpart — **Tithi Pravesha** — has its own page (`/tithi-pravesha`),
+  which also carries the shorter rungs of the lunar ladder (day / fortnight / month). The two annual
+  charts are read side by side; the page links across.
 
 ### 9. Almanac (`/almanac`)
 
@@ -849,40 +852,49 @@ sits on neither. This is also why Jagannatha Hora offers daily / fortnightly / m
   `monthly_digest`) and exposed to Ask-Astrologer as `get_fortnightly_digest` / `get_monthly_digest`
   tools.
 
-#### Tithi Pravesha — the annual lunar return (on `/varshaphal`)
+#### Tithi Pravesha — the lunar return (`/tithi-pravesha`)
 
-The annual page carries a **Solar / Lunar** toggle, one at a time:
+The **lunar** counterpart of Varshaphal, on its own page. Where Varshaphal times a year from the Sun's
+return to its natal longitude, this times a window from the **Moon–Sun relationship at birth** — and it is
+read *alongside* the solar chart, not instead of it. (It used to be a Solar/Lunar toggle on `/varshaphal`;
+it outgrew that once the shorter rungs arrived, so `/varshaphal` is now purely the solar Tajaka chart.)
 
-- **Solar → Varshaphal**, the Tajaka *solar* return (~365 days), cast when the Sun comes back to its
-  natal longitude. Annual dasha: **Mudda / Patyayini / Narayana** (selectable).
-- **Lunar → Tithi Pravesha** (the **TP chart**), the *lunar* return (~354 days — or ~384 in an
-  adhika-masa year), cast for the moment your **natal tithi and lunar month recur**, so it drifts ~11 days
-  earlier each year. The chart is cast at the **exact pravesha instant**, solved to the moment the Moon−Sun
-  elongation regains its birth value (not rounded to the day — the page shows the instant). Annual dasha:
-  **Varsha Tithi Ashtottari**, a tithi-reckoned dasha for a tithi-reckoned chart. That pairing is the point,
-  and is what Jagannatha Hora shows. The Tajaka annual dashas are solar-return constructs and are not
-  offered here.
+**One page, four cadences.** A **Window** selector picks the rung of the lunar pravesha ladder, and a ±
+stepper walks that rung one whole window at a time:
 
-  **Varsha Tithi Ashtottari** is the *compressed* form: the whole 108-unit Ashtottari cycle squeezed into
-  the pravesha window, exactly as Mudda compresses Vimsottari into the solar year. The compression is in
-  **Moon−Sun elongation, not in days** — the cycle is the elongation the window *sweeps*, each lord takes
-  `allotment/108` of it, and the running lord and its balance come from the chart's own elongation.
-  Rendered as an **expandable tree**, six levels deep (Maha → Antara → Pratyantara → Sookshma → Prana →
-  Deha), each level computed on expand — the full depth is 8⁶ ≈ 262k periods, and the deepest last under a
-  minute. Verified against Jagannatha Hora on two charts (an adhika and an ordinary year). PyJHora ships no
-  compressed Tithi Ashtottari, so it lives in `backend/varsha_tithi_ashtottari.py`; the engine's own Tithi
-  Ashtottari functions subdivide proportionally in *days* and cannot be used.
+| Rung | Window | Cast when |
+|---|---|---|
+| **Day** | ~1 day | the running **tithi** opens |
+| **Fortnight** | ~14.8 days | the current **paksha** opens |
+| **Month** | ~29.5 days | your **birth tithi recurs** |
+| **Year** | ~354d (384 in an adhika-masa year) | your **natal tithi *and* lunar month** recur — the **TP chart** proper |
 
-  Because the compression is angular, it serves **every rung of the lunar ladder**, not just the year —
-  each rung is a clean fraction or multiple of a turn (a tithi sweeps 12°, a fortnight 180°, a lunar month
-  360°, a pravesha year 12 or 13 × 360°), so a day compresses exactly as a year does. The same tree
-  therefore appears on **Today**, **This Fortnight** and **This Month** (on their lunar basis) as well as
-  here — see the Daily / Period digests below.
+Every rung is cast at the **exact pravesha instant** — solved to the moment the Moon−Sun elongation
+regains its birth value, not rounded to the day (the page shows the instant). Each carries its window's
+**Varsha Tithi Ashtottari**: a tithi-reckoned dasha for a tithi-reckoned chart, which is the pairing
+Jagannatha Hora shows. The Tajaka annual dashas (Mudda/Patyayini/Narayana) are solar-return constructs and
+are not offered here.
 
-Both sides show the same sections — Kundali chart, Muntha, year-lord, the 8 Sahams, Tajaka yogas, the
-annual dasha, and an AI reading — so switching basis swaps a complete, symmetrical view. The default
-basis comes from Settings → General and can be overridden on the page. Also exposed to Ask-Astrologer as
-the `get_tithi_pravesha` tool.
+**Varsha Tithi Ashtottari** is the *compressed* form: the whole 108-unit Ashtottari cycle squeezed into the
+pravesha window, exactly as Mudda compresses Vimsottari into the solar year. The compression is in
+**Moon−Sun elongation, not in days** — the cycle is the elongation the window *sweeps*, each lord takes
+`allotment/108` of it, and the running lord and its balance come from the chart's own elongation. Because
+that is angular, it serves every rung: each is a clean fraction or multiple of a turn (a tithi sweeps
+**12°**, a fortnight **180°**, a lunar month **360°**, a pravesha year **12 or 13 × 360°**), so a day is
+tiled exactly as a year is. Rendered as an **expandable tree**, six levels deep (Maha → Antara →
+Pratyantara → Sookshma → Prana → Deha), each level computed on expand — the full depth is 8⁶ ≈ 262k
+periods, and the deepest last under a minute. Verified against Jagannatha Hora on two charts (an adhika and
+an ordinary year). PyJHora ships no compressed Tithi Ashtottari, so it lives in
+`backend/varsha_tithi_ashtottari.py`; the engine's own Tithi Ashtottari functions subdivide proportionally
+in *days* and cannot be used.
+
+**Muntha, the year-lord and the 8 Sahams appear on the Year rung only.** They are reckoned from the age in
+*years*, so they carry no meaning for a single tithi — showing them on a day would be inventing precision.
+The AI reading is likewise scaled to the window it is cast for (a day gets near-term, concrete suggestions;
+a year gets the year-ahead treatment), and it names the running compressed-dasha lord.
+
+The same tree also appears on **Today**, **This Fortnight** and **This Month** on their lunar basis (see
+the Daily / Period digests). Exposed to Ask-Astrologer as the `get_tithi_pravesha` tool.
 
 ### 18. Bhrigu / Nadi Yearly Markers (`/bhrigu-markers`)
 
