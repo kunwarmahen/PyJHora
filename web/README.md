@@ -877,6 +877,11 @@ stepper walks that rung one whole window at a time:
 | **Month** | ~29.5 days | your **birth tithi recurs** |
 | **Year** | ~354d (384 in an adhika-masa year) | your **natal tithi *and* lunar month** recur — the **TP chart** proper |
 
+Changing rung keeps your place on the timeline: if the window on screen is the one **running now**, the new
+rung shows its *current* window too (the Year rung opened on your natal tithi, possibly months back — it
+would be wrong to drop you into the tithi that year *began* with). Step off the present, and the window's
+own start carries across to the rung you switch to.
+
 Every rung is cast at the **exact pravesha instant** — solved to the moment the Moon−Sun elongation
 regains its birth value, not rounded to the day (the page shows the instant). Each carries its window's
 **Varsha Tithi Ashtottari**: a tithi-reckoned dasha for a tithi-reckoned chart, which is the pairing

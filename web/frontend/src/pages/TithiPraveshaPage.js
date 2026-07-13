@@ -198,15 +198,21 @@ export const TithiPraveshaPage = () => {
     setAnchor(dir > 0 ? shiftDays(w.end, 1) : shiftDays(w.start, -1));
   };
 
-  // Switching rung re-anchors on the *current* window's start, so you stay where you
-  // are on the timeline instead of being thrown back to today.
+  // Switching rung keeps you where you are on the timeline instead of throwing you back
+  // to today — but it re-anchors on *today* whenever today falls inside the window on
+  // screen. A coarse window that is still running opened long before now (a Tithi
+  // Pravesha year opens on the natal tithi, up to a lunar year ago), so anchoring the
+  // finer rung on its start would drop you into the tithi/paksha/month that window
+  // *began* with, weeks in the past. Only when you have stepped off the present does the
+  // window's own start carry you across.
   const changeRung = (key) => {
     if (key === rung) return;
-    const start = result?.window?.start;
-    if (key === "annual") {
-      if (start) setYear(parseInt(start.slice(0, 4), 10));
-    } else if (start) {
-      setAnchor(start);
+    const w = result?.window;
+    const now = today();
+    const target = w?.start && w?.end && now >= w.start && now <= w.end ? now : w?.start;
+    if (target) {
+      if (key === "annual") setYear(parseInt(target.slice(0, 4), 10));
+      else setAnchor(target);
     }
     setRung(key);
   };
