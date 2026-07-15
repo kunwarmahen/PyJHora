@@ -12,3 +12,4 @@ src/jhora/data/geonames_places_5k.csv
 src/jhora/data/geonames_places_5k_IN.csv
 **/*/package-lock.json
 .claude/
+web/improvements-2026-07.md

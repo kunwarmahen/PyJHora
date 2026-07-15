@@ -643,6 +643,16 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
+    async def analyze_timeline_window(self,
+                                      data: Dict[str, Any],
+                                      name: str = "this person",
+                                      config: Optional[ModelConfig] = None) -> str:
+        """Reading of "what's running" at a chosen point on the life timeline —
+        the active Maha/Bhukti, Saturn phase and nearby transits."""
+        prompt = self._build_timeline_window_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
     async def analyze_remedies(self,
                                data: Dict[str, Any],
                                name: str = "this person",
@@ -2244,6 +2254,52 @@ Write a grounded ~280-word note:
 2. **Milestone triggers** — mention the nearest Jupiter or Saturn activation date and why a slow-planet touching the Bhrigu Bindu is treated as a turning-point in Nadi thought.
 3. **How to use it** — one calm, practical line.
 Reason only from the markers given. Frame everything as a traditional predictive *aid* — evocative, not fated. Do NOT make medical, legal or financial predictions. Close with one line noting these are indicative markers, and free will shapes the outcome."""
+
+    def _build_timeline_window_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """Read a single point on the life timeline: the running dasha, the Saturn
+        phase, and the transits clustering around that date."""
+        maha = d.get("maha") or {}
+        bhukti = d.get("bhukti") or {}
+        sat = d.get("saturn_phase") or {}
+        ingr = d.get("ingresses") or []
+        ecl = d.get("eclipses") or []
+
+        dasha_line = "Dasha could not be resolved for this date."
+        if maha:
+            dasha_line = (f"Mahadasha of **{maha.get('lord')}** "
+                          f"({maha.get('start_date')} → {maha.get('end_date')})")
+            if bhukti:
+                dasha_line += (f", Bhukti of **{bhukti.get('lord')}** "
+                               f"({bhukti.get('start_date')} → {bhukti.get('end_date')})")
+        sat_line = ("Saturn is not in a Sade Sati / Ashtama / Kantaka position "
+                    "from the Moon around this date.")
+        if sat:
+            sat_line = (f"{sat.get('description')} — Saturn in {sat.get('sign_name')} "
+                        f"({sat.get('start_date')} → {sat.get('end_date')}).")
+        ingr_lines = "\n".join(
+            f"- {i['date']}: {i['planet']} enters {i['to_sign']}" for i in ingr
+        ) or "- (no major slow-planet ingress within ~9 months)"
+        ecl_lines = "\n".join(
+            f"- {e['date']}: {e['kind']} eclipse in {e['nakshatra']}"
+            + (f" — on your natal {', '.join(e['natal_planets'])}'s nakshatra"
+               if e.get("on_natal_nakshatra") else "")
+            for e in ecl
+        ) or "- (none within ~9 months)"
+
+        return f"""You are a grounded Vedic astrologer reading a single window in {name}'s life timeline: the period around **{d.get('target_date')}**. Everything below has been pre-computed — reason from it, do not recompute or invent placements. The natal Moon is in {d.get('moon_sign')}.
+
+**Running dasha:** {dasha_line}
+**Saturn (gochara) phase:** {sat_line}
+**Slow-planet ingresses nearby:**
+{ingr_lines}
+**Eclipses nearby:**
+{ecl_lines}
+
+Write a focused ~260-word reading of this window:
+1. **The governing period** — what the Mahadasha lord + Bhukti lord combination classically colours this stretch of life with (the dasha lord sets the theme, the bhukti lord the sub-theme).
+2. **Saturn's weather** — if a Sade Sati / Ashtama / Kantaka phase is active, explain its character honestly but calmly (a period of maturing, responsibility and consolidation — not doom); if none, say the Saturn pressure is lighter now.
+3. **Turning-point transits** — mention the nearest ingress or a natal-nakshatra eclipse as a timing marker for shifts.
+Reason only from what's given. Be encouraging and practical, never fatalistic. Do NOT make medical, legal or financial predictions or name specific outcomes/dates of misfortune. Close with one line noting this is an indicative reading and free will shapes how a period is lived."""
 
     def _build_remedies_prompt(self, d: Dict[str, Any], name: str) -> str:
         """Explain the suggested per-planet remedies, warmly and responsibly."""

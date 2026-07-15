@@ -278,6 +278,35 @@ def _raja_yogas(bd, ayanamsa, **_):
     return {"count": r.get("count"), "raja_yogas": r.get("raja_yogas", [])}
 
 
+def _life_timeline(bd, ayanamsa, target_date: Optional[str] = None, **_):
+    # A specific date → the "what's running" window context (maha/bhukti, Saturn
+    # phase, nearby ingresses/eclipses). No date → a compact overview: the current
+    # dasha, the active Saturn phase, and the next few slow-planet ingresses.
+    if target_date:
+        c = AstrologyCompute.get_timeline_window_context(
+            target_date=target_date, ayanamsa=ayanamsa, **_args(bd))
+        if c.get("status") != "success":
+            return c
+        return {"target_date": c.get("target_date"), "moon_sign": c.get("moon_sign"),
+                "maha": c.get("maha"), "bhukti": c.get("bhukti"),
+                "saturn_phase": c.get("saturn_phase"),
+                "ingresses": c.get("ingresses", []), "eclipses": c.get("eclipses", [])}
+    tl = AstrologyCompute.get_life_timeline(
+        years_before=1, years_after=5, ayanamsa=ayanamsa, **_args(bd))
+    if tl.get("status") != "success":
+        return tl
+    cur_maha = next((m for m in tl.get("maha_bands", []) if m.get("is_current")), None)
+    cur_bhukti = next((b for b in tl.get("bhukti_bands", []) if b.get("is_current")), None)
+    cur_sat = next((p for p in tl.get("saturn_phases", []) if p.get("is_current")), None)
+    return {
+        "moon_sign": tl.get("moon_sign"),
+        "current_maha": cur_maha, "current_bhukti": cur_bhukti,
+        "current_saturn_phase": cur_sat,
+        "next_ingresses": tl.get("ingresses", [])[:6],
+        "upcoming_eclipses": tl.get("eclipses", [])[:4],
+    }
+
+
 def _longevity(bd, ayanamsa, **_):
     r = AstrologyCompute.get_longevity(ayanamsa=ayanamsa, **_args(bd))
     if r.get("status") != "success":
@@ -577,6 +606,21 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _tithi_pravesha,
     ),
     _Tool(
+        "get_life_timeline",
+        "The dasha–transit life timeline. With NO target_date: a compact overview "
+        "— the current Vimsottari Mahadasha + Bhukti, the active Sade Sati / Ashtama "
+        "/ Kantaka Saturn phase (if any), and the next few Jupiter/Saturn/Rahu "
+        "ingresses and eclipses. With a target_date (YYYY-MM-DD): 'what's running' "
+        "at that point — the Maha/Bhukti covering it, the Saturn phase, and the "
+        "ingresses/eclipses within ~9 months. Use for 'what's happening in my life "
+        "now / around <date>', period timing, and Sade Sati questions.",
+        {"type": "object", "properties": {
+            "target_date": {"type": "string",
+                            "description": "A date as YYYY-MM-DD to read that window; omit for a current overview."}},
+         "required": []},
+        _life_timeline,
+    ),
+    _Tool(
         "get_raja_yogas",
         "Dedicated Raja Yoga analysis of the natal (Rasi) chart: the fundamental "
         "Kendra-Trikona raja yogas (quadrant lord + trine lord, with a coarse "
@@ -724,7 +768,7 @@ ALWAYS_TOOLS: List[str] = [
     "get_raja_yogas", "get_longevity", "get_pancha_pakshi",
     "get_sphuta", "get_sahams", "get_argala",
     "get_vedic_clock", "get_retrograde", "get_muhurta",
-    "get_kp", "get_jaimini",
+    "get_kp", "get_jaimini", "get_life_timeline",
 ]
 
 
@@ -772,6 +816,7 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_aspects":          {"label": "Graha drishti (aspects)", "category": "Core chart"},
     "get_arudha_padas":     {"label": "Arudha padas (AL/UL)",    "category": "Core chart"},
     "get_divisional_chart": {"label": "Divisional (varga) charts", "category": "Core chart"},
+    "get_life_timeline":    {"label": "Life timeline (dasha + transits)", "category": "Timing"},
     "get_dasha_chain":      {"label": "Running dasha periods",  "category": "Timing"},
     "get_dasha_children":   {"label": "Dasha sub-periods",      "category": "Timing"},
     "get_transits":         {"label": "Current transits (Gochara)", "category": "Timing"},

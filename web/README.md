@@ -28,6 +28,10 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   chart on the solar (Tajaka) or lunar (tithi) ladder — "Today", "This Fortnight" (Paksha Pravesha) and
   "This Month" (Maasa Pravesha or the birth-tithi return) — plus Tithi Pravesha, the annual lunar
   return; all with AI readings and per-cadence email & push notifications,
+  a Life Timeline (`/timeline`) — one clickable SVG axis around today with the Vimsottari
+  maha/bhukti bands, the Sade Sati / Ashtama / Kantaka Saturn phases, the Jupiter/Saturn/Rahu
+  ingresses and the eclipses (flagged on natal nakshatras); click any point for a "what's
+  running" panel + on-demand AI reading,
   Bhrigu / Nadi-style yearly markers (the Moon-based annual progression + Bhrigu Bindu
   activations, with AI reading),
   Remedies (traditional gemstone / mantra / deity suggestions per weak planet),

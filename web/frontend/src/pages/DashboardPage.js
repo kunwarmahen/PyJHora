@@ -29,6 +29,7 @@ import {
   Gem,
   History,
   CalendarRange,
+  GanttChartSquare,
   Home,
   FileText,
   Compass,
@@ -157,6 +158,12 @@ export const DashboardPage = () => {
       icon: <HelpCircle size={32} />,
       path: "/prashna",
       gradient: "linear-gradient(135deg, #2D3561 0%, #5A5F7A 100%)",
+    },
+    {
+      key: "timeline",
+      icon: <GanttChartSquare size={32} />,
+      path: "/timeline",
+      gradient: "linear-gradient(135deg, #2D3561 0%, #E27B5A 100%)",
     },
     {
       key: "bhrigu",

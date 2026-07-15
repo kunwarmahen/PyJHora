@@ -1,0 +1,152 @@
+/* Life timeline — the dasha/transit chart and its selected-window panel. */
+
+.tl-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tl-svg {
+  display: block;
+  width: 100%;
+  min-width: 640px; /* keeps lanes legible; scrolls on small screens */
+  /* Explicit height: with preserveAspectRatio="none" the viewBox stretches to
+     fill this box exactly, so the lanes keep their full height instead of the
+     SVG collapsing to its default intrinsic height. */
+  height: 240px;
+  cursor: crosshair;
+  user-select: none;
+}
+
+.tl-grid {
+  stroke: var(--text-muted);
+  stroke-opacity: 0.22;
+  stroke-width: 0.75;
+}
+
+.tl-year {
+  fill: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  text-anchor: middle;
+}
+
+.tl-seg {
+  transition: fill-opacity 0.15s ease;
+}
+
+.tl-seg-label {
+  fill: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  dominant-baseline: middle;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.28);
+  stroke-width: 0.5px;
+}
+.tl-seg-label--sm {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tl-today {
+  stroke: var(--vermillion);
+  stroke-width: 1.75;
+  stroke-dasharray: 4 3;
+}
+.tl-today-label {
+  fill: var(--vermillion);
+  font-size: 10px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.tl-selected {
+  stroke: var(--cosmic-indigo);
+  stroke-width: 2;
+}
+
+/* Legend under the chart */
+.tl-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  align-items: center;
+  margin-top: var(--space-sm);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.tl-legend__row b {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.tl-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.tl-dot {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: var(--radius-full, 50%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+.tl-dot--hit {
+  background: #3a4a66;
+  border: 2px solid var(--vermillion);
+}
+
+/* Selected-window panel */
+.tl-window-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
+}
+.tl-window-item__label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.tl-window-item__value {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tl-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-full, 999px);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.tl-events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid rgba(139, 143, 168, 0.2);
+}
+.tl-event {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.83rem;
+  color: var(--text-secondary);
+}
+.tl-event__hit {
+  color: var(--vermillion);
+  font-weight: 600;
+}

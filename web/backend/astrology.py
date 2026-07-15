@@ -5584,6 +5584,325 @@ class AstrologyCompute:
         finally:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
+    # Saturn's house-from-Moon → the classical malefic-transit label. The three
+    # Sade Sati phases (12/1/2), Ashtama Shani (8) and Kantaka/Ardha-Ashtama (4).
+    _SATURN_PHASE_LABELS = {
+        12: ("sade_sati", "rising", "Sade Sati — rising (12th from Moon)"),
+        1:  ("sade_sati", "peak", "Sade Sati — peak / janma (Moon sign)"),
+        2:  ("sade_sati", "setting", "Sade Sati — setting (2nd from Moon)"),
+        8:  ("ashtama", "ashtama", "Ashtama Shani (8th from Moon)"),
+        4:  ("kantaka", "kantaka", "Kantaka Shani (4th from Moon)"),
+    }
+
+    @staticmethod
+    def _planet_sign_spans(pl_idx: int, jd_start: float, jd_end: float,
+                           tz_offset: float) -> List[tuple]:
+        """Contiguous same-sign spans of one graha across [jd_start, jd_end].
+
+        Samples the planet's sidereal longitude once a day and bisects each sign
+        change to the hour. A retrograde dip back into the previous sign naturally
+        breaks into separate spans (correct — each ingress is a real event). Cheap
+        (one `sidereal_longitude` per day); safe for the slow movers this is used
+        for (Jupiter/Saturn/Rahu move < 0.25°/day, never crossing a sign twice in
+        a day). Returns [(sign0, start_jd, end_jd), …]."""
+        pl = drik.ephemeris_planet_index(pl_idx)
+
+        def sign_at(j):
+            return int(drik.sidereal_longitude(j - tz_offset / 24.0, pl) // 30) % 12
+
+        spans = []
+        jd = jd_start
+        cur_sign = sign_at(jd)
+        span_start = jd
+        while jd < jd_end:
+            jd_next = min(jd + 1.0, jd_end)
+            s = sign_at(jd_next)
+            if s != cur_sign:
+                lo, hi = jd, jd_next
+                for _ in range(30):
+                    mid = (lo + hi) / 2.0
+                    if sign_at(mid) == cur_sign:
+                        lo = mid
+                    else:
+                        hi = mid
+                    if hi - lo < 1.0 / 24.0:
+                        break
+                spans.append((cur_sign, span_start, hi))
+                cur_sign = sign_at(hi)
+                span_start = hi
+            jd = jd_next
+        spans.append((cur_sign, span_start, jd_end))
+        return spans
+
+    @staticmethod
+    def get_life_timeline(dob: str, tob: str, place: str,
+                          lat: Optional[float] = None, lon: Optional[float] = None,
+                          tz: Optional[float] = None,
+                          years_before: int = 10, years_after: int = 10,
+                          ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """A composed dasha–transit **life timeline** over a window around today.
+
+        Layers, all on one shared date axis so the frontend can draw them stacked:
+          • **Dasha bands** — the Vimsottari Mahadasha (and the running Maha's
+            Bhuktis) overlapping the window, each clipped to the window edges.
+          • **Sade Sati / Shani phases** — Saturn's dated spans in the 12th/1st/2nd
+            (the three Sade Sati phases), 8th (Ashtama) and 4th (Kantaka) from the
+            **natal Moon**, with true entry/exit dates (Saturn is scanned a few
+            years before the window so an in-progress phase's real start is caught).
+          • **Ingress markers** — Jupiter / Saturn / Rahu sign changes in the window.
+          • **Eclipses** — the next solar & lunar eclipses, flagged when they fall
+            on a **natal planet's nakshatra** (a personalised sensitivity).
+
+        Everything is composed from the existing dasha / transit / eclipse computes;
+        the only new primitive is the daily sign-span scan (`_planet_sign_spans`)."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            from datetime import datetime, timezone as _utc, timedelta
+            _set_ayanamsa(ayanamsa)
+
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+
+            years_before = max(1, min(int(years_before or 10), 40))
+            years_after = max(1, min(int(years_after or 10), 40))
+
+            today = datetime.now()
+            jd_today = swe.julday(today.year, today.month, today.day, 12.0)
+            jd_start = jd_today - years_before * 365.25
+            jd_end = jd_today + years_after * 365.25
+
+            def jd_to_iso(jd):
+                g = utils.jd_to_gregorian(jd)
+                return f"{g[0]:04d}-{g[1]:02d}-{g[2]:02d}"
+
+            start_iso, end_iso, today_iso = (
+                jd_to_iso(jd_start), jd_to_iso(jd_end), jd_to_iso(jd_today))
+
+            # ── Natal reference: Moon sign + each planet's nakshatra ──────────
+            natal_jd = swe.julday(year, month, day, hour + minute / 60.0)
+            natal = charts.rasi_chart(natal_jd, place_obj)
+            natal_moon_rasi = natal[2][1][0]
+            nak_span = 360.0 / 27.0
+            natal_naks = {}   # nak_idx -> [planet names]
+            for pidx, (rasi, deg) in natal[1:]:
+                nak_idx = int((rasi * 30.0 + deg) / nak_span) % 27
+                natal_naks.setdefault(nak_idx, []).append(
+                    PLANET_NAMES.get(pidx, str(pidx)))
+
+            def clip(s_jd, e_jd):
+                """Intersect a span with the display window; None if disjoint."""
+                s = max(s_jd, jd_start); e = min(e_jd, jd_end)
+                return (s, e) if e > s else None
+
+            # ── Dasha bands (Vimsottari maha + running-window bhuktis) ────────
+            dashas = AstrologyCompute.get_dashas(
+                dob, tob, place, lat=lat, lon=lon, tz=tz)
+            maha_bands, bhukti_bands = [], []
+            if dashas.get("status") == "success":
+                for d in dashas.get("dasha_sequence", []):
+                    try:
+                        ds = datetime.strptime(d["start_date"], "%Y-%m-%d")
+                        de = datetime.strptime(d["end_date"], "%Y-%m-%d")
+                    except Exception:
+                        continue
+                    if de <= today - timedelta(days=years_before * 365.25 + 1):
+                        continue
+                    if ds >= today + timedelta(days=years_after * 365.25 + 1):
+                        continue
+                    running = ds <= today <= de
+                    maha_bands.append({
+                        "lord": d["lord"],
+                        "start_date": d["start_date"],
+                        "end_date": d["end_date"],
+                        "is_current": running,
+                    })
+                    # Detail the running maha's bhuktis (they're what "now" sits in).
+                    if running:
+                        for b in d.get("sub_periods", []):
+                            bhukti_bands.append({
+                                "maha_lord": d["lord"],
+                                "lord": b["lord"],
+                                "start_date": b["start_date"],
+                                "end_date": b["end_date"],
+                                "is_current": (
+                                    b["start_date"] <= today_iso <= b["end_date"]),
+                            })
+
+            # ── Saturn Sade Sati / Shani phases (from the natal Moon) ─────────
+            # Scan Saturn a few years before the window so an ongoing phase's true
+            # start is captured, then keep phases that overlap the display window.
+            phases = []
+            sat_spans = AstrologyCompute._planet_sign_spans(
+                6, jd_start - 3 * 365.25, jd_end, tz_offset)
+            for sign0, s_jd, e_jd in sat_spans:
+                house = ((sign0 - natal_moon_rasi) % 12) + 1
+                label = AstrologyCompute._SATURN_PHASE_LABELS.get(house)
+                if not label:
+                    continue
+                cl = clip(s_jd, e_jd)
+                if not cl:
+                    continue
+                kind, phase, desc = label
+                phases.append({
+                    "kind": kind,
+                    "phase": phase,
+                    "house_from_moon": house,
+                    "sign_name": ZODIAC_NAMES[sign0],
+                    "description": desc,
+                    "start_date": jd_to_iso(s_jd),   # true (unclipped) boundaries
+                    "end_date": jd_to_iso(e_jd),
+                    "is_current": s_jd <= jd_today <= e_jd,
+                })
+
+            # ── Ingress markers (Jupiter / Saturn / Rahu) ────────────────────
+            ingresses = []
+            for pidx, pname in ((4, "Jupiter"), (6, "Saturn"), (7, "Rahu")):
+                try:
+                    spans = AstrologyCompute._planet_sign_spans(
+                        pidx, jd_start, jd_end, tz_offset)
+                    for i, (sign0, s_jd, _e) in enumerate(spans):
+                        if i == 0:
+                            continue  # already in this sign at window start
+                        ingresses.append({
+                            "planet": pname,
+                            "to_sign": ZODIAC_NAMES[sign0],
+                            "date": jd_to_iso(s_jd),
+                        })
+                except Exception:
+                    pass
+            ingresses.sort(key=lambda x: x["date"])
+
+            # ── Eclipses (next few of each), flagged on natal nakshatras ─────
+            eclipses = []
+            try:
+                ecl = AstrologyCompute.get_eclipses(
+                    place=place, lat=lat, lon=lon, tz=tz_offset,
+                    from_date=today_iso, count=6)
+                if ecl.get("status") == "success":
+                    sun_i = drik.ephemeris_planet_index(0)
+                    moon_i = drik.ephemeris_planet_index(1)
+                    for kind, key in (("solar", "solar"), ("lunar", "lunar")):
+                        for e in ecl.get(key, []) or []:
+                            try:
+                                mx = e.get("maximum") or {}
+                                edate = mx.get("date")
+                                parts = (edate or "").split("-")
+                                if len(parts) != 3 or not all(parts):
+                                    continue
+                                if edate > end_iso:
+                                    continue
+                                ey, em, ed = map(int, parts)
+                                ejd = swe.julday(ey, em, ed, 12.0)
+                                lum = sun_i if kind == "solar" else moon_i
+                                lon_deg = drik.sidereal_longitude(
+                                    ejd - tz_offset / 24.0, lum)
+                                nak_idx = int(lon_deg / nak_span) % 27
+                                hit = natal_naks.get(nak_idx)
+                                eclipses.append({
+                                    "kind": kind,
+                                    "eclipse_type": e.get("eclipse_type"),
+                                    "date": edate,
+                                    "nakshatra": NAKSHATRA_NAMES[nak_idx],
+                                    "on_natal_nakshatra": bool(hit),
+                                    "natal_planets": hit or [],
+                                })
+                            except Exception:
+                                continue
+                    eclipses.sort(key=lambda x: x["date"])
+            except Exception:
+                import traceback
+                traceback.print_exc()
+
+            return {
+                "status": "success",
+                "dob": dob,
+                "window": {
+                    "start_date": start_iso,
+                    "end_date": end_iso,
+                    "today": today_iso,
+                    "years_before": years_before,
+                    "years_after": years_after,
+                },
+                "moon_sign": ZODIAC_NAMES[natal_moon_rasi],
+                "maha_bands": maha_bands,
+                "bhukti_bands": bhukti_bands,
+                "saturn_phases": phases,
+                "ingresses": ingresses,
+                "eclipses": eclipses,
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_timeline_window_context(dob: str, tob: str, place: str,
+                                    target_date: str,
+                                    lat: Optional[float] = None,
+                                    lon: Optional[float] = None,
+                                    tz: Optional[float] = None,
+                                    ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """"What's running" at a chosen point on the timeline: the Maha + Bhukti
+        active on `target_date`, the Saturn phase (if any) covering it, and the
+        ingresses / flagged eclipses within ±9 months. Powers the click-a-point
+        panel and the on-demand AI reading for that window."""
+        tl = AstrologyCompute.get_life_timeline(
+            dob, tob, place, lat=lat, lon=lon, tz=tz,
+            years_before=40, years_after=40, ayanamsa=ayanamsa)
+        if tl.get("status") != "success":
+            return tl
+        from datetime import datetime, timedelta
+        try:
+            datetime.strptime(target_date, "%Y-%m-%d")
+        except Exception:
+            return {"error": "bad target_date", "status": "failed"}
+
+        def covers(item):
+            return item["start_date"] <= target_date <= item["end_date"]
+
+        saturn = next((p for p in tl["saturn_phases"] if covers(p)), None)
+
+        # Resolve the Maha + Bhukti covering the target from the full dasha
+        # sequence (tl.bhukti_bands only details the *running* maha, so a
+        # far-future target needs the complete tree here).
+        maha, bhukti = None, None
+        dashas = AstrologyCompute.get_dashas(dob, tob, place, lat=lat, lon=lon, tz=tz)
+        if dashas.get("status") == "success":
+            for d in dashas.get("dasha_sequence", []):
+                if d["start_date"] <= target_date <= d["end_date"]:
+                    maha = {"lord": d["lord"], "start_date": d["start_date"],
+                            "end_date": d["end_date"]}
+                    for b in d.get("sub_periods", []):
+                        if b["start_date"] <= target_date <= b["end_date"]:
+                            bhukti = {"maha_lord": d["lord"], "lord": b["lord"],
+                                      "start_date": b["start_date"],
+                                      "end_date": b["end_date"]}
+                            break
+                    break
+        t = datetime.strptime(target_date, "%Y-%m-%d")
+        lo_iso = (t - timedelta(days=275)).strftime("%Y-%m-%d")
+        hi_iso = (t + timedelta(days=275)).strftime("%Y-%m-%d")
+        near_ingress = [i for i in tl["ingresses"] if lo_iso <= i["date"] <= hi_iso]
+        near_ecl = [e for e in tl["eclipses"] if lo_iso <= e["date"] <= hi_iso]
+        return {
+            "status": "success",
+            "target_date": target_date,
+            "moon_sign": tl["moon_sign"],
+            "maha": maha,
+            "bhukti": bhukti,
+            "saturn_phase": saturn,
+            "ingresses": near_ingress,
+            "eclipses": near_ecl,
+        }
+
     # Bhava (house) systems exposed to the UI. Value -> (Jyotir AI bhava_madhya_method,
     # label, short blurb). 'O' (Sripati/Porphyrius) is what Jagannatha Hora draws for
     # its Bhava Chalit; 'P' is true Placidus; 3 is the KP cuspal method; 1 is the

@@ -690,6 +690,32 @@ export const astrologyService = {
       { timeout: 300000 }
     ),
 
+  // ---- Life timeline (dasha bands + Sade Sati + ingresses + eclipses) ----
+  getLifeTimeline: (
+    birthDetails,
+    { yearsBefore = 10, yearsAfter = 10, ayanamsa = DEFAULT_AYANAMSA } = {}
+  ) =>
+    api.post("/api/astrology/life-timeline", birthDetails, {
+      params: { years_before: yearsBefore, years_after: yearsAfter, ayanamsa },
+    }),
+  analyzeLifeTimelineAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/life-timeline-analysis",
+      {
+        birth_details: birthDetails,
+        target_date: opts.targetDate,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
   // ---- Remedies (gemstones / mantras / deities per weak planet) ----
   getRemedies: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/remedies", birthDetails, { params: { ayanamsa } }),

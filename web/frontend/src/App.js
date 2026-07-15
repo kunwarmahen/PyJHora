@@ -31,6 +31,7 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { MuhurtaPage } from "./pages/MuhurtaPage";
 import { PrashnaPage } from "./pages/PrashnaPage";
 import { BhriguMarkersPage } from "./pages/BhriguMarkersPage";
+import { TimelinePage } from "./pages/TimelinePage";
 import { RemediesPage } from "./pages/RemediesPage";
 import { DailyDigestPage } from "./pages/DailyDigestPage";
 import { FortnightlyDigestPage, MonthlyDigestPage } from "./pages/PeriodDigestPage";
@@ -186,6 +187,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <BhriguMarkersPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/timeline"
+              element={
+                <ProtectedRoute>
+                  <TimelinePage />
                 </ProtectedRoute>
               }
             />

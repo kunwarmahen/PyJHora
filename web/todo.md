@@ -3351,3 +3351,56 @@ Also swept the **18 i18n keys** the removals orphaned (`digest.basis*`, `digest.
 - **Keep a drill-down?** Do we want bhukti/antara *within* each compressed maha (JHora's panel shows
   maha only), or is the maha table enough?
 - **Which timeframes** should the TP selector offer — today/daily, monthly, annual? Anything else?
+
+## 27. Life Timeline — the flagship dasha–transit view (owner ask 2026-07-15, §5.1 of improvements-2026-07.md) — ✅ SHIPPED
+Owner picked the flagship idea from the new review doc (`web/improvements-2026-07.md`). One
+horizontal, clickable timeline that composes everything already computed onto a single date axis
+around today.
+
+**Backend (`astrology.py`):**
+- `_planet_sign_spans(pl_idx, jd_start, jd_end, tz)` — the one new primitive: contiguous same-sign
+  spans of a slow graha, daily sample + bisection to the hour (like the Bhrigu ingress scanner). A
+  retrograde dip naturally breaks into separate spans (each ingress is real). ~0.4s for the whole
+  timeline.
+- `get_life_timeline(...,years_before=10,years_after=10)` — Vimsottari maha bands + the running
+  maha's bhukti bands (clipped to the window); Saturn **Sade Sati (12/1/2), Ashtama (8), Kantaka
+  (4)** phases from the natal Moon, Saturn scanned 3 yr before the window so an in-progress phase's
+  true start is caught; Jupiter/Saturn/Rahu **ingress** markers; **eclipses** (reuses `get_eclipses`)
+  with the luminary's nakshatra, flagged when it lands on a **natal planet's nakshatra**.
+  `_SATURN_PHASE_LABELS` maps house-from-Moon → (kind, phase, description).
+- `get_timeline_window_context(...,target_date)` — "what's running" at a clicked date: the Maha +
+  Bhukti covering it (resolved from the FULL dasha_sequence so far-future dates still get a bhukti,
+  not just the running maha), the Saturn phase, and ingresses/eclipses within ±9 months.
+- **KEY gotcha found in verification:** eclipses fail under the FastAPI **TestClient** threadpool
+  (`swe.lun_eclipse_when` can't find `seplm48.se1` off the main thread) but work fine under real
+  uvicorn — the Almanac eclipse endpoint has the identical behaviour, so it's a harness quirk, not a
+  bug. The per-eclipse + outer try/except degrade the eclipse layer to empty without breaking the
+  timeline.
+
+**Endpoints (`main.py`):** `POST /api/astrology/life-timeline` (compute) + `.../life-timeline-analysis`
+(AI; `TimelineAnalysisRequest` carries `target_date`). AI: `llm_service.analyze_timeline_window` +
+`_build_timeline_window_prompt` (~260-word reading of the period — maha/bhukti theme, Saturn's
+weather framed calmly, nearest turning-point transit; no fatalism/medical/dates). Saved to history
+(source `timeline`).
+
+**Smart-lookup tool (`tools.py`):** `get_life_timeline` (in ALWAYS_TOOLS + _DISPLAY "Timing") — no
+date → current overview (maha/bhukti, active Saturn phase, next ingresses/eclipses); with
+`target_date` → that window's context.
+
+**Frontend (`TimelinePage.js`, route `/timeline`, `GanttChartSquare` icon, dashboard card + nav):**
+a clickable SVG (`viewBox` + explicit CSS height + `preserveAspectRatio="none"` so lanes keep full
+height) with stacked lanes — year gridlines, maha band (per-graha colour), bhukti band, Saturn
+phases, ingress lollipops, eclipse dots (red-ringed = on a natal nakshatra), a dashed **today** line
+and a solid **selected** line. Click anywhere → a "what's running" panel (maha/bhukti chips, Saturn
+phase, nearby ingresses/eclipses with natal-nakshatra hits in red) + a **Read this period** on-demand
+AI reading. `± 5/10/15/20 year` window picker. `styles/Timeline.css`; i18n `timeline.*` (en full;
+hi/sa nav+card). api.js `getLifeTimeline`/`analyzeLifeTimelineAI`.
+- **BUG found & fixed in live verification:** `segRect` returned `{x, w, y, h}` spread onto `<rect>`,
+  but SVG rects need `width`/`height`, not `w`/`h` — React passed them through as invalid attrs so
+  every band rendered **0×0** (invisible). Fixed to return `{x, y, width, height}`. Verified live on
+  the owner's chart (Moon→Mars→Rahu maha, Ashtama Shani + Sade Sati-rising phases, eclipses flagged
+  on natal Mars/Saturn, click→panel all correct).
+
+**Still open on this feature (v1 limits, non-blocking):** far-future *bhukti* bands aren't drawn on
+the chart (only the running maha's are — the panel/AI still resolve them); eclipse markers cluster in
+the next ~3 yr (get_eclipses `count` cap); no zoom/pan (window picker only).
