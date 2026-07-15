@@ -782,6 +782,7 @@ SECTION_TOOL: Dict[str, str] = {
     "shadbala": "get_shadbala",
     "aspects": "get_aspects",
     "arudhas": "get_arudha_padas",
+    "conditions": "get_planet_conditions",
 }
 
 # Tools with no section toggle — always available in tool mode so the model can
@@ -793,7 +794,7 @@ ALWAYS_TOOLS: List[str] = [
     "get_raja_yogas", "get_longevity", "get_pancha_pakshi",
     "get_sphuta", "get_sahams", "get_argala",
     "get_vedic_clock", "get_retrograde", "get_muhurta",
-    "get_kp", "get_jaimini", "get_life_timeline", "get_planet_conditions",
+    "get_kp", "get_jaimini", "get_life_timeline",
 ]
 
 

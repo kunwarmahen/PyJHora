@@ -13,6 +13,7 @@ import {
   Eye,
   Crown,
   Landmark,
+  ShieldAlert,
 } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -46,6 +47,10 @@ export const BirthChartPage = () => {
   const [aspects, setAspects] = useState(null);
   const [showAspects, setShowAspects] = useState(
     () => localStorage.getItem("showAspects") === "1"
+  );
+  const [conditions, setConditions] = useState(null);
+  const [showConditions, setShowConditions] = useState(
+    () => localStorage.getItem("showConditions") === "1"
   );
   const [arudhas, setArudhas] = useState(null);
   const [showArudhas, setShowArudhas] = useState(
@@ -193,6 +198,11 @@ export const BirthChartPage = () => {
         .getAspects(birthDetails, ayanamsa)
         .then((r) => setAspects(r.data?.planets || null))
         .catch(() => setAspects(null));
+      setConditions(null);
+      astrologyService
+        .getPlanetConditions(birthDetails, ayanamsa)
+        .then((r) => setConditions(r.data?.flagged || null))
+        .catch(() => setConditions(null));
     } catch (err) {
       setError(err.response?.data?.detail || t("birthChart.calcError"));
     } finally {
@@ -319,8 +329,27 @@ export const BirthChartPage = () => {
                         {showArudhas ? t("arudhas.hideOnChart") : t("arudhas.showOnChart")}
                       </button>
                     )}
+                    {conditions && conditions.length > 0 && (
+                      <button
+                        type="button"
+                        className={`aspect-toggle${showConditions ? " is-active" : ""}`}
+                        onClick={() => {
+                          const next = !showConditions;
+                          setShowConditions(next);
+                          localStorage.setItem("showConditions", next ? "1" : "0");
+                        }}
+                      >
+                        <ShieldAlert size={16} />
+                        {showConditions
+                          ? t("conditions.hideOnChart")
+                          : t("conditions.showOnChart")}
+                      </button>
+                    )}
                     {showAspects && aspects && aspects.length > 0 && (
                       <span className="aspect-controls__hint">{t("aspects.hoverHint")}</span>
+                    )}
+                    {showConditions && conditions && conditions.length > 0 && (
+                      <span className="aspect-controls__hint">{t("conditions.hoverHint")}</span>
                     )}
                   </div>
 
@@ -334,6 +363,7 @@ export const BirthChartPage = () => {
                     focusPlanet={focusPlanet}
                     arudhas={arudhas}
                     showArudhas={showArudhas}
+                    conditions={showConditions ? conditions : null}
                   />
 
                   {/* Divisional (varga) chart with picker */}

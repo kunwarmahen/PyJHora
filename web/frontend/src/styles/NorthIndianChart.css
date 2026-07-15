@@ -174,6 +174,13 @@
   font-size: 0.6rem;
   color: inherit;
 }
+/* Planet-condition flag dot (green=strengthening, red=straining) */
+.si-cond-dot {
+  font-size: 0.5rem;
+  margin-left: 2px;
+  vertical-align: super;
+  line-height: 1;
+}
 /* Crowded cell (4+ items): tighten type and spacing so it stays inside the
    cell, mirroring the North chart's graduated sizing. */
 .si-crowded .si-planets {

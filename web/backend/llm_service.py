@@ -1502,6 +1502,27 @@ Planetary Positions (All 9 Grahas):"""
                 f"arudha occupies): {items}"
             )
 
+        # Planet conditions ("flags") — the classical point-states that modify how a
+        # planet delivers results (combust/vargottama/gandanta/…). One line each.
+        conditions = chart_data.get("conditions", {})
+        cond_flagged = conditions.get("flagged", []) if isinstance(conditions, dict) else []
+        if cond_flagged:
+            chart_description += (
+                "\n\nPlanet Conditions (classical flags; benefic=strengthening, "
+                "challenging=straining, neutral=nuance):"
+            )
+            for p in cond_flagged:
+                fl = ", ".join(
+                    f"{f.get('label', '?')}"
+                    + (f" with {f['partner']}" if f.get("partner") else "")
+                    + f" [{f.get('tone', '?')}]"
+                    for f in p.get("flags", [])
+                )
+                chart_description += (
+                    f"\n- {p.get('planet', '?')} ({p.get('sign_name', '?')}, "
+                    f"house {p.get('house', '?')}): {fl}"
+                )
+
         header = ("Below is birth chart data for this person, calculated using precise "
                   f"astronomical calculations from the {SITE_NAME} Vedic astrology software. "
                   "This is REAL, VERIFIED CHART DATA - not hypothetical."

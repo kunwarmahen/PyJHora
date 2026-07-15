@@ -34,6 +34,10 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   running" panel + on-demand AI reading,
   Bhrigu / Nadi-style yearly markers (the Moon-based annual progression + Bhrigu Bindu
   activations, with AI reading),
+  Planetary Conditions — the classical point-flags (combustion, vargottama, pushkara, mrityu
+  bhaga, marana karaka, gandanta, planetary war, retrograde) shown as a card on the Advanced
+  page, as tone-coloured hover badges on the birth chart, and fed into every AI reading; plus
+  a "tradition also recommends" banner of the conditional dashas that apply to the chart,
   Remedies (traditional gemstone / mantra / deity suggestions per weak planet),
   Sensitive Points (Sphutas, the 36 Sahams, and Argala — with AI reading),
   a Vedic Clock & Retrograde page (a live ghati/vighati clock + vakra-gathi retrograde

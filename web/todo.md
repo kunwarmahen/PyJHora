@@ -3439,3 +3439,29 @@ Life Timeline (§27) proved that build-green + API-200 is NOT enough for SVG/DOM
 **Still open from §5 of improvements-2026-07.md:** Kundali-hover flag badges + a chart_context.py
 conditions block (so every AI reading knows), then §5.1's follow-ons and the rest (strength page,
 friendship matrix, avasthas, unknown-birth-time mode, MCP, iCal, …).
+
+## 29. Planet-condition flags — finish the reach (chart_context + Kundali badges) — ✅ SHIPPED 2026-07-15
+Completed §5.2's two remaining follow-ons so the flags reach *every* reading, not just the Advanced card.
+
+- **chart_context.py:** new `conditions` section (default-on in `DEFAULT_SECTIONS`) → compact block of
+  the flagged planets (planet/sign/house + label/tone per flag). `llm_service._render_context_block`
+  renders it as "Planet Conditions (classical flags; …)" so every /ask, /predict etc. reading now
+  knows a planet is combust/vargottama/gandanta/… .
+- **Tool plumbing fixed:** `get_planet_conditions` moved OUT of `ALWAYS_TOOLS` INTO
+  `SECTION_TOOL["conditions"]` so the tri-state seed/tool/off semantics apply (seeded → not also
+  exposed as a tool; off → neither). Verified: conditions=tool exposes it, seed/off hide it.
+- **Ask page:** added `{ key: "conditions", labelKey: "ask.sectionConditions" }` to `CONTEXT_SECTIONS`
+  + `conditions: "tool"` to `DEFAULT_SECTION_STATE`; i18n `ask.sectionConditions`.
+- **Kundali-hover badges:** both `NorthIndianChart` (SVG `<title>` + a tone-coloured `●` tspan) and
+  `SouthIndianChart` (HTML `title` attr + `.si-cond-dot`) gained an optional `conditions` prop (the
+  flagged-planets array; keyed by the planet `fullName` already carried on each item). Tone = worst of
+  the planet's flags (challenging > benefic > neutral). BirthChartPage fetches `getPlanetConditions`,
+  adds a **"Show conditions"** toggle (persisted `showConditions`, `ShieldAlert` icon, alongside the
+  aspects/arudhas toggles) and passes `conditions` to the D1 Kundali. i18n
+  `conditions.showOnChart/hideOnChart/hoverHint`.
+- Verified live: 5 dots on the owner's D1 with correct colours (Venus #e34234 combust-wins, Moon
+  #e34234 gandanta, Saturn/Rahu/Jupiter #2E9E5B), tooltips list the flags; the context block renders
+  in the prompt; build + eslint green.
+
+**Still open from §5:** avasthas (§5.3), strength page (§2.2), friendship matrix (§2.5),
+unknown-birth-time mode (§5.8), MCP (§2.3), iCal (§5.10), …

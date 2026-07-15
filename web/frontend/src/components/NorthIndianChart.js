@@ -24,12 +24,36 @@ export const NorthIndianChart = ({
   focusPlanet = null,
   arudhas = null,
   showArudhas = false,
+  conditions = null,
 }) => {
   const [hoveredHouse, setHoveredHouse] = useState(null);
   const svgRef = useRef(null);
 
   const planets = planetsProp || chartData?.planets;
   const lagna = lagnaProp || chartData?.lagna;
+
+  // Planet-condition flags (combust/vargottama/…): fullName -> { tone, flags[] }.
+  // `conditions` is the flagged-planets array from get_planet_conditions.
+  const flagsByPlanet = {};
+  (conditions || []).forEach((p) => {
+    const tones = (p.flags || []).map((f) => f.tone);
+    const tone = tones.includes("challenging")
+      ? "challenging"
+      : tones.includes("benefic")
+        ? "benefic"
+        : "neutral";
+    flagsByPlanet[p.planet] = {
+      tone,
+      labels: (p.flags || []).map(
+        (f) => f.label + (f.partner ? ` (${f.partner})` : "")
+      ),
+    };
+  });
+  const CONDITION_TONE_COLOR = {
+    benefic: "#2E9E5B",
+    challenging: "#e34234",
+    neutral: "#8b8fa8",
+  };
 
   if (!planets) {
     return <div className="chart-empty">No chart data</div>;
@@ -346,27 +370,45 @@ export const NorthIndianChart = ({
                   const step = total <= 3 ? 18 : total <= 5 ? 14 : 12;
                   const degFs = Math.max(fs - 3, 8);
                   const startY = house.cy - ((total - 1) * step) / 2;
-                  return planetsInHouse.map((item, idx) => (
-                    <text
-                      key={idx}
-                      x={house.cx}
-                      y={startY + idx * step}
-                      textAnchor="middle"
-                      fill={
-                        item.type === "lagna" ? accent : item.type === "arudha" ? gold : planetColor
-                      }
-                      fontSize={item.type === "arudha" ? Math.max(fs - 2, 9) : fs}
-                      fontWeight="700"
-                      fontStyle={item.type === "arudha" ? "italic" : "normal"}
-                    >
-                      {item.name}
-                      {item.degrees != null && (
-                        <tspan dx="3" fontSize={degFs} fontWeight="400">
-                          {item.degrees.toFixed(1)}°
-                        </tspan>
-                      )}
-                    </text>
-                  ));
+                  return planetsInHouse.map((item, idx) => {
+                    const cond = item.fullName ? flagsByPlanet[item.fullName] : null;
+                    return (
+                      <text
+                        key={idx}
+                        x={house.cx}
+                        y={startY + idx * step}
+                        textAnchor="middle"
+                        fill={
+                          item.type === "lagna"
+                            ? accent
+                            : item.type === "arudha"
+                              ? gold
+                              : planetColor
+                        }
+                        fontSize={item.type === "arudha" ? Math.max(fs - 2, 9) : fs}
+                        fontWeight="700"
+                        fontStyle={item.type === "arudha" ? "italic" : "normal"}
+                      >
+                        {cond && <title>{`${item.fullName}: ${cond.labels.join(", ")}`}</title>}
+                        {item.name}
+                        {item.degrees != null && (
+                          <tspan dx="3" fontSize={degFs} fontWeight="400">
+                            {item.degrees.toFixed(1)}°
+                          </tspan>
+                        )}
+                        {cond && (
+                          <tspan
+                            dx="2"
+                            dy="-4"
+                            fontSize={Math.max(degFs - 1, 7)}
+                            fill={CONDITION_TONE_COLOR[cond.tone]}
+                          >
+                            ●
+                          </tspan>
+                        )}
+                      </text>
+                    );
+                  });
                 })()}
 
                 {/* Hit area drives hover/tap state */}

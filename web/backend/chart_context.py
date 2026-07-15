@@ -28,6 +28,7 @@ DEFAULT_SECTIONS = {
     "shadbala": True,
     "aspects": True,
     "arudhas": True,
+    "conditions": True,
 }
 
 # Divisional charts included by default: D1 (natal), D9 (Navamsa), D10 (Dasamsa).
@@ -237,6 +238,22 @@ def build_chart_context(birth_details: Dict[str, Any],
             ctx["arudhas"] = {
                 "padas": aru.get("arudha_padas", []),
                 "note": aru.get("note"),
+            }
+
+    if sections.get("conditions"):
+        pc = AstrologyCompute.get_planet_conditions(ayanamsa=ayanamsa, **args)
+        if pc.get("status") == "success":
+            # Only the flagged planets carry signal; the clean ones are noise.
+            ctx["conditions"] = {
+                "counts": pc.get("counts", {}),
+                "flagged": [
+                    {"planet": p["planet"], "sign_name": p["sign_name"],
+                     "house": p["house"],
+                     "flags": [{"label": f["label"], "tone": f["tone"],
+                                **({"partner": f["partner"]} if f.get("partner") else {})}
+                               for f in p["flags"]]}
+                    for p in pc.get("flagged", [])
+                ],
             }
 
     # Divisional charts (vargas). D1 is already the natal `planetary_positions`,

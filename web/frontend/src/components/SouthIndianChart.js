@@ -38,6 +38,7 @@ export const SouthIndianChart = ({
   focusPlanet = null,
   arudhas = null,
   showArudhas = false,
+  conditions = null,
 }) => {
   const gridRef = useRef(null);
   const planets = planetsProp || chartData?.planets;
@@ -46,6 +47,26 @@ export const SouthIndianChart = ({
   if (!planets) {
     return <div className="chart-empty">No chart data</div>;
   }
+
+  // Planet-condition flags: fullName -> { tone, labels[] }.
+  const flagsByPlanet = {};
+  (conditions || []).forEach((p) => {
+    const tones = (p.flags || []).map((f) => f.tone);
+    const tone = tones.includes("challenging")
+      ? "challenging"
+      : tones.includes("benefic")
+        ? "benefic"
+        : "neutral";
+    flagsByPlanet[p.planet] = {
+      tone,
+      labels: (p.flags || []).map((f) => f.label + (f.partner ? ` (${f.partner})` : "")),
+    };
+  });
+  const CONDITION_TONE_COLOR = {
+    benefic: "#2E9E5B",
+    challenging: "#e34234",
+    neutral: "#8b8fa8",
+  };
 
   // Centre of a sign's fixed cell in the 0..4 overlay grid coordinate system.
   const cellCenter = (signNum) => {
@@ -61,7 +82,12 @@ export const SouthIndianChart = ({
     }
     Object.entries(planets).forEach(([name, data]) => {
       if (data.house === signNum) {
-        items.push({ name: PLANET_ABBR[name] || name, type: "planet", degrees: data.degrees });
+        items.push({
+          name: PLANET_ABBR[name] || name,
+          type: "planet",
+          fullName: name,
+          degrees: data.degrees,
+        });
       }
     });
     // Arudha padas (AL/UL/A2..) that fall in this sign, shown when toggled on.
@@ -94,17 +120,31 @@ export const SouthIndianChart = ({
             >
               <span className="si-sign">{RASI_ABBR[signNum - 1]}</span>
               <div className="si-planets">
-                {items.map((item, idx) => (
-                  <span
-                    key={idx}
-                    className={`si-pl${item.type === "lagna" ? " si-pl-lagna" : ""}${
-                      item.type === "arudha" ? " si-pl-arudha" : ""
-                    }`}
-                  >
-                    {item.name}
-                    {item.degrees != null && <em className="si-deg">{item.degrees.toFixed(1)}°</em>}
-                  </span>
-                ))}
+                {items.map((item, idx) => {
+                  const cond = item.fullName ? flagsByPlanet[item.fullName] : null;
+                  return (
+                    <span
+                      key={idx}
+                      className={`si-pl${item.type === "lagna" ? " si-pl-lagna" : ""}${
+                        item.type === "arudha" ? " si-pl-arudha" : ""
+                      }`}
+                      title={cond ? `${item.fullName}: ${cond.labels.join(", ")}` : undefined}
+                    >
+                      {item.name}
+                      {item.degrees != null && (
+                        <em className="si-deg">{item.degrees.toFixed(1)}°</em>
+                      )}
+                      {cond && (
+                        <span
+                          className="si-cond-dot"
+                          style={{ color: CONDITION_TONE_COLOR[cond.tone] }}
+                        >
+                          ●
+                        </span>
+                      )}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           );
