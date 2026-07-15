@@ -185,11 +185,13 @@ function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
 function OtherDashaSystems({ birthDetails }) {
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
+  const { settings } = useSettings();
   const [systems, setSystems] = useState([]);
   const [selected, setSelected] = useState("");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [applicable, setApplicable] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -203,6 +205,19 @@ function OtherDashaSystems({ birthDetails }) {
       cancelled = true;
     };
   }, []);
+
+  // Which conditional dashas classically apply to THIS chart (BPHS rules).
+  useEffect(() => {
+    if (!birthDetails) return;
+    let cancelled = false;
+    astrologyService
+      .getApplicableDashas(birthDetails, settings.ayanamsa)
+      .then((r) => !cancelled && setApplicable(r.data?.applicable || []))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [birthDetails, settings.ayanamsa]);
 
   const load = useCallback(
     (key) => {
@@ -226,6 +241,32 @@ function OtherDashaSystems({ birthDetails }) {
 
   return (
     <Card title={t("dhasa.otherSystems")} icon={<Clock size={24} />}>
+      {applicable.length > 0 && (
+        <div className="dasha-reco">
+          <div className="dasha-reco__label">
+            <Star size={15} /> {t("dhasa.applicableTitle")}
+          </div>
+          <div className="dasha-reco__chips">
+            {applicable.map((a) => {
+              const clickable = !!a.picker_key;
+              return (
+                <button
+                  key={a.key}
+                  type="button"
+                  className={`dasha-reco__chip${clickable ? "" : " is-static"}`}
+                  title={a.description}
+                  disabled={!clickable}
+                  onClick={() => clickable && onChange(a.picker_key)}
+                >
+                  {a.name}
+                </button>
+              );
+            })}
+          </div>
+          <p className="card-note">{t("dhasa.applicableNote")}</p>
+        </div>
+      )}
+
       <label className="ayanamsa-select" style={{ marginBottom: "var(--space-lg)" }}>
         <span>{t("dhasa.system")}</span>
         <select value={selected} onChange={(e) => onChange(e.target.value)}>

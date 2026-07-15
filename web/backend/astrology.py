@@ -5159,6 +5159,237 @@ class AstrologyCompute:
         finally:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
+    # Gandanta ("knot") — the water→fire sign junctions: the last 3°20' of the
+    # water signs (Cancer/Scorpio/Pisces) and the first 3°20' of the fire signs
+    # that follow them (Leo/Sagittarius/Aries).
+    _GANDANTA_WATER = {3, 7, 11}
+    _GANDANTA_FIRE = {0, 4, 8}
+    _GANDANTA_ARC = 3 + 20 / 60.0
+    # Each flag's tone drives the UI colour + the AI framing.
+    _CONDITION_TONES = {
+        "combust": "challenging", "mrityu_bhaga": "challenging",
+        "marana_karaka": "challenging", "gandanta": "challenging",
+        "graha_yuddha": "challenging", "vargottama": "benefic",
+        "pushkara_navamsa": "benefic", "pushkara_bhaga": "benefic",
+        "retrograde": "neutral",
+    }
+    _CONDITION_LABELS = {
+        "combust": "Combust (Asta)",
+        "vargottama": "Vargottama",
+        "pushkara_navamsa": "Pushkara Navamsa",
+        "pushkara_bhaga": "Pushkara Bhaga",
+        "mrityu_bhaga": "Mrityu Bhaga",
+        "marana_karaka": "Marana Karaka Sthana",
+        "gandanta": "Gandanta",
+        "graha_yuddha": "Graha Yuddha (planetary war)",
+        "retrograde": "Retrograde (Vakri)",
+    }
+
+    @staticmethod
+    def get_planet_conditions(dob: str, tob: str, place: str,
+                              lat: Optional[float] = None, lon: Optional[float] = None,
+                              tz: Optional[float] = None,
+                              ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Classical point-conditions ("flags") that colour a planet's reading but
+        are invisible on the plain Kundali:
+
+          • **Combust (Asta)** — too close to the Sun (engine `planets_in_combustion`).
+          • **Vargottama** — same sign in D1 and D9 (a strengthening dignity).
+          • **Pushkara Navamsa / Bhaga** — the auspicious nourishing degrees.
+          • **Mrityu Bhaga** — the classical "fatal" degrees (engine table).
+          • **Marana Karaka Sthana** — a planet in its death-like house.
+          • **Gandanta** — sitting on a water→fire junction (a karmic knot).
+          • **Graha Yuddha** — a planetary war (two tara-grahas within 1°).
+          • **Retrograde (Vakri)** — moving backward.
+
+        All engine-grounded; each flag carries a tone (benefic/challenging/neutral)
+        for the UI and the AI framing."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            second = int(tp[2]) if len(tp) > 2 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
+
+            d1 = charts.rasi_chart(jd, place_obj)
+            d9 = charts.divisional_chart(jd, place_obj, divisional_chart_factor=9)
+            lagna_rasi0 = d1[0][1][0]
+
+            # ── Engine-computed condition sets ──────────────────────────────
+            combust = set(charts.planets_in_combustion(d1))
+            pna, pb = charts.planets_in_pushkara_navamsa_bhaga(d1)
+            pna, pb = set(pna), set(pb)
+            retro = set(drik.planets_in_retrograde(jd, place_obj))
+            d9_sign = {p: d9[i][1][0] for i, (p, _v) in enumerate(d9[1:], start=1)
+                       if isinstance(p, int)}
+            # Mrityu bhaga (needs a Date + (h,m,s) tuple, and returns planet
+            # index OR 'Md'/'L'); keep only the nine grahas.
+            mrityu = set()
+            try:
+                mb = charts.planets_in_mrityu_bhaga(
+                    drik.Date(year, month, day), (hour, minute, second), place_obj, d1)
+                mrityu = {x[0] for x in mb if isinstance(x[0], int)}
+            except Exception:
+                pass
+            mks = {p for p, _h in charts.get_planets_in_marana_karaka_sthana(d1)}
+
+            # ── Graha Yuddha — tara-grahas sharing a sign within 1° ─────────
+            yuddha = {}   # planet idx -> (partner name, separation°)
+            taras = [(p, d1[p + 1][1][0], d1[p + 1][1][1]) for p in (2, 3, 4, 5, 6)]
+            for a in range(len(taras)):
+                for b in range(a + 1, len(taras)):
+                    pa, sa, la = taras[a]; pb2, sb, lb = taras[b]
+                    if sa == sb and abs(la - lb) <= 1.0:
+                        sep = round(abs(la - lb), 2)
+                        yuddha[pa] = (PLANET_NAMES[pb2], sep)
+                        yuddha[pb2] = (PLANET_NAMES[pa], sep)
+
+            planets = []
+            counts = {"benefic": 0, "challenging": 0, "neutral": 0}
+            for pidx in range(9):  # Sun..Ketu
+                sign0, deg = d1[pidx + 1][1]
+                flags = []
+
+                def add(code, extra=None):
+                    tone = AstrologyCompute._CONDITION_TONES[code]
+                    f = {"code": code,
+                         "label": AstrologyCompute._CONDITION_LABELS[code],
+                         "tone": tone}
+                    if extra:
+                        f.update(extra)
+                    flags.append(f)
+                    counts[tone] += 1
+
+                if pidx in combust:
+                    add("combust")
+                if pidx in d9_sign and d9_sign[pidx] == sign0:
+                    add("vargottama")
+                if pidx in pna:
+                    add("pushkara_navamsa")
+                if pidx in pb:
+                    add("pushkara_bhaga")
+                if pidx in mrityu:
+                    add("mrityu_bhaga")
+                if pidx in mks:
+                    add("marana_karaka")
+                if ((sign0 in AstrologyCompute._GANDANTA_WATER
+                     and deg >= 30 - AstrologyCompute._GANDANTA_ARC)
+                        or (sign0 in AstrologyCompute._GANDANTA_FIRE
+                            and deg < AstrologyCompute._GANDANTA_ARC)):
+                    add("gandanta")
+                if pidx in yuddha:
+                    partner, sep = yuddha[pidx]
+                    add("graha_yuddha", {"partner": partner, "separation": sep})
+                # Only the five tara-grahas: Rahu/Ketu are Mean nodes and thus
+                # perpetually retrograde (noise), the luminaries never retrograde.
+                if pidx in (2, 3, 4, 5, 6) and pidx in retro:
+                    add("retrograde")
+
+                planets.append({
+                    "planet": PLANET_NAMES.get(pidx, str(pidx)),
+                    "sign_name": ZODIAC_NAMES[sign0],
+                    "degrees": round(deg, 2),
+                    "house": ((sign0 - lagna_rasi0) % 12) + 1,
+                    "flags": flags,
+                })
+
+            flagged = [p for p in planets if p["flags"]]
+            return {
+                "status": "success",
+                "planets": planets,
+                "flagged": flagged,
+                "counts": counts,
+                "flagged_count": len(flagged),
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    # The BPHS conditional nakshatra dashas the engine can test for applicability,
+    # mapped to (display name, when-it-applies blurb, DhasaPage picker key or None).
+    _APPLICABLE_DASHA_INFO = {
+        "ashtottari": ("Ashtottari",
+                       "108-year cycle; classically applies when Rahu is in a "
+                       "quadrant/trine from a night-birth Lagna lord (and similar).",
+                       "ashtottari"),
+        "chaturaaseeti_sama": ("Chaturaaseeti Sama",
+                               "84-year cycle; applies when the 10th lord is in the 10th house.",
+                               None),
+        "dwadasottari": ("Dwadasottari",
+                         "112-year cycle; applies from a Lagna in Venus's hora (D9-based).",
+                         "dwadasottari"),
+        "dwisatpathi": ("Dwisatpathi",
+                        "112-year cycle; applies when the Lagna is in its own or the 7th nakshatra pada.",
+                        None),
+        "panchottari": ("Panchottari",
+                        "105-year cycle; applies from a Cancer Lagna condition (D12-based).",
+                        "panchottari"),
+        "satabdika": ("Shatabdika",
+                      "100-year cycle; applies when the Lagna is in Vargottama at a specific pada.",
+                      "shatabdika"),
+        "shashtisama": ("Shashtihayani (Shashti-sama)",
+                        "60-year cycle; applies when the Sun is in the Lagna.",
+                        None),
+    }
+
+    @staticmethod
+    def get_applicable_dashas(dob: str, tob: str, place: str,
+                              lat: Optional[float] = None, lon: Optional[float] = None,
+                              tz: Optional[float] = None,
+                              ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Which **conditional** Vimsottari-family dashas classically apply to this
+        chart (BPHS applicability rules), via the engine's `applicability_check`.
+
+        Vimsottari always applies and is the default; this surfaces the extra
+        nakshatra dashas tradition would *also* read for this specific nativity, so
+        the Dhasa page can recommend (and deep-link) them."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            from jhora.horoscope.dhasa.graha import applicability
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            second = int(tp[2]) if len(tp) > 2 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+
+            keys = applicability.applicability_check(
+                drik.Date(year, month, day), (hour, minute, second), place_obj) or []
+
+            applicable = []
+            for k in keys:
+                info = AstrologyCompute._APPLICABLE_DASHA_INFO.get(k)
+                if not info:
+                    applicable.append({"key": k, "name": k.replace("_", " ").title(),
+                                       "description": "", "picker_key": None})
+                    continue
+                name, blurb, picker = info
+                applicable.append({"key": k, "name": name, "description": blurb,
+                                   "picker_key": picker})
+            return {
+                "status": "success",
+                "applicable": applicable,
+                "count": len(applicable),
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
     @staticmethod
     def get_eclipses(place: str = "", lat: Optional[float] = None,
                      lon: Optional[float] = None, tz: Optional[float] = None,

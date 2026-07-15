@@ -3404,3 +3404,38 @@ hi/sa nav+card). api.js `getLifeTimeline`/`analyzeLifeTimelineAI`.
 **Still open on this feature (v1 limits, non-blocking):** far-future *bhukti* bands aren't drawn on
 the chart (only the running maha's are — the panel/AI still resolve them); eclipse markers cluster in
 the next ~3 yr (get_eclipses `count` cap); no zoom/pan (window picker only).
+
+## 28. Planet-condition flags + conditional-dasha recommender (§5.2 + §5.4 of improvements-2026-07.md) — ✅ SHIPPED 2026-07-15
+Two cheap, high-value follow-ons after the Life Timeline.
+
+**§5.2 Planetary Conditions (`get_planet_conditions`, astrology.py):** the classical point-conditions
+that colour a planet but are invisible on a plain chart — **Combust** (`charts.planets_in_combustion`),
+**Vargottama** (D1 sign == D9 sign), **Pushkara Navamsa/Bhaga** (`planets_in_pushkara_navamsa_bhaga`),
+**Mrityu Bhaga** (`planets_in_mrityu_bhaga` — needs a `drik.Date` + `(h,m,s)` tuple, returns idx or
+'Md'/'L'), **Marana Karaka Sthana** (`get_planets_in_marana_karaka_sthana`), **Gandanta** (water→fire
+junction: last/first 3°20' of Cancer/Scorpio/Pisces ↔ Leo/Sagittarius/Aries), **Graha Yuddha**
+(two tara-grahas sharing a sign within 1°), **Retrograde** (tara-grahas only — Rahu/Ketu are Mean nodes,
+perpetually retro = noise; luminaries never retro). Each flag carries a tone
+(benefic/challenging/neutral) for UI colour + AI framing. `POST /api/astrology/planet-conditions`
+(+`-analysis`; `analyze_planet_conditions`/`_build_planet_conditions_prompt` — honest, no
+lifespan/medical, "mrityu bhaga is a degree not a death statement"). Smart-lookup tool
+`get_planet_conditions` (ALWAYS_TOOLS + _DISPLAY "Core chart"). Frontend: **Planetary Conditions card
+on AdvancedPage** (loads independently like longevity; tone-coloured `.pc-flag` chips per flagged
+planet + self-contained AI reading). i18n `conditions.*` (en; hi/sa fall back). Verified live on the
+owner's chart: Moon gandanta, Venus combust+vargottama+pushkara, Saturn pushkara bhaga, etc.
+
+**§5.4 Applicable dashas (`get_applicable_dashas`, astrology.py):** wraps
+`dhasa.graha.applicability.applicability_check` (BPHS rules) → the conditional nakshatra dashas that
+also apply to THIS nativity, each mapped via `_APPLICABLE_DASHA_INFO` to (name, when-it-applies blurb,
+DhasaPage picker key | None). `POST /api/astrology/applicable-dashas` (factual, no AI). Frontend:
+a **"For this chart, tradition also recommends…" banner** in DhasaPage's `OtherDashaSystems` card —
+chips with a picker key deep-link into the system picker (`onChange`), the rest render static.
+i18n `dhasa.applicableTitle/applicableNote`. Verified live (owner → Shashtihayani, static; another
+chart → ashtottari).
+
+**Verify-skill note:** both were driven in a real browser (Playwright) after the API smoke test — the
+Life Timeline (§27) proved that build-green + API-200 is NOT enough for SVG/DOM correctness.
+
+**Still open from §5 of improvements-2026-07.md:** Kundali-hover flag badges + a chart_context.py
+conditions block (so every AI reading knows), then §5.1's follow-ons and the rest (strength page,
+friendship matrix, avasthas, unknown-birth-time mode, MCP, iCal, …).

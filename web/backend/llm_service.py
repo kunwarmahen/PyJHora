@@ -662,6 +662,16 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
+    async def analyze_planet_conditions(self,
+                                        data: Dict[str, Any],
+                                        name: str = "this person",
+                                        config: Optional[ModelConfig] = None) -> str:
+        """Reading of the classical planet-condition flags (combustion,
+        vargottama, gandanta, mrityu bhaga, …)."""
+        prompt = self._build_planet_conditions_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
     async def analyze_kp(self,
                          data: Dict[str, Any],
                          name: str = "this person",
@@ -2300,6 +2310,33 @@ Write a focused ~260-word reading of this window:
 2. **Saturn's weather** — if a Sade Sati / Ashtama / Kantaka phase is active, explain its character honestly but calmly (a period of maturing, responsibility and consolidation — not doom); if none, say the Saturn pressure is lighter now.
 3. **Turning-point transits** — mention the nearest ingress or a natal-nakshatra eclipse as a timing marker for shifts.
 Reason only from what's given. Be encouraging and practical, never fatalistic. Do NOT make medical, legal or financial predictions or name specific outcomes/dates of misfortune. Close with one line noting this is an indicative reading and free will shapes how a period is lived."""
+
+    def _build_planet_conditions_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """Explain the classical planet-condition flags that colour a reading."""
+        flagged = d.get("flagged") or []
+        if not flagged:
+            lines = "No special point-conditions stood out — the grahas sit in ordinary dignity."
+        else:
+            lines = "\n".join(
+                f"- **{p['planet']}** ({p['sign_name']} {p['degrees']}°, house {p['house']}): "
+                + ", ".join(
+                    f['label'] + (f" with {f['partner']} ({f['separation']}° apart)"
+                                  if f.get('partner') else "")
+                    + f" [{f['tone']}]"
+                    for f in p['flags'])
+                for p in flagged
+            )
+        c = d.get("counts") or {}
+        return f"""You are a precise Vedic astrologer explaining the **special point-conditions** ("flags") in {name}'s chart — the classical states that modify how a planet delivers its results but don't show on a plain Kundali. They have already been computed; read them, do not recompute or invent placements.
+
+Flagged planets ({c.get('benefic',0)} benefic, {c.get('challenging',0)} challenging, {c.get('neutral',0)} neutral):
+{lines}
+
+Write a clear ~260-word note:
+1. **What stands out** — walk through the 2–3 most significant flags. Explain each briefly in plain terms: e.g. *combust* = a planet's significations are "burnt"/strained by proximity to the Sun; *vargottama* / *pushkara* = strengthening, well-placed; *gandanta* = a sensitive karmic "knot"; *mrityu bhaga* / *marana karaka* = a delicate, testing placement; *graha yuddha* = two planets in a war of strength; *retrograde* = an internalised, revisiting quality.
+2. **The balance** — is the chart net-supported or net-tested by these conditions, and which life-areas (via the planet's house/karakatva) each touches?
+3. **How to hold it** — one grounded, constructive line.
+Reason only from the flags given. Be honest but never alarming — these are nuances, not verdicts. Do NOT make medical, legal, financial or lifespan predictions (mrityu bhaga is a classical *degree*, NOT a statement about death). Close with one calm, encouraging line."""
 
     def _build_remedies_prompt(self, d: Dict[str, Any], name: str) -> str:
         """Explain the suggested per-planet remedies, warmly and responsibly."""

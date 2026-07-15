@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Sparkles, Grid3x3, Compass, Gauge, HeartPulse } from "lucide-react";
+import { Sparkles, Grid3x3, Compass, Gauge, HeartPulse, ShieldAlert } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { PageHeader } from "../components/PageHeader";
@@ -17,6 +18,21 @@ import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
 const RASI_ABBR = ["Ar", "Ta", "Ge", "Cn", "Le", "Vi", "Li", "Sc", "Sg", "Cp", "Aq", "Pi"];
+
+// Flag tone → chip colour (benefic green / challenging vermillion / neutral gray).
+const TONE_COLOR = { benefic: "#2E9E5B", challenging: "#e34234", neutral: "#8b8fa8" };
+
+const readModelConfig = () => {
+  const providerType = localStorage.getItem("ai_provider_type") || "ollama";
+  return {
+    providerType,
+    model: localStorage.getItem("ai_model") || "",
+    baseUrl:
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    legacyProvider: providerType === "ollama" ? "qwen" : providerType,
+    maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
+  };
+};
 
 // Map a Sarva Ashtakavarga bindu count (~25–40) to a saffron tint for a heatmap.
 const savColor = (v) => {
@@ -39,8 +55,15 @@ export const AdvancedPage = () => {
   const [shadbala, setShadbala] = useState(null);
   const [aspects, setAspects] = useState(null);
   const [longevity, setLongevity] = useState(null);
+  const [conditions, setConditions] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Planet-conditions AI reading (self-contained on this card).
+  const [pcAi, setPcAi] = useState("");
+  const [pcAiModel, setPcAiModel] = useState("");
+  const [pcAiLoading, setPcAiLoading] = useState(false);
+  const [pcAiError, setPcAiError] = useState("");
 
   const birthDetails = useMemo(
     () =>
@@ -72,6 +95,9 @@ export const AdvancedPage = () => {
     setShadbala(null);
     setAspects(null);
     setLongevity(null);
+    setConditions(null);
+    setPcAi("");
+    setPcAiError("");
     let cancelled = false;
     const done = { av: false, d: false, sb: false, asp: false };
     const settle = () => {
@@ -114,11 +140,35 @@ export const AdvancedPage = () => {
       .getLongevity(birthDetails, ayanamsa)
       .then((r) => !cancelled && setLongevity(r.data))
       .catch(() => {});
+    // Planet conditions load independently too.
+    astrologyService
+      .getPlanetConditions(birthDetails, ayanamsa)
+      .then((r) => !cancelled && setConditions(r.data))
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfile, navigate, ayanamsa]);
+
+  const handleConditionsAi = async () => {
+    if (!birthDetails) return;
+    setPcAiLoading(true);
+    setPcAiError("");
+    try {
+      const res = await astrologyService.analyzePlanetConditionsAI(
+        birthDetails,
+        { personName: birthDetails.name },
+        { ...readModelConfig(), ayanamsa }
+      );
+      setPcAi(res.data.ai_analysis || "");
+      setPcAiModel(res.data.model || res.data.provider || "");
+    } catch (err) {
+      setPcAiError(err.response?.data?.detail || t("conditions.aiError"));
+    } finally {
+      setPcAiLoading(false);
+    }
+  };
 
   if (!selectedProfile) return null;
 
@@ -330,6 +380,72 @@ export const AdvancedPage = () => {
                   </div>
                 )}
                 <p className="card-note">{t("advanced.longevity.disclaimer")}</p>
+              </Card>
+            )}
+
+            {/* Planet conditions (combustion, vargottama, gandanta, …) */}
+            {conditions && (
+              <Card
+                title={t("conditions.title")}
+                icon={<ShieldAlert size={24} />}
+                accent="indigo"
+              >
+                <p className="card-intro">{t("conditions.intro")}</p>
+                {(conditions.flagged || []).length === 0 ? (
+                  <p className="card-note">{t("conditions.none")}</p>
+                ) : (
+                  <div className="pc-list">
+                    {conditions.flagged.map((p) => (
+                      <div key={p.planet} className="pc-row">
+                        <div className="pc-row__planet">
+                          <span className="pc-row__name">{p.planet}</span>
+                          <span className="pc-row__pos">
+                            {p.sign_name} · {t("conditions.house", { n: p.house })}
+                          </span>
+                        </div>
+                        <div className="pc-row__flags">
+                          {p.flags.map((f, i) => (
+                            <span
+                              key={i}
+                              className="pc-flag"
+                              style={{ background: TONE_COLOR[f.tone] || TONE_COLOR.neutral }}
+                              title={f.tone}
+                            >
+                              {f.label}
+                              {f.partner ? ` · ${f.partner} (${f.separation}°)` : ""}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* AI reading */}
+                <div className="mt-lg">
+                  <ErrorBanner message={pcAiError} />
+                  {!pcAi && !pcAiLoading && (
+                    <p className="ai-panel__hint">{t("conditions.aiHint")}</p>
+                  )}
+                  {pcAiLoading && <LoadingState message={t("conditions.aiLoading")} />}
+                  {pcAi && !pcAiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <ReactMarkdown>{pcAi}</ReactMarkdown>
+                      {pcAiModel && (
+                        <div className="ai-panel__meta">
+                          {t("conditions.aiModel", { model: pcAiModel })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!pcAiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleConditionsAi}>
+                      <Sparkles size={18} />
+                      {pcAi ? t("conditions.aiRegenerate") : t("conditions.aiGenerate")}
+                    </button>
+                  )}
+                </div>
+                <p className="card-note">{t("conditions.disclaimer")}</p>
               </Card>
             )}
           </>

@@ -1500,6 +1500,93 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* Planet-conditions flags (combustion / vargottama / gandanta / …) */
+.pc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.pc-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 10px;
+  background: rgba(244, 228, 193, 0.35);
+}
+.pc-row__planet {
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.pc-row__name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.pc-row__pos {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.pc-row__flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.pc-flag {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+/* Applicable-dasha recommendation banner on the Dhasa page */
+.dasha-reco {
+  padding: 0.7rem 0.85rem;
+  margin-bottom: var(--space-lg);
+  border-radius: 12px;
+  background: rgba(45, 53, 97, 0.06);
+  border: 1px solid rgba(45, 53, 97, 0.14);
+}
+.dasha-reco__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  margin-bottom: 0.5rem;
+}
+.dasha-reco__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dasha-reco__chip {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--saffron);
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--marigold) 100%);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.dasha-reco__chip:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+.dasha-reco__chip.is-static {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: rgba(139, 143, 168, 0.5);
+  cursor: default;
+}
+
 /* Conversational birth-time rectification chat log */
 .rectify-chat__log {
   display: flex;

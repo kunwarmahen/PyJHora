@@ -278,6 +278,20 @@ def _raja_yogas(bd, ayanamsa, **_):
     return {"count": r.get("count"), "raja_yogas": r.get("raja_yogas", [])}
 
 
+def _planet_conditions(bd, ayanamsa, **_):
+    r = AstrologyCompute.get_planet_conditions(ayanamsa=ayanamsa, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    # Only the flagged planets matter to the model; drop the clean ones.
+    return {"counts": r.get("counts"),
+            "flagged": [{"planet": p["planet"], "sign": p["sign_name"],
+                         "house": p["house"],
+                         "conditions": [{"name": f["label"], "tone": f["tone"],
+                                         **({"partner": f["partner"]} if f.get("partner") else {})}
+                                        for f in p["flags"]]}
+                        for p in r.get("flagged", [])]}
+
+
 def _life_timeline(bd, ayanamsa, target_date: Optional[str] = None, **_):
     # A specific date → the "what's running" window context (maha/bhukti, Saturn
     # phase, nearby ingresses/eclipses). No date → a compact overview: the current
@@ -621,6 +635,17 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _life_timeline,
     ),
     _Tool(
+        "get_planet_conditions",
+        "Classical point-conditions (\"flags\") per planet that modify how it "
+        "delivers results but don't show on a plain chart: Combust (Asta), "
+        "Vargottama, Pushkara Navamsa/Bhaga, Mrityu Bhaga, Marana Karaka Sthana, "
+        "Gandanta, Graha Yuddha (planetary war) and Retrograde — each with a "
+        "benefic/challenging/neutral tone. Use to sharpen dignity/strength "
+        "judgements and when asked why a planet feels strong or strained.",
+        _EMPTY_PARAMS,
+        _planet_conditions,
+    ),
+    _Tool(
         "get_raja_yogas",
         "Dedicated Raja Yoga analysis of the natal (Rasi) chart: the fundamental "
         "Kendra-Trikona raja yogas (quadrant lord + trine lord, with a coarse "
@@ -768,7 +793,7 @@ ALWAYS_TOOLS: List[str] = [
     "get_raja_yogas", "get_longevity", "get_pancha_pakshi",
     "get_sphuta", "get_sahams", "get_argala",
     "get_vedic_clock", "get_retrograde", "get_muhurta",
-    "get_kp", "get_jaimini", "get_life_timeline",
+    "get_kp", "get_jaimini", "get_life_timeline", "get_planet_conditions",
 ]
 
 
@@ -815,6 +840,7 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_chart_details":    {"label": "House-by-house detail",  "category": "Core chart"},
     "get_aspects":          {"label": "Graha drishti (aspects)", "category": "Core chart"},
     "get_arudha_padas":     {"label": "Arudha padas (AL/UL)",    "category": "Core chart"},
+    "get_planet_conditions": {"label": "Planet conditions (combustion, vargottama…)", "category": "Core chart"},
     "get_divisional_chart": {"label": "Divisional (varga) charts", "category": "Core chart"},
     "get_life_timeline":    {"label": "Life timeline (dasha + transits)", "category": "Timing"},
     "get_dasha_chain":      {"label": "Running dasha periods",  "category": "Timing"},

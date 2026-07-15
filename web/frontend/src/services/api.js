@@ -716,6 +716,30 @@ export const astrologyService = {
       { timeout: 300000 }
     ),
 
+  // ---- Planet conditions (combustion / vargottama / gandanta / …) ----
+  getPlanetConditions: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/planet-conditions", birthDetails, { params: { ayanamsa } }),
+  analyzePlanetConditionsAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/planet-conditions-analysis",
+      {
+        birth_details: birthDetails,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
+  // ---- Conditional dashas that apply to this chart (BPHS) ----
+  getApplicableDashas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/applicable-dashas", birthDetails, { params: { ayanamsa } }),
+
   // ---- Remedies (gemstones / mantras / deities per weak planet) ----
   getRemedies: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/remedies", birthDetails, { params: { ayanamsa } }),
