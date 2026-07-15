@@ -389,7 +389,6 @@ export const NorthIndianChart = ({
                         fontWeight="700"
                         fontStyle={item.type === "arudha" ? "italic" : "normal"}
                       >
-                        {cond && <title>{`${item.fullName}: ${cond.labels.join(", ")}`}</title>}
                         {item.name}
                         {item.degrees != null && (
                           <tspan dx="3" fontSize={degFs} fontWeight="400">
@@ -411,7 +410,9 @@ export const NorthIndianChart = ({
                   });
                 })()}
 
-                {/* Hit area drives hover/tap state */}
+                {/* Hit area drives hover/tap state. It sits on top of the planet
+                    text, so any condition tooltip must live HERE (a <title> on the
+                    text below would never receive the hover). */}
                 <circle
                   cx={house.cx}
                   cy={house.cy}
@@ -421,7 +422,14 @@ export const NorthIndianChart = ({
                   onMouseEnter={() => setHoveredHouse(house.num)}
                   onMouseLeave={() => setHoveredHouse(null)}
                   onClick={() => setHoveredHouse((prev) => (prev === house.num ? null : house.num))}
-                />
+                >
+                  {(() => {
+                    const lines = planetsInHouse
+                      .filter((it) => it.fullName && flagsByPlanet[it.fullName])
+                      .map((it) => `${it.fullName}: ${flagsByPlanet[it.fullName].labels.join(", ")}`);
+                    return lines.length ? <title>{lines.join("\n")}</title> : null;
+                  })()}
+                </circle>
               </g>
             );
           })}
