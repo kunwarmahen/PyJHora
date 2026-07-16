@@ -30,6 +30,10 @@ try:
                                              panchottari, sataatbika)
     from jhora.horoscope.dhasa.raasi import (narayana, kalachakra, kendradhi_rasi,
                                              sudasa, drig, chara, sthira, trikona)
+    # Sudarshana Chakra dasha (§2.7) — lives directly under dhasa/, not graha/raasi,
+    # because its "lord" is a *triple* of houses (from Lagna, Moon and Sun) rather
+    # than a single graha or rasi.
+    from jhora.horoscope.dhasa import sudharsana_chakra
     from jhora import utils, const
     import swisseph as swe
 
@@ -384,6 +388,13 @@ SUPPORTED_DASHAS = {
     "trikona": {
         "name": "Trikona Dasha", "lord_type": "raasi",
         "description": "Jaimini trinal rasi dasha from the lagna.",
+    },
+    # ── Chakra dasha — a triple lord (Lagna / Moon / Sun wheels) ───────────
+    "sudharsana_chakra": {
+        "name": "Sudarshana Chakra Dasha", "lord_type": "chakra",
+        "description": "One-year progression around three wheels at once — the "
+                       "active house counted from the Lagna, the Moon and the Sun. "
+                       "Read the same year from all three for a fuller verdict.",
     },
 }
 

@@ -172,6 +172,33 @@ def test_transit_carries_bindu_annotation(args1):
     assert sarva[planets["Saturn"]["rasi"]] == 39
 
 
+def test_sudarshana_chakra_dasha(args1):
+    """§2.7 Sudarshana Chakra: a 12-year wheel run from three references at once.
+
+    Guards the subtle bit — the engine's triple members are named `*_house` but are
+    actually 0-based **sign indices**, so year 1 must land on each wheel's own natal
+    sign (house 1 on all three), not on an offset sign.
+    """
+    r = A.get_dasha_periods("sudharsana_chakra", **args1)
+    assert r.get("status") == "success", r
+    assert r["lord_type"] == "chakra"
+    # Chart 1: Taurus lagna, Leo Moon, Taurus Sun.
+    assert r["chakra_refs"] == {"lagna": "Taurus", "moon": "Leo", "sun": "Taurus"}
+    # 12-year wheel x 9 cycles.
+    assert len(r["periods"]) == 108
+
+    y1 = r["periods"][0]
+    assert y1["start_date"] == "1976-06-04"
+    assert y1["lord"] == "Taurus · Leo · Taurus"
+    for wheel, sign in (("lagna", "Taurus"), ("moon", "Leo"), ("sun", "Taurus")):
+        assert y1["chakra"][wheel] == {"house": 1, "sign": sign}
+
+    # Year 2 advances one house on every wheel; year 13 wraps back to the start.
+    assert [r["periods"][1]["chakra"][w]["house"] for w in ("lagna", "moon", "sun")] == [2, 2, 2]
+    assert r["periods"][12]["lord"] == y1["lord"]
+    assert [r["periods"][12]["chakra"][w]["house"] for w in ("lagna", "moon", "sun")] == [1, 1, 1]
+
+
 def test_bindu_chip_thresholds():
     """The classical thresholds themselves: own-BAV >=5 supported / ==4 neutral /
     <=3 rough, and the node fallback on Sarva (>=30 / >=25 / else)."""

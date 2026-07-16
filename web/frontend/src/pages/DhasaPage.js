@@ -288,6 +288,18 @@ function OtherDashaSystems({ birthDetails }) {
       <ErrorBanner message={error} />
       {loading && <LoadingState message={t("dhasa.calcPeriods")} />}
 
+      {/* Sudarshana Chakra runs three wheels at once — name the reference signs
+          so the three-part lord ("Taurus · Leo · Taurus") is readable. */}
+      {data?.lord_type === "chakra" && data?.chakra_refs && (
+        <p className="card-note">
+          {t("dhasa.chakraRefs", {
+            lagna: data.chakra_refs.lagna,
+            moon: data.chakra_refs.moon,
+            sun: data.chakra_refs.sun,
+          })}
+        </p>
+      )}
+
       {data?.periods?.length > 0 && (
         <div className="period-list">
           {data.periods.map((p, i) => {
@@ -295,7 +307,19 @@ function OtherDashaSystems({ birthDetails }) {
             return (
               <div key={`${p.lord}-${i}`} className={`period-row${current ? " is-current" : ""}`}>
                 <span className="fw-700 text-indigo">
-                  {p.lord}
+                  {p.chakra ? (
+                    <span className="chakra-wheels">
+                      {["lagna", "moon", "sun"].map((w) => (
+                        <span key={w} className={`chakra-wheel chakra-wheel--${w}`}>
+                          <span className="chakra-wheel__ref">{t(`dhasa.wheel.${w}`)}</span>
+                          {p.chakra[w].sign}
+                          <span className="chakra-wheel__house">{p.chakra[w].house}</span>
+                        </span>
+                      ))}
+                    </span>
+                  ) : (
+                    p.lord
+                  )}
                   {current && <span className="period-row__now">{t("dhasa.now")}</span>}
                 </span>
                 <span className="text-secondary" style={{ fontSize: "0.8125rem" }}>

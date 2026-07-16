@@ -1258,6 +1258,59 @@
   flex-direction: column;
   gap: var(--space-sm);
 }
+/* Sudarshana Chakra — three wheels shown per period (§2.7) */
+.chakra-wheels {
+  display: inline-flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.chakra-wheel {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border: 1px solid var(--sandalwood);
+  background: var(--sacred-white);
+}
+.chakra-wheel__ref {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
+.chakra-wheel__house {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--sacred-white);
+  background: var(--text-secondary);
+  border-radius: 999px;
+  padding: 0 5px;
+  line-height: 1.4;
+}
+.chakra-wheel--lagna {
+  border-color: var(--saffron);
+}
+.chakra-wheel--lagna .chakra-wheel__house {
+  background: var(--saffron);
+}
+.chakra-wheel--moon {
+  border-color: var(--indigo, #5e60ce);
+}
+.chakra-wheel--moon .chakra-wheel__house {
+  background: var(--indigo, #5e60ce);
+}
+.chakra-wheel--sun {
+  border-color: var(--vermillion);
+}
+.chakra-wheel--sun .chakra-wheel__house {
+  background: var(--vermillion);
+}
+
 .period-row {
   display: grid;
   grid-template-columns: 1fr auto auto;

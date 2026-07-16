@@ -364,12 +364,49 @@ class DashasMixin:
                 rows = sthira.get_dhasa_antardhasa(dob_t, tob_t, place_obj, dhasa_level_index=1)
             elif dhasa_type == "trikona":
                 rows = trikona.get_dhasa_antardhasa(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            # ── Chakra dasha (§2.7) ───────────────────────────────────────
+            elif dhasa_type == "sudharsana_chakra":
+                # 12-year wheel × 9 cycles = 108 one-year periods.
+                rows = sudharsana_chakra.get_dhasa_bhukthi(
+                    jd, place_obj, dhasa_level_index=1, dhasa_cycles=9)
             else:
                 return {"error": f"Unsupported dhasa type: {dhasa_type}", "status": "failed"}
 
             names = ZODIAC_NAMES if meta["lord_type"] == "raasi" else None
 
+            # Sudarshana Chakra's "lord" is a triple of houses counted from three
+            # different reference points, so it needs the natal Lagna/Moon/Sun signs
+            # to name the rasi each wheel is running through.
+            chakra_refs = None
+            if meta["lord_type"] == "chakra":
+                _pp = charts.rasi_chart(jd, place_obj)
+                chakra_refs = {
+                    "lagna": _pp[0][1][0],   # ascendant sign
+                    "moon": _pp[2][1][0],    # row 2 = Moon
+                    "sun": _pp[1][1][0],     # row 1 = Sun
+                }
+
+            def _chakra_period(raw):
+                """Engine triple -> the active rasi + house on each wheel.
+
+                NOTE the engine's naming is misleading: in `sudharshana_chakra_chart`
+                the triple's members are `planet_positions[i][1][0]` — 0-based **sign
+                indices**, not house numbers (despite being called `*_house`). So the
+                triple IS the active rasi of each wheel; the house is derived by
+                counting it from that wheel's natal reference sign.
+                """
+                triple = raw[0] if isinstance(raw, (tuple, list)) else raw
+                out = {}
+                for key, sign in zip(("lagna", "moon", "sun"), (int(x) for x in triple)):
+                    sign %= 12
+                    house = ((sign - chakra_refs[key]) % 12) + 1
+                    out[key] = {"house": house, "sign": ZODIAC_NAMES[sign]}
+                return out
+
             def _lord_name(raw):
+                if chakra_refs is not None:
+                    c = _chakra_period(raw)
+                    return " · ".join(c[k]["sign"] for k in ("lagna", "moon", "sun"))
                 idx = raw[0] if isinstance(raw, (tuple, list)) else raw
                 if names is not None:
                     return names[idx % 12]
@@ -392,14 +429,18 @@ class DashasMixin:
                     end_jd = start_jd + float(dur) * 365.25
                     y2, m2, d2, _h2 = swe.revjul(end_jd)
                     end_t = (y2, m2, d2, 0)
-                periods.append({
+                entry = {
                     "lord": _lord_name(lord_raw),
                     "start_date": _fmt(start_t),
                     "end_date": _fmt(end_t),
                     "duration_years": round(float(dur), 2),
-                })
+                }
+                if chakra_refs is not None:
+                    # Per-wheel house+rasi, so the UI can show all three columns.
+                    entry["chakra"] = _chakra_period(lord_raw)
+                periods.append(entry)
 
-            return {
+            out = {
                 "status": "success",
                 "dhasa_type": dhasa_type,
                 "name": meta["name"],
@@ -407,6 +448,12 @@ class DashasMixin:
                 "description": meta["description"],
                 "periods": periods,
             }
+            if chakra_refs is not None:
+                # The three natal reference signs each wheel counts from.
+                out["chakra_refs"] = {
+                    k: ZODIAC_NAMES[v] for k, v in chakra_refs.items()
+                }
+            return out
         except Exception as e:
             print(f"Dasha periods error ({dhasa_type}): {str(e)}")
             import traceback

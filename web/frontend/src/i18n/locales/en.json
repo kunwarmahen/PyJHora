@@ -699,6 +699,12 @@
       "wheelLagna": "Lagna wheel",
       "wheelMoon": "Chandra (Moon) wheel",
       "wheelSun": "Surya (Sun) wheel"
+    },
+    "chakraRefs": "Three wheels run at once, each counted from a natal reference — Lagna: {{lagna}} · Moon: {{moon}} · Sun: {{sun}}. The number is the house that wheel is running through.",
+    "wheel": {
+      "lagna": "Lagna",
+      "moon": "Moon",
+      "sun": "Sun"
     }
   },
   "aspects": {
