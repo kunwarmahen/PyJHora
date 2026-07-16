@@ -194,8 +194,13 @@ pyjhora-web/
 │   ├── database.py          # MongoDB models and connection
 │   ├── auth.py              # Authentication utilities (password hashing, JWT access tokens)
 │   ├── refresh_tokens.py    # Long-lived, revocable, rotating refresh tokens (silent re-auth)
-│   ├── astrology.py         # PyJHora wrapper
-│   ├── llm_service.py       # Multi-provider LLM layer (Ollama/OpenAI-compatible/Gemini/OpenAI) + streaming
+│   ├── main.py              # App wiring only: lifespan, CORS, router mounting
+│   ├── models.py            # Pydantic request models
+│   ├── deps.py              # Shared deps: auth, rate limit, model-config, persistence
+│   ├── routes/              # 11 APIRouter modules (all ~160 handlers)
+│   ├── astrology/           # PyJHora wrapper — engine.py + 14 concern mixins + core.py
+│   ├── llm_service.py       # Multi-provider LLM layer (composes the llm/ mixins) + streaming
+│   ├── llm/                 # base.py (enums/config), providers/{ollama,openai,gemini}.py, prompts.py
 │   ├── chart_context.py     # Builds the structured chart context sent to the AI
 │   ├── tools.py             # Tool registry for agentic mode (wraps AstrologyCompute) + GET /api/ai/tools catalog
 │   ├── tool_traces.py       # Lazy side-storage for smart-lookup tool results
