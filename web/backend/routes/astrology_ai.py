@@ -186,6 +186,46 @@ async def analyze_comparison(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/api/astrology/kaala-chakra-analysis")
+async def analyze_kaala_chakra(
+    request: ChakraAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Plain-language AI reading of the Kaala Chakra (directions) — §2.7."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        kaala = AstrologyCompute.get_kaala_chakra(
+            dob=bd.dob, tob=bd.tob, place=bd.place,
+            lat=bd.latitude, lon=bd.longitude, tz=bd.timezone,
+            current_date=request.current_date, current_time=request.current_time,
+            current_tz=request.current_tz, ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+        )
+        if kaala.get("status") != "success":
+            raise HTTPException(status_code=400, detail=kaala.get("error", "Calculation failed"))
+
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_kaala_chakra(
+            kaala_data=kaala, name=request.person_name or "this person", config=cfg,
+        )
+        await _save_reading(
+            current_user, source="kaala_chakra",
+            title=f"Kaala Chakra — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name,
+                     "current_date": request.current_date,
+                     "current_time": request.current_time,
+                     "current_tz": request.current_tz,
+                     "ayanamsa": request.ayanamsa},
+        )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value, "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/api/astrology/kota-chakra-analysis")
 async def analyze_kota_chakra(
     request: ChakraAnalysisRequest,

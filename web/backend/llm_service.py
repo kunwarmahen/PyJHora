@@ -175,6 +175,16 @@ class LLMService(PromptsMixin, OllamaMixin, OpenAIMixin, GeminiMixin):
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
         return await self._complete(prompt, cfg)
 
+    async def analyze_kaala_chakra(self,
+                                   kaala_data: Dict[str, Any],
+                                   name: str = "this person",
+                                   provider: LLMProvider = LLMProvider.QWEN,
+                                   config: Optional[ModelConfig] = None) -> str:
+        """Layman interpretation of the Kaala Chakra (wheel of directions)."""
+        prompt = self._build_kaala_chakra_prompt(kaala_data, name)
+        cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        return await self._complete(prompt, cfg)
+
     async def analyze_tripataki(self,
                                 trip_data: Dict[str, Any],
                                 name: str = "this person",

@@ -53,6 +53,7 @@ SOURCE_META: Dict[str, Dict[str, str]] = {
     "panchapakshi":     {"label": "Pancha Pakshi",      "route": "/pancha-pakshi",     "kind": "reading"},
     "sarvatobhadra":    {"label": "Sarvatobhadra",      "route": "/chakras",           "kind": "reading"},
     "kota_chakra":      {"label": "Kota Chakra",        "route": "/chakras",           "kind": "reading"},
+    "kaala_chakra":     {"label": "Kaala Chakra",       "route": "/chakras",           "kind": "reading"},
     "tripataki_chakra": {"label": "Tripataki Chakra",   "route": "/chakras",           "kind": "reading"},
     "compatibility":    {"label": "Compatibility",      "route": "/compatibility",     "kind": "reading"},
     "compare":          {"label": "Compare charts",     "route": "/compare",           "kind": "reading"},

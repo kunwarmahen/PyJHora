@@ -185,7 +185,8 @@
     "tabs": {
       "sarvatobhadra": "Sarvatobhadra",
       "kota": "Kota (fort)",
-      "tripataki": "Tripataki"
+      "tripataki": "Tripataki",
+      "kaala": "Kaala (directions)"
     }
   },
   "shared": {
@@ -2243,7 +2244,39 @@
     "model": "Model: {{model}}",
     "hint": {
       "kota": "Get a plain-language reading of the fort — where the pressure is, where the protection is.",
-      "tripataki": "Get a plain-language reading of the vedha on your Moon and Lagna."
+      "tripataki": "Get a plain-language reading of the vedha on your Moon and Lagna.",
+      "kaala": "Get a plain-language reading of which directions are open to you right now."
+    }
+  },
+  "kaala": {
+    "title": "Kaala Chakra",
+    "error": "Could not compute the Kaala chakra",
+    "loading": "Turning the wheel…",
+    "intro": "The Kaala Chakra arranges the 28 nakshatras as a wheel counted from your Sun’s star: four stars at the hub, and eight spokes of three — and each spoke is a compass direction. A graha landing on a spoke colours that direction. Classically used to pick a direction to travel, face, or push a matter.",
+    "baseStar": "Base star (Sun)",
+    "favourable": "Favourable",
+    "avoid": "Best avoided",
+    "directions": "The eight directions",
+    "direction": "Direction",
+    "stars": "Stars",
+    "grahas": "Grahas",
+    "verdict": "Verdict",
+    "legend": "Red chips are malefics, green benefics; ℞ = retrograde. A direction with no grahas is simply neutral. The wheel keeps the engine’s own orientation (its 90° spoke is East), so it matches desktop JHora rather than a compass rose.",
+    "tone": {
+      "supportive": "Supportive",
+      "stressful": "Best avoided",
+      "mixed": "Mixed",
+      "clear": "Neutral"
+    },
+    "dir": {
+      "east": "East",
+      "southeast": "Southeast",
+      "south": "South",
+      "southwest": "Southwest",
+      "west": "West",
+      "northwest": "Northwest",
+      "north": "North",
+      "northeast": "Northeast"
     }
   }
 }

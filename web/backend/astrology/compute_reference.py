@@ -503,6 +503,132 @@ class ReferenceMixin:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
+    def get_kaala_chakra(dob: str, tob: str, place: str,
+                         lat: Optional[float] = None, lon: Optional[float] = None,
+                         tz: Optional[float] = None,
+                         current_date: Optional[str] = None, current_time: Optional[str] = None,
+                         current_tz: Optional[float] = None,
+                         ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Kaala Chakra — the wheel of directions, with the transits on it (§2.7).
+
+        The 28 stars (Abhijit included) are laid out as 4 inner stars around the
+        hub and 8 outer divisions of 3 stars, counted from a **base star**. Each
+        outer division IS a compass direction, so a graha landing on one colours
+        that direction — the classical use is choosing which way to travel or act.
+
+        Base star: the engine's rule is the **Sun's** nakshatra for the Rasi (D1)
+        chart (the Lagna's star is used for vargas, which we don't offer here).
+
+        Ported from the engine's PyQt-only `ui.chakra.KaalaChakra`; the offsets,
+        the direction order and the Abhijit slot-shift are its own.
+        """
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            from datetime import datetime
+
+            y, mo, d = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+            natal_jd = swe.julday(y, mo, d, hour + minute / 60.0)
+            natal = charts.rasi_chart(natal_jd, place_obj)
+
+            # Base star = the natal Sun's nakshatra (the D1 rule).
+            sun_rasi, sun_deg = natal[1][1]
+            base_star = drik.nakshatra_pada(sun_rasi * 30.0 + sun_deg)[0]
+
+            # ── Transit moment ─────────────────────────────────────────────
+            if current_date:
+                ty, tm, td = map(int, current_date.split("-"))
+            else:
+                now = datetime.now()
+                ty, tm, td = now.year, now.month, now.day
+            if current_time:
+                tt = current_time.split(":")
+                t_hour = int(tt[0]); t_min = int(tt[1]) if len(tt) > 1 else 0
+            else:
+                t_hour, t_min = 12, 0
+            transit_tz = current_tz if current_tz is not None else tz_offset
+            transit_place = drik.Place(place, lat, lon, transit_tz)
+            transit_jd = swe.julday(ty, tm, td, t_hour + t_min / 60.0)
+            transit = charts.rasi_chart(transit_jd, transit_place)
+            retro = set(drik.planets_in_retrograde(transit_jd, transit_place))
+
+            star_order = [NAKSHATRA_NAMES_28[i] for i in const.abhijit_order_of_stars]
+
+            def _slot(ele):
+                return ((base_star - 1) + (ele - 1)) % 28
+
+            inner_slots = [_slot(e) for e in KAALA_INNER_STARS]
+            outer_slots = [[_slot(e) for e in row] for row in KAALA_OUTER_DIVISIONS]
+
+            # Grahas by 28-star slot.
+            at_slot = {}
+            for pid, (rasi, deg) in transit[1:]:
+                nm = PLANET_NAMES.get(pid)
+                if not nm:
+                    continue
+                nak = drik.nakshatra_pada(rasi * 30.0 + deg)[0]
+                at_slot.setdefault(kaala_star_slot(nak), []).append(
+                    {"name": nm, "retrograde": pid in retro,
+                     "malefic": nm in KOTA_MALEFICS})
+
+            inner = [{"star": star_order[s], "angle": a,
+                      "planets": at_slot.get(s, [])}
+                     for s, a in zip(inner_slots, KAALA_INNER_ANGLES)]
+
+            directions = []
+            for i, slots in enumerate(outer_slots):
+                cells = [{"star": star_order[s], "planets": at_slot.get(s, [])}
+                         for s in slots]
+                occupants = [p for c in cells for p in c["planets"]]
+                mal = [p["name"] for p in occupants if p["malefic"]]
+                ben = [p["name"] for p in occupants if not p["malefic"]]
+                if mal and not ben:
+                    tone = "stressful"
+                elif ben and not mal:
+                    tone = "supportive"
+                elif mal and ben:
+                    tone = "mixed"
+                else:
+                    tone = "clear"
+                directions.append({
+                    "direction": KAALA_DIRECTIONS[i],
+                    "angle": KAALA_OUTER_ANGLES[i],
+                    "cells": cells,
+                    "malefics": mal,
+                    "benefics": ben,
+                    "tone": tone,
+                })
+
+            best = [d["direction"] for d in directions if d["tone"] == "supportive"]
+            avoid = [d["direction"] for d in directions if d["tone"] == "stressful"]
+
+            return {
+                "status": "success",
+                "transit_date": f"{ty:04d}-{tm:02d}-{td:02d}",
+                "base_star": {"number": base_star,
+                              "name": NAKSHATRA_NAMES[base_star - 1],
+                              "from": "Sun"},
+                "inner": inner,
+                "directions": directions,
+                "favourable": best,
+                "avoid": avoid,
+            }
+        except Exception as e:
+            print(f"Kaala chakra error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
     def get_tripataki_chakra(dob: str, tob: str, place: str,
                              lat: Optional[float] = None, lon: Optional[float] = None,
                              tz: Optional[float] = None,

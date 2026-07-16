@@ -63,10 +63,13 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   argala, with AI reading),
   a **Chart of the Moment** (the current sky as a chart — a Dashboard mini-kundali widget
   plus a full `/now` page with panchanga & AI reading),
-  a **Chakras** page (tabbed): Sarvatobhadra Chakra (transits + vedha, with layman AI reading),
-  the **Kota Chakra** — the fort, with transiting malefics marked as they reach the inner
-  enclosures (the classical health/protection reading) plus Kota Swami/Paala — and the
-  **Tripataki Chakra** diagram,
+  a **Chakras** page (`/chakras`, tabbed) — four classical chakras for any chosen moment, each
+  with a plain-language AI reading: **Sarvatobhadra** (transits + vedha), the **Kota Chakra**
+  (the fort — transiting malefics marked as they breach the inner enclosures, the classical
+  health/protection reading, plus Kota Swami/Paala), the **Kaala Chakra** (the wheel of
+  directions — which compass direction each graha colours, for travel/orientation), and the
+  **Tripataki Chakra** (vedha on the Moon + Lagna, readable on the transit **or** the
+  Varshaphal annual chart),
   Compatibility — now a **marriage/relationship
   workspace** (tabbed: Guna Milan with side-by-side **D1 + D9** charts + Ashtakoot **+ Dashakoota
   10-porutham + Mangal/Kuja-dosha with cancellation nuances**; a **7th-house deep-dive** for both

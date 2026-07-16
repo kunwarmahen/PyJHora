@@ -254,6 +254,52 @@ IMPORTANT: Use the actual chart data above. Be specific to their placements, bal
 
         return prompt
 
+    def _build_kaala_chakra_prompt(self, kaala: Dict[str, Any], name: str) -> str:
+        """Plain-language Kaala Chakra (wheel of directions) reading prompt.
+
+        The wheel is already computed — which grahas colour which compass
+        direction — so the model turns that into practical direction guidance
+        (travel, where to face, which way to push a matter)."""
+        base = kaala.get("base_star", {})
+        dir_lines = []
+        for d in kaala.get("directions", []):
+            occ = []
+            for c in d.get("cells", []):
+                for p in c.get("planets", []):
+                    occ.append(f"{p['name']}{' (malefic)' if p.get('malefic') else ' (benefic)'}"
+                               f" on {c['star']}")
+            dir_lines.append(
+                f"- {d.get('direction')} [{d.get('tone')}] — "
+                f"{', '.join(occ) if occ else 'no grahas here'}")
+
+        inner = []
+        for c in kaala.get("inner", []):
+            for p in c.get("planets", []):
+                inner.append(f"{p['name']} on {c['star']}")
+
+        return f"""You are an expert Vedic astrologer explaining the **Kaala Chakra** (the wheel of directions) to {name}, who is not an astrologer. Everything below is ALREADY COMPUTED by {SITE_NAME} — trust it and interpret it; do not recompute.
+
+HOW IT WORKS: the 28 nakshatras are arranged as a wheel counted from a base star (here the Sun's star). Four stars sit at the hub, and the other 24 form eight spokes — and **each spoke IS a compass direction**. A graha landing on a spoke colours that direction: benefics make it supportive, malefics make it rough. The classical use is practical — which way to travel, face, or push a matter.
+
+=== THIS PERSON'S WHEEL ({kaala.get('transit_date')}) ===
+Base star (from the Sun): {base.get('name')}
+At the hub: {', '.join(inner) if inner else 'nothing'}
+
+=== THE EIGHT DIRECTIONS ===
+{chr(10).join(dir_lines)}
+
+Favourable now: {', '.join(kaala.get('favourable') or []) or 'none stand out'}
+Best avoided now: {', '.join(kaala.get('avoid') or []) or 'none'}
+
+Write ~200 words of plain English:
+1. Which directions are supportive right now and which are better avoided, and WHY (name the graha responsible).
+2. What that means practically — travel, a journey, where to sit/face for important work, which way to push a matter.
+3. Note any direction that is mixed (both benefic and malefic) as "workable but not clean".
+4. If a direction has no grahas, say plainly that it is neutral — that is useful information, not a gap.
+
+RULES: The DIRECTIONS block above is authoritative — never contradict it. Be practical and calm; this is a timing/direction aid, not a warning. No jargon without a one-line gloss. End with: "Direction guidance is a traditional aid — weigh it alongside practical judgement."
+"""
+
     def _build_kota_chakra_prompt(self, kota: Dict[str, Any], name: str) -> str:
         """Plain-language Kota Chakra (the fort) reading prompt.
 

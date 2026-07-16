@@ -366,6 +366,72 @@ def test_tripataki_annual_basis(args1):
     assert A.get_tripataki_chakra(**args1, basis="annual", year=1900).get("status") == "failed"
 
 
+def test_kaala_chakra(args1):
+    """§2.7 Kaala Chakra — the wheel of directions, ported from the PyQt widget.
+
+    Pins the layout contract (4 inner + 8x3 outer = all 28 stars once) and the
+    base star, which is derived independently of the wheel.
+    """
+    r = A.get_kaala_chakra(**args1, current_date="2026-07-16")
+    assert r.get("status") == "success", r
+
+    # Base star is the natal SUN's nakshatra (the engine's D1 rule). Chart 1's
+    # Sun sits at Taurus 20deg -> Rohini.
+    assert r["base_star"]["from"] == "Sun"
+    assert r["base_star"]["name"] == "Rohini"
+
+    # 4 inner + 8 directions x 3 = 28 stars, each exactly once.
+    assert len(r["inner"]) == 4
+    assert len(r["directions"]) == 8
+    stars = [c["star"] for c in r["inner"]] + \
+            [c["star"] for d in r["directions"] for c in d["cells"]]
+    assert len(stars) == 28 and len(set(stars)) == 28
+    assert "Abhijit" in stars
+
+    # The engine's direction order + angles, kept verbatim so the wheel matches
+    # desktop JHora (note its own orientation: 90deg is labelled East).
+    assert [d["direction"] for d in r["directions"]] == [
+        "Southeast", "East", "Northeast", "North",
+        "Northwest", "West", "Southwest", "South"]
+    assert [d["angle"] for d in r["directions"]] == [45, 90, 135, 180, 225, 270, 315, 360]
+
+    # Every graha is placed exactly once; Abhijit's cell stays empty because a
+    # graha only ever carries a 1-27 star (the slot-shift guarantees it).
+    placed = [p["name"] for c in r["inner"] for p in c["planets"]] + \
+             [p["name"] for d in r["directions"] for c in d["cells"] for p in c["planets"]]
+    assert sorted(placed) == sorted(
+        ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"])
+    for d in r["directions"]:
+        for c in d["cells"]:
+            if c["star"] == "Abhijit":
+                assert c["planets"] == []
+
+    # Tone follows the occupants, and the summaries agree with the tones.
+    for d in r["directions"]:
+        if d["malefics"] and not d["benefics"]:
+            assert d["tone"] == "stressful"
+        elif d["benefics"] and not d["malefics"]:
+            assert d["tone"] == "supportive"
+        elif not d["malefics"] and not d["benefics"]:
+            assert d["tone"] == "clear"
+        else:
+            assert d["tone"] == "mixed"
+    assert r["avoid"] == [d["direction"] for d in r["directions"] if d["tone"] == "stressful"]
+
+
+def test_kaala_star_slot_abhijit_shift():
+    """A 1-27 nakshatra maps onto the 28-star order with Abhijit spliced in."""
+    from astrology.engine import kaala_star_slot
+    # Before Abhijit (index 21 of 1..28): unchanged, just 0-based.
+    assert kaala_star_slot(1) == 0
+    assert kaala_star_slot(21) == 20
+    # At/after it: shifted up one to make room for Abhijit's slot (21).
+    assert kaala_star_slot(22) == 22
+    assert kaala_star_slot(27) == 27
+    # Abhijit's own slot is never produced from a real graha's star.
+    assert 21 not in {kaala_star_slot(n) for n in range(1, 28)}
+
+
 def test_bindu_chip_thresholds():
     """The classical thresholds themselves: own-BAV >=5 supported / ==4 neutral /
     <=3 rough, and the node fallback on Sarva (>=30 / >=25 / else)."""

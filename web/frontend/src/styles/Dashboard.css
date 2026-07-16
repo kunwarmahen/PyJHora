@@ -2269,3 +2269,26 @@
 .trip-vedha__clear { color: #2e7d32; font-size: 0.875rem; }
 .trip-vedha .detail-list li.is-malefic { color: var(--vermillion); }
 .trip-vedha .detail-list li.is-benefic { color: #2e7d32; }
+
+/* ── Kaala Chakra — the wheel of directions (§2.7) ─────────────────────── */
+.kaala-wrap { display: flex; justify-content: center; margin: var(--space-md) 0; }
+.kaala-svg { width: 100%; max-width: 520px; height: auto; }
+.kaala-hub { fill: var(--cream, #fff8ef); stroke: var(--saffron); stroke-width: 2; }
+.kaala-spoke { stroke: var(--text-secondary); stroke-width: 1.5; opacity: 0.45; }
+.kaala-cell { fill: var(--sacred-white, #fff); stroke: var(--sandalwood); stroke-width: 1.2; }
+.kaala-dir--supportive .kaala-spoke { stroke: #2e7d32; opacity: 0.85; stroke-width: 2.5; }
+.kaala-dir--stressful .kaala-spoke { stroke: var(--vermillion); opacity: 0.85; stroke-width: 2.5; }
+.kaala-dir--mixed .kaala-spoke { stroke: var(--saffron); opacity: 0.85; stroke-width: 2.5; }
+.kaala-dir--supportive .kaala-cell { stroke: #2e7d32; }
+.kaala-dir--stressful .kaala-cell { stroke: var(--vermillion); }
+.kaala-graha { font-size: 10px; font-weight: 700; fill: var(--text-primary); }
+.kaala-inner { font-size: 11px; font-weight: 700; fill: var(--saffron); }
+.kaala-dirlabel { font-size: 12px; font-weight: 700; fill: var(--text-secondary); }
+.kaala-good { color: #2e7d32; }
+.kaala-bad { color: var(--vermillion); }
+.kaala-tone--supportive { color: #2e7d32; font-weight: 600; }
+.kaala-tone--stressful { color: var(--vermillion); font-weight: 600; }
+.kaala-tone--mixed { color: var(--saffron); }
+.kaala-tone--clear { color: var(--text-secondary); }
+.kaala-row--stressful td { background: rgba(227, 66, 52, 0.05); }
+.kaala-row--supportive td { background: rgba(46, 125, 50, 0.05); }

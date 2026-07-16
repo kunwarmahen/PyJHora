@@ -567,6 +567,41 @@ TRIPATAKI_LINES = {
     (1, 4): [(5, 4)],
 }
 
+# ── Kaala Chakra (§2.7) ─────────────────────────────────────────────────────
+# A DIRECTIONAL chakra: the 28 stars (Abhijit included) sit as 4 inner stars
+# around a hub plus 8 outer divisions of 3 stars, and each outer division IS a
+# compass direction. A graha lands on its nakshatra's cell, so the chakra reads
+# "which graha rules which direction right now" — the classical use is choosing a
+# direction to travel/act in. Tables lifted verbatim from the engine's PyQt-only
+# `ui.chakra.KaalaChakra`; offsets are counted from a base star.
+KAALA_INNER_STARS = [4, 25, 18, 11]
+KAALA_OUTER_DIVISIONS = [
+    [5, 6, 7], [3, 2, 1], [26, 27, 28], [24, 23, 22],
+    [19, 20, 21], [17, 16, 15], [12, 13, 14], [10, 9, 8],
+]
+# Direction per outer division, in the engine's order (its resource-string list:
+# southeast, east, northeast, north, northwest, west, southwest, south).
+KAALA_DIRECTIONS = ["Southeast", "East", "Northeast", "North",
+                    "Northwest", "West", "Southwest", "South"]
+# Degrees each division/inner star is drawn at, kept so the UI can lay out a wheel.
+KAALA_INNER_ANGLES = [45, 135, 225, 315]
+KAALA_OUTER_ANGLES = [45, 90, 135, 180, 225, 270, 315, 360]
+
+
+def kaala_star_slot(nakshatra: int) -> int:
+    """A 1-27 nakshatra -> its 0-based slot in the 28-star (Abhijit) order.
+
+    Abhijit occupies slot 22 of 28, so every star at or past it shifts up one.
+    This is the engine's own rule (`if p_star > const._ABHIJITH_STAR_INDEX:
+    p_star += 1`) — grahas only ever carry a 1-27 star, so Abhijit's cell is
+    never occupied.
+    """
+    s = int(nakshatra)
+    if s > const._ABHIJITH_STAR_INDEX:
+        s += 1
+    return s - 1
+
+
 # Sign classes (0-based rasi): chara (movable), sthira (fixed), dwiswabhava (dual).
 MOVABLE_SIGNS = (0, 3, 6, 9)      # Aries, Cancer, Libra, Capricorn
 FIXED_SIGNS = (1, 4, 7, 10)       # Taurus, Leo, Scorpio, Aquarius

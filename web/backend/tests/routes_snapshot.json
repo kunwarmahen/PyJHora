@@ -429,6 +429,19 @@
   "body": "JaiminiAnalysisRequest",
   "params": []
  },
+ "POST /api/astrology/kaala-chakra": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:current_date",
+   "query:current_time",
+   "query:current_tz"
+  ]
+ },
+ "POST /api/astrology/kaala-chakra-analysis": {
+  "body": "ChakraAnalysisRequest",
+  "params": []
+ },
  "POST /api/astrology/kota-chakra": {
   "body": "BirthDetails",
   "params": [

@@ -11,6 +11,7 @@ import { RecentReadings } from "../components/RecentReadings";
 import { intlLocale } from "../utils/format";
 import { PageHeader } from "../components/PageHeader";
 import { KotaChakra } from "../components/KotaChakra";
+import { KaalaChakra } from "../components/KaalaChakra";
 import { TripatakiChakra } from "../components/TripatakiChakra";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
@@ -402,6 +403,7 @@ export const SarvatobhadraPage = () => {
           {[
             { key: "sarvatobhadra", label: t("sbc.tabs.sarvatobhadra") },
             { key: "kota", label: t("sbc.tabs.kota") },
+            { key: "kaala", label: t("sbc.tabs.kaala") },
             { key: "tripataki", label: t("sbc.tabs.tripataki") },
           ].map((tb) => (
             <button
@@ -417,6 +419,19 @@ export const SarvatobhadraPage = () => {
         {chakra === "kota" && (
           <Card>
             <KotaChakra
+              birthDetails={birthDetails}
+              profile={selectedProfile}
+              transitDate={transitDate}
+              transitTime={transitTime}
+              transitTz={tzOffset(moment)}
+              ayanamsa={ayanamsa}
+            />
+          </Card>
+        )}
+
+        {chakra === "kaala" && (
+          <Card>
+            <KaalaChakra
               birthDetails={birthDetails}
               profile={selectedProfile}
               transitDate={transitDate}
