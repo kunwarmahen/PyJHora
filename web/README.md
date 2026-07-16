@@ -13,7 +13,8 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Authentication**: User registration and login with JWT tokens
 - **Features**: Birth Chart (Rasi D1 + Navamsa D9), divisional charts D1–D60, Panchanga,
   Yogas/Doshas, dedicated Raja Yogas, Graha Drishti (aspects, with strength-weighted lines
-  on the chart), Vimsottari Dhasa (+ 13 other dasha systems & Sudarsana Chakra),
+  on the chart), Vimsottari Dhasa (+ 14 other dasha systems — including the **Sudarshana Chakra
+  dasha**, a 12-year wheel read from the Lagna, Moon and Sun at once — & Sudarsana Chakra charts),
   Transits (Gochara — each transiting graha **weighted by its Ashtakavarga bindus** for the
   sign it occupies, with a supported/neutral/rough chip),
   an Ephemeris & transit calendar (daily sidereal grid + sign-ingress dates),
@@ -62,7 +63,11 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   argala, with AI reading),
   a **Chart of the Moment** (the current sky as a chart — a Dashboard mini-kundali widget
   plus a full `/now` page with panchanga & AI reading),
-  Sarvatobhadra Chakra (with layman AI reading), Compatibility — now a **marriage/relationship
+  a **Chakras** page (tabbed): Sarvatobhadra Chakra (transits + vedha, with layman AI reading),
+  the **Kota Chakra** — the fort, with transiting malefics marked as they reach the inner
+  enclosures (the classical health/protection reading) plus Kota Swami/Paala — and the
+  **Tripataki Chakra** diagram,
+  Compatibility — now a **marriage/relationship
   workspace** (tabbed: Guna Milan with side-by-side **D1 + D9** charts + Ashtakoot **+ Dashakoota
   10-porutham + Mangal/Kuja-dosha with cancellation nuances**; a **7th-house deep-dive** for both
   partners — lord, occupants, Venus/Jupiter karakas, Upapada; and a **dasha-overlap timeline** with
