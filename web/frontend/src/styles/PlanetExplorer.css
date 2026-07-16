@@ -3,6 +3,12 @@
 .pex {
   margin-top: var(--space-md);
 }
+.pex-hint {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
 .pex-strip {
   display: flex;
   flex-wrap: wrap;

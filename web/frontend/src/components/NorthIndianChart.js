@@ -25,6 +25,7 @@ export const NorthIndianChart = ({
   arudhas = null,
   showArudhas = false,
   conditions = null,
+  onSelectPlanet = null,
 }) => {
   const [hoveredHouse, setHoveredHouse] = useState(null);
   const svgRef = useRef(null);
@@ -341,7 +342,30 @@ export const NorthIndianChart = ({
             const labelAnchor = Math.abs(dx) < size * 0.15 ? "middle" : dx < 0 ? "start" : "end";
 
             return (
-              <g key={house.num}>
+              <g
+                key={house.num}
+                onMouseEnter={() => setHoveredHouse(house.num)}
+                onMouseLeave={() => setHoveredHouse(null)}
+              >
+                {/* Hit area: drives tap-to-toggle (touch) + carries the condition
+                    tooltip. Painted BEFORE the planet labels so those labels sit on
+                    top and can receive their own clicks (planet explorer). */}
+                <circle
+                  cx={house.cx}
+                  cy={house.cy}
+                  r="50"
+                  fill="transparent"
+                  style={{ cursor: "pointer" }}
+                  onClick={() => setHoveredHouse((prev) => (prev === house.num ? null : house.num))}
+                >
+                  {(() => {
+                    const lines = planetsInHouse
+                      .filter((it) => it.fullName && flagsByPlanet[it.fullName])
+                      .map((it) => `${it.fullName}: ${flagsByPlanet[it.fullName].labels.join(", ")}`);
+                    return lines.length ? <title>{lines.join("\n")}</title> : null;
+                  })()}
+                </circle>
+
                 {/* Header line: house number + sign label, pinned to the house's
                     outer edge so it never competes with planets for the centroid.
                     The sign abbreviation is always visible (parity with the South
@@ -372,6 +396,7 @@ export const NorthIndianChart = ({
                   const startY = house.cy - ((total - 1) * step) / 2;
                   return planetsInHouse.map((item, idx) => {
                     const cond = item.fullName ? flagsByPlanet[item.fullName] : null;
+                    const clickable = onSelectPlanet && item.type === "planet" && item.fullName;
                     return (
                       <text
                         key={idx}
@@ -388,6 +413,15 @@ export const NorthIndianChart = ({
                         fontSize={item.type === "arudha" ? Math.max(fs - 2, 9) : fs}
                         fontWeight="700"
                         fontStyle={item.type === "arudha" ? "italic" : "normal"}
+                        style={clickable ? { cursor: "pointer" } : undefined}
+                        onClick={
+                          clickable
+                            ? (e) => {
+                                e.stopPropagation();
+                                onSelectPlanet(item.fullName);
+                              }
+                            : undefined
+                        }
                       >
                         {item.name}
                         {item.degrees != null && (
@@ -409,27 +443,6 @@ export const NorthIndianChart = ({
                     );
                   });
                 })()}
-
-                {/* Hit area drives hover/tap state. It sits on top of the planet
-                    text, so any condition tooltip must live HERE (a <title> on the
-                    text below would never receive the hover). */}
-                <circle
-                  cx={house.cx}
-                  cy={house.cy}
-                  r="50"
-                  fill="transparent"
-                  style={{ cursor: "pointer" }}
-                  onMouseEnter={() => setHoveredHouse(house.num)}
-                  onMouseLeave={() => setHoveredHouse(null)}
-                  onClick={() => setHoveredHouse((prev) => (prev === house.num ? null : house.num))}
-                >
-                  {(() => {
-                    const lines = planetsInHouse
-                      .filter((it) => it.fullName && flagsByPlanet[it.fullName])
-                      .map((it) => `${it.fullName}: ${flagsByPlanet[it.fullName].labels.join(", ")}`);
-                    return lines.length ? <title>{lines.join("\n")}</title> : null;
-                  })()}
-                </circle>
               </g>
             );
           })}

@@ -59,6 +59,7 @@ export const BirthChartPage = () => {
     () => localStorage.getItem("showArudhas") === "1"
   );
   const [focusPlanet, setFocusPlanet] = useState(null);
+  const [explorerPlanet, setExplorerPlanet] = useState(null);
   // Chart style + ayanamsa are now global settings (edited in the Settings page).
   const { settings } = useSettings();
   const chartStyle = settings.chartStyle;
@@ -382,14 +383,18 @@ export const BirthChartPage = () => {
                     arudhas={arudhas}
                     showArudhas={showArudhas}
                     conditions={showConditions ? conditions : null}
+                    onSelectPlanet={setExplorerPlanet}
                   />
 
-                  {/* §5.5 Interactive explorer: click a graha for its full picture */}
+                  {/* §5.5 Interactive explorer: click a graha (in the chart or the
+                      chip strip) for its full picture */}
                   <PlanetExplorer
                     chart={result}
                     aspects={aspects}
                     conditions={conditions}
                     personName={selectedProfile.birth_details.name}
+                    selected={explorerPlanet}
+                    onSelect={setExplorerPlanet}
                   />
 
                   {/* Divisional (varga) chart with picker */}

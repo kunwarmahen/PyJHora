@@ -24,10 +24,20 @@ const ORD = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10t
  * assembled from data the Birth Chart page already loaded (no new endpoints) —
  * plus an "Ask AI about this placement" deep-link into the Ask flow.
  */
-export const PlanetExplorer = ({ chart, aspects, conditions, personName }) => {
+export const PlanetExplorer = ({
+  chart,
+  aspects,
+  conditions,
+  personName,
+  selected: selectedProp,
+  onSelect,
+}) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [selected, setSelected] = useState(null);
+  // Controlled (from chart clicks) when `onSelect` is provided; else self-managed.
+  const [selfSelected, setSelfSelected] = useState(null);
+  const selected = onSelect ? selectedProp : selfSelected;
+  const setSelected = onSelect || setSelfSelected;
 
   const d1 = chart?.d1_chart || {};
   const lagnaRasi = (chart?.lagna?.house ?? 1) - 1; // 0-based ascendant sign
@@ -70,6 +80,7 @@ export const PlanetExplorer = ({ chart, aspects, conditions, personName }) => {
 
   return (
     <div className="pex">
+      <div className="pex-hint">{t("explorer.stripLabel")}</div>
       <div className="pex-strip" role="tablist" aria-label={t("explorer.stripLabel")}>
         {GRAHAS.filter((g) => d1[g]).map((g) => (
           <button

@@ -163,6 +163,14 @@
 .si-pl-lagna {
   color: var(--saffron);
 }
+/* Clickable planet (interactive explorer, §5.5). */
+.si-pl-clickable {
+  cursor: pointer;
+}
+.si-pl-clickable:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 /* Arudha pada markers (AL/UL/A2..) — italic temple-gold, distinct from planets. */
 .si-pl-arudha {
   color: var(--temple-gold);

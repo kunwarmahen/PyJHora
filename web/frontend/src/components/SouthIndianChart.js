@@ -39,6 +39,7 @@ export const SouthIndianChart = ({
   arudhas = null,
   showArudhas = false,
   conditions = null,
+  onSelectPlanet = null,
 }) => {
   const gridRef = useRef(null);
   const planets = planetsProp || chartData?.planets;
@@ -122,13 +123,22 @@ export const SouthIndianChart = ({
               <div className="si-planets">
                 {items.map((item, idx) => {
                   const cond = item.fullName ? flagsByPlanet[item.fullName] : null;
+                  const clickable = onSelectPlanet && item.type === "planet" && item.fullName;
                   return (
                     <span
                       key={idx}
                       className={`si-pl${item.type === "lagna" ? " si-pl-lagna" : ""}${
                         item.type === "arudha" ? " si-pl-arudha" : ""
-                      }`}
+                      }${clickable ? " si-pl-clickable" : ""}`}
                       title={cond ? `${item.fullName}: ${cond.labels.join(", ")}` : undefined}
+                      onClick={
+                        clickable
+                          ? (e) => {
+                              e.stopPropagation();
+                              onSelectPlanet(item.fullName);
+                            }
+                          : undefined
+                      }
                     >
                       {item.name}
                       {item.degrees != null && (

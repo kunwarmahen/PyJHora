@@ -2028,7 +2028,7 @@
     "disclaimer": "Classical gochara guidance — a lens on the current window, not prediction."
   },
   "explorer": {
-    "stripLabel": "Explore a planet",
+    "stripLabel": "Tap a planet — in the chart above or below — to explore its placement",
     "placement": "Placement",
     "house": "house",
     "nakshatra": "Nakshatra",
