@@ -909,7 +909,8 @@
     "suggestedCharts": "Suggested charts:",
     "changeInSettings": "Change in Settings",
     "sectionNakshatra": "Nakshatra profile",
-    "sectionGochara": "Gochara-phala (transits)"
+    "sectionGochara": "Gochara-phala (transits)",
+    "sectionAvasthas": "Avasthas (planetary states)"
   },
   "settings": {
     "title": "Settings",

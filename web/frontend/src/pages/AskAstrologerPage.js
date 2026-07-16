@@ -52,6 +52,7 @@ const CONTEXT_SECTIONS = [
   { key: "ashtakavarga", labelKey: "ask.sectionAshtakavarga" },
   { key: "shadbala", labelKey: "ask.sectionShadbala" },
   { key: "conditions", labelKey: "ask.sectionConditions" },
+  { key: "avasthas", labelKey: "ask.sectionAvasthas" },
   { key: "friendships", labelKey: "ask.sectionFriendships" },
   { key: "nakshatra", labelKey: "ask.sectionNakshatra" },
   { key: "gochara_phala", labelKey: "ask.sectionGochara" },
@@ -62,7 +63,8 @@ const CONTEXT_SECTIONS = [
 const DEFAULT_SECTION_STATE = {
   dasha_tree: "seed", yogas: "tool", doshas: "tool", transits: "tool",
   aspects: "tool", arudhas: "tool", ashtakavarga: "tool", shadbala: "tool",
-  conditions: "tool", friendships: "tool", nakshatra: "tool", gochara_phala: "tool",
+  conditions: "tool", avasthas: "tool", friendships: "tool",
+  nakshatra: "tool", gochara_phala: "tool",
 };
 
 
