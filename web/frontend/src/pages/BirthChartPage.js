@@ -29,6 +29,7 @@ import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { DataField } from "../components/DataField";
 import { AspectsCard } from "../components/AspectsCard";
+import { BirthTimeBanner } from "../components/BirthTimeBanner";
 import { VARGAS, DEFAULT_VARGA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
@@ -293,11 +294,22 @@ export const BirthChartPage = () => {
               )}
             </Card>
 
+            <BirthTimeBanner accuracy={selectedProfile.birth_details.time_accuracy} />
+
             {/* Chart style toggle: North / South Indian */}
             {(() => {
               const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
               const styleLabel =
                 chartStyle === "south" ? t("birthChart.southIndian") : t("birthChart.northIndian");
+              // Birth time unknown → present the D1 from the Moon (Chandra Lagna),
+              // since the real Ascendant can't be trusted.
+              const unknownTime =
+                (selectedProfile.birth_details.time_accuracy || "exact") === "unknown";
+              const moon = result.planets?.Moon;
+              const chandraLagna =
+                unknownTime && moon
+                  ? { house: moon.house, degrees: 0, sign_name: moon.sign_name }
+                  : null;
               return (
                 <>
                   <div className="aspect-controls">
@@ -355,8 +367,13 @@ export const BirthChartPage = () => {
 
                   <Kundali
                     chartData={result}
+                    lagna={chandraLagna || undefined}
                     title={t("birthChart.rasiChart")}
-                    subtitle={`D1 · ${styleLabel}`}
+                    subtitle={
+                      chandraLagna
+                        ? `D1 · ${t("birthTime.chandraLagna")} · ${styleLabel}`
+                        : `D1 · ${styleLabel}`
+                    }
                     exportable
                     aspects={aspects}
                     showAspects={showAspects}

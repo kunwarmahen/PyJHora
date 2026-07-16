@@ -1358,12 +1358,32 @@ Reply with STRICT JSON only, exactly this shape:
         birth_details = chart_data.get("birth_details", {})
 
         # Build comprehensive chart description
+        # Birth-time reliability caveat: when the time is unknown/approximate the
+        # Lagna and everything hanging off it (houses, vargas, bhava, dasha balance)
+        # is unreliable, so the model must be told to lean Moon-referenced.
+        accuracy = (chart_data.get("time_accuracy") or "exact").lower()
+        accuracy_note = ""
+        if accuracy == "unknown":
+            accuracy_note = (
+                "\n\n⚠ BIRTH TIME UNKNOWN. The Ascendant (Lagna), the house cusps, the "
+                "divisional (varga) charts and the exact dasha balance are UNRELIABLE and "
+                "must NOT be used for firm judgements. Read this chart **Moon-referenced** "
+                "(Chandra Lagna) — planets counted from the Moon, Moon-sign and nakshatra "
+                "based indications, Sun-sign — and clearly caveat anything that depends on "
+                "the Lagna or houses.")
+        elif accuracy == "approximate":
+            accuracy_note = (
+                "\n\n⚠ BIRTH TIME APPROXIMATE. The Lagna and house cusps may be off by a "
+                "sign or houses may shift; treat house-based and varga details as tentative "
+                "and prefer robust Moon- and Sun-referenced indications. Suggest birth-time "
+                "rectification for precision.")
+
         chart_description = f"""TODAY'S DATE: {current_date}
 
 Birth Details:
 - Date of Birth: {birth_details.get('dob', 'Unknown')}
 - Time of Birth: {birth_details.get('tob', 'Unknown')}
-- Place of Birth: {birth_details.get('place', 'Unknown')}
+- Place of Birth: {birth_details.get('place', 'Unknown')}{accuracy_note}
 
 Lagna (Ascendant):
 - Sign: {lagna_info.get('sign_name', 'Unknown')} (House #{lagna_info.get('house', 'Unknown')})

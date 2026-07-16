@@ -52,6 +52,7 @@ export const ProfileSelectionPage = () => {
     latitude: null,
     longitude: null,
     timezone: "5.5",
+    time_accuracy: "exact",
   });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -91,6 +92,7 @@ export const ProfileSelectionPage = () => {
       latitude: profile.birth_details.latitude,
       longitude: profile.birth_details.longitude,
       timezone: profile.birth_details.timezone,
+      time_accuracy: profile.birth_details.time_accuracy || "exact",
     });
     setShowCreateForm(true);
   };
@@ -122,6 +124,7 @@ export const ProfileSelectionPage = () => {
       latitude: formData.latitude ? parseFloat(formData.latitude) : null,
       longitude: formData.longitude ? parseFloat(formData.longitude) : null,
       timezone: parseFloat(formData.timezone),
+      time_accuracy: formData.time_accuracy || "exact",
     };
 
     let result;
@@ -144,6 +147,7 @@ export const ProfileSelectionPage = () => {
         latitude: null,
         longitude: null,
         timezone: "5.5",
+        time_accuracy: "exact",
       });
     } else {
       setError(result.error || t("profile.errSaveFailed"));
@@ -444,6 +448,7 @@ export const ProfileSelectionPage = () => {
                     latitude: null,
                     longitude: null,
                     timezone: "5.5",
+                    time_accuracy: "exact",
                   });
                 }}
               >
@@ -511,6 +516,25 @@ export const ProfileSelectionPage = () => {
                     required
                   />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label>
+                  <Clock size={18} />
+                  {t("profile.timeAccuracy")}
+                </label>
+                <select
+                  name="time_accuracy"
+                  value={formData.time_accuracy}
+                  onChange={handleInputChange}
+                >
+                  <option value="exact">{t("profile.accuracyExact")}</option>
+                  <option value="approximate">{t("profile.accuracyApproximate")}</option>
+                  <option value="unknown">{t("profile.accuracyUnknown")}</option>
+                </select>
+                {formData.time_accuracy !== "exact" && (
+                  <p className="form-hint">{t("profile.accuracyHint")}</p>
+                )}
               </div>
 
               <div className="form-group">

@@ -45,6 +45,11 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   a Sade Sati page (`/sade-sati`) — Saturn's 7½-year transits over the natal Moon, the cycles with
   their rising/peak/setting phases and retrograde re-entries, the Ashtama & Kantaka Shani periods,
   the current status, and a calm AI reading,
+  planetary friendships (the compound-relationship matrix + house-lord placements + Parivartana) on
+  the Advanced page, fed into every AI reading,
+  and honest unknown/approximate birth-time handling — a per-profile time-accuracy flag that, when the
+  time is unknown, re-bases the chart to the Moon (Chandra Lagna), warns that Lagna/house/varga results
+  are unreliable, and tells the AI to read Moon-referenced,
   Remedies (traditional gemstone / mantra / deity suggestions per weak planet),
   Sensitive Points (Sphutas, the 36 Sahams, and Argala — with AI reading),
   a Vedic Clock & Retrograde page (a live ghati/vighati clock + vakra-gathi retrograde

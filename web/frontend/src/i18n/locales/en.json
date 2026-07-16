@@ -269,6 +269,11 @@
     "longitude": "Longitude",
     "autoFilled": "Auto-filled from place",
     "timezoneLabel": "Timezone (UTC offset)",
+    "timeAccuracy": "Birth time accuracy",
+    "accuracyExact": "Exact — I know the birth time",
+    "accuracyApproximate": "Approximate — roughly known",
+    "accuracyUnknown": "Unknown — birth time not known",
+    "accuracyHint": "When the time is approximate or unknown, the Ascendant, houses and divisional charts become unreliable. The app will read Moon-based instead and can help you rectify the time.",
     "errEnterName": "Please enter a profile name",
     "errSelectPlace": "Please search and select a place of birth (this sets the coordinates and timezone).",
     "errSaveFailed": "Failed to save profile",
@@ -1107,6 +1112,14 @@
     "aiGenerate": "Get AI comparison",
     "aiRegenerate": "Regenerate comparison",
     "aiError": "Failed to generate AI comparison"
+  },
+  "birthTime": {
+    "unknownTitle": "Birth time unknown.",
+    "unknownBody": "This Rasi chart is shown from the Moon (Chandra Lagna). The Ascendant, houses, divisional charts and exact dasha balance are unreliable — read Moon-based indications only.",
+    "approximateTitle": "Birth time is approximate.",
+    "approximateBody": "The Ascendant and house cusps may be off. Treat house and divisional-chart details as tentative.",
+    "rectifyLink": "Rectify the birth time →",
+    "chandraLagna": "Chandra Lagna"
   },
   "birthChart": {
     "title": "Birth Chart",

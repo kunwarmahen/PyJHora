@@ -59,6 +59,10 @@ class BirthDetails(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     timezone: Optional[float] = None  # Add this line
+    # How reliable the birth time is: "exact" (default) | "approximate" | "unknown".
+    # "unknown" means Lagna/house-based results should be treated as unreliable and
+    # only Moon-referenced indications read.
+    time_accuracy: Optional[str] = None
 
 class ChartData(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id")

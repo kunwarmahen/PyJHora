@@ -3582,3 +3582,33 @@ the matrix is a visual reference, not seeded) rendered in `_render_context_block
   house lords correct; no Parivartana).
 
 **Remaining of the three requested:** unknown-birth-time mode (§5.8) — doing next.
+
+## 34. Unknown / approximate birth-time mode (§5.8) — ✅ SHIPPED 2026-07-15
+Honest handling of the most common real-world problem: no reliable birth time.
+
+- **`BirthDetails.time_accuracy`** (database.py): `"exact"` (default/None) | `"approximate"` | `"unknown"`.
+  Since profiles AND every analyze endpoint use `BirthDetails`, adding it here persists it on the
+  profile and threads it to the AI in one shot.
+- **Profile form** (ProfileSelectionPage): a "Birth time accuracy" `<select>` after the time field;
+  added to formData default + edit-populate + both resets + the saved birth_details.
+- **`<BirthTimeBanner>`** (new component + CSS): renders nothing for exact; for **unknown** a red
+  banner ("Ascendant/houses/vargas/dasha unreliable — read Moon-based only"), for **approximate** a
+  softer amber one; both link to `/rectify`.
+- **Chandra Lagna re-base** (BirthChartPage): when unknown, the D1 Kundali gets `lagna={moon sign}`
+  (the shared North/South chart already takes a `lagna` prop, so houses re-base to the Moon; planets
+  keep their signs) and the subtitle becomes "D1 · Chandra Lagna". Moon sign read from
+  `result.planets.Moon.house`.
+- **AI context**: `build_chart_context` seeds `time_accuracy`; `_render_context_block` injects a strong
+  per-accuracy caveat (unknown → "read Moon-referenced, caveat Lagna/houses"; approximate → "tentative,
+  suggest rectification") right under Birth Details, so EVERY reading adjusts.
+- i18n `profile.timeAccuracy`/`accuracy*` + top-level `birthTime.*` (en; hi/sa fall back).
+- Verified live: seeded an `unknown` profile → banner shows, D1 re-based to Chandra Lagna (Leo=H1, As
+  at the Moon), context caveat present for approximate+unknown, exact unchanged.
+
+**Note (not done, possible follow-up):** the D9/varga section still renders under the (unreliable) real
+Lagna with only the banner warning — could grey it out when unknown. The banner + Chandra-lagna D1 +
+AI caveat deliver the honest-disclosure value for v1.
+
+**§2.1 + §2.5 + §5.8 — the three requested — all shipped.** Remaining §5/§2 backlog: MCP (§2.3),
+iCal (§5.10), chart explorer (§5.5), gochara-vedha (§5.6), nakshatra profile (§5.7), marriage
+workspace (§2.6), Ashtakavarga transit chips (§2.4), life report (§5.11), RAG citations (§5.12).

@@ -161,6 +161,7 @@ def build_chart_context(birth_details: Dict[str, Any],
             "tob": birth_details["tob"],
             "place": birth_details.get("place", ""),
         },
+        "time_accuracy": birth_details.get("time_accuracy") or "exact",
         "lagna": chart.get("lagna", {}),
         "moon_sign": {
             "sign_name": moon.get("sign_name", "Unknown"),
