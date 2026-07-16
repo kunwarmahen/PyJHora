@@ -5,6 +5,7 @@ import { astrologyService } from "../services/api";
 import { PLANET_ABBR, RASI_ABBR } from "../constants/jyotish";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
+import { ChakraAiPanel } from "./ChakraAiPanel";
 
 // Tripataki Chakra (§2.7) — the twelve rasis around a 5x5 grid, crossed by the
 // three "pataki" (banner) lines. The engine only ever shipped this as a drawing
@@ -14,7 +15,7 @@ const STEP = 96; // px per grid unit (grid coords run 1..5)
 
 const px = (n) => PAD + (n - 1) * STEP;
 
-export const TripatakiChakra = ({ birthDetails, transitDate, transitTime, transitTz, ayanamsa }) => {
+export const TripatakiChakra = ({ birthDetails, profile, transitDate, transitTime, transitTz, ayanamsa }) => {
   const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -154,6 +155,16 @@ export const TripatakiChakra = ({ birthDetails, transitDate, transitTime, transi
 
       <p className="card-note">{t("tripataki.legend")}</p>
       <p className="card-note">{t("tripataki.sourceNote")}</p>
+
+      <ChakraAiPanel
+        chakra="tripataki"
+        birthDetails={birthDetails}
+        profile={profile}
+        transitDate={transitDate}
+        transitTime={transitTime}
+        transitTz={transitTz}
+        ayanamsa={ayanamsa}
+      />
     </div>
   );
 };

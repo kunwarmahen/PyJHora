@@ -147,8 +147,8 @@
     "chipMostImportant": "Which transit matters most right now?"
   },
   "sbc": {
-    "title": "Sarvatobhadra Chakra",
-    "subtitle": "Today's grahas mapped onto the all-directions star grid",
+    "title": "Chakras",
+    "subtitle": "Sarvatobhadra · Kota · Tripataki — the grahas for a chosen moment on the classical chakras",
     "date": "Date",
     "now": "Now",
     "nowHint": "Jump back to the present moment",
@@ -383,7 +383,7 @@
     "ephemeris": "Ephemeris",
     "bhava": "Bhava Chart",
     "report": "Full Report",
-    "sarvatobhadra": "Sarvatobhadra Chakra",
+    "sarvatobhadra": "Chakras",
     "advanced": "Advanced Details",
     "compare": "Compare Charts",
     "compatibility": "Compatibility",
@@ -471,8 +471,8 @@
         "description": "A print-ready PDF summary of the whole chart"
       },
       "sarvatobhadra": {
-        "title": "Sarvatobhadra Chakra",
-        "description": "Today's transits on the 9×9 star grid, with a plain-language AI reading"
+        "title": "Chakras",
+        "description": "Sarvatobhadra, Kota (the fort) and Tripataki — the grahas mapped onto the classical chakras"
       },
       "advanced": {
         "title": "Advanced Details",
@@ -2224,5 +2224,17 @@
       "lagna": "Lagna"
     },
     "sourceNote": "Note: classically Tripataki is a Tajaka (Varshaphal) tool read on the annual chart with the planets progressed a sign a year. Here its vedha rules are applied to the chart for the moment you picked — consistent with the other chakras on this page, which are all transit-based."
+  },
+  "chakraAi": {
+    "title": "AI reading",
+    "loading": "Reading the chakra…",
+    "error": "Could not generate the reading",
+    "generate": "Generate reading",
+    "regenerate": "Regenerate",
+    "model": "Model: {{model}}",
+    "hint": {
+      "kota": "Get a plain-language reading of the fort — where the pressure is, where the protection is.",
+      "tripataki": "Get a plain-language reading of the vedha on your Moon and Lagna."
+    }
   }
 }

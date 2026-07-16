@@ -1224,6 +1224,27 @@ export const astrologyService = {
       { timeout: 300000 }
     ),
 
+  // Plain-language AI readings for the Kota / Tripataki chakras (§2.7).
+  analyzeChakraAI: (chakra, birthDetails, opts = {}, model = {}) =>
+    api.post(
+      `/api/astrology/${chakra}-chakra-analysis`,
+      {
+        birth_details: birthDetails,
+        person_name: opts.personName,
+        current_date: opts.currentDate,
+        current_time: opts.currentTime,
+        current_tz: opts.currentTz,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
   // ---- Learn the Chart (AI quiz) ----
   // Generate a quiz grounded in this chart; returns questions without answer keys.
   generateQuiz: (birthDetails, opts = {}, model = {}) =>

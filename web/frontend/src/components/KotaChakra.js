@@ -5,11 +5,12 @@ import { astrologyService } from "../services/api";
 import { PLANET_ABBR } from "../constants/jyotish";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
+import { ChakraAiPanel } from "./ChakraAiPanel";
 
 // Kota Chakra — the fort (§2.7). Four concentric enclosures counted from the
 // janma nakshatra; a malefic transiting into the inner rings threatens the fort.
 // Self-contained (own fetch) so a failure can't blank the host page.
-export const KotaChakra = ({ birthDetails, transitDate, transitTime, transitTz, ayanamsa }) => {
+export const KotaChakra = ({ birthDetails, profile, transitDate, transitTime, transitTz, ayanamsa }) => {
   const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -118,6 +119,16 @@ export const KotaChakra = ({ birthDetails, transitDate, transitTime, transitTz, 
       )}
 
       <p className="card-note">{t("kota.legend")}</p>
+
+      <ChakraAiPanel
+        chakra="kota"
+        birthDetails={birthDetails}
+        profile={profile}
+        transitDate={transitDate}
+        transitTime={transitTime}
+        transitTz={transitTz}
+        ayanamsa={ayanamsa}
+      />
     </div>
   );
 };

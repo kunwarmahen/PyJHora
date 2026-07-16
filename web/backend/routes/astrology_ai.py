@@ -186,6 +186,94 @@ async def analyze_comparison(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/api/astrology/kota-chakra-analysis")
+async def analyze_kota_chakra(
+    request: ChakraAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Plain-language AI reading of the Kota Chakra (the fort) — §2.7."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        kota = AstrologyCompute.get_kota_chakra(
+            dob=bd.dob, tob=bd.tob, place=bd.place,
+            lat=bd.latitude, lon=bd.longitude, tz=bd.timezone,
+            current_date=request.current_date, current_time=request.current_time,
+            current_tz=request.current_tz, ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+        )
+        if kota.get("status") != "success":
+            raise HTTPException(status_code=400, detail=kota.get("error", "Calculation failed"))
+
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_kota_chakra(
+            kota_data=kota, name=request.person_name or "this person", config=cfg,
+        )
+        await _save_reading(
+            current_user, source="kota_chakra",
+            title=f"Kota Chakra — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name,
+                     "current_date": request.current_date,
+                     "current_time": request.current_time,
+                     "current_tz": request.current_tz,
+                     "ayanamsa": request.ayanamsa},
+        )
+        return {
+            "ai_analysis": ai_analysis,
+            "provider": cfg.provider_type.value,
+            "model": cfg.model,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/astrology/tripataki-chakra-analysis")
+async def analyze_tripataki_chakra(
+    request: ChakraAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Plain-language AI reading of the Tripataki Chakra vedha — §2.7."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        trip = AstrologyCompute.get_tripataki_chakra(
+            dob=bd.dob, tob=bd.tob, place=bd.place,
+            lat=bd.latitude, lon=bd.longitude, tz=bd.timezone,
+            current_date=request.current_date, current_time=request.current_time,
+            current_tz=request.current_tz, ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+        )
+        if trip.get("status") != "success":
+            raise HTTPException(status_code=400, detail=trip.get("error", "Calculation failed"))
+
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_tripataki(
+            trip_data=trip, name=request.person_name or "this person", config=cfg,
+        )
+        await _save_reading(
+            current_user, source="tripataki_chakra",
+            title=f"Tripataki Chakra — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name,
+                     "current_date": request.current_date,
+                     "current_time": request.current_time,
+                     "current_tz": request.current_tz,
+                     "ayanamsa": request.ayanamsa},
+        )
+        return {
+            "ai_analysis": ai_analysis,
+            "provider": cfg.provider_type.value,
+            "model": cfg.model,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/api/astrology/sarvatobhadra-analysis")
 async def analyze_sarvatobhadra(
     request: SarvatobhadraAnalysisRequest,

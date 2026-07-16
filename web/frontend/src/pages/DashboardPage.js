@@ -221,7 +221,7 @@ export const DashboardPage = () => {
     {
       key: "sarvatobhadra",
       icon: <Grid3x3 size={32} />,
-      path: "/sarvatobhadra",
+      path: "/chakras",
       gradient: "linear-gradient(135deg, #FF9933 0%, #2D3561 100%)",
     },
     {

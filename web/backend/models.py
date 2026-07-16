@@ -209,6 +209,25 @@ class CompareAnalysisRequest(BaseModel):
     max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
+class ChakraAnalysisRequest(BaseModel):
+    """AI reading for the Kota / Tripataki chakras (§2.7). Same shape as the
+    Sarvatobhadra request minus its name-nakshatra anchor, which those two
+    chakras don't use."""
+    birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
+    person_name: Optional[str] = None
+    current_date: Optional[str] = None
+    current_time: Optional[str] = None
+    current_tz: Optional[float] = None
+    llm_provider: str = "qwen"  # legacy fallback
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    # Optional per-user output cap (output tokens); honored via _resolve_cfg.
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
+
 class SarvatobhadraAnalysisRequest(BaseModel):
     birth_details: BirthDetails
     profile_id: Optional[str] = None  # for grouping the saved reading in history

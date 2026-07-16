@@ -418,6 +418,7 @@ export const SarvatobhadraPage = () => {
           <Card>
             <KotaChakra
               birthDetails={birthDetails}
+              profile={selectedProfile}
               transitDate={transitDate}
               transitTime={transitTime}
               transitTz={tzOffset(moment)}
@@ -430,6 +431,7 @@ export const SarvatobhadraPage = () => {
           <Card>
             <TripatakiChakra
               birthDetails={birthDetails}
+              profile={selectedProfile}
               transitDate={transitDate}
               transitTime={transitTime}
               transitTz={tzOffset(moment)}

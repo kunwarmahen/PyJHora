@@ -165,6 +165,26 @@ class LLMService(PromptsMixin, OllamaMixin, OpenAIMixin, GeminiMixin):
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
         return await self._complete(prompt, cfg)
 
+    async def analyze_kota_chakra(self,
+                                  kota_data: Dict[str, Any],
+                                  name: str = "this person",
+                                  provider: LLMProvider = LLMProvider.QWEN,
+                                  config: Optional[ModelConfig] = None) -> str:
+        """Layman interpretation of the Kota Chakra (the fort) reading."""
+        prompt = self._build_kota_chakra_prompt(kota_data, name)
+        cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        return await self._complete(prompt, cfg)
+
+    async def analyze_tripataki(self,
+                                trip_data: Dict[str, Any],
+                                name: str = "this person",
+                                provider: LLMProvider = LLMProvider.QWEN,
+                                config: Optional[ModelConfig] = None) -> str:
+        """Layman interpretation of the Tripataki Chakra vedha reading."""
+        prompt = self._build_tripataki_prompt(trip_data, name)
+        cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        return await self._complete(prompt, cfg)
+
     async def analyze_varshaphal(self,
                                  varsha_data: Dict[str, Any],
                                  name: str = "this person",

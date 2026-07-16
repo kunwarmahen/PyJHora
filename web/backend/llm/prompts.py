@@ -254,6 +254,94 @@ IMPORTANT: Use the actual chart data above. Be specific to their placements, bal
 
         return prompt
 
+    def _build_kota_chakra_prompt(self, kota: Dict[str, Any], name: str) -> str:
+        """Plain-language Kota Chakra (the fort) reading prompt.
+
+        The fort logic is already computed (which grahas have reached which
+        enclosure, whether they are malefic, and where the two defenders stand);
+        the model translates that into protection/health guidance a non-astrologer
+        can act on. Deliberately no fear-mongering: Kota questions are usually
+        asked when someone is anxious."""
+        star = kota.get("birth_star", {})
+        ring_lines = []
+        for ring in kota.get("rings", []):
+            occupants = []
+            for c in ring.get("cells", []):
+                for p in c.get("transit", []):
+                    occupants.append(
+                        f"{p['name']}"
+                        f"{' (malefic)' if p.get('malefic') else ' (benefic)'}"
+                        f" on {c['star']}")
+            ring_lines.append(
+                f"- {ring.get('name')} — {ring.get('description')}\n"
+                f"  Grahas here now: {', '.join(occupants) if occupants else 'none'}")
+
+        finding_lines = [f"- ({f.get('tone')}) {f.get('text')}"
+                         for f in kota.get("findings", [])]
+
+        return f"""You are an expert Vedic astrologer explaining the **Kota Chakra** (the fort) to {name}, who is not an astrologer. All the chakra logic below is ALREADY COMPUTED by {SITE_NAME} — trust it and interpret it; do not recompute or ask for more data.
+
+HOW THE FORT WORKS: the 28 nakshatras are laid out as four concentric enclosures counted from the person's birth star. Read it outward-in — Baahya (outer wall) is the approach, Praakaara the rampart, Durgantara the inner fort, and Sthamba the central pillar (the most sensitive point). A MALEFIC graha transiting into the inner enclosures presses on the fort; a BENEFIC there defends it. The Kota Swami is the fort's defender and the Kota Paala its guard.
+
+=== THIS PERSON'S FORT ({kota.get('transit_date')}) ===
+Birth star: {star.get('name')} (pada {star.get('pada')}), Moon in {kota.get('moon_sign')}
+Kota Swami (defender): {kota.get('kota_lord')}
+Kota Paala (guard): {kota.get('kota_paala')}
+
+=== THE FOUR ENCLOSURES, OUTER TO INNER ===
+{chr(10).join(ring_lines)}
+
+=== COMPUTED FINDINGS ===
+{chr(10).join(finding_lines) if finding_lines else '- nothing notable'}
+
+Write ~250 words of plain English:
+1. What the fort looks like right now — is the pressure at the walls or has it reached the inner rings?
+2. What the malefics that HAVE reached the inner enclosures suggest to stay watchful about (health, energy, security, peace of mind) — describe tendencies, never diagnose.
+3. Where the protection is: benefics in the fort, and where the Swami and Paala stand.
+4. One or two practical, grounded suggestions.
+
+RULES: The ENCLOSURES and COMPUTED FINDINGS above are authoritative — never contradict them. If a graha is listed in an enclosure, it IS there; do not say it has not reached one. Be calm, balanced and constructive — this chakra is usually consulted when someone is worried, so do NOT alarm. No predictions of death, disease or disaster. No jargon without a one-line gloss. End with: "This is a traditional chakra reading, not medical or professional advice."
+"""
+
+    def _build_tripataki_prompt(self, trip: Dict[str, Any], name: str) -> str:
+        """Plain-language Tripataki Chakra (vedha) reading prompt.
+
+        The vedha is already computed from the Tajaka rules (movable<->dual except
+        the 3rd, fixed<->fixed, dual<->movable except the 11th), read on the Moon
+        and the Lagna. The model only interprets."""
+        vedha_lines = []
+        for v in trip.get("vedha", []):
+            hits = v.get("obstructed_by", [])
+            if hits:
+                who = ", ".join(
+                    f"{h['planet']} from {h['from_sign']}"
+                    f" ({'benefic' if h.get('benefic') else 'malefic'})" for h in hits)
+            else:
+                who = "nothing — this point is unobstructed"
+            vedha_lines.append(
+                f"- {v.get('target')} in {v.get('sign')} (a {v.get('sign_class')} sign; "
+                f"can be obstructed only from {', '.join(v.get('vedha_signs', []))})\n"
+                f"  Obstructed by: {who}  [tone: {v.get('tone')}]")
+
+        return f"""You are an expert Vedic astrologer explaining the **Tripataki Chakra** to {name}, who is not an astrologer. All the vedha below is ALREADY COMPUTED by {SITE_NAME} from the classical Tajaka rules — trust it and interpret it; do not recompute.
+
+HOW IT WORKS: the twelve rasis sit around the three "pataki" (banner) lines. The chakra is read through **vedha** — mutual obstruction between signs: a movable sign is obstructed from the dual signs (except the dual in the 3rd from it), a fixed sign from the other fixed signs, and a dual sign from the movable signs (except the movable in the 11th from it). Customarily the vedha is judged on the **Moon** (the mind and day-to-day flow) and the **Lagna** (the self and body).
+
+=== THIS PERSON'S CHAKRA ({trip.get('transit_date')}) ===
+Natal Lagna: {trip.get('natal_lagna')} · Transiting Moon: {trip.get('transit_moon')}
+
+=== VEDHA ===
+{chr(10).join(vedha_lines) if vedha_lines else '- none computed'}
+
+Write ~200 words of plain English:
+1. What obstruction on the Moon means for them right now (mood, mental flow, the feel of things) — and note whether the obstructing grahas are benefic or malefic, since a benefic vedha inconveniences rather than harms.
+2. What obstruction on the Lagna means (self, body, how plans land).
+3. Anything unobstructed — say so plainly, it is good news worth naming.
+4. One practical takeaway.
+
+RULES: The VEDHA block above is authoritative — never contradict it; if a graha is listed as obstructing, it IS. Be balanced and constructive, never fatalistic. Gloss any Sanskrit term in a few words. Be honest that this is a broad, one-moment overview — the chakra gives the *nature* of what dominates, not specific events. End with: "Tripataki is classically a Varshaphal (annual) tool; this reads its vedha rules for the moment you selected."
+"""
+
     def _build_sarvatobhadra_prompt(self, sbc: Dict[str, Any], name: str) -> str:
         """Build a plain-language Sarvatobhadra Chakra (transit) reading prompt.
 

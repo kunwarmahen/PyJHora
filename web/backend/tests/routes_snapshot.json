@@ -438,6 +438,10 @@
    "query:current_tz"
   ]
  },
+ "POST /api/astrology/kota-chakra-analysis": {
+  "body": "ChakraAnalysisRequest",
+  "params": []
+ },
  "POST /api/astrology/kp": {
   "body": "BirthDetails",
   "params": []
@@ -753,6 +757,10 @@
    "query:current_time",
    "query:current_tz"
   ]
+ },
+ "POST /api/astrology/tripataki-chakra-analysis": {
+  "body": "ChakraAnalysisRequest",
+  "params": []
  },
  "POST /api/astrology/varshaphal": {
   "body": "BirthDetails",

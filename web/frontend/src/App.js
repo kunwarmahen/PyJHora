@@ -368,6 +368,18 @@ function App() {
               }
             />
 
+            {/* The page now hosts three chakras (Sarvatobhadra / Kota / Tripataki),
+                so /chakras is the name-matching URL. /sarvatobhadra is kept as an
+                alias — existing bookmarks, share links and saved readings
+                (conversations SOURCE_META) still point at it. */}
+            <Route
+              path="/chakras"
+              element={
+                <ProtectedRoute>
+                  <SarvatobhadraPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/sarvatobhadra"
               element={
