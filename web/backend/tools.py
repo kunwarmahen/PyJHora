@@ -996,6 +996,8 @@ SECTION_TOOL: Dict[str, str] = {
     "conditions": "get_planet_conditions",
     "avasthas": "get_avasthas",
     "friendships": "get_friendships",
+    "nakshatra": "get_nakshatra_profile",
+    "gochara_phala": "get_gochara_phala",
 }
 
 # Tools with no section toggle — always available in tool mode so the model can
@@ -1008,7 +1010,9 @@ ALWAYS_TOOLS: List[str] = [
     "get_sphuta", "get_sahams", "get_argala",
     "get_vedic_clock", "get_retrograde", "get_muhurta",
     "get_kp", "get_jaimini", "get_life_timeline", "get_strength",
-    "get_saturn_transits", "get_nakshatra_profile", "get_gochara_phala",
+    "get_saturn_transits",
+    # get_nakshatra_profile / get_gochara_phala are section-toggled (SECTION_TOOL),
+    # not always-on, so their Ask context chips can turn them off.
     "get_journal_entries", "search_classical_texts",
 ]
 

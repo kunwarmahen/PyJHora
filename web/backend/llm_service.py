@@ -1625,6 +1625,30 @@ Planetary Positions (All 9 Grahas):"""
                     f"{p['planets'][0]}↔{p['planets'][1]} (H{p['houses'][0]}/H{p['houses'][1]})"
                     for p in pari)
 
+        # Nakshatra (birth star) profile — the Moon's janma-nakshatra attributes.
+        nak = chart_data.get("nakshatra", {})
+        if isinstance(nak, dict) and nak.get("name"):
+            chart_description += (
+                f"\n\nJanma-nakshatra (birth star): {nak.get('name')} pada {nak.get('pada')}, "
+                f"lord {nak.get('lord')}, deity {nak.get('deity')}; "
+                f"gana {nak.get('gana')}, yoni {nak.get('yoni')}, nadi {nak.get('nadi')}, "
+                f"guna {nak.get('guna')}, varna {nak.get('varna')}. Theme: {nak.get('theme')}."
+            )
+
+        # Gochara-phala — Moon-referenced transit verdicts (with vedha).
+        gp = chart_data.get("gochara_phala", {})
+        if isinstance(gp, dict) and gp.get("results"):
+            chart_description += (
+                f"\n\nGochara-phala (Moon-referenced transits, Moon in {gp.get('moon_sign')}):"
+            )
+            for r in gp["results"]:
+                blocked = (f", blocked by {', '.join(r['obstructed_by'])}"
+                           if r.get("obstructed_by") else "")
+                chart_description += (
+                    f"\n- {r.get('planet')}: {r.get('house_from_moon')}th from Moon "
+                    f"→ {r.get('verdict')}{blocked}"
+                )
+
         header = ("Below is birth chart data for this person, calculated using precise "
                   f"astronomical calculations from the {SITE_NAME} Vedic astrology software. "
                   "This is REAL, VERIFIED CHART DATA - not hypothetical."

@@ -31,6 +31,10 @@ DEFAULT_SECTIONS = {
     "conditions": True,
     "avasthas": True,
     "friendships": True,
+    # Tool-first extras: off by default so standard readings aren't bloated, but
+    # available in Ask (seed on demand, or fetched via their tools in Smart-lookup).
+    "nakshatra": False,
+    "gochara_phala": False,
 }
 
 # Divisional charts included by default: D1 (natal), D9 (Navamsa), D10 (Dasamsa).
@@ -282,6 +286,30 @@ def build_chart_context(birth_details: Dict[str, Any],
                 "parivartana": [
                     {"planets": p["planets"], "houses": p["houses"]}
                     for p in fr.get("parivartana", [])
+                ],
+            }
+
+    if sections.get("nakshatra"):
+        np_ = AstrologyCompute.get_nakshatra_profile(ayanamsa=ayanamsa, **args)
+        if np_.get("status") == "success":
+            p = np_.get("profile", {})
+            ctx["nakshatra"] = {
+                "name": p.get("name"), "pada": p.get("pada"), "lord": p.get("lord"),
+                "deity": p.get("deity"), "gana": p.get("gana"), "yoni": p.get("yoni"),
+                "nadi": p.get("nadi"), "guna": p.get("guna"), "varna": p.get("varna"),
+                "theme": p.get("theme"),
+            }
+
+    if sections.get("gochara_phala"):
+        gp = AstrologyCompute.get_gochara_phala(ayanamsa=ayanamsa, **args)
+        if gp.get("status") == "success":
+            ctx["gochara_phala"] = {
+                "moon_sign": gp.get("moon_sign"),
+                "results": [
+                    {"planet": r["planet"], "house_from_moon": r["house_from_moon"],
+                     "verdict": r["verdict"],
+                     **({"obstructed_by": r["obstructed_by"]} if r.get("obstructed_by") else {})}
+                    for r in gp.get("results", [])
                 ],
             }
 

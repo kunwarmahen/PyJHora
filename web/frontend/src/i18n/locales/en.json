@@ -907,7 +907,9 @@
     "traceWriting": "Writing the answer…",
     "traceWroteAnswer": "Wrote the answer above",
     "suggestedCharts": "Suggested charts:",
-    "changeInSettings": "Change in Settings"
+    "changeInSettings": "Change in Settings",
+    "sectionNakshatra": "Nakshatra profile",
+    "sectionGochara": "Gochara-phala (transits)"
   },
   "settings": {
     "title": "Settings",

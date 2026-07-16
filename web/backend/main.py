@@ -3790,6 +3790,7 @@ async def get_calendar_token(
 ):
     """Stable, signed subscribe token + relative .ics path for a profile."""
     from database import database
+    from bson import ObjectId
     prof = await database["saved_profiles"].find_one(
         {"_id": ObjectId(profile_id), "user_id": current_user})
     if not prof:
@@ -3806,6 +3807,7 @@ async def calendar_feed(token: str):
         raise HTTPException(status_code=403, detail="Invalid calendar token")
     user_id, profile_id = resolved
     from database import database
+    from bson import ObjectId
     try:
         prof = await database["saved_profiles"].find_one(
             {"_id": ObjectId(profile_id), "user_id": user_id})
