@@ -1,0 +1,887 @@
+{
+ "DELETE /api/ai/conversations/{conversation_id}": {
+  "body": "",
+  "params": [
+   "path:conversation_id*"
+  ]
+ },
+ "DELETE /api/astrology/quiz/{session_id}": {
+  "body": "",
+  "params": [
+   "path:session_id*"
+  ]
+ },
+ "DELETE /api/auth/account": {
+  "body": "DeleteAccountRequest",
+  "params": []
+ },
+ "DELETE /api/auth/api-tokens/{token_id}": {
+  "body": "",
+  "params": [
+   "path:token_id*"
+  ]
+ },
+ "DELETE /api/journal/{entry_id}": {
+  "body": "",
+  "params": [
+   "path:entry_id*"
+  ]
+ },
+ "DELETE /api/profiles/{profile_id}": {
+  "body": "",
+  "params": [
+   "path:profile_id*"
+  ]
+ },
+ "DELETE /api/user/api-keys/{provider}": {
+  "body": "",
+  "params": [
+   "path:provider*"
+  ]
+ },
+ "GET /api/ai/conversations": {
+  "body": "",
+  "params": [
+   "query:profile_id"
+  ]
+ },
+ "GET /api/ai/conversations/{conversation_id}": {
+  "body": "",
+  "params": [
+   "path:conversation_id*"
+  ]
+ },
+ "GET /api/ai/conversations/{conversation_id}/traces/{trace_id}": {
+  "body": "",
+  "params": [
+   "path:conversation_id*",
+   "path:trace_id*"
+  ]
+ },
+ "GET /api/ai/sources": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/ai/tools": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/astrology/almanac/conjunctions": {
+  "body": "",
+  "params": [
+   "query:end",
+   "query:latitude",
+   "query:longitude",
+   "query:max_sep",
+   "query:place",
+   "query:start",
+   "query:timezone"
+  ]
+ },
+ "GET /api/astrology/almanac/eclipses": {
+  "body": "",
+  "params": [
+   "query:count",
+   "query:from_date",
+   "query:latitude",
+   "query:longitude",
+   "query:place",
+   "query:timezone"
+  ]
+ },
+ "GET /api/astrology/almanac/festivals": {
+  "body": "",
+  "params": [
+   "query:end",
+   "query:latitude",
+   "query:longitude",
+   "query:place",
+   "query:start",
+   "query:timezone",
+   "query:types"
+  ]
+ },
+ "GET /api/astrology/almanac/hora": {
+  "body": "",
+  "params": [
+   "query:date",
+   "query:latitude",
+   "query:longitude",
+   "query:place",
+   "query:timezone"
+  ]
+ },
+ "GET /api/astrology/ayanamsas": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/astrology/birth-chart/{chart_id}": {
+  "body": "",
+  "params": [
+   "path:chart_id*"
+  ]
+ },
+ "GET /api/astrology/dasha-systems": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/astrology/ephemeris": {
+  "body": "",
+  "params": [
+   "query:ayanamsa",
+   "query:days",
+   "query:latitude",
+   "query:longitude",
+   "query:place",
+   "query:start_date*",
+   "query:timezone"
+  ]
+ },
+ "GET /api/astrology/life-report/chapters": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/astrology/panchanga": {
+  "body": "",
+  "params": [
+   "query:date",
+   "query:latitude",
+   "query:longitude",
+   "query:place",
+   "query:system",
+   "query:timezone"
+  ]
+ },
+ "GET /api/astrology/quiz/history": {
+  "body": "",
+  "params": [
+   "query:profile_id"
+  ]
+ },
+ "GET /api/astrology/quiz/stats": {
+  "body": "",
+  "params": [
+   "query:profile_id"
+  ]
+ },
+ "GET /api/astrology/share/{token}": {
+  "body": "",
+  "params": [
+   "path:token*"
+  ]
+ },
+ "GET /api/astrology/vargas": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/auth/api-tokens": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/calendar/token": {
+  "body": "",
+  "params": [
+   "query:profile_id*"
+  ]
+ },
+ "GET /api/calendar/{token}.ics": {
+  "body": "",
+  "params": [
+   "path:token*"
+  ]
+ },
+ "GET /api/journal": {
+  "body": "",
+  "params": [
+   "query:profile_id"
+  ]
+ },
+ "GET /api/llm/providers": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/notifications/prefs": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/profiles/export": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/profiles/list": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/user/api-keys": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/user/charts": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/user/preferences": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/user/profile": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/v1": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/v1/profiles": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/v1/tools": {
+  "body": "",
+  "params": []
+ },
+ "GET /health": {
+  "body": "",
+  "params": []
+ },
+ "POST /api/ai/conversations/{conversation_id}/feedback": {
+  "body": "FeedbackRequest",
+  "params": [
+   "path:conversation_id*"
+  ]
+ },
+ "POST /api/astrology/almanac-analysis": {
+  "body": "AlmanacAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/applicable-dashas": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/ashtakavarga": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/ask": {
+  "body": "AskQuestionRequest",
+  "params": []
+ },
+ "POST /api/astrology/ask/stream": {
+  "body": "AskQuestionRequest",
+  "params": []
+ },
+ "POST /api/astrology/aspects": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/avasthas": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/avasthas-analysis": {
+  "body": "AvasthasAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/bhava-chart": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:method"
+  ]
+ },
+ "POST /api/astrology/bhrigu-markers": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:from_age",
+   "query:years"
+  ]
+ },
+ "POST /api/astrology/bhrigu-markers-analysis": {
+  "body": "BhriguMarkersAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/birth-chart": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/celestial-analysis": {
+  "body": "CelestialAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/chart-details": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/compare-analysis": {
+  "body": "CompareAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/compatibility": {
+  "body": "CompatibilityRequest",
+  "params": []
+ },
+ "POST /api/astrology/compatibility-analysis": {
+  "body": "CompatibilityAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/daily-digest": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:basis",
+   "query:current_time",
+   "query:current_tz",
+   "query:date"
+  ]
+ },
+ "POST /api/astrology/daily-digest-analysis": {
+  "body": "DailyDigestAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/dasha-periods": {
+  "body": "BirthDetails",
+  "params": [
+   "query:dhasa_type*"
+  ]
+ },
+ "POST /api/astrology/dhasa": {
+  "body": "BirthDetails",
+  "params": [
+   "query:dhasa_type"
+  ]
+ },
+ "POST /api/astrology/dhasa/children": {
+  "body": "BirthDetails",
+  "params": [
+   "query:lords"
+  ]
+ },
+ "POST /api/astrology/divisional-chart": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:varga"
+  ]
+ },
+ "POST /api/astrology/doshas": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/fortnightly-digest": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:date"
+  ]
+ },
+ "POST /api/astrology/fortnightly-digest-analysis": {
+  "body": "DailyDigestAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/friendships": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/friendships-analysis": {
+  "body": "FriendshipsAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/gochara-phala": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:current_date",
+   "query:current_tz"
+  ]
+ },
+ "POST /api/astrology/gochara-phala-analysis": {
+  "body": "GocharaPhalaAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/horoscope": {
+  "body": "BirthDetails",
+  "params": []
+ },
+ "POST /api/astrology/jaimini": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/jaimini-analysis": {
+  "body": "JaiminiAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/kp": {
+  "body": "BirthDetails",
+  "params": []
+ },
+ "POST /api/astrology/kp-analysis": {
+  "body": "KPAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/kp-horary": {
+  "body": "",
+  "params": [
+   "query:date",
+   "query:latitude",
+   "query:longitude",
+   "query:number*",
+   "query:place",
+   "query:time",
+   "query:timezone"
+  ]
+ },
+ "POST /api/astrology/kp-horary-analysis": {
+  "body": "KPHoraryAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/life-report/chapter": {
+  "body": "LifeReportChapterRequest",
+  "params": []
+ },
+ "POST /api/astrology/life-report/save": {
+  "body": "LifeReportSaveRequest",
+  "params": []
+ },
+ "POST /api/astrology/life-timeline": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:years_after",
+   "query:years_before"
+  ]
+ },
+ "POST /api/astrology/life-timeline-analysis": {
+  "body": "TimelineAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/longevity": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/lunar-pravesha": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:date",
+   "query:rung",
+   "query:year"
+  ]
+ },
+ "POST /api/astrology/marriage-workspace": {
+  "body": "MarriageWorkspaceRequest",
+  "params": []
+ },
+ "POST /api/astrology/monthly-digest": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:basis",
+   "query:date"
+  ]
+ },
+ "POST /api/astrology/monthly-digest-analysis": {
+  "body": "DailyDigestAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/muhurta": {
+  "body": "",
+  "params": [
+   "query:activity",
+   "query:end_date",
+   "query:latitude",
+   "query:longitude",
+   "query:place",
+   "query:start_date",
+   "query:timezone"
+  ]
+ },
+ "POST /api/astrology/muhurta-analysis": {
+  "body": "MuhurtaAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/muhurta/subtools": {
+  "body": "MuhurtaSubtoolsRequest",
+  "params": []
+ },
+ "POST /api/astrology/nakshatra-profile": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:current_date"
+  ]
+ },
+ "POST /api/astrology/nakshatra-profile-analysis": {
+  "body": "NakshatraProfileAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/now-chart": {
+  "body": "",
+  "params": [
+   "query:ayanamsa",
+   "query:current_time",
+   "query:current_tz",
+   "query:latitude",
+   "query:longitude",
+   "query:place",
+   "query:timezone"
+  ]
+ },
+ "POST /api/astrology/now-chart-analysis": {
+  "body": "NowChartAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/pancha-pakshi": {
+  "body": "BirthDetails",
+  "params": [
+   "query:date"
+  ]
+ },
+ "POST /api/astrology/pancha-pakshi-analysis": {
+  "body": "PanchaPakshiAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/planet-conditions": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/planet-conditions-analysis": {
+  "body": "PlanetConditionsAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/prashna": {
+  "body": "",
+  "params": [
+   "query:ayanamsa",
+   "query:date",
+   "query:latitude",
+   "query:longitude",
+   "query:place",
+   "query:question",
+   "query:time",
+   "query:timezone"
+  ]
+ },
+ "POST /api/astrology/prashna-analysis": {
+  "body": "PrashnaAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/predict": {
+  "body": "PredictionRequest",
+  "params": []
+ },
+ "POST /api/astrology/quiz/generate": {
+  "body": "QuizGenerateRequest",
+  "params": []
+ },
+ "POST /api/astrology/quiz/grade": {
+  "body": "QuizGradeRequest",
+  "params": []
+ },
+ "POST /api/astrology/raja-yogas": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/rectify-birth-time": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:gender",
+   "query:method"
+  ]
+ },
+ "POST /api/astrology/rectify-birth-time/chat": {
+  "body": "RectifyChatRequest",
+  "params": []
+ },
+ "POST /api/astrology/rectify-birth-time/events": {
+  "body": "RectifyEventsRequest",
+  "params": []
+ },
+ "POST /api/astrology/rectify-birth-time/events/explain": {
+  "body": "RectifyEventsExplainRequest",
+  "params": []
+ },
+ "POST /api/astrology/rectify-birth-time/explain": {
+  "body": "RectifyExplainRequest",
+  "params": []
+ },
+ "POST /api/astrology/remedies": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/remedies-analysis": {
+  "body": "RemediesAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/retrograde": {
+  "body": "",
+  "params": [
+   "query:date",
+   "query:latitude",
+   "query:longitude",
+   "query:place",
+   "query:timezone"
+  ]
+ },
+ "POST /api/astrology/sarvatobhadra": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:current_date",
+   "query:current_time",
+   "query:current_tz",
+   "query:name_nakshatra"
+  ]
+ },
+ "POST /api/astrology/sarvatobhadra-analysis": {
+  "body": "SarvatobhadraAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/saturn-transits": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/saturn-transits-analysis": {
+  "body": "SaturnTransitsAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/sensitive-points": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/sensitive-points-analysis": {
+  "body": "SensitivePointsAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/shadbala": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/share": {
+  "body": "ShareRequest",
+  "params": []
+ },
+ "POST /api/astrology/strength": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/astrology/strength-analysis": {
+  "body": "StrengthAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/sudarsana-chakra": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:year_offset"
+  ]
+ },
+ "POST /api/astrology/tithi-ashtottari-children": {
+  "body": "TithiAshtottariChildrenRequest",
+  "params": []
+ },
+ "POST /api/astrology/tithi-pravesha": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:date",
+   "query:year"
+  ]
+ },
+ "POST /api/astrology/tithi-pravesha-analysis": {
+  "body": "DailyDigestAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/transit": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:current_date",
+   "query:current_time",
+   "query:current_tz"
+  ]
+ },
+ "POST /api/astrology/varshaphal": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:dasha_system",
+   "query:year*"
+  ]
+ },
+ "POST /api/astrology/varshaphal-analysis": {
+  "body": "VarshaphalAnalysisRequest",
+  "params": []
+ },
+ "POST /api/astrology/vedic-clock": {
+  "body": "",
+  "params": [
+   "query:date",
+   "query:latitude",
+   "query:longitude",
+   "query:place",
+   "query:timezone"
+  ]
+ },
+ "POST /api/astrology/yogas": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa"
+  ]
+ },
+ "POST /api/auth/api-tokens": {
+  "body": "ApiTokenCreateRequest",
+  "params": []
+ },
+ "POST /api/auth/change-password": {
+  "body": "ChangePasswordRequest",
+  "params": []
+ },
+ "POST /api/auth/forgot-password": {
+  "body": "ForgotPasswordRequest",
+  "params": []
+ },
+ "POST /api/auth/google": {
+  "body": "GoogleAuthRequest",
+  "params": []
+ },
+ "POST /api/auth/login": {
+  "body": "LoginRequest",
+  "params": []
+ },
+ "POST /api/auth/logout": {
+  "body": "LogoutRequest",
+  "params": []
+ },
+ "POST /api/auth/logout-all": {
+  "body": "",
+  "params": []
+ },
+ "POST /api/auth/refresh": {
+  "body": "RefreshRequest",
+  "params": []
+ },
+ "POST /api/auth/register": {
+  "body": "RegisterRequest",
+  "params": []
+ },
+ "POST /api/auth/reset-password": {
+  "body": "ResetPasswordRequest",
+  "params": []
+ },
+ "POST /api/journal": {
+  "body": "JournalEntryRequest",
+  "params": []
+ },
+ "POST /api/location/reverse": {
+  "body": "ReverseGeocodeRequest",
+  "params": []
+ },
+ "POST /api/location/search": {
+  "body": "LocationSearchRequest",
+  "params": []
+ },
+ "POST /api/notifications/digest/send": {
+  "body": "",
+  "params": [
+   "query:cadence"
+  ]
+ },
+ "POST /api/notifications/push/subscribe": {
+  "body": "PushSubscribeRequest",
+  "params": []
+ },
+ "POST /api/notifications/push/unsubscribe": {
+  "body": "PushUnsubscribeRequest",
+  "params": []
+ },
+ "POST /api/profiles/import": {
+  "body": "ImportProfilesRequest",
+  "params": []
+ },
+ "POST /api/profiles/save": {
+  "body": "SaveProfileRequest",
+  "params": []
+ },
+ "POST /api/v1/tools/{tool_name}": {
+  "body": "ToolRunRequest",
+  "params": [
+   "path:tool_name*"
+  ]
+ },
+ "PUT /api/auth/email": {
+  "body": "UpdateEmailRequest",
+  "params": []
+ },
+ "PUT /api/auth/name": {
+  "body": "UpdateNameRequest",
+  "params": []
+ },
+ "PUT /api/journal/{entry_id}": {
+  "body": "JournalUpdateRequest",
+  "params": [
+   "path:entry_id*"
+  ]
+ },
+ "PUT /api/notifications/prefs": {
+  "body": "NotificationPrefsRequest",
+  "params": []
+ },
+ "PUT /api/profiles/{profile_id}": {
+  "body": "SaveProfileRequest",
+  "params": [
+   "path:profile_id*"
+  ]
+ },
+ "PUT /api/profiles/{profile_id}/default": {
+  "body": "SetDefaultRequest",
+  "params": [
+   "path:profile_id*"
+  ]
+ },
+ "PUT /api/user/api-keys/{provider}": {
+  "body": "ApiKeyRequest",
+  "params": [
+   "path:provider*"
+  ]
+ },
+ "PUT /api/user/preferences": {
+  "body": "PreferencesRequest",
+  "params": []
+ }
+}
