@@ -35,6 +35,13 @@ DEFAULT_SECTIONS = {
     # available in Ask (seed on demand, or fetched via their tools in Smart-lookup).
     "nakshatra": False,
     "gochara_phala": False,
+    # Chakras (§2.7) — transit devices with their own question types (protection,
+    # direction, day-judgement). Off by default like the other extras: they're
+    # only relevant to some questions, and Smart-lookup can fetch them on demand.
+    "sarvatobhadra": False,
+    "kota": False,
+    "kaala": False,
+    "tripataki": False,
 }
 
 # Divisional charts included by default: D1 (natal), D9 (Navamsa), D10 (Dasamsa).
@@ -298,6 +305,56 @@ def build_chart_context(birth_details: Dict[str, Any],
                 "deity": p.get("deity"), "gana": p.get("gana"), "yoni": p.get("yoni"),
                 "nadi": p.get("nadi"), "guna": p.get("guna"), "varna": p.get("varna"),
                 "theme": p.get("theme"),
+            }
+
+    if sections.get("sarvatobhadra"):
+        sbc = AstrologyCompute.get_sarvatobhadra_chakra(ayanamsa=ayanamsa, **args)
+        if sbc.get("status") == "success":
+            # The 9x9 grid is far too large for a prompt — the findings ARE the reading.
+            ctx["sarvatobhadra"] = {
+                "transit_date": sbc.get("transit_date"),
+                "findings": [
+                    {"planet": f.get("planet"), "kind": f.get("kind"),
+                     "tone": f.get("tone"), "on": f.get("label")}
+                    for f in sbc.get("findings", [])],
+            }
+
+    if sections.get("kota"):
+        k = AstrologyCompute.get_kota_chakra(ayanamsa=ayanamsa, **args)
+        if k.get("status") == "success":
+            ctx["kota"] = {
+                "birth_star": k.get("birth_star", {}).get("name"),
+                "kota_swami": k.get("kota_lord"),
+                "kota_paala": k.get("kota_paala"),
+                "rings": [
+                    {"ring": r["name"],
+                     "malefics": [p["name"] for c in r["cells"] for p in c["transit"] if p["malefic"]],
+                     "benefics": [p["name"] for c in r["cells"] for p in c["transit"] if not p["malefic"]]}
+                    for r in k.get("rings", [])],
+            }
+
+    if sections.get("kaala"):
+        kc = AstrologyCompute.get_kaala_chakra(ayanamsa=ayanamsa, **args)
+        if kc.get("status") == "success":
+            ctx["kaala"] = {
+                "base_star": kc.get("base_star", {}).get("name"),
+                "directions": [{"direction": d["direction"], "verdict": d["tone"],
+                                "malefics": d["malefics"], "benefics": d["benefics"]}
+                               for d in kc.get("directions", [])],
+                "favourable": kc.get("favourable", []),
+                "avoid": kc.get("avoid", []),
+            }
+
+    if sections.get("tripataki"):
+        tp = AstrologyCompute.get_tripataki_chakra(ayanamsa=ayanamsa, **args)
+        if tp.get("status") == "success":
+            ctx["tripataki"] = {
+                "lagna": tp.get("natal_lagna"), "moon": tp.get("transit_moon"),
+                "vedha": [
+                    {"target": v["target"], "sign": v["sign"], "verdict": v["tone"],
+                     "obstructed_by": [f"{h['planet']} from {h['from_sign']}"
+                                       for h in v["obstructed_by"]]}
+                    for v in tp.get("vedha", [])],
             }
 
     if sections.get("gochara_phala"):

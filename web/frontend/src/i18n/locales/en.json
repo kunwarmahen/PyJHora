@@ -929,7 +929,11 @@
     "changeInSettings": "Change in Settings",
     "sectionNakshatra": "Nakshatra profile",
     "sectionGochara": "Gochara-phala (transits)",
-    "sectionAvasthas": "Avasthas (planetary states)"
+    "sectionAvasthas": "Avasthas (planetary states)",
+    "sectionSarvatobhadra": "Sarvatobhadra Chakra",
+    "sectionKota": "Kota Chakra (protection)",
+    "sectionKaala": "Kaala Chakra (directions)",
+    "sectionTripataki": "Tripataki Chakra (vedha)"
   },
   "settings": {
     "title": "Settings",

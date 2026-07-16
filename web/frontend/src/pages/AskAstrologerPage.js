@@ -56,6 +56,10 @@ const CONTEXT_SECTIONS = [
   { key: "friendships", labelKey: "ask.sectionFriendships" },
   { key: "nakshatra", labelKey: "ask.sectionNakshatra" },
   { key: "gochara_phala", labelKey: "ask.sectionGochara" },
+  { key: "sarvatobhadra", labelKey: "ask.sectionSarvatobhadra" },
+  { key: "kota", labelKey: "ask.sectionKota" },
+  { key: "kaala", labelKey: "ask.sectionKaala" },
+  { key: "tripataki", labelKey: "ask.sectionTripataki" },
 ];
 
 // Default tri-state for Smart-lookup mode: seed the natal base + dasha chain,
@@ -65,6 +69,8 @@ const DEFAULT_SECTION_STATE = {
   aspects: "tool", arudhas: "tool", ashtakavarga: "tool", shadbala: "tool",
   conditions: "tool", avasthas: "tool", friendships: "tool",
   nakshatra: "tool", gochara_phala: "tool",
+  // Chakras (§2.7): fetched on demand — only some questions need them.
+  sarvatobhadra: "tool", kota: "tool", kaala: "tool", tripataki: "tool",
 };
 
 

@@ -496,7 +496,11 @@
     "errPdf": "पीडीएफ निर्यात में विफल",
     "errLoadConv": "बातचीत लोड करने में विफल",
     "errSaveKey": "एपीआई कुंजी सहेजने में विफल",
-    "emptyConversation": "यह बातचीत खाली है।"
+    "emptyConversation": "यह बातचीत खाली है।",
+    "sectionSarvatobhadra": "सर्वतोभद्र चक्र",
+    "sectionKota": "कोट चक्र (रक्षा)",
+    "sectionKaala": "काल चक्र (दिशाएँ)",
+    "sectionTripataki": "त्रिपताकी चक्र (वेध)"
   },
   "compat": {
     "title": "गुण मिलान",

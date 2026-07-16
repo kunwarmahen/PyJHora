@@ -1825,6 +1825,62 @@ Planetary Positions (All 9 Grahas):"""
                     f"→ {r.get('verdict')}{blocked}"
                 )
 
+        # ── Chakras (§2.7) — only present when the section is seeded ──────
+        sbc = chart_data.get("sarvatobhadra", {})
+        if isinstance(sbc, dict) and sbc.get("findings"):
+            chart_description += (
+                f"\n\nSarvatobhadra Chakra (transits on the all-directions star grid, "
+                f"{sbc.get('transit_date')}):"
+            )
+            for f in sbc["findings"]:
+                kind = ("sits on" if f.get("kind") == "occupation" else "casts vedha on")
+                chart_description += (
+                    f"\n- {f.get('planet')} {kind} {f.get('on')} ({f.get('tone')})"
+                )
+
+        kota = chart_data.get("kota", {})
+        if isinstance(kota, dict) and kota.get("rings"):
+            chart_description += (
+                f"\n\nKota Chakra (the fort — four enclosures from the birth star "
+                f"{kota.get('birth_star')}; malefics reaching the inner rings press on it. "
+                f"Kota Swami/defender: {kota.get('kota_swami')}, "
+                f"Kota Paala/guard: {kota.get('kota_paala')}):"
+            )
+            for r in kota["rings"]:
+                chart_description += (
+                    f"\n- {r.get('ring')}: malefics {', '.join(r['malefics']) or 'none'}"
+                    f"; benefics {', '.join(r['benefics']) or 'none'}"
+                )
+
+        kaala = chart_data.get("kaala", {})
+        if isinstance(kaala, dict) and kaala.get("directions"):
+            chart_description += (
+                f"\n\nKaala Chakra (wheel of DIRECTIONS, from the Sun's star "
+                f"{kaala.get('base_star')} — each spoke is a compass direction):"
+            )
+            for d in kaala["directions"]:
+                who = ", ".join(d["malefics"] + d["benefics"]) or "no grahas"
+                chart_description += (
+                    f"\n- {d.get('direction')}: {d.get('verdict')} ({who})"
+                )
+            chart_description += (
+                f"\n- Favourable: {', '.join(kaala.get('favourable') or []) or 'none'}"
+                f"; best avoided: {', '.join(kaala.get('avoid') or []) or 'none'}"
+            )
+
+        trip = chart_data.get("tripataki", {})
+        if isinstance(trip, dict) and trip.get("vedha"):
+            chart_description += (
+                f"\n\nTripataki Chakra (vedha/obstruction on the Moon and Lagna; "
+                f"Lagna {trip.get('lagna')}, Moon {trip.get('moon')}):"
+            )
+            for v in trip["vedha"]:
+                by = ", ".join(v.get("obstructed_by") or []) or "nothing — unobstructed"
+                chart_description += (
+                    f"\n- {v.get('target')} in {v.get('sign')}: {v.get('verdict')} — "
+                    f"obstructed by {by}"
+                )
+
         header = ("Below is birth chart data for this person, calculated using precise "
                   f"astronomical calculations from the {SITE_NAME} Vedic astrology software. "
                   "This is REAL, VERIFIED CHART DATA - not hypothetical."

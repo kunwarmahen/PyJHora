@@ -496,7 +496,11 @@
     "errPdf": "पीडीएफ-निर्यातने विफलता",
     "errLoadConv": "संवादारोपणे विफलता",
     "errSaveKey": "एपीआई-कुञ्जिकासंरक्षणे विफलता",
-    "emptyConversation": "अयं संवादः रिक्तः।"
+    "emptyConversation": "अयं संवादः रिक्तः।",
+    "sectionSarvatobhadra": "सर्वतोभद्रचक्रम्",
+    "sectionKota": "कोटचक्रम् (रक्षा)",
+    "sectionKaala": "कालचक्रम् (दिशः)",
+    "sectionTripataki": "त्रिपताकीचक्रम् (वेधः)"
   },
   "compat": {
     "title": "गुणमेलनम्",

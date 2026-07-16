@@ -20,7 +20,8 @@ pre-seeded into the prompt or fetched on demand via a tool.
 """
 from typing import Any, Callable, Dict, List, Optional
 
-from astrology import AstrologyCompute, DEFAULT_AYANAMSA, SUPPORTED_VARGAS
+from astrology import (AstrologyCompute, DEFAULT_AYANAMSA, SUPPORTED_VARGAS,
+                       SUPPORTED_DASHAS)
 from chart_context import _running_dasha_chain
 import rag
 
@@ -340,6 +341,109 @@ def _saturn_transits(bd, ayanamsa, **_):
     }
 
 
+def _kota_chakra(bd, ayanamsa, current_date: Optional[str] = None, **_):
+    r = AstrologyCompute.get_kota_chakra(ayanamsa=ayanamsa, current_date=current_date,
+                                         **_args(bd))
+    if r.get("status") != "success":
+        return r
+    # Per-ring occupancy only — the 28 star cells are far too much for a prompt,
+    # and the reading is about which grahas reached which enclosure.
+    return {
+        "transit_date": r.get("transit_date"),
+        "birth_star": r.get("birth_star", {}).get("name"),
+        "kota_swami": r.get("kota_lord"),
+        "kota_paala": r.get("kota_paala"),
+        "rings": [
+            {"ring": ring["name"],
+             "malefics": [p["name"] for c in ring["cells"] for p in c["transit"] if p["malefic"]],
+             "benefics": [p["name"] for c in ring["cells"] for p in c["transit"] if not p["malefic"]]}
+            for ring in r.get("rings", [])],
+        "findings": [f["text"] for f in r.get("findings", [])],
+    }
+
+
+def _kaala_chakra(bd, ayanamsa, current_date: Optional[str] = None, **_):
+    r = AstrologyCompute.get_kaala_chakra(ayanamsa=ayanamsa, current_date=current_date,
+                                          **_args(bd))
+    if r.get("status") != "success":
+        return r
+    return {
+        "transit_date": r.get("transit_date"),
+        "base_star": r.get("base_star", {}).get("name"),
+        "directions": [
+            {"direction": d["direction"], "verdict": d["tone"],
+             "malefics": d["malefics"], "benefics": d["benefics"]}
+            for d in r.get("directions", [])],
+        "favourable": r.get("favourable", []),
+        "avoid": r.get("avoid", []),
+    }
+
+
+def _tripataki_chakra(bd, ayanamsa, current_date: Optional[str] = None,
+                      basis: Optional[str] = None, year: Optional[int] = None, **_):
+    r = AstrologyCompute.get_tripataki_chakra(
+        ayanamsa=ayanamsa, current_date=current_date,
+        basis=basis or "transit", year=year, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    return {
+        "basis": r.get("basis"),
+        "date": r.get("transit_date"),
+        "lagna": r.get("natal_lagna"),
+        "moon": r.get("transit_moon"),
+        "vedha": [
+            {"target": v["target"], "sign": v["sign"], "sign_class": v["sign_class"],
+             "verdict": v["tone"],
+             "obstructed_by": [f"{h['planet']} from {h['from_sign']}"
+                               for h in v["obstructed_by"]]}
+            for v in r.get("vedha", [])],
+    }
+
+
+def _sarvatobhadra(bd, ayanamsa, current_date: Optional[str] = None, **_):
+    r = AstrologyCompute.get_sarvatobhadra_chakra(
+        ayanamsa=ayanamsa, current_date=current_date, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    # The 9x9 grid itself is far too large for a prompt; the findings ARE the reading.
+    return {
+        "transit_date": r.get("transit_date"),
+        "anchors": {k: a.get("name") for k, a in (r.get("anchors") or {}).items()},
+        "findings": [
+            {"planet": f.get("planet"), "nature": f.get("planet_nature"),
+             "kind": f.get("kind"), "tone": f.get("tone"), "on": f.get("label")}
+            for f in r.get("findings", [])],
+    }
+
+
+def _dasha_periods(bd, ayanamsa, dhasa_type: str = "", **_):
+    if not dhasa_type or dhasa_type not in SUPPORTED_DASHAS:
+        raise ToolError(
+            "get_dasha_periods requires a 'dhasa_type' from: "
+            + ", ".join(SUPPORTED_DASHAS) + ". For Vimsottari use get_dasha_chain.")
+    r = AstrologyCompute.get_dasha_periods(dhasa_type, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    from datetime import date as _date
+    today = _date.today().isoformat()
+    periods = r.get("periods", [])
+    current = next((p for p in periods
+                    if p["start_date"] <= today <= p["end_date"]), None)
+    return {
+        "dhasa_type": r.get("dhasa_type"),
+        "name": r.get("name"),
+        "lord_type": r.get("lord_type"),
+        "chakra_refs": r.get("chakra_refs"),
+        "current": current,
+        # Cap the list — Sudarshana runs to 108 one-year periods, which would
+        # dominate the prompt. 24 rows covers a lifetime for the multi-year raasi
+        # systems and ~24 years of the yearly wheel; `current` is always included
+        # above, and total_periods tells the model the list is truncated.
+        "periods": periods[:24],
+        "total_periods": len(periods),
+    }
+
+
 def _strength(bd, ayanamsa, **_):
     r = AstrologyCompute.get_strength(ayanamsa=ayanamsa, **_args(bd))
     if r.get("status") != "success":
@@ -547,6 +651,8 @@ def _gochara_phala(bd, ayanamsa, current_date: Optional[str] = None, **_):
 # Registry
 # --------------------------------------------------------------------------- #
 _EMPTY_PARAMS = {"type": "object", "properties": {}, "required": []}
+
+_DASHA_KEYS = ", ".join(sorted(SUPPORTED_DASHAS))
 
 _VARGA_DESC = "; ".join(
     f"{f}={SUPPORTED_VARGAS[f][0]} ({SUPPORTED_VARGAS[f][2]})"
@@ -961,6 +1067,81 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _journal_entries,
     ),
     _Tool(
+        "get_sarvatobhadra_chakra",
+        "Sarvatobhadra Chakra: the transiting grahas mapped onto the all-directions "
+        "star grid, reporting which of the native's sensitive points (birth star, "
+        "Moon sign, birth tithi/weekday) each graha OCCUPIES or casts VEDHA "
+        "(obstruction) on, with a supportive/stressful tone. Use for 'is today "
+        "good/bad for me', muhurta-style day judgement and general auspiciousness.",
+        {"type": "object", "properties": {
+            "current_date": {"type": "string",
+                             "description": "YYYY-MM-DD; defaults to today."}},
+         "required": []},
+        _sarvatobhadra,
+    ),
+    _Tool(
+        "get_kota_chakra",
+        "Kota Chakra (the fort): the 28 nakshatras as four concentric enclosures "
+        "counted from the birth star — Baahya (outer wall), Praakaara (rampart), "
+        "Durgantara (inner fort), Sthamba (central pillar). Reports which grahas "
+        "have reached which enclosure (malefics pressure the fort, benefics defend "
+        "it) plus the Kota Swami (defender) and Kota Paala (guard). Use for "
+        "PROTECTION, safety and health-anxiety questions — the deeper a malefic "
+        "has reached, the more personal the pressure.",
+        {"type": "object", "properties": {
+            "current_date": {"type": "string",
+                             "description": "YYYY-MM-DD; defaults to today."}},
+         "required": []},
+        _kota_chakra,
+    ),
+    _Tool(
+        "get_kaala_chakra",
+        "Kaala Chakra (the wheel of directions): the 28 stars as eight spokes "
+        "counted from the Sun's star, where EACH SPOKE IS A COMPASS DIRECTION. "
+        "Reports which grahas colour which direction and a verdict per direction "
+        "(supportive / best-avoided / mixed / neutral). Use for DIRECTION questions "
+        "— which way to travel, which way to face for important work, which "
+        "direction to push a matter. Nothing else in this toolset answers that.",
+        {"type": "object", "properties": {
+            "current_date": {"type": "string",
+                             "description": "YYYY-MM-DD; defaults to today."}},
+         "required": []},
+        _kaala_chakra,
+    ),
+    _Tool(
+        "get_tripataki_chakra",
+        "Tripataki Chakra: vedha (mutual obstruction between signs) on the Moon "
+        "and the Lagna — a broad overview of the NATURE of what dominates a period, "
+        "not specific events. Set basis='annual' (optionally with a `year`) to read "
+        "it on the Varshaphal/solar-return chart, which is its classical home; "
+        "basis='transit' (default) reads the current moment.",
+        {"type": "object", "properties": {
+            "basis": {"type": "string", "enum": ["transit", "annual"],
+                      "default": "transit",
+                      "description": "'annual' = the Varshaphal solar-return chart."},
+            "year": {"type": "integer",
+                     "description": "Target year when basis='annual'; defaults to now."},
+            "current_date": {"type": "string",
+                             "description": "YYYY-MM-DD when basis='transit'."}},
+         "required": []},
+        _tripataki_chakra,
+    ),
+    _Tool(
+        "get_dasha_periods",
+        "Maha-period timeline for a NON-Vimsottari dasha system (for Vimsottari use "
+        "get_dasha_chain). Pass `dhasa_type` — one of: " + _DASHA_KEYS + ". Graha "
+        "systems return planet lords, raasi systems return signs, and "
+        "sudharsana_chakra returns a triple (the active rasi on the Lagna, Moon and "
+        "Sun wheels at once). Returns the current period plus the timeline. Use when "
+        "a question calls for a second opinion on timing, or names a system.",
+        {"type": "object", "properties": {
+            "dhasa_type": {"type": "string",
+                           "description": "Dasha system key, e.g. 'chara', 'yogini', "
+                                          "'sudharsana_chakra'."}},
+         "required": ["dhasa_type"]},
+        _dasha_periods,
+    ),
+    _Tool(
         "search_classical_texts",
         "Search the local corpus of classical Jyotish texts (BPHS, Saravali, "
         "Phaladeepika, …) for passages relevant to a topic, so you can GROUND and "
@@ -998,6 +1179,10 @@ SECTION_TOOL: Dict[str, str] = {
     "friendships": "get_friendships",
     "nakshatra": "get_nakshatra_profile",
     "gochara_phala": "get_gochara_phala",
+    "sarvatobhadra": "get_sarvatobhadra_chakra",
+    "kota": "get_kota_chakra",
+    "kaala": "get_kaala_chakra",
+    "tripataki": "get_tripataki_chakra",
 }
 
 # Tools with no section toggle — always available in tool mode so the model can
@@ -1010,6 +1195,8 @@ ALWAYS_TOOLS: List[str] = [
     "get_sphuta", "get_sahams", "get_argala",
     "get_vedic_clock", "get_retrograde", "get_muhurta",
     "get_kp", "get_jaimini", "get_life_timeline", "get_strength",
+    "get_dasha_periods", "get_sarvatobhadra_chakra", "get_kota_chakra",
+    "get_kaala_chakra", "get_tripataki_chakra",
     "get_saturn_transits",
     # get_nakshatra_profile / get_gochara_phala are section-toggled (SECTION_TOOL),
     # not always-on, so their Ask context chips can turn them off.
@@ -1090,6 +1277,11 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_sphuta":           {"label": "Sphutas (sensitive points)", "category": "Sensitive points"},
     "get_sahams":           {"label": "Sahams (36 points)",     "category": "Sensitive points"},
     "get_argala":           {"label": "Argala (intervention)",  "category": "Sensitive points"},
+    "get_dasha_periods":    {"label": "Other dasha systems (Chara, Yogini, Sudarshana Chakra…)", "category": "Timing"},
+    "get_sarvatobhadra_chakra": {"label": "Sarvatobhadra Chakra (transits + vedha)", "category": "Chakras"},
+    "get_kota_chakra":      {"label": "Kota Chakra (the fort — protection)", "category": "Chakras"},
+    "get_kaala_chakra":     {"label": "Kaala Chakra (wheel of directions)", "category": "Chakras"},
+    "get_tripataki_chakra": {"label": "Tripataki Chakra (vedha on Moon + Lagna)", "category": "Chakras"},
     "get_kp":               {"label": "KP sub-lords & significators", "category": "Systems"},
     "get_jaimini":          {"label": "Jaimini (Karakamsa)",     "category": "Systems"},
     "get_journal_entries":  {"label": "Astro-journal (your logged life events)", "category": "Your data"},
