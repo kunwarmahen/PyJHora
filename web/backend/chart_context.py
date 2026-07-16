@@ -29,6 +29,7 @@ DEFAULT_SECTIONS = {
     "aspects": True,
     "arudhas": True,
     "conditions": True,
+    "avasthas": True,
 }
 
 # Divisional charts included by default: D1 (natal), D9 (Navamsa), D10 (Dasamsa).
@@ -255,6 +256,16 @@ def build_chart_context(birth_details: Dict[str, Any],
                     for p in pc.get("flagged", [])
                 ],
             }
+
+    if sections.get("avasthas"):
+        av = AstrologyCompute.get_avasthas(ayanamsa=ayanamsa, **args)
+        if av.get("status") == "success":
+            ctx["avasthas"] = [
+                {"planet": p["planet"], "baladi": p["baladi"]["state"],
+                 "jagradadi": p["jagradadi"]["state"],
+                 "deeptadi": p["deeptadi"]["state"], "tone": p["deeptadi"]["tone"]}
+                for p in av.get("planets", [])
+            ]
 
     # Divisional charts (vargas). D1 is already the natal `planetary_positions`,
     # so only the extra factors are computed into their own section.

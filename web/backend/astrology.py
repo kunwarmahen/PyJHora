@@ -5314,6 +5314,151 @@ class AstrologyCompute:
         finally:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
+    # ── Avasthas (planetary states) — engine has none, so computed here ──────
+    # Sign lord (planet index) per rasi 0..11.
+    _RASI_LORD_IDX = [2, 5, 3, 1, 0, 3, 5, 2, 4, 6, 6, 4]
+    # Baladi (5 states by degree; strongest = Yuva). Each 6° of the sign.
+    _BALADI_STATES = ["Bala", "Kumara", "Yuva", "Vriddha", "Mrita"]
+    _BALADI_INFO = {
+        "Bala": ("infant", "quarter strength"),
+        "Kumara": ("adolescent", "half strength"),
+        "Yuva": ("youth / prime", "full strength"),
+        "Vriddha": ("old", "little strength"),
+        "Mrita": ("dead", "no strength"),
+    }
+    _JAGRADADI_INFO = {
+        "Jagrat": ("awake", "gives full results"),
+        "Swapna": ("dreaming", "gives moderate results"),
+        "Sushupti": ("sleeping", "gives weak results"),
+    }
+    _DEEPTADI_INFO = {
+        "Deepta": ("radiant", "exalted — very strong", "benefic"),
+        "Swastha": ("healthy", "own sign — strong", "benefic"),
+        "Mudita": ("delighted", "friend's sign — comfortable", "benefic"),
+        "Shanta": ("peaceful", "neutral sign — settled", "neutral"),
+        "Deena": ("miserable", "enemy's sign — uneasy", "challenging"),
+        "Dukhita": ("distressed", "debilitated — struggling", "challenging"),
+        "Vikala": ("crippled", "combust — burnt by the Sun", "challenging"),
+        "Khala": ("mischievous", "with a malefic — agitated", "challenging"),
+        "Kopa": ("agitated", "in a planetary war — disturbed", "challenging"),
+    }
+
+    @staticmethod
+    def get_avasthas(dob: str, tob: str, place: str,
+                     lat: Optional[float] = None, lon: Optional[float] = None,
+                     tz: Optional[float] = None,
+                     ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """The classical **avasthas** (planetary states) for the seven grahas —
+        desktop JHora shows these but the engine has no function for them, so they
+        are computed here from longitude + dignity (like the Mangal-dosha and
+        gandanta logic):
+
+          • **Baladi** (5) — infant→dead by degree-in-sign (reversed in even signs);
+            Yuva (prime) is strongest, Mrita (dead) gives nothing.
+          • **Jagradadi** (3) — awake / dreaming / sleeping, by dignity (own-exalt /
+            friend-neutral / enemy-debilitated).
+          • **Deeptadi** (9) — a fuller dignity-and-affliction state (radiant …
+            agitated); the affliction states (combust→Vikala, in war→Kopa, with a
+            malefic→Khala) override the dignity base.
+
+        A simplified but faithful classical mapping; the AI reading treats it as a
+        strength nuance, not a verdict."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            from jhora import const as _const
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            second = int(tp[2]) if len(tp) > 2 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
+
+            d1 = charts.rasi_chart(jd, place_obj)
+            planet_sign = {p: d1[p + 1][1][0] for p in range(9)}
+            combust = set(charts.planets_in_combustion(d1))
+            # Malefic co-tenants (same sign) for Khala; nodes + Mars + Saturn.
+            malefics = (2, 6, 7, 8)
+            malefic_signs = {planet_sign[m] for m in malefics}
+            # Graha yuddha (tara-grahas sharing a sign within 1°) for Kopa.
+            yuddha = set()
+            taras = [(p, d1[p + 1][1][0], d1[p + 1][1][1]) for p in (2, 3, 4, 5, 6)]
+            for a in range(len(taras)):
+                for b in range(a + 1, len(taras)):
+                    if taras[a][1] == taras[b][1] and abs(taras[a][2] - taras[b][2]) <= 1.0:
+                        yuddha.add(taras[a][0]); yuddha.add(taras[b][0])
+
+            def dignity(name, p, sign0):
+                if name in EXALTATION_SIGN:
+                    if sign0 == EXALTATION_SIGN[name]:
+                        return "exalted"
+                    if sign0 == (EXALTATION_SIGN[name] + 6) % 12:
+                        return "debilitated"
+                lord = AstrologyCompute._RASI_LORD_IDX[sign0]
+                if lord == p:
+                    return "own"
+                rel = _const.planet_relations[p][lord]
+                return {3: "friend", 2: "neutral", 1: "enemy"}.get(rel, "neutral")
+
+            planets = []
+            for p in range(7):  # Sun..Saturn (avasthas are for the seven grahas)
+                name = PLANET_NAMES[p]
+                sign0, deg = d1[p + 1][1]
+
+                # Baladi — 6° parts, reversed in even (2nd/4th/… ) signs.
+                part = min(int(deg // 6), 4)
+                odd_sign = (sign0 % 2 == 0)  # Aries(0) is the 1st = odd sign
+                baladi = (AstrologyCompute._BALADI_STATES[part] if odd_sign
+                          else AstrologyCompute._BALADI_STATES[4 - part])
+
+                dig = dignity(name, p, sign0)
+
+                # Jagradadi from dignity.
+                if dig in ("exalted", "own"):
+                    jagradadi = "Jagrat"
+                elif dig in ("friend", "neutral"):
+                    jagradadi = "Swapna"
+                else:  # enemy / debilitated
+                    jagradadi = "Sushupti"
+
+                # Deeptadi — dignity base, overridden by affliction.
+                base = {"exalted": "Deepta", "own": "Swastha", "friend": "Mudita",
+                        "neutral": "Shanta", "enemy": "Deena",
+                        "debilitated": "Dukhita"}[dig]
+                if p in combust:
+                    deeptadi = "Vikala"
+                elif p in yuddha:
+                    deeptadi = "Kopa"
+                elif any(sign0 == ms and p not in malefics for ms in [planet_sign[m] for m in malefics]):
+                    deeptadi = "Khala"
+                else:
+                    deeptadi = base
+
+                bl_state, bl_str = AstrologyCompute._BALADI_INFO[baladi]
+                jg_state, jg_eff = AstrologyCompute._JAGRADADI_INFO[jagradadi]
+                dp_state, dp_desc, dp_tone = AstrologyCompute._DEEPTADI_INFO[deeptadi]
+                planets.append({
+                    "planet": name,
+                    "sign_name": ZODIAC_NAMES[sign0],
+                    "degrees": round(deg, 2),
+                    "dignity": dig,
+                    "baladi": {"state": baladi, "meaning": bl_state, "strength": bl_str},
+                    "jagradadi": {"state": jagradadi, "meaning": jg_state, "effect": jg_eff},
+                    "deeptadi": {"state": deeptadi, "meaning": dp_state,
+                                 "description": dp_desc, "tone": dp_tone},
+                })
+
+            return {"status": "success", "planets": planets}
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
     # The BPHS conditional nakshatra dashas the engine can test for applicability,
     # mapped to (display name, when-it-applies blurb, DhasaPage picker key or None).
     _APPLICABLE_DASHA_INFO = {

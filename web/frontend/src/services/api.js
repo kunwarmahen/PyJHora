@@ -736,6 +736,26 @@ export const astrologyService = {
       { timeout: 300000 }
     ),
 
+  // ---- Avasthas (Baladi / Jagradadi / Deeptadi planetary states) ----
+  getAvasthas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/avasthas", birthDetails, { params: { ayanamsa } }),
+  analyzeAvasthasAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/avasthas-analysis",
+      {
+        birth_details: birthDetails,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
   // ---- Conditional dashas that apply to this chart (BPHS) ----
   getApplicableDashas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/applicable-dashas", birthDetails, { params: { ayanamsa } }),

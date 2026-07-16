@@ -38,6 +38,8 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   bhaga, marana karaka, gandanta, planetary war, retrograde) shown as a card on the Advanced
   page, as tone-coloured hover badges on the birth chart, and fed into every AI reading; plus
   a "tradition also recommends" banner of the conditional dashas that apply to the chart,
+  Avasthas — the planetary states (Baladi age / Jagradadi wakefulness / Deeptadi temperament)
+  as a card on the Advanced page and in every AI reading,
   Remedies (traditional gemstone / mantra / deity suggestions per weak planet),
   Sensitive Points (Sphutas, the 36 Sahams, and Argala — with AI reading),
   a Vedic Clock & Retrograde page (a live ghati/vighati clock + vakra-gathi retrograde

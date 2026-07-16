@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Sparkles, Grid3x3, Compass, Gauge, HeartPulse, ShieldAlert } from "lucide-react";
+import { Sparkles, Grid3x3, Compass, Gauge, HeartPulse, ShieldAlert, Hourglass } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
@@ -56,6 +56,7 @@ export const AdvancedPage = () => {
   const [aspects, setAspects] = useState(null);
   const [longevity, setLongevity] = useState(null);
   const [conditions, setConditions] = useState(null);
+  const [avasthas, setAvasthas] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -64,6 +65,12 @@ export const AdvancedPage = () => {
   const [pcAiModel, setPcAiModel] = useState("");
   const [pcAiLoading, setPcAiLoading] = useState(false);
   const [pcAiError, setPcAiError] = useState("");
+
+  // Avasthas AI reading (self-contained on this card).
+  const [avAi, setAvAi] = useState("");
+  const [avAiModel, setAvAiModel] = useState("");
+  const [avAiLoading, setAvAiLoading] = useState(false);
+  const [avAiError, setAvAiError] = useState("");
 
   const birthDetails = useMemo(
     () =>
@@ -96,8 +103,11 @@ export const AdvancedPage = () => {
     setAspects(null);
     setLongevity(null);
     setConditions(null);
+    setAvasthas(null);
     setPcAi("");
     setPcAiError("");
+    setAvAi("");
+    setAvAiError("");
     let cancelled = false;
     const done = { av: false, d: false, sb: false, asp: false };
     const settle = () => {
@@ -145,6 +155,11 @@ export const AdvancedPage = () => {
       .getPlanetConditions(birthDetails, ayanamsa)
       .then((r) => !cancelled && setConditions(r.data))
       .catch(() => {});
+    // Avasthas load independently.
+    astrologyService
+      .getAvasthas(birthDetails, ayanamsa)
+      .then((r) => !cancelled && setAvasthas(r.data))
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -167,6 +182,25 @@ export const AdvancedPage = () => {
       setPcAiError(err.response?.data?.detail || t("conditions.aiError"));
     } finally {
       setPcAiLoading(false);
+    }
+  };
+
+  const handleAvasthasAi = async () => {
+    if (!birthDetails) return;
+    setAvAiLoading(true);
+    setAvAiError("");
+    try {
+      const res = await astrologyService.analyzeAvasthasAI(
+        birthDetails,
+        { personName: birthDetails.name },
+        { ...readModelConfig(), ayanamsa }
+      );
+      setAvAi(res.data.ai_analysis || "");
+      setAvAiModel(res.data.model || res.data.provider || "");
+    } catch (err) {
+      setAvAiError(err.response?.data?.detail || t("avasthas.aiError"));
+    } finally {
+      setAvAiLoading(false);
     }
   };
 
@@ -446,6 +480,78 @@ export const AdvancedPage = () => {
                   )}
                 </div>
                 <p className="card-note">{t("conditions.disclaimer")}</p>
+              </Card>
+            )}
+
+            {/* Avasthas (Baladi / Jagradadi / Deeptadi planetary states) */}
+            {avasthas?.planets?.length > 0 && (
+              <Card title={t("avasthas.title")} icon={<Hourglass size={24} />} accent="terracotta">
+                <p className="card-intro">{t("avasthas.intro")}</p>
+                <div className="table-scroll">
+                  <table className="data-table av-table">
+                    <thead>
+                      <tr>
+                        <th>{t("avasthas.planet")}</th>
+                        <th>{t("avasthas.baladi")}</th>
+                        <th>{t("avasthas.jagradadi")}</th>
+                        <th>{t("avasthas.deeptadi")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {avasthas.planets.map((p) => (
+                        <tr key={p.planet}>
+                          <td className="fw-700 text-indigo">
+                            {p.planet}
+                            <span className="av-sub">
+                              {" "}
+                              {p.sign_name} · {p.dignity}
+                            </span>
+                          </td>
+                          <td>
+                            {p.baladi.state}
+                            <span className="av-sub"> {p.baladi.strength}</span>
+                          </td>
+                          <td>
+                            {p.jagradadi.state}
+                            <span className="av-sub"> {p.jagradadi.meaning}</span>
+                          </td>
+                          <td>
+                            <span
+                              className="pc-flag"
+                              style={{ background: TONE_COLOR[p.deeptadi.tone] || TONE_COLOR.neutral }}
+                            >
+                              {p.deeptadi.state}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* AI reading */}
+                <div className="mt-lg">
+                  <ErrorBanner message={avAiError} />
+                  {!avAi && !avAiLoading && <p className="ai-panel__hint">{t("avasthas.aiHint")}</p>}
+                  {avAiLoading && <LoadingState message={t("avasthas.aiLoading")} />}
+                  {avAi && !avAiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <ReactMarkdown>{avAi}</ReactMarkdown>
+                      {avAiModel && (
+                        <div className="ai-panel__meta">
+                          {t("avasthas.aiModel", { model: avAiModel })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!avAiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleAvasthasAi}>
+                      <Sparkles size={18} />
+                      {avAi ? t("avasthas.aiRegenerate") : t("avasthas.aiGenerate")}
+                    </button>
+                  )}
+                </div>
+                <p className="card-note">{t("avasthas.disclaimer")}</p>
               </Card>
             )}
           </>

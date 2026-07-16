@@ -1544,6 +1544,13 @@
   font-weight: 600;
 }
 
+/* Avasthas table — a muted sub-label after each state */
+.av-sub {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
 /* Applicable-dasha recommendation banner on the Dhasa page */
 .dasha-reco {
   padding: 0.7rem 0.85rem;

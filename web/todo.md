@@ -3465,3 +3465,33 @@ Completed §5.2's two remaining follow-ons so the flags reach *every* reading, n
 
 **Still open from §5:** avasthas (§5.3), strength page (§2.2), friendship matrix (§2.5),
 unknown-birth-time mode (§5.8), MCP (§2.3), iCal (§5.10), …
+
+## 30. Avasthas — planetary states (§5.3 of improvements-2026-07.md) — ✅ SHIPPED 2026-07-15
+Desktop JHora shows the avasthas but the PyJHora engine has NO function for them (the
+`deeptaamsa`/`utils.deeptaamsa_range_of_planet` is unrelated Tajaka orb math), so computed web-side
+from longitude + dignity — like `_mangal_dosha`/gandanta were.
+
+**`get_avasthas` (astrology.py), seven grahas (Sun..Saturn):**
+- **Baladi** (5, by degree): 6° parts → Bala/Kumara/Yuva/Vriddha/Mrita in ODD signs (Aries=0 is the
+  1st=odd, i.e. `sign0 % 2 == 0`), **reversed** in even signs. Yuva (prime)=full strength, Mrita=none.
+- **Jagradadi** (3, by dignity): own/exalt→Jagrat (awake), friend/neutral→Swapna (dreaming),
+  enemy/debilitated→Sushupti (asleep).
+- **Deeptadi** (9): dignity base (exalted→Deepta, own→Swastha, friend→Mudita, neutral→Shanta,
+  enemy→Deena, debilitated→Dukhita) with **affliction overrides** — combust→Vikala, in graha
+  yuddha→Kopa, co-tenant with a malefic (Mars/Saturn/Rahu/Ketu)→Khala. Each state carries a tone.
+- Dignity uses `const.planet_relations[planet][sign_lord]` (3=friend/2=neutral/1=enemy/5=self) +
+  `EXALTATION_SIGN`; new module consts `_RASI_LORD_IDX`, `_BALADI_*`, `_JAGRADADI_INFO`,
+  `_DEEPTADI_INFO`.
+
+**Wiring:** `POST /api/astrology/avasthas`(+`-analysis`; `analyze_avasthas` /`_build_avasthas_prompt` —
+frames avasthas as a vitality/mood nuance vs raw Shadbala, no medical/lifespan). Smart-lookup tool
+`get_avasthas` in `SECTION_TOOL["avasthas"]` + _DISPLAY "Core chart". Default-on `avasthas` section in
+`chart_context.py` (compact Baladi/Jagradadi/Deeptadi line per graha, rendered in
+`_render_context_block`) so every AI reading sees it. Frontend: **Avasthas card on AdvancedPage**
+(Hourglass icon, 4-col table, Deeptadi as a tone-coloured `.pc-flag` chip, `.av-sub` muted sub-labels,
+self-contained AI reading). api.js `getAvasthas`/`analyzeAvasthasAI`; i18n `avasthas.*` (en; hi/sa fall
+back). Verified live on the owner's chart: Venus own→Yuva/Jagrat but Vikala (combust), Mars
+debilitated→Sushupti/Dukhita, Jupiter co-tenant with Ketu→Khala; context block renders; build green.
+
+**Still open from §5:** strength page (§2.2), friendship matrix (§2.5), unknown-birth-time mode (§5.8),
+MCP (§2.3), iCal (§5.10), chart explorer (§5.5), gochara-vedha (§5.6), nakshatra profile (§5.7), …

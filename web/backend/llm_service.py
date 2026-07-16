@@ -672,6 +672,15 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
+    async def analyze_avasthas(self,
+                               data: Dict[str, Any],
+                               name: str = "this person",
+                               config: Optional[ModelConfig] = None) -> str:
+        """Reading of the planetary avasthas (Baladi / Jagradadi / Deeptadi)."""
+        prompt = self._build_avasthas_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
     async def analyze_kp(self,
                          data: Dict[str, Any],
                          name: str = "this person",
@@ -1523,6 +1532,21 @@ Planetary Positions (All 9 Grahas):"""
                     f"house {p.get('house', '?')}): {fl}"
                 )
 
+        # Avasthas (planetary states) — Baladi / Jagradadi / Deeptadi per graha,
+        # a vitality/mood nuance complementing Shadbala. One compact line each.
+        avasthas = chart_data.get("avasthas", [])
+        if avasthas:
+            chart_description += (
+                "\n\nAvasthas (planetary states — Baladi age / Jagradadi wakefulness "
+                "/ Deeptadi temperament):"
+            )
+            for a in avasthas:
+                chart_description += (
+                    f"\n- {a.get('planet', '?')}: {a.get('baladi', '?')} / "
+                    f"{a.get('jagradadi', '?')} / {a.get('deeptadi', '?')} "
+                    f"[{a.get('tone', '?')}]"
+                )
+
         header = ("Below is birth chart data for this person, calculated using precise "
                   f"astronomical calculations from the {SITE_NAME} Vedic astrology software. "
                   "This is REAL, VERIFIED CHART DATA - not hypothetical."
@@ -2331,6 +2355,31 @@ Write a focused ~260-word reading of this window:
 2. **Saturn's weather** — if a Sade Sati / Ashtama / Kantaka phase is active, explain its character honestly but calmly (a period of maturing, responsibility and consolidation — not doom); if none, say the Saturn pressure is lighter now.
 3. **Turning-point transits** — mention the nearest ingress or a natal-nakshatra eclipse as a timing marker for shifts.
 Reason only from what's given. Be encouraging and practical, never fatalistic. Do NOT make medical, legal or financial predictions or name specific outcomes/dates of misfortune. Close with one line noting this is an indicative reading and free will shapes how a period is lived."""
+
+    def _build_avasthas_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """Explain the planetary avasthas (Baladi / Jagradadi / Deeptadi)."""
+        planets = d.get("planets") or []
+        lines = "\n".join(
+            f"- **{p['planet']}** ({p['sign_name']} {p['degrees']}°, {p['dignity']}): "
+            f"Baladi {p['baladi']['state']} ({p['baladi']['meaning']}, {p['baladi']['strength']}); "
+            f"Jagradadi {p['jagradadi']['state']} ({p['jagradadi']['meaning']}); "
+            f"Deeptadi {p['deeptadi']['state']} ({p['deeptadi']['description']}) [{p['deeptadi']['tone']}]"
+            for p in planets
+        ) or "- (none)"
+        return f"""You are a precise Vedic astrologer explaining the **avasthas** (planetary states) in {name}'s chart. These describe the *mood and vitality* each graha carries — how ready it is to give its results — and complement raw strength (Shadbala). They have already been computed; read them, do not recompute.
+
+Three classical schemes per planet:
+- **Baladi** (age): Bala infant → Kumara → **Yuva (prime, strongest)** → Vriddha → Mrita (dead, gives nothing) — by the planet's degree in its sign.
+- **Jagradadi** (wakefulness): Jagrat (awake, full results) / Swapna (dreaming, partial) / Sushupti (asleep, weak) — by dignity.
+- **Deeptadi** (temperament): from Deepta (radiant, exalted) through to Vikala (combust), Khala (with a malefic) and Kopa (in a planetary war).
+
+{lines}
+
+Write a grounded ~260-word note:
+1. **The brightest and the dimmest** — name the 1–2 planets in the best states (e.g. Yuva + Jagrat + Deepta/Swastha) and the 1–2 in the weakest (Mrita, Sushupti, Vikala/Deena), and what life-areas they govern (via each planet's natural karakatva).
+2. **How to read a mixed state** — pick one planet whose schemes disagree (e.g. strong Baladi but asleep Jagradadi) and explain what that tension suggests about how its results arrive.
+3. **Practical takeaway** — one calm, constructive line.
+Reason only from the states given. Treat avasthas as a *nuance of vitality*, never a verdict; do NOT make medical, lifespan, legal or financial predictions. Close with one encouraging line."""
 
     def _build_planet_conditions_prompt(self, d: Dict[str, Any], name: str) -> str:
         """Explain the classical planet-condition flags that colour a reading."""

@@ -292,6 +292,19 @@ def _planet_conditions(bd, ayanamsa, **_):
                         for p in r.get("flagged", [])]}
 
 
+def _avasthas(bd, ayanamsa, **_):
+    r = AstrologyCompute.get_avasthas(ayanamsa=ayanamsa, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    return {"planets": [{"planet": p["planet"], "sign": p["sign_name"],
+                         "dignity": p["dignity"],
+                         "baladi": p["baladi"]["state"],
+                         "jagradadi": p["jagradadi"]["state"],
+                         "deeptadi": p["deeptadi"]["state"],
+                         "deeptadi_tone": p["deeptadi"]["tone"]}
+                        for p in r.get("planets", [])]}
+
+
 def _life_timeline(bd, ayanamsa, target_date: Optional[str] = None, **_):
     # A specific date → the "what's running" window context (maha/bhukti, Saturn
     # phase, nearby ingresses/eclipses). No date → a compact overview: the current
@@ -635,6 +648,16 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _life_timeline,
     ),
     _Tool(
+        "get_avasthas",
+        "The planetary avasthas (states) for the seven grahas — Baladi (infant→"
+        "dead by degree, Yuva=prime), Jagradadi (awake/dreaming/asleep by dignity) "
+        "and Deeptadi (radiant…agitated). Describes each planet's *vitality and "
+        "mood* — how ready it is to give results — complementing raw Shadbala. Use "
+        "for nuanced strength questions and why a planet's results feel muted or lively.",
+        _EMPTY_PARAMS,
+        _avasthas,
+    ),
+    _Tool(
         "get_planet_conditions",
         "Classical point-conditions (\"flags\") per planet that modify how it "
         "delivers results but don't show on a plain chart: Combust (Asta), "
@@ -783,6 +806,7 @@ SECTION_TOOL: Dict[str, str] = {
     "aspects": "get_aspects",
     "arudhas": "get_arudha_padas",
     "conditions": "get_planet_conditions",
+    "avasthas": "get_avasthas",
 }
 
 # Tools with no section toggle — always available in tool mode so the model can
@@ -842,6 +866,7 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_aspects":          {"label": "Graha drishti (aspects)", "category": "Core chart"},
     "get_arudha_padas":     {"label": "Arudha padas (AL/UL)",    "category": "Core chart"},
     "get_planet_conditions": {"label": "Planet conditions (combustion, vargottama…)", "category": "Core chart"},
+    "get_avasthas":         {"label": "Avasthas (planetary states)", "category": "Core chart"},
     "get_divisional_chart": {"label": "Divisional (varga) charts", "category": "Core chart"},
     "get_life_timeline":    {"label": "Life timeline (dasha + transits)", "category": "Timing"},
     "get_dasha_chain":      {"label": "Running dasha periods",  "category": "Timing"},
