@@ -2,9 +2,13 @@
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server that exposes
 the Jyotir AI astrology engine to any MCP client (Claude Desktop, etc.). It wraps
-the same tool catalog the web app uses — natal chart, dashas, panchanga, transits
-(with Ashtakavarga weighting), KP, Jaimini, muhurta, and ~40 more — and runs them
-against **your saved profiles** or inline birth data.
+the same tool catalog the web app uses — natal chart, dashas (Vimsottari + 14 other
+systems), panchanga, transits (with Ashtakavarga weighting), the chakras
+(Sarvatobhadra / Kota / Kaala / Tripataki), KP, Jaimini, muhurta, and ~30 more — and
+runs them against **your saved profiles** or inline birth data.
+
+The catalog is fetched from the API at startup, so tools added to the web app show
+up here automatically — nothing to update in this server.
 
 Everything is **read-only compute**. The public API exposes no account or profile
 mutation, so nothing here can change your data.

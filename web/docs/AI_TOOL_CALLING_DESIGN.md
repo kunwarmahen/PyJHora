@@ -7,10 +7,18 @@ follow-ups (i18n of new strings, tri-state seed, tool-result caching) tracked in
 [todo.md §8.9](../todo.md). The sections below describe the design as built; where
 the implementation differs it is noted inline.
 
+> **File paths updated after the §4 backend split (2026-07-16).** `main.py` is now
+> app wiring only (handlers moved to `routes/*`, request models to `models.py`,
+> shared helpers to `deps.py`), and `llm_service.py` kept the tool loop while the
+> provider adapters moved to `llm/providers/*` and every prompt builder + the
+> context renderer to `llm/prompts.py`. The design below is unchanged — only the
+> locations are.
+
 **Key files:** `web/backend/tools.py` (registry), `web/backend/llm_service.py`
-(`run_tool_loop` + per-provider `_chat_once_*` / `_complete_chat`),
-`web/backend/main.py` (`/ask` + `/ask/stream` mode branch, `_resolve_mode`,
-trace-fetch endpoint), `web/backend/conversations.py` (`mode` field),
+(`run_tool_loop`), `web/backend/llm/providers/*` (per-provider `_chat_once_*`),
+`web/backend/llm_service.py` (`_complete_chat`), `web/backend/routes/ai.py`
+(`/ask` + `/ask/stream` mode branch, trace-fetch endpoint), `web/backend/deps.py`
+(`_resolve_mode`, `_resolve_cfg`), `web/backend/conversations.py` (`mode` field),
 `web/backend/tool_traces.py` (lazy full-result side-collection),
 `web/frontend/src/services/api.js` (`streamAskQuestion` events + `getConversationTrace`),
 `web/frontend/src/pages/AskAstrologerPage.js` (Answer-mode toggle, step pills,
@@ -23,7 +31,8 @@ backend eagerly computes a large structured context (D1, dasha chain, yogas,
 doshas, transits, ashtakavarga, shadbala, vargas) in
 [`chart_context.build_chart_context`](../backend/chart_context.py), flattens it
 into one big system prompt in
-[`llm_service._render_context_block`](../backend/llm_service.py), and streams the
+[`_render_context_block`](../backend/llm/prompts.py) (moved to `llm/prompts.py` by
+the §4 split), and streams the
 answer. The user already has coarse control via `sections` toggles + a varga
 multi-select.
 

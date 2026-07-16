@@ -1,5 +1,21 @@
 # PyJHora Web — Modernization & Feature Plan
 
+> **Reading note (2026-07-16).** This file is a **living plan + build log**: entries
+> describe the code as it stood when they were written, so older ones name files
+> that have since moved. The §4 backend split (see `improvements-2026-07.md`) was a
+> pure file move — behaviour is unchanged, only locations:
+> - `backend/astrology.py` → the **`backend/astrology/`** package (`engine.py` +
+>   14 `compute_*.py` mixins + `core.py`); `AstrologyCompute` and the import
+>   surface are identical, so every code reference below still resolves.
+> - `backend/main.py` → app wiring only; the ~160 handlers are in **`backend/routes/*`**,
+>   request models in **`backend/models.py`**, shared helpers in **`backend/deps.py`**.
+> - `backend/llm_service.py` → keeps the tool loop; provider adapters are in
+>   **`backend/llm/providers/*`** and all `_build_*_prompt` + `_render_context_block`
+>   in **`backend/llm/prompts.py`**.
+>
+> The "Status: planning" line below is likewise historical — nearly everything here
+> has since shipped (§1–§26 plus the whole of `improvements-2026-07.md`).
+
 Status: planning. No app code changed yet. Direction agreed: **Refined Vedic** —
 keep the spiritual/Indian-astrology identity, but calm it down (drop rotating
 mandala / glow-pulse / gradient-text-everywhere), give it real typographic

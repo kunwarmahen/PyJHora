@@ -197,7 +197,6 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 ```
 pyjhora-web/
 ├── backend/
-│   ├── main.py              # FastAPI application
 │   ├── config.py            # Configuration settings
 │   ├── database.py          # MongoDB models and connection
 │   ├── auth.py              # Authentication utilities (password hashing, JWT access tokens)
@@ -1222,14 +1221,25 @@ masked, and used ahead of any global env key for that user's requests.
 
 ### Backend Architecture
 
-The backend uses a layered architecture:
+The backend uses a layered architecture (the three big modules were split by
+concern in §4 — pure file moves, no behaviour change):
 
-- **main.py**: FastAPI routes and endpoints
+- **main.py**: app wiring only — lifespan, CORS, mounting the routers
+- **routes/**: the ~160 handlers as 11 `APIRouter` modules (astrology, astrology_ai,
+  auth, ai, v1, quiz, user, profiles, journal, notifications, misc)
+- **models.py** / **deps.py**: pydantic request models / shared dependencies
+  (auth, rate limiting, model-config resolution, reading persistence)
 - **config.py**: Configuration management
 - **database.py**: MongoDB models and async connection
 - **auth.py**: JWT and password utilities
-- **astrology.py**: PyJHora wrapper functions
-- **llm_service.py**: Unified LLM service (Ollama / OpenAI-compatible / Gemini / OpenAI)
+- **astrology/**: PyJHora wrapper — `engine.py` (jhora bootstrap, JHora-matched
+  defaults, constants, helpers) + 14 concern mixins + `core.py`, composed into the
+  same `AstrologyCompute` facade
+- **llm_service.py** + **llm/**: unified LLM service (Ollama / OpenAI-compatible /
+  Gemini / OpenAI) — the tool loop stays in `llm_service.py`; provider adapters are
+  `llm/providers/*`, prompt builders + the context renderer are `llm/prompts.py`
+- **tools.py**: the AI tool registry (43 tools) — also what `/api/v1/tools` and the
+  MCP server publish
 
 ### Frontend Architecture
 
