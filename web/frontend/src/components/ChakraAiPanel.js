@@ -29,6 +29,8 @@ export const ChakraAiPanel = ({
   transitDate,
   transitTime,
   transitTz,
+  basis,
+  year,
   ayanamsa,
 }) => {
   const { t } = useTranslation();
@@ -49,6 +51,8 @@ export const ChakraAiPanel = ({
           currentDate: transitDate,
           currentTime: transitTime,
           currentTz: transitTz,
+          basis,
+          year,
         },
         { ...readModelConfig(), ayanamsa }
       );

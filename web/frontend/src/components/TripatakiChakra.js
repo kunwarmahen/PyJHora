@@ -20,6 +20,10 @@ export const TripatakiChakra = ({ birthDetails, profile, transitDate, transitTim
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Tripataki is classically a Varshaphal tool, so offer its real home (the
+  // solar-return chart) alongside the transit basis the rest of the page uses.
+  const [basis, setBasis] = useState("transit");
+  const [year, setYear] = useState(() => new Date().getFullYear());
 
   useEffect(() => {
     if (!birthDetails) return;
@@ -31,6 +35,8 @@ export const TripatakiChakra = ({ birthDetails, profile, transitDate, transitTim
         currentDate: transitDate,
         currentTime: transitTime,
         currentTz: transitTz,
+        basis,
+        year: basis === "annual" ? year : null,
         ayanamsa,
       })
       .then((r) => !cancelled && setData(r.data))
@@ -39,23 +45,69 @@ export const TripatakiChakra = ({ birthDetails, profile, transitDate, transitTim
     return () => {
       cancelled = true;
     };
-  }, [birthDetails, transitDate, transitTime, transitTz, ayanamsa, t]);
+  }, [birthDetails, transitDate, transitTime, transitTz, basis, year, ayanamsa, t]);
 
-  if (loading) return <LoadingState message={t("tripataki.loading")} />;
-  if (error) return <ErrorBanner message={error} />;
+  const basisPicker = (
+    <div className="controls-group" style={{ marginBottom: "var(--space-md)" }}>
+      <div className="chart-toggle">
+        {["transit", "annual"].map((b) => (
+          <button
+            key={b}
+            className={`chart-toggle__btn ${basis === b ? "is-active" : ""}`}
+            onClick={() => setBasis(b)}
+          >
+            {t(`tripataki.basis.${b}`)}
+          </button>
+        ))}
+      </div>
+      {basis === "annual" && (
+        <div className="stepper">
+          <button type="button" className="stepper__btn" onClick={() => setYear((y) => y - 1)}>
+            −
+          </button>
+          <span className="stepper__label">{year}</span>
+          <button type="button" className="stepper__btn" onClick={() => setYear((y) => y + 1)}>
+            +
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  if (loading)
+    return (
+      <div>
+        {basisPicker}
+        <LoadingState message={t("tripataki.loading")} />
+      </div>
+    );
+  if (error)
+    return (
+      <div>
+        {basisPicker}
+        <ErrorBanner message={error} />
+      </div>
+    );
   if (!data) return null;
 
   const size = PAD * 2 + (data.grid.width - 1) * STEP;
+  const isAnnual = data.basis === "annual";
 
   return (
     <div className="fade-in">
       <p className="card-note">{t("tripataki.intro")}</p>
+      {basisPicker}
       <div className="info-pills">
         <span className="info-pill">
-          {t("tripataki.natalLagna")}: <strong className="text-saffron">{data.natal_lagna}</strong>
+          {t(isAnnual ? "tripataki.varshaLagna" : "tripataki.natalLagna")}:{" "}
+          <strong className="text-saffron">{data.natal_lagna}</strong>
         </span>
         <span className="info-pill">
-          {t("tripataki.transitMoon")}: <strong className="text-indigo">{data.transit_moon}</strong>
+          {t(isAnnual ? "tripataki.annualMoon" : "tripataki.transitMoon")}:{" "}
+          <strong className="text-indigo">{data.transit_moon}</strong>
+        </span>
+        <span className="info-pill">
+          {t(isAnnual ? "tripataki.solarReturn" : "tripataki.asOf", { date: data.transit_date })}
         </span>
       </div>
 
@@ -154,7 +206,7 @@ export const TripatakiChakra = ({ birthDetails, profile, transitDate, transitTim
       )}
 
       <p className="card-note">{t("tripataki.legend")}</p>
-      <p className="card-note">{t("tripataki.sourceNote")}</p>
+      <p className="card-note">{t(isAnnual ? "tripataki.annualNote" : "tripataki.sourceNote")}</p>
 
       <ChakraAiPanel
         chakra="tripataki"
@@ -163,6 +215,8 @@ export const TripatakiChakra = ({ birthDetails, profile, transitDate, transitTim
         transitDate={transitDate}
         transitTime={transitTime}
         transitTz={transitTz}
+        basis={basis}
+        year={basis === "annual" ? year : null}
         ayanamsa={ayanamsa}
       />
     </div>

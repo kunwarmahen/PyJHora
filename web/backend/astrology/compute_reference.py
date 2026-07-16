@@ -508,6 +508,7 @@ class ReferenceMixin:
                              tz: Optional[float] = None,
                              current_date: Optional[str] = None, current_time: Optional[str] = None,
                              current_tz: Optional[float] = None,
+                             basis: str = "transit", year: Optional[int] = None,
                              ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """Tripataki Chakra — the twelve rasis on the three-banner diagram (§2.7).
 
@@ -522,11 +523,20 @@ class ReferenceMixin:
         `_tripataki_vedha_map`). Customarily the vedha is read **on the Moon and
         the Lagna**, which is what `vedha` reports.
 
-        SCOPE NOTE: classically Tripataki is a Tajaka (Varshaphal) tool, read on
-        the *annual* chart with the planets progressed a sign a year. Here the
-        rules are applied to the chart for the chosen moment — consistent with the
-        other chakras on the page, which are all transit-based — so treat this as
-        the vedha picture *for that moment*, not a full Varshaphal Tripataki.
+        `basis` picks the chart the vedha is read on:
+          • "transit" (default) — the chart for `current_date`/`current_time`,
+            consistent with the other (transit-based) chakras on the page. The
+            Lagna judged is the natal one.
+          • "annual" — the **Varshaphal / Tajaka** chart: the solar return for
+            `year` (defaults to the current year). This is Tripataki's classical
+            home, so the Lagna judged is the *varsha* (annual) Lagna and the Moon
+            is the annual chart's Moon.
+
+        NOT IMPLEMENTED, deliberately: some Tajaka sources describe a further
+        progression for Tripataki (remainders of the elapsed years ÷9, ÷4 and ÷6
+        moving each graha from its natal place). The sources found for it are thin
+        and disagree, so it is not guessed at here — "annual" means the real solar-
+        return chart, which is well defined.
         """
         if not ENGINE_AVAILABLE:
             return {"error": "Jyotir AI engine not available", "status": "failed"}
@@ -534,14 +544,17 @@ class ReferenceMixin:
             _set_ayanamsa(ayanamsa)
             from datetime import datetime
 
-            year, month, day = map(int, dob.split("-"))
+            # NB: birth parts are named explicitly — `year` is the *target* year
+            # parameter for basis="annual", so the birth year must not shadow it.
+            birth_year, birth_month, birth_day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place, lat, lon, tz_offset)
-            natal_jd = swe.julday(year, month, day, hour + minute / 60.0)
+            natal_jd = swe.julday(birth_year, birth_month, birth_day,
+                                  hour + minute / 60.0)
             natal = charts.rasi_chart(natal_jd, place_obj)
             natal_lagna = natal[0][1][0]
 
@@ -555,11 +568,39 @@ class ReferenceMixin:
                 t_hour = int(tt[0]); t_min = int(tt[1]) if len(tt) > 1 else 0
             else:
                 t_hour, t_min = 12, 0
-            transit_tz = current_tz if current_tz is not None else tz_offset
-            transit_place = drik.Place(place, lat, lon, transit_tz)
-            transit_jd = swe.julday(ty, tm, td, t_hour + t_min / 60.0)
-            transit = charts.rasi_chart(transit_jd, transit_place)
-            retro = set(drik.planets_in_retrograde(transit_jd, transit_place))
+
+            basis = (basis or "transit").lower()
+            if basis not in ("transit", "annual"):
+                return {"error": f"Unknown basis '{basis}' (use transit|annual)",
+                        "status": "failed"}
+
+            if basis == "annual":
+                # Imported here (not in engine.py) to match get_varshaphal, which
+                # pulls the tajaka module in locally.
+                from jhora.horoscope.transit import tajaka
+                # Varshaphal (solar-return) chart — Tripataki's classical home.
+                # NOTE the engine quirk (same as get_varshaphal): varsha_pravesh
+                # (years=N) returns the solar return in birth_year+N-1, so the
+                # chart for `year` needs years = age + 1.
+                target_year = year or ty
+                age = target_year - birth_year
+                if age < 0:
+                    return {"error": "Year is before the birth year", "status": "failed"}
+                transit, entry = tajaka.varsha_pravesh(
+                    natal_jd, place_obj, divisional_chart_factor=1, years=age + 1)
+                (ey, em, ed), _etime = entry
+                basis_date = f"{ey:04d}-{em:02d}-{ed:02d}"
+                # The annual chart's own Lagna is what the vedha is read on.
+                judged_lagna = transit[0][1][0]
+                retro = set()
+            else:
+                transit_tz = current_tz if current_tz is not None else tz_offset
+                transit_place = drik.Place(place, lat, lon, transit_tz)
+                transit_jd = swe.julday(ty, tm, td, t_hour + t_min / 60.0)
+                transit = charts.rasi_chart(transit_jd, transit_place)
+                retro = set(drik.planets_in_retrograde(transit_jd, transit_place))
+                basis_date = f"{ty:04d}-{tm:02d}-{td:02d}"
+                judged_lagna = natal_lagna
 
             natal_by_sign = {}
             for pid, (rasi, _deg) in natal[1:]:
@@ -580,7 +621,7 @@ class ReferenceMixin:
             transit_moon_sign = transit[2][1][0]
             targets = {
                 "Moon": transit_moon_sign,
-                "Lagna": natal_lagna,
+                "Lagna": judged_lagna,
             }
             vedha = []
             for label, tsign in targets.items():
@@ -615,11 +656,11 @@ class ReferenceMixin:
                     "sign": sign + 1,
                     "sign_name": ZODIAC_NAMES[sign],
                     "x": x, "y": y,
-                    "is_lagna": sign == natal_lagna,
+                    "is_lagna": sign == judged_lagna,
                     "is_moon": sign == transit_moon_sign,
                     "sign_class": sign_class(sign),
                     "casts_vedha": sign in vedha_signs,
-                    "house_from_lagna": ((sign - natal_lagna) % 12) + 1,
+                    "house_from_lagna": ((sign - judged_lagna) % 12) + 1,
                     "natal": natal_by_sign.get(sign, []),
                     "transit": transit_by_sign.get(sign, []),
                 })
@@ -630,8 +671,9 @@ class ReferenceMixin:
 
             return {
                 "status": "success",
-                "transit_date": f"{ty:04d}-{tm:02d}-{td:02d}",
-                "natal_lagna": ZODIAC_NAMES[natal_lagna],
+                "basis": basis,
+                "transit_date": basis_date,
+                "natal_lagna": ZODIAC_NAMES[judged_lagna],
                 "transit_moon": ZODIAC_NAMES[transit_moon_sign],
                 "grid": {"width": 5, "height": 5},
                 "cells": cells,

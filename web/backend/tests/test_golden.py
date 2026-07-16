@@ -333,6 +333,39 @@ def test_tripataki_vedha_reading(args1):
         assert v["tone"] in ("stressful", "supportive", "clear")
 
 
+def test_tripataki_annual_basis(args1):
+    """basis="annual" reads the Varshaphal (solar-return) chart, not the moment.
+
+    Guards the engine quirk shared with get_varshaphal (varsha_pravesh years=N
+    lands in birth_year+N-1, so the chart for `year` needs age+1) and the fact
+    that the *annual* Lagna — not the natal one — is what gets judged.
+    """
+    a = A.get_tripataki_chakra(**args1, basis="annual", year=2026)
+    assert a.get("status") == "success", a
+    assert a["basis"] == "annual"
+    # Chart 1's birthday is 4 June, so the 2026 solar return falls right there.
+    assert a["transit_date"].startswith("2026-06"), a["transit_date"]
+    # The annual Lagna differs from the natal Taurus — proving we judged the
+    # varsha chart rather than silently reusing the natal one.
+    assert a["natal_lagna"] == "Pisces"
+    assert a["transit_moon"] == "Capricorn"
+
+    by_target = {v["target"]: v for v in a["vedha"]}
+    # Pisces is dual -> obstructed from the movables EXCEPT Capricorn (its 11th).
+    assert by_target["Lagna"]["sign_class"] == "dual"
+    assert by_target["Lagna"]["vedha_signs"] == ["Aries", "Cancer", "Libra"]
+    # Capricorn is movable -> from the duals EXCEPT Pisces (its 3rd).
+    assert by_target["Moon"]["sign_class"] == "movable"
+    assert by_target["Moon"]["vedha_signs"] == ["Gemini", "Sagittarius", "Virgo"]
+
+    # Transit basis is unchanged and still natal-Lagna based.
+    t = A.get_tripataki_chakra(**args1, current_date="2026-07-16")
+    assert t["basis"] == "transit" and t["natal_lagna"] == "Taurus"
+
+    assert A.get_tripataki_chakra(**args1, basis="nonsense").get("status") == "failed"
+    assert A.get_tripataki_chakra(**args1, basis="annual", year=1900).get("status") == "failed"
+
+
 def test_bindu_chip_thresholds():
     """The classical thresholds themselves: own-BAV >=5 supported / ==4 neutral /
     <=3 rough, and the node fallback on Sarva (>=30 / >=25 / else)."""

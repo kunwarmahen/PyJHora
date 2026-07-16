@@ -2223,7 +2223,16 @@
       "moon": "Moon",
       "lagna": "Lagna"
     },
-    "sourceNote": "Note: classically Tripataki is a Tajaka (Varshaphal) tool read on the annual chart with the planets progressed a sign a year. Here its vedha rules are applied to the chart for the moment you picked — consistent with the other chakras on this page, which are all transit-based."
+    "sourceNote": "Note: classically Tripataki is a Tajaka (Varshaphal) tool read on the annual chart with the planets progressed a sign a year. Here its vedha rules are applied to the chart for the moment you picked — consistent with the other chakras on this page, which are all transit-based.",
+    "basis": {
+      "transit": "Transit (this moment)",
+      "annual": "Annual (Varshaphal)"
+    },
+    "varshaLagna": "Varsha Lagna",
+    "annualMoon": "Annual Moon",
+    "solarReturn": "Solar return {{date}}",
+    "asOf": "As of {{date}}",
+    "annualNote": "Reading the Varshaphal (solar-return) chart for the chosen year — Tripataki’s classical home. Note: some Tajaka sources describe a further year-by-year progression of each graha; the sources for it are thin and disagree, so it is not guessed at here — this is the real solar-return chart."
   },
   "chakraAi": {
     "title": "AI reading",

@@ -219,6 +219,9 @@ class ChakraAnalysisRequest(BaseModel):
     current_date: Optional[str] = None
     current_time: Optional[str] = None
     current_tz: Optional[float] = None
+    # Tripataki only: "transit" (default) or "annual" (Varshaphal) + target year.
+    basis: Optional[str] = None
+    year: Optional[int] = None
     llm_provider: str = "qwen"  # legacy fallback
     provider_type: Optional[str] = None
     model: Optional[str] = None

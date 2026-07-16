@@ -753,9 +753,11 @@
   "body": "BirthDetails",
   "params": [
    "query:ayanamsa",
+   "query:basis",
    "query:current_date",
    "query:current_time",
-   "query:current_tz"
+   "query:current_tz",
+   "query:year"
   ]
  },
  "POST /api/astrology/tripataki-chakra-analysis": {

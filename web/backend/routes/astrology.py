@@ -1224,16 +1224,21 @@ async def get_tripataki_chakra(
     current_date: Optional[str] = None,
     current_time: Optional[str] = None,
     current_tz: Optional[float] = None,
+    basis: str = "transit",
+    year: Optional[int] = None,
     ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user),
 ):
-    """Tripataki Chakra — the rasis on the three-banner diagram with transits (§2.7)."""
+    """Tripataki Chakra with vedha on the Moon + Lagna (§2.7).
+
+    `basis=transit` (default) reads the chosen moment; `basis=annual` reads the
+    Varshaphal (solar-return) chart for `year` — Tripataki's classical home."""
     try:
         r = AstrologyCompute.get_tripataki_chakra(
             dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
             lat=birth_details.latitude, lon=birth_details.longitude, tz=birth_details.timezone,
             current_date=current_date, current_time=current_time,
-            current_tz=current_tz, ayanamsa=ayanamsa,
+            current_tz=current_tz, basis=basis, year=year, ayanamsa=ayanamsa,
         )
         if r.get("status") != "success":
             raise HTTPException(status_code=400, detail=r.get("error", "Calculation failed"))

@@ -1189,15 +1189,26 @@ export const astrologyService = {
         ayanamsa,
       },
     }),
+  // `basis`: "transit" (the chosen moment) or "annual" (the Varshaphal /
+  // solar-return chart for `year` — Tripataki's classical home).
   getTripatakiChakra: (
     birthDetails,
-    { currentDate = null, currentTime = null, currentTz = null, ayanamsa = DEFAULT_AYANAMSA } = {}
+    {
+      currentDate = null,
+      currentTime = null,
+      currentTz = null,
+      basis = "transit",
+      year = null,
+      ayanamsa = DEFAULT_AYANAMSA,
+    } = {}
   ) =>
     api.post("/api/astrology/tripataki-chakra", birthDetails, {
       params: {
         current_date: currentDate,
         current_time: currentTime,
         current_tz: currentTz,
+        basis,
+        year,
         ayanamsa,
       },
     }),
@@ -1234,6 +1245,8 @@ export const astrologyService = {
         current_date: opts.currentDate,
         current_time: opts.currentTime,
         current_tz: opts.currentTz,
+        basis: opts.basis,
+        year: opts.year,
         llm_provider: model.legacyProvider || "qwen",
         provider_type: model.providerType,
         model: model.model,

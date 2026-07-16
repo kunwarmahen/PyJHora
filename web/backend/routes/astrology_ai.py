@@ -243,7 +243,9 @@ async def analyze_tripataki_chakra(
             dob=bd.dob, tob=bd.tob, place=bd.place,
             lat=bd.latitude, lon=bd.longitude, tz=bd.timezone,
             current_date=request.current_date, current_time=request.current_time,
-            current_tz=request.current_tz, ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+            current_tz=request.current_tz,
+            basis=request.basis or "transit", year=request.year,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
         )
         if trip.get("status") != "success":
             raise HTTPException(status_code=400, detail=trip.get("error", "Calculation failed"))
