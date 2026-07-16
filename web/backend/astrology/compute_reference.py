@@ -1,0 +1,509 @@
+"""Reference/derived readings: bhrigu markers, remedies, nakshatra profile, Sarvatobhadra.
+
+Part of the `astrology` package split (§4). Members moved verbatim from the
+old single-file astrology.py; `AstrologyCompute` is bound at import time by
+core.py so cross-module `AstrologyCompute.x` calls keep working.
+"""
+from .engine import *  # noqa: F401,F403  (constants + helpers the bodies use)
+
+# Rebound by core.py once the composed class exists (late binding).
+AstrologyCompute = None
+
+
+class ReferenceMixin:
+
+    # ── Nadi / Bhrigu-style yearly markers ─────────────────────────────────
+    @staticmethod
+    def get_bhrigu_markers(dob: str, tob: str, place: str,
+                           lat: Optional[float] = None, lon: Optional[float] = None,
+                           tz: Optional[float] = None, from_age: Optional[int] = None,
+                           years: int = 12,
+                           ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Bhrigu / Nadi-style yearly markers for a birth chart.
+
+        Two grounded, clearly-labelled classical devices:
+          1. **Annual progression** — the Nadi one-sign-per-year progression from
+             the natal Moon: age 0 = the Moon's sign, and each year the "marker
+             sign" advances by one rasi. The natal planets sitting in that sign
+             (and its lord) are what the year is said to activate.
+          2. **Bhrigu Bindu activation** — the natal Bhrigu Bindu (the Rahu–Moon
+             midpoint, a Nadi sensitive point). The next transits of Jupiter and
+             Saturn into the Bhrigu Bindu sign and the Moon sign are the concrete
+             "trigger" dates for the milestone years.
+
+        This is a traditional predictive aid, not a deterministic forecast."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            from datetime import datetime, timezone as _utc, timedelta
+            _set_ayanamsa(ayanamsa)
+
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+            jd = swe.julday(year, month, day, hour + minute / 60.0)
+
+            pp = charts.rasi_chart(jd, place_obj)
+            # planet index -> 0-based rasi (skip lagna at index 0).
+            planet_sign = {}
+            for pidx, (rasi, _deg) in pp[1:]:
+                planet_sign[pidx] = rasi
+            moon_rasi0 = planet_sign.get(1, 0)  # 1 = Moon
+
+            # Natal Bhrigu Bindu (Rahu-Moon midpoint), D1.
+            bb = drik.bhrigu_bindhu_lagna(jd, place_obj)  # [sign0, deg]
+            bb_sign0 = int(bb[0]) % 12
+            bb_deg = round(float(bb[1]), 2)
+            # House of the Bhrigu Bindu from the Lagna (1-based).
+            lagna_rasi0 = pp[0][1][0]
+            bb_house = ((bb_sign0 - lagna_rasi0) % 12) + 1
+
+            # Sign -> natal planets in it (names), for annotating progressed years.
+            signs_planets = {s: [] for s in range(12)}
+            for pidx, rasi in planet_sign.items():
+                signs_planets[rasi].append(PLANET_NAMES.get(pidx, str(pidx)))
+
+            # Current age (integer years since birth).
+            today = datetime.now()
+            age_now = today.year - year - ((today.month, today.day) < (month, day))
+            if from_age is None:
+                from_age = max(0, age_now)
+            years = max(1, min(int(years or 12), 40))
+
+            # ── Annual progression table ───────────────────────────────────
+            progression = []
+            for a in range(from_age, from_age + years):
+                sign0 = (moon_rasi0 + a) % 12
+                planets_here = signs_planets.get(sign0, [])
+                progression.append({
+                    "age": a,
+                    "year": year + a,
+                    "sign_name": ZODIAC_NAMES[sign0],
+                    "sign_lord": RASI_LORDS[sign0],
+                    "planets": planets_here,
+                    "is_bhrigu_bindu": sign0 == bb_sign0,
+                    "is_moon_sign": sign0 == moon_rasi0,
+                })
+
+            # ── Bhrigu Bindu / Moon activations (Jupiter + Saturn ingresses) ─
+            # NB: the engine's next_planet_entry_date micro-steps 0.01 day at a
+            # time, so finding Saturn's *next* entry into a sign it just left can
+            # take ~29 years of stepping (10-15 s per call). We instead coarse-scan
+            # (1-day steps — safe for slow grahas, they move <0.25°/day) then
+            # bisect to the hour, capped at one Saturn cycle (~36 yr).
+            def _next_sign_entry(pl_idx, jd_start, tgt_sign0, max_years=36):
+                pl = drik.ephemeris_planet_index(pl_idx)
+
+                def sign_at(j):
+                    return int(drik.sidereal_longitude(j - tz_offset / 24.0, pl) // 30) % 12
+
+                jd0 = jd_start
+                prev = sign_at(jd0)
+                limit = jd_start + max_years * 365.25
+                while jd0 < limit:
+                    jd1 = jd0 + 1.0
+                    s = sign_at(jd1)
+                    if s == tgt_sign0 and prev != tgt_sign0:
+                        lo, hi = jd0, jd1  # entry is inside (jd0, jd1]
+                        for _ in range(40):
+                            mid = (lo + hi) / 2.0
+                            if sign_at(mid) == tgt_sign0:
+                                hi = mid
+                            else:
+                                lo = mid
+                            if hi - lo < 1.0 / 24.0:
+                                break
+                        return hi
+                    prev = s
+                    jd0 = jd1
+                return None
+
+            activations = []
+            jd_now = swe.julday(today.year, today.month, today.day, 12)
+            for pl_idx, pl_name in ((4, "Jupiter"), (6, "Saturn")):
+                for tgt_sign0, tgt_label in ((bb_sign0, "Bhrigu Bindu"),
+                                             (moon_rasi0, "Moon")):
+                    try:
+                        ejd = _next_sign_entry(pl_idx, jd_now, tgt_sign0)
+                        if ejd is None:
+                            continue
+                        g = utils.jd_to_gregorian(ejd)
+                        activations.append({
+                            "planet": pl_name,
+                            "target": tgt_label,
+                            "sign_name": ZODIAC_NAMES[tgt_sign0],
+                            "date": f"{g[0]:04d}-{g[1]:02d}-{g[2]:02d}",
+                        })
+                    except Exception:
+                        pass
+            activations.sort(key=lambda x: x["date"])
+
+            return {
+                "status": "success",
+                "dob": dob,
+                "age_now": age_now,
+                "moon_sign": ZODIAC_NAMES[moon_rasi0],
+                "bhrigu_bindu": {
+                    "sign_name": ZODIAC_NAMES[bb_sign0],
+                    "degrees": bb_deg,
+                    "house_from_lagna": bb_house,
+                    "sign_lord": RASI_LORDS[bb_sign0],
+                },
+                "from_age": from_age,
+                "years": years,
+                "progression": progression,
+                "activations": activations,
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    # ── Remedies (traditional guidance from dignity + shadbala) ─────────────
+    @staticmethod
+    def get_remedies(dob: str, tob: str, place: str,
+                     lat: Optional[float] = None, lon: Optional[float] = None,
+                     tz: Optional[float] = None,
+                     ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Classical remedial suggestions per weak / afflicted planet.
+
+        A planet is flagged when it is **debilitated**, **shadbala-deficient**
+        (six-fold strength ratio < 1.0), or sits in a **dusthana** (6th/8th/12th
+        from the Lagna). For each flagged graha the curated traditional remedy
+        (gemstone, beeja mantra, presiding deity, weekday, charity, colour) is
+        returned. This is traditional guidance drawn from the chart's own dignity
+        and strength — NOT medical, legal or financial advice, and gemstones in
+        particular should be taken up only after qualified consultation."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd = swe.julday(year, month, day, hour + minute / 60.0)
+
+            pp = charts.rasi_chart(jd, place_obj)
+            lagna_rasi0 = pp[0][1][0]
+            planet_sign = {pidx: rasi for pidx, (rasi, _d) in pp[1:]}
+
+            # Shadbala ratio per planet (Sun..Saturn); Rahu/Ketu have no shadbala.
+            ratios = {}
+            sb = AstrologyCompute.get_shadbala(dob, tob, place, lat, lon, tz, ayanamsa=ayanamsa)
+            if sb.get("status") == "success":
+                for row in sb.get("planets", []):
+                    ratios[row["planet"]] = row.get("strength_ratio")
+
+            def _dignity(name, sign0):
+                if name in EXALTATION_SIGN:
+                    if sign0 == EXALTATION_SIGN[name]:
+                        return "exalted"
+                    if sign0 == (EXALTATION_SIGN[name] + 6) % 12:
+                        return "debilitated"
+                if sign0 in OWN_SIGNS.get(name, set()):
+                    return "own"
+                return "neutral"
+
+            DUSTHANAS = {6, 8, 12}
+            all_planets = []
+            remedies = []
+            # Assess the seven grahas + Rahu/Ketu (0..8).
+            for pidx in range(9):
+                name = PLANET_NAMES.get(pidx, str(pidx))
+                if pidx not in planet_sign:
+                    continue
+                sign0 = planet_sign[pidx]
+                dignity = _dignity(name, sign0)
+                house = ((sign0 - lagna_rasi0) % 12) + 1
+                ratio = ratios.get(name)
+                reasons = []
+                if dignity == "debilitated":
+                    reasons.append("debilitated (fallen dignity)")
+                if ratio is not None and ratio < 1.0:
+                    reasons.append(f"shadbala-deficient (strength {ratio:.2f} < required)")
+                if house in DUSTHANAS:
+                    reasons.append(f"in a dusthana (house {house} from Lagna)")
+                entry = {
+                    "planet": name,
+                    "sign_name": ZODIAC_NAMES[sign0],
+                    "house": house,
+                    "dignity": dignity,
+                    "strength_ratio": ratio,
+                    "weak": bool(reasons),
+                    "reasons": reasons,
+                }
+                all_planets.append(entry)
+                if reasons and name in REMEDIES_TABLE:
+                    rem = dict(REMEDIES_TABLE[name])
+                    rem["planet"] = name
+                    rem["reason"] = "; ".join(reasons)
+                    rem["dignity"] = dignity
+                    rem["house"] = house
+                    remedies.append(rem)
+
+            return {
+                "status": "success",
+                "remedies": remedies,
+                "planets": all_planets,
+                "weak_count": len(remedies),
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_nakshatra_profile(dob: str, tob: str, place: str,
+                              lat: Optional[float] = None, lon: Optional[float] = None,
+                              tz: Optional[float] = None,
+                              current_date: Optional[str] = None,
+                              ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Janma-nakshatra deep-dive (§5.7): the Moon's nakshatra + pada with its
+        classical attributes (lord, deity, symbol, gana, yoni, nadi, guna, varna,
+        naming syllable) and a 27-day tarabala calendar strip from `current_date`
+        (or today) at the birth place — the favourable/unfavourable days as the
+        Moon cycles the 27 stars relative to the janma-nakshatra."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            from datetime import datetime, timedelta
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place or "", lat, lon, tz_offset)
+
+            natal_jd = swe.julday(year, month, day, hour + minute / 60.0)
+            natal = charts.rasi_chart(natal_jd, place_obj)
+            moon_rasi, moon_deg = natal[2][1]  # row 2 = Moon
+            moon_long = moon_rasi * 30.0 + moon_deg
+            nak_span = 360.0 / 27.0
+            janma_nak = int(moon_long / nak_span)          # 0-based
+            pada = int((moon_long % nak_span) / (nak_span / 4.0)) + 1
+
+            profile = refdata.nakshatra_profile(janma_nak, pada, moon_rasi)
+
+            # ── 27-day tarabala calendar from current_date (or today) ──────
+            if current_date:
+                cy, cm, cd = map(int, current_date.split("-"))
+            else:
+                now = datetime.now()
+                cy, cm, cd = now.year, now.month, now.day
+            start = datetime(cy, cm, cd)
+            calendar = []
+            for offset in range(27):
+                d = start + timedelta(days=offset)
+                jd = swe.julday(d.year, d.month, d.day, 12)
+                nk = drik.nakshatra(jd, place_obj)  # [nak_no(1-27), pada, ...]
+                day_nak = nk[0]                     # 1-based
+                # count_stars expects 1-based star numbers; tarabala group 0-8.
+                tb = utils.count_stars(janma_nak + 1, day_nak) % 9
+                tb_name, tb_tone = TARABALA_NAMES[tb]
+                calendar.append({
+                    "date": f"{d.year:04d}-{d.month:02d}-{d.day:02d}",
+                    "nakshatra": NAKSHATRA_NAMES[day_nak - 1],
+                    "tarabala": tb_name,
+                    "tone": tb_tone,
+                })
+
+            return {
+                "status": "success",
+                "profile": profile,
+                "moon_sign": ZODIAC_NAMES[moon_rasi],
+                "tarabala_calendar": calendar,
+                "calendar_from": f"{cy:04d}-{cm:02d}-{cd:02d}",
+            }
+        except Exception as e:
+            print(f"Nakshatra profile error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+
+    @staticmethod
+    def get_sarvatobhadra_chakra(dob: str, tob: str, place: str,
+                                 lat: Optional[float] = None, lon: Optional[float] = None,
+                                 tz: Optional[float] = None, name_nakshatra: Optional[int] = None,
+                                 current_date: Optional[str] = None, current_time: Optional[str] = None,
+                                 current_tz: Optional[float] = None,
+                                 ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Sarvatobhadra Chakra with the current transits mapped onto it.
+
+        Builds the 9×9 chakra, places each transiting graha on its nakshatra cell
+        AND its rasi cell, then reports — against the native's sensitive points
+        (birth/janma star, Moon sign, optional name star, birth tithi group and
+        birth weekday) — both *occupation* (a graha sitting on the cell) and
+        *facing (saamne) vedha* (a graha on the cell mirrored across the chakra's
+        centre). The structured `findings` feed the layman AI reading."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available"}
+
+        try:
+            _set_ayanamsa(ayanamsa)
+            from datetime import datetime
+
+            year, month, day = map(int, dob.split("-"))
+            tparts = tob.split(":")
+            hour = int(tparts[0])
+            minute = int(tparts[1]) if len(tparts) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707  # Chennai default
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place or "", lat, lon, tz_offset)
+
+            nak_span = 360.0 / 27.0
+
+            def mirror(cell):
+                return (8 - cell[0], 8 - cell[1])
+
+            def cell_meta(cell):
+                return _SBC_GRID[cell[0]][cell[1]] if cell else None
+
+            # ── Natal anchors ────────────────────────────────────────────────
+            natal_jd = swe.julday(year, month, day, hour + minute / 60.0)
+            natal = charts.rasi_chart(natal_jd, place_obj)
+            moon_rasi, moon_deg = natal[2][1]  # row 2 = Moon
+            moon_abs = moon_rasi * 30.0 + moon_deg
+            janma_nak = int(moon_abs / nak_span) + 1  # 1..27 (27-star system)
+            # Map the 27-star janma nakshatra onto the 28-cell ring (Abhijit is
+            # cell 28; the 27-star indices ≥22 shift up by one on the ring).
+            janma_cell_key = janma_nak if janma_nak <= 21 else janma_nak + 1
+            birth_tithi = drik.tithi(natal_jd, place_obj)[0]
+            birth_weekday = drik.vaara(natal_jd, place_obj)  # 0=Sun..6=Sat
+            birth_group = _tithi_group(birth_tithi)
+
+            anchors = {}
+            anchors["janma_nakshatra"] = {
+                "label": "Birth star (Janma Nakshatra)",
+                "name": _SBC_NAK28[janma_cell_key - 1],
+                "cell": list(_SBC_NAK_CELL[janma_cell_key]),
+            }
+            anchors["moon_sign"] = {
+                "label": "Moon sign (Janma Rasi)",
+                "name": ZODIAC_NAMES[moon_rasi],
+                "cell": list(_SBC_RASI_CELL[moon_rasi + 1]),
+            }
+            anchors["birth_tithi"] = {
+                "label": "Birth tithi group",
+                "name": birth_group,
+                "cell": list(_SBC_GROUP_CELL[birth_group]),
+            }
+            anchors["birth_weekday"] = {
+                "label": "Birth weekday",
+                "name": WEEKDAY_NAMES[birth_weekday],
+                "cell": list(_SBC_WEEKDAY_CELL[WEEKDAY_NAMES[birth_weekday]]),
+            }
+            if name_nakshatra and 1 <= int(name_nakshatra) <= 27:
+                nn = int(name_nakshatra)
+                nn_key = nn if nn <= 21 else nn + 1
+                anchors["name_nakshatra"] = {
+                    "label": "Name star (Naama Nakshatra)",
+                    "name": _SBC_NAK28[nn_key - 1],
+                    "cell": list(_SBC_NAK_CELL[nn_key]),
+                }
+
+            # ── Transit moment (viewer's wall clock + tz; see get_transits) ──
+            if current_date:
+                ty, tm, td = map(int, current_date.split("-"))
+            else:
+                now = datetime.now()
+                ty, tm, td = now.year, now.month, now.day
+            if current_time:
+                cparts = current_time.split(":")
+                t_hour, t_min = int(cparts[0]), (int(cparts[1]) if len(cparts) > 1 else 0)
+            else:
+                t_hour, t_min = 12, 0
+            transit_tz = current_tz if current_tz is not None else tz_offset
+            transit_place = drik.Place(place or "", lat, lon, transit_tz)
+            transit_jd = swe.julday(ty, tm, td, t_hour + t_min / 60.0)
+
+            transit = charts.rasi_chart(transit_jd, transit_place)
+            retro_ids = set(drik.planets_in_retrograde(transit_jd, transit_place))
+
+            # Place each graha on its nakshatra cell + rasi cell.
+            placements = {}  # (r,c) -> list of planet names
+            planets = []
+            for pidx, (rasi, degrees) in transit[1:]:  # skip ascendant
+                name = PLANET_NAMES.get(pidx, f"Planet_{pidx}")
+                abs_long = rasi * 30.0 + degrees
+                nak27 = int(abs_long / nak_span) + 1
+                nak_key = nak27 if nak27 <= 21 else nak27 + 1
+                nak_c = _SBC_NAK_CELL[nak_key]
+                rasi_c = _SBC_RASI_CELL[rasi + 1]
+                for c in (nak_c, rasi_c):
+                    placements.setdefault(c, []).append(name)
+                planets.append({
+                    "name": name,
+                    "nature": _sbc_nature(name),
+                    "retrograde": pidx in retro_ids,
+                    "sign_name": ZODIAC_NAMES[rasi],
+                    "degrees": round(degrees, 2),
+                    "nakshatra": _SBC_NAK28[nak_key - 1],
+                    "nakshatra_cell": list(nak_c),
+                    "rasi_cell": list(rasi_c),
+                })
+
+            # ── Findings: occupation + facing vedha on each anchor ───────────
+            findings = []
+            for key, a in anchors.items():
+                cell = tuple(a["cell"])
+                mcell = mirror(cell)
+                for planet in placements.get(cell, []):
+                    nature = _sbc_nature(planet)
+                    findings.append({
+                        "anchor": key, "anchor_label": a["label"], "anchor_name": a["name"],
+                        "kind": "occupation", "planet": planet, "planet_nature": nature,
+                        "tone": "supportive" if nature == "benefic" else "stressful",
+                    })
+                for planet in placements.get(mcell, []):
+                    nature = _sbc_nature(planet)
+                    findings.append({
+                        "anchor": key, "anchor_label": a["label"], "anchor_name": a["name"],
+                        "kind": "vedha", "planet": planet, "planet_nature": nature,
+                        "facing": cell_meta(mcell).get("label") if cell_meta(mcell) else None,
+                        "tone": "supportive" if nature == "benefic" else "stressful",
+                    })
+
+            # ── Transit-day panchanga, with coincidence flags vs the native ──
+            t_tithi = drik.tithi(transit_jd, transit_place)[0]
+            t_weekday = drik.vaara(transit_jd, transit_place)
+            t_group = _tithi_group(t_tithi)
+            transit_panchanga = {
+                "tithi_group": t_group,
+                "same_tithi_group": t_group == birth_group,
+                "weekday": WEEKDAY_NAMES[t_weekday],
+                "same_weekday": t_weekday == birth_weekday,
+            }
+
+            return {
+                "status": "success",
+                "transit_date": f"{ty:04d}-{tm:02d}-{td:02d}",
+                "transit_time": f"{t_hour:02d}:{t_min:02d}",
+                "grid": _SBC_GRID,
+                "anchors": anchors,
+                "planets": planets,
+                "placements": {f"{r},{c}": v for (r, c), v in placements.items()},
+                "findings": findings,
+                "transit_panchanga": transit_panchanga,
+            }
+
+        except Exception as e:
+            print(f"Sarvatobhadra calculation error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
