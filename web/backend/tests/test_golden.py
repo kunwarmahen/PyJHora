@@ -138,11 +138,50 @@ def test_marriage_workspace_seventh_house(args1, args2):
 
 
 def test_transit_carries_bindu_annotation(args1):
-    # §2.4 join: every transiting graha gets a bindu strength chip; nodes fall
-    # back to Sarva (no BAV of their own).
+    """§2.4 join: pin the actual bindu counts + chips for a fixed transit date.
+
+    Values are pinned (not just type-checked) so a drift in either half of the
+    join — the Ashtakavarga tables or the chip thresholds — fails here."""
     tr = A.get_transits(**args1, current_date="2026-07-16")
     assert tr.get("status") == "success", tr
-    saturn = tr["planets"]["Saturn"]
-    assert saturn["bindu_strength"] in ("good", "neutral", "weak")
-    assert isinstance(saturn["sav_bindus"], int)
-    assert tr["planets"]["Rahu"]["bav_bindus"] is None
+    planets = tr["planets"]
+
+    # (sign, own-BAV bindus, Sarva bindus, chip) for the fixed date.
+    expected = {
+        "Saturn":  ("Pisces", 5, 39, "good"),
+        "Jupiter": ("Cancer", 3, 26, "weak"),
+        "Sun":     ("Gemini", 2, 21, "weak"),
+    }
+    for name, (sign, bav, sav, strength) in expected.items():
+        p = planets[name]
+        assert p["sign_name"] == sign, f"{name} sign: {p['sign_name']} != {sign}"
+        assert p["bav_bindus"] == bav, f"{name} BAV: {p['bav_bindus']} != {bav}"
+        assert p["sav_bindus"] == sav, f"{name} SAV: {p['sav_bindus']} != {sav}"
+        assert p["bindu_strength"] == strength, \
+            f"{name} chip: {p['bindu_strength']} != {strength}"
+
+    # The lunar nodes have no Bhinnashtakavarga of their own, so they carry no
+    # BAV count and are judged on the Sarva total alone.
+    rahu = planets["Rahu"]
+    assert rahu["bav_bindus"] is None
+    assert rahu["sav_bindus"] == 36
+    assert rahu["bindu_strength"] == "good"
+
+    # The per-planet SAV reading must agree with the returned Sarva row.
+    sarva = tr["ashtakavarga"]["sarva"]
+    assert sarva[planets["Saturn"]["rasi"]] == 39
+
+
+def test_bindu_chip_thresholds():
+    """The classical thresholds themselves: own-BAV >=5 supported / ==4 neutral /
+    <=3 rough, and the node fallback on Sarva (>=30 / >=25 / else)."""
+    chip = A._bindu_chip
+    assert chip(8, 40)[0] == "good"
+    assert chip(5, 10)[0] == "good"
+    assert chip(4, 10)[0] == "neutral"
+    assert chip(3, 40)[0] == "weak"
+    assert chip(0, 40)[0] == "weak"
+    # Nodes (no own BAV) fall back to the Sarva total.
+    assert chip(None, 30)[0] == "good"
+    assert chip(None, 25)[0] == "neutral"
+    assert chip(None, 24)[0] == "weak"
