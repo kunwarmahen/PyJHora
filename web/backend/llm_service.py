@@ -690,6 +690,15 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
+    async def analyze_saturn_transits(self,
+                                      data: Dict[str, Any],
+                                      name: str = "this person",
+                                      config: Optional[ModelConfig] = None) -> str:
+        """Calm reading of the Sade Sati / Saturn transits."""
+        prompt = self._build_saturn_transits_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
     async def analyze_kp(self,
                          data: Dict[str, Any],
                          name: str = "this person",
@@ -2364,6 +2373,45 @@ Write a focused ~260-word reading of this window:
 2. **Saturn's weather** — if a Sade Sati / Ashtama / Kantaka phase is active, explain its character honestly but calmly (a period of maturing, responsibility and consolidation — not doom); if none, say the Saturn pressure is lighter now.
 3. **Turning-point transits** — mention the nearest ingress or a natal-nakshatra eclipse as a timing marker for shifts.
 Reason only from what's given. Be encouraging and practical, never fatalistic. Do NOT make medical, legal or financial predictions or name specific outcomes/dates of misfortune. Close with one line noting this is an indicative reading and free will shapes how a period is lived."""
+
+    def _build_saturn_transits_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """A grounded, calm reading of the Sade Sati / Saturn transits."""
+        cur = d.get("current") or {}
+        periods = d.get("sade_sati_periods") or []
+        cur_ss = cur.get("sade_sati")
+        cur_ash = cur.get("ashtama")
+        cur_kan = cur.get("kantaka")
+        if cur_ss:
+            status = (f"Currently in **Sade Sati — {cur_ss.get('current_phase')} phase** "
+                      f"({cur_ss.get('start_date')} → {cur_ss.get('end_date')}).")
+        elif cur_ash:
+            status = (f"Not in Sade Sati now, but in **Ashtama Shani** (Saturn 8th from "
+                      f"the Moon, {cur_ash.get('start_date')} → {cur_ash.get('end_date')}).")
+        elif cur_kan:
+            status = (f"Not in Sade Sati now, but in **Kantaka Shani** (Saturn 4th from "
+                      f"the Moon, {cur_kan.get('start_date')} → {cur_kan.get('end_date')}).")
+        else:
+            status = "Not in Sade Sati, Ashtama or Kantaka Shani at present — Saturn's pressure on the Moon is light right now."
+        p_lines = "\n".join(
+            f"- {p['start_date']} → {p['end_date']}"
+            + (" (current)" if p.get("is_current") else " (past)" if p.get("is_past") else " (upcoming)")
+            + ": " + ", ".join(
+                f"{ph['phase']} in {ph['sign_name']} ({ph['start_date']}→{ph['end_date']})"
+                for ph in p.get("phases", []))
+            for p in periods
+        ) or "- (none in the scanned window)"
+        return f"""You are a calm, wise Vedic astrologer explaining **Sade Sati and Saturn's transits** over {name}'s natal Moon (in {d.get('moon_sign')}). Everything is pre-computed — read it, do not recompute. Saturn (Shani) is the teacher: his transits mature and consolidate, they are not doom.
+
+**Right now:** {status}
+
+**Sade Sati cycles (Saturn over the 12th → 1st → 2nd from the Moon, ~7½ years each):**
+{p_lines}
+
+Write a grounded, reassuring ~280-word reading:
+1. **What's happening now** — explain the current status plainly. If a Sade Sati / Ashtama / Kantaka phase is running, describe its character honestly but calmly (responsibility, slowing down, maturing, letting go of what no longer serves) and roughly when it eases. If nothing is running, say so and reassure.
+2. **The rhythm of the cycles** — note that Sade Sati recurs about every 30 years and that each is a chapter of growth, not punishment; mention the phase structure (rising = build-up, peak = core lessons, setting = integration).
+3. **How to move through it well** — 2–3 practical, dignified suggestions (discipline, service, patience, simplicity), and point them to the Remedies page for traditional Shani upayas.
+Reason only from the data. NEVER predict misfortune, illness, death, financial ruin or specific bad events — Sade Sati is a period of growth, not a curse. Close with one genuinely encouraging line."""
 
     def _build_strength_prompt(self, d: Dict[str, Any], name: str) -> str:
         """Explain the strength picture: Shadbala, Bhava Bala and Vimsopaka."""

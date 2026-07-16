@@ -70,6 +70,11 @@ api.interceptors.request.use((config) => {
 // so their readings land in the "No profile" bucket. `ask` sends its own id.)
 const PROFILE_READING_PATHS = new Set([
   "/api/astrology/varshaphal-analysis",
+  "/api/astrology/life-timeline-analysis",
+  "/api/astrology/planet-conditions-analysis",
+  "/api/astrology/avasthas-analysis",
+  "/api/astrology/strength-analysis",
+  "/api/astrology/saturn-transits-analysis",
   "/api/astrology/bhrigu-markers-analysis",
   "/api/astrology/remedies-analysis",
   "/api/astrology/daily-digest-analysis",
@@ -722,6 +727,26 @@ export const astrologyService = {
   analyzePlanetConditionsAI: (birthDetails, opts = {}, model = {}) =>
     api.post(
       "/api/astrology/planet-conditions-analysis",
+      {
+        birth_details: birthDetails,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
+  // ---- Sade Sati & Saturn transits ----
+  getSaturnTransits: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/saturn-transits", birthDetails, { params: { ayanamsa } }),
+  analyzeSaturnTransitsAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/saturn-transits-analysis",
       {
         birth_details: birthDetails,
         person_name: opts.personName,

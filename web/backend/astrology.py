@@ -6361,6 +6361,150 @@ class AstrologyCompute:
             "eclipses": near_ecl,
         }
 
+    # Saturn's house-from-Moon → the Sade Sati phase label.
+    _SADE_SATI_PHASES = {12: "rising", 1: "peak", 2: "setting"}
+
+    @staticmethod
+    def get_saturn_transits(dob: str, tob: str, place: str,
+                            lat: Optional[float] = None, lon: Optional[float] = None,
+                            tz: Optional[float] = None,
+                            ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Sade Sati and the other Saturn transits from the natal Moon, across the
+        life (birth → ~37 years ahead, so the past cycles and the next one are all
+        captured).
+
+          • **Sade Sati** — the ~7½-year period of Saturn over the 12th → 1st → 2nd
+            from the Moon, grouped into cycles, each with its three phase windows
+            (rising / peak / setting) and the retrograde re-entry sub-windows.
+          • **Ashtama Shani** (8th from Moon) and **Kantaka / Ardha-Ashtama Shani**
+            (4th) periods.
+          • The **current** status (which, if any, is running now)."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            from datetime import datetime
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+
+            natal_jd = swe.julday(year, month, day, hour + minute / 60.0)
+            natal = charts.rasi_chart(natal_jd, place_obj)
+            moon_rasi = natal[2][1][0]
+
+            today = datetime.now()
+            jd_today = swe.julday(today.year, today.month, today.day, 12.0)
+            jd_start = swe.julday(year, month, day, 12.0)
+            jd_end = jd_today + 37 * 365.25
+
+            def iso(jd):
+                g = utils.jd_to_gregorian(jd)
+                return f"{g[0]:04d}-{g[1]:02d}-{g[2]:02d}"
+
+            spans = AstrologyCompute._planet_sign_spans(6, jd_start, jd_end, tz_offset)
+            annotated = []
+            for sign0, s_jd, e_jd in spans:
+                house = ((sign0 - moon_rasi) % 12) + 1
+                annotated.append({"sign0": sign0, "house": house, "s": s_jd, "e": e_jd})
+
+            # ── Sade Sati cycles (houses 12→1→2), gaps > 1 yr split cycles ──
+            sade = [a for a in annotated if a["house"] in (12, 1, 2)]
+            cycles = []
+            cur = None
+            for a in sade:
+                if cur is None or a["s"] - cur["_last"] > 365.0:
+                    cur = {"spans": [a], "_start": a["s"], "_last": a["e"]}
+                    cycles.append(cur)
+                else:
+                    cur["spans"].append(a)
+                    cur["_last"] = max(cur["_last"], a["e"])
+
+            def merge_house(spans_list, house):
+                hs = [sp for sp in spans_list if sp["house"] == house]
+                if not hs:
+                    return None
+                start = min(sp["s"] for sp in hs)
+                end = max(sp["e"] for sp in hs)
+                sub = [{"start": iso(sp["s"]), "end": iso(sp["e"])} for sp in hs]
+                return {
+                    "phase": AstrologyCompute._SADE_SATI_PHASES[house],
+                    "house_from_moon": house,
+                    "sign_name": ZODIAC_NAMES[hs[0]["sign0"]],
+                    "start_date": iso(start), "end_date": iso(end),
+                    "start_jd": start, "end_jd": end,
+                    "retrograde_reentry": len(hs) > 1,
+                    "sub_windows": sub if len(hs) > 1 else [],
+                }
+
+            sade_sati_periods = []
+            for c in cycles:
+                phases = [p for p in (merge_house(c["spans"], h) for h in (12, 1, 2)) if p]
+                if not phases:
+                    continue
+                start = min(p["start_jd"] for p in phases)
+                end = max(p["end_jd"] for p in phases)
+                is_current = start <= jd_today <= end
+                cur_phase = None
+                if is_current:
+                    for p in phases:
+                        if p["start_jd"] <= jd_today <= p["end_jd"]:
+                            cur_phase = p["phase"]
+                            break
+                for p in phases:
+                    p.pop("start_jd", None); p.pop("end_jd", None)
+                sade_sati_periods.append({
+                    "start_date": iso(start), "end_date": iso(end),
+                    "moon_sign": ZODIAC_NAMES[moon_rasi],
+                    "is_current": is_current, "current_phase": cur_phase,
+                    "is_past": end < jd_today, "phases": phases,
+                })
+
+            def group_periods(house):
+                hs = [a for a in annotated if a["house"] == house]
+                out = []
+                cur2 = None
+                for a in hs:
+                    if cur2 is None or a["s"] - cur2["_last"] > 365.0:
+                        cur2 = {"_s": a["s"], "_last": a["e"], "sign0": a["sign0"]}
+                        out.append(cur2)
+                    else:
+                        cur2["_last"] = max(cur2["_last"], a["e"])
+                return [{
+                    "sign_name": ZODIAC_NAMES[o["sign0"]],
+                    "start_date": iso(o["_s"]), "end_date": iso(o["_last"]),
+                    "is_current": o["_s"] <= jd_today <= o["_last"],
+                    "is_past": o["_last"] < jd_today,
+                } for o in out]
+
+            ashtama = group_periods(8)
+            kantaka = group_periods(4)
+
+            current = {
+                "sade_sati": next((p for p in sade_sati_periods if p["is_current"]), None),
+                "ashtama": next((p for p in ashtama if p["is_current"]), None),
+                "kantaka": next((p for p in kantaka if p["is_current"]), None),
+            }
+
+            return {
+                "status": "success",
+                "moon_sign": ZODIAC_NAMES[moon_rasi],
+                "today": iso(jd_today),
+                "sade_sati_periods": sade_sati_periods,
+                "ashtama_periods": ashtama,
+                "kantaka_periods": kantaka,
+                "current": current,
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
     # Bhava (house) systems exposed to the UI. Value -> (Jyotir AI bhava_madhya_method,
     # label, short blurb). 'O' (Sripati/Porphyrius) is what Jagannatha Hora draws for
     # its Bhava Chalit; 'P' is true Placidus; 3 is the KP cuspal method; 1 is the

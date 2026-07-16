@@ -42,6 +42,9 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   as a card on the Advanced page and in every AI reading,
   a Planetary Strength page (`/strength`) visualizing Shadbala (six-fold strength + composition),
   Bhava Bala (house strength) and Vimsopaka Bala (varga dignity) as ranked bars, with an AI reading,
+  a Sade Sati page (`/sade-sati`) — Saturn's 7½-year transits over the natal Moon, the cycles with
+  their rising/peak/setting phases and retrograde re-entries, the Ashtama & Kantaka Shani periods,
+  the current status, and a calm AI reading,
   Remedies (traditional gemstone / mantra / deity suggestions per weak planet),
   Sensitive Points (Sphutas, the 36 Sahams, and Argala — with AI reading),
   a Vedic Clock & Retrograde page (a live ghati/vighati clock + vakra-gathi retrograde

@@ -33,6 +33,7 @@ import { PrashnaPage } from "./pages/PrashnaPage";
 import { BhriguMarkersPage } from "./pages/BhriguMarkersPage";
 import { TimelinePage } from "./pages/TimelinePage";
 import { StrengthPage } from "./pages/StrengthPage";
+import { SadeSatiPage } from "./pages/SadeSatiPage";
 import { RemediesPage } from "./pages/RemediesPage";
 import { DailyDigestPage } from "./pages/DailyDigestPage";
 import { FortnightlyDigestPage, MonthlyDigestPage } from "./pages/PeriodDigestPage";
@@ -206,6 +207,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <StrengthPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/sade-sati"
+              element={
+                <ProtectedRoute>
+                  <SadeSatiPage />
                 </ProtectedRoute>
               }
             />

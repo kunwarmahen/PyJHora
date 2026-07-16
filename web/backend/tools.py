@@ -305,6 +305,24 @@ def _avasthas(bd, ayanamsa, **_):
                         for p in r.get("planets", [])]}
 
 
+def _saturn_transits(bd, ayanamsa, **_):
+    r = AstrologyCompute.get_saturn_transits(ayanamsa=ayanamsa, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    cur = r.get("current") or {}
+    return {
+        "moon_sign": r.get("moon_sign"),
+        "in_sade_sati": bool(cur.get("sade_sati")),
+        "current_phase": (cur.get("sade_sati") or {}).get("current_phase"),
+        "in_ashtama": bool(cur.get("ashtama")),
+        "in_kantaka": bool(cur.get("kantaka")),
+        "sade_sati_periods": [
+            {"start": p["start_date"], "end": p["end_date"],
+             "is_current": p["is_current"], "is_past": p["is_past"]}
+            for p in r.get("sade_sati_periods", [])],
+    }
+
+
 def _strength(bd, ayanamsa, **_):
     r = AstrologyCompute.get_strength(ayanamsa=ayanamsa, **_args(bd))
     if r.get("status") != "success":
@@ -665,6 +683,16 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _life_timeline,
     ),
     _Tool(
+        "get_saturn_transits",
+        "Sade Sati and Saturn's transits from the natal Moon: the ~7½-year Sade "
+        "Sati cycles (rising/peak/setting phases with dates), Ashtama (8th) and "
+        "Kantaka (4th) Shani periods, and whether any is running now. Use for "
+        "'am I in Sade Sati?', Saturn-period timing, and Shani questions. Frame it "
+        "as a period of maturing, never doom.",
+        _EMPTY_PARAMS,
+        _saturn_transits,
+    ),
+    _Tool(
         "get_strength",
         "The full strength picture: Shadbala (six-fold planetary strength — total "
         "vs required rupas, ratio, rank), Bhava Bala (strength of the 12 houses) and "
@@ -846,6 +874,7 @@ ALWAYS_TOOLS: List[str] = [
     "get_sphuta", "get_sahams", "get_argala",
     "get_vedic_clock", "get_retrograde", "get_muhurta",
     "get_kp", "get_jaimini", "get_life_timeline", "get_strength",
+    "get_saturn_transits",
 ]
 
 
@@ -896,6 +925,7 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_avasthas":         {"label": "Avasthas (planetary states)", "category": "Core chart"},
     "get_divisional_chart": {"label": "Divisional (varga) charts", "category": "Core chart"},
     "get_life_timeline":    {"label": "Life timeline (dasha + transits)", "category": "Timing"},
+    "get_saturn_transits":  {"label": "Sade Sati & Saturn transits", "category": "Timing"},
     "get_dasha_chain":      {"label": "Running dasha periods",  "category": "Timing"},
     "get_dasha_children":   {"label": "Dasha sub-periods",      "category": "Timing"},
     "get_transits":         {"label": "Current transits (Gochara)", "category": "Timing"},

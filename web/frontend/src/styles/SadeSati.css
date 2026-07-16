@@ -1,0 +1,174 @@
+/* Sade Sati / Saturn transits page. */
+
+.ss-status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+}
+.ss-status--active {
+  background: rgba(178, 58, 72, 0.1);
+  color: #b23a48;
+  border: 1px solid rgba(178, 58, 72, 0.3);
+}
+.ss-status--warn {
+  background: rgba(201, 123, 84, 0.12);
+  color: #a5573b;
+  border: 1px solid rgba(201, 123, 84, 0.3);
+}
+.ss-status--clear {
+  background: rgba(46, 158, 91, 0.1);
+  color: #2e7d52;
+  border: 1px solid rgba(46, 158, 91, 0.3);
+}
+
+.ss-cycles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.ss-cycle {
+  background: var(--sacred-white);
+  border: 1px solid rgba(139, 143, 168, 0.2);
+  border-radius: var(--radius-lg, 16px);
+  padding: 0.9rem 1.1rem;
+  box-shadow: var(--shadow-sm);
+}
+.ss-cycle--current {
+  border-color: var(--vermillion);
+  box-shadow: 0 0 0 2px rgba(227, 66, 52, 0.15);
+}
+.ss-cycle--past {
+  opacity: 0.72;
+}
+
+.ss-cycle__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.6rem;
+}
+.ss-cycle__range {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+.ss-cycle__tag {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.ss-cycle--current .ss-cycle__tag {
+  color: var(--vermillion);
+}
+
+/* Proportional phase bar */
+.ss-bar {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  background: rgba(139, 143, 168, 0.14);
+  overflow: hidden;
+  margin-bottom: 0.7rem;
+}
+.ss-bar__seg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.ss-phases {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.ss-phase {
+  display: grid;
+  grid-template-columns: 14px 90px 80px 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+.ss-phase--now {
+  background: rgba(227, 66, 52, 0.08);
+  font-weight: 600;
+}
+.ss-phase__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.ss-phase__name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ss-phase__sign {
+  color: var(--text-secondary);
+}
+.ss-phase__dates {
+  color: var(--text-muted);
+  text-align: right;
+}
+.ss-phase__retro {
+  color: var(--cosmic-indigo);
+  font-weight: 700;
+}
+
+/* Ashtama / Kantaka */
+.ss-other-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-lg);
+  margin-top: 0.5rem;
+}
+.ss-other-h {
+  margin: 0 0 0.4rem;
+  color: var(--cosmic-indigo);
+  font-size: 0.95rem;
+}
+.ss-other-row {
+  padding: 0.3rem 0;
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(139, 143, 168, 0.12);
+}
+.ss-other-row.is-current {
+  color: var(--vermillion);
+  font-weight: 600;
+}
+.ss-other-row.is-past {
+  opacity: 0.6;
+}
+.ss-now-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--vermillion);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+@media (max-width: 640px) {
+  .ss-phase {
+    grid-template-columns: 12px 1fr auto;
+    row-gap: 0;
+  }
+  .ss-phase__sign {
+    display: none;
+  }
+  .ss-other-grid {
+    grid-template-columns: 1fr;
+  }
+}

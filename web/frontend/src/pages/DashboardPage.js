@@ -31,6 +31,7 @@ import {
   CalendarRange,
   GanttChartSquare,
   Gauge,
+  Aperture,
   Home,
   FileText,
   Compass,
@@ -171,6 +172,12 @@ export const DashboardPage = () => {
       icon: <Gauge size={32} />,
       path: "/strength",
       gradient: "linear-gradient(135deg, #D4AF37 0%, #2E9E5B 100%)",
+    },
+    {
+      key: "sadeSati",
+      icon: <Aperture size={32} />,
+      path: "/sade-sati",
+      gradient: "linear-gradient(135deg, #5A5F7A 0%, #B23A48 100%)",
     },
     {
       key: "bhrigu",

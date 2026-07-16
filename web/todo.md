@@ -3525,3 +3525,37 @@ early-return (react-hooks/rules-of-hooks) — made it a plain sorted const.
 **Still open from §5/§2:** friendship matrix (§2.5), unknown-birth-time mode (§5.8), MCP (§2.3),
 iCal (§5.10), chart explorer (§5.5), gochara-vedha (§5.6), nakshatra profile (§5.7), marriage
 workspace (§2.6), Ashtakavarga transit chips (§2.4), Sade-Sati page (§2.1).
+
+## 32. Sade Sati page (§2.1) + "No Profile" bug fix (owner report) — ✅ SHIPPED 2026-07-15
+**Bug (owner report):** readings from the new features (timeline/conditions/avasthas/strength) all
+saved under "No Profile" even with a profile selected. ROOT CAUSE: `api.js` has a request interceptor
+that injects `profile_id` from `localStorage.selectedProfile`, but ONLY for paths in the
+`PROFILE_READING_PATHS` allow-list — and the new `*-analysis` endpoints weren't in it. FIX: added
+`life-timeline-analysis`, `planet-conditions-analysis`, `avasthas-analysis`, `strength-analysis`,
+`saturn-transits-analysis` to the set. Verified live: all three captured request bodies now carry
+`profile_id`. **When adding a new AI-reading endpoint, add its path to PROFILE_READING_PATHS** or its
+history lands in the wrong bucket.
+
+**Sade Sati (§2.1):** `get_saturn_transits` (astrology.py) reuses `_planet_sign_spans` (the timeline's
+daily Saturn sign-scan) over birth→now+37y, maps each span to house-from-Moon:
+- **Sade Sati cycles** = spans in houses 12/1/2, grouped into cycles when the gap between qualifying
+  spans exceeds 1 year. Per cycle: the three **phase windows** (12=rising, 1=peak, 2=setting) merged
+  across retrograde re-entries via `merge_house` (keeps `sub_windows` + a `retrograde_reentry` flag),
+  cycle start/end, is_current/is_past, current_phase.
+- **Ashtama** (house 8) and **Kantaka** (house 4) periods via `group_periods` (same >1yr-gap grouping).
+- **current** = whichever of sade_sati/ashtama/kantaka covers today.
+`POST /api/astrology/saturn-transits`(+`-analysis`; `analyze_saturn_transits`/
+`_build_saturn_transits_prompt` — calm, growth-not-doom, no misfortune/illness/death, points to
+Remedies for Shani upayas). Tool `get_saturn_transits` (ALWAYS_TOOLS + _DISPLAY "Timing"). Frontend
+`SadeSatiPage` (route `/sade-sati`, `Aperture` icon — Orbit was taken by Transit): status banner
+(active/warn/clear tones), per-cycle cards with a proportional CSS phase bar (`.ss-bar`) + phase rows
+(dot, phase, sign, dates, ℞) + current-cycle red outline, Ashtama/Kantaka two-column list with a "now"
+tag, AI reading. `SadeSati.css`; i18n `sadeSati.*` (en full; hi/sa nav+card). Verified live on the
+owner's Leo Moon: Sade Sati 1976-82 / 2004-12 (past) + 2034-41 (upcoming), currently Ashtama Shani
+2025-2028; 9 phase segments, retrograde re-entries flagged.
+
+**Gotcha (again):** derived values used across the JSX must not be `useMemo` AFTER the
+`if (!selectedProfile) return null` early-return — plain const/ternary instead (react-hooks/rules).
+
+**Still open from §5/§2:** friendship matrix (§2.5), unknown-birth-time mode (§5.8) — doing these next;
+then MCP (§2.3), iCal (§5.10), chart explorer (§5.5), gochara-vedha (§5.6), nakshatra profile (§5.7).
