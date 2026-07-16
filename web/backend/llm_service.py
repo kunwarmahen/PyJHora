@@ -699,6 +699,15 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
+    async def analyze_friendships(self,
+                                  data: Dict[str, Any],
+                                  name: str = "this person",
+                                  config: Optional[ModelConfig] = None) -> str:
+        """Reading of the planetary friendships + house-lord placements."""
+        prompt = self._build_friendships_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
     async def analyze_kp(self,
                          data: Dict[str, Any],
                          name: str = "this person",
@@ -1565,6 +1574,19 @@ Planetary Positions (All 9 Grahas):"""
                     f"[{a.get('tone', '?')}]"
                 )
 
+        # Friendships — house-lord placements + any Parivartana. The compound
+        # matrix is a visual reference, so only the wiring is seeded here.
+        friendships = chart_data.get("friendships", {})
+        if isinstance(friendships, dict) and friendships.get("house_lords"):
+            chart_description += "\n\nHouse-lord placements (lord of house → house it occupies):"
+            for h in friendships["house_lords"]:
+                chart_description += f"\n- L{h.get('house')} in H{h.get('lord_house')} ({h.get('lord')})"
+            pari = friendships.get("parivartana", [])
+            if pari:
+                chart_description += "\nParivartana (mutual exchange): " + "; ".join(
+                    f"{p['planets'][0]}↔{p['planets'][1]} (H{p['houses'][0]}/H{p['houses'][1]})"
+                    for p in pari)
+
         header = ("Below is birth chart data for this person, calculated using precise "
                   f"astronomical calculations from the {SITE_NAME} Vedic astrology software. "
                   "This is REAL, VERIFIED CHART DATA - not hypothetical."
@@ -2373,6 +2395,41 @@ Write a focused ~260-word reading of this window:
 2. **Saturn's weather** — if a Sade Sati / Ashtama / Kantaka phase is active, explain its character honestly but calmly (a period of maturing, responsibility and consolidation — not doom); if none, say the Saturn pressure is lighter now.
 3. **Turning-point transits** — mention the nearest ingress or a natal-nakshatra eclipse as a timing marker for shifts.
 Reason only from what's given. Be encouraging and practical, never fatalistic. Do NOT make medical, legal or financial predictions or name specific outcomes/dates of misfortune. Close with one line noting this is an indicative reading and free will shapes how a period is lived."""
+
+    def _build_friendships_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """Explain the compound friendships + house-lord placements + exchanges."""
+        matrix = d.get("matrix") or []
+        hl = d.get("house_lords") or []
+        pari = d.get("parivartana") or []
+        m_lines = "\n".join(
+            f"- {row['planet']}: "
+            + ", ".join(f"{r['to']} {r['label']}" for r in row["relations"] if not r.get("self"))
+            for row in matrix
+        ) or "- (none)"
+        hl_lines = "\n".join(
+            f"- Lord of H{h['house']} ({h['signification']}) is {h['lord']}, "
+            f"placed in H{h['lord_house']} ({h['lord_house_signification']})"
+            for h in hl if h.get("lord_house")
+        ) or "- (none)"
+        pari_line = (
+            "; ".join(f"{p['planets'][0]}↔{p['planets'][1]} (H{p['houses'][0]}/H{p['houses'][1]})"
+                      for p in pari)
+            if pari else "none")
+        return f"""You are a precise Vedic astrologer explaining the **planetary relationships** in {name}'s chart. All values are pre-computed (compound = natural friendship folded with this chart's temporal placement) — read them, do not recompute.
+
+**Compound friendships** (Adhimitra=great friend, Mitra=friend, Sama=neutral, Shatru=enemy, Adhishatru=great enemy):
+{m_lines}
+
+**House-lord placements** (where each bhava's lord actually sits — the engine of that house's results):
+{hl_lines}
+
+**Parivartana (mutual sign exchange):** {pari_line}
+
+Write a grounded ~260-word reading:
+1. **The alliances that matter** — note 1–2 planets sitting in a great-friend's or great-enemy's sign/company and what that does to how they cooperate (a planet among friends works smoothly; among enemies, with friction).
+2. **How the houses are wired** — read 2–3 of the most telling house-lord placements (e.g. lord of the 1st in the 10th links self to career); use the significations given, in plain terms.
+3. **Any exchange** — if a Parivartana exists, explain that the two houses' affairs are tied together; if none, say so.
+Reason only from the data. Relationships shade *how* results come, they are not good/bad verdicts. No medical, lifespan, legal or financial predictions. Close with one encouraging line."""
 
     def _build_saturn_transits_prompt(self, d: Dict[str, Any], name: str) -> str:
         """A grounded, calm reading of the Sade Sati / Saturn transits."""

@@ -5541,6 +5541,110 @@ class AstrologyCompute:
         finally:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
+    # Compound-relationship code (engine) → (label, tone).
+    _COMPOUND_REL = {
+        4: ("Adhimitra", "benefic"),   # great friend
+        3: ("Mitra", "benefic"),       # friend
+        2: ("Sama", "neutral"),        # neutral
+        1: ("Shatru", "challenging"),  # enemy
+        0: ("Adhishatru", "challenging"),  # great enemy
+    }
+
+    @staticmethod
+    def get_friendships(dob: str, tob: str, place: str,
+                        lat: Optional[float] = None, lon: Optional[float] = None,
+                        tz: Optional[float] = None,
+                        ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Planetary relationships **in this chart** (compound = natural + temporal):
+
+          • the 7×7 **compound-friendship matrix** (Adhimitra → Adhishatru),
+          • the **house-lord placement** table (the lord of each bhava and the house
+            it actually occupies), and
+          • **Parivartana** (mutual sign exchange) between planets.
+
+        Nothing in the UI showed who is whose friend once temporal placement is
+        folded in; this surfaces it and feeds the AI's dignity reasoning."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            from jhora.horoscope.chart import house as _house
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd = swe.julday(year, month, day, hour + minute / 60.0)
+
+            pp = charts.rasi_chart(jd, place_obj)
+            lagna_rasi0 = pp[0][1][0]
+            planet_sign = {pidx: rasi for pidx, (rasi, _d) in pp[1:]}
+            h2p = utils.get_house_planet_list_from_planet_positions(pp)
+
+            # ── Compound-friendship matrix (7 grahas) ───────────────────────
+            comp = _house._get_compound_relationships_of_planets(h2p)
+            matrix = []
+            for p in range(7):
+                rels = []
+                for q in range(7):
+                    if p == q:
+                        rels.append({"to": PLANET_NAMES[q], "self": True})
+                        continue
+                    label, tone = AstrologyCompute._COMPOUND_REL.get(
+                        comp[p][q], ("Sama", "neutral"))
+                    rels.append({"to": PLANET_NAMES[q], "label": label, "tone": tone})
+                matrix.append({"planet": PLANET_NAMES[p], "relations": rels})
+
+            # ── House-lord placement ────────────────────────────────────────
+            RASI_LORD_IDX = AstrologyCompute._RASI_LORD_IDX
+            house_lords = []
+            for h in range(1, 13):
+                sign0 = (lagna_rasi0 + h - 1) % 12
+                lord = RASI_LORD_IDX[sign0]
+                lord_sign = planet_sign.get(lord)
+                lord_house = ((lord_sign - lagna_rasi0) % 12) + 1 if lord_sign is not None else None
+                house_lords.append({
+                    "house": h,
+                    "house_sign": ZODIAC_NAMES[sign0],
+                    "signification": AstrologyCompute._BHAVA_SIGNIFICATION[h - 1],
+                    "lord": PLANET_NAMES[lord],
+                    "lord_house": lord_house,
+                    "lord_sign": ZODIAC_NAMES[lord_sign] if lord_sign is not None else None,
+                    "lord_house_signification": (
+                        AstrologyCompute._BHAVA_SIGNIFICATION[lord_house - 1]
+                        if lord_house else None),
+                })
+
+            # ── Parivartana (mutual sign exchange) among the 7 grahas ───────
+            parivartana = []
+            for a in range(7):
+                for b in range(a + 1, 7):
+                    sa, sb = planet_sign.get(a), planet_sign.get(b)
+                    if sa is None or sb is None:
+                        continue
+                    if RASI_LORD_IDX[sa] == b and RASI_LORD_IDX[sb] == a:
+                        parivartana.append({
+                            "planets": [PLANET_NAMES[a], PLANET_NAMES[b]],
+                            "signs": [ZODIAC_NAMES[sa], ZODIAC_NAMES[sb]],
+                            "houses": [((sa - lagna_rasi0) % 12) + 1,
+                                       ((sb - lagna_rasi0) % 12) + 1],
+                        })
+
+            return {
+                "status": "success",
+                "planets": [PLANET_NAMES[p] for p in range(7)],
+                "matrix": matrix,
+                "house_lords": house_lords,
+                "parivartana": parivartana,
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
     # The BPHS conditional nakshatra dashas the engine can test for applicability,
     # mapped to (display name, when-it-applies blurb, DhasaPage picker key or None).
     _APPLICABLE_DASHA_INFO = {

@@ -3559,3 +3559,26 @@ owner's Leo Moon: Sade Sati 1976-82 / 2004-12 (past) + 2034-41 (upcoming), curre
 
 **Still open from §5/§2:** friendship matrix (§2.5), unknown-birth-time mode (§5.8) — doing these next;
 then MCP (§2.3), iCal (§5.10), chart explorer (§5.5), gochara-vedha (§5.6), nakshatra profile (§5.7).
+
+## 33. Friendship matrix + house-lord placements (§2.5) — ✅ SHIPPED 2026-07-15
+`get_friendships` (astrology.py) exposes the engine's `house._get_compound_relationships_of_planets(h2p)`
+(compound = natural friendship folded with this chart's temporal placement; returns a 9×9 matrix coded
+4=Adhimitra/3=Mitra/2=Sama/1=Shatru/0=Adhishatru — diagonal left 0, treated as self):
+- **7×7 matrix** (Sun..Saturn, the classical grahas) with per-cell label + tone (4/3 benefic, 2 neutral,
+  1/0 challenging), via new `_COMPOUND_REL`.
+- **house-lord placements**: for each house 1-12 from the Lagna, its sign lord (`_RASI_LORD_IDX`) and the
+  house that lord occupies, with significations.
+- **Parivartana**: planet pairs in mutual sign exchange (lord of A's sign == B AND lord of B's sign == A).
+`POST /api/astrology/friendships`(+`-analysis`; `analyze_friendships`/`_build_friendships_prompt`).
+Tool `get_friendships` in `SECTION_TOOL["friendships"]` (+_DISPLAY "Core chart"). Default-on
+`friendships` section in chart_context (compact: house-lord wiring `L{h} in H{lord_house}` + Parivartana;
+the matrix is a visual reference, not seeded) rendered in `_render_context_block`. Ask-page
+`sectionFriendships` toggle. Frontend: **Friendships card on AdvancedPage** (`Users` icon) — colour-coded
+7×7 matrix grid + house-lord table + Parivartana pills + AI reading; `.fr-*` CSS. i18n `friendships.*`.
+- **UI gotcha:** `.slice(0,2)` made "Adhimitra" and "Adhishatru" both read "Ad" (only colour
+  disambiguated), and "Sama"→"Sa" clashed with Saturn. Fixed with an explicit `REL_ABBR`
+  map: AM / Mi / Nu / Sh / AS.
+- Verified live (owner's chart: Sun→Moon/Mars/Jupiter Adhimitra, →Venus Adhishatru, →Saturn Sama;
+  house lords correct; no Parivartana).
+
+**Remaining of the three requested:** unknown-birth-time mode (§5.8) — doing next.

@@ -468,6 +468,18 @@ class SaturnTransitsAnalysisRequest(BaseModel):
     max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
+class FriendshipsAnalysisRequest(BaseModel):
+    birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
+    person_name: Optional[str] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
+
 class RemediesAnalysisRequest(BaseModel):
     birth_details: BirthDetails
     profile_id: Optional[str] = None  # for grouping the saved reading in history
@@ -3434,6 +3446,59 @@ async def analyze_strength(
         await _save_reading(
             current_user, source="strength",
             title=f"Strength — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name, "ayanamsa": request.ayanamsa},
+        )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/friendships")
+async def get_friendships(
+    birth_details: BirthDetails,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Compound planetary friendships, house-lord placements and Parivartana
+    (mutual sign exchange) for this chart."""
+    try:
+        result = AstrologyCompute.get_friendships(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, ayanamsa=ayanamsa)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/friendships-analysis")
+async def analyze_friendships(
+    request: FriendshipsAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Plain-language reading of the planetary friendships + house-lord placements."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_friendships(
+            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+            lon=bd.longitude, tz=bd.timezone,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_friendships(
+            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        await _save_reading(
+            current_user, source="friendships",
+            title=f"Friendships — {request.person_name or bd.name or 'chart'}",
             text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
             birth_details=bd.model_dump(),
             context={"person_name": request.person_name, "ayanamsa": request.ayanamsa},

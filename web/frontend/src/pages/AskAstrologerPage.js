@@ -52,6 +52,7 @@ const CONTEXT_SECTIONS = [
   { key: "ashtakavarga", labelKey: "ask.sectionAshtakavarga" },
   { key: "shadbala", labelKey: "ask.sectionShadbala" },
   { key: "conditions", labelKey: "ask.sectionConditions" },
+  { key: "friendships", labelKey: "ask.sectionFriendships" },
 ];
 
 // Default tri-state for Smart-lookup mode: seed the natal base + dasha chain,
@@ -59,7 +60,7 @@ const CONTEXT_SECTIONS = [
 const DEFAULT_SECTION_STATE = {
   dasha_tree: "seed", yogas: "tool", doshas: "tool", transits: "tool",
   aspects: "tool", arudhas: "tool", ashtakavarga: "tool", shadbala: "tool",
-  conditions: "tool",
+  conditions: "tool", friendships: "tool",
 };
 
 

@@ -30,6 +30,7 @@ DEFAULT_SECTIONS = {
     "arudhas": True,
     "conditions": True,
     "avasthas": True,
+    "friendships": True,
 }
 
 # Divisional charts included by default: D1 (natal), D9 (Navamsa), D10 (Dasamsa).
@@ -266,6 +267,22 @@ def build_chart_context(birth_details: Dict[str, Any],
                  "deeptadi": p["deeptadi"]["state"], "tone": p["deeptadi"]["tone"]}
                 for p in av.get("planets", [])
             ]
+
+    if sections.get("friendships"):
+        fr = AstrologyCompute.get_friendships(ayanamsa=ayanamsa, **args)
+        if fr.get("status") == "success":
+            # Compact: the house-lord placements + any exchange (the matrix is a
+            # visual reference, too large to seed).
+            ctx["friendships"] = {
+                "house_lords": [
+                    {"house": h["house"], "lord": h["lord"], "lord_house": h["lord_house"]}
+                    for h in fr.get("house_lords", []) if h.get("lord_house")
+                ],
+                "parivartana": [
+                    {"planets": p["planets"], "houses": p["houses"]}
+                    for p in fr.get("parivartana", [])
+                ],
+            }
 
     # Divisional charts (vargas). D1 is already the natal `planetary_positions`,
     # so only the extra factors are computed into their own section.

@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Sparkles, Grid3x3, Compass, Gauge, HeartPulse, ShieldAlert, Hourglass } from "lucide-react";
+import {
+  Sparkles,
+  Grid3x3,
+  Compass,
+  Gauge,
+  HeartPulse,
+  ShieldAlert,
+  Hourglass,
+  Users,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
@@ -57,6 +66,7 @@ export const AdvancedPage = () => {
   const [longevity, setLongevity] = useState(null);
   const [conditions, setConditions] = useState(null);
   const [avasthas, setAvasthas] = useState(null);
+  const [friendships, setFriendships] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -71,6 +81,12 @@ export const AdvancedPage = () => {
   const [avAiModel, setAvAiModel] = useState("");
   const [avAiLoading, setAvAiLoading] = useState(false);
   const [avAiError, setAvAiError] = useState("");
+
+  // Friendships AI reading (self-contained on this card).
+  const [frAi, setFrAi] = useState("");
+  const [frAiModel, setFrAiModel] = useState("");
+  const [frAiLoading, setFrAiLoading] = useState(false);
+  const [frAiError, setFrAiError] = useState("");
 
   const birthDetails = useMemo(
     () =>
@@ -104,10 +120,13 @@ export const AdvancedPage = () => {
     setLongevity(null);
     setConditions(null);
     setAvasthas(null);
+    setFriendships(null);
     setPcAi("");
     setPcAiError("");
     setAvAi("");
     setAvAiError("");
+    setFrAi("");
+    setFrAiError("");
     let cancelled = false;
     const done = { av: false, d: false, sb: false, asp: false };
     const settle = () => {
@@ -160,6 +179,11 @@ export const AdvancedPage = () => {
       .getAvasthas(birthDetails, ayanamsa)
       .then((r) => !cancelled && setAvasthas(r.data))
       .catch(() => {});
+    // Friendships load independently.
+    astrologyService
+      .getFriendships(birthDetails, ayanamsa)
+      .then((r) => !cancelled && setFriendships(r.data))
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -204,7 +228,46 @@ export const AdvancedPage = () => {
     }
   };
 
+  const handleFriendshipsAi = async () => {
+    if (!birthDetails) return;
+    setFrAiLoading(true);
+    setFrAiError("");
+    try {
+      const res = await astrologyService.analyzeFriendshipsAI(
+        birthDetails,
+        { personName: birthDetails.name },
+        { ...readModelConfig(), ayanamsa }
+      );
+      setFrAi(res.data.ai_analysis || "");
+      setFrAiModel(res.data.model || res.data.provider || "");
+    } catch (err) {
+      setFrAiError(err.response?.data?.detail || t("friendships.aiError"));
+    } finally {
+      setFrAiLoading(false);
+    }
+  };
+
   if (!selectedProfile) return null;
+
+  const REL_TONE = { benefic: "#2E9E5B", neutral: "#8b8fa8", challenging: "#e34234" };
+  // Distinct 2-char codes (Adhimitra/Adhishatru must not both read "Ad"; Sama
+  // must not clash with Saturn's "Sa").
+  const REL_ABBR = {
+    Adhimitra: "AM",
+    Mitra: "Mi",
+    Sama: "Nu",
+    Shatru: "Sh",
+    Adhishatru: "AS",
+  };
+  const PLANET_ABBR3 = {
+    Sun: "Su",
+    Moon: "Mo",
+    Mars: "Ma",
+    Mercury: "Me",
+    Jupiter: "Ju",
+    Venus: "Ve",
+    Saturn: "Sa",
+  };
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -552,6 +615,130 @@ export const AdvancedPage = () => {
                   )}
                 </div>
                 <p className="card-note">{t("avasthas.disclaimer")}</p>
+              </Card>
+            )}
+
+            {/* Planetary friendships + house-lord placements + Parivartana */}
+            {friendships?.matrix?.length > 0 && (
+              <Card title={t("friendships.title")} icon={<Users size={24} />} accent="indigo">
+                <p className="card-intro">{t("friendships.intro")}</p>
+
+                {/* Compound-friendship matrix */}
+                <div className="table-scroll">
+                  <table className="data-table fr-matrix">
+                    <thead>
+                      <tr>
+                        <th />
+                        {friendships.planets.map((p) => (
+                          <th key={p}>{PLANET_ABBR3[p] || p}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {friendships.matrix.map((row) => (
+                        <tr key={row.planet}>
+                          <td className="fw-700 text-indigo">{PLANET_ABBR3[row.planet]}</td>
+                          {row.relations.map((r, i) => (
+                            <td
+                              key={i}
+                              className="fr-cell"
+                              style={
+                                r.self
+                                  ? { background: "rgba(139,143,168,0.18)" }
+                                  : { background: REL_TONE[r.tone], color: "#fff" }
+                              }
+                              title={r.self ? row.planet : `${row.planet} → ${r.to}: ${r.label}`}
+                            >
+                              {r.self ? "—" : REL_ABBR[r.label] || r.label.slice(0, 2)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="fr-legend">
+                  <span>
+                    <b>AM</b> Adhimitra · <b>Mi</b> Mitra
+                  </span>
+                  <span>
+                    <b>Nu</b> Sama (neutral)
+                  </span>
+                  <span>
+                    <b>Sh</b> Shatru · <b>AS</b> Adhishatru
+                  </span>
+                  <span className="card-note">{t("friendships.matrixNote")}</span>
+                </div>
+
+                {/* Parivartana */}
+                {friendships.parivartana?.length > 0 && (
+                  <div className="fr-parivartana">
+                    <b>{t("friendships.parivartana")}: </b>
+                    {friendships.parivartana.map((p, i) => (
+                      <span key={i} className="fr-pill">
+                        {p.planets[0]} ↔ {p.planets[1]} (H{p.houses[0]}/H{p.houses[1]})
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* House-lord placements */}
+                <h4 className="fr-sub">{t("friendships.houseLordsTitle")}</h4>
+                <div className="table-scroll">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>{t("friendships.house")}</th>
+                        <th>{t("friendships.lord")}</th>
+                        <th>{t("friendships.placedIn")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {friendships.house_lords.map((h) => (
+                        <tr key={h.house}>
+                          <td className="fw-600">
+                            H{h.house}
+                            <span className="av-sub"> {h.signification}</span>
+                          </td>
+                          <td>{h.lord}</td>
+                          <td>
+                            {h.lord_house ? (
+                              <>
+                                H{h.lord_house}
+                                <span className="av-sub"> {h.lord_house_signification}</span>
+                              </>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* AI reading */}
+                <div className="mt-lg">
+                  <ErrorBanner message={frAiError} />
+                  {!frAi && !frAiLoading && <p className="ai-panel__hint">{t("friendships.aiHint")}</p>}
+                  {frAiLoading && <LoadingState message={t("friendships.aiLoading")} />}
+                  {frAi && !frAiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <ReactMarkdown>{frAi}</ReactMarkdown>
+                      {frAiModel && (
+                        <div className="ai-panel__meta">
+                          {t("friendships.aiModel", { model: frAiModel })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!frAiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleFriendshipsAi}>
+                      <Sparkles size={18} />
+                      {frAi ? t("friendships.aiRegenerate") : t("friendships.aiGenerate")}
+                    </button>
+                  )}
+                </div>
               </Card>
             )}
           </>

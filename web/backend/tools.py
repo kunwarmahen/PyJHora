@@ -292,6 +292,22 @@ def _planet_conditions(bd, ayanamsa, **_):
                         for p in r.get("flagged", [])]}
 
 
+def _friendships(bd, ayanamsa, **_):
+    r = AstrologyCompute.get_friendships(ayanamsa=ayanamsa, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    return {
+        "matrix": [{"planet": row["planet"],
+                    "relations": {x["to"]: x["label"] for x in row["relations"]
+                                  if not x.get("self")}}
+                   for row in r.get("matrix", [])],
+        "house_lords": [{"house": h["house"], "lord": h["lord"],
+                         "lord_in_house": h["lord_house"]}
+                        for h in r.get("house_lords", [])],
+        "parivartana": r.get("parivartana", []),
+    }
+
+
 def _avasthas(bd, ayanamsa, **_):
     r = AstrologyCompute.get_avasthas(ayanamsa=ayanamsa, **_args(bd))
     if r.get("status") != "success":
@@ -703,6 +719,16 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _strength,
     ),
     _Tool(
+        "get_friendships",
+        "Planetary relationships in THIS chart: the compound-friendship matrix "
+        "(natural folded with temporal placement — Adhimitra great-friend → "
+        "Adhishatru great-enemy), the house-lord placements (which house each "
+        "bhava's lord occupies) and any Parivartana (mutual sign exchange). Use to "
+        "judge how planets cooperate and how houses are linked.",
+        _EMPTY_PARAMS,
+        _friendships,
+    ),
+    _Tool(
         "get_avasthas",
         "The planetary avasthas (states) for the seven grahas — Baladi (infant→"
         "dead by degree, Yuva=prime), Jagradadi (awake/dreaming/asleep by dignity) "
@@ -862,6 +888,7 @@ SECTION_TOOL: Dict[str, str] = {
     "arudhas": "get_arudha_padas",
     "conditions": "get_planet_conditions",
     "avasthas": "get_avasthas",
+    "friendships": "get_friendships",
 }
 
 # Tools with no section toggle — always available in tool mode so the model can
@@ -923,6 +950,7 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_arudha_padas":     {"label": "Arudha padas (AL/UL)",    "category": "Core chart"},
     "get_planet_conditions": {"label": "Planet conditions (combustion, vargottama…)", "category": "Core chart"},
     "get_avasthas":         {"label": "Avasthas (planetary states)", "category": "Core chart"},
+    "get_friendships":      {"label": "Planetary friendships & house lords", "category": "Core chart"},
     "get_divisional_chart": {"label": "Divisional (varga) charts", "category": "Core chart"},
     "get_life_timeline":    {"label": "Life timeline (dasha + transits)", "category": "Timing"},
     "get_saturn_transits":  {"label": "Sade Sati & Saturn transits", "category": "Timing"},

@@ -75,6 +75,7 @@ const PROFILE_READING_PATHS = new Set([
   "/api/astrology/avasthas-analysis",
   "/api/astrology/strength-analysis",
   "/api/astrology/saturn-transits-analysis",
+  "/api/astrology/friendships-analysis",
   "/api/astrology/bhrigu-markers-analysis",
   "/api/astrology/remedies-analysis",
   "/api/astrology/daily-digest-analysis",
@@ -767,6 +768,26 @@ export const astrologyService = {
   analyzeStrengthAI: (birthDetails, opts = {}, model = {}) =>
     api.post(
       "/api/astrology/strength-analysis",
+      {
+        birth_details: birthDetails,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
+  // ---- Planetary friendships + house-lord placements + Parivartana ----
+  getFriendships: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/friendships", birthDetails, { params: { ayanamsa } }),
+  analyzeFriendshipsAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/friendships-analysis",
       {
         birth_details: birthDetails,
         person_name: opts.personName,

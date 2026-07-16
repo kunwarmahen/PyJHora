@@ -1551,6 +1551,48 @@
   font-weight: 400;
 }
 
+/* Friendship matrix */
+.fr-matrix th,
+.fr-matrix td {
+  text-align: center;
+  padding: 5px 7px;
+}
+.fr-cell {
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 4px;
+}
+.fr-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+.fr-legend b {
+  color: var(--text-primary);
+}
+.fr-parivartana {
+  margin-top: 0.7rem;
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+.fr-pill {
+  display: inline-block;
+  margin: 0 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(255, 153, 51, 0.16);
+  color: var(--saffron-dark, #e07b1a);
+  font-weight: 600;
+}
+.fr-sub {
+  margin: 1.1rem 0 0.4rem;
+  color: var(--cosmic-indigo);
+  font-size: 0.98rem;
+}
+
 /* Applicable-dasha recommendation banner on the Dhasa page */
 .dasha-reco {
   padding: 0.7rem 0.85rem;
