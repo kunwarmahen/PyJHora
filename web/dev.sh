@@ -15,6 +15,9 @@
 #   ./dev.sh logs             # tail both logs
 #   ./dev.sh logs backend     # tail one log
 #
+#   ./dev.sh test             # backend golden-value + endpoint tests (§3.2)
+#   ./dev.sh test engine      # also smoke-run PyJHora's own ~1,500 tests
+#
 # Production frontend (optimized static build via `npm run build`):
 #   ./dev.sh build-web        # build the optimized bundle -> frontend/build
 #   ./dev.sh serve            # serve the production build (:3000, SPA routing)
@@ -407,6 +410,26 @@ nas_ps()    { require_nas_host; nas_ssh_open; trap 'nas_ssh_close' EXIT;
 nas_shell() { require_nas_host; local svc="${1:-backend}"; nas_ssh_open; trap 'nas_ssh_close' EXIT; info "shell into '$svc' on ${NAS_HOST} ...";
               nas_ssh -t "cd '${NAS_PATH}' && sudo docker compose exec $svc /bin/sh"; nas_ssh_close; trap - EXIT; }
 
+# --- tests --------------------------------------------------------------
+# Backend golden-value + endpoint smoke tests (§3.2). `./dev.sh test engine`
+# additionally smoke-runs PyJHora's own ~1,500-test suite so an engine version
+# bump can be validated.
+backend_py() {  # echo the backend interpreter
+  if [ -x "$BACKEND_DIR/venv/bin/python" ]; then echo "$BACKEND_DIR/venv/bin/python";
+  else echo python; fi
+}
+run_tests() {
+  local py; py="$(backend_py)"
+  info "running backend golden + endpoint tests ..."
+  ( cd "$BACKEND_DIR" && "$py" -m pytest tests/ -q "$@" )
+}
+run_engine_tests() {
+  local py; py="$(backend_py)"
+  info "smoke-running PyJHora's own test suite (src/jhora/tests/pvr_tests.py) ..."
+  ( cd "$ROOT_DIR/.." && "$py" -m pytest src/jhora/tests/pvr_tests.py -q ) \
+    || err "engine tests reported failures (review before trusting a version bump)"
+}
+
 # --- dispatch -----------------------------------------------------------
 ACTION="${1:-}"
 TARGET="${2:-both}"
@@ -440,6 +463,13 @@ case "$ACTION" in
       *) err "unknown target '$TARGET'"; exit 1 ;;
     esac
     ;;
+  test|tests)
+    case "${2:-}" in
+      engine) run_engine_tests ;;
+      "")     run_tests ;;
+      *)      run_tests "${@:2}" ;;
+    esac
+    ;;
   build-web|webbuild) build_web ;;
   serve)   serve_frontend ;;
   build)   container_build ;;
@@ -459,7 +489,7 @@ case "$ACTION" in
     esac
     ;;
   ""|-h|--help|help)
-    sed -n '2,41p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,44p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     ;;
   *)
     err "unknown action '$ACTION'"

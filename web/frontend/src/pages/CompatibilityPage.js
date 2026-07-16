@@ -2,7 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
-import { Heart, User, Users, Sparkles, GitCompareArrows, Grid3x3, ListChecks, Flame } from "lucide-react";
+import {
+  Heart, User, Users, Sparkles, GitCompareArrows, Grid3x3, ListChecks, Flame,
+  Home, CalendarRange, Shield,
+} from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash, errorMessage } from "../utils/format";
 import { astrologyService } from "../services/api";
@@ -14,6 +17,7 @@ import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
+import { MarriageTimeline } from "../components/MarriageTimeline";
 import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
@@ -42,6 +46,109 @@ const toBirthDetails = (p) => ({
   timezone: parseFloat(p.birth_details.timezone),
 });
 
+// Marriage significators whose Mahadasha activates relationship themes for a
+// person: their own 7th lord plus the two universal karakas (Venus, Jupiter).
+const significantLords = (person) => {
+  const s = new Set(["Venus", "Jupiter"]);
+  if (person?.seventh_lord) s.add(person.seventh_lord);
+  return s;
+};
+
+// One partner's 7th-house deep-dive card (§2.6).
+const SeventhPersonCard = ({ t, name, m, accent }) => {
+  if (!m) return null;
+  const lord = m.seventh_lord_condition || {};
+  const ven = m.karakas?.Venus || {};
+  const jup = m.karakas?.Jupiter || {};
+  const cond = (c) =>
+    c && c.sign
+      ? `${c.sign} · ${t("compat.seventh.house")} ${c.house} · ${c.dignity}${
+          c.retrograde ? ` · ${t("compat.seventh.retro")}` : ""
+        } · ${t("compat.seventh.navamsa")} ${c.navamsa_sign}`
+      : "—";
+  return (
+    <div className={`ui-card ui-card--pad-lg ui-card--accent-${accent === "saffron" ? "saffron" : "vermillion"}`}>
+      <h5 className="compat-person__name">{name}</h5>
+      <div className="detail-list">
+        <div>
+          <strong>{t("compat.seventh.lagna")}:</strong> {m.lagna_sign}
+        </div>
+        <div>
+          <strong>{t("compat.seventh.seventhSign")}:</strong> {m.seventh_sign}
+        </div>
+        <div>
+          <strong>{t("compat.seventh.seventhLord")} ({m.seventh_lord}):</strong> {cond(lord)}
+        </div>
+        <div>
+          <strong>{t("compat.seventh.occupants")}:</strong>{" "}
+          {m.occupants?.length
+            ? m.occupants.map((o) => `${o.name} (${o.dignity})`).join(", ")
+            : t("compat.seventh.none")}
+        </div>
+        <div>
+          <strong>{t("compat.seventh.venus")}:</strong> {cond(ven)}
+        </div>
+        <div>
+          <strong>{t("compat.seventh.jupiter")}:</strong> {cond(jup)}
+        </div>
+        {m.upapada && (
+          <div>
+            <strong>{t("compat.seventh.upapada")}:</strong> {m.upapada.sign} ({m.upapada.lord})
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const SeventhHousePanel = ({ t, marriage, nameA, nameB }) => {
+  const sh = marriage?.seventh_house;
+  if (!sh) return <p className="card-note">{t("compat.seventh.intro")}</p>;
+  return (
+    <div className="fade-in">
+      <h4 className="card-subhead">
+        <Home size={20} />
+        {t("compat.seventh.title")}
+      </h4>
+      <p className="card-note">{t("compat.seventh.intro")}</p>
+      <div className="person-grid">
+        <SeventhPersonCard t={t} name={nameA} m={sh.male} accent="saffron" />
+        <SeventhPersonCard t={t} name={nameB} m={sh.female} accent="vermillion" />
+      </div>
+    </div>
+  );
+};
+
+// One partner's current Saturn (Sade Sati / Ashtama / Kantaka) status.
+const SaturnOutlook = ({ t, name, data }) => {
+  const cur = data?.current || {};
+  const rows = [
+    { key: "sadeSati", label: t("compat.timeline.sadeSati"), p: cur.sade_sati },
+    { key: "ashtama", label: t("compat.timeline.ashtama"), p: cur.ashtama },
+    { key: "kantaka", label: t("compat.timeline.kantaka"), p: cur.kantaka },
+  ].filter((r) => r.p);
+  return (
+    <div className="ui-card ui-card--pad-lg">
+      <h5 className="compat-person__name">{name}</h5>
+      {rows.length ? (
+        <ul className="detail-list">
+          {rows.map((r) => (
+            <li key={r.key} className="rem-row--weak">
+              <strong>{r.label}</strong>
+              {r.p?.current_phase ? ` — ${r.p.current_phase}` : ""}{" "}
+              <span className="text-secondary">
+                ({r.p.start_date} → {r.p.end_date})
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-secondary">{t("compat.timeline.clear")}</p>
+      )}
+    </div>
+  );
+};
+
 export const CompatibilityPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -54,11 +161,21 @@ export const CompatibilityPage = () => {
 
   const [secondProfile, setSecondProfile] = useState(null);
   const [ctab, setCtab] = useState("ashtakoot");
+  // Top-level workspace tab: Guna Milan (score) / 7th House / Timeline (§2.6).
+  const [wtab, setWtab] = useState("guna");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [chartA, setChartA] = useState(null);
   const [chartB, setChartB] = useState(null);
+  const [marriage, setMarriage] = useState(null);
+  // Timeline data is fetched lazily the first time the Timeline tab is opened.
+  const [dashaA, setDashaA] = useState(null);
+  const [dashaB, setDashaB] = useState(null);
+  const [saturnA, setSaturnA] = useState(null);
+  const [saturnB, setSaturnB] = useState(null);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineError, setTimelineError] = useState("");
 
   // AI analysis is on-demand (uses the model picked in "Ask Astrologer").
   const [aiLoading, setAiLoading] = useState(false);
@@ -109,6 +226,13 @@ export const CompatibilityPage = () => {
     setResult(null);
     setChartA(null);
     setChartB(null);
+    setMarriage(null);
+    setDashaA(null);
+    setDashaB(null);
+    setSaturnA(null);
+    setSaturnB(null);
+    setTimelineError("");
+    setWtab("guna");
     setAiAnalysis("");
     setAiError("");
     setAiModel("");
@@ -129,12 +253,14 @@ export const CompatibilityPage = () => {
     const person2Data = toBirthDetails(secondProfile);
 
     try {
-      // Score + both birth charts in parallel — the charts power the side-by-side
-      // visual comparison, the score powers the Ashtakoot breakdown.
-      const [compat, ra, rb] = await Promise.all([
+      // Score + both birth charts (D1 + D9) + the 7th-house workspace in
+      // parallel — the charts power the side-by-side visual comparison, the
+      // score powers the Ashtakoot breakdown, the workspace the 7th-house tab.
+      const [compat, ra, rb, mw] = await Promise.all([
         astrologyService.getCompatibility(person1Data, person2Data),
         astrologyService.calculateBirthChart(person1Data, ayanamsa),
         astrologyService.calculateBirthChart(person2Data, ayanamsa),
+        astrologyService.getMarriageWorkspace(person1Data, person2Data, ayanamsa).catch(() => null),
       ]);
       if (compat.data?.error) {
         setError(compat.data.error);
@@ -143,12 +269,48 @@ export const CompatibilityPage = () => {
       setResult(compat.data);
       setChartA(ra.data);
       setChartB(rb.data);
+      if (mw?.data?.status === "success") setMarriage(mw.data);
     } catch (err) {
       setError(errorMessage(err, t("compat.calcError")));
     } finally {
       setLoading(false);
     }
   };
+
+  // Lazily load the dasha-overlap + Saturn-outlook data the first time the
+  // Timeline tab is opened (heavier calls kept off the main compatibility path).
+  useEffect(() => {
+    if (wtab !== "timeline" || !result || !secondProfile) return;
+    if (dashaA && dashaB) return; // already loaded
+    let cancelled = false;
+    const p1 = toBirthDetails(selectedProfile);
+    const p2 = toBirthDetails(secondProfile);
+    setTimelineLoading(true);
+    setTimelineError("");
+    Promise.all([
+      astrologyService.getDhasa(p1),
+      astrologyService.getDhasa(p2),
+      astrologyService.getSaturnTransits(p1, ayanamsa).catch(() => null),
+      astrologyService.getSaturnTransits(p2, ayanamsa).catch(() => null),
+    ])
+      .then(([da, db, sa, sb]) => {
+        if (cancelled) return;
+        setDashaA(da.data);
+        setDashaB(db.data);
+        setSaturnA(sa?.data || null);
+        setSaturnB(sb?.data || null);
+      })
+      .catch(() => {
+        if (!cancelled) setTimelineError(t("compat.timeline.error"));
+      })
+      .finally(() => {
+        if (!cancelled) setTimelineLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wtab, result, secondProfile]);
 
   const handleAiAnalysis = async () => {
     if (!secondProfile) return;
@@ -322,6 +484,21 @@ export const CompatibilityPage = () => {
               )}
             </div>
 
+            {/* Workspace tabs: Guna Milan / 7th House / Timeline (§2.6) */}
+            <div className="chart-toggle chart-toggle--workspace" style={{ marginTop: "var(--space-lg)" }}>
+              <button className={`chart-toggle__btn ${wtab === "guna" ? "is-active" : ""}`} onClick={() => setWtab("guna")}>
+                <Heart size={16} /> {t("compat.ws.gunaMilan")}
+              </button>
+              <button className={`chart-toggle__btn ${wtab === "seventh" ? "is-active" : ""}`} onClick={() => setWtab("seventh")}>
+                <Home size={16} /> {t("compat.ws.seventhHouse")}
+              </button>
+              <button className={`chart-toggle__btn ${wtab === "timeline" ? "is-active" : ""}`} onClick={() => setWtab("timeline")}>
+                <CalendarRange size={16} /> {t("compat.ws.timeline")}
+              </button>
+            </div>
+
+            {wtab === "guna" && (
+            <>
             {/* System tabs: Ashtakoot / Dashakoota / Mangal dosha */}
             <div className="chart-toggle" style={{ marginTop: "var(--space-lg)" }}>
               <button className={`chart-toggle__btn ${ctab === "ashtakoot" ? "is-active" : ""}`} onClick={() => setCtab("ashtakoot")}>
@@ -431,32 +608,79 @@ export const CompatibilityPage = () => {
               </>
             )}
 
-            {/* Side-by-side charts for visual comparison */}
+            {/* Side-by-side charts for visual comparison — Rasi (D1) + Navamsa (D9) */}
             {chartA && chartB && (
               <>
                 <h4 className="card-subhead">
                   <GitCompareArrows size={20} />
-                  {t("compat.charts")}
+                  {t("compat.charts")} — {t("varga.rasiD1", "Rasi (D1)")}
                 </h4>
                 <div className="chart-grid" style={{ marginBottom: "var(--space-xl)" }}>
                   <Card title={nameA} accent="saffron">
-                    <Kundali
-                      planets={chartA.planets}
-                      lagna={chartA.lagna}
-                      title={nameA}
-                      exportable
-                    />
+                    <Kundali planets={chartA.planets} lagna={chartA.lagna} title={nameA} exportable />
                   </Card>
                   <Card title={nameB} accent="vermillion">
-                    <Kundali
-                      planets={chartB.planets}
-                      lagna={chartB.lagna}
-                      title={nameB}
-                      exportable
-                    />
+                    <Kundali planets={chartB.planets} lagna={chartB.lagna} title={nameB} exportable />
                   </Card>
                 </div>
+                {chartA.d9_chart && chartB.d9_chart && (
+                  <>
+                    <h4 className="card-subhead">
+                      <GitCompareArrows size={20} />
+                      {t("compat.charts")} — {t("varga.navamsaD9", "Navamsa (D9) — marriage")}
+                    </h4>
+                    <div className="chart-grid" style={{ marginBottom: "var(--space-xl)" }}>
+                      <Card title={nameA} accent="saffron">
+                        <Kundali planets={chartA.d9_chart} lagna={chartA.d9_lagna} title={`${nameA} · D9`} exportable />
+                      </Card>
+                      <Card title={nameB} accent="vermillion">
+                        <Kundali planets={chartB.d9_chart} lagna={chartB.d9_lagna} title={`${nameB} · D9`} exportable />
+                      </Card>
+                    </div>
+                  </>
+                )}
               </>
+            )}
+            </>
+            )}
+
+            {wtab === "seventh" && (
+              <SeventhHousePanel t={t} marriage={marriage} nameA={nameA} nameB={nameB} />
+            )}
+
+            {wtab === "timeline" && (
+              <div className="fade-in">
+                <h4 className="card-subhead">
+                  <CalendarRange size={20} />
+                  {t("compat.timeline.title")}
+                </h4>
+                <p className="card-note">{t("compat.timeline.intro")}</p>
+                {timelineError && <ErrorBanner message={timelineError} />}
+                {timelineLoading ? (
+                  <LoadingState message={t("compat.timeline.loading")} />
+                ) : (
+                  <>
+                    <MarriageTimeline
+                      t={t}
+                      nameA={nameA}
+                      nameB={nameB}
+                      dashaA={dashaA}
+                      dashaB={dashaB}
+                      sigA={significantLords(marriage?.seventh_house?.male)}
+                      sigB={significantLords(marriage?.seventh_house?.female)}
+                    />
+                    <h4 className="card-subhead" style={{ marginTop: "var(--space-xl)" }}>
+                      <Shield size={20} />
+                      {t("compat.timeline.saturnTitle")}
+                    </h4>
+                    <p className="card-note">{t("compat.timeline.saturnIntro")}</p>
+                    <div className="person-grid">
+                      <SaturnOutlook t={t} name={nameA} data={saturnA} accent="saffron" />
+                      <SaturnOutlook t={t} name={nameB} data={saturnB} accent="vermillion" />
+                    </div>
+                  </>
+                )}
+              </div>
             )}
 
             {/* AI Analysis (on-demand) */}

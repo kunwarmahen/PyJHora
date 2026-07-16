@@ -60,6 +60,13 @@ const ordinal = (n) => {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 };
 
+// Map the backend bindu_strength to a localized chip label key.
+const STRENGTH_LABEL_KEY = {
+  good: "transit.supportGood",
+  neutral: "transit.supportNeutral",
+  weak: "transit.supportWeak",
+};
+
 export const TransitPage = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -295,6 +302,7 @@ export const TransitPage = () => {
                         <th>{t("common.nakshatra")}</th>
                         <th className="text-center">{t("transit.fromLagna")}</th>
                         <th className="text-center">{t("transit.fromMoon")}</th>
+                        <th className="text-center">{t("transit.support")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -327,12 +335,35 @@ export const TransitPage = () => {
                           <td className="text-center fw-600 text-vermillion">
                             {ordinal(p.house_from_moon)}
                           </td>
+                          <td className="text-center">
+                            {p.bindu_strength ? (
+                              <span
+                                className={`bindu-chip bindu-chip--${p.bindu_strength}`}
+                                title={
+                                  p.bav_bindus != null
+                                    ? t("transit.binduTitle", {
+                                        bav: p.bav_bindus,
+                                        sav: p.sav_bindus,
+                                      })
+                                    : t("transit.binduTitleSav", { sav: p.sav_bindus })
+                                }
+                              >
+                                {p.bav_bindus != null ? p.bav_bindus : p.sav_bindus}
+                                <span className="bindu-chip__label">
+                                  {t(STRENGTH_LABEL_KEY[p.bindu_strength])}
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="text-muted">—</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
                 <p className="card-note">{t("transit.houseNote")}</p>
+                <p className="card-note">{t("transit.supportNote")}</p>
               </div>
             </div>
 

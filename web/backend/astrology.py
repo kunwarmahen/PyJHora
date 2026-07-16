@@ -1641,6 +1641,53 @@ class AstrologyCompute:
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
 
+    # The 8 BAV contributors, in Jyotir AI's order.
+    _BAV_CONTRIBUTORS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter",
+                         "Venus", "Saturn", "Ascendant"]
+
+    @staticmethod
+    def _ashtakavarga_tables(jd: float, place_obj) -> tuple:
+        """Compute the natal Bhinna + Sarva bindu tables from a chart.
+
+        Returns (bhinna, sarva) where `bhinna` maps each of the 8 contributors to
+        a 12-element sign-indexed bindu row and `sarva` is the 12-element combined
+        Sarvashtakavarga row. Shared by the Ashtakavarga endpoint and the transit
+        join (§2.4) so both read identical numbers."""
+        pp = charts.rasi_chart(jd, place_obj)
+        h2p = utils.get_house_planet_list_from_planet_positions(pp)
+        bav, sav, _ = ashtakavarga.get_ashtaka_varga(h2p)
+        bhinna = {
+            AstrologyCompute._BAV_CONTRIBUTORS[i]: [int(x) for x in row]
+            for i, row in enumerate(bav)
+        }
+        sarva = [int(x) for x in sav]
+        return bhinna, sarva
+
+    @staticmethod
+    def _bindu_chip(own_bav, sav_bindu) -> tuple:
+        """Classical transit-strength chip for a graha over a given sign.
+
+        The rule of thumb: a transit over a sign carrying more bindus in the
+        graha's *own* Bhinnashtakavarga is supported, fewer is rough (own BAV
+        >=5 good, ==4 neutral, <=3 weak on the 0-8 scale). The lunar nodes have
+        no BAV of their own, so they fall back to the Sarva bindu total for the
+        sign (>=30 good, >=25 neutral, else weak on the ~0-56 scale, avg ~28).
+        Returns (strength, label)."""
+        if own_bav is not None:
+            if own_bav >= 5:
+                return "good", "Supported"
+            if own_bav == 4:
+                return "neutral", "Neutral"
+            return "weak", "Rough"
+        # Nodes: judge on Sarvashtakavarga alone.
+        if sav_bindu is not None:
+            if sav_bindu >= 30:
+                return "good", "Supported"
+            if sav_bindu >= 25:
+                return "neutral", "Neutral"
+            return "weak", "Rough"
+        return "neutral", "Neutral"
+
     @staticmethod
     def get_ashtakavarga(dob: str, tob: str, place: str,
                          lat: Optional[float] = None, lon: Optional[float] = None,
@@ -1658,22 +1705,13 @@ class AstrologyCompute:
                 lat, lon = 13.0827, 80.2707
             place_obj = drik.Place(place, lat, lon, tz or 5.5)
             jd = swe.julday(year, month, day, hour + minute / 60.0)
-            pp = charts.rasi_chart(jd, place_obj)
-            h2p = utils.get_house_planet_list_from_planet_positions(pp)
-            bav, sav, _ = ashtakavarga.get_ashtaka_varga(h2p)
-            # The 8 BAV contributors, in Jyotir AI's order.
-            contributors = ["Sun", "Moon", "Mars", "Mercury", "Jupiter",
-                            "Venus", "Saturn", "Ascendant"]
-            bhinna = {
-                contributors[i]: [int(x) for x in row]
-                for i, row in enumerate(bav)
-            }
+            bhinna, sarva = AstrologyCompute._ashtakavarga_tables(jd, place_obj)
             return {
                 "status": "success",
                 "signs": ZODIAC_NAMES,
                 "bhinna": bhinna,
-                "sarva": [int(x) for x in sav],
-                "sarva_total": int(sum(sav)),
+                "sarva": sarva,
+                "sarva_total": int(sum(sarva)),
             }
         except Exception as e:
             print(f"Ashtakavarga error: {str(e)}")
@@ -4600,15 +4638,23 @@ class AstrologyCompute:
                 planets = transits.get("planets", {})
                 sat = planets.get("Saturn", {})
                 jup = planets.get("Jupiter", {})
+                def _bindu_note(p):
+                    # Ashtakavarga support for the sign a slow mover now occupies (§2.4).
+                    b = p.get("bav_bindus")
+                    if b is None:
+                        return ""
+                    return (f" — {b}-bindu sign in its own Ashtakavarga "
+                            f"({p.get('bindu_label', '').lower()})")
                 if sat.get("house_from_moon") in (12, 1, 2):
                     phase = {12: "first (rising)", 1: "peak (janma)",
                              2: "final (setting)"}[sat["house_from_moon"]]
                     highlights.append(f"Saturn is in your {sat['house_from_moon']}th from "
-                                      f"the Moon — Sade-Sati {phase} phase")
+                                      f"the Moon — Sade-Sati {phase} phase"
+                                      + _bindu_note(sat))
                 if jup:
                     highlights.append(
                         f"Jupiter transits your {jup.get('house_from_moon')}th from the Moon "
-                        f"({jup.get('sign_name')})")
+                        f"({jup.get('sign_name')}){_bindu_note(jup)}")
                 retro = [name for name, p in planets.items() if p.get("retrograde")]
                 if retro:
                     highlights.append("Retrograde now: " + ", ".join(retro))
@@ -6039,6 +6085,17 @@ class AstrologyCompute:
             natal_lagna_deg = natal[0][1][1]
             natal_moon_rasi, natal_moon_deg = natal[2][1]  # row 2 = Moon (planet 1)
 
+            # ── Ashtakavarga bindu tables from the natal chart (§2.4) ───────
+            # Used to weight each transit: a graha over a sign rich in its own
+            # bindus is supported, poor in bindus is rough. Best-effort — a
+            # failure here must not sink the whole transit response.
+            try:
+                av_bhinna, av_sarva = AstrologyCompute._ashtakavarga_tables(
+                    natal_jd, place_obj)
+            except Exception as ae:
+                print(f"Transit ashtakavarga join failed: {ae}")
+                av_bhinna, av_sarva = {}, None
+
             # ── Transit moment ──────────────────────────────────────────────
             # Anchor to the *viewer's* current location: their wall-clock time and
             # timezone, not the birthplace's. This keeps fast movers (especially the
@@ -6078,6 +6135,10 @@ class AstrologyCompute:
                 abs_long = rasi * 30.0 + degrees
                 nak_idx = int(abs_long / nak_span)
                 pada = int((abs_long % nak_span) / pada_span) + 1
+                # Ashtakavarga bindus for the sign this graha now occupies.
+                own_bav = av_bhinna.get(name, [None] * 12)[rasi] if av_bhinna else None
+                sav_bindu = av_sarva[rasi] if av_sarva else None
+                strength, chip = AstrologyCompute._bindu_chip(own_bav, sav_bindu)
                 planets[name] = {
                     "house": rasi + 1,  # 1-based sign for the Kundali component
                     "rasi": rasi,
@@ -6088,6 +6149,10 @@ class AstrologyCompute:
                     "retrograde": planet_index in retro_ids,
                     "house_from_lagna": house_from(natal_lagna_rasi, rasi),
                     "house_from_moon": house_from(natal_moon_rasi, rasi),
+                    "bav_bindus": own_bav,
+                    "sav_bindus": sav_bindu,
+                    "bindu_strength": strength,
+                    "bindu_label": chip,
                 }
 
             # ── Upcoming sign ingresses for the slow movers ─────────────────
@@ -6138,6 +6203,8 @@ class AstrologyCompute:
                 },
                 "planets": planets,
                 "upcoming": upcoming,
+                # SAV row so the frontend can show a bindu legend / context (§2.4).
+                "ashtakavarga": {"sarva": av_sarva} if av_sarva else None,
             }
 
         except Exception as e:
@@ -7154,6 +7221,133 @@ class AstrologyCompute:
         except Exception as e:
             print(f"Compatibility calculation error: {e}")
             return {"error": str(e)}
+
+    @staticmethod
+    def _marriage_person_analysis(jd: float, place_obj) -> Dict:
+        """7th-house (marriage) deep-dive for one chart (§2.6 workspace).
+
+        Reports the 7th sign + its lord's condition/placement, the occupants of
+        the 7th, the two spouse karakas (Venus = kalatra/wife, Jupiter = husband)
+        with dignity + navamsa sign, and the Upapada Lagna (UL) — the classical
+        marriage arudha. Pure read-off of the natal Rasi + Navamsa; no new engine
+        work, just the marriage-relevant slice surfaced in one place."""
+        pp = charts.rasi_chart(jd, place_obj)
+        d9 = charts.divisional_chart(jd, place_obj, divisional_chart_factor=9)
+        # planet index -> sign, for D1 and D9.
+        d1_sign = {pid: s for pid, (s, _l) in pp[1:] if pid in PLANET_NAMES}
+        d9_sign = {pid: s for pid, (s, _l) in d9[1:] if pid in PLANET_NAMES}
+        idx_of = {name: pid for pid, name in PLANET_NAMES.items()}
+        retro = set(drik.planets_in_retrograde(jd, place_obj))
+
+        lagna = pp[0][1][0]
+        seventh_sign = (lagna + 6) % 12
+
+        def _dignity(name, sign0):
+            if sign0 is None:
+                return "—"
+            ex = EXALTATION_SIGN.get(name)
+            if ex is not None:
+                if sign0 == ex:
+                    return "exalted"
+                if sign0 == (ex + 6) % 12:
+                    return "debilitated"
+            if sign0 in OWN_SIGNS.get(name, set()):
+                return "own sign"
+            return "neutral"
+
+        def _planet_condition(name):
+            pid = idx_of.get(name)
+            s = d1_sign.get(pid)
+            if s is None:
+                return None
+            return {
+                "sign": ZODIAC_NAMES[s],
+                "house": ((s - lagna) % 12) + 1,
+                "dignity": _dignity(name, s),
+                "retrograde": pid in retro,
+                "navamsa_sign": ZODIAC_NAMES[d9_sign[pid]] if pid in d9_sign else "—",
+            }
+
+        seventh_lord = RASI_LORDS[seventh_sign]
+        occupants = [
+            {"name": PLANET_NAMES[pid],
+             "dignity": _dignity(PLANET_NAMES[pid], s),
+             "retrograde": pid in retro}
+            for pid, s in sorted(d1_sign.items())
+            if s == seventh_sign
+        ]
+
+        # Upapada Lagna = arudha of the 12th bhava.
+        upapada = None
+        try:
+            ba = arudhas.bhava_arudhas_from_planet_positions(pp)
+            ul_sign = int(ba[11]) % 12
+            upapada = {"sign": ZODIAC_NAMES[ul_sign], "lord": RASI_LORDS[ul_sign]}
+        except Exception as ue:
+            print(f"Marriage UL error: {ue}")
+
+        return {
+            "lagna_sign": ZODIAC_NAMES[lagna],
+            "seventh_sign": ZODIAC_NAMES[seventh_sign],
+            "seventh_lord": seventh_lord,
+            "seventh_lord_condition": _planet_condition(seventh_lord),
+            "occupants": occupants,
+            "karakas": {
+                "Venus": _planet_condition("Venus"),
+                "Jupiter": _planet_condition("Jupiter"),
+            },
+            "upapada": upapada,
+        }
+
+    @staticmethod
+    def get_marriage_workspace(male_dob: str, male_tob: str, male_place: str,
+                               female_dob: str, female_tob: str, female_place: str,
+                               male_lat: Optional[float] = None, male_lon: Optional[float] = None,
+                               female_lat: Optional[float] = None, female_lon: Optional[float] = None,
+                               male_tz: Optional[float] = None, female_tz: Optional[float] = None,
+                               ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """The marriage/relationship workspace 7th-house layer (§2.6).
+
+        Returns the 7th-house deep-dive for both partners in one payload. The
+        dasha-overlap timeline and the shared Saturn-transit outlook are composed
+        on the frontend from the existing dasha + saturn-transit endpoints (both
+        partners), and the side-by-side D1/D9 charts come from the birth-chart
+        endpoint — so this method owns only the marriage-specific analysis that
+        nothing else exposes."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+
+            def _jd_place(dob, tob, place, lat, lon, person_tz):
+                y, m, d = map(int, dob.split("-"))
+                tp = tob.split(":")
+                hh = int(tp[0]); mm = int(tp[1]) if len(tp) > 1 else 0
+                if not lat or not lon:
+                    lat, lon = 13.0827, 80.2707
+                jd = swe.julday(y, m, d, hh + mm / 60.0)
+                return jd, drik.Place(place, lat, lon,
+                                      person_tz if person_tz is not None else 5.5)
+
+            m_jd, m_place = _jd_place(male_dob, male_tob, male_place,
+                                      male_lat, male_lon, male_tz)
+            f_jd, f_place = _jd_place(female_dob, female_tob, female_place,
+                                      female_lat, female_lon, female_tz)
+
+            return {
+                "status": "success",
+                "seventh_house": {
+                    "male": AstrologyCompute._marriage_person_analysis(m_jd, m_place),
+                    "female": AstrologyCompute._marriage_person_analysis(f_jd, f_place),
+                },
+            }
+        except Exception as e:
+            print(f"Marriage workspace error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
     def get_pancha_pakshi(dob: str, tob: str, place: str,

@@ -355,10 +355,15 @@ class LLMService:
                                    male_chart: Dict[str, Any],
                                    female_chart: Dict[str, Any],
                                    koota_score: int,
+                                   marriage: Optional[Dict[str, Any]] = None,
                                    provider: LLMProvider = LLMProvider.QWEN,
                                    config: Optional[ModelConfig] = None) -> str:
-        """Generate compatibility analysis."""
-        prompt = self._build_compatibility_prompt(male_chart, female_chart, koota_score)
+        """Generate compatibility analysis.
+
+        `marriage` (optional) is the §2.6 7th-house workspace block for both
+        partners; when present it sharpens the couple reading with the marriage
+        houses/karakas rather than Guna Milan alone."""
+        prompt = self._build_compatibility_prompt(male_chart, female_chart, koota_score, marriage)
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
         return await self._complete(prompt, cfg)
 
@@ -1787,8 +1792,44 @@ IMPORTANT INSTRUCTIONS:
             + "more information — you have the complete chart and today's date."
         )
 
+    def _format_marriage_block(self, marriage: Dict[str, Any]) -> str:
+        """A compact 7th-house summary for both partners (§2.6), for the couple
+        prompt. Empty string when no workspace data was supplied."""
+        sh = (marriage or {}).get("seventh_house") or {}
+        if not sh:
+            return ""
+
+        def _one(label: str, m: Dict[str, Any]) -> str:
+            if not m:
+                return ""
+            lord = m.get("seventh_lord_condition") or {}
+            ka = m.get("karakas") or {}
+            ven = ka.get("Venus") or {}
+            jup = ka.get("Jupiter") or {}
+            ul = m.get("upapada") or {}
+            occ = ", ".join(o.get("name", "") for o in m.get("occupants", [])) or "none"
+            return (
+                f"--- {label} ---\n"
+                f"7th house: {m.get('seventh_sign', '?')} (lord {m.get('seventh_lord', '?')})\n"
+                f"7th lord {m.get('seventh_lord', '?')}: {lord.get('sign', '?')}, "
+                f"house {lord.get('house', '?')}, {lord.get('dignity', '?')}"
+                f"{', retrograde' if lord.get('retrograde') else ''}, "
+                f"navamsa {lord.get('navamsa_sign', '?')}\n"
+                f"Occupants of 7th: {occ}\n"
+                f"Venus (kalatra karaka): {ven.get('sign', '?')}, house {ven.get('house', '?')}, "
+                f"{ven.get('dignity', '?')}, navamsa {ven.get('navamsa_sign', '?')}\n"
+                f"Jupiter (husband karaka): {jup.get('sign', '?')}, house {jup.get('house', '?')}, "
+                f"{jup.get('dignity', '?')}, navamsa {jup.get('navamsa_sign', '?')}\n"
+                f"Upapada (UL): {ul.get('sign', '?')} (lord {ul.get('lord', '?')})\n"
+            )
+
+        return ("\n=== 7TH-HOUSE (MARRIAGE) ANALYSIS ===\n"
+                + _one("MALE", sh.get("male"))
+                + _one("FEMALE", sh.get("female")))
+
     def _build_compatibility_prompt(self, male_chart: Dict[str, Any],
-                                   female_chart: Dict[str, Any], koota_score: int) -> str:
+                                   female_chart: Dict[str, Any], koota_score: int,
+                                   marriage: Optional[Dict[str, Any]] = None) -> str:
         """Build prompt for compatibility analysis"""
 
         male_lagna = male_chart.get("lagna", {})
@@ -1812,7 +1853,7 @@ Sun Sign: {female_sun.get('sign_name', 'Unknown')}
 
 === COMPATIBILITY SCORE ===
 Ashta Koota Score: {koota_score}/36 (Calculated using traditional Vedic methods)
-
+{self._format_marriage_block(marriage)}
 Interpretation:
 - 28-36: Excellent compatibility
 - 24-27: Good compatibility

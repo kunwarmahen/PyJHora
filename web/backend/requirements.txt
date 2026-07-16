@@ -34,3 +34,6 @@ timezonefinder==8.1.0
 pytz==2025.2
 python-dateutil==2.9.0.post0
 requests==2.32.5
+# Test suite (§3.2) — golden-value + endpoint smoke tests (httpx above drives the
+# ASGI app on the main thread; see web/backend/tests/).
+pytest==9.1.1

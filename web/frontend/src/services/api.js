@@ -524,6 +524,13 @@ export const astrologyService = {
       female_longitude: femaleBirthDetails.longitude,
       female_timezone: femaleBirthDetails.timezone,
     }),
+  // 7th-house marriage workspace for a couple (§2.6).
+  getMarriageWorkspace: (maleBirthDetails, femaleBirthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/marriage-workspace", {
+      male_details: maleBirthDetails,
+      female_details: femaleBirthDetails,
+      ayanamsa,
+    }),
   getUserCharts: () => api.get("/api/user/charts"),
 
   // ---- Muhurta / electional astrology (§16) ----

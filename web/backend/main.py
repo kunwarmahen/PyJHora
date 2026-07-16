@@ -150,6 +150,14 @@ class CompatibilityRequest(BaseModel):
     female_longitude: Optional[float] = None
     female_timezone: Optional[float] = None
 
+class MarriageWorkspaceRequest(BaseModel):
+    """7th-house marriage workspace for a couple (§2.6). BirthDetails for both
+    partners — the dasha overlap + Saturn outlook + D1/D9 charts are composed on
+    the frontend from the existing per-person endpoints."""
+    male_details: BirthDetails
+    female_details: BirthDetails
+    ayanamsa: Optional[str] = None
+
 class CompatibilityAnalysisRequest(BaseModel):
     male_details: BirthDetails
     female_details: BirthDetails
@@ -1953,6 +1961,25 @@ async def get_compatibility(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/astrology/marriage-workspace")
+async def get_marriage_workspace(
+    request: MarriageWorkspaceRequest,
+    current_user: str = Depends(get_current_user)
+):
+    """7th-house marriage deep-dive for both partners (§2.6 workspace)."""
+    try:
+        m = request.male_details
+        f = request.female_details
+        return AstrologyCompute.get_marriage_workspace(
+            male_dob=m.dob, male_tob=m.tob, male_place=m.place,
+            male_lat=m.latitude, male_lon=m.longitude, male_tz=m.timezone,
+            female_dob=f.dob, female_tob=f.tob, female_place=f.place,
+            female_lat=f.latitude, female_lon=f.longitude, female_tz=f.timezone,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============= USER ROUTES =============
 
 @app.get("/api/user/profile")
@@ -2539,6 +2566,24 @@ async def analyze_compatibility(
             tz=female_details.timezone, ayanamsa=ayanamsa,
         )
 
+        # 7th-house marriage workspace (§2.6) — sharpens the couple reading with
+        # the marriage houses/karakas. Best-effort: a failure just omits it.
+        marriage = None
+        try:
+            mw = AstrologyCompute.get_marriage_workspace(
+                male_dob=male_details.dob, male_tob=male_details.tob,
+                male_place=male_details.place, male_lat=male_details.latitude,
+                male_lon=male_details.longitude, male_tz=male_details.timezone,
+                female_dob=female_details.dob, female_tob=female_details.tob,
+                female_place=female_details.place, female_lat=female_details.latitude,
+                female_lon=female_details.longitude, female_tz=female_details.timezone,
+                ayanamsa=ayanamsa,
+            )
+            if mw.get("status") == "success":
+                marriage = mw
+        except Exception as _mw_e:
+            print(f"[compat-analysis] marriage workspace skipped: {_mw_e}")
+
         # Resolve the model config (request key → user's stored key → env key)
         cfg = await _resolve_cfg(current_user, request)
 
@@ -2547,6 +2592,7 @@ async def analyze_compatibility(
             male_chart=male_chart,
             female_chart=female_chart,
             koota_score=compatibility.get("total_score", 0),
+            marriage=marriage,
             config=cfg,
         )
 

@@ -740,6 +740,144 @@
   font-weight: 700;
 }
 
+/* Ashtakavarga transit-support chip (Transit page §2.4) */
+.bindu-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+.bindu-chip__label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+.bindu-chip--good {
+  background: rgba(46, 125, 50, 0.12);
+  color: #2e7d32;
+  border-color: rgba(46, 125, 50, 0.25);
+}
+.bindu-chip--neutral {
+  background: rgba(120, 120, 120, 0.12);
+  color: var(--text-secondary);
+  border-color: rgba(120, 120, 120, 0.22);
+}
+.bindu-chip--weak {
+  background: rgba(227, 66, 52, 0.12);
+  color: var(--vermillion);
+  border-color: rgba(227, 66, 52, 0.25);
+}
+
+/* Marriage workspace — dual dasha-overlap timeline (§2.6) */
+.mt-wrap {
+  margin: var(--space-md) 0 var(--space-lg);
+}
+.mt-axis {
+  position: relative;
+  height: 20px;
+  margin-left: 90px;
+  border-bottom: 1px solid var(--sandalwood);
+}
+.mt-axis__mark {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+  top: 2px;
+}
+.mt-now {
+  position: absolute;
+  top: 0;
+  bottom: -200px;
+  width: 0;
+  border-left: 2px dashed var(--vermillion);
+  z-index: 2;
+}
+.mt-now__dot {
+  position: absolute;
+  top: -3px;
+  left: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--vermillion);
+}
+.mt-band {
+  display: flex;
+  align-items: center;
+  margin-top: var(--space-sm);
+}
+.mt-band__name {
+  width: 90px;
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  padding-right: var(--space-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mt-band__track {
+  position: relative;
+  flex: 1;
+  height: 28px;
+  background: var(--sacred-white);
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-sm);
+}
+.mt-seg {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  background: rgba(94, 96, 206, 0.14);
+  border-right: 1px solid var(--sacred-white);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mt-seg--sig {
+  background: rgba(255, 153, 51, 0.35);
+  border: 1px solid var(--saffron);
+}
+.mt-seg__label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.mt-legend {
+  margin-top: var(--space-sm);
+  margin-left: 90px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+.mt-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mt-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  display: inline-block;
+}
+.mt-swatch--sig {
+  background: rgba(255, 153, 51, 0.35);
+  border: 1px solid var(--saffron);
+}
+.chart-toggle--workspace {
+  flex-wrap: wrap;
+}
+
 /* Upcoming-ingress mini card (Transit page) */
 .ingress-card {
   padding: var(--space-md);

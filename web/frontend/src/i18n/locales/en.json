@@ -40,7 +40,14 @@
     "unitMinute": "Min",
     "unitHour": "Hour",
     "unitDay": "Day",
-    "unitYear": "Year"
+    "unitYear": "Year",
+    "support": "AV Support",
+    "supportGood": "Supported",
+    "supportNeutral": "Neutral",
+    "supportWeak": "Rough",
+    "binduTitle": "{{bav}} bindus in its own Ashtakavarga · {{sav}} in Sarva",
+    "binduTitleSav": "{{sav}} bindus in Sarvashtakavarga",
+    "supportNote": "Ashtakavarga weighting: a graha transiting a sign rich in its own bindus is supported, poor in bindus is rough. Nodes are judged on the Sarva total."
   },
   "ephemeris": {
     "title": "Ephemeris & Transit Calendar",
@@ -1128,6 +1135,42 @@
       "notManglik": "Not Manglik",
       "marsIn": "Mars in {{sign}}",
       "from": "Dosha from"
+    },
+    "ws": {
+      "gunaMilan": "Guna Milan",
+      "seventhHouse": "7th House",
+      "timeline": "Timeline"
+    },
+    "seventh": {
+      "title": "7th House — Marriage Deep-dive",
+      "intro": "The 7th house, its lord, the marriage karakas (Venus for the wife, Jupiter for the husband) and the Upapada (UL) — the classical signs of marriage for each partner.",
+      "lagna": "Lagna",
+      "seventhSign": "7th sign",
+      "seventhLord": "7th lord",
+      "placement": "Placement",
+      "occupants": "Occupants of 7th",
+      "none": "None",
+      "venus": "Venus (kalatra karaka)",
+      "jupiter": "Jupiter (husband karaka)",
+      "upapada": "Upapada (UL)",
+      "house": "house",
+      "navamsa": "navamsa",
+      "retro": "retrograde",
+      "dignity": "dignity"
+    },
+    "timeline": {
+      "title": "Dasha Overlap",
+      "intro": "Both partners’ Vimsottari Mahadasha on one axis. Periods ruled by a marriage significator (each person’s 7th lord, Venus or Jupiter) are highlighted — windows when marriage themes activate.",
+      "significant": "Marriage-significant period",
+      "now": "Now",
+      "saturnTitle": "Shared Saturn Outlook",
+      "saturnIntro": "Saturn’s transit over each partner’s Moon (Sade Sati / Ashtama / Kantaka) — the shared pressure periods for the relationship.",
+      "sadeSati": "Sade Sati",
+      "ashtama": "Ashtama Shani",
+      "kantaka": "Kantaka Shani",
+      "clear": "No current Saturn affliction",
+      "loading": "Composing the couple timeline…",
+      "error": "Could not load the timeline"
     }
   },
   "compare": {
