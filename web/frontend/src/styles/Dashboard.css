@@ -2235,10 +2235,17 @@
 /* ── Tripataki Chakra (§2.7) ───────────────────────────────────────────── */
 .tripataki-wrap { display: flex; justify-content: center; margin: var(--space-md) 0; }
 .tripataki-svg { width: 100%; max-width: 560px; height: auto; }
-.tripataki-line { stroke: var(--sandalwood); stroke-width: 1.5; }
+/* The three pataki (banner) lines ARE the chakra — they must read clearly.
+   (--sandalwood #f4e4c1 is a pale cream and vanished against the page.) */
+.tripataki-line {
+  stroke: var(--indigo, #5e60ce);
+  stroke-width: 2;
+  opacity: 0.55;
+  stroke-linecap: round;
+}
 .tripataki-node {
-  fill: var(--cream, #fff8ef);
-  stroke: var(--sandalwood);
+  fill: var(--sacred-white, #fff);
+  stroke: var(--text-secondary);
   stroke-width: 1.5;
 }
 .tripataki-cell.is-lagna .tripataki-node { stroke: var(--saffron); stroke-width: 2.5; }
@@ -2246,3 +2253,19 @@
 .tripataki-house { font-size: 9px; fill: var(--text-secondary); }
 .tripataki-grahas { font-size: 11px; font-weight: 700; fill: var(--indigo, #5e60ce); }
 .tripataki-natal { font-size: 9px; fill: var(--text-muted, #999); }
+
+/* Tripataki — vedha readout + sign-role marks (§2.7) */
+.tripataki-cell.is-moon .tripataki-node { stroke: var(--indigo, #5e60ce); stroke-width: 2.5; }
+.tripataki-cell.casts-vedha .tripataki-node { fill: rgba(227, 66, 52, 0.10); }
+.trip-vedha {
+  border-left: 3px solid var(--sandalwood);
+  padding: var(--space-sm) var(--space-md);
+  margin-top: var(--space-sm);
+}
+.trip-vedha--stressful { border-left-color: var(--vermillion); }
+.trip-vedha--supportive { border-left-color: #2e7d32; }
+.trip-vedha--clear { border-left-color: var(--text-secondary); }
+.trip-vedha__head { margin-bottom: 2px; }
+.trip-vedha__clear { color: #2e7d32; font-size: 0.875rem; }
+.trip-vedha .detail-list li.is-malefic { color: var(--vermillion); }
+.trip-vedha .detail-list li.is-benefic { color: #2e7d32; }

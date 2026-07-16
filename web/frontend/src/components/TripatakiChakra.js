@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Ban } from "lucide-react";
 import { astrologyService } from "../services/api";
 import { PLANET_ABBR, RASI_ABBR } from "../constants/jyotish";
 import { ErrorBanner } from "../components/ErrorBanner";
@@ -52,6 +53,9 @@ export const TripatakiChakra = ({ birthDetails, transitDate, transitTime, transi
         <span className="info-pill">
           {t("tripataki.natalLagna")}: <strong className="text-saffron">{data.natal_lagna}</strong>
         </span>
+        <span className="info-pill">
+          {t("tripataki.transitMoon")}: <strong className="text-indigo">{data.transit_moon}</strong>
+        </span>
       </div>
 
       <div className="tripataki-wrap">
@@ -78,8 +82,15 @@ export const TripatakiChakra = ({ birthDetails, transitDate, transitTime, transi
             const cx = px(c.x);
             const cy = px(c.y);
             const grahas = c.transit.map((p) => PLANET_ABBR[p.name] || p.name);
+            const cls =
+              `tripataki-cell${c.is_lagna ? " is-lagna" : ""}` +
+              `${c.is_moon ? " is-moon" : ""}${c.casts_vedha ? " casts-vedha" : ""}`;
             return (
-              <g key={c.sign} className={`tripataki-cell${c.is_lagna ? " is-lagna" : ""}`}>
+              <g key={c.sign} className={cls}>
+                <title>
+                  {c.sign_name} · {t(`tripataki.class.${c.sign_class}`)}
+                  {c.casts_vedha ? ` · ${t("tripataki.castsVedha")}` : ""}
+                </title>
                 <circle cx={cx} cy={cy} r={26} className="tripataki-node" />
                 <text x={cx} y={cy - 4} className="tripataki-rasi" textAnchor="middle">
                   {RASI_ABBR[c.sign - 1] || c.sign_name}
@@ -102,7 +113,47 @@ export const TripatakiChakra = ({ birthDetails, transitDate, transitTime, transi
           })}
         </svg>
       </div>
+
+      {/* Vedha — the point of the chakra: what obstructs the Moon and the Lagna. */}
+      {data.vedha?.length > 0 && (
+        <div className="ui-card ui-card--pad-lg">
+          <h4 className="ui-card-header ui-card-header--sm">
+            <Ban size={18} />
+            {t("tripataki.vedhaTitle")}
+          </h4>
+          <p className="card-note">{t("tripataki.vedhaIntro")}</p>
+          {data.vedha.map((v) => (
+            <div key={v.target} className={`trip-vedha trip-vedha--${v.tone}`}>
+              <div className="trip-vedha__head">
+                <strong>{t(`tripataki.target.${v.target.toLowerCase()}`, v.target)}</strong>{" "}
+                <span className="text-secondary">
+                  {t("tripataki.inSign", { sign: v.sign })} ({t(`tripataki.class.${v.sign_class}`)})
+                </span>
+              </div>
+              {v.obstructed_by.length === 0 ? (
+                <p className="trip-vedha__clear">{t("tripataki.noVedha")}</p>
+              ) : (
+                <ul className="detail-list">
+                  {v.obstructed_by.map((h) => (
+                    <li key={h.planet} className={h.benefic ? "is-benefic" : "is-malefic"}>
+                      {t("tripataki.obstructedBy", { planet: h.planet, sign: h.from_sign })}{" "}
+                      <span className="text-muted">
+                        ({t(h.benefic ? "tripataki.benefic" : "tripataki.malefic")})
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="card-note">
+                {t("tripataki.vedhaFrom", { signs: v.vedha_signs.join(", ") })}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
       <p className="card-note">{t("tripataki.legend")}</p>
+      <p className="card-note">{t("tripataki.sourceNote")}</p>
     </div>
   );
 };

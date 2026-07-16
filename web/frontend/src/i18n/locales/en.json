@@ -2203,6 +2203,26 @@
     "loading": "Drawing the chakra…",
     "natalLagna": "Natal Lagna",
     "intro": "The Tripataki Chakra sets the twelve rasis around the three \"pataki\" (banner) lines it is named for, with the grahas plotted on the sign they occupy.",
-    "legend": "Each node is a rasi (its number is the house from your natal Lagna); bold text is the transiting grahas, the grey line beneath is your natal grahas. Note: the engine ships this chakra as a diagram only — there is no computed verdict here, unlike Sarvatobhadra (vedha) or Kota (rings)."
+    "legend": "Each node is a rasi (its number is the house from your natal Lagna); bold text is the transiting grahas, the grey line beneath is your natal grahas. Note: the engine ships this chakra as a diagram only — there is no computed verdict here, unlike Sarvatobhadra (vedha) or Kota (rings).",
+    "transitMoon": "Transiting Moon",
+    "vedhaTitle": "Vedha — what obstructs the Moon and the Lagna",
+    "vedhaIntro": "Vedha is mutual obstruction between signs: a movable sign is obstructed from the dual signs (except the dual in the 3rd from it), a fixed sign from the other fixed signs, and a dual sign from the movable signs (except the movable in the 11th from it). Customarily the vedha is read on the Moon and the Lagna.",
+    "obstructedBy": "{{planet}} obstructs from {{sign}}",
+    "noVedha": "No graha sits on a vedha sign — this point is unobstructed.",
+    "vedhaFrom": "Can be obstructed from: {{signs}}",
+    "inSign": "in {{sign}}",
+    "castsVedha": "casts vedha on the Moon or Lagna",
+    "benefic": "benefic",
+    "malefic": "malefic",
+    "class": {
+      "movable": "movable",
+      "fixed": "fixed",
+      "dual": "dual"
+    },
+    "target": {
+      "moon": "Moon",
+      "lagna": "Lagna"
+    },
+    "sourceNote": "Note: classically Tripataki is a Tajaka (Varshaphal) tool read on the annual chart with the planets progressed a sign a year. Here its vedha rules are applied to the chart for the moment you picked — consistent with the other chakras on this page, which are all transit-based."
   }
 }

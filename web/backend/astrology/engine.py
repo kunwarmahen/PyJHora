@@ -567,6 +567,58 @@ TRIPATAKI_LINES = {
     (1, 4): [(5, 4)],
 }
 
+# Sign classes (0-based rasi): chara (movable), sthira (fixed), dwiswabhava (dual).
+MOVABLE_SIGNS = (0, 3, 6, 9)      # Aries, Cancer, Libra, Capricorn
+FIXED_SIGNS = (1, 4, 7, 10)       # Taurus, Leo, Scorpio, Aquarius
+DUAL_SIGNS = (2, 5, 8, 11)        # Gemini, Virgo, Sagittarius, Pisces
+
+
+def _tripataki_vedha_map():
+    """Which signs obstruct (vedha) which, on the Tripataki Chakra.
+
+    The classical rules (the engine ships only the drawing, so these come from the
+    Tajaka literature — see the §2.7 notes):
+      • a **movable** sign has vedha with the **dual** signs, EXCEPT the dual sign
+        in the 3rd from it;
+      • a **fixed** sign has vedha with the other **fixed** signs;
+      • a **dual** sign has vedha with the **movable** signs, EXCEPT the movable
+        sign in the 11th from it.
+
+    Derived here rather than hardcoded so the rules stay auditable. Note the two
+    exclusions are the same four pairs seen from both ends (Aries-Gemini,
+    Cancer-Virgo, Libra-Sagittarius, Capricorn-Pisces), which makes the map
+    symmetric — vedha is mutual obstruction, and every sign ends up with exactly
+    three vedha partners. `test_tripataki_vedha_rules` asserts both invariants.
+    """
+    def nth(frm, n):  # inclusive Vedic counting: the 1st from X is X itself
+        return (frm + n - 1) % 12
+
+    vedha = {s: set() for s in range(12)}
+    for m in MOVABLE_SIGNS:
+        for d in DUAL_SIGNS:
+            if d != nth(m, 3):
+                vedha[m].add(d)
+    for d in DUAL_SIGNS:
+        for m in MOVABLE_SIGNS:
+            if m != nth(d, 11):
+                vedha[d].add(m)
+    for f in FIXED_SIGNS:
+        for g in FIXED_SIGNS:
+            if f != g:
+                vedha[f].add(g)
+    return {s: frozenset(v) for s, v in vedha.items()}
+
+
+TRIPATAKI_VEDHA = _tripataki_vedha_map()
+
+def sign_class(sign0):
+    """'movable' | 'fixed' | 'dual' for a 0-based rasi."""
+    if sign0 in MOVABLE_SIGNS:
+        return "movable"
+    if sign0 in FIXED_SIGNS:
+        return "fixed"
+    return "dual"
+
 # Vakra-gathi (retrograde) epicycle periods, per planet index: (orbital period in
 # days, number of synodic loops to draw). Mirrors ui/vakra_gathi_plot's table but
 # lets us reimplement the loop with plain numpy (no PyQt/pyqtgraph). -1 = Earth.

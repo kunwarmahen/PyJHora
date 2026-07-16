@@ -514,11 +514,19 @@ class ReferenceMixin:
         The rasis sit around a 5x5 grid crossed by the three *pataki* (banner)
         lines; each graha is plotted on the sign it occupies, natal and transiting.
 
-        HONEST SCOPE: the engine only ever implemented Tripataki as a **drawing**
-        (`ui.chakra.Tripataki`) — there is no vedha/scoring logic for it anywhere,
-        and none is invented here. This returns the faithful layout + placements so
-        the chakra can be read the classical way by eye; unlike Sarvatobhadra
-        (vedha) or Kota (rings), it ships no computed verdict.
+        The chakra's point is **vedha** (obstruction). The engine ships only the
+        drawing, so the rules are implemented here from the Tajaka literature:
+        a movable sign has vedha with the dual signs except the dual in the 3rd
+        from it; a fixed sign with the other fixed signs; a dual sign with the
+        movable signs except the movable in the 11th from it (see
+        `_tripataki_vedha_map`). Customarily the vedha is read **on the Moon and
+        the Lagna**, which is what `vedha` reports.
+
+        SCOPE NOTE: classically Tripataki is a Tajaka (Varshaphal) tool, read on
+        the *annual* chart with the planets progressed a sign a year. Here the
+        rules are applied to the chart for the chosen moment — consistent with the
+        other chakras on the page, which are all transit-based — so treat this as
+        the vedha picture *for that moment*, not a full Varshaphal Tripataki.
         """
         if not ENGINE_AVAILABLE:
             return {"error": "Jyotir AI engine not available", "status": "failed"}
@@ -566,6 +574,41 @@ class ReferenceMixin:
                     transit_by_sign.setdefault(rasi, []).append(
                         {"name": nm, "retrograde": pid in retro})
 
+            # ── Vedha on the Moon and the Lagna (the customary reading) ─────
+            # The Lagna judged is the natal one (the chakra is cast on it); the
+            # Moon is the transiting Moon, which is what moves the picture.
+            transit_moon_sign = transit[2][1][0]
+            targets = {
+                "Moon": transit_moon_sign,
+                "Lagna": natal_lagna,
+            }
+            vedha = []
+            for label, tsign in targets.items():
+                obstructing = TRIPATAKI_VEDHA[tsign]
+                hits = []
+                for pid, (rasi, _deg) in transit[1:]:
+                    nm = PLANET_NAMES.get(pid)
+                    # A graha can't obstruct the point it sits with, and the Moon
+                    # doesn't vedha itself.
+                    if not nm or nm == label or rasi not in obstructing:
+                        continue
+                    hits.append({"planet": nm, "from_sign": ZODIAC_NAMES[rasi],
+                                 "benefic": nm in HORA_BENEFICS})
+                vedha.append({
+                    "target": label,
+                    "sign": ZODIAC_NAMES[tsign],
+                    "sign_class": sign_class(tsign),
+                    "obstructed_by": hits,
+                    "vedha_signs": sorted(ZODIAC_NAMES[s] for s in obstructing),
+                    "tone": ("stressful" if any(not h["benefic"] for h in hits)
+                             else "supportive" if hits else "clear"),
+                })
+
+            # Signs that can obstruct either target — so the UI can mark them.
+            vedha_signs = set()
+            for v in vedha:
+                vedha_signs |= {s for s in TRIPATAKI_VEDHA[targets[v["target"]]]}
+
             cells = []
             for sign, (x, y) in enumerate(TRIPATAKI_RASI_POSITIONS):
                 cells.append({
@@ -573,6 +616,9 @@ class ReferenceMixin:
                     "sign_name": ZODIAC_NAMES[sign],
                     "x": x, "y": y,
                     "is_lagna": sign == natal_lagna,
+                    "is_moon": sign == transit_moon_sign,
+                    "sign_class": sign_class(sign),
+                    "casts_vedha": sign in vedha_signs,
                     "house_from_lagna": ((sign - natal_lagna) % 12) + 1,
                     "natal": natal_by_sign.get(sign, []),
                     "transit": transit_by_sign.get(sign, []),
@@ -586,9 +632,11 @@ class ReferenceMixin:
                 "status": "success",
                 "transit_date": f"{ty:04d}-{tm:02d}-{td:02d}",
                 "natal_lagna": ZODIAC_NAMES[natal_lagna],
+                "transit_moon": ZODIAC_NAMES[transit_moon_sign],
                 "grid": {"width": 5, "height": 5},
                 "cells": cells,
                 "lines": lines,
+                "vedha": vedha,
             }
         except Exception as e:
             print(f"Tripataki chakra error: {e}")

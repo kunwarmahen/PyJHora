@@ -273,6 +273,66 @@ def test_tripataki_chakra(args1):
     assert len(placed) == 9, "all nine grahas plotted"
 
 
+def test_tripataki_vedha_rules():
+    """The Tajaka vedha rules the Tripataki reading is built on.
+
+    Sourced rules: movable <-> dual except the dual in the 3rd from it; fixed <->
+    fixed; dual <-> movable except the movable in the 11th from it. The two
+    exclusions describe the SAME four pairs from both ends, so the map must come
+    out symmetric with exactly three partners per sign — that reciprocity is the
+    strongest check that the rules are transcribed right, so assert it.
+    """
+    from astrology.engine import (TRIPATAKI_VEDHA, MOVABLE_SIGNS, FIXED_SIGNS,
+                                  DUAL_SIGNS, sign_class)
+
+    # Vedha is mutual obstruction — the map must be symmetric.
+    for s, partners in TRIPATAKI_VEDHA.items():
+        for p in partners:
+            assert s in TRIPATAKI_VEDHA[p], f"{s}->{p} not reciprocated"
+        assert s not in partners, "a sign cannot vedha itself"
+        assert len(partners) == 3, f"sign {s} has {len(partners)} vedha partners, expected 3"
+
+    # Movable only ever meets dual, fixed only fixed, dual only movable.
+    for m in MOVABLE_SIGNS:
+        assert all(p in DUAL_SIGNS for p in TRIPATAKI_VEDHA[m])
+    for f in FIXED_SIGNS:
+        assert set(TRIPATAKI_VEDHA[f]) == set(FIXED_SIGNS) - {f}
+    for d in DUAL_SIGNS:
+        assert all(p in MOVABLE_SIGNS for p in TRIPATAKI_VEDHA[d])
+
+    # The excluded pairs: each movable and the dual 3 signs on (its 3rd).
+    for m, excluded in ((0, 2), (3, 5), (6, 8), (9, 11)):   # Ar-Ge, Cn-Vi, Li-Sg, Cp-Pi
+        assert excluded not in TRIPATAKI_VEDHA[m]
+        assert m not in TRIPATAKI_VEDHA[excluded]
+
+    assert sign_class(0) == "movable" and sign_class(1) == "fixed" and sign_class(2) == "dual"
+
+
+def test_tripataki_vedha_reading(args1):
+    """The vedha actually read off chart 1 for the fixed transit date."""
+    r = A.get_tripataki_chakra(**args1, current_date="2026-07-16")
+    assert r["natal_lagna"] == "Taurus" and r["transit_moon"] == "Cancer"
+
+    by_target = {v["target"]: v for v in r["vedha"]}
+
+    # Moon in Cancer is movable -> obstructed from the duals EXCEPT Virgo (its 3rd).
+    moon = by_target["Moon"]
+    assert moon["sign_class"] == "movable"
+    assert moon["vedha_signs"] == ["Gemini", "Pisces", "Sagittarius"]
+    assert "Virgo" not in moon["vedha_signs"]
+
+    # Lagna in Taurus is fixed -> obstructed from the other fixed signs only.
+    lagna = by_target["Lagna"]
+    assert lagna["sign_class"] == "fixed"
+    assert lagna["vedha_signs"] == ["Aquarius", "Leo", "Scorpio"]
+
+    # Every obstructing graha must actually sit on one of the vedha signs.
+    for v in r["vedha"]:
+        for h in v["obstructed_by"]:
+            assert h["from_sign"] in v["vedha_signs"]
+        assert v["tone"] in ("stressful", "supportive", "clear")
+
+
 def test_bindu_chip_thresholds():
     """The classical thresholds themselves: own-BAV >=5 supported / ==4 neutral /
     <=3 rough, and the node fallback on Sarva (>=30 / >=25 / else)."""
