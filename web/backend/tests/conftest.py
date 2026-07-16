@@ -105,4 +105,7 @@ def client():
     import main
 
     main.app.dependency_overrides[main.get_current_user] = lambda: "test-user"
+    # The public API v1 (§2.3) authenticates with get_api_user (API token); bypass
+    # it the same way so the v1 smoke tests don't need a real token in Mongo.
+    main.app.dependency_overrides[main.get_api_user] = lambda: "test-user"
     return MainThreadASGIClient(main.app)

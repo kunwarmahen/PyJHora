@@ -26,6 +26,7 @@ import ratelimit
 import shares
 import quiz
 import refresh_tokens
+import api_tokens
 import password_reset
 import email_service
 import notifications
@@ -56,6 +57,20 @@ class RefreshRequest(BaseModel):
 
 class LogoutRequest(BaseModel):
     refresh_token: Optional[str] = None
+
+class ApiTokenCreateRequest(BaseModel):
+    """Create a public-API / MCP token (§2.3). `label` helps the user tell tokens
+    apart (e.g. 'Claude Desktop', 'my script')."""
+    label: Optional[str] = None
+
+class ToolRunRequest(BaseModel):
+    """Run one astrology tool over the public API (§2.3). Provide EITHER a
+    `profile_id` (one of the caller's saved profiles) OR inline `birth_details`.
+    `args` are the tool-specific parameters (see GET /api/v1/tools for schemas)."""
+    profile_id: Optional[str] = None
+    birth_details: Optional[BirthDetails] = None
+    ayanamsa: Optional[str] = None
+    args: Optional[Dict[str, Any]] = None
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
@@ -869,6 +884,149 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     return username
 
 
+async def get_api_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    """Auth for the public API (`/api/v1/*`) + MCP (§2.3).
+
+    Accepts a user-managed API token (opaque `jyd_…`, verified against
+    `api_tokens`). For convenience it also accepts a normal access JWT, so the
+    same routes work from a logged-in browser session — but the intended
+    credential is the long-lived API token pasted into a script or MCP client."""
+    token = credentials.credentials
+    if token and token.startswith(api_tokens.TOKEN_PREFIX):
+        username = await api_tokens.verify(token)
+        if not username:
+            raise HTTPException(status_code=401, detail="Invalid or revoked API token")
+        return username
+    # Fall back to a session access token.
+    username = decode_token(token)
+    if not username:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return username
+
+
+# ============= API TOKEN MANAGEMENT (Settings → API access) =============
+@app.get("/api/auth/api-tokens")
+async def list_api_tokens(current_user: str = Depends(get_current_user)):
+    """List the caller's live API tokens (metadata only — never the raw token)."""
+    return {"tokens": await api_tokens.list_tokens(current_user)}
+
+
+@app.post("/api/auth/api-tokens")
+async def create_api_token(req: ApiTokenCreateRequest, current_user: str = Depends(get_current_user)):
+    """Create a new API token. The raw token is returned **once** here and never
+    again — the caller must copy it now."""
+    token = await api_tokens.issue(current_user, label=req.label or "")
+    if token is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Token limit reached ({api_tokens.MAX_TOKENS_PER_USER}). Revoke an old one first.",
+        )
+    return {"token": token, "label": (req.label or "API token").strip()[:80] or "API token"}
+
+
+@app.delete("/api/auth/api-tokens/{token_id}")
+async def revoke_api_token(token_id: str, current_user: str = Depends(get_current_user)):
+    """Revoke one of the caller's API tokens by id."""
+    if not await api_tokens.revoke(current_user, token_id):
+        raise HTTPException(status_code=404, detail="Token not found")
+    return {"status": "revoked"}
+
+
+# ============= PUBLIC API v1 (token-authed, read-only) — §2.3 =============
+# A documented, stable surface for scripts and the MCP server. Every route is
+# **read-only compute** (no account/profile mutation), authenticated with a
+# per-user API token (or a session JWT), and rate-limited like the AI endpoints.
+
+@app.get("/api/v1")
+async def api_v1_index():
+    """Discovery root — points at the catalog + how to authenticate. No auth so a
+    client can bootstrap; the actual compute routes require a token."""
+    return {
+        "name": f"{settings.SITE_NAME} Astrology API",
+        "version": "1",
+        "auth": "Bearer token — create one under Settings → API access (jyd_…).",
+        "read_only": True,
+        "endpoints": {
+            "list_tools": "GET /api/v1/tools",
+            "list_profiles": "GET /api/v1/profiles",
+            "run_tool": "POST /api/v1/tools/{tool_name}",
+        },
+    }
+
+
+@app.get("/api/v1/tools")
+async def api_v1_tools(current_user: str = Depends(get_api_user)):
+    """The full catalog of astrology tools the API can run — each with a label,
+    category, model/agent-facing description, and JSON-schema parameters."""
+    return {"tools": tool_registry.tool_catalog()}
+
+
+@app.get("/api/v1/profiles")
+async def api_v1_profiles(current_user: str = Depends(get_api_user)):
+    """The caller's saved profiles (id + name + birth summary) for use as
+    `profile_id` when running a tool. Read-only projection — no mutation here."""
+    from database import database
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database not connected")
+    docs = await database["saved_profiles"].find(
+        {"user_id": current_user}
+    ).sort("created_at", -1).to_list(200)
+    out = []
+    for d in docs:
+        bd = d.get("birth_details") or {}
+        out.append({
+            "id": str(d["_id"]),
+            "profile_name": d.get("profile_name"),
+            "name": bd.get("name"),
+            "dob": bd.get("dob"),
+            "tob": bd.get("tob"),
+            "place": bd.get("place"),
+        })
+    return {"profiles": out}
+
+
+async def _resolve_birth_details(req: ToolRunRequest, user: str) -> Dict[str, Any]:
+    """Resolve the birth data for a v1 tool call: a saved `profile_id` (scoped to
+    the caller) takes precedence, else inline `birth_details`. Returns the dict the
+    tool layer expects (dob/tob/place/latitude/longitude/timezone)."""
+    if req.profile_id:
+        from database import database
+        if database is None:
+            raise HTTPException(status_code=500, detail="Database not connected")
+        try:
+            oid = ObjectId(req.profile_id)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid profile_id")
+        doc = await database["saved_profiles"].find_one(
+            {"_id": oid, "user_id": user})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        return doc.get("birth_details") or {}
+    if req.birth_details:
+        return req.birth_details.model_dump()
+    raise HTTPException(status_code=400,
+                        detail="Provide either profile_id or birth_details")
+
+
+@app.post("/api/v1/tools/{tool_name}")
+async def api_v1_run_tool(tool_name: str, req: ToolRunRequest,
+                          current_user: str = Depends(get_api_user)):
+    """Run one astrology tool. Body: `profile_id` OR `birth_details`, an optional
+    `ayanamsa`, and tool-specific `args`. Returns the tool's JSON result."""
+    _enforce_rate_limit(current_user)
+    birth_details = await _resolve_birth_details(req, current_user)
+    if not birth_details.get("dob") or not birth_details.get("tob"):
+        raise HTTPException(status_code=400, detail="birth data missing dob/tob")
+    try:
+        result = tool_registry.dispatch(
+            tool_name, req.args or {}, birth_details,
+            ayanamsa=req.ayanamsa or DEFAULT_AYANAMSA,
+        )
+    except tool_registry.ToolError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"tool": tool_name, "result": result}
+
+
 @app.post("/api/auth/change-password", response_model=Token)
 async def change_password(req: ChangePasswordRequest, current_user: str = Depends(get_current_user)):
     """Change the logged-in user's password. Verifies the current password
@@ -973,6 +1131,7 @@ _USER_SCOPED_COLLECTIONS = [
     ("push_subscriptions", "user_id"),
     ("refresh_tokens", "username"),
     ("password_reset_tokens", "username"),
+    ("api_tokens", "username"),
 ]
 
 

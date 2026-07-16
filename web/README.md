@@ -169,6 +169,21 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Comprehensive Data**: Uses complete planetary positions, nakshatras, and chart details
 - **Compatibility Analysis**: Deep AI analysis of relationship compatibility beyond just scores
 
+### Public API & MCP server
+
+- **Token-authed public API** (`/api/v1/*`): a stable, **read-only** surface for scripts and
+  automation. `GET /api/v1/tools` lists the full astrology tool catalog (schemas included);
+  `POST /api/v1/tools/{name}` runs any tool against one of your saved profiles (`profile_id`)
+  or inline `birth_details`; `GET /api/v1/profiles` lists your charts. Rate-limited like the
+  AI endpoints; no account/profile mutation is exposed.
+- **Personal API tokens**: create/revoke long-lived tokens under **Settings → API access**
+  (shown once, stored hashed, prefixed `jyd_`). Authenticate with `Authorization: Bearer jyd_…`.
+- **MCP server** (`web/mcp/`): a standalone [Model Context Protocol](https://modelcontextprotocol.io)
+  server that wraps the same catalog so **Claude Desktop** (or any MCP client) can compute charts,
+  dashas, panchanga, transits, KP, Jaimini, muhurta and more against your profiles — over stdio
+  or streamable-HTTP. It talks to the public API with your token; setup is in
+  [`web/mcp/README.md`](mcp/README.md).
+
 ## Project Structure
 
 ```
@@ -188,6 +203,7 @@ pyjhora-web/
 │   ├── user_settings.py     # Per-user encrypted API keys
 │   ├── ratelimit.py         # Per-user rate limiting for AI endpoints
 │   ├── shares.py            # Read-only shareable chart links
+│   ├── api_tokens.py        # Per-user hashed API tokens for the public API + MCP
 │   ├── tests/               # Golden-value + endpoint smoke tests (./dev.sh test)
 │   ├── pytest.ini           # Test config
 │   ├── requirements.txt     # Python dependencies
@@ -207,6 +223,9 @@ pyjhora-web/
 │   ├── package.json         # Node dependencies
 │   ├── Dockerfile           # Docker image for frontend
 │   └── .env.example         # Environment template
+├── mcp/                     # Standalone MCP server (its own venv) — see mcp/README.md
+│   ├── server.py            # Wraps the public API tool catalog for MCP clients
+│   └── requirements.txt     # MCP SDK deps (kept separate from the backend)
 ├── docker-compose.yml       # Docker Compose configuration
 └── README.md               # This file
 ```

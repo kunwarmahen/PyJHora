@@ -488,3 +488,55 @@
   background: var(--cream, #fff8ef);
   color: var(--text-primary);
 }
+
+/* API access — tokens (§2.3) */
+.settings-token-create {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+.settings-token-create .settings-input {
+  flex: 1;
+  min-width: 220px;
+}
+.settings-token-new {
+  border: 1px solid var(--saffron);
+  background: rgba(255, 153, 51, 0.08);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.settings-token-new__label {
+  font-weight: 700;
+  margin-bottom: var(--space-sm);
+  color: var(--text-primary);
+}
+.settings-token-new__warn {
+  color: var(--vermillion);
+  margin-top: var(--space-sm);
+}
+.settings-token-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.settings-token-preview {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.settings-token-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-top: var(--space-xs);
+}
+.settings-token-docs {
+  margin-top: var(--space-md);
+  border-top: 1px solid var(--sandalwood);
+  padding-top: var(--space-md);
+}

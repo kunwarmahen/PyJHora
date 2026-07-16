@@ -931,7 +931,8 @@
       "account": "Account",
       "notifications": "Notifications",
       "system": "System",
-      "calendar": "Calendar"
+      "calendar": "Calendar",
+      "apiAccess": "API access"
     },
     "system": {
       "title": "System health",
@@ -1086,6 +1087,25 @@
       "error": "Could not generate the calendar link.",
       "help": "In your calendar app choose “Subscribe to calendar / From URL” and paste this link. It refreshes automatically (about twice a day).",
       "privacy": "Anyone with this link can view the feed (it needs no login, so calendar apps can read it). Keep it private; if it leaks, rotate the server key to invalidate it."
+    },
+    "apiAccess": {
+      "title": "API access (public API & MCP)",
+      "intro": "Create a personal token to use the read-only astrology API from scripts or an MCP client like Claude Desktop. Tokens act on your account and your saved profiles.",
+      "labelPlaceholder": "Label (e.g. Claude Desktop, my script)",
+      "create": "Create token",
+      "creating": "Creating…",
+      "newTokenLabel": "Your new token — copy it now, it won’t be shown again:",
+      "newTokenWarn": "Store it like a password. Anyone with this token can read your charts via the API.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "empty": "No API tokens yet. Create one above to use the API or MCP server.",
+      "lastUsed": "Last used",
+      "never": "never",
+      "revoke": "Revoke",
+      "docs": "Use the token as a Bearer credential against /api/v1, or set JYOTIR_API_TOKEN for the MCP server (see web/mcp/README.md). The API is read-only — it can’t change your data.",
+      "loadError": "Could not load your tokens",
+      "createError": "Could not create the token",
+      "revokeError": "Could not revoke the token"
     }
   },
   "compat": {

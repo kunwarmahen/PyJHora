@@ -1,0 +1,5 @@
+# Jyotir AI MCP server (§2.3) — standalone; keep its own venv, separate from the
+# backend (the MCP SDK needs newer anyio/starlette than the pinned FastAPI stack).
+mcp==1.28.1
+httpx==0.28.1
+uvicorn==0.51.0

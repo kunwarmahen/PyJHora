@@ -191,6 +191,10 @@ export const authService = {
     api.post("/api/auth/forgot-password", { identifier }),
   resetPassword: (token, newPassword) =>
     api.post("/api/auth/reset-password", { token, new_password: newPassword }),
+  // Public-API / MCP tokens (§2.3). createApiToken returns the raw token ONCE.
+  listApiTokens: () => api.get("/api/auth/api-tokens"),
+  createApiToken: (label) => api.post("/api/auth/api-tokens", { label }),
+  revokeApiToken: (id) => api.delete(`/api/auth/api-tokens/${id}`),
 };
 
 // Daily-digest notification preferences + Web Push (§16).

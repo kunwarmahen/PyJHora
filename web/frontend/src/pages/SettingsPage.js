@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Settings as SettingsIcon, Sliders, Key, CalendarDays, User, Sparkles, Check, LogOut, Mail, ShieldOff, Trash2, Bell, Activity, AlertTriangle, Rss, Copy } from "lucide-react";
+import { Settings as SettingsIcon, Sliders, Key, CalendarDays, User, Sparkles, Check, LogOut, Mail, ShieldOff, Trash2, Bell, Activity, AlertTriangle, Rss, Copy, Terminal, Plus } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { useSettings } from "../contexts/SettingsContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -70,6 +70,65 @@ export const SettingsPage = () => {
       await navigator.clipboard.writeText(calUrl);
       setCalCopied(true);
       setTimeout(() => setCalCopied(false), 1800);
+    } catch {
+      /* clipboard unavailable — user can select manually */
+    }
+  };
+
+  // API access — public-API / MCP tokens (§2.3)
+  const [apiTokens, setApiTokens] = useState([]);
+  const [apiTokLabel, setApiTokLabel] = useState("");
+  const [apiTokBusy, setApiTokBusy] = useState(false);
+  const [apiTokError, setApiTokError] = useState("");
+  const [newApiToken, setNewApiToken] = useState(""); // shown once, after create
+  const [apiTokCopied, setApiTokCopied] = useState(false);
+
+  // Load the user's API tokens when the API-access tab opens.
+  useEffect(() => {
+    if (tab !== "apiAccess") return;
+    let cancelled = false;
+    setApiTokError("");
+    authService
+      .listApiTokens()
+      .then((res) => !cancelled && setApiTokens(res.data.tokens || []))
+      .catch((err) => !cancelled && setApiTokError(err.response?.data?.detail || t("settings.apiAccess.loadError")));
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, t]);
+
+  const createApiToken = async () => {
+    setApiTokBusy(true);
+    setApiTokError("");
+    setNewApiToken("");
+    try {
+      const res = await authService.createApiToken(apiTokLabel.trim());
+      setNewApiToken(res.data.token);
+      setApiTokLabel("");
+      const list = await authService.listApiTokens();
+      setApiTokens(list.data.tokens || []);
+    } catch (err) {
+      setApiTokError(err.response?.data?.detail || t("settings.apiAccess.createError"));
+    } finally {
+      setApiTokBusy(false);
+    }
+  };
+
+  const revokeApiToken = async (id) => {
+    setApiTokError("");
+    try {
+      await authService.revokeApiToken(id);
+      setApiTokens((prev) => prev.filter((tk) => tk.id !== id));
+    } catch (err) {
+      setApiTokError(err.response?.data?.detail || t("settings.apiAccess.revokeError"));
+    }
+  };
+
+  const copyNewApiToken = async () => {
+    try {
+      await navigator.clipboard.writeText(newApiToken);
+      setApiTokCopied(true);
+      setTimeout(() => setApiTokCopied(false), 1800);
     } catch {
       /* clipboard unavailable — user can select manually */
     }
@@ -351,6 +410,7 @@ export const SettingsPage = () => {
     { key: "general", label: t("settings.tabs.general"), icon: <SettingsIcon size={16} /> },
     { key: "ai", label: t("settings.tabs.ai"), icon: <Sliders size={16} /> },
     { key: "apiKeys", label: t("settings.tabs.apiKeys"), icon: <Key size={16} /> },
+    { key: "apiAccess", label: t("settings.tabs.apiAccess"), icon: <Terminal size={16} /> },
     { key: "almanac", label: t("settings.tabs.almanac"), icon: <CalendarDays size={16} /> },
     { key: "notifications", label: t("settings.tabs.notifications"), icon: <Bell size={16} /> },
     { key: "calendar", label: t("settings.tabs.calendar"), icon: <Rss size={16} /> },
@@ -658,6 +718,83 @@ export const SettingsPage = () => {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* API ACCESS — public API + MCP tokens (§2.3) */}
+        {tab === "apiAccess" && (
+          <div className="ui-card settings-panel">
+            <h3 className="settings-section-title">{t("settings.apiAccess.title")}</h3>
+            <p className="settings-hint">{t("settings.apiAccess.intro")}</p>
+
+            {apiTokError && <div className="settings-msg settings-msg--error">{apiTokError}</div>}
+
+            {/* Freshly-created token — shown once */}
+            {newApiToken && (
+              <div className="settings-token-new">
+                <p className="settings-token-new__label">{t("settings.apiAccess.newTokenLabel")}</p>
+                <div className="settings-cal-url">
+                  <input type="text" readOnly value={newApiToken} onFocus={(e) => e.target.select()} />
+                  <button type="button" className="ui-btn ui-btn--ghost" onClick={copyNewApiToken}>
+                    {apiTokCopied ? <Check size={16} /> : <Copy size={16} />}
+                    {apiTokCopied ? t("settings.apiAccess.copied") : t("settings.apiAccess.copy")}
+                  </button>
+                </div>
+                <p className="settings-hint settings-token-new__warn">{t("settings.apiAccess.newTokenWarn")}</p>
+              </div>
+            )}
+
+            {/* Create */}
+            <div className="settings-row settings-token-create">
+              <input
+                className="settings-input"
+                type="text"
+                value={apiTokLabel}
+                placeholder={t("settings.apiAccess.labelPlaceholder")}
+                maxLength={80}
+                onChange={(e) => setApiTokLabel(e.target.value)}
+              />
+              <button
+                type="button"
+                className="ui-btn ui-btn--primary"
+                onClick={createApiToken}
+                disabled={apiTokBusy}
+              >
+                <Plus size={16} />
+                {apiTokBusy ? t("settings.apiAccess.creating") : t("settings.apiAccess.create")}
+              </button>
+            </div>
+
+            {/* Existing tokens */}
+            {apiTokens.length === 0 ? (
+              <p className="settings-hint">{t("settings.apiAccess.empty")}</p>
+            ) : (
+              <div className="settings-token-list">
+                {apiTokens.map((tk) => (
+                  <div key={tk.id} className="settings-key-row settings-token-row">
+                    <div className="settings-key-head">
+                      <span className="settings-key-name">{tk.label}</span>
+                      <span className="settings-token-preview">{tk.preview}</span>
+                    </div>
+                    <div className="settings-token-meta">
+                      <span className="settings-hint">
+                        {t("settings.apiAccess.lastUsed")}:{" "}
+                        {tk.last_used_at ? formatDate(tk.last_used_at) : t("settings.apiAccess.never")}
+                      </span>
+                      <button
+                        type="button"
+                        className="control-btn control-btn--ghost"
+                        onClick={() => revokeApiToken(tk.id)}
+                      >
+                        {t("settings.apiAccess.revoke")}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <p className="settings-hint settings-token-docs">{t("settings.apiAccess.docs")}</p>
           </div>
         )}
 
