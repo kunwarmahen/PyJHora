@@ -1174,6 +1174,34 @@ export const astrologyService = {
       },
     }),
 
+  // ---- More chakras (§2.7) ----
+  // Kota (the fort — four rings, transit malefics marked) and Tripataki (the
+  // rasis on the three-banner diagram). Both share the transit-moment params.
+  getKotaChakra: (
+    birthDetails,
+    { currentDate = null, currentTime = null, currentTz = null, ayanamsa = DEFAULT_AYANAMSA } = {}
+  ) =>
+    api.post("/api/astrology/kota-chakra", birthDetails, {
+      params: {
+        current_date: currentDate,
+        current_time: currentTime,
+        current_tz: currentTz,
+        ayanamsa,
+      },
+    }),
+  getTripatakiChakra: (
+    birthDetails,
+    { currentDate = null, currentTime = null, currentTz = null, ayanamsa = DEFAULT_AYANAMSA } = {}
+  ) =>
+    api.post("/api/astrology/tripataki-chakra", birthDetails, {
+      params: {
+        current_date: currentDate,
+        current_time: currentTime,
+        current_tz: currentTz,
+        ayanamsa,
+      },
+    }),
+
   // Plain-language AI reading of the Sarvatobhadra transit picture.
   analyzeSarvatobhadraAI: (birthDetails, opts = {}, model = {}) =>
     api.post(

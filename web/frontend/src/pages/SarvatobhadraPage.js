@@ -10,6 +10,8 @@ import { useRestoreReading } from "../hooks/useRestoreReading";
 import { RecentReadings } from "../components/RecentReadings";
 import { intlLocale } from "../utils/format";
 import { PageHeader } from "../components/PageHeader";
+import { KotaChakra } from "../components/KotaChakra";
+import { TripatakiChakra } from "../components/TripatakiChakra";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
@@ -105,6 +107,9 @@ export const SarvatobhadraPage = () => {
   const [result, setResult] = useState(null);
   const [momentMs, setMomentMs] = useState(() => Date.now());
   const [nameNak, setNameNak] = useState(""); // "" = not set; else "1".."27"
+  // Which chakra is on screen (§2.7): the Sarvatobhadra grid, the Kota fort, or
+  // the Tripataki banner diagram. All three read the same transit moment above.
+  const [chakra, setChakra] = useState("sarvatobhadra");
 
   const moment = useMemo(() => new Date(momentMs), [momentMs]);
   const transitDate = dateISO(moment);
@@ -366,7 +371,11 @@ export const SarvatobhadraPage = () => {
             <RotateCcw size={14} /> {t("sbc.now")}
           </button>
 
-          <label className="control-label" style={{ marginLeft: "auto" }}>
+          {/* The name-star anchor only applies to the Sarvatobhadra chakra. */}
+          <label
+            className="control-label"
+            style={{ marginLeft: "auto", display: chakra === "sarvatobhadra" ? undefined : "none" }}
+          >
             {t("sbc.nameStar")}
           </label>
           <select
@@ -374,7 +383,10 @@ export const SarvatobhadraPage = () => {
             value={nameNak}
             onChange={(e) => setNameNak(e.target.value)}
             title={t("sbc.nameStarHint")}
-            style={{ maxWidth: "260px" }}
+            style={{
+              maxWidth: "260px",
+              display: chakra === "sarvatobhadra" ? undefined : "none",
+            }}
           >
             <option value="">{t("sbc.nameStarNone")}</option>
             {NAAMA_NAKSHATRAS.map((label, i) => (
@@ -385,9 +397,50 @@ export const SarvatobhadraPage = () => {
           </select>
         </div>
 
-        <ErrorBanner message={error} />
+        {/* Chakra tabs (§2.7) — all three read the transit moment chosen above. */}
+        <div className="chart-toggle chart-toggle--workspace" style={{ marginBottom: "var(--space-lg)" }}>
+          {[
+            { key: "sarvatobhadra", label: t("sbc.tabs.sarvatobhadra") },
+            { key: "kota", label: t("sbc.tabs.kota") },
+            { key: "tripataki", label: t("sbc.tabs.tripataki") },
+          ].map((tb) => (
+            <button
+              key={tb.key}
+              className={`chart-toggle__btn ${chakra === tb.key ? "is-active" : ""}`}
+              onClick={() => setChakra(tb.key)}
+            >
+              <Grid3x3 size={16} /> {tb.label}
+            </button>
+          ))}
+        </div>
 
-        {loading ? (
+        {chakra === "kota" && (
+          <Card>
+            <KotaChakra
+              birthDetails={birthDetails}
+              transitDate={transitDate}
+              transitTime={transitTime}
+              transitTz={tzOffset(moment)}
+              ayanamsa={ayanamsa}
+            />
+          </Card>
+        )}
+
+        {chakra === "tripataki" && (
+          <Card>
+            <TripatakiChakra
+              birthDetails={birthDetails}
+              transitDate={transitDate}
+              transitTime={transitTime}
+              transitTz={tzOffset(moment)}
+              ayanamsa={ayanamsa}
+            />
+          </Card>
+        )}
+
+        <ErrorBanner message={chakra === "sarvatobhadra" ? error : ""} />
+
+        {chakra !== "sarvatobhadra" ? null : loading ? (
           <Card>
             <LoadingState message={t("sbc.loading")} />
           </Card>

@@ -199,6 +199,80 @@ def test_sudarshana_chakra_dasha(args1):
     assert [r["periods"][12]["chakra"][w]["house"] for w in ("lagna", "moon", "sun")] == [1, 1, 1]
 
 
+def test_kota_chakra(args1):
+    """§2.7 Kota Chakra — the fort, ported from the engine's PyQt-only widget.
+
+    Pins the layout invariants (so the port can't silently drift from JHora) and
+    the two defenders, which are derived independently of the grid.
+    """
+    r = A.get_kota_chakra(**args1, current_date="2026-07-16")
+    assert r.get("status") == "success", r
+
+    # Chart 1: Moon in Leo, Magha pada 1.
+    assert r["birth_star"] == {"number": 10, "name": "Magha", "pada": 1}
+    assert r["moon_sign"] == "Leo"
+    # Kota Swami = lord of the Moon's sign (Leo -> Sun); Paala from the star/pada table.
+    assert r["kota_lord"] == "Sun"
+    assert r["kota_paala"] == "Saturn"
+
+    # Four enclosures, 8/8/8/4 = all 28 stars, each exactly once.
+    assert [ring["key"] for ring in r["rings"]] == \
+        ["baahya", "praakaara", "durgantara", "sthamba"]
+    assert [len(ring["cells"]) for ring in r["rings"]] == [8, 8, 8, 4]
+    stars = [c["star"] for ring in r["rings"] for c in ring["cells"]]
+    assert len(stars) == 28
+    assert len(set(stars)) == 28, "a star is duplicated in the fort"
+    assert "Abhijit" in stars, "the 28-star order must include Abhijit"
+
+    # The fort is counted FROM the janma nakshatra, so it anchors the outer wall.
+    assert r["rings"][0]["cells"][0]["star"] == "Magha"
+
+    # Every graha lands somewhere; Abhijit is a cell but never occupied (planets
+    # only ever carry a 1-27 nakshatra).
+    placed = [p["name"] for ring in r["rings"] for c in ring["cells"] for p in c["transit"]]
+    assert sorted(placed) == sorted(
+        ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"])
+    for ring in r["rings"]:
+        for c in ring["cells"]:
+            if c["star"] == "Abhijit":
+                assert c["transit"] == [] and c["natal"] == []
+
+    # Malefics are flagged as such, and reaching the inner rings reads as stressful.
+    saturn = next(p for ring in r["rings"] for c in ring["cells"]
+                  for p in c["transit"] if p["name"] == "Saturn")
+    assert saturn["malefic"] is True
+
+
+def test_tripataki_chakra(args1):
+    """§2.7 Tripataki — the twelve rasis on the three-banner diagram.
+
+    The engine only ever shipped this as a drawing, so what's pinned is the
+    layout contract + that grahas land on the right signs (no invented verdict).
+    """
+    r = A.get_tripataki_chakra(**args1, current_date="2026-07-16")
+    assert r.get("status") == "success", r
+    assert r["natal_lagna"] == "Taurus"
+    assert len(r["cells"]) == 12
+    assert len({c["sign_name"] for c in r["cells"]}) == 12, "each rasi appears once"
+    assert len(r["lines"]) == 18, "the three pataki lines flatten to 18 segments"
+
+    # Perimeter layout is fixed: Aries at (1,3), Taurus at (1,4), … (engine table).
+    aries = next(c for c in r["cells"] if c["sign_name"] == "Aries")
+    assert (aries["x"], aries["y"]) == (1, 3)
+    # Taurus lagna -> its cell is flagged and is house 1.
+    lagna = [c for c in r["cells"] if c["is_lagna"]]
+    assert len(lagna) == 1
+    assert lagna[0]["sign_name"] == "Taurus" and lagna[0]["house_from_lagna"] == 1
+
+    # Grahas plot on the sign they occupy (cross-checked against the transit test).
+    by_sign = {c["sign_name"]: [p["name"] for p in c["transit"]] for c in r["cells"]}
+    assert by_sign["Pisces"] == ["Saturn"]
+    assert by_sign["Aquarius"] == ["Rahu"]
+    assert "Sun" in by_sign["Gemini"]
+    placed = sorted(p for v in by_sign.values() for p in v)
+    assert len(placed) == 9, "all nine grahas plotted"
+
+
 def test_bindu_chip_thresholds():
     """The classical thresholds themselves: own-BAV >=5 supported / ==4 neutral /
     <=3 rough, and the node fallback on Sarva (>=30 / >=25 / else)."""

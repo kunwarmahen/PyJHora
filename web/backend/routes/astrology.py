@@ -1192,6 +1192,58 @@ async def generate_prediction(
 
 # ============= SARVATOBHADRA CHAKRA =============
 
+@router.post("/api/astrology/kota-chakra")
+async def get_kota_chakra(
+    birth_details: BirthDetails,
+    current_date: Optional[str] = None,
+    current_time: Optional[str] = None,
+    current_tz: Optional[float] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Kota Chakra (the fort) with today's transits marked on its four rings (§2.7)."""
+    try:
+        r = AstrologyCompute.get_kota_chakra(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude, tz=birth_details.timezone,
+            current_date=current_date, current_time=current_time,
+            current_tz=current_tz, ayanamsa=ayanamsa,
+        )
+        if r.get("status") != "success":
+            raise HTTPException(status_code=400, detail=r.get("error", "Calculation failed"))
+        return r
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/astrology/tripataki-chakra")
+async def get_tripataki_chakra(
+    birth_details: BirthDetails,
+    current_date: Optional[str] = None,
+    current_time: Optional[str] = None,
+    current_tz: Optional[float] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Tripataki Chakra — the rasis on the three-banner diagram with transits (§2.7)."""
+    try:
+        r = AstrologyCompute.get_tripataki_chakra(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude, tz=birth_details.timezone,
+            current_date=current_date, current_time=current_time,
+            current_tz=current_tz, ayanamsa=ayanamsa,
+        )
+        if r.get("status") != "success":
+            raise HTTPException(status_code=400, detail=r.get("error", "Calculation failed"))
+        return r
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/api/astrology/sarvatobhadra")
 async def get_sarvatobhadra(
     birth_details: BirthDetails,

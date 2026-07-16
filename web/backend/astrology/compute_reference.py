@@ -334,6 +334,271 @@ class ReferenceMixin:
             return {"error": str(e), "status": "failed"}
 
     @staticmethod
+    def get_kota_chakra(dob: str, tob: str, place: str,
+                        lat: Optional[float] = None, lon: Optional[float] = None,
+                        tz: Optional[float] = None,
+                        current_date: Optional[str] = None, current_time: Optional[str] = None,
+                        current_tz: Optional[float] = None,
+                        ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Kota Chakra — the fort — with the current transits marked (§2.7).
+
+        The 28 nakshatras are laid out as four concentric enclosures counted from
+        the janma nakshatra: Baahya (outer wall), Praakaara (rampart), Durgantara
+        (inner fort) and Sthamba (the central pillar). Classical use is protection
+        / health: a malefic transiting *into* the inner rings threatens the fort,
+        a benefic there defends it. The **Kota Swami** (lord of the Moon's sign)
+        defends, and the **Kota Paala** (from the janma star + pada) guards.
+
+        Ported from the engine's PyQt-only `ui.chakra.KotaChakra` — there is no
+        headless entry point — reusing its constant tables verbatim
+        (`abhijit_order_of_stars`, `kota_chakra_star_placement_from_birth_star`,
+        `kota_paala_lord_for_star_paadha`) so the layout matches desktop JHora.
+        """
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            from datetime import datetime
+
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+            natal_jd = swe.julday(year, month, day, hour + minute / 60.0)
+            natal = charts.rasi_chart(natal_jd, place_obj)
+
+            # Janma nakshatra + pada from the natal Moon.
+            moon_rasi, moon_long = natal[2][1]
+            birth_star, birth_pada = drik.nakshatra_pada(moon_rasi * 30.0 + moon_long)[:2]
+
+            # Kota Swami: lord of the sign the Moon occupies. Kota Paala: the
+            # engine's janma-star x pada guard table.
+            kota_lord = RASI_LORDS[moon_rasi]
+            kota_paala = PLANET_NAMES.get(
+                const.kota_paala_lord_for_star_paadha[birth_star - 1][birth_pada - 1], "—")
+
+            # ── The fort's cells ────────────────────────────────────────────
+            # Stars in Abhijit order, then each ring's cells offset from the
+            # janma star (the engine's exact indexing, so we match JHora).
+            star_order = [NAKSHATRA_NAMES_28[i] for i in const.abhijit_order_of_stars]
+            grid = [
+                [star_order[((birth_star - 1) + (ele - 1)) % 28] for ele in row]
+                for row in const.kota_chakra_star_placement_from_birth_star
+            ]
+
+            # ── Transit moment ─────────────────────────────────────────────
+            if current_date:
+                ty, tm, td = map(int, current_date.split("-"))
+            else:
+                now = datetime.now()
+                ty, tm, td = now.year, now.month, now.day
+            if current_time:
+                tt = current_time.split(":")
+                t_hour = int(tt[0]); t_min = int(tt[1]) if len(tt) > 1 else 0
+            else:
+                t_hour, t_min = 12, 0
+            transit_tz = current_tz if current_tz is not None else tz_offset
+            transit_place = drik.Place(place, lat, lon, transit_tz)
+            transit_jd = swe.julday(ty, tm, td, t_hour + t_min / 60.0)
+            transit = charts.rasi_chart(transit_jd, transit_place)
+            retro = set(drik.planets_in_retrograde(transit_jd, transit_place))
+
+            def _star_of(rasi, deg):
+                return drik.nakshatra_pada(rasi * 30.0 + deg)[0]
+
+            # Which cell (ring, index) holds a given nakshatra number (1-27)?
+            def _cell_of(nak):
+                name = NAKSHATRA_NAMES[nak - 1]
+                for ri, row in enumerate(grid):
+                    for ci, star in enumerate(row):
+                        if star == name:
+                            return ri, ci
+                return None
+
+            natal_at = {}
+            for pid, (rasi, deg) in natal[1:]:
+                nm = PLANET_NAMES.get(pid)
+                if not nm:
+                    continue
+                cell = _cell_of(_star_of(rasi, deg))
+                if cell:
+                    natal_at.setdefault(cell, []).append(nm)
+
+            transit_at = {}
+            for pid, (rasi, deg) in transit[1:]:
+                nm = PLANET_NAMES.get(pid)
+                if not nm:
+                    continue
+                cell = _cell_of(_star_of(rasi, deg))
+                if cell:
+                    transit_at.setdefault(cell, []).append(
+                        {"name": nm, "retrograde": pid in retro,
+                         "malefic": nm in KOTA_MALEFICS})
+
+            rings = []
+            for ri, (key, label, blurb) in enumerate(KOTA_RINGS):
+                cells = []
+                for ci, star in enumerate(grid[ri]):
+                    cells.append({
+                        "star": star,
+                        "natal": natal_at.get((ri, ci), []),
+                        "transit": transit_at.get((ri, ci), []),
+                    })
+                rings.append({"key": key, "name": label, "description": blurb,
+                              "cells": cells})
+
+            # ── Findings ───────────────────────────────────────────────────
+            findings = []
+            for ri, (key, label, _b) in enumerate(KOTA_RINGS):
+                mal = [p["name"] for ci in range(len(grid[ri]))
+                       for p in transit_at.get((ri, ci), []) if p["malefic"]]
+                ben = [p["name"] for ci in range(len(grid[ri]))
+                       for p in transit_at.get((ri, ci), []) if not p["malefic"]]
+                if mal:
+                    findings.append({
+                        "ring": key, "tone": "stressful" if ri >= 2 else "watch",
+                        "text": f"{', '.join(mal)} transiting {label}"
+                                + (" — the fort's core is under pressure."
+                                   if ri == 3 else
+                                   " — malefic pressure on the inner fort."
+                                   if ri == 2 else "."),
+                    })
+                if ben:
+                    findings.append({
+                        "ring": key, "tone": "supportive",
+                        "text": f"{', '.join(ben)} transiting {label} — protective.",
+                    })
+            # The defenders' own transit position is the classical headline.
+            for role, planet in (("Kota Swami (defender)", kota_lord),
+                                 ("Kota Paala (guard)", kota_paala)):
+                for ri in range(len(grid)):
+                    for ci in range(len(grid[ri])):
+                        if any(p["name"] == planet for p in transit_at.get((ri, ci), [])):
+                            findings.append({
+                                "ring": KOTA_RINGS[ri][0], "tone": "note",
+                                "text": f"{role} {planet} is in {KOTA_RINGS[ri][1]}.",
+                            })
+
+            return {
+                "status": "success",
+                "birth_star": {"number": birth_star,
+                               "name": NAKSHATRA_NAMES[birth_star - 1],
+                               "pada": birth_pada},
+                "moon_sign": ZODIAC_NAMES[moon_rasi],
+                "kota_lord": kota_lord,
+                "kota_paala": kota_paala,
+                "transit_date": f"{ty:04d}-{tm:02d}-{td:02d}",
+                "rings": rings,
+                "findings": findings,
+            }
+        except Exception as e:
+            print(f"Kota chakra error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_tripataki_chakra(dob: str, tob: str, place: str,
+                             lat: Optional[float] = None, lon: Optional[float] = None,
+                             tz: Optional[float] = None,
+                             current_date: Optional[str] = None, current_time: Optional[str] = None,
+                             current_tz: Optional[float] = None,
+                             ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Tripataki Chakra — the twelve rasis on the three-banner diagram (§2.7).
+
+        The rasis sit around a 5x5 grid crossed by the three *pataki* (banner)
+        lines; each graha is plotted on the sign it occupies, natal and transiting.
+
+        HONEST SCOPE: the engine only ever implemented Tripataki as a **drawing**
+        (`ui.chakra.Tripataki`) — there is no vedha/scoring logic for it anywhere,
+        and none is invented here. This returns the faithful layout + placements so
+        the chakra can be read the classical way by eye; unlike Sarvatobhadra
+        (vedha) or Kota (rings), it ships no computed verdict.
+        """
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            from datetime import datetime
+
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+            natal_jd = swe.julday(year, month, day, hour + minute / 60.0)
+            natal = charts.rasi_chart(natal_jd, place_obj)
+            natal_lagna = natal[0][1][0]
+
+            if current_date:
+                ty, tm, td = map(int, current_date.split("-"))
+            else:
+                now = datetime.now()
+                ty, tm, td = now.year, now.month, now.day
+            if current_time:
+                tt = current_time.split(":")
+                t_hour = int(tt[0]); t_min = int(tt[1]) if len(tt) > 1 else 0
+            else:
+                t_hour, t_min = 12, 0
+            transit_tz = current_tz if current_tz is not None else tz_offset
+            transit_place = drik.Place(place, lat, lon, transit_tz)
+            transit_jd = swe.julday(ty, tm, td, t_hour + t_min / 60.0)
+            transit = charts.rasi_chart(transit_jd, transit_place)
+            retro = set(drik.planets_in_retrograde(transit_jd, transit_place))
+
+            natal_by_sign = {}
+            for pid, (rasi, _deg) in natal[1:]:
+                nm = PLANET_NAMES.get(pid)
+                if nm:
+                    natal_by_sign.setdefault(rasi, []).append(nm)
+
+            transit_by_sign = {}
+            for pid, (rasi, _deg) in transit[1:]:
+                nm = PLANET_NAMES.get(pid)
+                if nm:
+                    transit_by_sign.setdefault(rasi, []).append(
+                        {"name": nm, "retrograde": pid in retro})
+
+            cells = []
+            for sign, (x, y) in enumerate(TRIPATAKI_RASI_POSITIONS):
+                cells.append({
+                    "sign": sign + 1,
+                    "sign_name": ZODIAC_NAMES[sign],
+                    "x": x, "y": y,
+                    "is_lagna": sign == natal_lagna,
+                    "house_from_lagna": ((sign - natal_lagna) % 12) + 1,
+                    "natal": natal_by_sign.get(sign, []),
+                    "transit": transit_by_sign.get(sign, []),
+                })
+
+            lines = [{"from": [sx, sy], "to": [ex, ey]}
+                     for (sx, sy), ends in TRIPATAKI_LINES.items()
+                     for (ex, ey) in ends]
+
+            return {
+                "status": "success",
+                "transit_date": f"{ty:04d}-{tm:02d}-{td:02d}",
+                "natal_lagna": ZODIAC_NAMES[natal_lagna],
+                "grid": {"width": 5, "height": 5},
+                "cells": cells,
+                "lines": lines,
+            }
+        except Exception as e:
+            print(f"Tripataki chakra error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
     def get_sarvatobhadra_chakra(dob: str, tob: str, place: str,
                                  lat: Optional[float] = None, lon: Optional[float] = None,
                                  tz: Optional[float] = None, name_nakshatra: Optional[int] = None,

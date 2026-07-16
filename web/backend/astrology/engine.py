@@ -524,6 +524,49 @@ WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday
 HORA_PLANETS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
 HORA_BENEFICS = {"Moon", "Mercury", "Jupiter", "Venus"}
 
+# ── Kota Chakra (§2.7) ──────────────────────────────────────────────────────
+# The fort: four concentric enclosures, read from the janma nakshatra outward-in.
+# Malefics reaching the inner rings (especially Sthamba, the central pillar) are
+# the classical danger signal; benefics there protect. Each ring's cells are
+# offsets into the 28-star (Abhijit-inclusive) order — see
+# const.kota_chakra_star_placement_from_birth_star.
+KOTA_RINGS = [
+    ("baahya", "Baahya", "Outer wall — the approach; events still at a distance."),
+    ("praakaara", "Praakaara", "Rampart — the defences proper; pressure building."),
+    ("durgantara", "Durgantara", "Inner fort — the breach point; matters get personal."),
+    ("sthamba", "Sthamba", "Central pillar — the heart of the fort; the most sensitive point."),
+]
+# Malefics for the Kota reading. (The Moon is treated as benefic here; its waxing/
+# waning nuance is out of scope for the fort's entry/exit verdict.)
+KOTA_MALEFICS = {"Sun", "Mars", "Saturn", "Rahu", "Ketu"}
+# The 28-star order the chakra is laid out in: the 27 nakshatras with Abhijit
+# spliced in after Uttara Ashadha, matching const.abhijit_order_of_stars.
+NAKSHATRA_NAMES_28 = NAKSHATRA_NAMES + ["Abhijit"]
+
+# ── Tripataki Chakra (§2.7) ─────────────────────────────────────────────────
+# The twelve rasis laid around the perimeter of a 5x5 grid, crossed by the three
+# "pataki" (banner) lines the chakra is named for. Both tables are lifted verbatim
+# from the engine's PyQt-only `ui.chakra.Tripataki`, which is the ONLY place it
+# exists — the engine ships the *layout* and nothing else, so this is a faithful
+# plot of where the grahas fall, not a scored reading (unlike Sarvatobhadra's
+# vedha or Kota's rings, we would have to invent any verdict).
+# Position i is rasi i (Aries=0 .. Pisces=11); coordinates are 1-5 grid units.
+TRIPATAKI_RASI_POSITIONS = [
+    (1, 3), (1, 4), (2, 5), (3, 5), (4, 5), (5, 4),
+    (5, 3), (5, 2), (4, 1), (3, 1), (2, 1), (1, 2),
+]
+TRIPATAKI_LINES = {
+    (2, 5): [(1, 4), (2, 1), (5, 2)],
+    (3, 5): [(1, 3), (3, 1), (5, 3)],
+    (4, 5): [(1, 2), (4, 1), (5, 4)],
+    (2, 1): [(1, 2), (5, 4)],
+    (3, 1): [(1, 3), (5, 3)],
+    (4, 1): [(1, 4), (5, 2)],
+    (1, 2): [(5, 2)],
+    (1, 3): [(5, 3)],
+    (1, 4): [(5, 4)],
+}
+
 # Vakra-gathi (retrograde) epicycle periods, per planet index: (orbital period in
 # days, number of synodic loops to draw). Mirrors ui/vakra_gathi_plot's table but
 # lets us reimplement the loop with plain numpy (no PyQt/pyqtgraph). -1 = Earth.

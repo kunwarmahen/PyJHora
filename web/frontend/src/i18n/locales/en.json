@@ -181,7 +181,12 @@
     "aiRegenerate": "Regenerate reading",
     "aiError": "Couldn't generate the reading.",
     "aiModel": "Answered by {{model}}",
-    "disclaimer": "AI interpretation of the Sarvatobhadra Chakra for the chosen moment. For reflection, not a substitute for professional advice."
+    "disclaimer": "AI interpretation of the Sarvatobhadra Chakra for the chosen moment. For reflection, not a substitute for professional advice.",
+    "tabs": {
+      "sarvatobhadra": "Sarvatobhadra",
+      "kota": "Kota (fort)",
+      "tripataki": "Tripataki"
+    }
   },
   "shared": {
     "notFound": "This shared chart was not found.",
@@ -2172,5 +2177,32 @@
     "model": "Generated with {{model}}",
     "disclaimer": "A composed interpretation for reflection — not prediction, and no medical, legal or financial advice.",
     "forName": "Life Report for {{name}}"
+  },
+  "kota": {
+    "error": "Could not compute the Kota chakra",
+    "loading": "Building the fort…",
+    "intro": "The Kota Chakra lays the 28 nakshatras out as a fort, counted from your birth star. Read it outward-in: a malefic transiting into the inner enclosures presses on the fort, a benefic there defends it. Classically used for health and protection questions.",
+    "birthStar": "Birth star",
+    "pada": "pada",
+    "swami": "Kota Swami (defender)",
+    "paala": "Kota Paala (guard)",
+    "findings": "What the fort shows",
+    "natal": "Natal",
+    "ringDepth": "Ring {{n}}",
+    "legend": "Filled chips are transiting grahas (red = malefic, green = benefic); the small grey text is where your natal grahas sit. ℞ = retrograde.",
+    "rings": {
+      "baahya": "Baahya — outer wall",
+      "praakaara": "Praakaara — rampart",
+      "durgantara": "Durgantara — inner fort",
+      "sthamba": "Sthamba — central pillar"
+    }
+  },
+  "tripataki": {
+    "title": "Tripataki Chakra",
+    "error": "Could not compute the Tripataki chakra",
+    "loading": "Drawing the chakra…",
+    "natalLagna": "Natal Lagna",
+    "intro": "The Tripataki Chakra sets the twelve rasis around the three \"pataki\" (banner) lines it is named for, with the grahas plotted on the sign they occupy.",
+    "legend": "Each node is a rasi (its number is the house from your natal Lagna); bold text is the transiting grahas, the grey line beneath is your natal grahas. Note: the engine ships this chakra as a diagram only — there is no computed verdict here, unlike Sarvatobhadra (vedha) or Kota (rings)."
   }
 }

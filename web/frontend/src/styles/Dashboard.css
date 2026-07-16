@@ -2161,3 +2161,88 @@
     justify-content: center;
   }
 }
+
+/* ── Kota Chakra — the fort (§2.7) ─────────────────────────────────────── */
+.kota-rings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+.kota-ring {
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  background: var(--sacred-white);
+}
+/* Deeper enclosures read hotter — reaching Sthamba is the classical alarm. */
+.kota-ring--baahya { border-left: 4px solid rgba(120, 120, 120, 0.5); }
+.kota-ring--praakaara { border-left: 4px solid var(--gold, #d4af37); }
+.kota-ring--durgantara { border-left: 4px solid var(--saffron); }
+.kota-ring--sthamba { border-left: 4px solid var(--vermillion); }
+.kota-ring__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+.kota-ring__name { font-weight: 700; color: var(--text-primary); }
+.kota-ring__depth {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.kota-ring__blurb {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 2px 0 var(--space-sm);
+}
+.kota-cells {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: var(--space-xs);
+}
+.kota-cell {
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-md);
+  padding: 5px 7px;
+  min-height: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--cream, #fff8ef);
+}
+.kota-cell.is-occupied { border-color: var(--saffron); background: rgba(255, 153, 51, 0.07); }
+.kota-cell__star { font-size: 0.6875rem; color: var(--text-secondary); }
+.kota-cell__planets { display: flex; flex-wrap: wrap; gap: 3px; }
+.kota-graha {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  color: var(--sacred-white);
+}
+.kota-graha.is-malefic { background: var(--vermillion); }
+.kota-graha.is-benefic { background: #2e7d32; }
+.kota-cell__natal { font-size: 0.625rem; color: var(--text-muted, #999); }
+.kota-finding { display: flex; align-items: center; gap: 6px; }
+.kota-finding--stressful { color: var(--vermillion); font-weight: 600; }
+.kota-finding--watch { color: var(--saffron); }
+.kota-finding--supportive { color: #2e7d32; }
+.kota-finding--note { color: var(--text-secondary); }
+
+/* ── Tripataki Chakra (§2.7) ───────────────────────────────────────────── */
+.tripataki-wrap { display: flex; justify-content: center; margin: var(--space-md) 0; }
+.tripataki-svg { width: 100%; max-width: 560px; height: auto; }
+.tripataki-line { stroke: var(--sandalwood); stroke-width: 1.5; }
+.tripataki-node {
+  fill: var(--cream, #fff8ef);
+  stroke: var(--sandalwood);
+  stroke-width: 1.5;
+}
+.tripataki-cell.is-lagna .tripataki-node { stroke: var(--saffron); stroke-width: 2.5; }
+.tripataki-rasi { font-size: 13px; font-weight: 700; fill: var(--text-primary); }
+.tripataki-house { font-size: 9px; fill: var(--text-secondary); }
+.tripataki-grahas { font-size: 11px; font-weight: 700; fill: var(--indigo, #5e60ce); }
+.tripataki-natal { font-size: 9px; fill: var(--text-muted, #999); }
