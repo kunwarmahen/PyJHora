@@ -1,0 +1,139 @@
+/* §5.5 Interactive chart explorer — planet chip strip + slide-in panel */
+
+.pex {
+  margin-top: var(--space-md);
+}
+.pex-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+.pex-chip {
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--sandalwood);
+  background: white;
+  color: var(--cosmic-indigo);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.pex-chip:hover {
+  border-color: var(--saffron);
+  background: rgba(255, 153, 51, 0.08);
+}
+.pex-chip--active {
+  background: var(--saffron);
+  color: white;
+  border-color: var(--saffron);
+}
+
+.pex-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(45, 53, 97, 0.35);
+  z-index: 300;
+  animation: pex-fade 0.2s ease;
+}
+@keyframes pex-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.pex-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 90%;
+  max-width: 360px;
+  background: white;
+  box-shadow: var(--shadow-lg);
+  border-left: 4px solid var(--saffron);
+  z-index: 301;
+  display: flex;
+  flex-direction: column;
+  animation: pex-slide 0.25s ease;
+}
+@keyframes pex-slide {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.pex-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--sandalwood);
+}
+.pex-panel__head h3 {
+  margin: 0;
+  color: var(--saffron);
+  font-size: 1.4rem;
+}
+.pex-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+}
+.pex-panel__body {
+  padding: var(--space-lg);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.pex-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pex-row__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+.pex-row__value {
+  color: var(--cosmic-indigo);
+  font-weight: 600;
+}
+
+.pex-flags {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pex-flags__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pex-flag {
+  padding: 3px 10px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.pex-flag--benefic {
+  background: rgba(46, 158, 91, 0.14);
+  color: #1e7a44;
+}
+.pex-flag--challenging {
+  background: rgba(178, 58, 72, 0.12);
+  color: #b23a48;
+}
+.pex-flag--neutral {
+  background: rgba(90, 95, 122, 0.1);
+  color: var(--text-secondary);
+}
+
+.pex-ask {
+  margin-top: var(--space-sm);
+}

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Settings as SettingsIcon, Sliders, Key, CalendarDays, User, Sparkles, Check, LogOut, Mail, ShieldOff, Trash2, Bell, Activity, AlertTriangle } from "lucide-react";
+import { Settings as SettingsIcon, Sliders, Key, CalendarDays, User, Sparkles, Check, LogOut, Mail, ShieldOff, Trash2, Bell, Activity, AlertTriangle, Rss, Copy } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { useSettings } from "../contexts/SettingsContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -32,6 +32,48 @@ export const SettingsPage = () => {
 
   const [tab, setTab] = useState("general");
   const [savedFlash, setSavedFlash] = useState("");
+
+  // iCal feed (§5.10): resolve a signed subscribe URL for a chosen profile.
+  const [calProfileId, setCalProfileId] = useState("");
+  const [calUrl, setCalUrl] = useState("");
+  const [calBusy, setCalBusy] = useState(false);
+  const [calCopied, setCalCopied] = useState(false);
+  const [calError, setCalError] = useState("");
+
+  useEffect(() => {
+    if (tab !== "calendar" || !profiles?.length) return;
+    const pid = calProfileId || profiles[0]?._id;
+    if (!pid) return;
+    if (calProfileId !== pid) setCalProfileId(pid);
+    let cancelled = false;
+    setCalBusy(true);
+    setCalError("");
+    setCalUrl("");
+    astrologyService
+      .getCalendarToken(pid)
+      .then((res) => {
+        if (cancelled) return;
+        const origin = window.location.origin;
+        setCalUrl(origin + res.data.path);
+      })
+      .catch((err) => {
+        if (!cancelled) setCalError(err.response?.data?.detail || t("settings.calendar.error"));
+      })
+      .finally(() => !cancelled && setCalBusy(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, calProfileId, profiles, t]);
+
+  const copyCalUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(calUrl);
+      setCalCopied(true);
+      setTimeout(() => setCalCopied(false), 1800);
+    } catch {
+      /* clipboard unavailable — user can select manually */
+    }
+  };
 
   // Notifications (daily digest + push)
   const [notif, setNotif] = useState(null); // prefs
@@ -311,6 +353,7 @@ export const SettingsPage = () => {
     { key: "apiKeys", label: t("settings.tabs.apiKeys"), icon: <Key size={16} /> },
     { key: "almanac", label: t("settings.tabs.almanac"), icon: <CalendarDays size={16} /> },
     { key: "notifications", label: t("settings.tabs.notifications"), icon: <Bell size={16} /> },
+    { key: "calendar", label: t("settings.tabs.calendar"), icon: <Rss size={16} /> },
     { key: "system", label: t("settings.tabs.system"), icon: <Activity size={16} /> },
     { key: "account", label: t("settings.tabs.account"), icon: <User size={16} /> },
   ];
@@ -888,6 +931,54 @@ export const SettingsPage = () => {
         )}
 
         {/* SYSTEM HEALTH */}
+        {/* CALENDAR (iCal feed) */}
+        {tab === "calendar" && (
+          <div className="ui-card settings-panel">
+            <h3 className="settings-section-title">{t("settings.calendar.title")}</h3>
+            <p className="settings-hint">{t("settings.calendar.intro")}</p>
+
+            {calError && <div className="settings-msg settings-msg--error">{calError}</div>}
+
+            {profiles?.length > 1 && (
+              <div className="settings-row">
+                <label className="settings-label">{t("settings.calendar.profile")}</label>
+                <select
+                  className="settings-input"
+                  value={calProfileId}
+                  onChange={(e) => setCalProfileId(e.target.value)}
+                >
+                  {profiles.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.profile_name || p.birth_details?.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <label className="settings-label">{t("settings.calendar.url")}</label>
+            <div className="settings-cal-url">
+              <input
+                type="text"
+                readOnly
+                value={calBusy ? t("settings.calendar.loading") : calUrl}
+                onFocus={(e) => e.target.select()}
+              />
+              <button
+                type="button"
+                className="ui-btn ui-btn--ghost"
+                onClick={copyCalUrl}
+                disabled={!calUrl}
+              >
+                {calCopied ? <Check size={16} /> : <Copy size={16} />}
+                {calCopied ? t("settings.calendar.copied") : t("settings.calendar.copy")}
+              </button>
+            </div>
+            <p className="settings-hint">{t("settings.calendar.help")}</p>
+            <p className="settings-hint">{t("settings.calendar.privacy")}</p>
+          </div>
+        )}
+
         {tab === "system" && (
           <div className="ui-card settings-panel">
             <div className="settings-key-head" style={{ marginBottom: 12 }}>

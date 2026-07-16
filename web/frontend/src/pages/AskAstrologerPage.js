@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   MessageCircle,
@@ -136,6 +136,7 @@ export const AskAstrologerPage = () => {
   const { t } = useTranslation();
   const { selectedProfile } = useProfile();
 
+  const location = useLocation();
   const [chartData, setChartData] = useState(null);
   const [messages, setMessages] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState("");
@@ -151,6 +152,18 @@ export const AskAstrologerPage = () => {
     setModalData(data || null);
     setShowInfoModal(true);
   };
+
+  // Deep-link prefill (e.g. from the Birth Chart planet explorer, §5.5): drop the
+  // suggested question into the input, then clear the history state so a refresh
+  // or back-navigation doesn't re-inject it.
+  useEffect(() => {
+    const q = location.state?.prefillQuestion;
+    if (q) {
+      setCurrentQuestion(q);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Compact "1.2k" style token count; full breakdown goes in the tooltip.
   const formatTokens = (n) => (n == null ? "" : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`);

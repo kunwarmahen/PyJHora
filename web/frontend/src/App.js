@@ -46,6 +46,10 @@ import { FullReportPage } from "./pages/FullReportPage";
 import { KPPage } from "./pages/KPPage";
 import { JaiminiPage } from "./pages/JaiminiPage";
 import { NowChartPage } from "./pages/NowChartPage";
+import { NakshatraProfilePage } from "./pages/NakshatraProfilePage";
+import { GocharaPhalaPage } from "./pages/GocharaPhalaPage";
+import { JournalPage } from "./pages/JournalPage";
+import { LifeReportPage } from "./pages/LifeReportPage";
 import { SITE_TITLE } from "./config/branding";
 import "./App.css";
 import "./styles/Responsive.css";
@@ -279,6 +283,42 @@ function App() {
               element={
                 <ProtectedRoute>
                   <NowChartPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/nakshatra"
+              element={
+                <ProtectedRoute>
+                  <NakshatraProfilePage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/gochara"
+              element={
+                <ProtectedRoute>
+                  <GocharaPhalaPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/journal"
+              element={
+                <ProtectedRoute>
+                  <JournalPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/life-report"
+              element={
+                <ProtectedRoute>
+                  <LifeReportPage />
                 </ProtectedRoute>
               }
             />

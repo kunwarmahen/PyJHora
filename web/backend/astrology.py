@@ -4,6 +4,8 @@ from typing import Dict, Optional, List
 import sys
 import os
 
+import reference_data as refdata
+
 # Add parent directory to path to import jhora
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
@@ -7975,6 +7977,135 @@ class AstrologyCompute:
             }
         except Exception as e:
             print(f"Retrograde error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+
+    @staticmethod
+    def get_nakshatra_profile(dob: str, tob: str, place: str,
+                              lat: Optional[float] = None, lon: Optional[float] = None,
+                              tz: Optional[float] = None,
+                              current_date: Optional[str] = None,
+                              ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Janma-nakshatra deep-dive (§5.7): the Moon's nakshatra + pada with its
+        classical attributes (lord, deity, symbol, gana, yoni, nadi, guna, varna,
+        naming syllable) and a 27-day tarabala calendar strip from `current_date`
+        (or today) at the birth place — the favourable/unfavourable days as the
+        Moon cycles the 27 stars relative to the janma-nakshatra."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            from datetime import datetime, timedelta
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place or "", lat, lon, tz_offset)
+
+            natal_jd = swe.julday(year, month, day, hour + minute / 60.0)
+            natal = charts.rasi_chart(natal_jd, place_obj)
+            moon_rasi, moon_deg = natal[2][1]  # row 2 = Moon
+            moon_long = moon_rasi * 30.0 + moon_deg
+            nak_span = 360.0 / 27.0
+            janma_nak = int(moon_long / nak_span)          # 0-based
+            pada = int((moon_long % nak_span) / (nak_span / 4.0)) + 1
+
+            profile = refdata.nakshatra_profile(janma_nak, pada, moon_rasi)
+
+            # ── 27-day tarabala calendar from current_date (or today) ──────
+            if current_date:
+                cy, cm, cd = map(int, current_date.split("-"))
+            else:
+                now = datetime.now()
+                cy, cm, cd = now.year, now.month, now.day
+            start = datetime(cy, cm, cd)
+            calendar = []
+            for offset in range(27):
+                d = start + timedelta(days=offset)
+                jd = swe.julday(d.year, d.month, d.day, 12)
+                nk = drik.nakshatra(jd, place_obj)  # [nak_no(1-27), pada, ...]
+                day_nak = nk[0]                     # 1-based
+                # count_stars expects 1-based star numbers; tarabala group 0-8.
+                tb = utils.count_stars(janma_nak + 1, day_nak) % 9
+                tb_name, tb_tone = TARABALA_NAMES[tb]
+                calendar.append({
+                    "date": f"{d.year:04d}-{d.month:02d}-{d.day:02d}",
+                    "nakshatra": NAKSHATRA_NAMES[day_nak - 1],
+                    "tarabala": tb_name,
+                    "tone": tb_tone,
+                })
+
+            return {
+                "status": "success",
+                "profile": profile,
+                "moon_sign": ZODIAC_NAMES[moon_rasi],
+                "tarabala_calendar": calendar,
+                "calendar_from": f"{cy:04d}-{cm:02d}-{cd:02d}",
+            }
+        except Exception as e:
+            print(f"Nakshatra profile error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+
+    @staticmethod
+    def get_gochara_phala(dob: str, tob: str, place: str,
+                          lat: Optional[float] = None, lon: Optional[float] = None,
+                          tz: Optional[float] = None,
+                          current_date: Optional[str] = None,
+                          current_tz: Optional[float] = None,
+                          ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Classical Moon-referenced gochara-phala with vedha (§5.6): for each
+        transiting graha, the house it occupies from the natal Moon, whether that
+        is a favourable position, and whether a vedha (another graha in the
+        obstruction house) cancels the good result. Complements the degree-based
+        Transit page with the panchang-tradition verdict lay readers know."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            from datetime import datetime
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place or "", lat, lon, tz_offset)
+
+            natal_jd = swe.julday(year, month, day, hour + minute / 60.0)
+            natal = charts.rasi_chart(natal_jd, place_obj)
+            moon_rasi = natal[2][1][0]
+
+            if current_date:
+                ty, tm, td = map(int, current_date.split("-"))
+            else:
+                now = datetime.now()
+                ty, tm, td = now.year, now.month, now.day
+            transit_tz = current_tz if current_tz is not None else tz_offset
+            transit_place = drik.Place(place or "", lat, lon, transit_tz)
+            transit_jd = swe.julday(ty, tm, td, 12)
+            transit = charts.rasi_chart(transit_jd, transit_place)
+
+            transit_rasi = {PLANET_NAMES[pidx]: rasi
+                            for pidx, (rasi, _deg) in transit[1:]
+                            if pidx in PLANET_NAMES}
+            rows = refdata.gochara_phala(moon_rasi, transit_rasi)
+            favourable = sum(1 for r in rows if r["tone"] == "good")
+
+            return {
+                "status": "success",
+                "transit_date": f"{ty:04d}-{tm:02d}-{td:02d}",
+                "moon_sign": ZODIAC_NAMES[moon_rasi],
+                "results": rows,
+                "favourable_count": favourable,
+                "total": len(rows),
+            }
+        except Exception as e:
+            print(f"Gochara-phala error: {e}")
             import traceback
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}

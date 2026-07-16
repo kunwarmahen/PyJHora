@@ -3612,3 +3612,41 @@ AI caveat deliver the honest-disclosure value for v1.
 **§2.1 + §2.5 + §5.8 — the three requested — all shipped.** Remaining §5/§2 backlog: MCP (§2.3),
 iCal (§5.10), chart explorer (§5.5), gochara-vedha (§5.6), nakshatra profile (§5.7), marriage
 workspace (§2.6), Ashtakavarga transit chips (§2.4), life report (§5.11), RAG citations (§5.12).
+
+## 35. Desktop hamburger nav + the entire leftover §5.x backlog (owner ask 2026-07-16) — ✅ SHIPPED
+
+Owner ask: "add a hamburger for desktop (stop having to go back → down → pick another tile),
+then implement all leftover 5.x, update the md files, and make sure every functionality is an
+AI tool if it should be." All done in one pass; full frontend prod build green, backend imports
+clean (156 routes). Details live in `improvements-2026-07.md` §5.5/5.6/5.7/5.9/5.10/5.11/5.12.
+
+- **Desktop hamburger.** `NavDrawer` was already mounted everywhere (in `PageHeader` + the
+  Dashboard nav) but CSS hid the toggle above 768px. Removed that restriction → the drawer now
+  opens on every screen size, so you can jump between features from any page. Added the new pages'
+  links to the drawer (+ Gochara/Nakshatra/Journal/Life-Report).
+- **§5.7 Nakshatra profile** — page `/nakshatra`; tool `get_nakshatra_profile`.
+- **§5.6 Gochara-phala with vedha** — page `/gochara`; tool `get_gochara_phala`.
+  (Both back onto new `reference_data.py` classical tables + methods on `AstrologyCompute`.)
+- **§5.5 Interactive chart explorer** — `<PlanetExplorer>` on the Birth Chart page (chip strip →
+  slide-in panel, "Ask AI about this placement" deep-link). Frontend-only; no new tool needed
+  (existing tools already expose the underlying data).
+- **§5.9 Astro-journal + dasha diary** — page `/journal`; `journal.py` + Mongo CRUD; tool
+  `get_journal_entries` (pre-fetched + injected onto `bd._journal` to cross the async/sync
+  boundary of tool dispatch).
+- **§5.10 iCal feed** — `ical.py` (signed token + RFC-5545); Settings → Calendar tab. Read-only
+  feed, not an AI tool (it's a calendar-subscription serializer).
+- **§5.11 Composed Life Report** — page `/life-report`; 7-chapter sequential generation + save +
+  print. A composition of existing context, so no single new tool (it *uses* the whole context).
+- **§5.12 RAG with citations** — `rag.py` (Ollama embeddings, disk-cached, graceful-degrade);
+  tool `search_classical_texts`; `rag_corpus/` with an honest seed (no fabricated verse numbers)
+  + README; AI-Tools page shows citation on/off.
+
+**AI-tool coverage:** every feature that *should* be model-callable is — new tools
+`get_nakshatra_profile`, `get_gochara_phala`, `get_journal_entries`, `search_classical_texts`
+(all in `ALWAYS_TOOLS` + the `/api/ai/tools` catalog). iCal and Life Report are deliberately not
+tools (a calendar serializer and a full-report composition, respectively — neither is a discrete
+datum the model fetches). Nakshatra & Gochara readings are registered in `conversations.SOURCE_META`
+so their saved readings deep-link correctly from the unified history; Life Report too (`life_report`).
+
+**Still open after this pass:** §2.3 MCP/public API, §2.4 Ashtakavarga transit chips, §2.6 marriage
+workspace, §2.7 more chakras; §3.2 golden-value backend tests; todo.md §14 Help/FAQ, §15 compact/tabs.

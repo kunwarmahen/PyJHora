@@ -400,7 +400,11 @@
     "remedies": "Remedies",
     "kp": "KP System",
     "jaimini": "Jaimini",
-    "now": "Chart of the Moment"
+    "now": "Chart of the Moment",
+    "nakshatra": "Nakshatra Profile",
+    "gochara": "Gochara-phala",
+    "journal": "Astro-Journal",
+    "lifeReport": "Life Report"
   },
   "aiTools": {
     "title": "AI Capabilities",
@@ -412,7 +416,9 @@
     "hideSchema": "Hide technical schema",
     "noParams": "Takes no inputs.",
     "parameters": "Inputs",
-    "loadError": "Couldn't load the tool catalog."
+    "loadError": "Couldn't load the tool catalog.",
+    "citationsOn": "📚 Classical-text citations are active — readings can cite {{count}} indexed passages from the shastra.",
+    "citationsOff": "Classical-text citations are off (no corpus indexed). Add public-domain texts to the server’s rag_corpus folder to enable cited shlokas."
   },
   "dashboard": {
     "welcome": "Welcome,",
@@ -551,6 +557,22 @@
       "now": {
         "title": "Chart of the Moment",
         "description": "The current sky cast for now & here"
+      },
+      "nakshatra": {
+        "title": "Nakshatra Profile",
+        "description": "Your birth star: deity, symbol, gana & tarabala calendar"
+      },
+      "gochara": {
+        "title": "Gochara-phala",
+        "description": "Moon-referenced transit results with vedha"
+      },
+      "journal": {
+        "title": "Astro-Journal",
+        "description": "Log life events against your dasha & transits"
+      },
+      "lifeReport": {
+        "title": "Life Report",
+        "description": "A composed, multi-chapter reading of your whole chart"
       }
     }
   },
@@ -898,7 +920,8 @@
       "almanac": "Almanac",
       "account": "Account",
       "notifications": "Notifications",
-      "system": "System"
+      "system": "System",
+      "calendar": "Calendar"
     },
     "system": {
       "title": "System health",
@@ -1041,6 +1064,18 @@
       "basisSolar": "Solar (Tajaka — Maasa Pravesha)",
       "basisLunar": "Lunar (tithi — birth-tithi return)",
       "basisHint": "Which pravesha ladder the delivered readings are cast on. The fortnight is always lunar (there is no solar fortnight)."
+    },
+    "calendar": {
+      "title": "Calendar subscription",
+      "intro": "Subscribe any calendar app (Google Calendar, Apple Calendar, Outlook) to your chart’s upcoming events — bhukti changes, Sade Sati boundaries, your solar return, slow-planet ingresses and eclipses on your natal stars.",
+      "profile": "Chart",
+      "url": "Subscription URL (read-only feed)",
+      "loading": "Generating…",
+      "copy": "Copy",
+      "copied": "Copied",
+      "error": "Could not generate the calendar link.",
+      "help": "In your calendar app choose “Subscribe to calendar / From URL” and paste this link. It refreshes automatically (about twice a day).",
+      "privacy": "Anyone with this link can view the feed (it needs no login, so calendar apps can read it). Keep it private; if it leaks, rotate the server key to invalidate it."
     }
   },
   "compat": {
@@ -1934,5 +1969,136 @@
     "aiRegenerate": "Regenerate",
     "widgetTitle": "Chart of the moment",
     "widgetCta": "Open now chart"
+  },
+  "nakshatra": {
+    "title": "Nakshatra Profile",
+    "subtitle": "Your birth star, its nature & timing",
+    "intro": "The janma-nakshatra is the star the Moon occupied at your birth — the most personal point in the chart for describing temperament, and the basis of the tarabala day-strength cycle.",
+    "loading": "Reading your birth star…",
+    "calcError": "Could not compute the nakshatra profile.",
+    "moonSign": "Moon sign: {{sign}}",
+    "pada": "Pada {{n}}",
+    "attrLord": "Ruling planet",
+    "attrDeity": "Deity",
+    "attrSymbol": "Symbol",
+    "attrGana": "Gana",
+    "attrYoni": "Yoni",
+    "attrNadi": "Nadi",
+    "attrGuna": "Guna",
+    "attrVarna": "Varna",
+    "attrTheme": "Theme",
+    "attrSyllable": "Naming syllable",
+    "syllablesTitle": "Naming syllables (by pada)",
+    "themeTitle": "Traditional theme",
+    "tarabalaTitle": "Tarabala — your day-strength this month",
+    "tarabalaIntro": "As the Moon circles the 27 stars, each day carries a tara (star-strength) relative to your birth star: favourable days to act, and quieter days to rest.",
+    "from": "From {{date}}",
+    "aiTitle": "Birth-star reading",
+    "aiHint": "Generate a warm, plain-language profile of your birth star and this month’s favourable days.",
+    "aiLoading": "Composing your birth-star reading…",
+    "aiError": "Could not generate the reading.",
+    "aiGenerate": "Generate reading",
+    "aiRegenerate": "Regenerate",
+    "aiModel": "Model: {{model}}",
+    "disclaimer": "A personality-and-timing sketch drawn from classical nakshatra lore — not prediction."
+  },
+  "gochara": {
+    "title": "Gochara-phala",
+    "subtitle": "Moon-referenced transit results with vedha",
+    "intro": "The classical panchang transit reading: each planet’s result is judged by its house counted from the natal Moon. A favourable result can be cancelled by vedha — another planet sitting in a specific obstruction house.",
+    "loading": "Reading the transits…",
+    "calcError": "Could not compute gochara-phala.",
+    "moonSign": "Moon sign: {{sign}}",
+    "asOf": "As of {{date}}",
+    "favourableSummary": "{{count}} of {{total}} grahas favourably placed",
+    "colPlanet": "Planet",
+    "colHouse": "From Moon",
+    "colVerdict": "Verdict",
+    "colVedha": "Vedha",
+    "houseFromMoon": "{{n}}th",
+    "vedhaBy": "blocked by {{planets}}",
+    "noVedha": "—",
+    "aiTitle": "Transit reading",
+    "aiHint": "Generate a warm, plain-language reading of how the current transits fall for you.",
+    "aiLoading": "Composing your transit reading…",
+    "aiError": "Could not generate the reading.",
+    "aiGenerate": "Generate reading",
+    "aiRegenerate": "Regenerate",
+    "aiModel": "Model: {{model}}",
+    "disclaimer": "Classical gochara guidance — a lens on the current window, not prediction."
+  },
+  "explorer": {
+    "stripLabel": "Explore a planet",
+    "placement": "Placement",
+    "house": "house",
+    "nakshatra": "Nakshatra",
+    "pada": "pada",
+    "housesOwned": "Houses owned",
+    "aspectsHouses": "Aspects houses",
+    "aspectsPlanets": "Aspects planets",
+    "rasiDrishti": "Rasi drishti on",
+    "conditions": "Conditions",
+    "askAI": "Ask AI about this placement",
+    "thisChart": "this chart",
+    "askPrefill": "What does {{planet}} in {{sign}} (the {{house}} house) mean for {{name}}? Explain its dignity, the houses it rules, and how it shapes life themes."
+  },
+  "journal": {
+    "title": "Astro-Journal",
+    "subtitle": "Log life events against your dashas",
+    "intro": "Record dated life events — a job change, a move, a loss, a milestone. Each entry captures the Vimsottari maha/bhukti that was running then, so you (and the AI) can see how your periods actually played out. Entries also help refine your birth time on the rectification page.",
+    "loading": "Loading your journal…",
+    "loadError": "Could not load the journal.",
+    "addTitle": "Add an entry",
+    "editTitle": "Edit entry",
+    "fieldDate": "Date",
+    "fieldTitle": "What happened",
+    "fieldCategory": "Category",
+    "fieldNotes": "Notes (optional)",
+    "titlePlaceholder": "e.g. Started a new job",
+    "notesPlaceholder": "Any details you want to remember…",
+    "save": "Save entry",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this journal entry?",
+    "empty": "No entries yet. Add your first life event above to start your dasha diary.",
+    "running": "Running: {{dasha}}",
+    "noDasha": "—",
+    "saveError": "Could not save the entry.",
+    "deleteError": "Could not delete the entry.",
+    "cat": {
+      "career": "Career",
+      "relationship": "Relationship",
+      "family": "Family",
+      "health": "Health",
+      "finance": "Finance",
+      "move": "Move",
+      "education": "Education",
+      "spiritual": "Spiritual",
+      "loss": "Loss",
+      "milestone": "Milestone",
+      "other": "Other"
+    }
+  },
+  "lifeReport": {
+    "title": "Life Report",
+    "subtitle": "A composed, multi-chapter reading",
+    "intro": "A long-form reading of your whole chart, generated chapter by chapter — personality, career, wealth, relationships, health, dharma and your current outlook — then assembled into one document you can read or print.",
+    "generate": "Generate report",
+    "regenerate": "Regenerate",
+    "generating": "Composing chapter {{n}} of {{total}}…",
+    "chapterPending": "Waiting",
+    "chapterActive": "Composing…",
+    "chapterDone": "Done",
+    "print": "Print / Save PDF",
+    "saved": "Saved to history",
+    "saveError": "Could not save the report.",
+    "error": "Could not generate a chapter. You can retry.",
+    "retry": "Retry",
+    "loadError": "Could not load the report chapters.",
+    "model": "Generated with {{model}}",
+    "disclaimer": "A composed interpretation for reflection — not prediction, and no medical, legal or financial advice.",
+    "forName": "Life Report for {{name}}"
   }
 }

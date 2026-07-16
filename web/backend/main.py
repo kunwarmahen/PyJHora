@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any
@@ -18,6 +18,8 @@ from chart_context import build_chart_context
 from llm_service import llm_service, LLMProvider
 import tools as tool_registry
 import conversations as convo
+import journal
+import ical
 import tool_traces
 import user_settings
 import ratelimit
@@ -468,6 +470,72 @@ class SaturnTransitsAnalysisRequest(BaseModel):
     max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
+class NakshatraProfileAnalysisRequest(BaseModel):
+    birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
+    person_name: Optional[str] = None
+    current_date: Optional[str] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
+
+class GocharaPhalaAnalysisRequest(BaseModel):
+    birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
+    person_name: Optional[str] = None
+    current_date: Optional[str] = None
+    current_tz: Optional[float] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
+
+class LifeReportChapterRequest(BaseModel):
+    birth_details: BirthDetails
+    chapter_key: str
+    profile_id: Optional[str] = None
+    person_name: Optional[str] = None
+    sections: Optional[dict] = None
+    vargas: Optional[list] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
+
+class LifeReportSaveRequest(BaseModel):
+    birth_details: BirthDetails
+    markdown: str
+    profile_id: Optional[str] = None
+    person_name: Optional[str] = None
+    ayanamsa: Optional[str] = None
+
+class JournalEntryRequest(BaseModel):
+    profile_id: Optional[str] = None
+    birth_details: Optional[BirthDetails] = None  # to snapshot the running dasha
+    date: str  # YYYY-MM-DD of the life event
+    title: str
+    category: str = "other"
+    notes: str = ""
+    ayanamsa: Optional[str] = None
+
+class JournalUpdateRequest(BaseModel):
+    birth_details: Optional[BirthDetails] = None
+    date: Optional[str] = None
+    title: Optional[str] = None
+    category: Optional[str] = None
+    notes: Optional[str] = None
+    ayanamsa: Optional[str] = None
+
 class FriendshipsAnalysisRequest(BaseModel):
     birth_details: BirthDetails
     profile_id: Optional[str] = None  # for grouping the saved reading in history
@@ -893,6 +961,7 @@ _USER_SCOPED_COLLECTIONS = [
     ("ai_tool_traces", "user_id"),
     ("shared_charts", "user_id"),
     ("quiz_sessions", "user_id"),
+    ("journal_entries", "user_id"),
     ("push_subscriptions", "user_id"),
     ("refresh_tokens", "username"),
     ("password_reset_tokens", "username"),
@@ -1945,6 +2014,18 @@ async def list_ai_tools():
     user-independent capability disclosure for the 'What the AI can do' page."""
     return {"tools": tool_registry.tool_catalog()}
 
+@app.get("/api/ai/sources")
+async def ai_sources_status():
+    """Whether the classical-text corpus (§5.12 RAG) is indexed, so the UI can show
+    if AI readings can cite the shastra. Best-effort; never raises."""
+    import rag
+    try:
+        count = rag.build_index()
+        return {"available": count > 0, "passages": count,
+                "embed_model": rag.EMBED_MODEL}
+    except Exception as e:
+        return {"available": False, "passages": 0, "error": str(e)}
+
 
 async def _resolve_cfg(current_user: str, request: "AskQuestionRequest"):
     """Resolve the model config, falling back to the user's stored API key when
@@ -2186,6 +2267,12 @@ async def ask_question_stream(
                 # Seed = the toggled-on sections; the model fetches the rest via tools.
                 seed_block = llm_service._render_context_block(chart_data, tool_mode=True)
                 bd = request.birth_details.model_dump()
+                # Inject the user's journal so get_journal_entries can serve it
+                # synchronously inside the (sync) tool dispatch. Best-effort.
+                try:
+                    bd["_journal"] = await journal.entries_for_ai(current_user, request.profile_id)
+                except Exception:
+                    bd["_journal"] = []
                 async for ev in llm_service.run_tool_loop(
                         seed_block, request.question, history, cfg, bd,
                         request.ayanamsa or DEFAULT_AYANAMSA,
@@ -3456,6 +3543,282 @@ async def analyze_strength(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/nakshatra-profile")
+async def get_nakshatra_profile(
+    birth_details: BirthDetails,
+    current_date: Optional[str] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Janma-nakshatra deep-dive: the Moon's nakshatra + pada with its classical
+    attributes and a 27-day tarabala calendar strip."""
+    try:
+        result = AstrologyCompute.get_nakshatra_profile(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, current_date=current_date, ayanamsa=ayanamsa)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/nakshatra-profile-analysis")
+async def analyze_nakshatra_profile(
+    request: NakshatraProfileAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Warm, layman reading of the janma-nakshatra profile."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_nakshatra_profile(
+            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+            lon=bd.longitude, tz=bd.timezone, current_date=request.current_date,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_nakshatra_profile(
+            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        await _save_reading(
+            current_user, source="nakshatra_profile",
+            title=f"Nakshatra — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name, "ayanamsa": request.ayanamsa},
+        )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/gochara-phala")
+async def get_gochara_phala(
+    birth_details: BirthDetails,
+    current_date: Optional[str] = None,
+    current_tz: Optional[float] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Classical Moon-referenced gochara-phala with vedha (obstruction) for the
+    current transits."""
+    try:
+        result = AstrologyCompute.get_gochara_phala(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, current_date=current_date,
+            current_tz=current_tz, ayanamsa=ayanamsa)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/gochara-phala-analysis")
+async def analyze_gochara_phala(
+    request: GocharaPhalaAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Warm, layman reading of the gochara-phala (with vedha) results."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_gochara_phala(
+            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+            lon=bd.longitude, tz=bd.timezone, current_date=request.current_date,
+            current_tz=request.current_tz,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_gochara_phala(
+            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        await _save_reading(
+            current_user, source="gochara_phala",
+            title=f"Gochara-phala — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name, "ayanamsa": request.ayanamsa},
+        )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ── Astro-journal + dasha diary (§5.9) ──────────────────────────────────────
+def _dasha_snapshot(bd: Optional[BirthDetails], date: str,
+                    ayanamsa: Optional[str]) -> Optional[dict]:
+    """The Vimsottari maha/bhukti running on `date` for this chart, or None."""
+    if not bd:
+        return None
+    try:
+        c = AstrologyCompute.get_timeline_window_context(
+            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+            lon=bd.longitude, tz=bd.timezone, target_date=date,
+            ayanamsa=ayanamsa or DEFAULT_AYANAMSA)
+        if c.get("status") != "success":
+            return None
+        return {"maha": (c.get("maha") or {}).get("lord"),
+                "bhukti": (c.get("bhukti") or {}).get("lord")}
+    except Exception:
+        return None
+
+@app.get("/api/journal")
+async def list_journal(
+    profile_id: Optional[str] = None,
+    current_user: str = Depends(get_current_user),
+):
+    """All journal entries for the user (optionally one profile), newest first."""
+    return {"entries": await journal.list_entries(current_user, profile_id),
+            "categories": journal.CATEGORIES}
+
+@app.post("/api/journal")
+async def create_journal(
+    request: JournalEntryRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Add a dated life-event entry; snapshots the running dasha if birth details
+    are supplied."""
+    if not request.title.strip():
+        raise HTTPException(status_code=400, detail="Title is required")
+    dasha = _dasha_snapshot(request.birth_details, request.date, request.ayanamsa)
+    entry = await journal.create_entry(
+        current_user, request.profile_id, request.date, request.title,
+        request.category, request.notes, dasha)
+    return entry
+
+@app.put("/api/journal/{entry_id}")
+async def update_journal(
+    entry_id: str,
+    request: JournalUpdateRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Edit an entry. If the date changes (and birth details are supplied), the
+    running-dasha snapshot is recomputed."""
+    fields = {k: v for k, v in {
+        "date": request.date, "title": request.title,
+        "category": request.category, "notes": request.notes,
+    }.items() if v is not None}
+    if request.date and request.birth_details:
+        fields["dasha"] = _dasha_snapshot(request.birth_details, request.date, request.ayanamsa)
+    updated = await journal.update_entry(current_user, entry_id, fields)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return updated
+
+@app.delete("/api/journal/{entry_id}")
+async def delete_journal(
+    entry_id: str,
+    current_user: str = Depends(get_current_user),
+):
+    ok = await journal.delete_entry(current_user, entry_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return {"status": "deleted"}
+
+# ── Composed long-form Life Report (§5.11) ──────────────────────────────────
+@app.get("/api/astrology/life-report/chapters")
+async def life_report_chapters(current_user: str = Depends(get_current_user)):
+    """The ordered chapter list the frontend generates one-by-one (with progress)."""
+    return {"chapters": [{"key": k, "title": title}
+                         for (k, title, _focus) in llm_service.LIFE_REPORT_CHAPTERS]}
+
+@app.post("/api/astrology/life-report/chapter")
+async def life_report_chapter(
+    request: LifeReportChapterRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Generate a single Life Report chapter (personality/career/…)."""
+    _enforce_rate_limit(current_user)
+    chapter = next((c for c in llm_service.LIFE_REPORT_CHAPTERS
+                    if c[0] == request.chapter_key), None)
+    if not chapter:
+        raise HTTPException(status_code=400, detail="Unknown chapter")
+    _key, title, focus = chapter
+    try:
+        chart_data = build_chart_context(
+            birth_details=request.birth_details.model_dump(),
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+            sections=request.sections, vargas=request.vargas)
+        cfg = await _resolve_cfg(current_user, request)
+        text = await llm_service.generate_life_report_chapter(
+            chart_data=chart_data, title=title, focus=focus,
+            name=request.person_name or request.birth_details.name or "this person",
+            config=cfg)
+        return {"key": _key, "title": title, "text": text,
+                "provider": cfg.provider_type.value, "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/life-report/save")
+async def life_report_save(
+    request: LifeReportSaveRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Persist a finished Life Report (assembled markdown) to the unified history."""
+    try:
+        cfg = await _resolve_cfg(current_user, request)
+        await _save_reading(
+            current_user, source="life_report",
+            title=f"Life Report — {request.person_name or request.birth_details.name or 'chart'}",
+            text=request.markdown, cfg=cfg, profile_id=request.profile_id,
+            birth_details=request.birth_details.model_dump(),
+            context={"person_name": request.person_name, "ayanamsa": request.ayanamsa})
+        return {"status": "saved"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ── iCal feed (§5.10) ────────────────────────────────────────────────────────
+@app.get("/api/calendar/token")
+async def get_calendar_token(
+    profile_id: str,
+    current_user: str = Depends(get_current_user),
+):
+    """Stable, signed subscribe token + relative .ics path for a profile."""
+    from database import database
+    prof = await database["saved_profiles"].find_one(
+        {"_id": ObjectId(profile_id), "user_id": current_user})
+    if not prof:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    token = ical.make_token(current_user, profile_id)
+    return {"token": token, "path": f"/api/calendar/{token}.ics"}
+
+@app.get("/api/calendar/{token}.ics")
+async def calendar_feed(token: str):
+    """Public, token-authed iCal feed. No bearer auth (calendar apps can't send
+    one) — the signed token in the path is the credential."""
+    resolved = ical.verify_token(token)
+    if not resolved:
+        raise HTTPException(status_code=403, detail="Invalid calendar token")
+    user_id, profile_id = resolved
+    from database import database
+    try:
+        prof = await database["saved_profiles"].find_one(
+            {"_id": ObjectId(profile_id), "user_id": user_id})
+    except Exception:
+        prof = None
+    if not prof:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    bd = prof.get("birth_details", {})
+    name = prof.get("profile_name") or bd.get("name") or "Chart"
+    events = ical.gather_events(bd)
+    body = ical.build_ics(f"Jyotir AI — {name}", events)
+    return Response(content=body, media_type="text/calendar; charset=utf-8",
+                    headers={"Content-Disposition": f'inline; filename="jyotir-{profile_id}.ics"'})
 
 @app.post("/api/astrology/friendships")
 async def get_friendships(

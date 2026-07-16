@@ -1,0 +1,154 @@
+/* Nakshatra (birth star) profile page — §5.7 */
+
+.nak-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.14), rgba(255, 153, 51, 0.1));
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+.nak-hero__star {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--gold, #d4af37);
+  color: white;
+  flex-shrink: 0;
+}
+.nak-hero__name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+}
+.nak-hero__sub {
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-top: 2px;
+}
+.nak-hero__theme {
+  margin-top: 6px;
+  color: var(--text-primary);
+  font-style: italic;
+}
+.nak-hero__syllable {
+  margin-left: auto;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--saffron);
+  background: white;
+  border: 2px solid var(--saffron);
+  border-radius: var(--radius-md);
+  min-width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nak-attrs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-md);
+}
+.nak-attr {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.nak-attr__label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+.nak-attr__value {
+  color: var(--cosmic-indigo);
+  font-weight: 600;
+}
+
+.nak-syllables {
+  margin-top: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.nak-syllables__row {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+.nak-syllable {
+  padding: 4px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(90, 95, 122, 0.1);
+  color: var(--cosmic-indigo);
+  font-weight: 600;
+}
+.nak-syllable--active {
+  background: var(--saffron);
+  color: white;
+}
+
+/* Tarabala 27-day strip */
+.nak-cal {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 6px;
+  margin-top: var(--space-md);
+}
+.nak-cal__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  text-align: center;
+}
+.nak-cal__date {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.nak-cal__tara {
+  font-size: 0.72rem;
+  opacity: 0.9;
+}
+.nak-tone--vgood {
+  background: rgba(46, 158, 91, 0.18);
+  color: #1e7a44;
+  border-color: rgba(46, 158, 91, 0.35);
+}
+.nak-tone--good {
+  background: rgba(46, 158, 91, 0.1);
+  color: #2e9e5b;
+}
+.nak-tone--neutral {
+  background: rgba(90, 95, 122, 0.08);
+  color: var(--text-secondary);
+}
+.nak-tone--caution {
+  background: rgba(240, 176, 96, 0.18);
+  color: #a5701a;
+}
+.nak-tone--bad {
+  background: rgba(178, 58, 72, 0.14);
+  color: #b23a48;
+  border-color: rgba(178, 58, 72, 0.3);
+}
+
+@media (max-width: 600px) {
+  .nak-hero {
+    flex-wrap: wrap;
+  }
+  .nak-hero__syllable {
+    margin-left: 0;
+  }
+}

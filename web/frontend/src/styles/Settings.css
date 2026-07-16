@@ -469,3 +469,22 @@
 }
 .settings-msg--ok { background: #e6f4ea; color: #1e7a34; }
 .settings-msg--error { background: #fdeaea; color: #b4342a; }
+
+/* iCal feed subscription (§5.10) */
+.settings-cal-url {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.settings-cal-url input {
+  flex: 1;
+  min-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-md);
+  font-family: monospace;
+  font-size: 0.85rem;
+  background: var(--cream, #fff8ef);
+  color: var(--text-primary);
+}

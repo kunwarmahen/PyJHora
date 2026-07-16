@@ -1,0 +1,142 @@
+/* Astro-journal + dasha diary — §5.9 */
+
+.jrn-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.jrn-form__row {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+.jrn-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 160px;
+}
+.jrn-field > span {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+.jrn-field input,
+.jrn-field select,
+.jrn-field textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: white;
+  color: var(--text-primary);
+}
+.jrn-field textarea {
+  resize: vertical;
+}
+.jrn-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+.jrn-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  position: relative;
+}
+.jrn-entry {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+  background: white;
+  border: 1px solid var(--sandalwood);
+  border-left: 4px solid var(--terracotta, #c97b54);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+.jrn-entry__date {
+  min-width: 92px;
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+  font-size: 0.9rem;
+}
+.jrn-entry__body {
+  flex: 1;
+  min-width: 0;
+}
+.jrn-entry__top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+.jrn-entry__title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.jrn-entry__notes {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+.jrn-entry__dasha {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  font-size: 0.82rem;
+  color: var(--saffron);
+  font-weight: 600;
+}
+.jrn-entry__actions {
+  display: flex;
+  gap: 4px;
+}
+.jrn-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm, 6px);
+}
+.jrn-icon-btn:hover {
+  background: rgba(90, 95, 122, 0.1);
+  color: var(--cosmic-indigo);
+}
+.jrn-icon-btn--danger:hover {
+  background: rgba(178, 58, 72, 0.1);
+  color: var(--vermillion);
+}
+
+.jrn-cat {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: rgba(90, 95, 122, 0.12);
+  color: var(--cosmic-indigo);
+}
+.jrn-cat--career { background: rgba(45, 53, 97, 0.14); color: #2d3561; }
+.jrn-cat--relationship { background: rgba(226, 123, 90, 0.16); color: #b5651d; }
+.jrn-cat--health { background: rgba(46, 158, 91, 0.16); color: #1e7a44; }
+.jrn-cat--finance { background: rgba(212, 175, 55, 0.2); color: #a5701a; }
+.jrn-cat--loss { background: rgba(178, 58, 72, 0.14); color: #b23a48; }
+.jrn-cat--milestone { background: rgba(255, 153, 51, 0.18); color: #c2410c; }
+
+@media (max-width: 540px) {
+  .jrn-entry {
+    flex-wrap: wrap;
+  }
+  .jrn-entry__date {
+    min-width: unset;
+  }
+}

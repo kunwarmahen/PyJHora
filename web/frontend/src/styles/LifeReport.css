@@ -1,0 +1,110 @@
+/* Composed Life Report — §5.11 */
+
+.lr-controls {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: var(--space-md);
+}
+.lr-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #2e9e5b;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.lr-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--space-md);
+}
+.lr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(90, 95, 122, 0.1);
+  color: var(--text-secondary);
+}
+.lr-chip--active {
+  background: rgba(255, 153, 51, 0.16);
+  color: var(--saffron);
+}
+.lr-chip--done {
+  background: rgba(46, 158, 91, 0.14);
+  color: #1e7a44;
+}
+.lr-spin {
+  animation: lr-spin 1s linear infinite;
+}
+@keyframes lr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lr-doc {
+  background: white;
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+}
+.lr-doc__head {
+  text-align: center;
+  border-bottom: 2px solid var(--saffron);
+  padding-bottom: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+.lr-doc__head h1 {
+  color: var(--cosmic-indigo);
+  margin: 0;
+  font-size: 1.7rem;
+}
+.lr-doc__meta {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin: 6px 0 0;
+}
+.lr-chapter {
+  margin-bottom: var(--space-xl);
+}
+.lr-chapter h2 {
+  color: var(--saffron);
+  border-left: 4px solid var(--saffron);
+  padding-left: var(--space-md);
+  font-size: 1.25rem;
+}
+.lr-disclaimer {
+  border-top: 1px solid var(--sandalwood);
+  padding-top: var(--space-md);
+  margin-top: var(--space-lg);
+}
+
+@media print {
+  .navbar,
+  .lr-controls,
+  .lr-progress,
+  .profile-banner,
+  .recent-readings,
+  .card-note:not(.lr-disclaimer) {
+    display: none !important;
+  }
+  .dashboard-container,
+  .mandala-bg {
+    background: white !important;
+  }
+  .lr-doc {
+    border: none;
+    padding: 0;
+  }
+  .lr-chapter {
+    page-break-inside: avoid;
+  }
+}

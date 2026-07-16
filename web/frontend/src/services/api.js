@@ -75,6 +75,8 @@ const PROFILE_READING_PATHS = new Set([
   "/api/astrology/avasthas-analysis",
   "/api/astrology/strength-analysis",
   "/api/astrology/saturn-transits-analysis",
+  "/api/astrology/nakshatra-profile-analysis",
+  "/api/astrology/gochara-phala-analysis",
   "/api/astrology/friendships-analysis",
   "/api/astrology/bhrigu-markers-analysis",
   "/api/astrology/remedies-analysis",
@@ -761,6 +763,100 @@ export const astrologyService = {
       },
       { timeout: 300000 }
     ),
+
+  // ---- Nakshatra (birth star) profile + tarabala calendar ----
+  getNakshatraProfile: (birthDetails, currentDate = null, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/nakshatra-profile", birthDetails, {
+      params: { current_date: currentDate || undefined, ayanamsa },
+    }),
+  analyzeNakshatraProfileAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/nakshatra-profile-analysis",
+      {
+        birth_details: birthDetails,
+        person_name: opts.personName,
+        current_date: opts.currentDate,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
+  // ---- Gochara-phala (Moon-referenced transits with vedha) ----
+  getGocharaPhala: (birthDetails, currentDate = null, currentTz = null, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/gochara-phala", birthDetails, {
+      params: {
+        current_date: currentDate || undefined,
+        current_tz: currentTz ?? undefined,
+        ayanamsa,
+      },
+    }),
+  analyzeGocharaPhalaAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/gochara-phala-analysis",
+      {
+        birth_details: birthDetails,
+        person_name: opts.personName,
+        current_date: opts.currentDate,
+        current_tz: opts.currentTz,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
+  // ---- Classical-text RAG (citations) status ----
+  getAiSources: () => api.get("/api/ai/sources"),
+
+  // ---- Composed Life Report (multi-chapter) ----
+  getLifeReportChapters: () => api.get("/api/astrology/life-report/chapters"),
+  generateLifeReportChapter: (birthDetails, chapterKey, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/life-report/chapter",
+      {
+        birth_details: birthDetails,
+        chapter_key: chapterKey,
+        person_name: opts.personName,
+        profile_id: opts.profileId,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+  saveLifeReport: (birthDetails, markdown, opts = {}, model = {}) =>
+    api.post("/api/astrology/life-report/save", {
+      birth_details: birthDetails,
+      markdown,
+      person_name: opts.personName,
+      profile_id: opts.profileId,
+      ayanamsa: model.ayanamsa,
+    }),
+
+  // ---- iCal calendar subscription ----
+  getCalendarToken: (profileId) =>
+    api.get("/api/calendar/token", { params: { profile_id: profileId } }),
+
+  // ---- Astro-journal (dated life-event diary) ----
+  listJournal: (profileId = null) =>
+    api.get("/api/journal", { params: { profile_id: profileId || undefined } }),
+  createJournal: (payload) => api.post("/api/journal", payload),
+  updateJournal: (id, payload) => api.put(`/api/journal/${id}`, payload),
+  deleteJournal: (id) => api.delete(`/api/journal/${id}`),
 
   // ---- Planetary strength (Shadbala + Bhava Bala + Vimsopaka) ----
   getStrength: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>

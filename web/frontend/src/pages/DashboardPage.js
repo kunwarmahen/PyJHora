@@ -37,6 +37,9 @@ import {
   Compass,
   Layers,
   Globe,
+  Star,
+  BookText,
+  ScrollText,
 } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
@@ -96,6 +99,18 @@ export const DashboardPage = () => {
       gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
     },
     {
+      key: "gochara",
+      icon: <Orbit size={32} />,
+      path: "/gochara",
+      gradient: "linear-gradient(135deg, #2D3561 0%, #C97B54 100%)",
+    },
+    {
+      key: "nakshatra",
+      icon: <Star size={32} />,
+      path: "/nakshatra",
+      gradient: "linear-gradient(135deg, #D4AF37 0%, #FF9933 100%)",
+    },
+    {
       key: "ephemeris",
       icon: <CalendarRange size={32} />,
       path: "/ephemeris",
@@ -112,6 +127,12 @@ export const DashboardPage = () => {
       icon: <FileText size={32} />,
       path: "/report",
       gradient: "linear-gradient(135deg, #D4AF37 0%, #FF9933 100%)",
+    },
+    {
+      key: "lifeReport",
+      icon: <ScrollText size={32} />,
+      path: "/life-report",
+      gradient: "linear-gradient(135deg, #D4AF37 0%, #2D3561 100%)",
     },
     {
       key: "varshaphal",
@@ -256,6 +277,12 @@ export const DashboardPage = () => {
       icon: <Clock4 size={32} />,
       path: "/rectify",
       gradient: "linear-gradient(135deg, #E27B5A 0%, #2D3561 100%)",
+    },
+    {
+      key: "journal",
+      icon: <BookText size={32} />,
+      path: "/journal",
+      gradient: "linear-gradient(135deg, #C97B54 0%, #2D3561 100%)",
     },
     {
       key: "history",

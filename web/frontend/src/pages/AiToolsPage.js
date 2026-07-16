@@ -66,6 +66,7 @@ export const AiToolsPage = () => {
   const [tools, setTools] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [sources, setSources] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +81,10 @@ export const AiToolsPage = () => {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+    astrologyService
+      .getAiSources()
+      .then((res) => !cancelled && setSources(res.data))
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -119,6 +124,13 @@ export const AiToolsPage = () => {
         ) : (
           <>
             <p className="ai-tools-intro">{t("aiTools.intro")}</p>
+            {sources && (
+              <p className={`ai-tools-sources ${sources.available ? "is-on" : "is-off"}`}>
+                {sources.available
+                  ? t("aiTools.citationsOn", { count: sources.passages })
+                  : t("aiTools.citationsOff")}
+              </p>
+            )}
             {groups.map((g) => (
               <Card
                 key={g.category}

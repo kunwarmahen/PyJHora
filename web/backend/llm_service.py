@@ -708,6 +708,24 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
+    async def analyze_nakshatra_profile(self,
+                                        data: Dict[str, Any],
+                                        name: str = "this person",
+                                        config: Optional[ModelConfig] = None) -> str:
+        """Warm reading of the janma-nakshatra profile + tarabala calendar."""
+        prompt = self._build_nakshatra_profile_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
+    async def analyze_gochara_phala(self,
+                                    data: Dict[str, Any],
+                                    name: str = "this person",
+                                    config: Optional[ModelConfig] = None) -> str:
+        """Warm reading of the Moon-referenced gochara-phala (with vedha)."""
+        prompt = self._build_gochara_phala_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
     async def analyze_kp(self,
                          data: Dict[str, Any],
                          name: str = "this person",
@@ -1640,6 +1658,62 @@ IMPORTANT INSTRUCTIONS:
 
         return context_block
 
+    # ── Composed long-form "Life Report" (§5.11) ───────────────────────────
+    # Ordered chapters; each is generated as its own focused prompt sharing the
+    # full chart context, then stitched into one document (print-ready + saved).
+    LIFE_REPORT_CHAPTERS = [
+        ("personality", "Personality & Self",
+         "the Lagna (1st house) and its lord, the Moon (mind/emotions) and the Sun "
+         "(soul/ego) by sign, house and nakshatra; the overall temperament, natural "
+         "strengths and inner conflicts."),
+        ("career", "Career & Vocation",
+         "the 10th house, its lord and occupants, the D10 (Dasamsa) if present, the "
+         "Sun/Saturn/Mercury condition, and Amatyakaraka themes; likely fields, work "
+         "style and the arc of professional life."),
+        ("wealth", "Wealth & Resources",
+         "the 2nd (accumulated wealth) and 11th (gains) houses and their lords, the "
+         "role of Jupiter and Venus, and any Dhana yogas; earning capacity, savings "
+         "habits and financial ups and downs — no specific figures or guarantees."),
+        ("relationships", "Relationships & Marriage",
+         "the 7th house and its lord, Venus (and Jupiter for a woman's chart), the D9 "
+         "(Navamsa) and the Upapada (UL); partnership temperament, what one seeks in a "
+         "partner and the general relationship arc."),
+        ("health", "Health & Vitality",
+         "the 6th (illness/resilience) and 8th (chronic/longevity) houses and their "
+         "lords, the Lagna lord's strength and any afflictions; constitutional "
+         "tendencies and lifestyle themes — framed as wellbeing, never diagnosis."),
+        ("dharma", "Dharma & Purpose",
+         "the 9th house (fortune/dharma) and its lord, Jupiter, the Atmakaraka and "
+         "Karakamsa; guiding values, spiritual leanings and life direction."),
+        ("outlook", "Current Period & Outlook",
+         "the running Vimsottari maha/bhukti, the active Saturn transit (Sade Sati/"
+         "Ashtama/Kantaka if any) and the major upcoming ingresses; the tone of the "
+         "next few years and where to focus."),
+    ]
+
+    def _build_life_report_chapter_prompt(self, chart_data: Dict[str, Any],
+                                          title: str, focus: str, name: str) -> str:
+        return (
+            self._render_context_block(chart_data)
+            + f"\n\nYou are composing one chapter of a long-form Vedic astrology life "
+            f"report for {name}. This chapter is **{title}**.\n\n"
+            f"Focus on: {focus}\n\n"
+            "Write a flowing, personalised ~320-word chapter in warm but precise "
+            "language. Cite the specific placements/lords/yogas/dashas behind each "
+            "point (this is a THIS-chart reading, not generic horoscope text). Do NOT "
+            "repeat the chart data as a list; weave it into prose. Start directly with "
+            "the reading — no chapter heading (it's added by the layout). No medical, "
+            "legal, lifespan or specific-financial predictions; frame sensitive areas "
+            "constructively."
+        )
+
+    async def generate_life_report_chapter(self, chart_data: Dict[str, Any],
+                                           title: str, focus: str, name: str,
+                                           config: Optional[ModelConfig] = None) -> str:
+        prompt = self._build_life_report_chapter_prompt(chart_data, title, focus, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
     def _build_chart_analysis_prompt(self, chart_data: Dict[str, Any], question: str) -> str:
         """Single-shot prompt: chart context block followed by the user's question."""
         return (
@@ -2525,6 +2599,54 @@ Write a grounded ~270-word reading:
 2. **What needs support** — the 1–2 weakest (ratio < 1 or low), framed constructively — these areas ask for conscious effort, not doom; a natural place to mention that the Remedies page suggests upayas for exactly these.
 3. **Which life-areas are well-founded** — read the 1–2 strongest houses (Bhava Bala) in plain terms.
 Reason only from the numbers given. Never equate "strong" with "good" or "weak" with "bad" — a strong malefic can act forcefully. No medical, lifespan, legal or financial predictions. Close with one encouraging line."""
+
+    def _build_nakshatra_profile_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """Warm layman reading of the janma-nakshatra + this month's tarabala."""
+        p = d.get("profile") or {}
+        cal = d.get("tarabala_calendar") or []
+        good_days = [c for c in cal if c.get("tone") in ("very_good", "good")]
+        bad_days = [c for c in cal if c.get("tone") == "bad"]
+        good_line = ", ".join(c["date"] for c in good_days[:6]) or "none in this window"
+        bad_line = ", ".join(c["date"] for c in bad_days[:6]) or "none in this window"
+        return f"""You are a warm, plain-spoken Vedic astrologer introducing {name} to their **birth star (janma-nakshatra)** — the single most personal point in the chart for a lay reader. No jargon dumps; explain any term in a few words.
+
+Their birth star: **{p.get('name')}** (pada {p.get('pada')}), ruled by **{p.get('lord')}**, in the sign {d.get('moon_sign')}.
+- Presiding deity: {p.get('deity')}
+- Symbol: {p.get('symbol')}
+- Temperament (gana): {p.get('gana')}   ·   Animal (yoni): {p.get('yoni')}
+- Constitution (nadi): {p.get('nadi')}   ·   Quality (guna): {p.get('guna')}   ·   Varna: {p.get('varna')}
+- Traditional theme: {p.get('theme')}
+- Auspicious naming syllable: {p.get('naming_syllable')}
+
+Tarabala (star-strength) for the next 27 days: favourable days include {good_line}; days to keep low-key include {bad_line}.
+
+Write a friendly ~260-word profile:
+1. **Who you are** — the personality and gifts this birth star classically confers, drawing on the deity, symbol and theme (2 short paragraphs).
+2. **Your rhythm this month** — explain in one line what tarabala means (your personal good/challenging days as the Moon circles the sky), then point to when to push forward vs rest, using the dates above.
+3. One grounded, encouraging closing line.
+This is a personality-and-timing sketch, not prediction. No medical, financial, lifespan or legal claims."""
+
+    def _build_gochara_phala_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """Warm reading of the Moon-referenced gochara-phala with vedha."""
+        rows = d.get("results") or []
+        def line(r):
+            tag = {"good": "favourable", "caution": "favourable but blocked by vedha",
+                   "bad": "not favourable"}.get(r.get("tone"), r.get("verdict"))
+            extra = ""
+            if r.get("obstructed_by"):
+                extra = f" (blocked by {', '.join(r['obstructed_by'])})"
+            return f"- {r['planet']}: {r['house_from_moon']}th from Moon → {tag}{extra}"
+        body = "\n".join(line(r) for r in rows) or "- (no data)"
+        return f"""You are a warm, plain-spoken Vedic astrologer giving {name} the classical **gochara-phala** (Moon-referenced transit reading) that panchang readers use — different from a degree-by-degree transit chart. Explain terms simply.
+
+How it works (say this briefly in your own words): each planet's transit is judged by how many signs away it is from the birth Moon. Some positions are classically favourable; but a favourable result can be cancelled by **vedha** — another planet sitting in a specific "obstruction" sign. Today's picture ({d.get('transit_date')}), Moon sign {d.get('moon_sign')}:
+{body}
+
+Write a friendly ~240-word reading:
+1. **The supportive transits right now** — name the clearly favourable ones and what areas of life they lift (in everyday terms).
+2. **Blocked or testing transits** — explain any vedha-blocked or unfavourable ones gently, as areas to be patient with, not doom.
+3. One practical, encouraging closing line about the overall tone of this window.
+Base everything only on the list above. No medical, financial, lifespan or legal predictions."""
 
     def _build_avasthas_prompt(self, d: Dict[str, Any], name: str) -> str:
         """Explain the planetary avasthas (Baladi / Jagradadi / Deeptadi)."""

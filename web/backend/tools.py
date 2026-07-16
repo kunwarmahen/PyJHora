@@ -22,6 +22,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from astrology import AstrologyCompute, DEFAULT_AYANAMSA, SUPPORTED_VARGAS
 from chart_context import _running_dasha_chain
+import rag
 
 
 # --------------------------------------------------------------------------- #
@@ -493,6 +494,55 @@ def _retrograde(bd, ayanamsa, date: Optional[str] = None, **_):
             "planets": planets, "nodes": r.get("nodes", [])}
 
 
+def _classical_texts(bd, ayanamsa, query: str = "", **_):
+    if not query.strip():
+        return {"error": "Provide a `query` describing the topic to look up."}
+    passages = rag.retrieve(query, k=3)
+    if not passages:
+        return {"available": False,
+                "note": "No classical-text corpus is indexed (or embeddings are "
+                        "unavailable). Answer from chart logic without citations.",
+                "passages": []}
+    return {"available": True, "passages": passages}
+
+
+def _journal_entries(bd, ayanamsa, category: Optional[str] = None, **_):
+    # The journal is DB-backed (async) so it's pre-fetched by the endpoint and
+    # injected onto birth_details as `_journal`; we just filter/return it here.
+    entries = bd.get("_journal") or []
+    if category:
+        entries = [e for e in entries if e.get("category") == category]
+    return {"count": len(entries), "entries": entries}
+
+
+def _nakshatra_profile(bd, ayanamsa, current_date: Optional[str] = None, **_):
+    r = AstrologyCompute.get_nakshatra_profile(
+        ayanamsa=ayanamsa, current_date=current_date, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    cal = r.get("tarabala_calendar", [])
+    return {
+        "profile": r.get("profile"),
+        "moon_sign": r.get("moon_sign"),
+        "favourable_days": [c["date"] for c in cal if c["tone"] in ("very_good", "good")],
+        "caution_days": [c["date"] for c in cal if c["tone"] in ("bad", "caution")],
+    }
+
+
+def _gochara_phala(bd, ayanamsa, current_date: Optional[str] = None, **_):
+    r = AstrologyCompute.get_gochara_phala(
+        ayanamsa=ayanamsa, current_date=current_date, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    return {
+        "transit_date": r.get("transit_date"),
+        "moon_sign": r.get("moon_sign"),
+        "results": [{"planet": x["planet"], "house_from_moon": x["house_from_moon"],
+                     "verdict": x["verdict"], "obstructed_by": x["obstructed_by"]}
+                    for x in r.get("results", [])],
+    }
+
+
 # --------------------------------------------------------------------------- #
 # Registry
 # --------------------------------------------------------------------------- #
@@ -867,6 +917,63 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _EMPTY_PARAMS,
         _jaimini,
     ),
+    _Tool(
+        "get_nakshatra_profile",
+        "Janma-nakshatra (birth star) profile: the Moon's nakshatra + pada with its "
+        "classical attributes (ruling planet, deity, symbol, gana, yoni, nadi, guna, "
+        "varna, naming syllable, theme), plus this month's tarabala — the personal "
+        "favourable/caution days as the Moon cycles the 27 stars. Use for "
+        "personality-by-birth-star questions and 'which days are good for me'.",
+        {"type": "object", "properties": {
+            "current_date": {"type": "string",
+                             "description": "Anchor date YYYY-MM-DD for the 27-day "
+                                            "tarabala calendar; defaults to today."}},
+         "required": []},
+        _nakshatra_profile,
+    ),
+    _Tool(
+        "get_gochara_phala",
+        "Classical Moon-referenced gochara-phala with vedha: for each transiting "
+        "graha, the house it occupies from the natal Moon, whether that is a "
+        "favourable position, and whether a vedha (another graha in the obstruction "
+        "house) cancels the good result. The panchang-tradition transit verdict, "
+        "complementing the degree-based transit view. Use for 'how are the transits "
+        "for me right now' questions.",
+        {"type": "object", "properties": {
+            "current_date": {"type": "string",
+                             "description": "Transit date YYYY-MM-DD; defaults to today."}},
+         "required": []},
+        _gochara_phala,
+    ),
+    _Tool(
+        "get_journal_entries",
+        "The user's astro-journal: their own dated life events (career/relationship/"
+        "health/move/… + free notes), each with the Vimsottari maha/bhukti that was "
+        "running on that date. Use to ground timing questions in what actually "
+        "happened in this person's life, or when asked how a past dasha/bhukti "
+        "behaved for them. Optionally filter by category.",
+        {"type": "object", "properties": {
+            "category": {"type": "string",
+                         "description": "Optional filter: career|relationship|family|"
+                                        "health|finance|move|education|spiritual|loss|"
+                                        "milestone|other."}},
+         "required": []},
+        _journal_entries,
+    ),
+    _Tool(
+        "search_classical_texts",
+        "Search the local corpus of classical Jyotish texts (BPHS, Saravali, "
+        "Phaladeepika, …) for passages relevant to a topic, so you can GROUND and "
+        "CITE a point in the shastra (e.g. quote the source + reference) instead of "
+        "asserting on your own authority. Pass a `query` describing the principle "
+        "(e.g. 'results of exalted Jupiter in the 5th', 'Sade Sati effects'). If it "
+        "returns available=false, no corpus is indexed — answer without citations.",
+        {"type": "object", "properties": {
+            "query": {"type": "string",
+                      "description": "Topic/principle to look up in the classics."}},
+         "required": ["query"]},
+        _classical_texts,
+    ),
 ]}
 
 
@@ -901,7 +1008,8 @@ ALWAYS_TOOLS: List[str] = [
     "get_sphuta", "get_sahams", "get_argala",
     "get_vedic_clock", "get_retrograde", "get_muhurta",
     "get_kp", "get_jaimini", "get_life_timeline", "get_strength",
-    "get_saturn_transits",
+    "get_saturn_transits", "get_nakshatra_profile", "get_gochara_phala",
+    "get_journal_entries", "search_classical_texts",
 ]
 
 
@@ -951,12 +1059,14 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_planet_conditions": {"label": "Planet conditions (combustion, vargottama…)", "category": "Core chart"},
     "get_avasthas":         {"label": "Avasthas (planetary states)", "category": "Core chart"},
     "get_friendships":      {"label": "Planetary friendships & house lords", "category": "Core chart"},
+    "get_nakshatra_profile": {"label": "Nakshatra (birth star) profile + tarabala", "category": "Core chart"},
     "get_divisional_chart": {"label": "Divisional (varga) charts", "category": "Core chart"},
     "get_life_timeline":    {"label": "Life timeline (dasha + transits)", "category": "Timing"},
     "get_saturn_transits":  {"label": "Sade Sati & Saturn transits", "category": "Timing"},
     "get_dasha_chain":      {"label": "Running dasha periods",  "category": "Timing"},
     "get_dasha_children":   {"label": "Dasha sub-periods",      "category": "Timing"},
     "get_transits":         {"label": "Current transits (Gochara)", "category": "Timing"},
+    "get_gochara_phala":    {"label": "Gochara-phala with vedha (Moon-referenced)", "category": "Timing"},
     "get_panchanga":        {"label": "Panchanga almanac",      "category": "Timing"},
     "get_varshaphal":       {"label": "Varshaphal (annual chart)", "category": "Timing"},
     "get_fortnightly_digest": {"label": "Fortnightly digest (Paksha Pravesha)", "category": "Timing"},
@@ -978,6 +1088,8 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_argala":           {"label": "Argala (intervention)",  "category": "Sensitive points"},
     "get_kp":               {"label": "KP sub-lords & significators", "category": "Systems"},
     "get_jaimini":          {"label": "Jaimini (Karakamsa)",     "category": "Systems"},
+    "get_journal_entries":  {"label": "Astro-journal (your logged life events)", "category": "Your data"},
+    "search_classical_texts": {"label": "Classical texts (cited shlokas)", "category": "Sources"},
 }
 
 

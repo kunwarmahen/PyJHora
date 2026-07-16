@@ -38,6 +38,9 @@ import {
   Compass,
   Layers,
   Globe,
+  Star,
+  BookText,
+  ScrollText,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
@@ -52,9 +55,12 @@ const LINKS = [
   { to: "/birth-chart", labelKey: "nav.birthChart", icon: <Calendar size={20} /> },
   { to: "/dhasa", labelKey: "nav.dhasa", icon: <Clock size={20} /> },
   { to: "/transit", labelKey: "nav.transit", icon: <Orbit size={20} /> },
+  { to: "/gochara", labelKey: "nav.gochara", icon: <Orbit size={20} /> },
+  { to: "/nakshatra", labelKey: "nav.nakshatra", icon: <Star size={20} /> },
   { to: "/ephemeris", labelKey: "nav.ephemeris", icon: <CalendarRange size={20} /> },
   { to: "/bhava", labelKey: "nav.bhava", icon: <Home size={20} /> },
   { to: "/report", labelKey: "nav.report", icon: <FileText size={20} /> },
+  { to: "/life-report", labelKey: "nav.lifeReport", icon: <ScrollText size={20} /> },
   { to: "/varshaphal", labelKey: "nav.varshaphal", icon: <CalendarClock size={20} /> },
   { to: "/tithi-pravesha", labelKey: "nav.tithiPravesha", icon: <Moon size={20} /> },
   { to: "/almanac", labelKey: "nav.almanac", icon: <CalendarDays size={20} /> },
@@ -81,12 +87,14 @@ const LINKS = [
   { to: "/compatibility", labelKey: "nav.compatibility", icon: <Heart size={20} /> },
   { to: "/learn", labelKey: "nav.learn", icon: <GraduationCap size={20} /> },
   { to: "/ask-astrologer", labelKey: "nav.ask", icon: <MessageCircle size={20} /> },
+  { to: "/journal", labelKey: "nav.journal", icon: <BookText size={20} /> },
   { to: "/history", labelKey: "nav.history", icon: <History size={20} /> },
   { to: "/settings", labelKey: "nav.settings", icon: <Settings size={20} /> },
 ];
 
-/** Hamburger button + slide-in feature drawer. The button only shows on phones
- * (CSS); on larger screens navigation stays via the dashboard cards. */
+/** Hamburger button + slide-in feature drawer. Shown on every screen size so
+ * you can jump between features from any page without returning to the
+ * dashboard. Mounted in PageHeader (all feature pages) and the Dashboard nav. */
 export const NavDrawer = () => {
   const [open, setOpen] = useState(false);
   const { t } = useTranslation();

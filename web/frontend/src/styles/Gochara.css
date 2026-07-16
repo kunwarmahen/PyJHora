@@ -1,0 +1,36 @@
+/* Gochara-phala (Moon-referenced transits with vedha) — §5.6 */
+
+.goc-table-wrap {
+  overflow-x: auto;
+}
+.goc-table {
+  width: 100%;
+}
+.goc-planet {
+  font-weight: 700;
+  color: var(--cosmic-indigo);
+}
+.goc-verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.goc-ic--good {
+  color: #2e9e5b;
+}
+.goc-ic--caution {
+  color: #d4a017;
+}
+.goc-ic--bad {
+  color: #b23a48;
+}
+.goc-row--good td {
+  background: rgba(46, 158, 91, 0.06);
+}
+.goc-row--caution td {
+  background: rgba(240, 176, 96, 0.08);
+}
+.goc-row--bad td {
+  background: rgba(178, 58, 72, 0.05);
+}

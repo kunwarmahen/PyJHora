@@ -21,6 +21,7 @@ import { formatDate, orDash } from "../utils/format";
 import { astrologyService } from "../services/api";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
+import { PlanetExplorer } from "../components/PlanetExplorer";
 import { PanchangaPanel } from "../components/PanchangaPanel";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
@@ -381,6 +382,14 @@ export const BirthChartPage = () => {
                     arudhas={arudhas}
                     showArudhas={showArudhas}
                     conditions={showConditions ? conditions : null}
+                  />
+
+                  {/* §5.5 Interactive explorer: click a graha for its full picture */}
+                  <PlanetExplorer
+                    chart={result}
+                    aspects={aspects}
+                    conditions={conditions}
+                    personName={selectedProfile.birth_details.name}
                   />
 
                   {/* Divisional (varga) chart with picker */}
