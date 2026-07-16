@@ -13,7 +13,9 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Authentication**: User registration and login with JWT tokens
 - **Features**: Birth Chart (Rasi D1 + Navamsa D9), divisional charts D1–D60, Panchanga,
   Yogas/Doshas, dedicated Raja Yogas, Graha Drishti (aspects, with strength-weighted lines
-  on the chart), Vimsottari Dhasa (+ 13 other dasha systems & Sudarsana Chakra), Transits,
+  on the chart), Vimsottari Dhasa (+ 13 other dasha systems & Sudarsana Chakra),
+  Transits (Gochara — each transiting graha **weighted by its Ashtakavarga bindus** for the
+  sign it occupies, with a supported/neutral/rough chip),
   an Ephemeris & transit calendar (daily sidereal grid + sign-ingress dates),
   a Bhava / house-cusp chart (Sripati / Placidus / KP / Equal),
   a print-ready Full Report (Save-as-PDF),
@@ -60,8 +62,11 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   argala, with AI reading),
   a **Chart of the Moment** (the current sky as a chart — a Dashboard mini-kundali widget
   plus a full `/now` page with panchanga & AI reading),
-  Sarvatobhadra Chakra (with layman AI reading), Compatibility (Ashtakoot **+ Dashakoota
-  10-porutham + Mangal/Kuja-dosha with cancellation nuances**), an Advanced page
+  Sarvatobhadra Chakra (with layman AI reading), Compatibility — now a **marriage/relationship
+  workspace** (tabbed: Guna Milan with side-by-side **D1 + D9** charts + Ashtakoot **+ Dashakoota
+  10-porutham + Mangal/Kuja-dosha with cancellation nuances**; a **7th-house deep-dive** for both
+  partners — lord, occupants, Venus/Jupiter karakas, Upapada; and a **dasha-overlap timeline** with
+  a shared Saturn/Sade-Sati outlook, plus a marriage-aware couple AI reading), an Advanced page
   (Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala, Ayu/longevity), and
   experimental Birth-Time Rectification (BV Raman śuddhi methods, with before/after charts)
 - **AI Integration**: Multi-model LLM support (Ollama/local, OpenAI-compatible, Gemini, ChatGPT)
@@ -183,6 +188,8 @@ pyjhora-web/
 │   ├── user_settings.py     # Per-user encrypted API keys
 │   ├── ratelimit.py         # Per-user rate limiting for AI endpoints
 │   ├── shares.py            # Read-only shareable chart links
+│   ├── tests/               # Golden-value + endpoint smoke tests (./dev.sh test)
+│   ├── pytest.ini           # Test config
 │   ├── requirements.txt     # Python dependencies
 │   ├── Dockerfile           # Docker image for backend
 │   └── .env.example         # Environment template
@@ -265,6 +272,16 @@ npm start
 ```
 
 Frontend will be available at `http://localhost:3000`
+
+#### Running the tests
+
+The backend has a golden-value + endpoint smoke suite (pinned to two JHora-verified
+charts) that catches drift from a PyJHora bump or an `astrology.py` refactor:
+
+```bash
+./dev.sh test          # backend golden-value + endpoint + determinism tests
+./dev.sh test engine   # also smoke-run PyJHora's own ~1,500-test suite
+```
 
 #### MongoDB Setup
 
