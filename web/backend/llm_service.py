@@ -681,6 +681,15 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
+    async def analyze_strength(self,
+                               data: Dict[str, Any],
+                               name: str = "this person",
+                               config: Optional[ModelConfig] = None) -> str:
+        """Reading of the strength picture (Shadbala + Bhava Bala + Vimsopaka)."""
+        prompt = self._build_strength_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
     async def analyze_kp(self,
                          data: Dict[str, Any],
                          name: str = "this person",
@@ -2355,6 +2364,42 @@ Write a focused ~260-word reading of this window:
 2. **Saturn's weather** — if a Sade Sati / Ashtama / Kantaka phase is active, explain its character honestly but calmly (a period of maturing, responsibility and consolidation — not doom); if none, say the Saturn pressure is lighter now.
 3. **Turning-point transits** — mention the nearest ingress or a natal-nakshatra eclipse as a timing marker for shifts.
 Reason only from what's given. Be encouraging and practical, never fatalistic. Do NOT make medical, legal or financial predictions or name specific outcomes/dates of misfortune. Close with one line noting this is an indicative reading and free will shapes how a period is lived."""
+
+    def _build_strength_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """Explain the strength picture: Shadbala, Bhava Bala and Vimsopaka."""
+        planets = d.get("planets") or []
+        bhava = d.get("bhava_bala") or []
+        vim = d.get("vimsopaka") or []
+        p_lines = "\n".join(
+            f"- {p['planet']}: {p['total_rupa']} / {p['required_rupa']} rupa "
+            f"(ratio {p['strength_ratio']}, rank {p['rank']}"
+            + ("" if p.get("sufficient") else ", below required") + ")"
+            for p in sorted(planets, key=lambda x: x.get("rank", 9))
+        ) or "- (none)"
+        b_lines = "\n".join(
+            f"- H{b['house']} ({b['signification']}): {b['rupa']} rupa, ratio {b['strength_ratio']}"
+            for b in sorted(bhava, key=lambda x: x.get("rank", 13))[:4]
+        ) or "- (none)"
+        v_lines = "\n".join(
+            f"- {v['planet']}: {v['shodhasavarga']}/20 (16-varga)"
+            for v in sorted(vim, key=lambda x: x.get("shodhasavarga", 0), reverse=True)[:4]
+        ) or "- (none)"
+        return f"""You are a precise Vedic astrologer explaining {name}'s **planetary strength**. All values are pre-computed — read them, do not recompute. Strength says how *capably* a planet or house delivers its results, not whether the results are good or bad.
+
+**Shadbala** (six-fold strength; a planet is sufficient when its ratio ≥ 1.0), strongest first:
+{p_lines}
+
+**Bhava Bala** (house strength) — the strongest houses:
+{b_lines}
+
+**Vimsopaka Bala** (varga-dignity, out of 20) — the best-placed planets across divisional charts:
+{v_lines}
+
+Write a grounded ~270-word reading:
+1. **The powerhouses** — the 1–2 strongest grahas (high Shadbala ratio + high Vimsopaka) and what they can reliably deliver (via their karakatva + the houses they rule/occupy).
+2. **What needs support** — the 1–2 weakest (ratio < 1 or low), framed constructively — these areas ask for conscious effort, not doom; a natural place to mention that the Remedies page suggests upayas for exactly these.
+3. **Which life-areas are well-founded** — read the 1–2 strongest houses (Bhava Bala) in plain terms.
+Reason only from the numbers given. Never equate "strong" with "good" or "weak" with "bad" — a strong malefic can act forcefully. No medical, lifespan, legal or financial predictions. Close with one encouraging line."""
 
     def _build_avasthas_prompt(self, d: Dict[str, Any], name: str) -> str:
         """Explain the planetary avasthas (Baladi / Jagradadi / Deeptadi)."""

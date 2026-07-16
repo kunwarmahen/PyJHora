@@ -3495,3 +3495,33 @@ debilitated→Sushupti/Dukhita, Jupiter co-tenant with Ketu→Khala; context blo
 
 **Still open from §5:** strength page (§2.2), friendship matrix (§2.5), unknown-birth-time mode (§5.8),
 MCP (§2.3), iCal (§5.10), chart explorer (§5.5), gochara-vedha (§5.6), nakshatra profile (§5.7), …
+
+## 31. Planetary Strength page (§2.2 of improvements-2026-07.md) — ✅ SHIPPED 2026-07-15
+Shadbala was computed (Advanced table + remedies + chart_context) but had no dedicated visual.
+
+**`get_strength` (astrology.py)** composes three engine strength measures under one ayanamsa
+set/reset (calls `get_shadbala` first — it manages its own ayanamsa — then re-sets for the rest):
+- **Shadbala**: reuses `get_shadbala`'s per-planet six-fold (sthana/kaala/dig/cheshta/naisargika/drik,
+  in virupa — they sum to total_shashtiamsa = total_rupa×60), total vs required rupa, ratio, rank.
+- **Bhava Bala**: `strength.bhava_bala(jd,place)` → `[shashtiamsa, rupas, ratio]`×12; returned with
+  house significations (`_BHAVA_SIGNIFICATION`) + rank.
+- **Vimsopaka Bala**: `charts.vimsopaka_{shadvarga,sapthavarga,shodhasavarga}_of_planets` → each
+  returns `{planet_idx: [count, "varga list", score]}`; the **score (index [2]) is the 0-20 value**
+  (NOT the count — the docstrings mislabel it). All 9 planets.
+
+`POST /api/astrology/strength`(+`-analysis`; `analyze_strength`/`_build_strength_prompt` — reads
+strongest/weakest grahas + strongest houses, insists "strength ≠ good/bad", points weak planets at
+the Remedies page, no medical/lifespan). Smart-lookup tool `get_strength` (ALWAYS_TOOLS + _DISPLAY
+"Strengths & afflictions"). Frontend: **`StrengthPage`** (route `/strength`, `Gauge`, dashboard card +
+nav drawer) with CSS-bar visualizations (`Strength.css`): ranked Shadbala **ratio bars** (fill vs a 1.0
+threshold marker, green sufficient / red below), a **six-fold stacked bar** per planet (6-colour legend),
+**Bhava Bala** bars (12 houses), **Vimsopaka** 0-20 bars, + AI reading. api.js `getStrength`/
+`analyzeStrengthAI`; i18n `strength.*` (en full; hi/sa nav+card). Verified live on the owner's chart
+(Venus #1 ratio 1.65, Saturn #7 0.95 red; H9/H10/H12 weak; Vimsopaka Moon 16.43/Venus 16.18 top).
+
+**Gotcha:** the `planets` derived list must NOT be a `useMemo` after the `if (!selectedProfile) return`
+early-return (react-hooks/rules-of-hooks) — made it a plain sorted const.
+
+**Still open from §5/§2:** friendship matrix (§2.5), unknown-birth-time mode (§5.8), MCP (§2.3),
+iCal (§5.10), chart explorer (§5.5), gochara-vedha (§5.6), nakshatra profile (§5.7), marriage
+workspace (§2.6), Ashtakavarga transit chips (§2.4), Sade-Sati page (§2.1).

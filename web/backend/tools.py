@@ -305,6 +305,23 @@ def _avasthas(bd, ayanamsa, **_):
                         for p in r.get("planets", [])]}
 
 
+def _strength(bd, ayanamsa, **_):
+    r = AstrologyCompute.get_strength(ayanamsa=ayanamsa, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    return {
+        "shadbala": [{"planet": p["planet"], "total_rupa": p["total_rupa"],
+                      "required_rupa": p["required_rupa"], "ratio": p["strength_ratio"],
+                      "rank": p["rank"], "sufficient": p["sufficient"]}
+                     for p in r.get("planets", [])],
+        "bhava_bala": [{"house": b["house"], "signification": b["signification"],
+                        "rupa": b["rupa"], "ratio": b["strength_ratio"]}
+                       for b in r.get("bhava_bala", [])],
+        "vimsopaka": [{"planet": v["planet"], "shodhasavarga": v["shodhasavarga"]}
+                      for v in r.get("vimsopaka", [])],
+    }
+
+
 def _life_timeline(bd, ayanamsa, target_date: Optional[str] = None, **_):
     # A specific date → the "what's running" window context (maha/bhukti, Saturn
     # phase, nearby ingresses/eclipses). No date → a compact overview: the current
@@ -648,6 +665,16 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _life_timeline,
     ),
     _Tool(
+        "get_strength",
+        "The full strength picture: Shadbala (six-fold planetary strength — total "
+        "vs required rupas, ratio, rank), Bhava Bala (strength of the 12 houses) and "
+        "Vimsopaka Bala (varga-dignity 0-20 per planet). Use for 'which planets/"
+        "houses are strong or weak' and to weigh whether a graha can deliver its "
+        "promise. Strength ≠ good/bad — a strong malefic acts forcefully.",
+        _EMPTY_PARAMS,
+        _strength,
+    ),
+    _Tool(
         "get_avasthas",
         "The planetary avasthas (states) for the seven grahas — Baladi (infant→"
         "dead by degree, Yuva=prime), Jagradadi (awake/dreaming/asleep by dignity) "
@@ -818,7 +845,7 @@ ALWAYS_TOOLS: List[str] = [
     "get_raja_yogas", "get_longevity", "get_pancha_pakshi",
     "get_sphuta", "get_sahams", "get_argala",
     "get_vedic_clock", "get_retrograde", "get_muhurta",
-    "get_kp", "get_jaimini", "get_life_timeline",
+    "get_kp", "get_jaimini", "get_life_timeline", "get_strength",
 ]
 
 
@@ -886,6 +913,7 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_doshas":           {"label": "Doshas",                 "category": "Strengths & afflictions"},
     "get_ashtakavarga":     {"label": "Ashtakavarga",          "category": "Strengths & afflictions"},
     "get_shadbala":         {"label": "Shadbala strength",      "category": "Strengths & afflictions"},
+    "get_strength":         {"label": "Strength (Shadbala + Bhava + Vimsopaka)", "category": "Strengths & afflictions"},
     "get_longevity":        {"label": "Ayu (longevity)",        "category": "Strengths & afflictions"},
     "get_sphuta":           {"label": "Sphutas (sensitive points)", "category": "Sensitive points"},
     "get_sahams":           {"label": "Sahams (36 points)",     "category": "Sensitive points"},

@@ -40,6 +40,8 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   a "tradition also recommends" banner of the conditional dashas that apply to the chart,
   Avasthas — the planetary states (Baladi age / Jagradadi wakefulness / Deeptadi temperament)
   as a card on the Advanced page and in every AI reading,
+  a Planetary Strength page (`/strength`) visualizing Shadbala (six-fold strength + composition),
+  Bhava Bala (house strength) and Vimsopaka Bala (varga dignity) as ranked bars, with an AI reading,
   Remedies (traditional gemstone / mantra / deity suggestions per weak planet),
   Sensitive Points (Sphutas, the 36 Sahams, and Argala — with AI reading),
   a Vedic Clock & Retrograde page (a live ghati/vighati clock + vakra-gathi retrograde

@@ -30,6 +30,7 @@ import {
   History,
   CalendarRange,
   GanttChartSquare,
+  Gauge,
   Home,
   FileText,
   Compass,
@@ -164,6 +165,12 @@ export const DashboardPage = () => {
       icon: <GanttChartSquare size={32} />,
       path: "/timeline",
       gradient: "linear-gradient(135deg, #2D3561 0%, #E27B5A 100%)",
+    },
+    {
+      key: "strength",
+      icon: <Gauge size={32} />,
+      path: "/strength",
+      gradient: "linear-gradient(135deg, #D4AF37 0%, #2E9E5B 100%)",
     },
     {
       key: "bhrigu",

@@ -1,0 +1,116 @@
+/* Planetary Strength page — ratio bars, six-fold stacks, bhava & vimsopaka. */
+
+.st-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.5rem;
+}
+
+.st-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 96px;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.st-row__label {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+.st-row__label--bhava {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.st-rank {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+.st-bhava-sig {
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.st-row__val {
+  text-align: right;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.st-ratio {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+/* Ratio bar with a 1.0 threshold marker */
+.st-track {
+  position: relative;
+  height: 16px;
+  border-radius: 8px;
+  background: rgba(139, 143, 168, 0.16);
+  overflow: hidden;
+}
+.st-fill {
+  height: 100%;
+  border-radius: 8px 0 0 8px;
+  transition: width 0.4s ease;
+}
+.st-fill--vim {
+  background: linear-gradient(90deg, var(--temple-gold) 0%, var(--saffron) 100%);
+}
+.st-threshold {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--cosmic-indigo);
+  opacity: 0.55;
+}
+
+/* Six-fold stacked bar */
+.st-stack {
+  display: flex;
+  height: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(139, 143, 168, 0.16);
+}
+.st-stack__seg {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+/* Legend */
+.st-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.st-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.st-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+@media (max-width: 640px) {
+  .st-row {
+    grid-template-columns: 90px 1fr 76px;
+    gap: 0.4rem;
+  }
+  .st-row__label {
+    font-size: 0.82rem;
+  }
+}

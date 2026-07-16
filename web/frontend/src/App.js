@@ -32,6 +32,7 @@ import { MuhurtaPage } from "./pages/MuhurtaPage";
 import { PrashnaPage } from "./pages/PrashnaPage";
 import { BhriguMarkersPage } from "./pages/BhriguMarkersPage";
 import { TimelinePage } from "./pages/TimelinePage";
+import { StrengthPage } from "./pages/StrengthPage";
 import { RemediesPage } from "./pages/RemediesPage";
 import { DailyDigestPage } from "./pages/DailyDigestPage";
 import { FortnightlyDigestPage, MonthlyDigestPage } from "./pages/PeriodDigestPage";
@@ -196,6 +197,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <TimelinePage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/strength"
+              element={
+                <ProtectedRoute>
+                  <StrengthPage />
                 </ProtectedRoute>
               }
             />

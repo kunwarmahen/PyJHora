@@ -2268,6 +2268,88 @@ class AstrologyCompute:
         finally:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
+    # House significations for the Bhava Bala display (1-based).
+    _BHAVA_SIGNIFICATION = [
+        "Self, body, vitality", "Wealth, family, speech", "Courage, siblings",
+        "Home, mother, comfort", "Children, mind, learning", "Health, enemies, service",
+        "Partner, marriage", "Longevity, change", "Fortune, dharma, father",
+        "Career, status", "Gains, friends", "Loss, expense, liberation",
+    ]
+
+    @staticmethod
+    def get_strength(dob: str, tob: str, place: str,
+                     lat: Optional[float] = None, lon: Optional[float] = None,
+                     tz: Optional[float] = None,
+                     ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """The full strength picture, composed for a dedicated page:
+
+          • **Shadbala** — the six-fold planetary strength (reuses `get_shadbala`):
+            the sthana/kaala/dig/cheshta/naisargika/drik breakdown, total vs
+            required rupas, ratio and rank for the seven grahas.
+          • **Bhava Bala** — the strength of the twelve houses (rupas + ratio).
+          • **Vimsopaka Bala** — the varga-based dignity score (0-20) per planet in
+            three schemes: Shadvarga (6), Sapthavarga (7) and Shodhasavarga (16)."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        # Shadbala first — it manages (and resets) its own ayanamsa.
+        sb = AstrologyCompute.get_shadbala(dob, tob, place, lat, lon, tz, ayanamsa=ayanamsa)
+        if sb.get("status") != "success":
+            return sb
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd = swe.julday(year, month, day, hour + minute / 60.0)
+
+            # Bhava Bala — [shashtiamsa, rupas, ratio] each 12 houses.
+            bb = strength.bhava_bala(jd, place_obj)
+            bb_rupas, bb_ratio = bb[1], bb[2]
+            bhava = []
+            for h in range(12):
+                bhava.append({
+                    "house": h + 1,
+                    "signification": AstrologyCompute._BHAVA_SIGNIFICATION[h],
+                    "rupa": round(float(bb_rupas[h]), 2),
+                    "strength_ratio": round(float(bb_ratio[h]), 2),
+                    "sufficient": float(bb_ratio[h]) >= 1.0,
+                })
+            bhava_ranked = sorted(range(12), key=lambda i: bhava[i]["rupa"], reverse=True)
+            for rank, i in enumerate(bhava_ranked, start=1):
+                bhava[i]["rank"] = rank
+
+            # Vimsopaka Bala (0-20) per planet, three varga schemes. Each engine
+            # call returns {planet_idx: [count, "varga list", score]}.
+            shad = charts.vimsopaka_shadvarga_of_planets(jd, place_obj)
+            sapt = charts.vimsopaka_sapthavarga_of_planets(jd, place_obj)
+            shod = charts.vimsopaka_shodhasavarga_of_planets(jd, place_obj)
+            vimsopaka = []
+            for p in range(9):  # Sun..Ketu
+                vimsopaka.append({
+                    "planet": PLANET_NAMES[p],
+                    "shadvarga": round(float(shad[p][2]), 2),
+                    "sapthavarga": round(float(sapt[p][2]), 2),
+                    "shodhasavarga": round(float(shod[p][2]), 2),
+                })
+
+            return {
+                "status": "success",
+                "components": sb.get("components", []),
+                "planets": sb.get("planets", []),
+                "bhava_bala": bhava,
+                "vimsopaka": vimsopaka,
+                "vimsopaka_max": 20,
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
     @staticmethod
     def get_aspects(dob: str, tob: str, place: str,
                     lat: Optional[float] = None, lon: Optional[float] = None,
