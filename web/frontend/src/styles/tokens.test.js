@@ -24,7 +24,7 @@ const LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(\s*[0-9]/g;
 const KEYWORD = new RegExp(
   String.raw`^\s*(?:background|background-color|color|fill|stroke|border[a-z-]*)\s*:` +
     String.raw`[^;]*(?<![-\w])(?:white|black|silver|gray|grey|ivory|snow|whitesmoke|red|lime|aqua|fuchsia)(?![-\w])`,
-  "gm",
+  "gm"
 );
 
 /** Drop @media print blocks: those deliberately force a white sheet (§37). */
@@ -80,15 +80,13 @@ describe("inline SVG paint", () => {
 
 describe("theme tokens", () => {
   it("defines every token the stylesheets reference", () => {
-    const all = cssFiles(SRC).map((f) => fs.readFileSync(f, "utf8")).join("\n");
-    const defined = new Set(
-      [...all.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)].map((m) => m[1]),
-    );
+    const all = cssFiles(SRC)
+      .map((f) => fs.readFileSync(f, "utf8"))
+      .join("\n");
+    const defined = new Set([...all.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)].map((m) => m[1]));
     // Set from JS at runtime rather than in any stylesheet.
     const runtime = new Set(["--lvl-accent", "--avatar"]);
-    const used = new Set(
-      [...decolour(all).matchAll(/var\(\s*(--[a-z0-9-]+)/g)].map((m) => m[1]),
-    );
+    const used = new Set([...decolour(all).matchAll(/var\(\s*(--[a-z0-9-]+)/g)].map((m) => m[1]));
     const missing = [...used].filter((t) => !defined.has(t) && !runtime.has(t));
     expect(missing).toEqual([]);
   });
@@ -145,19 +143,27 @@ describe("theme tokens", () => {
     // A token the light theme defines but dark forgets keeps its LIGHT value —
     // e.g. a cream surface surviving into dark mode as a bright slab.
     const src = fs.readFileSync(APP_CSS, "utf8");
-    const grab = (re) => {
+    const decls = (re) => {
       const m = src.match(re);
-      return new Set([...m[0].matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)].map((x) => x[1]));
+      return new Map(
+        [...m[0].matchAll(/^\s*(--[a-z0-9-]+)\s*:([^;]*);/gm)].map((x) => [x[1], x[2]])
+      );
     };
-    const light = grab(/^:root\s*\{[\s\S]*?\n\}/m);
-    const dark = grab(/:root\[data-theme="dark"\]\s*\{[\s\S]*?\n {2}\}/);
+    const light = decls(/^:root\s*\{[\s\S]*?\n\}/m);
+    const dark = decls(/:root\[data-theme="dark"\]\s*\{[\s\S]*?\n {2}\}/);
     // Tokens that are intentionally theme-independent: brand hues, geometry
     // and type. Anything else missing from dark is a bug.
     const shared = (t) =>
       /^--(font|space|radius|saffron|marigold|vermillion|emerald|cosmic|terracotta|temple|night|white-rgb|black-rgb|card-bg|border-color|cream|text$|ink-light|accent$|gold$|planet)/.test(
-        t,
+        t
       ) || ["--surface-page", "--surface-inverse", "--text", "--radius-pill"].includes(t);
-    const missing = [...light].filter((t) => !dark.has(t) && !shared(t));
+    // A pure alias (`--x: var(--y)`) resolves through to its target at use time,
+    // so it inherits whatever dark gives --y and needs no override of its own —
+    // restating it in the dark block would be the bug, freezing the alias to one
+    // value. This is by VALUE, not by name: an alias earns the exemption by
+    // actually being one, so a literal that later replaces it is caught again.
+    const alias = (t) => /^\s*var\(--[a-z0-9-]+\)\s*$/.test(light.get(t));
+    const missing = [...light.keys()].filter((t) => !dark.has(t) && !shared(t) && !alias(t));
     expect(missing).toEqual([]);
   });
 });

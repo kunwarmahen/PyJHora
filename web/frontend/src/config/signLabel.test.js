@@ -1,5 +1,5 @@
 import { SIGN_LABEL_DEFAULT, SIGN_LABEL_MODES, signLabelParts } from "./signLabel";
-import { RASI_GLYPHS, RASI_NAMES } from "../constants/jyotish";
+import { RASI_GLYPHS, RASI_NAMES, rasiTattva, rasiTattvaColor } from "../constants/jyotish";
 
 describe("signLabelParts", () => {
   it.each(SIGN_LABEL_MODES)("renders at least one part in %s mode", (mode) => {
@@ -34,6 +34,22 @@ describe("RASI_GLYPHS", () => {
     RASI_GLYPHS.forEach((g, i) => {
       expect(g.codePointAt(0)).toBe(0x2648 + i); // U+2648 Aries … U+2653 Pisces
     });
+  });
+
+  it("colours each sign by its element", () => {
+    // The classical cycle from Aries: fire, earth, air, water, repeating.
+    expect([1, 2, 3, 4].map(rasiTattva)).toEqual(["fire", "earth", "air", "water"]);
+    // Trines share an element — Aries/Leo/Sagittarius are all fire.
+    expect([1, 5, 9].map(rasiTattva)).toEqual(["fire", "fire", "fire"]);
+    expect([4, 8, 12].map(rasiTattva)).toEqual(["water", "water", "water"]);
+  });
+
+  it("paints glyphs through a token, never a resolved colour", () => {
+    // A literal here would be frozen to one theme — the exact bug §37 exists to
+    // prevent, and one the CSS-only token guard cannot see.
+    for (let sign = 1; sign <= 12; sign++) {
+      expect(rasiTattvaColor(sign)).toMatch(/^rgb\(var\(--tattva-(fire|earth|air|water)-rgb\)\)$/);
+    }
   });
 
   it("pins every glyph to text presentation", () => {

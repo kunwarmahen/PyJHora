@@ -57,6 +57,16 @@
   --black-rgb: 0, 0, 0;
   --white-rgb: 255, 255, 255;
 
+  /* Tattva (element) colours, for colour-coding the zodiac glyphs: fire, earth,
+     air, water — the cycle every rasi follows from Aries. Aliased onto existing
+     brand triples rather than given values of their own, which is what lets them
+     need NO dark-mode override: each triple it points at already has one, so the
+     elements follow the theme for free. */
+  --tattva-fire-rgb: var(--vermillion-rgb);
+  --tattva-earth-rgb: var(--emerald-rgb);
+  --tattva-air-rgb: var(--gold-rgb);
+  --tattva-water-rgb: var(--indigo-rgb);
+
   /* Surfaces */
   --surface: #fff;
   --surface-raised: #fffaf2;

@@ -612,8 +612,11 @@ export const SettingsPage = () => {
                   </button>
                 ))}
               </div>
-              <p className="settings-hint">{t("settings.general.signLabelHint")}</p>
             </div>
+            {/* The hint is a sibling of the row, not a third child: .settings-row
+                is a two-child flex, so a hint inside it lands BESIDE the control
+                and squeezes it. */}
+            <p className="settings-hint">{t("settings.general.signLabelHint")}</p>
 
             <div className="settings-row">
               <label className="settings-label">{t("settings.general.ayanamsa")}</label>

@@ -40,6 +40,22 @@ export const RASI_GLYPHS = [
   "♓",
 ].map((g) => g + TEXT_PRESENTATION);
 
+// Tattva (element) per rasi. From Aries the cycle is fire, earth, air, water and
+// repeats every four signs all the way to Pisces — so it's derived, not tabled.
+export const TATTVAS = ["fire", "earth", "air", "water"];
+
+/** Element of a sign number (1 = Aries … 12 = Pisces). */
+export const rasiTattva = (signNum) => TATTVAS[(signNum - 1) % 4];
+
+/**
+ * Paint for a sign's glyph, colour-coded by element.
+ *
+ * Returns a var() reference, never a literal: the token carries the light/dark
+ * value, so a resolved colour here would be frozen to whichever theme happened
+ * to be on (§37, and styles/tokens.test.js enforces it).
+ */
+export const rasiTattvaColor = (signNum) => `rgb(var(--tattva-${rasiTattva(signNum)}-rgb))`;
+
 // Divisional (varga) charts for the picker (must mirror the backend's
 // SUPPORTED_VARGAS). `value` is the divisional-chart factor.
 export const DEFAULT_VARGA = 9;

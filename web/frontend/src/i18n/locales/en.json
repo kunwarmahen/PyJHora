@@ -979,7 +979,7 @@
         "number_glyph": "Number + glyph",
         "abbr": "Abbreviation"
       },
-      "signLabelHint": "How each house names its rasi: the number (1 = Aries … 12 = Pisces, as in a traditional chart), the glyph (♈), both, or the short name (Ar). Hover a house to see the sign's full name whichever you pick.",
+      "signLabelHint": "How each house names its rasi: the number (1 = Aries … 12 = Pisces, as in a traditional chart), the glyph (♈︎), coloured by element — fire, earth, air, water — both, or the short name (Ar). Hover a house to see the sign's full name whichever you pick.",
       "ayanamsa": "Ayanamsa",
       "praveshaBasis": "Chart basis (period readings)",
       "basisSolar": "Solar (Tajaka)",

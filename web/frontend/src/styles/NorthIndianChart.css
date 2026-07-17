@@ -159,11 +159,11 @@
   color: var(--text-muted);
 }
 /* The glyph carries the sign; the numeral beside it stays the quieter of the
-   two so a chart of twelve labels doesn't read as a wall of digits. */
+   two so a chart of twelve labels doesn't read as a wall of digits. Its colour
+   is the element's, set inline per sign (rasiTattvaColor). */
 .si-sign-glyph {
-  color: var(--cosmic-indigo);
-  font-size: 0.72rem;
-  font-weight: 400;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 .si-planets {
   display: flex;
@@ -235,20 +235,31 @@
   border-top: 16px solid var(--saffron);
   border-right: 16px solid transparent;
 }
-/* The export target: the grid plus its caption. Tracks .si-grid's own width so
-   the caption lines up with the grid's right edge rather than the card's. */
-.si-export-wrap {
-  width: 100%;
-  max-width: 580px;
-  margin: 0 auto;
-}
+/* Reference caption in the grid's inner 2x2 — the space this chart style
+   reserves for exactly this, and which nothing else can use.
 
-/* Reference caption under the grid. Inside .si-export-wrap so html2canvas
-   captures it — a downloaded chart has to say what it is. */
+   The aspect-line overlay converges on this exact point, and it paints over
+   normal flow from z-index 2 (.si-aspect-overlay, in Aspects.css) — so this
+   must clear that, not merely leave the default. Hence z-index 3, plus the
+   plate behind the text: without them the drishti lines run straight through
+   the words. The plate is sized to the text, so it masks only what it must. */
 .si-caption {
-  margin-top: var(--space-xs);
-  text-align: right;
-  font-size: 0.7rem;
+  position: relative;
+  z-index: 3;
+  grid-column: 2 / 4;
+  grid-row: 2 / 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-sm);
+}
+.si-caption span {
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-align: center;
+  text-wrap: balance;
+  font-size: 0.75rem;
   color: var(--text-secondary);
 }
 

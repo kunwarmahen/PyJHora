@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 // RASI_NAMES resolves a sign number to its canonical English name; ln() then renders it
 // in the active language.
-import { RASI_NAMES, RASI_GLYPHS, ASPECT_COLORS } from "../constants/jyotish";
+import { RASI_NAMES, RASI_GLYPHS, rasiTattvaColor, ASPECT_COLORS } from "../constants/jyotish";
 import { useLocalizeName } from "../i18n/localizeName";
 import { useSettings } from "../contexts/SettingsContext";
 import { signLabelParts } from "../config/signLabel";
@@ -401,12 +401,15 @@ export const NorthIndianChart = ({
                       {sign}
                     </tspan>
                   )}
+                  {/* Coloured by element — fire red, earth green, air gold,
+                      water indigo — so the glyph carries the sign's tattva at a
+                      glance and the twelve labels don't read as uniform grey. */}
                   {labelParts.glyph && (
                     <tspan
                       dx={labelParts.number ? "4" : "0"}
-                      fill={indigo}
-                      fontSize="11"
-                      opacity={isHovered ? 1 : 0.75}
+                      fill={rasiTattvaColor(sign)}
+                      fontSize="12"
+                      fontWeight="600"
                     >
                       {RASI_GLYPHS[sign - 1]}
                     </tspan>
