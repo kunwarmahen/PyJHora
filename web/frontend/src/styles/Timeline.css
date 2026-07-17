@@ -37,13 +37,13 @@
 }
 
 .tl-seg-label {
-  fill: #fff;
+  fill: var(--surface);
   font-size: 13px;
   font-weight: 700;
   dominant-baseline: middle;
   pointer-events: none;
   paint-order: stroke;
-  stroke: rgba(0, 0, 0, 0.28);
+  stroke: rgba(var(--black-rgb), 0.28);
   stroke-width: 0.5px;
 }
 .tl-seg-label--sm {
@@ -92,10 +92,10 @@
   width: 11px;
   height: 11px;
   border-radius: var(--radius-full, 50%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(var(--white-rgb), 0.6);
 }
 .tl-dot--hit {
-  background: #3a4a66;
+  background: var(--text-primary);
   border: 2px solid var(--vermillion);
 }
 
@@ -126,7 +126,7 @@
   display: inline-block;
   padding: 2px 10px;
   border-radius: var(--radius-full, 999px);
-  color: #fff;
+  color: var(--surface);
   font-size: 0.82rem;
   font-weight: 700;
 }
@@ -137,7 +137,7 @@
   gap: 8px 14px;
   margin-top: var(--space-md);
   padding-top: var(--space-sm);
-  border-top: 1px solid rgba(139, 143, 168, 0.2);
+  border-top: 1px solid rgba(var(--text-muted-rgb), 0.2);
 }
 .tl-event {
   display: inline-flex;

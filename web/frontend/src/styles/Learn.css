@@ -30,9 +30,9 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.5rem 0.9rem;
-  border: 1.5px solid var(--border, #e7d8c3);
+  border: 1.5px solid var(--border);
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   color: var(--text-muted);
   font-weight: 600;
   font-size: 0.9rem;
@@ -44,9 +44,9 @@
   border-color: var(--saffron);
 }
 .learn-chip.is-active {
-  background: #fff7ed;
+  background: var(--warning-bg);
   border-color: var(--saffron);
-  color: #b45309;
+  color: var(--warning);
 }
 
 .learn-toggle-row {
@@ -59,7 +59,7 @@
 .learn-count-input {
   width: 64px;
   padding: 0.45rem 0.55rem;
-  border: 1.5px solid var(--border, #e7d8c3);
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   font-size: 1rem;
   text-align: center;
@@ -92,13 +92,13 @@
 .learn-progress-track {
   flex: 1;
   height: 8px;
-  background: #f0e6d6;
+  background: var(--border-subtle);
   border-radius: 999px;
   overflow: hidden;
 }
 .learn-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--saffron), #f59e0b);
+  background: linear-gradient(90deg, var(--saffron), var(--warning-bright));
   transition: width 0.3s ease;
 }
 
@@ -119,16 +119,16 @@
   letter-spacing: 0.04em;
   padding: 0.15rem 0.5rem;
   border-radius: 6px;
-  background: #eef2ff;
+  background: var(--info-bg);
   color: var(--cosmic-indigo);
 }
 .learn-tag--diff {
-  background: #fff7ed;
-  color: #b45309;
+  background: var(--warning-bg);
+  color: var(--warning);
 }
 .learn-q-text {
   font-weight: 600;
-  color: var(--text, #2b2113);
+  color: var(--text);
   margin-bottom: var(--space-md);
   line-height: 1.5;
 }
@@ -143,19 +143,19 @@
   align-items: flex-start;
   gap: 0.6rem;
   padding: 0.7rem 0.9rem;
-  border: 1.5px solid var(--border, #e7d8c3);
+  border: 1.5px solid var(--border);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.15s ease;
-  background: #fff;
+  background: var(--surface);
 }
 .learn-option:hover {
   border-color: var(--saffron);
-  background: #fffdf8;
+  background: var(--surface-raised);
 }
 .learn-option.is-selected {
   border-color: var(--saffron);
-  background: #fff7ed;
+  background: var(--warning-bg);
 }
 .learn-option input {
   margin-top: 0.2rem;
@@ -163,19 +163,19 @@
 }
 /* graded states */
 .learn-option.is-correct {
-  border-color: #16a34a;
-  background: #f0fdf4;
+  border-color: var(--success-bright);
+  background: var(--success-bg);
 }
 .learn-option.is-wrong {
-  border-color: #dc2626;
-  background: #fef2f2;
+  border-color: var(--danger);
+  background: var(--danger-bg);
 }
 
 .learn-textarea {
   width: 100%;
   min-height: 110px;
   padding: 0.7rem 0.9rem;
-  border: 1.5px solid var(--border, #e7d8c3);
+  border: 1.5px solid var(--border);
   border-radius: 10px;
   font-size: 1rem;
   font-family: inherit;
@@ -225,7 +225,7 @@
 }
 .learn-bar-track {
   height: 10px;
-  background: #f0e6d6;
+  background: var(--border-subtle);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -243,26 +243,26 @@
   text-transform: capitalize;
 }
 .learn-verdict--correct {
-  color: #16a34a;
+  color: var(--success-bright);
 }
 .learn-verdict--partial {
-  color: #d97706;
+  color: var(--warning-bright);
 }
 .learn-verdict--incorrect {
-  color: #dc2626;
+  color: var(--danger);
 }
 
 .learn-result-card {
-  border-left: 4px solid var(--border, #e7d8c3);
+  border-left: 4px solid var(--border);
 }
 .learn-result-card.v-correct {
-  border-left-color: #16a34a;
+  border-left-color: var(--success-bright);
 }
 .learn-result-card.v-partial {
-  border-left-color: #d97706;
+  border-left-color: var(--warning-bright);
 }
 .learn-result-card.v-incorrect {
-  border-left-color: #dc2626;
+  border-left-color: var(--danger);
 }
 
 .learn-answer-line {
@@ -278,7 +278,7 @@
 .learn-reasoning {
   margin-top: 0.6rem;
   padding: 0.7rem 0.9rem;
-  background: #fbf7f0;
+  background: var(--surface-sunken);
   border-radius: 10px;
   font-size: 0.92rem;
   line-height: 1.55;
@@ -311,7 +311,7 @@
   justify-content: space-between;
   gap: var(--space-md);
   padding: 0.8rem 0;
-  border-bottom: 1px solid var(--border, #f0e6d6);
+  border-bottom: 1px solid var(--border);
 }
 .learn-history-item:last-child {
   border-bottom: none;

@@ -28,7 +28,7 @@
 }
 .pex-chip:hover {
   border-color: var(--saffron);
-  background: rgba(255, 153, 51, 0.08);
+  background: rgba(var(--accent-rgb), 0.08);
 }
 .pex-chip--active {
   background: var(--saffron);
@@ -39,7 +39,7 @@
 .pex-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(45, 53, 97, 0.35);
+  background: rgba(var(--indigo-rgb), 0.35);
   z-index: 300;
   animation: pex-fade 0.2s ease;
 }
@@ -128,15 +128,15 @@
   font-weight: 600;
 }
 .pex-flag--benefic {
-  background: rgba(46, 158, 91, 0.14);
-  color: #1e7a44;
+  background: rgba(var(--success-rgb), 0.14);
+  color: var(--success);
 }
 .pex-flag--challenging {
-  background: rgba(178, 58, 72, 0.12);
-  color: #b23a48;
+  background: rgba(var(--danger-rgb), 0.12);
+  color: var(--danger-alt);
 }
 .pex-flag--neutral {
-  background: rgba(90, 95, 122, 0.1);
+  background: rgba(var(--text-secondary-rgb), 0.1);
   color: var(--text-secondary);
 }
 

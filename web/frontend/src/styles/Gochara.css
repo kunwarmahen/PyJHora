@@ -17,20 +17,20 @@
   white-space: nowrap;
 }
 .goc-ic--good {
-  color: #2e9e5b;
+  color: var(--success-bright);
 }
 .goc-ic--caution {
-  color: #d4a017;
+  color: var(--warning-bright);
 }
 .goc-ic--bad {
-  color: #b23a48;
+  color: var(--danger-alt);
 }
 .goc-row--good td {
-  background: rgba(46, 158, 91, 0.06);
+  background: rgba(var(--success-rgb), 0.06);
 }
 .goc-row--caution td {
-  background: rgba(240, 176, 96, 0.08);
+  background: rgba(var(--accent-rgb), 0.08);
 }
 .goc-row--bad td {
-  background: rgba(178, 58, 72, 0.05);
+  background: rgba(var(--danger-rgb), 0.05);
 }

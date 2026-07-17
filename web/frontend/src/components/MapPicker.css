@@ -10,17 +10,17 @@
   padding: 8px 16px;
   font-size: 13px;
   font-weight: 600;
-  color: #b35a00;
-  background: #fff6ea;
-  border: 1px solid #f0c389;
+  color: var(--accent-deep);
+  background: var(--warning-bg);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .map-picker-toggle:hover {
-  background: #ffedd6;
-  border-color: #e07b00;
+  background: var(--warning-bg);
+  border-color: var(--accent-deep);
 }
 
 .map-picker-body {
@@ -40,8 +40,8 @@
   padding: 8px 14px;
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
-  background: linear-gradient(135deg, #f7941d 0%, #e07b00 100%);
+  color: var(--surface);
+  background: linear-gradient(135deg, var(--accent-strong) 0%, var(--accent-deep) 100%);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -50,17 +50,17 @@
 
 .map-picker-locate:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(224, 123, 0, 0.35);
+  box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.35);
 }
 
 .map-picker-hint {
   font-size: 12px;
-  color: #777;
+  color: var(--text-neutral);
   font-style: italic;
 }
 
 .map-picker-canvas {
-  border: 2px solid #f0c389;
+  border: 2px solid var(--border-strong);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -73,15 +73,15 @@
 .map-picker-status {
   margin-top: 8px;
   font-size: 13px;
-  color: #b35a00;
+  color: var(--accent-deep);
 }
 
 .map-picker-error {
   margin-top: 8px;
   padding: 10px 12px;
-  background-color: #ffebee;
-  color: #c62828;
-  border-left: 4px solid #c62828;
+  background-color: var(--danger-bg);
+  color: var(--danger);
+  border-left: 4px solid var(--danger);
   border-radius: 4px;
   font-size: 13px;
 }

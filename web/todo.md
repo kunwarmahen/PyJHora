@@ -3750,11 +3750,33 @@ saffron/cream palette in `:root` and 24 stylesheets reference those tokens — p
 **hard-coded hex/rgba literals** (charts, badges, chips) that would stay light-on-light in a dark
 theme. The work is mostly *auditing the literals*, not writing a dark palette.
 
-- [ ] 🔴 **Token audit first.** Grep every `#hex` / `rgba(` in `frontend/src/**/*.css` (and inline
-      styles in the chart components) and pull them into semantic `:root` tokens — extend the
-      existing `--bg-primary` / `--text-*` / `--shadow-*` set with what's missing (`--border`,
-      `--surface`, `--surface-raised`, `--overlay`…). No visual change in this step; light output
-      must be byte-for-byte what it is today. Nothing else can start until this is done.
+- [x] ✅ **Token audit — DONE 2026-07-16.** 625 literals / 251 distinct across 25 stylesheets →
+      **~55 semantic tokens** in `App.css :root`. Every CSS colour literal in the app now lives in
+      that one block; `src/styles/tokens.test.js` fails the build if one reappears (it also
+      asserts no token is referenced-but-undefined). Owner decision: **cluster** near-duplicates
+      rather than preserve every literal — measured drift is ≤ 0.04 luminance, largest being
+      `#2b2113→#3a2e22` (two near-black browns) and `#999→#8b8fa8` (grey → the indigo-tinted
+      muted grey). Light is *imperceptibly* different, not byte-for-byte.
+
+      What the audit turned up, which matters for the palette step:
+      - **Clustering was already the author's intent.** `var(--border-color, …)` was written with
+        6 different fallback literals, `--card-bg` with 2 — the codebase already treated those
+        families as one token.
+      - **10 tokens were referenced but never defined** (`--border`, `--card-bg`, `--cream`,
+        `--cream-dark`, `--text`, `--ink-light`, `--border-color`, `--indigo`, `--radius-pill`,
+        `--gold`), silently rendering their fallback literal — i.e. **invisible to theming**.
+        Now defined. (`--lvl-accent` / `--avatar` are legitimately set from JS — see DhasaPage.)
+      - **`--indigo` was overloaded**: violet `#5e60ce` in the chakra rules but `#2D3561`
+        (= `--text-primary`) on `.now-widget__head`. Split; alias retired for `--indigo-accent`.
+      - **Tints keep exact alpha** via channel triples: `rgba(var(--accent-rgb), 0.08)`. The
+        saffron tint alone spanned 10 alphas — clustering those would have flattened real depth.
+        Dark mode reassigns the *triple*, so every tint follows for free.
+      - ⚠️ **Off-brand leftover**: `#667eea → #764ba2` (a bootstrap-ish violet gradient) in
+        `Forms.css` + `LocationSearch.css`, tokenised as-is to `--info`/`--info-dark`. It is not
+        part of the saffron identity — decide whether to retire it during the palette step.
+      - 🗑️ **Two dead duplicate stylesheets** found: `Dashboard.css` (repo root) and
+        `web/frontend/Dashboard.css` — nothing imports either, every selector is duplicated in
+        `src/styles/`. Leftovers from `b0eb113` written to the wrong path. Safe to delete.
 - [ ] 🔴 **Dark palette.** Override the semantic tokens under `:root[data-theme="dark"]`. **Keep
       the Vedic identity** (owner has reaffirmed the saffron look twice — §3, §15): a night-sky
       indigo ground (`--night-sky` / `--cosmic-indigo` already exist) with saffron/marigold/gold

@@ -11,7 +11,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: #2e9e5b;
+  color: var(--success-bright);
   font-weight: 600;
   font-size: 0.9rem;
 }
@@ -30,16 +30,16 @@
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 600;
-  background: rgba(90, 95, 122, 0.1);
+  background: rgba(var(--text-secondary-rgb), 0.1);
   color: var(--text-secondary);
 }
 .lr-chip--active {
-  background: rgba(255, 153, 51, 0.16);
+  background: rgba(var(--accent-rgb), 0.16);
   color: var(--saffron);
 }
 .lr-chip--done {
-  background: rgba(46, 158, 91, 0.14);
-  color: #1e7a44;
+  background: rgba(var(--success-rgb), 0.14);
+  color: var(--success);
 }
 .lr-spin {
   animation: lr-spin 1s linear infinite;

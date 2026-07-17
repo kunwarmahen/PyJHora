@@ -43,8 +43,8 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--saffron);
-  background: rgba(255, 153, 51, 0.1);
-  border: 1px solid rgba(255, 153, 51, 0.25);
+  background: rgba(var(--accent-rgb), 0.1);
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -202,7 +202,7 @@
   font-size: 0.52rem;
 }
 .si-lagna {
-  background: rgba(255, 153, 51, 0.08);
+  background: rgba(var(--accent-rgb), 0.08);
 }
 .si-lagna::after {
   content: "";
@@ -288,7 +288,7 @@
 .varga-picker .varga-significance {
   font-weight: 500;
   font-style: italic;
-  color: var(--text-muted, var(--text-secondary));
+  color: var(--text-muted);
 }
 .varga-loading {
   display: flex;

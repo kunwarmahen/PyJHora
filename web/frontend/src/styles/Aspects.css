@@ -44,7 +44,7 @@
 }
 .aspects-row:hover,
 .aspects-row.is-active {
-  background: rgba(255, 153, 51, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
 }
 .aspects-graha {
   font-weight: 700;
@@ -89,7 +89,7 @@
 }
 .aspect-toggle.is-active {
   border-color: var(--saffron);
-  background: rgba(255, 153, 51, 0.12);
+  background: rgba(var(--accent-rgb), 0.12);
   color: var(--vermillion);
 }
 

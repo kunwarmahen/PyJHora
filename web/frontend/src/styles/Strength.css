@@ -51,7 +51,7 @@
   position: relative;
   height: 16px;
   border-radius: 8px;
-  background: rgba(139, 143, 168, 0.16);
+  background: rgba(var(--text-muted-rgb), 0.16);
   overflow: hidden;
 }
 .st-fill {
@@ -77,7 +77,7 @@
   height: 16px;
   border-radius: 8px;
   overflow: hidden;
-  background: rgba(139, 143, 168, 0.16);
+  background: rgba(var(--text-muted-rgb), 0.16);
 }
 .st-stack__seg {
   height: 100%;

@@ -14,13 +14,13 @@
   border-radius: var(--radius-md);
 }
 .nav-drawer-toggle:hover {
-  background: rgba(255, 153, 51, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
 }
 
 .nav-drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(45, 53, 97, 0.45);
+  background: rgba(var(--indigo-rgb), 0.45);
   z-index: 200;
   animation: nav-fade 0.2s ease;
 }
@@ -109,7 +109,7 @@
 }
 .nav-drawer-account-sub {
   font-size: 0.8rem;
-  color: var(--text-secondary, #8a7a5c);
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -136,10 +136,10 @@
   flex-shrink: 0;
 }
 .nav-drawer-link:hover {
-  background: rgba(255, 153, 51, 0.08);
+  background: rgba(var(--accent-rgb), 0.08);
 }
 .nav-drawer-link.active {
-  background: rgba(255, 153, 51, 0.14);
+  background: rgba(var(--accent-rgb), 0.14);
 }
 .nav-drawer-link.logout {
   color: var(--vermillion);

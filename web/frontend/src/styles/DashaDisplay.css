@@ -1,6 +1,6 @@
 .dasha-container {
   padding: 20px;
-  background: #fafafa;
+  background: var(--surface-neutral);
   border-radius: 8px;
   margin: 20px 0;
 }
@@ -11,7 +11,7 @@
 }
 
 .dasha-title h3 {
-  color: #667eea;
+  color: var(--info);
   margin: 0;
   font-size: 20px;
 }
@@ -27,25 +27,25 @@
   background: white;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(var(--black-rgb), 0.1);
   transition: transform 0.3s ease;
 }
 
 .dasha-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(var(--black-rgb), 0.15);
 }
 
 .dasha-card.current {
-  border-left: 4px solid #667eea;
+  border-left: 4px solid var(--info);
 }
 
 .dasha-card.next {
-  border-left: 4px solid #764ba2;
+  border-left: 4px solid var(--info-dark);
 }
 
 .card-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--info) 0%, var(--info-dark) 100%);
   color: white;
   padding: 12px 16px;
 }
@@ -63,23 +63,23 @@
 .dasha-lord {
   font-size: 24px;
   font-weight: bold;
-  color: #667eea;
+  color: var(--info);
   margin-bottom: 12px;
 }
 
 .dasha-duration {
-  color: #666;
+  color: var(--text-neutral);
   font-size: 14px;
   margin-bottom: 12px;
 }
 
 .dasha-duration strong {
-  color: #333;
+  color: var(--text-neutral-strong);
   font-size: 16px;
 }
 
 .dasha-desc {
-  color: #888;
+  color: var(--text-neutral-muted);
   font-size: 13px;
   margin: 0;
   line-height: 1.5;
@@ -90,12 +90,12 @@
   padding: 20px;
   border-radius: 8px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(var(--black-rgb), 0.05);
 }
 
 .dasha-sequence-section h4 {
   margin-top: 0;
-  color: #333;
+  color: var(--text-neutral-strong);
   margin-bottom: 15px;
 }
 
@@ -106,13 +106,13 @@
 }
 
 .dasha-sequence-item {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--info) 0%, var(--info-dark) 100%);
   color: white;
   padding: 12px;
   border-radius: 6px;
   text-align: center;
   min-width: 80px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(var(--black-rgb), 0.1);
 }
 
 .sequence-number {
@@ -136,12 +136,12 @@
   background: white;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(var(--black-rgb), 0.05);
 }
 
 .bhukthi-section h4 {
   margin-top: 0;
-  color: #333;
+  color: var(--text-neutral-strong);
   margin-bottom: 15px;
 }
 
@@ -152,32 +152,32 @@
 }
 
 .bhukthi-card {
-  background: #f5f7fa;
+  background: var(--surface-neutral);
   padding: 12px;
   border-radius: 6px;
-  border-left: 3px solid #667eea;
+  border-left: 3px solid var(--info);
   text-align: center;
 }
 
 .bhukthi-lord {
   font-weight: bold;
-  color: #667eea;
+  color: var(--info);
   font-size: 14px;
   margin-bottom: 8px;
 }
 
 .bhukthi-duration {
-  color: #666;
+  color: var(--text-neutral);
   font-size: 13px;
 }
 
 .dasha-note {
-  background: #e8f4f8;
-  border-left: 4px solid #17a2b8;
+  background: var(--info-bg);
+  border-left: 4px solid var(--info);
   padding: 12px 16px;
   border-radius: 4px;
   margin-top: 20px;
-  color: #0c5460;
+  color: var(--info-dark);
   font-size: 13px;
 }
 
@@ -186,8 +186,8 @@
 }
 
 .error-message {
-  background: #fee;
-  color: #c33;
+  background: var(--danger-bg);
+  color: var(--danger);
   padding: 12px;
   border-radius: 6px;
   text-align: center;

@@ -16,7 +16,7 @@
 }
 
 .page-back-btn:hover {
-  background: rgba(255, 153, 51, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
 }
 
 .page-back-btn span {
@@ -81,8 +81,8 @@
 
 /* ---- ErrorBanner ---- */
 .error-banner {
-  background: rgba(227, 66, 52, 0.1);
-  border: 2px solid rgba(227, 66, 52, 0.3);
+  background: rgba(var(--vermillion-rgb), 0.1);
+  border: 2px solid rgba(var(--vermillion-rgb), 0.3);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
   display: flex;
@@ -217,12 +217,12 @@
 }
 
 .ui-btn--secondary {
-  background: rgba(255, 153, 51, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
   color: var(--saffron);
-  border: 2px solid rgba(255, 153, 51, 0.25);
+  border: 2px solid rgba(var(--accent-rgb), 0.25);
 }
 .ui-btn--secondary:hover:not(:disabled) {
-  background: rgba(255, 153, 51, 0.2);
+  background: rgba(var(--accent-rgb), 0.2);
 }
 
 /* Larger, prominent button (e.g. a page's primary action) */
@@ -246,7 +246,7 @@
   color: var(--cosmic-indigo);
 }
 .ui-btn--ghost:hover:not(:disabled) {
-  background: rgba(45, 53, 97, 0.06);
+  background: rgba(var(--indigo-rgb), 0.06);
 }
 
 /* ---- DataField ---- */
@@ -573,7 +573,7 @@
   border-top: 1px solid var(--sandalwood);
 }
 .data-table tbody tr.is-current {
-  background: rgba(255, 153, 51, 0.08);
+  background: rgba(var(--accent-rgb), 0.08);
 }
 .data-table tbody tr.is-current td:first-child {
   box-shadow: inset 3px 0 0 var(--saffron);
@@ -610,7 +610,7 @@
 
 /* Highlighted (matching) cell in a comparison table */
 .adv-table td.is-match {
-  background: rgba(255, 153, 51, 0.12);
+  background: rgba(var(--accent-rgb), 0.12);
 }
 
 /* Stacked label/value detail list (e.g. profile summary blocks) */
@@ -642,7 +642,7 @@
 /* On-demand AI analysis panel (Compatibility / Compare / Sarvatobhadra) */
 .ai-panel {
   padding: var(--space-lg);
-  background: linear-gradient(135deg, rgba(52, 73, 94, 0.05) 0%, rgba(52, 73, 94, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(var(--indigo-rgb), 0.05) 0%, rgba(var(--indigo-rgb), 0.1) 100%);
   border-radius: var(--radius-lg);
   border: 2px solid var(--cosmic-indigo);
 }
@@ -700,8 +700,8 @@
 
 /* Read-only / informational saffron banner */
 .readonly-banner {
-  background: rgba(255, 153, 51, 0.1);
-  border: 1px solid rgba(255, 153, 51, 0.3);
+  background: rgba(var(--accent-rgb), 0.1);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
   border-radius: var(--radius-lg);
   padding: var(--space-md) var(--space-lg);
   margin-bottom: var(--space-xl);
@@ -733,7 +733,7 @@
 .retro-badge {
   margin-left: 6px;
   padding: 1px 5px;
-  background: rgba(227, 66, 52, 0.12);
+  background: rgba(var(--vermillion-rgb), 0.12);
   color: var(--vermillion);
   border-radius: var(--radius-sm);
   font-size: 0.625rem;
@@ -759,19 +759,19 @@
   opacity: 0.85;
 }
 .bindu-chip--good {
-  background: rgba(46, 125, 50, 0.12);
-  color: #2e7d32;
-  border-color: rgba(46, 125, 50, 0.25);
+  background: rgba(var(--success-rgb), 0.12);
+  color: var(--success);
+  border-color: rgba(var(--success-rgb), 0.25);
 }
 .bindu-chip--neutral {
-  background: rgba(120, 120, 120, 0.12);
+  background: rgba(var(--text-muted-rgb), 0.12);
   color: var(--text-secondary);
-  border-color: rgba(120, 120, 120, 0.22);
+  border-color: rgba(var(--text-muted-rgb), 0.22);
 }
 .bindu-chip--weak {
-  background: rgba(227, 66, 52, 0.12);
+  background: rgba(var(--vermillion-rgb), 0.12);
   color: var(--vermillion);
-  border-color: rgba(227, 66, 52, 0.25);
+  border-color: rgba(var(--vermillion-rgb), 0.25);
 }
 
 /* Marriage workspace — dual dasha-overlap timeline (§2.6) */
@@ -836,7 +836,7 @@
   position: absolute;
   top: 2px;
   bottom: 2px;
-  background: rgba(94, 96, 206, 0.14);
+  background: rgba(var(--indigo-rgb), 0.14);
   border-right: 1px solid var(--sacred-white);
   overflow: hidden;
   display: flex;
@@ -844,7 +844,7 @@
   justify-content: center;
 }
 .mt-seg--sig {
-  background: rgba(255, 153, 51, 0.35);
+  background: rgba(var(--accent-rgb), 0.35);
   border: 1px solid var(--saffron);
 }
 .mt-seg__label {
@@ -871,7 +871,7 @@
   display: inline-block;
 }
 .mt-swatch--sig {
-  background: rgba(255, 153, 51, 0.35);
+  background: rgba(var(--accent-rgb), 0.35);
   border: 1px solid var(--saffron);
 }
 .chart-toggle--workspace {
@@ -909,10 +909,10 @@
   margin-bottom: var(--space-md);
 }
 .ai-tools-sources.is-on {
-  background: rgba(46, 158, 91, 0.12);
-  color: #1e7a44;
+  background: rgba(var(--success-rgb), 0.12);
+  color: var(--success);
 }
 .ai-tools-sources.is-off {
-  background: rgba(90, 95, 122, 0.1);
+  background: rgba(var(--text-secondary-rgb), 0.1);
   color: var(--text-secondary);
 }

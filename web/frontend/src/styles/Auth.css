@@ -65,8 +65,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  background: rgba(227, 66, 52, 0.1);
-  border: 1px solid rgba(227, 66, 52, 0.3);
+  background: rgba(var(--vermillion-rgb), 0.1);
+  border: 1px solid rgba(var(--vermillion-rgb), 0.3);
   color: var(--vermillion);
   padding: var(--space-md);
   border-radius: var(--radius-md);
@@ -106,7 +106,7 @@
 .input-wrapper:focus-within {
   border-color: var(--saffron);
   background: white;
-  box-shadow: 0 0 0 4px rgba(255, 153, 51, 0.1);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.1);
 }
 
 .input-wrapper svg {
@@ -135,7 +135,7 @@
   gap: var(--space-sm);
   margin-top: var(--space-md);
   font-size: 0.9rem;
-  color: var(--text-secondary, #6b5b4d);
+  color: var(--text-secondary);
   cursor: pointer;
   user-select: none;
 }
@@ -170,7 +170,7 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(var(--white-rgb), 0.3), transparent);
   transition: left 0.5s ease;
 }
 
@@ -229,7 +229,7 @@
   height: 5px;
   border-radius: 3px;
   flex: 1;
-  background: #e6ddcf;
+  background: var(--border);
   position: relative;
   overflow: hidden;
 }
@@ -251,26 +251,26 @@
 .pw-strength--short .pw-strength-bar::before,
 .pw-strength--weak .pw-strength-bar::before {
   width: 25%;
-  background: #c0392b;
+  background: var(--danger);
 }
 .pw-strength--fair .pw-strength-bar::before {
   width: 60%;
-  background: #e08a2c;
+  background: var(--accent-strong);
 }
 .pw-strength--strong .pw-strength-bar::before {
   width: 100%;
-  background: #2e7d32;
+  background: var(--success);
 }
 
 .pw-strength--short .pw-strength-label,
-.pw-strength--weak .pw-strength-label { color: #c0392b; }
-.pw-strength--fair .pw-strength-label { color: #b5710f; }
-.pw-strength--strong .pw-strength-label { color: #2e7d32; }
+.pw-strength--weak .pw-strength-label { color: var(--danger); }
+.pw-strength--fair .pw-strength-label { color: var(--warning); }
+.pw-strength--strong .pw-strength-label { color: var(--success); }
 
 /* Forgot / reset password extras */
 .auth-note {
   font-size: 0.88rem;
-  color: var(--text-secondary, #6b5d47);
+  color: var(--text-secondary);
   margin: 0.25rem 0 1rem;
   line-height: 1.5;
 }
@@ -283,8 +283,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #e6f4ea;
-  color: #1e7a34;
+  background: var(--success-bg);
+  color: var(--success);
   padding: 0.6rem 0.8rem;
   border-radius: 8px;
   margin-bottom: 1rem;
@@ -299,7 +299,7 @@
   display: flex;
   align-items: center;
   text-align: center;
-  color: var(--text-secondary, #9b8c72);
+  color: var(--text-secondary);
   font-size: 0.82rem;
   margin: 0.5rem 0 1rem;
 }
@@ -307,7 +307,7 @@
 .google-signin__divider::after {
   content: "";
   flex: 1;
-  border-bottom: 1px solid var(--border-color, #e6ddca);
+  border-bottom: 1px solid var(--border-color);
 }
 .google-signin__divider span {
   padding: 0 0.75rem;

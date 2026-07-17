@@ -1,7 +1,7 @@
 /* Forms CSS */
 .page-container {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--surface-neutral);
   padding: 40px 20px;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -12,17 +12,17 @@
   background: white;
   padding: 40px;
   border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px rgba(var(--black-rgb), 0.1);
 }
 
 .form-wrapper h1 {
-  color: #333;
+  color: var(--text-neutral-strong);
   margin: 0 0 10px 0;
   font-size: 28px;
 }
 
 .form-wrapper .subtitle {
-  color: #666;
+  color: var(--text-neutral);
   margin-bottom: 30px;
   font-size: 14px;
 }
@@ -31,9 +31,9 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  background: #fee;
-  border: 1px solid #fcc;
-  color: #c33;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
   padding: 12px;
   border-radius: 6px;
   margin-bottom: 20px;
@@ -62,7 +62,7 @@
 }
 
 .form-group label {
-  color: #333;
+  color: var(--text-neutral-strong);
   font-weight: 500;
   margin-bottom: 8px;
   font-size: 14px;
@@ -74,10 +74,10 @@
 .form-group input,
 .form-group select {
   padding: 10px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 14px;
-  background: #fafafa;
+  background: var(--surface-neutral);
   transition: all 0.3s ease;
   font-family: inherit;
 }
@@ -85,9 +85,9 @@
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--info);
   background: white;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--info-rgb), 0.1);
 }
 
 .form-group.checkbox {
@@ -113,7 +113,7 @@
 .submit-btn {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--info) 0%, var(--info-dark) 100%);
   color: white;
   border: none;
   border-radius: 6px;
@@ -125,7 +125,7 @@
 
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 10px 20px rgba(var(--info-rgb), 0.3);
 }
 
 .submit-btn:disabled {
@@ -134,15 +134,15 @@
 }
 
 .result-box {
-  background: #fafafa;
-  border: 1px solid #e0e0e0;
+  background: var(--surface-neutral);
+  border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
   margin-top: 40px;
 }
 
 .result-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--info) 0%, var(--info-dark) 100%);
   color: white;
   padding: 20px;
   display: flex;
@@ -156,12 +156,12 @@
 }
 
 .result-header .success {
-  color: #4caf50;
+  color: var(--success-bright);
 }
 
 .result-content {
   padding: 30px;
-  color: #333;
+  color: var(--text-neutral-strong);
 }
 
 .result-content p {
@@ -171,7 +171,7 @@
 }
 
 .result-content strong {
-  color: #667eea;
+  color: var(--info);
 }
 
 .score-display {
@@ -190,11 +190,11 @@
 
 .score-item .label {
   font-weight: 600;
-  color: #333;
+  color: var(--text-neutral-strong);
 }
 
 .score-item .value {
-  color: #667eea;
+  color: var(--info);
   font-size: 20px;
   font-weight: 700;
 }
@@ -213,17 +213,17 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid var(--info);
 }
 
 .item span:first-child {
   font-weight: 500;
-  color: #666;
+  color: var(--text-neutral);
 }
 
 .item span:last-child {
   font-weight: 700;
-  color: #667eea;
+  color: var(--info);
   font-size: 16px;
 }
 
@@ -246,14 +246,14 @@
 .predictions-detail h3,
 .current-period h3 {
   margin-top: 0;
-  color: #333;
+  color: var(--text-neutral-strong);
   font-size: 16px;
   margin-bottom: 15px;
 }
 
 .planets-section pre,
 .periods-list pre {
-  background: #f5f5f5;
+  background: var(--surface-neutral);
   padding: 15px;
   border-radius: 4px;
   overflow-x: auto;
@@ -263,7 +263,7 @@
 
 .ai-analysis p,
 .ai-prediction p {
-  color: #666;
+  color: var(--text-neutral);
   line-height: 1.8;
   margin: 0;
 }
@@ -271,7 +271,7 @@
 .prediction-item {
   margin-bottom: 15px;
   padding-bottom: 15px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border);
 }
 
 .prediction-item:last-child {
@@ -280,14 +280,14 @@
 
 .prediction-item strong {
   display: block;
-  color: #667eea;
+  color: var(--info);
   margin-bottom: 5px;
   font-size: 14px;
 }
 
 .prediction-item p {
   margin: 0;
-  color: #666;
+  color: var(--text-neutral);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -300,11 +300,11 @@
   display: flex;
   justify-content: space-between;
   padding: 10px 0;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border);
 }
 
 .info-item strong {
-  color: #667eea;
+  color: var(--info);
 }
 
 .period-info {
@@ -333,10 +333,10 @@
 
 .form-group select {
   padding: 10px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 14px;
-  background: #fafafa;
+  background: var(--surface-neutral);
   transition: all 0.3s ease;
   font-family: inherit;
   cursor: pointer;
@@ -344,14 +344,14 @@
 
 .form-group select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--info);
   background: white;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--info-rgb), 0.1);
 }
 
 .form-group select option {
   background: white;
-  color: #333;
+  color: var(--text-neutral-strong);
   padding: 8px;
 }
 
@@ -366,20 +366,20 @@
   gap: 12px;
   padding: 15px;
   margin-top: 15px;
-  background: #e8f5e9;
-  border: 1px solid #4caf50;
-  border-left: 4px solid #4caf50;
+  background: var(--success-bg);
+  border: 1px solid var(--success-bright);
+  border-left: 4px solid var(--success-bright);
   border-radius: 8px;
   animation: slideIn 0.3s ease;
 }
 
 .location-info-box strong {
-  color: #2e7d32;
+  color: var(--success);
   font-size: 14px;
 }
 
 .location-info-box small {
-  color: #555;
+  color: var(--text-neutral-strong);
   font-size: 12px;
 }
 

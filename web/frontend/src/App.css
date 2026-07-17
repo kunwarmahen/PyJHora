@@ -28,12 +28,105 @@
   --text-secondary: #5a5f7a;
   --text-muted: #8b8fa8;
 
+  /* ------------------------------------------------------------------ *
+   * Semantic theme tokens (§37).
+   *
+   * Everything below is what a theme reassigns. Stylesheets must not
+   * carry colour literals of their own — a literal is a value dark mode
+   * cannot reach.
+   *
+   * Channel triples exist so tints can keep their exact alpha:
+   * rgba(var(--accent-rgb), 0.08) themes correctly, a baked
+   * rgba(255, 153, 51, 0.08) does not.
+   * ------------------------------------------------------------------ */
+
+  /* Channel triples — consumed only via rgba(var(--x-rgb), a) */
+  --accent-rgb: 255, 153, 51;
+  --vermillion-rgb: 227, 66, 52;
+  --indigo-rgb: 45, 53, 97;
+  --text-secondary-rgb: 90, 95, 122;
+  --text-muted-rgb: 139, 143, 168;
+  --success-rgb: 46, 158, 91;
+  --emerald-rgb: 46, 139, 87;
+  --danger-rgb: 229, 57, 53;
+  --info-rgb: 102, 126, 234;
+  --gold-rgb: 212, 175, 55;
+  --terracotta-rgb: 226, 123, 90;
+  --sandalwood-rgb: 244, 228, 193;
+  --shadow-rgb: 45, 53, 97;
+  --black-rgb: 0, 0, 0;
+  --white-rgb: 255, 255, 255;
+
+  /* Surfaces */
+  --surface: #fff;
+  --surface-raised: #fffaf2;
+  --surface-sunken: #fdf3e2;
+  --surface-neutral: #f5f5f5;
+  --surface-cream: #fff8ef;
+  --surface-cream-dark: #f6efe2;
+  --overlay: rgba(var(--black-rgb), 0.5);
+  --overlay-indigo: rgba(var(--indigo-rgb), 0.45);
+
+  /* Borders */
+  --border-subtle: #f0e8da;
+  --border: #e7dccb;
+  --border-strong: #e0d3bd;
+
+  /* Text — indigo family (app chrome) */
+  --text-on-accent: #fff;
+  /* Text — warm family (reading surfaces: Learn, Journal, Report) */
+  --text-warm-strong: #3a2e22;
+  --text-warm: #6b5b4d;
+  --text-warm-muted: #8a7c6a;
+  /* Text — neutral family (generic widgets) */
+  --text-neutral-strong: #333;
+  --text-neutral: #666;
+  --text-neutral-muted: #888;
+
+  /* Accent (saffron) */
+  --accent: var(--saffron);
+  --accent-strong: #e08a2c;
+  --accent-deep: #e07b00;
+
+  /* Status */
+  --success: #2e7d32;
+  --success-bright: #4caf50;
+  --success-bg: #e8f5e9;
+  --success-border: #c8e6c9;
+  --danger: #c0392b;
+  --danger-alt: #b23a48;
+  --danger-bg: #ffebee;
+  --danger-border: #f5c6cb;
+  --warning: #b45309;
+  --warning-bright: #d97706;
+  --warning-bg: #fff7ed;
+  --gold: var(--temple-gold);
+
+  /* Info / violet. NOTE: this family (#667eea → #764ba2) is an off-brand
+     leftover in Forms + LocationSearch, not part of the saffron identity.
+     Tokenised as-is here; see todo §37 for the question of retiring it. */
+  --info: #667eea;
+  --info-dark: #764ba2;
+  --info-bg: #eef2ff;
+  --indigo-accent: #5e60ce;
+
+  /* Legacy aliases — these names were referenced across the app but never
+     defined, so they silently rendered their fallback literal and were
+     invisible to theming. Kept pointing at the semantic tokens. */
+  --card-bg: var(--surface-raised);
+  --border-color: var(--border);
+  --cream: var(--surface-cream);
+  --cream-dark: var(--surface-cream-dark);
+  --text: var(--text-warm-strong);
+  --ink-light: var(--text-neutral-muted);
+  --radius-pill: var(--radius-full);
+
   /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(45, 53, 97, 0.08);
-  --shadow-md: 0 4px 16px rgba(45, 53, 97, 0.12);
-  --shadow-lg: 0 8px 32px rgba(45, 53, 97, 0.16);
-  --shadow-xl: 0 16px 48px rgba(45, 53, 97, 0.2);
-  --shadow-glow: 0 0 24px rgba(255, 153, 51, 0.3);
+  --shadow-sm: 0 2px 8px rgba(var(--shadow-rgb), 0.08);
+  --shadow-md: 0 4px 16px rgba(var(--shadow-rgb), 0.12);
+  --shadow-lg: 0 8px 32px rgba(var(--shadow-rgb), 0.16);
+  --shadow-xl: 0 16px 48px rgba(var(--shadow-rgb), 0.2);
+  --shadow-glow: 0 0 24px rgba(var(--accent-rgb), 0.3);
 
   /* Typography */
   --font-display: "Cormorant Garamond", serif;
@@ -170,9 +263,9 @@ body::before {
   width: 100%;
   height: 100%;
   background-image:
-    radial-gradient(circle at 20% 80%, rgba(255, 153, 51, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(226, 123, 90, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.03) 0%, transparent 70%);
+    radial-gradient(circle at 20% 80%, rgba(var(--accent-rgb), 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(var(--terracotta-rgb), 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(var(--gold-rgb), 0.03) 0%, transparent 70%);
   pointer-events: none;
   z-index: -1;
 }
@@ -217,10 +310,10 @@ body::before {
 @keyframes pulse-glow {
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(255, 153, 51, 0.3);
+    box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.3);
   }
   50% {
-    box-shadow: 0 0 40px rgba(255, 153, 51, 0.5);
+    box-shadow: 0 0 40px rgba(var(--accent-rgb), 0.5);
   }
 }
 

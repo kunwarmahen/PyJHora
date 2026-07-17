@@ -70,9 +70,9 @@
   align-items: center;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-lg);
-  background: rgba(227, 66, 52, 0.1);
+  background: rgba(var(--vermillion-rgb), 0.1);
   color: var(--vermillion);
-  border: 2px solid rgba(227, 66, 52, 0.2);
+  border: 2px solid rgba(var(--vermillion-rgb), 0.2);
   border-radius: var(--radius-md);
   font-size: 0.875rem;
   font-weight: 600;
@@ -350,7 +350,7 @@
 }
 .dosha-card.present {
   border-color: var(--vermillion);
-  background: rgba(227, 66, 52, 0.04);
+  background: rgba(var(--vermillion-rgb), 0.04);
 }
 .dosha-head {
   display: flex;
@@ -378,7 +378,7 @@
   color: white;
 }
 .dosha-badge.no {
-  background: rgba(45, 53, 97, 0.08);
+  background: rgba(var(--indigo-rgb), 0.08);
   color: var(--text-secondary);
 }
 .dosha-desc {
@@ -649,7 +649,7 @@
 }
 .almanac-hora.is-current {
   outline: 2px solid var(--saffron);
-  background: #fff7ec;
+  background: var(--warning-bg);
 }
 .almanac-hora-time {
   font-size: 0.78rem;
@@ -869,8 +869,8 @@
   padding: var(--space-lg);
   background: linear-gradient(
     135deg,
-    rgba(255, 153, 51, 0.05) 0%,
-    rgba(255, 153, 51, 0.15) 100%
+    rgba(var(--accent-rgb), 0.05) 0%,
+    rgba(var(--accent-rgb), 0.15) 100%
   );
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-lg);
@@ -931,13 +931,13 @@
 .compat-person--a {
   background: linear-gradient(
     135deg,
-    rgba(255, 153, 51, 0.05) 0%,
-    rgba(255, 153, 51, 0.15) 100%
+    rgba(var(--accent-rgb), 0.05) 0%,
+    rgba(var(--accent-rgb), 0.15) 100%
   );
   border: 2px solid var(--saffron);
 }
 .compat-person--b {
-  background: linear-gradient(135deg, rgba(227, 66, 52, 0.05) 0%, rgba(227, 66, 52, 0.15) 100%);
+  background: linear-gradient(135deg, rgba(var(--vermillion-rgb), 0.05) 0%, rgba(var(--vermillion-rgb), 0.15) 100%);
   border: 2px solid var(--vermillion);
 }
 .compat-person__head {
@@ -980,7 +980,7 @@
 
 .score-box {
   padding: var(--space-xl);
-  background: linear-gradient(135deg, rgba(255, 153, 51, 0.1) 0%, rgba(227, 66, 52, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1) 0%, rgba(var(--vermillion-rgb), 0.1) 100%);
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-xl);
   text-align: center;
@@ -1095,7 +1095,7 @@
   align-items: center;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  background: rgba(255, 153, 51, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
   border-radius: var(--radius-md);
   font-size: 0.875rem;
   color: var(--saffron);
@@ -1103,12 +1103,12 @@
 }
 
 .current-period {
-  background: linear-gradient(135deg, rgba(255, 153, 51, 0.1) 0%, rgba(226, 123, 90, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1) 0%, rgba(var(--terracotta-rgb), 0.1) 100%);
   border: 3px solid var(--saffron);
   border-radius: var(--radius-xl);
   padding: var(--space-xl);
   margin-bottom: var(--space-xl);
-  box-shadow: 0 0 24px rgba(255, 153, 51, 0.2);
+  box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.2);
 }
 .current-period__head {
   display: flex;
@@ -1156,7 +1156,7 @@
 }
 .dasha-node.is-current {
   border: 2px solid var(--lvl-accent);
-  background: rgba(255, 153, 51, 0.05);
+  background: rgba(var(--accent-rgb), 0.05);
 }
 .dasha-node__head {
   padding: var(--space-md);
@@ -1299,10 +1299,10 @@
   background: var(--saffron);
 }
 .chakra-wheel--moon {
-  border-color: var(--indigo, #5e60ce);
+  border-color: var(--indigo-accent);
 }
 .chakra-wheel--moon .chakra-wheel__house {
-  background: var(--indigo, #5e60ce);
+  background: var(--indigo-accent);
 }
 .chakra-wheel--sun {
   border-color: var(--vermillion);
@@ -1323,7 +1323,7 @@
 }
 .period-row.is-current {
   border: 2px solid var(--saffron);
-  background: rgba(255, 153, 51, 0.06);
+  background: rgba(var(--accent-rgb), 0.06);
 }
 .period-row__now {
   margin-left: var(--space-sm);
@@ -1348,7 +1348,7 @@
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--terracotta) 0%, var(--marigold) 100%);
-  color: #fff;
+  color: var(--surface);
   box-shadow: var(--shadow-md);
 }
 .pp-bird-name {
@@ -1382,12 +1382,12 @@
   gap: 0.6rem;
   padding: 0.4rem 0.55rem;
   border-radius: 8px;
-  background: rgba(244, 228, 193, 0.35);
+  background: rgba(var(--sandalwood-rgb), 0.35);
   font-size: 0.9rem;
 }
 .pp-window.is-running {
   outline: 2px solid var(--saffron);
-  background: rgba(255, 153, 51, 0.12);
+  background: rgba(var(--accent-rgb), 0.12);
 }
 .pp-window__time {
   font-weight: 700;
@@ -1408,11 +1408,11 @@
   white-space: nowrap;
 }
 /* Effect scale: 0 very-bad … 4 very-good (text pills) */
-.pp-eff-0 { background: rgba(227, 66, 52, 0.16); color: #b1281c; }
-.pp-eff-1 { background: rgba(226, 123, 90, 0.18); color: #c15a34; }
-.pp-eff-2 { background: rgba(212, 175, 55, 0.2); color: #927400; }
-.pp-eff-3 { background: rgba(46, 139, 87, 0.16); color: #216b42; }
-.pp-eff-4 { background: rgba(46, 139, 87, 0.28); color: #185233; }
+.pp-eff-0 { background: rgba(var(--vermillion-rgb), 0.16); color: var(--danger); }
+.pp-eff-1 { background: rgba(var(--terracotta-rgb), 0.18); color: var(--accent-deep); }
+.pp-eff-2 { background: rgba(var(--gold-rgb), 0.2); color: var(--warning); }
+.pp-eff-3 { background: rgba(var(--emerald-rgb), 0.16); color: var(--success); }
+.pp-eff-4 { background: rgba(var(--emerald-rgb), 0.28); color: var(--success); }
 
 /* Timeline */
 .pp-timeline {
@@ -1430,7 +1430,7 @@
 }
 .pp-segment--night {
   border-left-color: var(--cosmic-indigo);
-  background: rgba(45, 53, 97, 0.03);
+  background: rgba(var(--indigo-rgb), 0.03);
 }
 .pp-segment__head {
   display: flex;
@@ -1478,11 +1478,11 @@
   color: var(--text-secondary);
 }
 /* Effect scale backgrounds for the timeline cells */
-.pp-eff-bg-0 { background: rgba(227, 66, 52, 0.22); }
-.pp-eff-bg-1 { background: rgba(226, 123, 90, 0.24); }
-.pp-eff-bg-2 { background: rgba(212, 175, 55, 0.26); }
-.pp-eff-bg-3 { background: rgba(46, 139, 87, 0.2); }
-.pp-eff-bg-4 { background: rgba(46, 139, 87, 0.34); }
+.pp-eff-bg-0 { background: rgba(var(--vermillion-rgb), 0.22); }
+.pp-eff-bg-1 { background: rgba(var(--terracotta-rgb), 0.24); }
+.pp-eff-bg-2 { background: rgba(var(--gold-rgb), 0.26); }
+.pp-eff-bg-3 { background: rgba(var(--emerald-rgb), 0.2); }
+.pp-eff-bg-4 { background: rgba(var(--emerald-rgb), 0.34); }
 
 .pp-legend {
   display: flex;
@@ -1516,11 +1516,11 @@
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
 }
-.raja-yoga-strength--strong { background: rgba(46, 139, 87, 0.2); color: #216b42; }
-.raja-yoga-strength--good { background: rgba(212, 175, 55, 0.24); color: #927400; }
-.raja-yoga-strength--neutral { background: rgba(90, 95, 122, 0.14); color: var(--text-secondary); }
-.raja-yoga-strength--weak { background: rgba(226, 123, 90, 0.2); color: #c15a34; }
-.raja-yoga-strength--special { background: rgba(255, 153, 51, 0.18); color: var(--saffron-dark); }
+.raja-yoga-strength--strong { background: rgba(var(--emerald-rgb), 0.2); color: var(--success); }
+.raja-yoga-strength--good { background: rgba(var(--gold-rgb), 0.24); color: var(--warning); }
+.raja-yoga-strength--neutral { background: rgba(var(--text-secondary-rgb), 0.14); color: var(--text-secondary); }
+.raja-yoga-strength--weak { background: rgba(var(--terracotta-rgb), 0.2); color: var(--accent-deep); }
+.raja-yoga-strength--special { background: rgba(var(--accent-rgb), 0.18); color: var(--saffron-dark); }
 
 /* ── Sudarsana Chakra (§9.4) ─────────────────────────────────────────────── */
 .sudarsana-wheels {
@@ -1543,13 +1543,13 @@
   border-radius: 8px;
   font-weight: 700;
   font-size: 0.85rem;
-  background: rgba(244, 228, 193, 0.4);
+  background: rgba(var(--sandalwood-rgb), 0.4);
   color: var(--text-muted);
   border: 1px solid transparent;
 }
 .ayu-band__seg.is-active {
   background: linear-gradient(135deg, var(--saffron) 0%, var(--marigold) 100%);
-  color: #fff;
+  color: var(--surface);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1567,7 +1567,7 @@
   gap: 0.5rem 0.75rem;
   padding: 0.5rem 0.6rem;
   border-radius: 10px;
-  background: rgba(244, 228, 193, 0.35);
+  background: rgba(var(--sandalwood-rgb), 0.35);
 }
 .pc-row__planet {
   min-width: 120px;
@@ -1592,7 +1592,7 @@
   display: inline-block;
   padding: 2px 9px;
   border-radius: 999px;
-  color: #fff;
+  color: var(--surface);
   font-size: 0.76rem;
   font-weight: 600;
 }
@@ -1636,8 +1636,8 @@
   margin: 0 4px;
   padding: 2px 9px;
   border-radius: 999px;
-  background: rgba(255, 153, 51, 0.16);
-  color: var(--saffron-dark, #e07b1a);
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--saffron-dark);
   font-weight: 600;
 }
 .fr-sub {
@@ -1651,8 +1651,8 @@
   padding: 0.7rem 0.85rem;
   margin-bottom: var(--space-lg);
   border-radius: 12px;
-  background: rgba(45, 53, 97, 0.06);
-  border: 1px solid rgba(45, 53, 97, 0.14);
+  background: rgba(var(--indigo-rgb), 0.06);
+  border: 1px solid rgba(var(--indigo-rgb), 0.14);
 }
 .dasha-reco__label {
   display: flex;
@@ -1672,7 +1672,7 @@
   border-radius: 999px;
   border: 1px solid var(--saffron);
   background: linear-gradient(135deg, var(--saffron) 0%, var(--marigold) 100%);
-  color: #fff;
+  color: var(--surface);
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
@@ -1685,7 +1685,7 @@
 .dasha-reco__chip.is-static {
   background: transparent;
   color: var(--text-secondary);
-  border-color: rgba(139, 143, 168, 0.5);
+  border-color: rgba(var(--text-muted-rgb), 0.5);
   cursor: default;
 }
 
@@ -1709,17 +1709,17 @@
   font-weight: 700;
 }
 .sp-net--argala {
-  background: rgba(45, 122, 62, 0.14);
-  color: #2d7a3e;
+  background: rgba(var(--success-rgb), 0.14);
+  color: var(--success);
 }
 .sp-net--virodhargala {
-  background: rgba(211, 47, 47, 0.14);
-  color: var(--vermillion, #d32f2f);
+  background: rgba(var(--danger-rgb), 0.14);
+  color: var(--vermillion);
 }
 .sp-net--balanced,
 .sp-net--none {
-  background: rgba(90, 95, 122, 0.12);
-  color: var(--text-secondary, #5a5f7a);
+  background: rgba(var(--text-secondary-rgb), 0.12);
+  color: var(--text-secondary);
 }
 
 /* ── Vedic Clock & Retrograde (§11.2) ─────────────────────────────────── */
@@ -1746,13 +1746,13 @@
 .vc-ghati {
   font-size: 2.2rem;
   font-weight: 700;
-  color: var(--saffron, #ff9933);
+  color: var(--saffron);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
 }
 .vc-ghati small {
   font-size: 0.9rem;
-  color: var(--text-secondary, #5a5f7a);
+  color: var(--text-secondary);
   font-weight: 600;
 }
 .vc-hora {
@@ -1760,10 +1760,10 @@
   font-weight: 600;
 }
 .vc-hora.benefic {
-  color: #2d7a3e;
+  color: var(--success);
 }
 .vc-hora.malefic {
-  color: var(--vermillion, #d32f2f);
+  color: var(--vermillion);
 }
 .vc-retro-svg {
   width: 100%;
@@ -1781,18 +1781,18 @@
 }
 .vc-planet-toggle button {
   padding: 0.3rem 0.7rem;
-  border: 1px solid var(--border, #e8ddc9);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   cursor: pointer;
   font-size: 0.82rem;
   font-weight: 600;
-  color: var(--text-secondary, #5a5f7a);
+  color: var(--text-secondary);
 }
 .vc-planet-toggle button.active {
-  background: var(--saffron, #ff9933);
-  color: #fff;
-  border-color: var(--saffron, #ff9933);
+  background: var(--saffron);
+  color: var(--surface);
+  border-color: var(--saffron);
 }
 .vc-retro-badge {
   display: inline-block;
@@ -1802,12 +1802,12 @@
   font-weight: 700;
 }
 .vc-retro-badge.is-retro {
-  background: rgba(211, 47, 47, 0.14);
-  color: var(--vermillion, #d32f2f);
+  background: rgba(var(--danger-rgb), 0.14);
+  color: var(--vermillion);
 }
 .vc-retro-badge.is-direct {
-  background: rgba(45, 122, 62, 0.14);
-  color: #2d7a3e;
+  background: rgba(var(--success-rgb), 0.14);
+  color: var(--success);
 }
 
 /* ── Muhurta (electional astrology) ─────────────────────────────────────── */
@@ -1825,12 +1825,12 @@
   gap: 0.75rem;
   align-items: center;
   padding: 0.6rem 0.75rem;
-  border: 1px solid var(--border-color, #e7dccb);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
-  background: var(--card-bg, #fffaf2);
+  background: var(--card-bg);
 }
 .muh-window__date { font-weight: 700; }
-.muh-window__time { font-variant-numeric: tabular-nums; color: var(--saffron, #FF9933); font-weight: 600; }
+.muh-window__time { font-variant-numeric: tabular-nums; color: var(--saffron); font-weight: 600; }
 .muh-window__reason { font-size: 0.85rem; }
 .muh-q {
   display: inline-block;
@@ -1840,10 +1840,10 @@
   font-weight: 600;
   white-space: nowrap;
 }
-.muh-q--excellent { background: #e6f4ea; color: #1e7a34; }
-.muh-q--good { background: #eef6e6; color: #4d7c1f; }
-.muh-q--average { background: #fdf3e2; color: #9a6a13; }
-.muh-q--avoid { background: #fdeaea; color: #b4342a; }
+.muh-q--excellent { background: var(--success-bg); color: var(--success); }
+.muh-q--good { background: var(--success-bg); color: var(--success); }
+.muh-q--average { background: var(--surface-sunken); color: var(--warning); }
+.muh-q--avoid { background: var(--danger-bg); color: var(--danger); }
 
 .muh-day-grid {
   display: grid;
@@ -1852,16 +1852,16 @@
   margin-top: 0.5rem;
 }
 .muh-day {
-  border: 1px solid var(--border-color, #e7dccb);
+  border: 1px solid var(--border-color);
   border-left-width: 4px;
   border-radius: 8px;
   padding: 0.55rem 0.7rem;
-  background: var(--card-bg, #fffaf2);
+  background: var(--card-bg);
 }
-.muh-day.muh-q--excellent { border-left-color: #1e7a34; }
-.muh-day.muh-q--good { border-left-color: #4d7c1f; }
-.muh-day.muh-q--average { border-left-color: #d4a017; }
-.muh-day.muh-q--avoid { border-left-color: #b4342a; }
+.muh-day.muh-q--excellent { border-left-color: var(--success); }
+.muh-day.muh-q--good { border-left-color: var(--success); }
+.muh-day.muh-q--average { border-left-color: var(--warning-bright); }
+.muh-day.muh-q--avoid { border-left-color: var(--danger); }
 .muh-day__date { font-weight: 700; font-size: 0.9rem; }
 .muh-day__rating { font-size: 0.8rem; font-weight: 600; margin: 0.1rem 0; }
 .muh-day__limbs { font-size: 0.78rem; }
@@ -1877,7 +1877,7 @@
   margin: 0 0 0.4rem;
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--text-secondary, #7a6a52);
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -1888,22 +1888,22 @@
   gap: 0.6rem;
   align-items: center;
   padding: 0.35rem 0.6rem;
-  border: 1px solid var(--border-color, #e7dccb);
+  border: 1px solid var(--border-color);
   border-left-width: 4px;
   border-radius: 8px;
-  background: var(--card-bg, #fffaf2);
+  background: var(--card-bg);
   font-size: 0.85rem;
 }
-.muh-chog--good { border-left-color: #1e7a34; }
-.muh-chog--bad { border-left-color: #b4342a; }
-.muh-chog--neutral { border-left-color: #d4a017; }
-.muh-chog--current { box-shadow: 0 0 0 2px var(--saffron, #FF9933) inset; }
+.muh-chog--good { border-left-color: var(--success); }
+.muh-chog--bad { border-left-color: var(--danger); }
+.muh-chog--neutral { border-left-color: var(--warning-bright); }
+.muh-chog--current { box-shadow: 0 0 0 2px var(--saffron) inset; }
 .muh-chog__name { font-weight: 600; }
-.muh-chog__time { font-variant-numeric: tabular-nums; color: var(--text-secondary, #7a6a52); }
+.muh-chog__time { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
 .muh-chog__now {
   font-size: 0.68rem;
   font-weight: 700;
-  color: var(--saffron, #FF9933);
+  color: var(--saffron);
   text-transform: uppercase;
 }
 .muh-status-grid {
@@ -1913,20 +1913,20 @@
   margin-top: 0.5rem;
 }
 .muh-status {
-  border: 1px solid var(--border-color, #e7dccb);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 0.7rem 0.85rem;
-  background: var(--card-bg, #fffaf2);
+  background: var(--card-bg);
 }
 .muh-status__label {
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--text-secondary, #7a6a52);
+  color: var(--text-secondary);
 }
 .muh-status__value { font-weight: 700; margin: 0.15rem 0; }
-.muh-status__note { font-size: 0.82rem; color: var(--text-secondary, #7a6a52); }
+.muh-status__note { font-size: 0.82rem; color: var(--text-secondary); }
 .muh-badge {
   display: inline-block;
   padding: 0.12rem 0.5rem;
@@ -1935,9 +1935,9 @@
   font-weight: 700;
   margin-left: 0.35rem;
 }
-.muh-badge--good, .muh-badge--very_good { background: #e6f4ea; color: #1e7a34; }
-.muh-badge--bad, .muh-badge--caution { background: #fdeaea; color: #b4342a; }
-.muh-badge--neutral { background: #fdf3e2; color: #9a6a13; }
+.muh-badge--good, .muh-badge--very_good { background: var(--success-bg); color: var(--success); }
+.muh-badge--bad, .muh-badge--caution { background: var(--danger-bg); color: var(--danger); }
+.muh-badge--neutral { background: var(--surface-sunken); color: var(--warning); }
 
 /* ── Bhrigu / Nadi yearly markers ─────────────────────────────────────────── */
 .bhrigu-prog-grid {
@@ -1947,26 +1947,26 @@
   margin-top: 0.5rem;
 }
 .bhrigu-prog {
-  border: 1px solid var(--border-color, #e7dccb);
+  border: 1px solid var(--border-color);
   border-left-width: 4px;
-  border-left-color: var(--border-color, #e7dccb);
+  border-left-color: var(--border-color);
   border-radius: 10px;
   padding: 0.55rem 0.7rem;
-  background: var(--card-bg, #fffaf2);
+  background: var(--card-bg);
 }
-.bhrigu-prog--active { border-left-color: var(--saffron, #FF9933); }
-.bhrigu-prog--moon { border-left-color: #5A5F7A; }
-.bhrigu-prog--bb { border-left-color: #D4AF37; box-shadow: 0 0 0 1px #D4AF37 inset; }
+.bhrigu-prog--active { border-left-color: var(--saffron); }
+.bhrigu-prog--moon { border-left-color: var(--text-secondary); }
+.bhrigu-prog--bb { border-left-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
 .bhrigu-prog__year { font-weight: 800; font-size: 0.9rem; }
 .bhrigu-prog__sign { font-weight: 600; font-size: 0.9rem; margin: 0.1rem 0; }
-.bhrigu-prog__planets { font-size: 0.82rem; color: var(--saffron, #FF9933); font-weight: 600; }
+.bhrigu-prog__planets { font-size: 0.82rem; color: var(--saffron); font-weight: 600; }
 .bhrigu-prog__tag {
   margin-top: 0.3rem;
   font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--text-secondary, #7a6a52);
+  color: var(--text-secondary);
 }
 .bhrigu-activation-list {
   list-style: none;
@@ -1982,16 +1982,16 @@
   align-items: baseline;
   gap: 0.35rem 0.75rem;
   padding: 0.5rem 0.7rem;
-  border: 1px solid var(--border-color, #e7dccb);
-  border-left: 4px solid var(--saffron, #FF9933);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--saffron);
   border-radius: 8px;
-  background: var(--card-bg, #fffaf2);
+  background: var(--card-bg);
 }
 .bhrigu-activation__date {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   min-width: 96px;
-  color: var(--cosmic-indigo, #2D3561);
+  color: var(--cosmic-indigo);
 }
 .bhrigu-activation__text { font-size: 0.9rem; }
 
@@ -2003,11 +2003,11 @@
   margin-top: 0.5rem;
 }
 .rem-card {
-  border: 1px solid var(--border-color, #e7dccb);
-  border-left: 4px solid var(--terracotta, #E27B5A);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--terracotta);
   border-radius: 12px;
   padding: 0.85rem 1rem;
-  background: var(--card-bg, #fffaf2);
+  background: var(--card-bg);
 }
 .rem-card__head {
   display: flex;
@@ -2015,10 +2015,10 @@
   gap: 0.15rem;
   margin-bottom: 0.6rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px dashed var(--border-color, #e7dccb);
+  border-bottom: 1px dashed var(--border-color);
 }
-.rem-card__planet { font-weight: 800; font-size: 1.05rem; color: var(--terracotta, #E27B5A); }
-.rem-card__reason { font-size: 0.8rem; color: var(--text-secondary, #7a6a52); }
+.rem-card__planet { font-weight: 800; font-size: 1.05rem; color: var(--terracotta); }
+.rem-card__reason { font-size: 0.8rem; color: var(--text-secondary); }
 .rem-card__body { margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
 .rem-card__body > div { display: flex; flex-direction: column; gap: 0.05rem; }
 .rem-card__body dt {
@@ -2026,10 +2026,10 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--text-secondary, #7a6a52);
+  color: var(--text-secondary);
 }
 .rem-card__body dd { margin: 0; font-size: 0.9rem; }
-.rem-row--weak { background: #fdf3e2; font-weight: 600; }
+.rem-row--weak { background: var(--surface-sunken); font-weight: 600; }
 
 /* ── Prashna (horary) ───────────────────────────────────────────────────── */
 .prashna-composer {
@@ -2058,14 +2058,14 @@
 .digest-hl {
   padding: 0.5rem 0.7rem;
   border-radius: 8px;
-  background: var(--card-bg, #fffaf2);
-  border: 1px solid var(--border-color, #e7dccb);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   font-size: 0.92rem;
 }
 .digest-hl--warn {
-  background: #fdf3e2;
-  border-color: #e6cf9a;
-  color: #9a6a13;
+  background: var(--surface-sunken);
+  border-color: var(--border-strong);
+  color: var(--warning);
   font-weight: 600;
 }
 /* Label/value rows: label left, value right (the shared .kv-* spans are inline
@@ -2082,7 +2082,7 @@
 }
 .digest-retro {
   margin: 0.65rem 0;
-  color: var(--cosmic-indigo, #2D3561);
+  color: var(--cosmic-indigo);
   font-weight: 600;
 }
 .digest-retro .kv-label {
@@ -2096,16 +2096,16 @@
   align-items: center;
   padding: var(--space-lg);
   margin-bottom: var(--space-xl);
-  background: var(--card-bg, #fff);
-  border: 1px solid var(--border-color, #e8dcc8);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(45, 53, 97, 0.06);
+  box-shadow: 0 2px 12px rgba(var(--indigo-rgb), 0.06);
   text-decoration: none;
   color: inherit;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 .now-widget:hover {
-  box-shadow: 0 6px 20px rgba(45, 53, 97, 0.12);
+  box-shadow: 0 6px 20px rgba(var(--indigo-rgb), 0.12);
   transform: translateY(-2px);
 }
 .now-widget__chart {
@@ -2123,12 +2123,12 @@
   gap: 0.5rem;
   font-weight: 700;
   font-size: 1.05rem;
-  color: var(--indigo, #2D3561);
+  color: var(--text-primary);
 }
 .now-widget__moment {
   margin: 0.25rem 0 0.5rem;
   font-size: 0.85rem;
-  color: var(--text-secondary, #7a7160);
+  color: var(--text-secondary);
 }
 .now-widget__pills {
   display: flex;
@@ -2142,7 +2142,7 @@
   gap: 0.25rem;
   font-weight: 600;
   font-size: 0.9rem;
-  color: var(--saffron, #FF9933);
+  color: var(--saffron);
 }
 @media (max-width: 640px) {
   .now-widget {
@@ -2176,8 +2176,8 @@
   background: var(--sacred-white);
 }
 /* Deeper enclosures read hotter — reaching Sthamba is the classical alarm. */
-.kota-ring--baahya { border-left: 4px solid rgba(120, 120, 120, 0.5); }
-.kota-ring--praakaara { border-left: 4px solid var(--gold, #d4af37); }
+.kota-ring--baahya { border-left: 4px solid rgba(var(--text-muted-rgb), 0.5); }
+.kota-ring--praakaara { border-left: 4px solid var(--gold); }
 .kota-ring--durgantara { border-left: 4px solid var(--saffron); }
 .kota-ring--sthamba { border-left: 4px solid var(--vermillion); }
 .kota-ring__head {
@@ -2211,9 +2211,9 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  background: var(--cream, #fff8ef);
+  background: var(--cream);
 }
-.kota-cell.is-occupied { border-color: var(--saffron); background: rgba(255, 153, 51, 0.07); }
+.kota-cell.is-occupied { border-color: var(--saffron); background: rgba(var(--accent-rgb), 0.07); }
 .kota-cell__star { font-size: 0.6875rem; color: var(--text-secondary); }
 .kota-cell__planets { display: flex; flex-wrap: wrap; gap: 3px; }
 .kota-graha {
@@ -2224,12 +2224,12 @@
   color: var(--sacred-white);
 }
 .kota-graha.is-malefic { background: var(--vermillion); }
-.kota-graha.is-benefic { background: #2e7d32; }
-.kota-cell__natal { font-size: 0.625rem; color: var(--text-muted, #999); }
+.kota-graha.is-benefic { background: var(--success); }
+.kota-cell__natal { font-size: 0.625rem; color: var(--text-muted); }
 .kota-finding { display: flex; align-items: center; gap: 6px; }
 .kota-finding--stressful { color: var(--vermillion); font-weight: 600; }
 .kota-finding--watch { color: var(--saffron); }
-.kota-finding--supportive { color: #2e7d32; }
+.kota-finding--supportive { color: var(--success); }
 .kota-finding--note { color: var(--text-secondary); }
 
 /* ── Tripataki Chakra (§2.7) ───────────────────────────────────────────── */
@@ -2238,57 +2238,57 @@
 /* The three pataki (banner) lines ARE the chakra — they must read clearly.
    (--sandalwood #f4e4c1 is a pale cream and vanished against the page.) */
 .tripataki-line {
-  stroke: var(--indigo, #5e60ce);
+  stroke: var(--indigo-accent);
   stroke-width: 2;
   opacity: 0.55;
   stroke-linecap: round;
 }
 .tripataki-node {
-  fill: var(--sacred-white, #fff);
+  fill: var(--sacred-white);
   stroke: var(--text-secondary);
   stroke-width: 1.5;
 }
 .tripataki-cell.is-lagna .tripataki-node { stroke: var(--saffron); stroke-width: 2.5; }
 .tripataki-rasi { font-size: 13px; font-weight: 700; fill: var(--text-primary); }
 .tripataki-house { font-size: 9px; fill: var(--text-secondary); }
-.tripataki-grahas { font-size: 11px; font-weight: 700; fill: var(--indigo, #5e60ce); }
-.tripataki-natal { font-size: 9px; fill: var(--text-muted, #999); }
+.tripataki-grahas { font-size: 11px; font-weight: 700; fill: var(--indigo-accent); }
+.tripataki-natal { font-size: 9px; fill: var(--text-muted); }
 
 /* Tripataki — vedha readout + sign-role marks (§2.7) */
-.tripataki-cell.is-moon .tripataki-node { stroke: var(--indigo, #5e60ce); stroke-width: 2.5; }
-.tripataki-cell.casts-vedha .tripataki-node { fill: rgba(227, 66, 52, 0.10); }
+.tripataki-cell.is-moon .tripataki-node { stroke: var(--indigo-accent); stroke-width: 2.5; }
+.tripataki-cell.casts-vedha .tripataki-node { fill: rgba(var(--vermillion-rgb), 0.10); }
 .trip-vedha {
   border-left: 3px solid var(--sandalwood);
   padding: var(--space-sm) var(--space-md);
   margin-top: var(--space-sm);
 }
 .trip-vedha--stressful { border-left-color: var(--vermillion); }
-.trip-vedha--supportive { border-left-color: #2e7d32; }
+.trip-vedha--supportive { border-left-color: var(--success); }
 .trip-vedha--clear { border-left-color: var(--text-secondary); }
 .trip-vedha__head { margin-bottom: 2px; }
-.trip-vedha__clear { color: #2e7d32; font-size: 0.875rem; }
+.trip-vedha__clear { color: var(--success); font-size: 0.875rem; }
 .trip-vedha .detail-list li.is-malefic { color: var(--vermillion); }
-.trip-vedha .detail-list li.is-benefic { color: #2e7d32; }
+.trip-vedha .detail-list li.is-benefic { color: var(--success); }
 
 /* ── Kaala Chakra — the wheel of directions (§2.7) ─────────────────────── */
 .kaala-wrap { display: flex; justify-content: center; margin: var(--space-md) 0; }
 .kaala-svg { width: 100%; max-width: 520px; height: auto; }
-.kaala-hub { fill: var(--cream, #fff8ef); stroke: var(--saffron); stroke-width: 2; }
+.kaala-hub { fill: var(--cream); stroke: var(--saffron); stroke-width: 2; }
 .kaala-spoke { stroke: var(--text-secondary); stroke-width: 1.5; opacity: 0.45; }
-.kaala-cell { fill: var(--sacred-white, #fff); stroke: var(--sandalwood); stroke-width: 1.2; }
-.kaala-dir--supportive .kaala-spoke { stroke: #2e7d32; opacity: 0.85; stroke-width: 2.5; }
+.kaala-cell { fill: var(--sacred-white); stroke: var(--sandalwood); stroke-width: 1.2; }
+.kaala-dir--supportive .kaala-spoke { stroke: var(--success); opacity: 0.85; stroke-width: 2.5; }
 .kaala-dir--stressful .kaala-spoke { stroke: var(--vermillion); opacity: 0.85; stroke-width: 2.5; }
 .kaala-dir--mixed .kaala-spoke { stroke: var(--saffron); opacity: 0.85; stroke-width: 2.5; }
-.kaala-dir--supportive .kaala-cell { stroke: #2e7d32; }
+.kaala-dir--supportive .kaala-cell { stroke: var(--success); }
 .kaala-dir--stressful .kaala-cell { stroke: var(--vermillion); }
 .kaala-graha { font-size: 10px; font-weight: 700; fill: var(--text-primary); }
 .kaala-inner { font-size: 11px; font-weight: 700; fill: var(--saffron); }
 .kaala-dirlabel { font-size: 12px; font-weight: 700; fill: var(--text-secondary); }
-.kaala-good { color: #2e7d32; }
+.kaala-good { color: var(--success); }
 .kaala-bad { color: var(--vermillion); }
-.kaala-tone--supportive { color: #2e7d32; font-weight: 600; }
+.kaala-tone--supportive { color: var(--success); font-weight: 600; }
 .kaala-tone--stressful { color: var(--vermillion); font-weight: 600; }
 .kaala-tone--mixed { color: var(--saffron); }
 .kaala-tone--clear { color: var(--text-secondary); }
-.kaala-row--stressful td { background: rgba(227, 66, 52, 0.05); }
-.kaala-row--supportive td { background: rgba(46, 125, 50, 0.05); }
+.kaala-row--stressful td { background: rgba(var(--vermillion-rgb), 0.05); }
+.kaala-row--supportive td { background: rgba(var(--success-rgb), 0.05); }

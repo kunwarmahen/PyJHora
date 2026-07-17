@@ -10,14 +10,14 @@
   line-height: 1.45;
 }
 .btb--unknown {
-  background: rgba(227, 66, 52, 0.09);
-  border: 1px solid rgba(227, 66, 52, 0.35);
-  color: #9a2f24;
+  background: rgba(var(--vermillion-rgb), 0.09);
+  border: 1px solid rgba(var(--vermillion-rgb), 0.35);
+  color: var(--danger);
 }
 .btb--approximate {
-  background: rgba(201, 123, 84, 0.12);
-  border: 1px solid rgba(201, 123, 84, 0.32);
-  color: #8a4a2f;
+  background: rgba(var(--terracotta-rgb), 0.12);
+  border: 1px solid rgba(var(--terracotta-rgb), 0.32);
+  color: var(--danger-alt);
 }
 .btb__icon {
   flex-shrink: 0;

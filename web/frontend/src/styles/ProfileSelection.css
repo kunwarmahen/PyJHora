@@ -40,7 +40,7 @@
 
 .mandala-icon svg {
   color: white;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  filter: drop-shadow(0 2px 4px rgba(var(--black-rgb), 0.2));
 }
 
 .page-header-section h1 {
@@ -93,9 +93,9 @@
 }
 
 .toolbar-btn.primary {
-  background: var(--saffron, #e07b39);
+  background: var(--saffron);
   color: white;
-  border-color: var(--saffron, #e07b39);
+  border-color: var(--saffron);
 }
 
 .toolbar-btn.primary:hover:not(:disabled) {
@@ -118,11 +118,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--saffron, #e07b39);
+  color: var(--saffron);
 }
 
 .profile-card.selected-for-export {
-  outline: 2px solid var(--saffron, #e07b39);
+  outline: 2px solid var(--saffron);
   outline-offset: 2px;
 }
 
@@ -190,8 +190,8 @@
 }
 
 .edit-btn {
-  background: rgba(255, 153, 51, 0.1);
-  border: 1px solid rgba(255, 153, 51, 0.2);
+  background: rgba(var(--accent-rgb), 0.1);
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
   color: var(--saffron);
   padding: var(--space-sm);
   border-radius: var(--radius-sm);
@@ -208,8 +208,8 @@
 }
 
 .default-btn {
-  background: rgba(255, 153, 51, 0.08);
-  border: 1px solid rgba(255, 153, 51, 0.2);
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
   color: var(--saffron);
   padding: var(--space-sm);
   border-radius: var(--radius-sm);
@@ -243,14 +243,14 @@
   letter-spacing: 0.04em;
   vertical-align: middle;
   color: var(--saffron);
-  background: rgba(255, 153, 51, 0.12);
-  border: 1px solid rgba(255, 153, 51, 0.3);
+  background: rgba(var(--accent-rgb), 0.12);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
   border-radius: 999px;
 }
 
 .delete-btn {
-  background: rgba(227, 66, 52, 0.1);
-  border: 1px solid rgba(227, 66, 52, 0.2);
+  background: rgba(var(--vermillion-rgb), 0.1);
+  border: 1px solid rgba(var(--vermillion-rgb), 0.2);
   color: var(--vermillion);
   padding: var(--space-sm);
   border-radius: var(--radius-sm);
@@ -317,12 +317,12 @@
   justify-content: center;
   text-align: center;
   min-height: 280px;
-  background: linear-gradient(135deg, rgba(255, 153, 51, 0.05) 0%, rgba(226, 123, 90, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.05) 0%, rgba(var(--terracotta-rgb), 0.05) 100%);
   border: 2px dashed var(--saffron);
 }
 
 .create-new-card:hover {
-  background: linear-gradient(135deg, rgba(255, 153, 51, 0.1) 0%, rgba(226, 123, 90, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1) 0%, rgba(var(--terracotta-rgb), 0.1) 100%);
   border-style: solid;
 }
 
@@ -428,7 +428,7 @@
 .form-group select:focus {
   outline: none;
   border-color: var(--saffron);
-  box-shadow: 0 0 0 4px rgba(255, 153, 51, 0.1);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.1);
   background: white;
 }
 
@@ -448,9 +448,9 @@
 .location-info {
   margin-top: var(--space-md);
   padding: var(--space-md);
-  background: rgba(255, 153, 51, 0.05);
+  background: rgba(var(--accent-rgb), 0.05);
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 153, 51, 0.2);
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
   display: flex;
   align-items: flex-start;
   gap: var(--space-md);
@@ -467,8 +467,8 @@
 }
 
 .error-message {
-  background: rgba(227, 66, 52, 0.1);
-  border: 1px solid rgba(227, 66, 52, 0.3);
+  background: rgba(var(--vermillion-rgb), 0.1);
+  border: 1px solid rgba(var(--vermillion-rgb), 0.3);
   color: var(--vermillion);
   padding: var(--space-md);
   border-radius: var(--radius-md);
@@ -499,7 +499,7 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(var(--white-rgb), 0.3), transparent);
   transition: left 0.5s ease;
 }
 
