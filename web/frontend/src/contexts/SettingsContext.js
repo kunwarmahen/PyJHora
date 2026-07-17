@@ -1,14 +1,8 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import i18n from "i18next";
 import { DEFAULT_AYANAMSA } from "../constants/jyotish";
 import { resolveUiMode, UI_MODE_DEFAULT, UI_MODE_STORAGE_KEY } from "../config/uiMode";
+import { SIGN_LABEL_DEFAULT, SIGN_LABEL_STORAGE_KEY } from "../config/signLabel";
 import {
   applyTheme,
   readThemePref,
@@ -41,6 +35,7 @@ export const SETTING_KEYS = {
   theme: THEME_STORAGE_KEY,
   ayanamsa: "ayanamsa",
   chartStyle: "chartStyle",
+  signLabel: SIGN_LABEL_STORAGE_KEY,
   panchangaSystem: "panchanga_system",
   praveshaBasis: "pravesha_basis",
   aiProviderType: "ai_provider_type",
@@ -72,7 +67,7 @@ const SYNCED_KEYS = [
 const IMMEDIATE_KEYS = ["theme", "uiMode"];
 // storageKey -> settingKey, to apply a server payload (keyed by storage key).
 const STORAGE_TO_SETTING = Object.fromEntries(
-  Object.entries(SETTING_KEYS).map(([settingKey, storageKey]) => [storageKey, settingKey]),
+  Object.entries(SETTING_KEYS).map(([settingKey, storageKey]) => [storageKey, settingKey])
 );
 
 const DEFAULTS = {
@@ -86,6 +81,8 @@ const DEFAULTS = {
   theme: THEME_DEFAULT,
   ayanamsa: DEFAULT_AYANAMSA,
   chartStyle: "north",
+  // How a house's rasi is labelled: "number" | "glyph" | "number_glyph" | "abbr".
+  signLabel: SIGN_LABEL_DEFAULT,
   panchangaSystem: "drik",
   // Which pravesha ladder the period readings default to:
   // "solar" (Tajaka: Varshaphal / Maasa Pravesha) or "lunar" (tithi: Tithi
@@ -130,6 +127,7 @@ export const SettingsProvider = ({ children }) => {
     theme: readThemePref(),
     ayanamsa: read("ayanamsa"),
     chartStyle: read("chartStyle"),
+    signLabel: read("signLabel"),
     panchangaSystem: read("panchangaSystem"),
     praveshaBasis: read("praveshaBasis"),
     aiProviderType: read("aiProviderType"),
@@ -160,7 +158,7 @@ export const SettingsProvider = ({ children }) => {
       if (pushTimer.current) clearTimeout(pushTimer.current);
       pushTimer.current = setTimeout(flushPush, 600);
     },
-    [flushPush],
+    [flushPush]
   );
 
   const updateSetting = useCallback(
@@ -197,7 +195,7 @@ export const SettingsProvider = ({ children }) => {
         }
       }
     },
-    [schedulePush, flushPush],
+    [schedulePush, flushPush]
   );
 
   // On login, pull the server copy of the synced prefs (server is source of
@@ -280,7 +278,7 @@ export const SettingsProvider = ({ children }) => {
         flushPush();
       }
     },
-    [flushPush],
+    [flushPush]
   );
 
   return (

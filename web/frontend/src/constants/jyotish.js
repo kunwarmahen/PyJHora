@@ -15,6 +15,31 @@ export const RASI_NAMES = NAME_ORDER.rasis;
 // Two-letter sign abbreviations, same order as RASI_NAMES
 export const RASI_ABBR = NAME_ORDER.rasis.map((n) => NAME_LOCALES.en.rasisAbbr[n]);
 
+// Zodiac glyphs, same order as RASI_NAMES. Language-neutral, unlike the
+// abbreviations above — which is why they're offered as a chart label (see
+// config/signLabel.js).
+//
+// Each carries U+FE0E VARIATION SELECTOR-15, which is load-bearing, not
+// decoration: U+2648..U+2653 have emoji presentation by DEFAULT, so bare they
+// render as colour emoji badges wherever an emoji font is installed (verified —
+// Chromium on Linux picks Noto Color Emoji). VS15 demands the text form, so the
+// glyph inherits the label's colour and weight like the numeral beside it.
+const TEXT_PRESENTATION = "︎";
+export const RASI_GLYPHS = [
+  "♈",
+  "♉",
+  "♊",
+  "♋",
+  "♌",
+  "♍",
+  "♎",
+  "♏",
+  "♐",
+  "♑",
+  "♒",
+  "♓",
+].map((g) => g + TEXT_PRESENTATION);
+
 // Divisional (varga) charts for the picker (must mirror the backend's
 // SUPPORTED_VARGAS). `value` is the divisional-chart factor.
 export const DEFAULT_VARGA = 9;
@@ -41,16 +66,75 @@ export const VARGAS = [
 // keywords, the Ask page suggests adding the relevant divisional chart(s) to the
 // AI context. Each rule maps a topic to its classical vargas (D-factors).
 export const VARGA_SUGGESTIONS = [
-  { topic: "career", vargas: [10], keywords: ["career", "job", "work", "profession", "business", "promotion", "office", "boss"] },
-  { topic: "marriage", vargas: [9, 7], keywords: ["marriage", "spouse", "wife", "husband", "wedding", "relationship", "partner", "love", "divorce"] },
-  { topic: "children", vargas: [7], keywords: ["children", "child", "kids", "progeny", "pregnancy", "conceive", "son", "daughter"] },
-  { topic: "wealth", vargas: [2], keywords: ["wealth", "money", "finance", "income", "riches", "savings", "prosperity"] },
-  { topic: "property", vargas: [4], keywords: ["property", "house", "home", "land", "real estate", "vehicle", "comfort"] },
-  { topic: "education", vargas: [24], keywords: ["education", "study", "studies", "exam", "college", "degree", "learning", "academic"] },
-  { topic: "siblings", vargas: [3], keywords: ["sibling", "siblings", "brother", "sister", "courage"] },
-  { topic: "parents", vargas: [12], keywords: ["parents", "father", "mother", "ancestry", "lineage"] },
-  { topic: "spirituality", vargas: [20], keywords: ["spiritual", "spirituality", "moksha", "worship", "mantra", "guru", "devotion"] },
-  { topic: "health", vargas: [30], keywords: ["health", "disease", "illness", "ailment", "sickness", "longevity", "accident"] },
+  {
+    topic: "career",
+    vargas: [10],
+    keywords: ["career", "job", "work", "profession", "business", "promotion", "office", "boss"],
+  },
+  {
+    topic: "marriage",
+    vargas: [9, 7],
+    keywords: [
+      "marriage",
+      "spouse",
+      "wife",
+      "husband",
+      "wedding",
+      "relationship",
+      "partner",
+      "love",
+      "divorce",
+    ],
+  },
+  {
+    topic: "children",
+    vargas: [7],
+    keywords: ["children", "child", "kids", "progeny", "pregnancy", "conceive", "son", "daughter"],
+  },
+  {
+    topic: "wealth",
+    vargas: [2],
+    keywords: ["wealth", "money", "finance", "income", "riches", "savings", "prosperity"],
+  },
+  {
+    topic: "property",
+    vargas: [4],
+    keywords: ["property", "house", "home", "land", "real estate", "vehicle", "comfort"],
+  },
+  {
+    topic: "education",
+    vargas: [24],
+    keywords: [
+      "education",
+      "study",
+      "studies",
+      "exam",
+      "college",
+      "degree",
+      "learning",
+      "academic",
+    ],
+  },
+  {
+    topic: "siblings",
+    vargas: [3],
+    keywords: ["sibling", "siblings", "brother", "sister", "courage"],
+  },
+  {
+    topic: "parents",
+    vargas: [12],
+    keywords: ["parents", "father", "mother", "ancestry", "lineage"],
+  },
+  {
+    topic: "spirituality",
+    vargas: [20],
+    keywords: ["spiritual", "spirituality", "moksha", "worship", "mantra", "guru", "devotion"],
+  },
+  {
+    topic: "health",
+    vargas: [30],
+    keywords: ["health", "disease", "illness", "ailment", "sickness", "longevity", "accident"],
+  },
 ];
 
 // Distinct line colours per aspecting graha, used when drawing graha-drishti

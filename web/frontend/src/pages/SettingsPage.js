@@ -1,7 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Settings as SettingsIcon, Sliders, Key, CalendarDays, User, Sparkles, Check, LogOut, Mail, ShieldOff, Trash2, Bell, Activity, AlertTriangle, Rss, Copy, Terminal, Plus } from "lucide-react";
+import {
+  Settings as SettingsIcon,
+  Sliders,
+  Key,
+  CalendarDays,
+  User,
+  Sparkles,
+  Check,
+  LogOut,
+  Mail,
+  ShieldOff,
+  Trash2,
+  Bell,
+  Activity,
+  AlertTriangle,
+  Rss,
+  Copy,
+  Terminal,
+  Plus,
+} from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { useSettings } from "../contexts/SettingsContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -12,6 +31,7 @@ import { formatDate } from "../utils/format";
 import { AYANAMSAS } from "../constants/jyotish";
 import { LANGUAGES } from "../i18n";
 import { SITE_TITLE } from "../config/branding";
+import { SIGN_LABEL_MODES } from "../config/signLabel";
 import "../styles/Settings.css";
 
 const KEYED_PROVIDERS = ["gemini", "openai", "openai-compatible"];
@@ -91,7 +111,11 @@ export const SettingsPage = () => {
     authService
       .listApiTokens()
       .then((res) => !cancelled && setApiTokens(res.data.tokens || []))
-      .catch((err) => !cancelled && setApiTokError(err.response?.data?.detail || t("settings.apiAccess.loadError")));
+      .catch(
+        (err) =>
+          !cancelled &&
+          setApiTokError(err.response?.data?.detail || t("settings.apiAccess.loadError"))
+      );
     return () => {
       cancelled = true;
     };
@@ -136,7 +160,11 @@ export const SettingsPage = () => {
 
   // Notifications (daily digest + push)
   const [notif, setNotif] = useState(null); // prefs
-  const [notifMeta, setNotifMeta] = useState({ push_available: false, email_available: false, vapid_public_key: "" });
+  const [notifMeta, setNotifMeta] = useState({
+    push_available: false,
+    email_available: false,
+    vapid_public_key: "",
+  });
   const [notifMsg, setNotifMsg] = useState({ type: "", text: "" });
 
   // Providers for the AI model picker
@@ -243,7 +271,13 @@ export const SettingsPage = () => {
     if (on) {
       const res = await enablePush(notifMeta.vapid_public_key);
       if (!res.ok) {
-        setNotifMsg({ type: "error", text: t(`settings.notifications.pushError.${res.reason}`, t("settings.notifications.pushError.error")) });
+        setNotifMsg({
+          type: "error",
+          text: t(
+            `settings.notifications.pushError.${res.reason}`,
+            t("settings.notifications.pushError.error")
+          ),
+        });
         return;
       }
       await saveNotif({ push: true });
@@ -266,7 +300,10 @@ export const SettingsPage = () => {
         }),
       });
     } catch (err) {
-      setNotifMsg({ type: "error", text: err.response?.data?.detail || t("settings.notifications.testError") });
+      setNotifMsg({
+        type: "error",
+        text: err.response?.data?.detail || t("settings.notifications.testError"),
+      });
     }
   };
 
@@ -314,10 +351,16 @@ export const SettingsPage = () => {
       await authService.changePassword(hasPassword ? pw.current : "", pw.next);
       setPw({ current: "", next: "", confirm: "" });
       await reloadUser();
-      setPwMsg({ type: "ok", text: t(hasPassword ? "settings.account.changed" : "settings.account.passwordSet") });
+      setPwMsg({
+        type: "ok",
+        text: t(hasPassword ? "settings.account.changed" : "settings.account.passwordSet"),
+      });
     } catch (err) {
       const detail = err?.response?.data?.detail || t("settings.account.changeError");
-      setPwMsg({ type: "error", text: typeof detail === "string" ? detail : t("settings.account.changeError") });
+      setPwMsg({
+        type: "error",
+        text: typeof detail === "string" ? detail : t("settings.account.changeError"),
+      });
     }
   };
 
@@ -434,7 +477,12 @@ export const SettingsPage = () => {
             ? `${health.local_ai.model}${health.local_ai.base_url ? ` · ${health.local_ai.base_url}` : ""}`
             : "",
         },
-        { key: "mapPicker", label: t("settings.system.mapPicker"), ok: !!health.map_picker_enabled, optional: true },
+        {
+          key: "mapPicker",
+          label: t("settings.system.mapPicker"),
+          ok: !!health.map_picker_enabled,
+          optional: true,
+        },
       ]
     : [];
 
@@ -551,6 +599,23 @@ export const SettingsPage = () => {
             </div>
 
             <div className="settings-row">
+              <label className="settings-label">{t("settings.general.signLabel")}</label>
+              <div className="settings-segment">
+                {SIGN_LABEL_MODES.map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    className={`settings-seg-btn${settings.signLabel === v ? " is-active" : ""}`}
+                    onClick={() => set("signLabel", v)}
+                  >
+                    {t(`settings.general.signLabelOpt.${v}`)}
+                  </button>
+                ))}
+              </div>
+              <p className="settings-hint">{t("settings.general.signLabelHint")}</p>
+            </div>
+
+            <div className="settings-row">
               <label className="settings-label">{t("settings.general.ayanamsa")}</label>
               <select
                 className="form-select"
@@ -622,7 +687,9 @@ export const SettingsPage = () => {
                   value={settings.aiModel}
                   onChange={(e) => set("aiModel", e.target.value)}
                 >
-                  <option value="">{activeProvider?.default_model || t("settings.ai.defaultModel")}</option>
+                  <option value="">
+                    {activeProvider?.default_model || t("settings.ai.defaultModel")}
+                  </option>
                   {models.map((m) => (
                     <option key={m} value={m}>
                       {m}
@@ -775,13 +842,20 @@ export const SettingsPage = () => {
               <div className="settings-token-new">
                 <p className="settings-token-new__label">{t("settings.apiAccess.newTokenLabel")}</p>
                 <div className="settings-cal-url">
-                  <input type="text" readOnly value={newApiToken} onFocus={(e) => e.target.select()} />
+                  <input
+                    type="text"
+                    readOnly
+                    value={newApiToken}
+                    onFocus={(e) => e.target.select()}
+                  />
                   <button type="button" className="ui-btn ui-btn--ghost" onClick={copyNewApiToken}>
                     {apiTokCopied ? <Check size={16} /> : <Copy size={16} />}
                     {apiTokCopied ? t("settings.apiAccess.copied") : t("settings.apiAccess.copy")}
                   </button>
                 </div>
-                <p className="settings-hint settings-token-new__warn">{t("settings.apiAccess.newTokenWarn")}</p>
+                <p className="settings-hint settings-token-new__warn">
+                  {t("settings.apiAccess.newTokenWarn")}
+                </p>
               </div>
             )}
 
@@ -820,7 +894,9 @@ export const SettingsPage = () => {
                     <div className="settings-token-meta">
                       <span className="settings-hint">
                         {t("settings.apiAccess.lastUsed")}:{" "}
-                        {tk.last_used_at ? formatDate(tk.last_used_at) : t("settings.apiAccess.never")}
+                        {tk.last_used_at
+                          ? formatDate(tk.last_used_at)
+                          : t("settings.apiAccess.never")}
                       </span>
                       <button
                         type="button"
@@ -878,25 +954,35 @@ export const SettingsPage = () => {
                 schedule. The delivery channels + profile picks below are shared. */}
             {(() => {
               const hourOptions = Array.from({ length: 24 }, (_, h) => (
-                <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>
+                <option key={h} value={h}>
+                  {String(h).padStart(2, "0")}:00
+                </option>
               ));
               const anyDigest = !!(notif?.daily_digest || notif?.fortnightly || notif?.monthly);
               return (
                 <>
                   {/* Daily */}
                   <div className="settings-row">
-                    <label className="settings-label">{t("settings.notifications.dailyDigest")}</label>
+                    <label className="settings-label">
+                      {t("settings.notifications.dailyDigest")}
+                    </label>
                     <label className="settings-switch">
-                      <input type="checkbox" checked={!!notif?.daily_digest}
-                        onChange={(e) => saveNotif({ daily_digest: e.target.checked })} />
+                      <input
+                        type="checkbox"
+                        checked={!!notif?.daily_digest}
+                        onChange={(e) => saveNotif({ daily_digest: e.target.checked })}
+                      />
                       <span />
                     </label>
                   </div>
                   {notif?.daily_digest && (
                     <div className="settings-row">
                       <label className="settings-label">{t("settings.notifications.hour")}</label>
-                      <select className="form-select" value={notif?.hour ?? 7}
-                        onChange={(e) => saveNotif({ hour: parseInt(e.target.value, 10) })}>
+                      <select
+                        className="form-select"
+                        value={notif?.hour ?? 7}
+                        onChange={(e) => saveNotif({ hour: parseInt(e.target.value, 10) })}
+                      >
                         {hourOptions}
                       </select>
                     </div>
@@ -905,10 +991,15 @@ export const SettingsPage = () => {
                   {/* Fortnightly — the paksha boundary IS the schedule, so there's
                       no day picker: it fires when a new lunar fortnight opens. */}
                   <div className="settings-row">
-                    <label className="settings-label">{t("settings.notifications.fortnightlyDigest")}</label>
+                    <label className="settings-label">
+                      {t("settings.notifications.fortnightlyDigest")}
+                    </label>
                     <label className="settings-switch">
-                      <input type="checkbox" checked={!!notif?.fortnightly}
-                        onChange={(e) => saveNotif({ fortnightly: e.target.checked })} />
+                      <input
+                        type="checkbox"
+                        checked={!!notif?.fortnightly}
+                        onChange={(e) => saveNotif({ fortnightly: e.target.checked })}
+                      />
                       <span />
                     </label>
                   </div>
@@ -916,8 +1007,13 @@ export const SettingsPage = () => {
                     <>
                       <div className="settings-row">
                         <label className="settings-label">{t("settings.notifications.hour")}</label>
-                        <select className="form-select" value={notif?.fortnightly_hour ?? 7}
-                          onChange={(e) => saveNotif({ fortnightly_hour: parseInt(e.target.value, 10) })}>
+                        <select
+                          className="form-select"
+                          value={notif?.fortnightly_hour ?? 7}
+                          onChange={(e) =>
+                            saveNotif({ fortnightly_hour: parseInt(e.target.value, 10) })
+                          }
+                        >
                           {hourOptions}
                         </select>
                       </div>
@@ -927,28 +1023,45 @@ export const SettingsPage = () => {
 
                   {/* Monthly */}
                   <div className="settings-row">
-                    <label className="settings-label">{t("settings.notifications.monthlyDigest")}</label>
+                    <label className="settings-label">
+                      {t("settings.notifications.monthlyDigest")}
+                    </label>
                     <label className="settings-switch">
-                      <input type="checkbox" checked={!!notif?.monthly}
-                        onChange={(e) => saveNotif({ monthly: e.target.checked })} />
+                      <input
+                        type="checkbox"
+                        checked={!!notif?.monthly}
+                        onChange={(e) => saveNotif({ monthly: e.target.checked })}
+                      />
                       <span />
                     </label>
                   </div>
                   {notif?.monthly && (
                     <>
                       <div className="settings-row">
-                        <label className="settings-label">{t("settings.notifications.dayOfMonth")}</label>
-                        <select className="form-select" value={notif?.monthly_dom ?? 1}
-                          onChange={(e) => saveNotif({ monthly_dom: parseInt(e.target.value, 10) })}>
+                        <label className="settings-label">
+                          {t("settings.notifications.dayOfMonth")}
+                        </label>
+                        <select
+                          className="form-select"
+                          value={notif?.monthly_dom ?? 1}
+                          onChange={(e) => saveNotif({ monthly_dom: parseInt(e.target.value, 10) })}
+                        >
                           {Array.from({ length: 28 }, (_, i) => (
-                            <option key={i + 1} value={i + 1}>{i + 1}</option>
+                            <option key={i + 1} value={i + 1}>
+                              {i + 1}
+                            </option>
                           ))}
                         </select>
                       </div>
                       <div className="settings-row">
                         <label className="settings-label">{t("settings.notifications.hour")}</label>
-                        <select className="form-select" value={notif?.monthly_hour ?? 7}
-                          onChange={(e) => saveNotif({ monthly_hour: parseInt(e.target.value, 10) })}>
+                        <select
+                          className="form-select"
+                          value={notif?.monthly_hour ?? 7}
+                          onChange={(e) =>
+                            saveNotif({ monthly_hour: parseInt(e.target.value, 10) })
+                          }
+                        >
                           {hourOptions}
                         </select>
                       </div>
@@ -956,150 +1069,176 @@ export const SettingsPage = () => {
                   )}
 
                   {!anyDigest ? null : (
-                  <>
-                {/* Which profiles — an "all" shortcut plus a per-profile pick list.
-                    Falls back to the legacy single profile_id when neither is set. */}
-                <div className="settings-row settings-row--stack">
-                  <label className="settings-label">{t("settings.notifications.profiles")}</label>
-                  <label className="settings-check">
-                    <input
-                      type="checkbox"
-                      checked={!!notif?.all_profiles}
-                      onChange={(e) => saveNotif({ all_profiles: e.target.checked })}
-                    />
-                    <span>{t("settings.notifications.allProfiles")}</span>
-                  </label>
-                  {!notif?.all_profiles && (
-                    <div className="settings-checklist">
-                      {(profiles || []).map((p) => {
-                        const selected = notif?.profile_ids || [];
-                        const legacyOnly = selected.length === 0 && notif?.profile_id;
-                        const isOn = selected.includes(p._id) || legacyOnly === p._id;
-                        return (
-                          <label key={p._id} className="settings-check">
-                            <input
-                              type="checkbox"
-                              checked={!!isOn}
-                              onChange={(e) => {
-                                const base = selected.length === 0 && notif?.profile_id
-                                  ? [notif.profile_id]
-                                  : selected;
-                                const next = e.target.checked
-                                  ? [...new Set([...base, p._id])]
-                                  : base.filter((id) => id !== p._id);
-                                saveNotif({ profile_ids: next, profile_id: null });
-                              }}
-                            />
-                            <span>{p.profile_name || p.birth_details?.name}</span>
-                          </label>
-                        );
-                      })}
-                      {(profiles || []).length === 0 && (
-                        <p className="settings-hint">{t("settings.notifications.noProfiles")}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Which pravesha ladder the delivered readings are cast on. */}
-                <div className="settings-row settings-row--stack">
-                  <label className="settings-label">{t("settings.notifications.basis")}</label>
-                  <select
-                    className="form-select"
-                    value={notif?.basis || "solar"}
-                    onChange={(e) => saveNotif({ basis: e.target.value })}
-                  >
-                    <option value="solar">{t("settings.notifications.basisSolar")}</option>
-                    <option value="lunar">{t("settings.notifications.basisLunar")}</option>
-                  </select>
-                  <p className="settings-hint">{t("settings.notifications.basisHint")}</p>
-                </div>
-
-                {/* AI "how the day/fortnight/month looks" narrative */}
-                <div className="settings-row">
-                  <label className="settings-label">{t("settings.notifications.includeAi")}</label>
-                  <label className="settings-switch">
-                    <input
-                      type="checkbox"
-                      checked={notif?.include_ai !== false}
-                      onChange={(e) => saveNotif({ include_ai: e.target.checked })}
-                    />
-                    <span />
-                  </label>
-                </div>
-
-                {/* Email channel */}
-                <div className="settings-row">
-                  <label className="settings-label">
-                    {t("settings.notifications.email")}
-                    {!notifMeta.email_available && (
-                      <span className="settings-badge">{t("settings.notifications.emailUnavailable")}</span>
-                    )}
-                  </label>
-                  <label className="settings-switch">
-                    <input
-                      type="checkbox"
-                      disabled={!notifMeta.email_available}
-                      checked={!!notif?.email}
-                      onChange={(e) => saveNotif({ email: e.target.checked })}
-                    />
-                    <span />
-                  </label>
-                </div>
-
-                {/* Push channel. Reason precedence: server not configured →
-                    insecure page (needs HTTPS/localhost) → old browser. */}
-                {(() => {
-                  const pushReason = !notifMeta.push_available
-                    ? "server"
-                    : pushUnavailableReason() || (!pushSupported() ? "unsupported" : "");
-                  const pushBlocked = !!pushReason;
-                  const reasonText = t(`settings.notifications.pushReason.${pushReason || "unsupported"}`, { brand: SITE_TITLE });
-                  return (
                     <>
+                      {/* Which profiles — an "all" shortcut plus a per-profile pick list.
+                    Falls back to the legacy single profile_id when neither is set. */}
+                      <div className="settings-row settings-row--stack">
+                        <label className="settings-label">
+                          {t("settings.notifications.profiles")}
+                        </label>
+                        <label className="settings-check">
+                          <input
+                            type="checkbox"
+                            checked={!!notif?.all_profiles}
+                            onChange={(e) => saveNotif({ all_profiles: e.target.checked })}
+                          />
+                          <span>{t("settings.notifications.allProfiles")}</span>
+                        </label>
+                        {!notif?.all_profiles && (
+                          <div className="settings-checklist">
+                            {(profiles || []).map((p) => {
+                              const selected = notif?.profile_ids || [];
+                              const legacyOnly = selected.length === 0 && notif?.profile_id;
+                              const isOn = selected.includes(p._id) || legacyOnly === p._id;
+                              return (
+                                <label key={p._id} className="settings-check">
+                                  <input
+                                    type="checkbox"
+                                    checked={!!isOn}
+                                    onChange={(e) => {
+                                      const base =
+                                        selected.length === 0 && notif?.profile_id
+                                          ? [notif.profile_id]
+                                          : selected;
+                                      const next = e.target.checked
+                                        ? [...new Set([...base, p._id])]
+                                        : base.filter((id) => id !== p._id);
+                                      saveNotif({ profile_ids: next, profile_id: null });
+                                    }}
+                                  />
+                                  <span>{p.profile_name || p.birth_details?.name}</span>
+                                </label>
+                              );
+                            })}
+                            {(profiles || []).length === 0 && (
+                              <p className="settings-hint">
+                                {t("settings.notifications.noProfiles")}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Which pravesha ladder the delivered readings are cast on. */}
+                      <div className="settings-row settings-row--stack">
+                        <label className="settings-label">
+                          {t("settings.notifications.basis")}
+                        </label>
+                        <select
+                          className="form-select"
+                          value={notif?.basis || "solar"}
+                          onChange={(e) => saveNotif({ basis: e.target.value })}
+                        >
+                          <option value="solar">{t("settings.notifications.basisSolar")}</option>
+                          <option value="lunar">{t("settings.notifications.basisLunar")}</option>
+                        </select>
+                        <p className="settings-hint">{t("settings.notifications.basisHint")}</p>
+                      </div>
+
+                      {/* AI "how the day/fortnight/month looks" narrative */}
                       <div className="settings-row">
                         <label className="settings-label">
-                          {t("settings.notifications.push")}
-                          {pushBlocked && (
-                            <span className="settings-badge" title={reasonText}>
-                              {t("settings.notifications.pushUnavailable")}
+                          {t("settings.notifications.includeAi")}
+                        </label>
+                        <label className="settings-switch">
+                          <input
+                            type="checkbox"
+                            checked={notif?.include_ai !== false}
+                            onChange={(e) => saveNotif({ include_ai: e.target.checked })}
+                          />
+                          <span />
+                        </label>
+                      </div>
+
+                      {/* Email channel */}
+                      <div className="settings-row">
+                        <label className="settings-label">
+                          {t("settings.notifications.email")}
+                          {!notifMeta.email_available && (
+                            <span className="settings-badge">
+                              {t("settings.notifications.emailUnavailable")}
                             </span>
                           )}
                         </label>
                         <label className="settings-switch">
                           <input
                             type="checkbox"
-                            disabled={pushBlocked}
-                            checked={!!notif?.push}
-                            onChange={(e) => togglePush(e.target.checked)}
+                            disabled={!notifMeta.email_available}
+                            checked={!!notif?.email}
+                            onChange={(e) => saveNotif({ email: e.target.checked })}
                           />
                           <span />
                         </label>
                       </div>
-                      {pushBlocked && <p className="settings-hint">{reasonText}</p>}
-                    </>
-                  );
-                })()}
 
-                {/* Per-cadence "send me one now" tests, only for enabled cadences. */}
-                <div className="settings-test-row">
-                  {notif?.daily_digest && (
-                    <button type="button" className="settings-link" onClick={() => sendTestDigest("daily")}>
-                      {t("settings.notifications.sendTestDaily")}
-                    </button>
-                  )}
-                  {notif?.fortnightly && (
-                    <button type="button" className="settings-link" onClick={() => sendTestDigest("fortnightly")}>
-                      {t("settings.notifications.sendTestFortnightly")}
-                    </button>
-                  )}
-                  {notif?.monthly && (
-                    <button type="button" className="settings-link" onClick={() => sendTestDigest("monthly")}>
-                      {t("settings.notifications.sendTestMonthly")}
-                    </button>
-                  )}
-                </div>
-                  </>
+                      {/* Push channel. Reason precedence: server not configured →
+                    insecure page (needs HTTPS/localhost) → old browser. */}
+                      {(() => {
+                        const pushReason = !notifMeta.push_available
+                          ? "server"
+                          : pushUnavailableReason() || (!pushSupported() ? "unsupported" : "");
+                        const pushBlocked = !!pushReason;
+                        const reasonText = t(
+                          `settings.notifications.pushReason.${pushReason || "unsupported"}`,
+                          { brand: SITE_TITLE }
+                        );
+                        return (
+                          <>
+                            <div className="settings-row">
+                              <label className="settings-label">
+                                {t("settings.notifications.push")}
+                                {pushBlocked && (
+                                  <span className="settings-badge" title={reasonText}>
+                                    {t("settings.notifications.pushUnavailable")}
+                                  </span>
+                                )}
+                              </label>
+                              <label className="settings-switch">
+                                <input
+                                  type="checkbox"
+                                  disabled={pushBlocked}
+                                  checked={!!notif?.push}
+                                  onChange={(e) => togglePush(e.target.checked)}
+                                />
+                                <span />
+                              </label>
+                            </div>
+                            {pushBlocked && <p className="settings-hint">{reasonText}</p>}
+                          </>
+                        );
+                      })()}
+
+                      {/* Per-cadence "send me one now" tests, only for enabled cadences. */}
+                      <div className="settings-test-row">
+                        {notif?.daily_digest && (
+                          <button
+                            type="button"
+                            className="settings-link"
+                            onClick={() => sendTestDigest("daily")}
+                          >
+                            {t("settings.notifications.sendTestDaily")}
+                          </button>
+                        )}
+                        {notif?.fortnightly && (
+                          <button
+                            type="button"
+                            className="settings-link"
+                            onClick={() => sendTestDigest("fortnightly")}
+                          >
+                            {t("settings.notifications.sendTestFortnightly")}
+                          </button>
+                        )}
+                        {notif?.monthly && (
+                          <button
+                            type="button"
+                            className="settings-link"
+                            onClick={() => sendTestDigest("monthly")}
+                          >
+                            {t("settings.notifications.sendTestMonthly")}
+                          </button>
+                        )}
+                      </div>
+                    </>
                   )}
                 </>
               );
@@ -1187,8 +1326,14 @@ export const SettingsPage = () => {
                     {c.label}
                     {c.value && <span className="settings-health-value">{c.value}</span>}
                   </span>
-                  <span className={`settings-health-badge${c.ok ? " is-ok" : c.optional ? " is-off" : " is-bad"}`}>
-                    {c.ok ? t("settings.system.ok") : c.optional ? t("settings.system.disabled") : t("settings.system.down")}
+                  <span
+                    className={`settings-health-badge${c.ok ? " is-ok" : c.optional ? " is-off" : " is-bad"}`}
+                  >
+                    {c.ok
+                      ? t("settings.system.ok")
+                      : c.optional
+                        ? t("settings.system.disabled")
+                        : t("settings.system.down")}
                   </span>
                 </div>
               ))}
@@ -1221,7 +1366,9 @@ export const SettingsPage = () => {
             <hr className="settings-divider" />
             <h3 className="settings-section-title">{t("settings.account.name")}</h3>
             {nameMsg.text && (
-              <div className={`settings-pw-msg settings-pw-msg--${nameMsg.type}`}>{nameMsg.text}</div>
+              <div className={`settings-pw-msg settings-pw-msg--${nameMsg.type}`}>
+                {nameMsg.text}
+              </div>
             )}
             <form onSubmit={submitName} className="settings-pw-form">
               <input
@@ -1236,7 +1383,9 @@ export const SettingsPage = () => {
               <button
                 type="submit"
                 className="control-btn"
-                disabled={busy === "name" || !nameInput.trim() || nameInput.trim() === (user?.name || "")}
+                disabled={
+                  busy === "name" || !nameInput.trim() || nameInput.trim() === (user?.name || "")
+                }
               >
                 <User size={14} /> {t("settings.account.updateName")}
               </button>
@@ -1246,7 +1395,9 @@ export const SettingsPage = () => {
             <hr className="settings-divider" />
             <h3 className="settings-section-title">{t("settings.account.email")}</h3>
             {emailMsg.text && (
-              <div className={`settings-pw-msg settings-pw-msg--${emailMsg.type}`}>{emailMsg.text}</div>
+              <div className={`settings-pw-msg settings-pw-msg--${emailMsg.type}`}>
+                {emailMsg.text}
+              </div>
             )}
             <form onSubmit={submitEmail} className="settings-pw-form">
               <input
@@ -1261,7 +1412,9 @@ export const SettingsPage = () => {
               <button
                 type="submit"
                 className="control-btn"
-                disabled={busy === "email" || !emailInput.trim() || emailInput.trim() === user?.email}
+                disabled={
+                  busy === "email" || !emailInput.trim() || emailInput.trim() === user?.email
+                }
               >
                 <Mail size={14} /> {t("settings.account.updateEmail")}
               </button>
@@ -1317,7 +1470,9 @@ export const SettingsPage = () => {
             <hr className="settings-divider" />
             <h3 className="settings-section-title">{t("settings.account.sessions")}</h3>
             {acctMsg.text && (
-              <div className={`settings-pw-msg settings-pw-msg--${acctMsg.type}`}>{acctMsg.text}</div>
+              <div className={`settings-pw-msg settings-pw-msg--${acctMsg.type}`}>
+                {acctMsg.text}
+              </div>
             )}
             <div className="settings-account-actions">
               <button
@@ -1347,7 +1502,9 @@ export const SettingsPage = () => {
               <h3 className="settings-section-title settings-danger-title">
                 {t("settings.account.deleteTitle")}
               </h3>
-              <p className="settings-hint settings-hint--warn">{t("settings.account.deleteWarn")}</p>
+              <p className="settings-hint settings-hint--warn">
+                {t("settings.account.deleteWarn")}
+              </p>
               {!delConfirm.open ? (
                 <button
                   type="button"

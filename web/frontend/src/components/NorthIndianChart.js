@@ -2,8 +2,10 @@ import React, { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 // RASI_NAMES resolves a sign number to its canonical English name; ln() then renders it
 // in the active language.
-import { RASI_NAMES, ASPECT_COLORS } from "../constants/jyotish";
+import { RASI_NAMES, RASI_GLYPHS, ASPECT_COLORS } from "../constants/jyotish";
 import { useLocalizeName } from "../i18n/localizeName";
+import { useSettings } from "../contexts/SettingsContext";
+import { signLabelParts } from "../config/signLabel";
 import { ChartExportButtons } from "./ChartExportButtons";
 import "../styles/NorthIndianChart.css";
 
@@ -14,7 +16,8 @@ import "../styles/NorthIndianChart.css";
  *   - `chartData={...}` (backward compatible: reads chartData.planets / chartData.lagna), or
  *   - explicit `planets` and `lagna` props (used to render divisional charts like D9).
  *
- * `title` / `subtitle` label the center of the chart.
+ * `title` / `subtitle` name the chart in the card heading, and are stamped as a
+ * caption under the diagram so an exported PNG carries its own identity.
  */
 export const NorthIndianChart = ({
   chartData,
@@ -35,6 +38,8 @@ export const NorthIndianChart = ({
   const svgRef = useRef(null);
   const { t } = useTranslation();
   const ln = useLocalizeName();
+  const { settings } = useSettings();
+  const labelParts = signLabelParts(settings.signLabel);
 
   const planets = planetsProp || chartData?.planets;
   const lagna = lagnaProp || chartData?.lagna;
@@ -51,9 +56,7 @@ export const NorthIndianChart = ({
         : "neutral";
     flagsByPlanet[p.planet] = {
       tone,
-      labels: (p.flags || []).map(
-        (f) => f.label + (f.partner ? ` (${f.partner})` : "")
-      ),
+      labels: (p.flags || []).map((f) => f.label + (f.partner ? ` (${f.partner})` : "")),
     };
   });
   const CONDITION_TONE_COLOR = {
@@ -108,10 +111,14 @@ export const NorthIndianChart = ({
 
   // SVG geometry. The diamond fills nearly the whole viewBox (small inset only
   // to keep the outer stroke from clipping) so it matches the South Indian grid.
+  // The viewBox is taller than the square by CAPTION_STRIP: the caption gets its
+  // own band rather than being squeezed into the bottom-right corner, which is a
+  // thin wedge shared by houses 8 and 9 and would collide once they fill up.
   const width = 600;
-  const height = 600;
   const size = 580;
   const offset = (width - size) / 2;
+  const CAPTION_STRIP = 24;
+  const height = size + offset * 2 + CAPTION_STRIP;
 
   const squareX = offset;
   const squareY = offset;
@@ -203,7 +210,10 @@ export const NorthIndianChart = ({
   return (
     <div className="chart-card">
       <div className="chart-card-head">
-        <h3 className="chart-card-title">{title}</h3>
+        <h3 className="chart-card-title">
+          {title}
+          {subtitle && <span className="chart-card-sub">{subtitle}</span>}
+        </h3>
         {exportable && <ChartExportButtons targetRef={svgRef} title={`${title} ${subtitle}`} />}
       </div>
       <div className="chart-card-svg-wrap">
@@ -377,23 +387,41 @@ export const NorthIndianChart = ({
                   })()}
                 </circle>
 
-                {/* Header line: house number + sign label, pinned to the house's
-                    outer edge so it never competes with planets for the centroid.
-                    The sign abbreviation is always visible (parity with the South
-                    chart); on hover it expands to the full sign name. */}
+                {/* Sign label, pinned to the house's outer edge so it never
+                    competes with planets for the centroid.
+
+                    The numeral is the RASI number (1 = Aries), per the North
+                    Indian convention — NOT the house number, which the geometry
+                    already fixes and which readers reliably misread as a sign.
+                    Whichever parts the mode omits, hovering names the sign in
+                    full, so a reader can always resolve a bare 1 or ♈. */}
                 <text x={labelX} y={labelY} textAnchor={labelAnchor}>
-                  <tspan fill={muted} fontSize="11" fontWeight="600">
-                    {house.num}
-                  </tspan>
-                  <tspan
-                    dx="5"
-                    fill={indigo}
-                    fontSize="10"
-                    fontWeight="500"
-                    opacity={isHovered ? 1 : 0.65}
-                  >
-                    {ln(RASI_NAMES[sign - 1], "rasi", { abbr: !isHovered })}
-                  </tspan>
+                  {labelParts.number && (
+                    <tspan fill={muted} fontSize="11" fontWeight="600">
+                      {sign}
+                    </tspan>
+                  )}
+                  {labelParts.glyph && (
+                    <tspan
+                      dx={labelParts.number ? "4" : "0"}
+                      fill={indigo}
+                      fontSize="11"
+                      opacity={isHovered ? 1 : 0.75}
+                    >
+                      {RASI_GLYPHS[sign - 1]}
+                    </tspan>
+                  )}
+                  {(labelParts.abbr || isHovered) && (
+                    <tspan
+                      dx={labelParts.number || labelParts.glyph ? "4" : "0"}
+                      fill={indigo}
+                      fontSize="10"
+                      fontWeight="500"
+                      opacity={isHovered ? 1 : 0.65}
+                    >
+                      {ln(RASI_NAMES[sign - 1], "rasi", { abbr: labelParts.abbr && !isHovered })}
+                    </tspan>
+                  )}
                 </text>
 
                 {/* Planets — one compact line each (name + inline degree),
@@ -458,19 +486,19 @@ export const NorthIndianChart = ({
             );
           })}
 
-          {/* Center label */}
+          {/* Caption. Lives INSIDE the svg, not in the card head, because the
+              export serializes the svg alone (exportChart.js) — this is what
+              gives a downloaded PNG its own identity. The centre of the diagram
+              deliberately stays empty: it's where the inner diamond's four
+              houses meet and where the aspect lines converge. */}
           <text
-            x={center.x}
-            y={center.y - 5}
-            textAnchor="middle"
-            fill={indigo}
-            fontSize="12"
-            fontWeight="700"
+            x={squareX + size}
+            y={height - offset - 4}
+            textAnchor="end"
+            fill={muted}
+            fontSize="11"
           >
-            {title}
-          </text>
-          <text x={center.x} y={center.y + 10} textAnchor="middle" fill={muted} fontSize="10">
-            {subtitle}
+            {subtitle ? `${title} · ${subtitle}` : title}
           </text>
         </svg>
       </div>

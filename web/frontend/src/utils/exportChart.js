@@ -116,13 +116,17 @@ const slug = (s) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-// Rasterize a chart to a PNG blob. `el` may be the <svg> itself or a container
-// element. SVG charts (North Indian) use the precise serializer; DOM-grid charts
-// (South Indian) fall back to html2canvas (loaded on demand).
+// Rasterize a chart to a PNG blob. SVG charts (North Indian) pass their <svg>
+// and use the precise serializer; DOM-grid charts (South Indian) pass a
+// container and fall back to html2canvas (loaded on demand).
+//
+// Only an element that IS an <svg> takes the serializer path. Reaching into a
+// container for a descendant <svg> would export that descendant *alone*: the
+// South Indian grid nests an aspect-line overlay <svg>, so with aspects shown a
+// search would have found the overlay and exported bare lines on white paper.
 async function elementToPngBlob(el, scale = 2) {
   if (!el) return null;
-  const svg = el.tagName && el.tagName.toLowerCase() === "svg" ? el : el.querySelector("svg");
-  if (svg) return svgToPngBlob(svg, scale);
+  if (el.tagName && el.tagName.toLowerCase() === "svg") return svgToPngBlob(el, scale);
   const { default: html2canvas } = await import("html2canvas");
   // html2canvas is async, so flipping the live <html> would flash the page;
   // stamp its offscreen clone instead and let the light tokens resolve there.
