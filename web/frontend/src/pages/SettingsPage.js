@@ -476,6 +476,27 @@ export const SettingsPage = () => {
         {tab === "general" && (
           <div className="ui-card settings-panel">
             <div className="settings-row">
+              <label className="settings-label">{t("uiMode.label")}</label>
+              <div className="settings-segment">
+                {[
+                  { v: "simple", l: t("uiMode.essentials") },
+                  { v: "advanced", l: t("uiMode.everything") },
+                ].map((o) => (
+                  <button
+                    key={o.v}
+                    className={`settings-seg-btn${settings.uiMode === o.v ? " is-active" : ""}`}
+                    onClick={() => set("uiMode", o.v)}
+                  >
+                    {o.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="settings-hint">
+              {t(settings.uiMode === "simple" ? "uiMode.hintSimple" : "uiMode.hintAdvanced")}
+            </p>
+
+            <div className="settings-row">
               <label className="settings-label">{t("settings.general.language")}</label>
               <select
                 className="form-select"

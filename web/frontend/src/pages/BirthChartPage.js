@@ -31,6 +31,7 @@ import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { DataField } from "../components/DataField";
 import { AspectsCard } from "../components/AspectsCard";
+import { AdvancedOnly } from "../components/AdvancedOnly";
 import { BirthTimeBanner } from "../components/BirthTimeBanner";
 import { VARGAS, DEFAULT_VARGA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
@@ -399,49 +400,53 @@ export const BirthChartPage = () => {
                     onSelect={setExplorerPlanet}
                   />
 
-                  {/* Divisional (varga) chart with picker */}
-                  {(() => {
-                    const vargaMeta = VARGAS.find((v) => v.value === varga) || VARGAS[0];
-                    return (
-                      <div className="varga-section">
-                        <label className="ayanamsa-select varga-picker">
-                          <span>{t("birthChart.divisionalChart")}</span>
-                          <select
-                            value={varga}
-                            onChange={(e) => changeVarga(Number(e.target.value))}
-                          >
-                            {VARGAS.map((v) => (
-                              <option key={v.value} value={v.value}>
-                                {v.code} · {v.name}
-                              </option>
-                            ))}
-                          </select>
-                          <span className="varga-significance">{vargaMeta.significance}</span>
-                        </label>
+                  {/* Divisional (varga) chart with picker. Real Jyotish, but
+                      "D9 / D10 / Shashtiamsa" is exactly the jargon a newcomer
+                      shouldn't meet first — collapsed in Essentials. */}
+                  <AdvancedOnly title={t("birthChart.divisionalChart")}>
+                    {(() => {
+                      const vargaMeta = VARGAS.find((v) => v.value === varga) || VARGAS[0];
+                      return (
+                        <div className="varga-section">
+                          <label className="ayanamsa-select varga-picker">
+                            <span>{t("birthChart.divisionalChart")}</span>
+                            <select
+                              value={varga}
+                              onChange={(e) => changeVarga(Number(e.target.value))}
+                            >
+                              {VARGAS.map((v) => (
+                                <option key={v.value} value={v.value}>
+                                  {v.code} · {v.name}
+                                </option>
+                              ))}
+                            </select>
+                            <span className="varga-significance">{vargaMeta.significance}</span>
+                          </label>
 
-                        {vargaLoading ? (
-                          <div className="varga-loading">
-                            <div className="spinner"></div>
-                            <span>
-                              {t("birthChart.calculatingChart", { code: vargaMeta.code })}
-                            </span>
-                          </div>
-                        ) : vargaChart && vargaChart.planets ? (
-                          <Kundali
-                            planets={vargaChart.planets}
-                            lagna={vargaChart.lagna}
-                            title={t("birthChart.nameChart", { name: vargaMeta.name })}
-                            subtitle={`${vargaMeta.code} · ${styleLabel}`}
-                            exportable
-                            arudhas={vargaChart.arudha_padas}
-                            showArudhas={showArudhas}
-                          />
-                        ) : (
-                          <div className="varga-empty">{t("birthChart.chartUnavailable")}</div>
-                        )}
-                      </div>
-                    );
-                  })()}
+                          {vargaLoading ? (
+                            <div className="varga-loading">
+                              <div className="spinner"></div>
+                              <span>
+                                {t("birthChart.calculatingChart", { code: vargaMeta.code })}
+                              </span>
+                            </div>
+                          ) : vargaChart && vargaChart.planets ? (
+                            <Kundali
+                              planets={vargaChart.planets}
+                              lagna={vargaChart.lagna}
+                              title={t("birthChart.nameChart", { name: vargaMeta.name })}
+                              subtitle={`${vargaMeta.code} · ${styleLabel}`}
+                              exportable
+                              arudhas={vargaChart.arudha_padas}
+                              showArudhas={showArudhas}
+                            />
+                          ) : (
+                            <div className="varga-empty">{t("birthChart.chartUnavailable")}</div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </AdvancedOnly>
                 </>
               );
             })()}
@@ -624,11 +629,9 @@ export const BirthChartPage = () => {
             )}
 
             {/* Graha Drishti (aspects) */}
-            <AspectsCard
-              aspects={aspects}
-              onFocus={setFocusPlanet}
-              focusPlanet={focusPlanet}
-            />
+            <AdvancedOnly title={t("birthChart.aspectsAdvanced")}>
+              <AspectsCard aspects={aspects} onFocus={setFocusPlanet} focusPlanet={focusPlanet} />
+            </AdvancedOnly>
           </div>
         ) : null}
       </div>

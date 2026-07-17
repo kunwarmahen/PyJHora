@@ -26,6 +26,7 @@ KEYED_PROVIDERS = ("gemini", "openai", "openai-compatible")
 # frontend's localStorage). Only the LLM/model choice is synced today — it drives
 # both cross-device consistency and the scheduled daily digest's AI narrative.
 PREFERENCE_KEYS = (
+    "ui_mode",
     "ai_provider_type",
     "ai_model",
     "ai_base_url",

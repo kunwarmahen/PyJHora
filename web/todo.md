@@ -3641,3 +3641,108 @@ so their saved readings deep-link correctly from the unified history; Life Repor
 
 **Still open after this pass:** §2.3 MCP/public API, §2.4 Ashtakavarga transit chips, §2.6 marriage
 workspace, §2.7 more chakras; §3.2 golden-value backend tests; todo.md §14 Help/FAQ, §15 compact/tabs.
+
+## 36. Essentials vs Everything — hide the depth from newcomers (owner ask 2026-07-16) — ✅ SHIPPED
+
+Owner feedback: **we have built too much**. A newcomer opened the app to 40+ feature routes
+(Jaimini, KP, Pancha-Pakshi, Sarvatobhadra, Bhrigu markers, Tithi Pravesha…) and couldn't tell what
+they actually cared about. Shipped a view mode that shows the everyday set by default.
+
+**Owner decisions (settled at ask time):** naming **Essentials / Everything** (not Simple/Advanced —
+"Advanced" reads as *the good stuff is hidden from you*); the Essentials set below; **UI only — the
+AI is untouched** (same prompt, same tool catalogue: a view toggle must not silently rewrite the
+user's model prefs; the layman prompt is its own separate Settings control).
+
+- **The feature registry** — `frontend/src/config/features.js`, the load-bearing piece, done first.
+  One declarative list (`{key, path, Icon, tier, group, navOnly, gradient}`) that the NavDrawer, the
+  Dashboard tiles and the mode filter all render from. They each used to keep their own hard-coded
+  copy and **had already drifted** (the drawer and dashboard disagreed about what existed).
+  DashboardPage 367 → 121 lines as a result. Add a route here once; it appears everywhere.
+- **The Essentials set (11)**: Dashboard, Birth Chart, Ask AI Astrologer, Today (daily digest),
+  Compatibility, Dhasa, Transits, Remedies, Life Report, AI History, Settings. Everything else is
+  `tier: "advanced"`.
+- **The mode**: `uiMode: "simple" | "advanced"` in `SettingsContext` (localStorage `ui_mode`, in
+  `SYNCED_KEYS` → follows the user across devices). Internal values stay simple/advanced; only the
+  **labels** are Essentials/Everything.
+- **Grandfathering** (`config/uiMode.js`, kept out of SettingsContext so it is unit-testable —
+  SettingsContext pulls in axios, which CRA's jest can't transform): new user → Essentials; a
+  browser with prior settings → Everything; and on login, an **account with server prefs but no
+  `ui_mode`** is promoted to Everything and written back — that covers an existing user on a fresh
+  browser, where localStorage is empty and the local heuristic would wrongly say "new".
+- **Not gated.** Advanced pages still render on a direct URL (bookmark / shared link / AI history /
+  AI suggestion); they show `<AdvancedNotice>` + a one-click "Switch to Everything". Mounted once in
+  `PageHeader`, which every feature page already uses. `isFeatureVisible` treats **unregistered**
+  routes (login, profile-selection, /share/:token) as visible — otherwise the login page would get
+  an "advanced feature" banner.
+- **In-page simplification**: `<AdvancedOnly>` collapses depth behind one disclosure in Essentials
+  and renders children **plainly** in Everything (zero visual change from before). Applied to Birth
+  Chart's divisional/varga charts + Graha Drishti.
+- **Toggle** in the NavDrawer (top), the Dashboard footer, and Settings → General — deliberately
+  *not* Settings-only, or someone in Essentials never discovers there's more.
+- i18n `uiMode.*` + `common.dismiss` + `birthChart.aspectsAdvanced` in en/hi/sa. **en `/advanced`
+  relabelled "Chart Deep-Dive"** — with the MODE owning the word "advanced", a page called
+  "Advanced Details" meant two different things on screen. (hi/sa already said "detailed
+  information"; no collision.)
+- Backend: **`ui_mode` added to `user_settings.PREFERENCE_KEYS`** — that tuple is a whitelist, and a
+  key missing from it is dropped *silently*.
+- Tests: `config/features.test.js` + `config/uiMode.test.js` (41 frontend tests pass; 234 backend).
+
+### Two real bugs this surfaced (both pre-existing traps worth remembering)
+
+1. **`resolveUiMode` must WRITE ITS ANSWER BACK, not re-derive it.** The prior-use evidence is keys
+   that *ordinary use goes on to create* — `AskAstrologerPage` writes `ai_model`, and Ask AI is
+   itself an Essentials feature. Re-deriving each load silently promoted a brand-new user to
+   Everything as soon as they used the app. Decide once, record it; only an explicit choice moves
+   it afterwards. Caught by verifying in the browser (`ui_mode` was still `null` after a session);
+   regression test added.
+2. **`SettingsContext` was calling `authService.putPreferences` / `.getPreferences`, but both live
+   on `astrologyService`** — so the whole cross-device preference sync had **never worked**. It
+   failed inside a `.catch()` chain and a `setTimeout`, so nothing ever surfaced; the ui_mode push
+   tripped over it. Fixed; server round-trip verified (`GET /api/user/preferences` now returns the
+   pushed values). The AI model choice syncing across devices — a §12 promise — works for the first
+   time.
+
+**Verified live** (Playwright, owner's chart): fresh account → 9 tiles / 11 drawer links in
+Essentials vs 37 / 39 in Everything; `/kp` deep-linked in Essentials renders fully with the banner;
+the banner CTA and both toggles switch modes; Birth Chart shows exactly 2 disclosures which expand
+to the real content; **no uncaught page errors**.
+
+**Follow-up (not done):** only Birth Chart got the `<AdvancedOnly>` in-page pass. The other busy
+pages (Dhasa, Transits, the Chart Deep-Dive page itself) still render at full depth in Essentials —
+the tile/nav filter already carries most of the value, but the same wrapper should be rolled across
+them page-by-page.
+
+## 37. Dark mode / light mode toggle (owner ask 2026-07-16)
+
+Owner ask: let the user switch between **light and dark**. Today `App.css` hard-codes a light
+saffron/cream palette in `:root` and 24 stylesheets reference those tokens — plus a long tail of
+**hard-coded hex/rgba literals** (charts, badges, chips) that would stay light-on-light in a dark
+theme. The work is mostly *auditing the literals*, not writing a dark palette.
+
+- [ ] 🔴 **Token audit first.** Grep every `#hex` / `rgba(` in `frontend/src/**/*.css` (and inline
+      styles in the chart components) and pull them into semantic `:root` tokens — extend the
+      existing `--bg-primary` / `--text-*` / `--shadow-*` set with what's missing (`--border`,
+      `--surface`, `--surface-raised`, `--overlay`…). No visual change in this step; light output
+      must be byte-for-byte what it is today. Nothing else can start until this is done.
+- [ ] 🔴 **Dark palette.** Override the semantic tokens under `:root[data-theme="dark"]`. **Keep
+      the Vedic identity** (owner has reaffirmed the saffron look twice — §3, §15): a night-sky
+      indigo ground (`--night-sky` / `--cosmic-indigo` already exist) with saffron/marigold/gold
+      accents, not a generic grey dark theme. Saffron on dark needs its own tint — the light
+      `--saffron-dark` will fail contrast. Check WCAG AA on body text and chart glyphs.
+- [ ] 🔴 **The setting.** `theme: "light" | "dark" | "system"` in `SettingsContext` (key `theme`,
+      in `SYNCED_KEYS`); default **system** via `prefers-color-scheme`. Apply by stamping
+      `data-theme` on `<html>` **before first paint** (a tiny inline script in `index.html`, else
+      dark users get a white flash). Toggle in `PageHeader` + Settings → General.
+- [ ] 🔴 **The awkward surfaces** — each needs a real look, not an inherited one: the North/South
+      Indian Kundali SVGs, `--planet-color` glyphs, Kota/Kaala/Tripataki chakra canvases, the
+      Dashboard tiles, chat bubbles, and the **print/PDF paths** (`FullReportPage`, Life Report —
+      these must stay **light regardless of theme**; `@media print` forces the light tokens).
+- [ ] 🔴 Verify every page in both themes (the /verify skill), prod build, and mobile.
+
+### Owner decision (2026-07-16)
+
+**Three-way: Light / Dark / System, defaulting to System.** So `prefers-color-scheme` is the
+first-run behaviour (a user whose machine is already dark never sees the light theme), with a
+manual override that sticks. The pre-paint `data-theme` stamp in `index.html` must resolve
+*System* too, not just the stored literal — and it must react to the OS flipping while the tab is
+open (`matchMedia("(prefers-color-scheme: dark)")` listener), which is the bit that's easy to miss.

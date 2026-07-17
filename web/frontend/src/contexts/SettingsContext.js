@@ -8,7 +8,8 @@ import React, {
 } from "react";
 import i18n from "i18next";
 import { DEFAULT_AYANAMSA } from "../constants/jyotish";
-import { authService } from "../services/api";
+import { resolveUiMode, UI_MODE_DEFAULT, UI_MODE_STORAGE_KEY } from "../config/uiMode";
+import { astrologyService } from "../services/api";
 import { useAuth } from "./AuthContext";
 
 /**
@@ -29,6 +30,7 @@ import { useAuth } from "./AuthContext";
 // existing pages keep reading the right value with no change.
 export const SETTING_KEYS = {
   language: "lang", // also owned by i18next's language detector
+  uiMode: UI_MODE_STORAGE_KEY,
   ayanamsa: "ayanamsa",
   chartStyle: "chartStyle",
   panchangaSystem: "panchanga_system",
@@ -40,9 +42,11 @@ export const SETTING_KEYS = {
   aiMaxTokens: "ai_max_tokens",
 };
 
-// The preferences synced to the server (cross-device). Only the non-secret
-// LLM/model choice for now — API keys have their own encrypted store.
-const SYNCED_KEYS = ["aiProviderType", "aiModel", "aiBaseUrl", "aiMode", "aiMaxTokens"];
+// The preferences synced to the server (cross-device). The non-secret LLM/model
+// choice, plus the Essentials/Everything view mode — API keys have their own
+// encrypted store. Each of these must also be in user_settings.PREFERENCE_KEYS
+// server-side, which is a whitelist: a key missing there is dropped silently.
+const SYNCED_KEYS = ["uiMode", "aiProviderType", "aiModel", "aiBaseUrl", "aiMode", "aiMaxTokens"];
 // storageKey -> settingKey, to apply a server payload (keyed by storage key).
 const STORAGE_TO_SETTING = Object.fromEntries(
   Object.entries(SETTING_KEYS).map(([settingKey, storageKey]) => [storageKey, settingKey]),
@@ -50,6 +54,10 @@ const STORAGE_TO_SETTING = Object.fromEntries(
 
 const DEFAULTS = {
   language: "en",
+  // How much of the app to advertise: "simple" = the Essentials set, "advanced"
+  // = Everything. A pure VIEW preference — it must never touch aiMode, the
+  // prompt or the tool catalogue (owner decision, todo.md §36).
+  uiMode: UI_MODE_DEFAULT,
   ayanamsa: DEFAULT_AYANAMSA,
   chartStyle: "north",
   panchangaSystem: "drik",
@@ -92,6 +100,7 @@ export const SettingsProvider = ({ children }) => {
   const { user } = useAuth();
   const [settings, setSettings] = useState(() => ({
     language: read("language"),
+    uiMode: resolveUiMode(),
     ayanamsa: read("ayanamsa"),
     chartStyle: read("chartStyle"),
     panchangaSystem: read("panchangaSystem"),
@@ -113,7 +122,7 @@ export const SettingsProvider = ({ children }) => {
     const patch = pendingPush.current;
     pendingPush.current = {};
     if (Object.keys(patch).length === 0) return;
-    authService.putPreferences(patch).catch(() => {
+    astrologyService.putPreferences(patch).catch(() => {
       // Best-effort — the value is already saved locally; try again next change.
     });
   }, []);
@@ -161,7 +170,7 @@ export const SettingsProvider = ({ children }) => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await authService.getPreferences();
+        const res = await astrologyService.getPreferences();
         if (cancelled) return;
         const serverPrefs = res.data?.preferences || {};
         const applied = {};
@@ -177,15 +186,30 @@ export const SettingsProvider = ({ children }) => {
           }
           applied[settingKey] = coerce(settingKey, value);
         });
+        // An account with preferences but no ui_mode predates the
+        // Essentials/Everything split: grandfather it into Everything and write
+        // that back, so the same user on a fresh browser (empty localStorage, so
+        // resolveUiMode() saw no prior use) doesn't get a shrunken app.
+        if (anyServer && !(SETTING_KEYS.uiMode in serverPrefs)) {
+          applied.uiMode = "advanced";
+          try {
+            localStorage.setItem(SETTING_KEYS.uiMode, "advanced");
+          } catch {
+            // ignore
+          }
+          astrologyService.putPreferences({ [SETTING_KEYS.uiMode]: "advanced" }).catch(() => {});
+        }
         if (Object.keys(applied).length) {
           setSettings((prev) => ({ ...prev, ...applied }));
         }
         if (!anyServer) {
           const seed = {};
           SYNCED_KEYS.forEach((k) => {
-            seed[SETTING_KEYS[k]] = String(read(k));
+            // uiMode via resolveUiMode, not read() — the seed must carry the
+            // grandfathered value, not the bare "simple" default.
+            seed[SETTING_KEYS[k]] = String(k === "uiMode" ? resolveUiMode() : read(k));
           });
-          authService.putPreferences(seed).catch(() => {});
+          astrologyService.putPreferences(seed).catch(() => {});
         }
       } catch {
         // Offline / not critical — local cache still applies.

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import { NavDrawer } from "./NavDrawer";
+import { AdvancedNotice } from "./AdvancedOnly";
 import "../styles/Shared.css";
 
 /**
@@ -23,27 +24,33 @@ export const PageHeader = ({
   const navigate = useNavigate();
   const { t } = useTranslation();
   return (
-    <nav className="navbar">
-      <div className="navbar-brand">
-        {backTo && (
-          <button className="page-back-btn" onClick={() => navigate(backTo)}>
-            <ArrowLeft size={20} />
-            <span>{t("common.back")}</span>
-          </button>
-        )}
-        <div className="page-header-title">
-          {icon && <div className={`page-header-icon page-header-icon--${accent}`}>{icon}</div>}
-          <div>
-            <h1>{title}</h1>
-            {subtitle && <p>{subtitle}</p>}
+    <>
+      <nav className="navbar">
+        <div className="navbar-brand">
+          {backTo && (
+            <button className="page-back-btn" onClick={() => navigate(backTo)}>
+              <ArrowLeft size={20} />
+              <span>{t("common.back")}</span>
+            </button>
+          )}
+          <div className="page-header-title">
+            {icon && <div className={`page-header-icon page-header-icon--${accent}`}>{icon}</div>}
+            <div>
+              <h1>{title}</h1>
+              {subtitle && <p>{subtitle}</p>}
+            </div>
           </div>
         </div>
-      </div>
-      <div className="nav-right">
-        {right}
-        <NavDrawer />
-      </div>
-    </nav>
+        <div className="nav-right">
+          {right}
+          <NavDrawer />
+        </div>
+      </nav>
+      {/* One mount point covers every feature page: PageHeader is on all of
+          them, and the notice renders itself only on an advanced route reached
+          while in Essentials mode. */}
+      <AdvancedNotice />
+    </>
   );
 };
 

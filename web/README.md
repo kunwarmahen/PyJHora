@@ -129,11 +129,36 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Rate limiting**: per-user per-minute + per-day quotas on the AI endpoints
 - **Safety disclaimer**: clear "guidance, not professional advice" footer
 
+### Essentials vs Everything (the view mode)
+
+The app grew to ~40 feature routes, which is a wall for anyone who doesn't already know Jyotish.
+A **view mode** decides how much of it is advertised:
+
+- **Essentials** (the default for new users) shows the 11 things most people actually want —
+  Dashboard, Birth Chart, Ask AI Astrologer, Today, Compatibility, Dhasa Periods, Transits,
+  Remedies, Life Report, AI History, Settings — and collapses in-page depth (e.g. the Birth Chart's
+  divisional charts and Graha Drishti) behind a "Show advanced details" disclosure.
+- **Everything** shows all of it — KP, Jaimini, Chakras, Prashna, Muhurta, Varshaphal, Pancha
+  Pakshi, and the rest.
+- **Nothing is gated.** An advanced page reached by URL — a bookmark, a shared link, saved AI
+  history, an AI suggestion — still renders in full; it just shows a banner explaining it's an
+  advanced feature, with a one-click switch. Deep links never dead-end.
+- **It is a view preference only.** It deliberately does not touch the AI: same prompt, same tool
+  catalogue, same model. The layman/answer-mode controls are separate, on Settings → AI and Ask.
+- **Where to switch**: the nav drawer (top), the Dashboard footer, or Settings → General. The
+  choice syncs server-side per user, so it follows you across devices.
+- **Existing users are grandfathered into Everything** (evidenced by prior settings in the browser,
+  or by an account that already has server-side preferences) — the split never silently takes pages
+  away from someone already using them.
+- **Adding a feature**: `frontend/src/config/features.js` is the single registry the nav drawer, the
+  Dashboard tiles and the mode filter all render from. Add the route there (with a `tier`) and it
+  appears everywhere; there is no second list to update.
+
 ### Settings (single source of truth)
 
 - **One place for preferences**: a dedicated **Settings** page (gear icon in the Dashboard
-  navbar + nav drawer, or `/settings`) with tabs — **General** (language, chart style North/South,
-  ayanamsa, **pravesha basis**), **AI** (provider / model / endpoint, answer-mode default, **Max response length**
+  navbar + nav drawer, or `/settings`) with tabs — **General** (**view mode** Essentials/Everything,
+  language, chart style North/South, ayanamsa, **pravesha basis**), **AI** (provider / model / endpoint, answer-mode default, **Max response length**
   slider, links to API Keys + AI Capabilities — the LLM/model choice is saved **server-side per user
   so it follows you across devices** and is what the scheduled daily digest renders with),
   **API Keys**, **Almanac** (Drik / Surya-Siddhanta

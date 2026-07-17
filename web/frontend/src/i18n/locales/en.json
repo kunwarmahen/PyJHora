@@ -15,7 +15,8 @@
     "anonymous": "Anonymous",
     "loading": "Loading…",
     "lagna": "Lagna",
-    "planet": "Planet"
+    "planet": "Planet",
+    "dismiss": "Dismiss"
   },
   "transit": {
     "title": "Transits (Gochara)",
@@ -386,7 +387,7 @@
     "bhava": "Bhava Chart",
     "report": "Full Report",
     "sarvatobhadra": "Chakras",
-    "advanced": "Advanced Details",
+    "advanced": "Chart Deep-Dive",
     "compare": "Compare Charts",
     "compatibility": "Compatibility",
     "learn": "Learn the Chart",
@@ -477,7 +478,7 @@
         "description": "Sarvatobhadra, Kota (the fort) and Tripataki — the grahas mapped onto the classical chakras"
       },
       "advanced": {
-        "title": "Advanced Details",
+        "title": "Chart Deep-Dive",
         "description": "Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas & Shadbala"
       },
       "compare": {
@@ -1274,7 +1275,8 @@
       "neutral": "Moderate",
       "weak": "Weak",
       "special": "Special"
-    }
+    },
+    "aspectsAdvanced": "Graha Drishti (planetary aspects)"
   },
   "tp": {
     "title": "Tithi Pravesha",
@@ -2283,5 +2285,15 @@
       "north": "North",
       "northeast": "Northeast"
     }
+  },
+  "uiMode": {
+    "label": "View",
+    "essentials": "Essentials",
+    "everything": "Everything",
+    "hintSimple": "Showing the everyday readings. Switch to Everything for the full classical toolkit.",
+    "hintAdvanced": "Showing every feature. Switch to Essentials for a simpler, shorter list.",
+    "showAdvanced": "Show advanced details",
+    "advancedPageNotice": "This is an advanced feature, not shown in the Essentials view.",
+    "switchToEverything": "Switch to Everything"
   }
 }

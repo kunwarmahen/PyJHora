@@ -1,0 +1,201 @@
+/* Essentials / Everything mode — the toggle, the in-page disclosure and the
+   deep-link notice. Saffron/cream identity, same tokens as the rest of the app. */
+
+/* ── The toggle ─────────────────────────────────────────────────────────── */
+.ui-mode-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.ui-mode-toggle__label {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ui-mode-toggle__options {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--sandalwood-dark);
+  border-radius: var(--radius-full);
+}
+
+.ui-mode-toggle__option {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+}
+
+.ui-mode-toggle__option:hover {
+  color: var(--text-primary);
+}
+
+.ui-mode-toggle__option.active {
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--marigold) 100%);
+  color: var(--sacred-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.ui-mode-toggle__hint {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* In the drawer it sits between the brand head and the links. */
+.ui-mode-toggle--drawer {
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--sandalwood-dark);
+}
+
+/* On the dashboard it's a centred footer strip under the tiles. */
+.ui-mode-toggle--dashboard {
+  align-items: center;
+  max-width: 420px;
+  margin: var(--space-2xl) auto var(--space-lg);
+  text-align: center;
+}
+
+.ui-mode-toggle--dashboard .ui-mode-toggle__options {
+  width: 100%;
+  background: var(--sacred-white);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── In-page "show advanced details" disclosure ─────────────────────────── */
+.advanced-only {
+  margin: var(--space-lg) 0;
+}
+
+.advanced-only__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px var(--space-md);
+  background: var(--bg-secondary);
+  border: 1px dashed var(--sandalwood-dark);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.advanced-only__toggle:hover {
+  border-color: var(--saffron);
+  color: var(--saffron-dark);
+}
+
+.advanced-only__chevron {
+  transition: transform 0.2s ease;
+}
+
+.advanced-only.open .advanced-only__chevron {
+  transform: rotate(180deg);
+}
+
+.advanced-only__body {
+  margin-top: var(--space-md);
+}
+
+/* ── Deep-link notice on an advanced page in Essentials mode ────────────── */
+.advanced-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: var(--space-md) auto 0;
+  max-width: 1200px;
+  padding: 10px var(--space-md);
+  background: linear-gradient(135deg, rgba(255, 153, 51, 0.12) 0%, rgba(212, 175, 55, 0.12) 100%);
+  border: 1px solid var(--sandalwood-dark);
+  border-radius: var(--radius-md);
+}
+
+.advanced-notice__icon {
+  flex-shrink: 0;
+  color: var(--saffron-dark);
+}
+
+.advanced-notice__text {
+  flex: 1;
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.advanced-notice__cta {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--saffron) 0%, var(--marigold) 100%);
+  color: var(--sacred-white);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.advanced-notice__cta:hover {
+  box-shadow: var(--shadow-glow);
+}
+
+.advanced-notice__dismiss {
+  flex-shrink: 0;
+  display: inline-flex;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.advanced-notice__dismiss:hover {
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .advanced-notice {
+    flex-wrap: wrap;
+    margin: var(--space-sm) var(--space-md) 0;
+  }
+
+  .advanced-notice__text {
+    flex-basis: 100%;
+    order: 2;
+  }
+}
+
+/* The notice is chrome, not content — never print it. */
+@media print {
+  .advanced-notice,
+  .ui-mode-toggle {
+    display: none !important;
+  }
+}
