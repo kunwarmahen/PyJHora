@@ -77,10 +77,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-
 # ── Routers ─────────────────────────────────────────────────────────────
 from routes import auth as auth_routes
 from routes import v1 as v1_routes
