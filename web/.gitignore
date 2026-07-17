@@ -58,7 +58,11 @@ mongo-data/
 htmlcov/
 dist/
 build/
-docs/
+# docs/ is ignored wholesale (it predates the hand-written design docs that now live
+# there). Git can't re-include a file under an excluded directory, hence docs/* + an
+# explicit allow-list. Add any design doc that should survive a clone.
+docs/*
+!docs/I18N_DATA_LAYER_DESIGN.md
 # Design preview (throwaway)
 frontend/ledger-preview.html
 **/*/package-lock.json

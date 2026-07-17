@@ -9,6 +9,10 @@
 // Falling back to the English input is deliberate and normal: an unmapped name (a new
 // dasha lord, an upstream rename, a composite label) renders readable English rather
 // than a missing-key marker.
+//
+// Design, decisions and traps: web/docs/I18N_DATA_LAYER_DESIGN.md. The one to know before
+// wrapping a new render site: canonical English is an IDENTITY as well as a label (it keys
+// flagsByPlanet, onSelectPlanet, …), so apply this ONLY where text is rendered.
 
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";

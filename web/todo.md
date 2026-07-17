@@ -390,140 +390,45 @@ web exposes. High-value additions:
       (Dhasa `formatDuration`/`LEVELS`) take `t`; Ask example questions use i18next
       `returnObjects` arrays. `LanguageSwitcher` also pinned top-right on the navless
       Login/Register/ProfileSelection/SharedChart screens. CI build green.
-      NOT TRANSLATED (intentional — data layer): engine-returned names/values
-      (planet/sign/nakshatra/yoga/dosha/koota/dhasa-lord names, AI answers) come from the
-      backend in English. PyJHora itself ships native name files for en/ta/te/hi/ka/ml via
-      `utils.set_language()` (NO Sanskrit), but the web backend (`astrology.py`) uses its OWN
-      hardcoded English/transliterated tables (`ZODIAC_NAMES`, `nakshatra_names`), so it does
-      NOT currently honor a language. To localize data later, two paths:
-      (A) **frontend mapping** — extend `constants/jyotish.js` (already has RASI_NAMES etc.)
-          to map canonical English→hi/sa and wrap `sign_name`/`nakshatra` render sites; covers
-          all 3 langs incl. Sanskrit, no backend change, but only the finite enumerations
-          (not free-text yoga/dosha descriptions).
-      (B) **backend language** — gives Hindi data natively, incl. free text A can't touch, but
-          has NO Sanskrit upstream. **Two very different costs, don't conflate them** (this note
-          used to, and it made B look uniformly expensive):
-          - msg-driven sections (yoga/raja-yoga/dosha names + descriptions) take a **per-call**
-            `language=` arg that just reads a JSON — cheap, stateless, no race. **DONE for
-            yogas + raja yogas 2026-07-16**; `sa` routes to `hi`.
-          - the chart-name tables need global `utils.set_language()` + reset-after (the ayanamsa
-            pattern) AND the backend refactored off its own hardcoded `ZODIAC_NAMES`/
-            `nakshatra_names` — that part stays unattractive, so (A) owns names.
-          Outcome: **hybrid** — A for the enumerations (only path to Sanskrit), B for the
-          msg-driven free text. Tracked as its own item below.
+      NOT TRANSLATED at that point (data layer): engine-returned names/values —
+      planet/sign/nakshatra/yoga/dosha/koota/dhasa-lord names, AI answers. Being addressed
+      since 2026-07-16 as a **hybrid** of frontend mapping + PyJHora's per-call `language=`;
+      see the P3 item below and 📖 [`docs/I18N_DATA_LAYER_DESIGN.md`](docs/I18N_DATA_LAYER_DESIGN.md)
+      for the design (this note used to sketch the two options and got B's cost wrong — the
+      doc supersedes it).
 
-- [ ] 🔴 **Localize engine-returned chart-data names (i18n data layer)** (P3 — was DEPRIORITIZED
-      per owner 2026-07-03; **STARTED 2026-07-16: Option A machinery + BirthChart done, 22 other
-      files still to wrap**). The UI chrome is fully translated (en/hi/sa, see above), but values
-      that come back from the backend are still English: planet / sign / nakshatra / yoga / dosha /
-      koota / dhasa-lord names (plus panchanga limb *values* and AI answers). Went with **Option A
-      (frontend mapping)** — the only path that covers Sanskrit.
+- [ ] 🔴 **Localize engine-returned chart-data names (i18n data layer)** (P3 — was
+      DEPRIORITIZED per owner 2026-07-03). **IN PROGRESS since 2026-07-16.**
 
-      **DONE 2026-07-16 — the machinery + BirthChart as the reference page:**
-      - `scripts/gen-name-locales.js` (+ `npm run gen:names`) emits
-        `src/constants/nameLocales.generated.js`: en/hi/sa tables for 12 rasis, 27 nakshatras,
-        9 grahas, plus chart abbreviations for each.
-      - **The plan's "map English→Hindi by name" is impossible and the entry used to say so
-        wrongly**: PyJHora's `list_values_en.txt` uses the TAMIL tradition (`Karthigai`, `Poosam`,
-        `Thiruvaathirai`) while the backend uses the SANSKRIT one (`Krittika`, `Pushya`, `Ardra`) —
-        the two vocabularies share no strings. The only correspondence is POSITIONAL (both lists are
-        in canonical order), which is why a *generator* owns the tables: an off-by-one would
-        silently relabel every name with nothing looking broken. Hence `localizeName.test.js`
-        (22 tests, first frontend tests in the repo) pinning known pairs at the ends and middle.
-      - Sanskrit was much cheaper than feared — the canonical English names ARE Sanskrit words and
-        the Hindi file is the same words in Devanagari, so `sa` ≈ `hi` with spelling fixes
-        (कुम्भ/धनुस्/चन्द्र/शतभिषक्). Hand-authored in `scripts/name-locales.manual.json`;
-        **still wants review by a Sanskrit reader.**
-      - Abbreviations (the plan missed these): charts paint 2-letter tags into ~10px SVG cells.
-        Upstream has `NAKSHATRA_SHORT_LIST` but NO short forms for rasis/grahas in any language, so
-        both are hand-authored in the same file. Rasis need TWO aksharas — मेष/मीन and वृषभ/वृश्चिक
-        collide at one. **Verified live: Devanagari fits both charts with no overflow or collision.**
-      - `localizeName(name, kind, lang, {abbr})` + `useLocalizeName()` hook in
-        `src/i18n/localizeName.js`. `en` is a real identity table, so callers never hand-roll a
-        fallback; an unmapped name returns the English input unchanged.
-      - `constants/jyotish.js` now DERIVES `RASI_NAMES`/`RASI_ABBR`/`PLANET_ABBR` from the generated
-        tables (one source of truth); its 45 existing call sites were left untouched.
-      - Wrapped: `NorthIndianChart` / `SouthIndianChart` / `BirthChartPage`. **The pattern to copy:
-        canonical English stays the KEY (`fullName` keys flagsByPlanet + onSelectPlanet), and
-        ln() is applied ONLY at the point text is rendered** — never to a lookup key.
-      - Lagna marker was a hardcoded `"As"`; now `common.lagnaAbbr` (en `As`, hi/sa `ल`).
+      📖 **Full design, decisions and traps: [`docs/I18N_DATA_LAYER_DESIGN.md`](docs/I18N_DATA_LAYER_DESIGN.md).**
+      That doc is the source of truth — this entry is just the task status, so keep the detail
+      there and don't re-litigate it here.
 
-      **ALSO DONE 2026-07-16 — Option B where PyJHora actually helps (yogas + raja yogas):**
-      Owner spotted that the page was still mostly English and asked why we weren't using
-      PyJHora's language support. Right call — this entry (and the §5 note above) **overstated
-      Option B's cost**: it warned that B means global `utils.set_language()` + set/reset + races,
-      but `yoga.get_yoga_details(language=…)` / `raja_yoga.get_raja_yoga_details(language=…)` take
-      a **per-call arg** that just opens `yoga_msgs_<lang>.json`. No global state, no race, no
-      reset. That's true only for the msg-driven sections; the chart-name tables really do need
-      the global path, which is why A still owns those.
-      - `to_engine_language()` in `astrology/engine.py`: en/ta/te/hi/ka/ml pass through,
-        **`sa` → `hi`** (owner's call: Devanagari + shared vocabulary lands far closer for a
-        Sanskrit reader than English), unknown → en.
-      - `lang` query param on `POST /api/astrology/yogas` + `/raja-yogas`; `api.js` sends the
-        active `i18n.language` on those two calls. Yoga NAMES *and* free-text descriptions now
-        come back translated — the thing Option A structurally cannot do.
-      - ⚠️ **REAL BUG FOUND — never pass `language` straight to `get_yoga_details`**: PyJHora
-        drives detection off the message file's KEYS (`for yoga_function, details in msgs.items():
-        eval(yoga_function + '_from_jd_place')`), and `yoga_msgs_hi.json`'s keys DIFFER from
-        `_en.json`'s (hi lacks `yukthi_samanwithavagmi_yoga_154`/`_155`, adds `dhana_yoga` +
-        `yukthi_samanwithavagmi_yoga`). Asking for Hindi therefore changed **which yogas were
-        detected** — the language moved the astrology. Fixed by **detecting in English always,
-        then translating by key** (missing key → English text, never blank). raja_yoga/dosha msg
-        keys match across languages today, but raja yoga got the same treatment on principle.
-        Pinned by `tests/test_engine_language.py` (12 tests; 222 → 234).
-      - Verified live in Hindi: yoga cards fully Devanagari, `Neecha Bhanga Raja yoga` →
-        `नीचा भंग राजयोग`, and the one untranslatable yoga renders English as designed.
+      Outcome is a **hybrid**: frontend mapping (A) owns the fixed enumerations (rasis /
+      nakshatras / grahas — the only path that covers Sanskrit), PyJHora's per-call `language=`
+      (B) owns the engine free text (yoga/dosha names + descriptions, which A structurally
+      cannot do). Sanskrit routes to Hindi wherever B is involved — a stopgap, not the
+      destination.
 
-      **TODO — roll the same pattern across the remaining ~22 files** (65 `sign_name` sites,
-      39 `.nakshatra`, 45 RASI/PLANET-constant uses): Transit / Compare / Dhasa / Panchanga /
-      Predictions / KP / Jaimini / Chakras / Bhava / Marriage / digests / the rest of §5.
-      - **Author Sanskrit `lang/` files upstream** (owner's future item, 2026-07-16). Until then
-        every PyJHora-sourced string shows `sa` users **Hindi** via `to_engine_language`, which is
-        a deliberate stopgap, not the destination. Needs `src/jhora/lang/{list_values,msg_strings}_sa.txt`
-        + `{yoga,raja_yoga,dosha,prediction}_msgs_sa.json` and `const.available_languages`. Big job:
-        ~284 yoga descriptions alone. Once it exists, `to_engine_language` drops the sa→hi hop and
-        `scripts/name-locales.manual.json` could source from upstream instead of hand-authoring.
-      - **Doshas: decided to leave English for now.** Keys mostly line up with `dosha_msgs_*.json`,
-        but `compute_strength.get_doshas` writes its OWN descriptions and they're better than
-        upstream's. Switching = gain Hindi, lose the curated text. Owner to decide.
-      - **Kendra-Trikona raja yogas stay English**: names/descriptions are built by our backend
-        (f-strings with planet names), not PyJHora, so §5's A-layer must cover them.
-      - **Upstream data defect to decide on**: `list_values_hi.txt` spells Mrigashira
-        `म्रृगशीर्षा` (malformed म्+रृ; should be `मृगशीर्षा`). We now surface it. Either patch
-        `src/jhora/lang/list_values_hi.txt` (it's this repo) or add a hi override to the manual file.
-      - OUT OF SCOPE for A (leave English): Ashtakoot koota names and AI answers (the AI already
-        replies in the language the user writes in; a future nicety is to add a language hint to
-        the system prompt). Free-text yoga/dosha descriptions are **no longer** out of scope —
-        yogas are done via B above; doshas are a pending decision.
+      **Done:** A machinery (`scripts/gen-name-locales.js` + `i18n/localizeName.js` +
+      22 tests, the repo's first frontend tests) · BirthChart + both chart components ·
+      B for yogas + raja yogas (`to_engine_language`, `lang` param on 2 routes, 12 tests;
+      suite 222 → 234).
 
-      **Plan — Option B (backend `utils.set_language()`), the fallback if we want native
-      engine-localized data server-side (e.g. for non-web consumers, or to also localize
-      free-text yoga/dosha/dhasa *descriptions* PyJHora generates):**
-      - Supported by PyJHora out of the box for **en/ta/te/hi/ka/ml only — NO Sanskrit**
-        (`const.available_languages`, `src/jhora/lang/list_values_*.txt` +
-        `msg_strings_*.txt` + `*_msgs_*.json`). So under B, `sa` users would fall back to en
-        (or we'd have to author Sanskrit `lang/` files upstream — a big, separate effort).
-      - Today `web/backend/astrology.py` ignores all this: it builds its OWN
-        `ZODIAC_NAMES` / `nakshatra_names` (and similar) constants and indexes them directly.
-        Step 1 is to **stop hardcoding** — replace those module constants with reads from
-        `jhora.utils.resource_strings` / `get_resource_lists()` so names flow from the active
-        language. (Audit every `ZODIAC_NAMES[...]`, `nakshatra_names[...]`, planet-name and
-        dhasa/bhukti label site; ~the same call sites the grep in this entry found.)
-      - Step 2: thread a `lang` request param through the endpoints (birth-chart, divisional,
-        dhasa, transit, panchanga, doshas, yogas, compatibility, chart-details, ashtakavarga,
-        shadbala) and wrap each handler with `utils.set_language(lang)` **+ reset to the
-        default afterwards** so requests don't leak language into each other — mirror exactly
-        the existing per-request ayanamsa set/reset pattern (`drik.set_ayanamsa_mode` →
-        reset), since `set_language` is likewise process-global module state.
-      - Step 3: frontend passes the current `i18n.language` (mapped sa→en fallback) on every
-        astrology call in `services/api.js`; values then arrive already localized, so the
-        Option-A frontend mapping is NOT needed for the 5 supported langs.
-      - Tradeoffs vs A: B also localizes PyJHora's free-text predictions/yoga/dosha messages
-        (A can't) and keeps one source of truth; but B is a backend refactor, is racy unless
-        the set/reset is airtight (global state under concurrency — consider a lock or
-        per-request language arg if PyJHora exposes one), and **cannot do Sanskrit**.
-      - **Decision rule:** if Sanskrit must work → A (or A for `sa` + B for the others, a
-        hybrid). If Sanskrit is droppable and localized free-text descriptions are wanted → B.
+      **Left:** roll the A pattern across ~22 files (65 `sign_name` sites, 39 `.nakshatra`,
+      45 RASI/PLANET-constant uses) — Transit / Compare / Dhasa / Panchanga / Predictions /
+      KP / Jaimini / Chakras / Bhava / Marriage / digests.
+
+      **Two things that will bite anyone resuming this** (both explained in the doc):
+      - ⚠️ Never pass `language` to `get_yoga_details` — PyJHora eval()s the message file's
+        KEYS as function names and the hi/en key sets differ, so the language changes **which
+        yogas are detected**. Detect in English, translate by key.
+      - ⚠️ Canonical English is an IDENTITY (`fullName` keys flagsByPlanet + onSelectPlanet).
+        Apply `ln()` only where text is rendered, never to a lookup key.
+
+      **Open decisions for the owner** (full list in the doc §6): author Sanskrit `lang/`
+      files upstream · the hand-authored Sanskrit is unreviewed · doshas (gain Hindi, lose our
+      better descriptions?) · the `म्रृगशीर्षा` typo in `list_values_hi.txt`.
 
 ## 6. Suggested execution order
 

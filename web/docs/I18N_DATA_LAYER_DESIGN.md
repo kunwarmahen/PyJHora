@@ -1,0 +1,221 @@
+# Localizing engine-returned data (the i18n "data layer")
+
+Status: **in progress** — machinery + BirthChart + yogas shipped 2026-07-16; ~22 files
+still to wrap. Tracked as web/todo.md §5 P3, which links here rather than repeating it.
+This is the durable record: the decisions, the traps, and what a future session needs to
+resume without re-deriving any of it.
+
+Related: `web/todo.md` §5 (task list), `web/improvements-2026-07.md` §4 (the backend split
+that this work sits on top of).
+
+---
+
+## 1. The problem
+
+The UI *chrome* has been fully translated (en/hi/sa) since 2026-06-29. But the **values**
+that come back from the backend were all English, so switching to Hindi produced a
+half-translated page: Hindi labels wrapped around `Moon in Krittika, Aries ascendant`,
+`Amala Yoga`, `Kala Sarpa Dosha`.
+
+Two different kinds of string are involved, and they have different answers:
+
+| Kind | Examples | Who can translate it |
+|---|---|---|
+| **Fixed enumerations** | 12 rasis, 27 nakshatras, 9 grahas, dasha lords, panchanga limbs | frontend mapping (A) |
+| **Engine free text** | yoga/raja-yoga/dosha names + descriptions, predictions | PyJHora only (B) |
+
+Nothing translates the second kind except PyJHora — a frontend lookup table cannot
+invent a paragraph. And nothing translates *Sanskrit* except us — PyJHora has no `sa`
+resources at all. Hence the outcome is a **hybrid**, not one path.
+
+## 2. The decision
+
+**A (frontend mapping) owns the enumerations. B (PyJHora's language support) owns the
+engine free text. Sanskrit routes to Hindi wherever B is involved.**
+
+Decided 2026-07-16 with the owner. The sa→hi routing was the owner's explicit call: for a
+Sanskrit reader, Hindi shares the script and most of this vocabulary, so it lands far
+closer than English. It is a **stopgap, not the destination** — see §6 open items.
+
+### Why not B for everything?
+
+- PyJHora ships `en/ta/te/hi/ka/ml` only. **No Sanskrit.** `sa` users would silently get
+  English for everything.
+- The chart-name tables would need the *global* `utils.set_language()` (see the trap in
+  §4.2) plus a backend refactor off its own hardcoded `ZODIAC_NAMES` / `nakshatra_names`.
+
+### Why not A for everything?
+
+- It structurally cannot do free text. The yoga cards are the biggest block of English on
+  the birth chart and A can never touch them.
+
+## 3. What shipped (2026-07-16)
+
+### 3.1 The A layer — `frontend/src/i18n/localizeName.js`
+
+- `localizeName(name, kind, lang, {abbr})` + `useLocalizeName()` hook.
+  `kind` is `rasi` | `nakshatra` | `graha`.
+- Tables are **generated**, not hand-written: `frontend/scripts/gen-name-locales.js`
+  (`npm run gen:names`) → `frontend/src/constants/nameLocales.generated.js`.
+  Hindi is read from `src/jhora/lang/list_values_hi.txt` so it tracks upstream.
+- Everything upstream can't supply is hand-authored in
+  `frontend/scripts/name-locales.manual.json`: all of Sanskrit, plus rasi/graha
+  abbreviations in both languages.
+- `en` is a real identity table, so callers never hand-roll a fallback. An unmapped name
+  returns the English input unchanged — deliberate, and normal.
+- `constants/jyotish.js` now *derives* `RASI_NAMES`/`RASI_ABBR`/`PLANET_ABBR` from the
+  generated tables, so English can't drift from the translations. Its ~45 existing call
+  sites were left untouched.
+- Tests: `frontend/src/i18n/localizeName.test.js` (22). **First frontend tests in the
+  repo** — run with `npx react-scripts test` (there is no `npm test` convention here yet).
+
+Wrapped so far: `NorthIndianChart`, `SouthIndianChart`, `BirthChartPage`.
+
+### 3.2 The B layer — `backend/astrology/engine.py`
+
+- `to_engine_language(lang)`: `en/ta/te/hi/ka/ml` pass through, **`sa` → `hi`**, unknown
+  → `en`. Handles region variants (`hi-IN`) and case.
+- `lang` query param on `POST /api/astrology/yogas` and `/api/astrology/raja-yogas`;
+  `frontend/src/services/api.js` sends the active `i18n.language` on those two calls.
+- Tests: `backend/tests/test_engine_language.py` (12). Suite 222 → 234.
+
+## 4. Traps — read this before touching any of it
+
+These are the things that cost time to find. None are obvious from the code.
+
+### 4.1 PyJHora's English is a *different naming tradition* — never join on it
+
+`src/jhora/lang/list_values_en.txt` uses **Tamil** transliterations; our backend uses
+**Sanskrit** ones. They share no strings:
+
+| Backend (`astrology/engine.py`) | PyJHora `list_values_en.txt` |
+|---|---|
+| Krittika | Karthigai |
+| Ardra | Thiruvaathirai |
+| Pushya | Poosam |
+
+Also `MONTH_LIST` is `Chithirai, Vaikaasi, Aani…`, and `TITHI_LIST` is
+`Prathamai, Thuthiyai…` against our `Pratipada, Dwitiya…`.
+
+**The only correspondence is positional** — both lists are in canonical order, so index
+*i* is the same nakshatra in either. That is why a generator owns the tables: an
+off-by-one would relabel every name with **nothing looking broken**. `localizeName.test.js`
+pins known pairs at the start, middle and end of each list for exactly this reason.
+
+### 4.2 `language=` per-call is NOT `utils.set_language()` — don't conflate the costs
+
+todo.md used to warn that Option B means global process state, set/reset, and races. That
+is true **only for the chart-name tables**. The msg-driven calls are different:
+
+```python
+yoga.get_yoga_details(jd, place, divisional_chart_factor=1, language="hi")
+raja_yoga.get_raja_yoga_details(..., language="hi")
+```
+
+take a per-call argument, and `get_yoga_resources()` simply opens
+`yoga_msgs_<lang>.json` and returns it. **No global state, no race, no reset.** Conflating
+these made B look uniformly expensive and delayed the cheap half of it by weeks.
+
+### 4.3 ⚠️ Never pass `language` straight to `get_yoga_details` — the language moves the astrology
+
+This is the important one, and the obvious implementation is the wrong one.
+
+PyJHora drives yoga **detection** off the message file's **keys**:
+
+```python
+# src/jhora/horoscope/chart/yoga.py
+for yoga_function, details in msgs.items():
+    yoga_exists = eval(yoga_function + '_from_jd_place')(jd, place, dcf)
+```
+
+And the key sets differ between languages:
+
+- `yoga_msgs_hi.json` **lacks** `yukthi_samanwithavagmi_yoga_154` and `_155`
+- `yoga_msgs_hi.json` **adds** `dhana_yoga` and `yukthi_samanwithavagmi_yoga`
+
+So requesting Hindi changes **which yogas are detected**. Observed on the owner's chart:
+English found `yukthi_samanwithavagmi_yoga_154`, Hindi found
+`yukthi_samanwithavagmi_yoga` — same count, different composition. `dhana_yoga` could fire
+on another chart in Hindi only.
+
+**The rule: detect in English ALWAYS, then translate by key**, falling back to the English
+text when a key has no translation. `test_engine_language.py` pins that en/hi/sa detect an
+identical key set. `raja_yoga_msgs` and `dosha_msgs` keys *do* match across languages
+today; raja yoga got the same treatment anyway, because the mechanism is identical and
+could drift on any upstream bump.
+
+### 4.4 Canonical English is an identity, not a label
+
+In the charts, `fullName` keys `flagsByPlanet` and is handed to `onSelectPlanet`. If you
+localize it, planet clicks and condition flags break — and no test would catch it.
+
+**Apply `ln()` only where text is rendered. Never to a lookup key.** This is the single
+most important thing to get right in the remaining 22 files.
+
+### 4.5 `list_values_hi.txt` has a typo we now surface
+
+Mrigashira is spelled `म्रृगशीर्षा` (malformed `म्` + `रृ`); it should be `मृगशीर्षा`.
+We render it as-is. Undecided — see §6.
+
+### 4.6 The backend does not `--reload`
+
+`./dev.sh restart backend` after any `.py` edit, or you are testing the old code. The API
+keeps answering, just with stale handlers.
+
+## 5. What's left
+
+Roll the A pattern across the remaining ~22 files: **65 `sign_name` sites, 39
+`.nakshatra`, 45 `RASI_NAMES`/`RASI_ABBR`/`PLANET_ABBR` uses**. Pages: Transit, Compare,
+Dhasa, Panchanga, Predictions, KP, Jaimini, Chakras, Bhava, Marriage, digests, and the
+rest of §5.
+
+The mechanical part is easy; the risk is §4.4 and simply missing a site. Find them with:
+
+```bash
+cd web/frontend/src
+grep -rn "sign_name\|\.nakshatra\b\|RASI_NAMES\|RASI_ABBR\|PLANET_ABBR" --include=*.js
+```
+
+Also still English by design, pending decisions in §6: doshas, the Kendra-Trikona raja
+yoga labels, panchanga limb values, Ashtakoot koota names.
+
+## 6. Open decisions — for the owner
+
+1. **Author Sanskrit `lang/` files upstream.** Until this exists, every PyJHora-sourced
+   string shows `sa` users **Hindi**. Needs `src/jhora/lang/{list_values,msg_strings}_sa.txt`
+   + `{yoga,raja_yoga,dosha,prediction}_msgs_sa.json` and `const.available_languages`.
+   Big job — ~284 yoga descriptions alone. Once it lands, `to_engine_language` drops the
+   sa→hi hop and `name-locales.manual.json` could source from upstream instead of being
+   hand-authored.
+2. **The hand-authored Sanskrit is unreviewed.** Written by Claude, not a Sanskrit reader.
+   It looks right (कुम्भ, धनुस्, चन्द्र, शतभिषक्) but should be checked before it's treated
+   as authoritative.
+3. **Doshas.** Keys mostly line up with `dosha_msgs_*.json`, but
+   `compute_strength.get_doshas` writes its own descriptions and they're better than
+   upstream's. Switching gains Hindi and loses the curated text.
+4. **The `म्रृगशीर्षा` typo** (§4.5): patch `src/jhora/lang/list_values_hi.txt` (it's this
+   repo) or add a hi override to the manual file.
+5. **Kendra-Trikona raja yogas** are built from our own f-strings, so the A layer must
+   cover them.
+6. **New-page UI strings are English-only**, falling back via `fallbackLng` — the standing
+   pattern for every recent feature page. Steady state, or debt to burn down?
+
+## 7. Commands
+
+```bash
+# regenerate the name tables after editing the lang file or the manual JSON
+cd web/frontend && npm run gen:names
+
+# the A layer's tests (first frontend tests in the repo)
+cd web/frontend && CI=true npx react-scripts test --testPathPattern=localizeName
+
+# the B layer's tests + everything else
+cd web/backend && venv/bin/python -m pytest tests -q
+
+# after any backend edit
+cd web && ./dev.sh restart backend
+```
+
+Adding a `lang` param to a route will trip `test_routes_inventory.py` — that guard is
+working; regenerate `tests/routes_snapshot.json` and keep the diff reviewable
+(`json.dump(cur, f, indent=1, sort_keys=True)`, no trailing newline).

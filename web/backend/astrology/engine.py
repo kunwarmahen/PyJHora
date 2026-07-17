@@ -169,6 +169,11 @@ def to_engine_language(lang: Optional[str]) -> str:
 
     Note this is a per-call argument to PyJHora's get_*_resources(), NOT the global
     utils.set_language() — so it needs no set/reset and is safe under concurrency.
+
+    Design and traps: web/docs/I18N_DATA_LAYER_DESIGN.md. Before using this for a new
+    section, read §4.3 there: PyJHora eval()s its message files' KEYS as function names,
+    so passing a language into detection changes *which* yogas are found. Detect in
+    English, translate by key.
     """
     base = (lang or "en").split("-")[0].lower()
     if base == "sa":
