@@ -3774,9 +3774,11 @@ theme. The work is mostly *auditing the literals*, not writing a dark palette.
       - ⚠️ **Off-brand leftover**: `#667eea → #764ba2` (a bootstrap-ish violet gradient) in
         `Forms.css` + `LocationSearch.css`, tokenised as-is to `--info`/`--info-dark`. It is not
         part of the saffron identity — decide whether to retire it during the palette step.
-      - 🗑️ **Two dead duplicate stylesheets** found: `Dashboard.css` (repo root) and
-        `web/frontend/Dashboard.css` — nothing imports either, every selector is duplicated in
-        `src/styles/`. Leftovers from `b0eb113` written to the wrong path. Safe to delete.
+      - 🗑️ **Two dead duplicate stylesheets deleted** (2026-07-16): `Dashboard.css` (repo root)
+        and `web/frontend/Dashboard.css` — leftovers from `b0eb113`, whose extracted CSS landed at
+        the wrong path. Nothing imported either (all 39 imports resolve to `src/styles/`), all 48
+        of their selectors were duplicated live, and they sat outside `src/` so the token audit
+        never reached them. The CSS bundle was byte-identical after removal, hash included.
 - [x] ✅ **Dark palette — DONE 2026-07-16.** Night-sky indigo ground (`#12162b`) with the saffron/
       marigold/gold accents, not a grey theme. Every dark token measured AA for body text against
       both `--bg-primary` and `--surface-raised` (lowest: `--text-muted` 4.80 on raised).
