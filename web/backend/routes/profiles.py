@@ -36,14 +36,45 @@ import password_reset
 import email_service
 import notifications
 import digest as digest_service
+import digest_recipients
 import scheduler
 import uuid
 from fastapi import APIRouter
+from config import settings
 from models import *  # noqa: F401,F403
 from deps import *  # noqa: F401,F403
 import deps as _deps
 
 router = APIRouter()
+
+
+async def _invite_recipient_if_external(owner_id: str, notify_email: Optional[str]):
+    """When a profile's digest email is someone *other* than the account owner,
+    make sure that person has been invited to opt in (double opt-in). The owner's
+    own account email needs no consent — it's already verified, and the owner
+    reads their own combined digest there. No-ops silently if email isn't
+    configured or the address already has a standing decision."""
+    email = digest_recipients.normalize(notify_email)
+    if not email:
+        return
+    db = get_database()
+    owner = await db["users"].find_one({"username": owner_id})
+    owner_email = digest_recipients.normalize((owner or {}).get("email"))
+    if email == owner_email:
+        return  # the owner's own address — no invite needed
+    record, created = await digest_recipients.ensure(owner_id, email)
+    if created and record:
+        base = settings.APP_BASE_URL.rstrip("/")
+        token = record["token"]
+        owner_name = (owner or {}).get("username") or "Someone"
+        try:
+            await email_service.send_digest_confirmation(
+                email, owner_name,
+                confirm_url=f"{base}/digest/confirm?token={token}",
+                unsubscribe_url=f"{base}/digest/unsubscribe?token={token}",
+            )
+        except Exception as e:  # a mail hiccup must not fail the profile save
+            print(f"[digest] confirmation email failed for {email}: {e}")
 
 
 @router.post("/api/profiles/save")
@@ -75,6 +106,8 @@ async def save_profile(req: SaveProfileRequest, current_user: str = Depends(get_
 
         result = await profiles_collection.insert_one(profile.model_dump(by_alias=True, exclude={"id"}))
 
+        await _invite_recipient_if_external(current_user, req.notify_email)
+
         return {
             "success": True,
             "profile_id": str(result.inserted_id),
@@ -97,17 +130,25 @@ async def update_profile(profile_id: str, req: SaveProfileRequest, current_user:
 
         # Note: default status is managed only via /api/profiles/{id}/default,
         # so editing a profile never changes which profile is the default.
+        update = {
+            "profile_name": req.profile_name,
+            "birth_details": req.birth_details.model_dump(),
+        }
+        # Only touch notify_email when the client actually sent the field, so a
+        # birth-details-only update (e.g. rectification) never erases it.
+        if "notify_email" in req.model_fields_set:
+            update["notify_email"] = (req.notify_email or "").strip() or None
+
         result = await profiles_collection.update_one(
             {"_id": ObjectId(profile_id), "user_id": current_user},
-            {"$set": {
-                "profile_name": req.profile_name,
-                "birth_details": req.birth_details.model_dump(),
-                "notify_email": (req.notify_email or "").strip() or None,
-            }}
+            {"$set": update},
         )
 
         if result.matched_count == 0:
             raise HTTPException(status_code=404, detail="Profile not found")
+
+        if "notify_email" in req.model_fields_set:
+            await _invite_recipient_if_external(current_user, req.notify_email)
 
         return {
             "success": True,
@@ -177,9 +218,19 @@ async def list_profiles(current_user: str = Depends(get_current_user)):
 
         profiles = await profiles_collection.find({"user_id": current_user}).sort("created_at", -1).to_list(100)
 
-        # Convert ObjectId to string
+        # The owner's own address needs no consent; flag external recipients with
+        # their opt-in state so the UI can show pending/confirmed/unsubscribed.
+        owner = await database["users"].find_one({"username": current_user})
+        owner_email = digest_recipients.normalize((owner or {}).get("email"))
+
         for profile in profiles:
             profile["_id"] = str(profile["_id"])
+            addr = digest_recipients.normalize(profile.get("notify_email"))
+            if not addr or addr == owner_email:
+                profile["notify_status"] = "owner" if addr else None
+            else:
+                rec = await digest_recipients.get(current_user, addr)
+                profile["notify_status"] = rec.get("status") if rec else "pending"
 
         return {
             "success": True,

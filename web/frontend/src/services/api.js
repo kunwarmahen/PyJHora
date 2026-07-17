@@ -212,6 +212,9 @@ export const notificationsService = {
     api.post("/api/notifications/push/unsubscribe", { endpoint }),
   sendDigestNow: (cadence = "daily") =>
     api.post("/api/notifications/digest/send", null, { params: { cadence } }),
+  // Public recipient opt-in / opt-out, reached from an emailed link (no auth).
+  confirmDigest: (token) => api.get("/api/digest/confirm", { params: { token } }),
+  unsubscribeDigest: (token) => api.get("/api/digest/unsubscribe", { params: { token } }),
 };
 
 export const astrologyService = {

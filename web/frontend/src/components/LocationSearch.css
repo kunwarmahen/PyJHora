@@ -16,7 +16,12 @@
   border: 2px solid var(--border);
   border-radius: 8px;
   outline: none;
+  background: var(--surface);
+  color: var(--text-primary);
   transition: all 0.3s ease;
+}
+.location-search-input::placeholder {
+  color: var(--text-secondary);
 }
 
 .location-search-input:focus {

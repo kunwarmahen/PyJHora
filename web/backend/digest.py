@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from astrology import AstrologyCompute, DEFAULT_AYANAMSA
 from config import settings
 from database import get_database
+import digest_recipients
 import email_service
 import notifications
 import timezones
@@ -416,11 +417,22 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
                 continue  # owner reads this one in the combined copy
             groups.setdefault(addr, []).append(b)
 
+        owner_name = (user or {}).get("username") or user_id
+        base = settings.APP_BASE_URL.rstrip("/")
         for addr, gblocks in groups.items():
+            # Double opt-in: only deliver to a subject who has confirmed. Pending,
+            # unsubscribed or never-invited addresses are skipped — they still
+            # appear in the owner's combined copy above.
+            rec = await digest_recipients.get(user_id, addr)
+            if not rec or rec.get("status") != digest_recipients.CONFIRMED:
+                continue
+            unsub_url = f"{base}/digest/unsubscribe?token={rec['token']}"
             g_date = gblocks[0]["date"]
             g_subject = f"Your {settings.SITE_NAME} {noun} — {g_date}"
-            g_text = _render_text(gblocks, g_date, noun)
-            g_html = _render_html(gblocks, g_date, noun)
+            g_text = (_render_text(gblocks, g_date, noun)
+                      + email_service.digest_footer_text(owner_name, unsub_url))
+            g_html = (_render_html(gblocks, g_date, noun)
+                      + email_service.digest_footer_html(owner_name, unsub_url))
             try:
                 if await email_service.send_daily_digest(addr, g_subject, g_text, g_html):
                     sent["recipients"] += 1

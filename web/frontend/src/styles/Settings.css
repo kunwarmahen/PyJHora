@@ -480,6 +480,26 @@
   color: var(--text-primary);
 }
 
+/* Themed base for standalone Settings inputs/selects (API-access token label,
+   calendar profile picker, …). Without this they fell back to the browser's
+   default white control, which reads as a light box on the dark theme. Mirrors
+   .control-input so every Settings field looks like one system. */
+.settings-input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--sandalwood);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.settings-input:focus {
+  outline: none;
+  border-color: var(--saffron);
+}
+
 /* API access — tokens (§2.3) */
 .settings-token-create {
   display: flex;

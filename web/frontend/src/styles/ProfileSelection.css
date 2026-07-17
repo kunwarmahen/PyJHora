@@ -607,3 +607,25 @@
 .advanced-coordinates[open] {
   padding-bottom: var(--space-md);
 }
+
+/* Digest delivery status pill on a profile card (external recipient opt-in). */
+.digest-status {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.digest-status--pending {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+.digest-status--confirmed {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.digest-status--unsubscribed {
+  background: var(--surface-neutral);
+  color: var(--text-secondary);
+}

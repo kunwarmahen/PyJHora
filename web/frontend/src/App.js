@@ -41,6 +41,7 @@ import { FortnightlyDigestPage, MonthlyDigestPage } from "./pages/PeriodDigestPa
 import { HistoryPage } from "./pages/HistoryPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { DigestConsentPage } from "./pages/DigestConsentPage";
 import { EphemerisPage } from "./pages/EphemerisPage";
 import { BhavaChartPage } from "./pages/BhavaChartPage";
 import { FullReportPage } from "./pages/FullReportPage";
@@ -81,6 +82,8 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/digest/confirm" element={<DigestConsentPage mode="confirm" />} />
+            <Route path="/digest/unsubscribe" element={<DigestConsentPage mode="unsubscribe" />} />
             <Route path="/share/:token" element={<SharedChartPage />} />
 
             <Route

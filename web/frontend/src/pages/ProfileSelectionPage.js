@@ -406,6 +406,20 @@ export const ProfileSelectionPage = () => {
                           <MapPin size={14} />
                           <span>{orDash(profile.birth_details.place)}</span>
                         </div>
+                        {profile.notify_email && (
+                          <div className="detail-item">
+                            <Mail size={14} />
+                            <span>{profile.notify_email}</span>
+                            {profile.notify_status &&
+                              profile.notify_status !== "owner" && (
+                                <span
+                                  className={`digest-status digest-status--${profile.notify_status}`}
+                                >
+                                  {t(`profile.digestStatus.${profile.notify_status}`)}
+                                </span>
+                              )}
+                          </div>
+                        )}
                       </div>
                       <div className="select-indicator">
                         <span>

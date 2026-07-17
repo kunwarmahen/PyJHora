@@ -329,3 +329,12 @@
   display: flex;
   justify-content: center;
 }
+
+/* Digest confirm / unsubscribe landing (public, from an emailed link) */
+.digest-consent-icon {
+  display: block;
+  margin: 10px auto 0;
+}
+.digest-consent-icon--ok { color: var(--success-bright); }
+.digest-consent-icon--muted { color: var(--text-secondary); }
+.digest-consent-icon--warn { color: var(--saffron); }

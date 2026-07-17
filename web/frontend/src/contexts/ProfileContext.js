@@ -72,20 +72,24 @@ export const ProfileProvider = ({ children }) => {
     }
   };
 
-  // Update a profile
-  const updateProfile = async (profileId, profileName, birthDetails, notifyEmail = null) => {
+  // Update a profile. `notifyEmail` is only sent when explicitly passed
+  // (undefined = leave the stored value untouched), so callers that just tweak
+  // birth details — e.g. the rectification page — never wipe the digest email.
+  const updateProfile = async (profileId, profileName, birthDetails, notifyEmail = undefined) => {
     try {
+      const body = {
+        profile_name: profileName,
+        birth_details: birthDetails,
+      };
+      if (notifyEmail !== undefined) body.notify_email = notifyEmail || null;
+
       const response = await fetch(`${API_URL}/api/profiles/${profileId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
-        body: JSON.stringify({
-          profile_name: profileName,
-          birth_details: birthDetails,
-          notify_email: notifyEmail || null,
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
@@ -97,7 +101,7 @@ export const ProfileProvider = ({ children }) => {
             ...selectedProfile,
             profile_name: profileName,
             birth_details: birthDetails,
-            notify_email: notifyEmail || null,
+            ...(notifyEmail !== undefined ? { notify_email: notifyEmail || null } : {}),
           };
           setSelectedProfile(updatedProfile);
           localStorage.setItem("selectedProfile", JSON.stringify(updatedProfile));

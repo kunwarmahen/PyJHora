@@ -2042,8 +2042,36 @@ server-injects birth details + resets global state, auth endpoint, saffron page,
             ("slow down", "trust the timing", "audit your projects", "bridge period", …) and the fixed
             "Today's alignment of…" opener, and ask for varied flowing prose over the old bold-labelled
             3-beat template. Tests: `tests/test_digest.py` (7, pure — split/hoist/render/offset-clock).
-        **OPEN (deferred, owner to decide):** recipient consent/verification, unsubscribe for
-        non-account subjects, optional per-subject current-location.
+      - **FOLLOW-UP 2026-07-17 (consent + unsubscribe + Settings input polish):**
+        (5) **Double opt-in consent** — new `digest_recipients.py` collection tracks per
+            `(owner, email)` state `pending|confirmed|unsubscribed` with a long-lived cleartext link
+            `token` (low-sensitivity capability). Saving/updating a profile whose `notify_email` is
+            *external* (≠ owner account email) calls `_invite_recipient_if_external` →
+            `digest_recipients.ensure` + `email_service.send_digest_confirmation` (once; a standing
+            decision incl. opt-out is never re-invited). `send_digest_for_user` now **only** delivers
+            a per-recipient copy when status==confirmed (pending/unsubscribed/uninvited are skipped;
+            they still appear in the owner's combined copy). Every recipient email carries an
+            unsubscribe footer (`email_service.digest_footer_{text,html}`).
+        (6) **Public no-auth endpoints** `GET /api/digest/confirm|unsubscribe?token=` (in
+            routes/notifications.py; snapshot regenerated). Frontend public pages
+            `DigestConsentPage` at `/digest/confirm` + `/digest/unsubscribe` (mode prop), i18n
+            `digestConsent.*` (en/hi/sa). Links point at `APP_BASE_URL` (frontend, mirrors reset).
+        (7) **Recipient status surfaced** — `list_profiles` attaches `notify_status`
+            (owner/pending/confirmed/unsubscribed); ProfileSelectionPage shows a pill on the card.
+        (8) **updateProfile no longer wipes notify_email** — ProfileContext omits the field unless
+            passed; PUT route only `$set`s it when `"notify_email" in model_fields_set` (rectification
+            path was silently erasing it).
+        (9) **Settings input look&feel** — `.settings-input` had NO base style → browser-default white
+            box on dark theme (hit the API-access token label AND the calendar profile select); added a
+            themed base mirroring `.control-input`. `.location-search-input` set a border but no bg/color
+            → same white box; added `background:var(--surface)`+`color:var(--text-primary)`+placeholder.
+            All token-only (tokens.test.js green).
+        Tests: `tests/test_digest_recipients.py` (5, in-memory fake Mongo via asyncio.run). Suites
+        green (backend 279, frontend 116).
+        **STILL OPEN (owner said do them — next):** content ideas — daily action window (muhurta/hora),
+        "what changed since yesterday" (needs per-profile last-digest state + diff), per-person
+        deep-link buttons in emails, weekly cadence for family members; + optional per-subject
+        current-location.
 - [x] **KP system (Krishnamurti Paddhati)** (P2→P1). DONE 2026-07-04 (full, incl. horary — owner
       pick). `AstrologyCompute.get_kp_details(dob,tob,place…)` forces the **KP (Krishnamurti)
       ayanamsa** and returns, for the Ascendant + all nine grahas, the sign / star (nakshatra) / sub

@@ -36,6 +36,7 @@ import password_reset
 import email_service
 import notifications
 import digest as digest_service
+import digest_recipients
 import scheduler
 import uuid
 from fastapi import APIRouter
@@ -110,3 +111,25 @@ async def send_digest_now(cadence: str = "daily",
             raise HTTPException(status_code=400, detail="No birth profile found to build the digest from")
         raise HTTPException(status_code=400, detail="Digest calculation failed")
     return result
+
+
+# ---- Public digest opt-in / opt-out (no auth — reached from an emailed link) ----
+
+@router.get("/api/digest/confirm")
+async def digest_confirm(token: str = ""):
+    """Confirm a recipient's opt-in from a confirmation-email link. Public and
+    idempotent; a bad token just reports failure without leaking anything."""
+    email = await digest_recipients.confirm(token)
+    if not email:
+        return {"status": "invalid"}
+    return {"status": "confirmed", "email": email}
+
+
+@router.get("/api/digest/unsubscribe")
+async def digest_unsubscribe(token: str = ""):
+    """Opt a recipient out from an unsubscribe link carried in every digest.
+    Public and idempotent."""
+    email = await digest_recipients.unsubscribe(token)
+    if not email:
+        return {"status": "invalid"}
+    return {"status": "unsubscribed", "email": email}

@@ -170,7 +170,10 @@ A **view mode** decides how much of it is advertised:
   engine), **Notifications** (daily-digest opt-in, target profiles — a subset or "all" — AI-reading
   toggle + preferred hour, email + browser-push toggles, "send test now"; **each profile can also carry
   its own delivery email** (Profiles → edit → *Digest email*) — a subject with an address gets their own
-  personal digest, everyone without one stays in the owner's combined copy), and **Account** (account overview, update email, change password,
+  personal digest, everyone without one stays in the owner's combined copy. An external address is
+  **double opt-in**: adding it emails that person a one-time confirmation, and nothing is delivered to
+  them until they click it; every digest they then receive carries a one-click unsubscribe. The profile
+  card shows the delivery state (invite pending / confirmed / unsubscribed)), and **Account** (account overview, update email, change password,
   log out other devices, and a danger-zone **Delete account**)
 - **Consolidated controls**: the per-page dropdowns/toggles that used to live on individual pages
   (ayanamsa, chart style, almanac engine, AI model/keys) were removed — pages now read these from

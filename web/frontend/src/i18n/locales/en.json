@@ -261,6 +261,16 @@
       "error": "This reset link is invalid or has expired."
     }
   },
+  "digestConsent": {
+    "working": "One moment…",
+    "confirmedTitle": "You're all set",
+    "confirmedBody": "You'll now receive the digest by email at {{email}}.",
+    "unsubscribedTitle": "Unsubscribed",
+    "unsubscribedBody": "You won't receive any more digest emails at {{email}}.",
+    "invalidTitle": "Link not recognized",
+    "invalidBody": "This link is invalid or has already been used.",
+    "backToApp": "Go to {{site}}"
+  },
   "profile": {
     "selectTitle": "Select Your Chart",
     "selectSubtitle": "Choose an existing profile or create a new one to explore your cosmic journey",
@@ -280,7 +290,12 @@
     "fullNamePlaceholder": "Your full name",
     "notifyEmail": "Digest email (Optional)",
     "notifyEmailPlaceholder": "person@example.com",
-    "notifyEmailHint": "Send this person's daily digest to their own address. Leave blank to include them in your combined digest instead.",
+    "notifyEmailHint": "Send this person's daily digest to their own address. Leave blank to include them in your combined digest instead. They'll get a one-time email to confirm before anything is sent.",
+    "digestStatus": {
+      "pending": "invite pending",
+      "confirmed": "confirmed",
+      "unsubscribed": "unsubscribed"
+    },
     "placeOfBirth": "Place of Birth",
     "advancedToggle": "Advanced: adjust coordinates & timezone",
     "latitude": "Latitude",
