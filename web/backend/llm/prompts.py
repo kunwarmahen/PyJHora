@@ -760,6 +760,12 @@ Reason from the placements given; cite the factors behind your read. Do NOT make
         nak = panch.get("nakshatra") or {}
         vaara = panch.get("vaara") or {}
         highlights = "\n".join(f"- {h}" for h in d.get("highlights", [])) or "- (a quiet day)"
+        aw = d.get("action_window") or {}
+        action_line = (
+            f"{aw['name']} {aw['start']}–{aw['end']}" if aw.get("name") else "none flagged")
+        changes = d.get("changes") or []
+        changes_block = ("\n".join(f"- {c}" for c in changes)
+                         if changes else "- (nothing new since last time)")
         bhukti = (dasha.get("bhukti") or {})
         upcoming = "\n".join(
             f"- {u['planet']} enters {u['to_sign']} on {u['date']}"
@@ -768,6 +774,9 @@ Reason from the placements given; cite the factors behind your read. Do NOT make
         retro = transits.get("retrograde", [])
 
         return f"""You are a warm, grounded personal Vedic astrologer writing {name}'s DAILY note for {d.get('date')}. Speak TO them ("you"), plainly.
+
+NEW SINCE {name}'S LAST DIGEST (if anything here, LEAD with it — it's the freshest, most relevant news):
+{changes_block}
 
 SPECIFIC TO {name} (build the reading around these — this is what makes today theirs):
 - Current dasha: {dasha.get('maha_lord', 'n/a')} Mahadasha{', ' + bhukti.get('lord') + ' Bhukti' if bhukti.get('lord') else ''} (Mahadasha runs to {dasha.get('maha_end', 'n/a')}).
@@ -778,13 +787,14 @@ SPECIFIC TO {name} (build the reading around these — this is what makes today 
 SHARED SKY (context only — nearly everyone reading a digest today sees the same, so do NOT open with it or make it the headline):
 - Panchanga: {vaara.get('name')}, {tithi.get('paksha')} {tithi.get('name')}, {nak.get('name')} nakshatra.
 - Retrograde now: {', '.join(retro) if retro else 'none'}.
+- Next auspicious window today (Choghadiya): {action_line}.
 - Upcoming ingresses:
 {upcoming}
 
 Write ~150 words as 2–3 short flowing paragraphs (no headings, no bullet labels):
 - Center it on the SPECIFIC signals above. If a dasha change is near, that is the story; otherwise lead with their dasha/bhukti mood or their Jupiter/Saturn-from-Moon transit.
 - The tithi/nakshatra/weekday can colour the opening in a line, but must not be the whole note. A retrograde only earns a mention if it genuinely bears on their situation — and then only once, woven in naturally.
-- Close with ONE concrete, specific suggestion tied to their strongest signal today.
+- Close with ONE concrete, specific suggestion tied to their strongest signal today. If an auspicious window is given above, you may anchor a time-sensitive suggestion to it (name the window and its hours once), but never invent a time.
 
 Hard rules: Do NOT restate the mechanical facts verbatim (never write "Retrograde now: …", "Jupiter enters …", or "Tajaka yoga — …"). Do NOT open with "Today's alignment of…" or any fixed template. Avoid scare-quotes and stock phrases — no "slow down", "trust the timing", "audit your projects", "bridge period", "electric", "big thing", "inner compass". Do NOT make fated, medical, legal or financial claims. Vary your opening from other people's readings. Keep it a supportive daily reflection."""
 

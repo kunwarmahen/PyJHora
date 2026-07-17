@@ -196,6 +196,13 @@ Someone born in India and living in the US has a birth offset of `+5.5` and a li
 `America/Chicago`. Before this existed, everything was paced off the birth profile, so a "7am"
 daily digest arrived at 8:30pm the previous evening — and was about the wrong day.
 
+Each daily digest also carries **the next auspicious Choghadiya window** ("Favourable window today:
+Labh 07:18–09:00"), a **"Since your last digest"** line calling out only what actually moved (a graha
+newly retrograde/direct, a dasha or bhukti change, Sade-Sati starting or lifting), and per-person
+**Open / Ask** buttons that deep-link straight to that chart. A profile can be set to **weekly**
+(Profiles → edit → *Digest frequency*) so it rides the daily digest only on Mondays — handy for
+family members whose day-to-day rarely changes.
+
 A digest covering several profiles uses **one clock for the whole message**, so a family read
 together never straddles two calendar days. The reader's current location wins; failing that the
 first profile's birth offset is borrowed as a shared fallback (before this, each profile derived its

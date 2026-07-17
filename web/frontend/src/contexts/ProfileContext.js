@@ -46,7 +46,8 @@ export const ProfileProvider = ({ children }) => {
   };
 
   // Save a new profile
-  const saveProfile = async (profileName, birthDetails, notifyEmail = null) => {
+  const saveProfile = async (profileName, birthDetails, notifyEmail = null,
+                             digestFrequency = null) => {
     try {
       const response = await fetch(`${API_URL}/api/profiles/save`, {
         method: "POST",
@@ -58,6 +59,7 @@ export const ProfileProvider = ({ children }) => {
           profile_name: profileName,
           birth_details: birthDetails,
           notify_email: notifyEmail || null,
+          digest_frequency: digestFrequency || null,
         }),
       });
 
@@ -75,13 +77,15 @@ export const ProfileProvider = ({ children }) => {
   // Update a profile. `notifyEmail` is only sent when explicitly passed
   // (undefined = leave the stored value untouched), so callers that just tweak
   // birth details — e.g. the rectification page — never wipe the digest email.
-  const updateProfile = async (profileId, profileName, birthDetails, notifyEmail = undefined) => {
+  const updateProfile = async (profileId, profileName, birthDetails,
+                               notifyEmail = undefined, digestFrequency = undefined) => {
     try {
       const body = {
         profile_name: profileName,
         birth_details: birthDetails,
       };
       if (notifyEmail !== undefined) body.notify_email = notifyEmail || null;
+      if (digestFrequency !== undefined) body.digest_frequency = digestFrequency || null;
 
       const response = await fetch(`${API_URL}/api/profiles/${profileId}`, {
         method: "PUT",
@@ -102,6 +106,9 @@ export const ProfileProvider = ({ children }) => {
             profile_name: profileName,
             birth_details: birthDetails,
             ...(notifyEmail !== undefined ? { notify_email: notifyEmail || null } : {}),
+            ...(digestFrequency !== undefined
+              ? { digest_frequency: digestFrequency || null }
+              : {}),
           };
           setSelectedProfile(updatedProfile);
           localStorage.setItem("selectedProfile", JSON.stringify(updatedProfile));
@@ -273,6 +280,20 @@ export const ProfileProvider = ({ children }) => {
         console.error("Failed to parse stored profile:", err);
       }
     }
+  }, []);
+
+  // Deep-link: any page opened with ?profile=<id> selects that profile. This is
+  // what the per-person buttons in the digest emails point at, so "Open Naina's
+  // day" lands on her chart, not whoever was last selected.
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get("profile");
+    if (!wanted) return;
+    (async () => {
+      const list = await loadProfiles();
+      const match = list.find((p) => p._id === wanted);
+      if (match) selectProfile(match);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value = {

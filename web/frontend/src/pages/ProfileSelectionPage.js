@@ -48,6 +48,7 @@ export const ProfileSelectionPage = () => {
     profile_name: "",
     name: "",
     notify_email: "",
+    digest_frequency: "daily",
     dob: "",
     tob: "",
     place: "",
@@ -89,6 +90,7 @@ export const ProfileSelectionPage = () => {
       profile_name: profile.profile_name,
       name: profile.birth_details.name,
       notify_email: profile.notify_email || "",
+      digest_frequency: profile.digest_frequency || "daily",
       dob: profile.birth_details.dob,
       tob: profile.birth_details.tob,
       place: profile.birth_details.place,
@@ -131,12 +133,15 @@ export const ProfileSelectionPage = () => {
     };
 
     const notifyEmail = (formData.notify_email || "").trim() || null;
+    const digestFrequency = formData.digest_frequency === "weekly" ? "weekly" : "daily";
     let result;
     if (editingProfile) {
       result = await updateProfile(
-        editingProfile._id, formData.profile_name, birthDetails, notifyEmail);
+        editingProfile._id, formData.profile_name, birthDetails, notifyEmail,
+        digestFrequency);
     } else {
-      result = await saveProfile(formData.profile_name, birthDetails, notifyEmail);
+      result = await saveProfile(
+        formData.profile_name, birthDetails, notifyEmail, digestFrequency);
     }
     setSaving(false);
 
@@ -519,6 +524,22 @@ export const ProfileSelectionPage = () => {
                   placeholder={t("profile.notifyEmailPlaceholder")}
                 />
                 <small>{t("profile.notifyEmailHint")}</small>
+              </div>
+
+              <div className="form-group">
+                <label>
+                  <Mail size={18} />
+                  {t("profile.digestFrequency")}
+                </label>
+                <select
+                  name="digest_frequency"
+                  value={formData.digest_frequency}
+                  onChange={handleInputChange}
+                >
+                  <option value="daily">{t("profile.freqDaily")}</option>
+                  <option value="weekly">{t("profile.freqWeekly")}</option>
+                </select>
+                <small>{t("profile.digestFrequencyHint")}</small>
               </div>
 
               <div className="form-row">

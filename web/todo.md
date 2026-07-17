@@ -2068,10 +2068,26 @@ server-injects birth details + resets global state, auth endpoint, saffron page,
             All token-only (tokens.test.js green).
         Tests: `tests/test_digest_recipients.py` (5, in-memory fake Mongo via asyncio.run). Suites
         green (backend 279, frontend 116).
-        **STILL OPEN (owner said do them — next):** content ideas — daily action window (muhurta/hora),
-        "what changed since yesterday" (needs per-profile last-digest state + diff), per-person
-        deep-link buttons in emails, weekly cadence for family members; + optional per-subject
-        current-location.
+      - **FOLLOW-UP 2026-07-17 (the four content ideas):**
+        (10) **Daily action window** — `get_daily_digest` now calls `get_muhurta_subtools` and, via
+             `_next_good_window` (linearises the day+night Choghadiya past midnight), picks the next
+             auspicious window from the observer's `current_time`; emits `action_window` + a
+             "Favourable window today: …" highlight (classed as SKY so it hoists). Daily prompt gets it
+             as an optional anchor for the concrete suggestion.
+        (11) **Per-person email deep-link buttons** — `_render_html/_render_text` take `app_url`+
+             `open_path`; each section ends with "Open X's reading" + "Ask about the day" buttons
+             carrying `?profile=<id>`. New global ProfileContext effect selects the profile from
+             `?profile=` on any page (so the link lands on that chart).
+        (12) **Weekly cadence per profile** — `SavedProfile.digest_frequency` ("weekly"|None=daily);
+             `_clean_frequency` in the routes; `send_digest_for_user` skips weekly profiles on the
+             *daily* cadence unless `_is_monday(observer)`. Form select + i18n `profile.freq*`.
+        (13) **What changed since your last digest** — `digest_signals` collection snapshots
+             {retro set, maha, bhukti, sade_sati} per (user, profile); `_diff_signals` yields "since
+             last time" lines (empty on first-ever, no fabrication), rendered "Since your last digest"
+             and fed to the daily prompt to LEAD with. Daily cadence only; advances the snapshot each send.
+        Tests: test_digest.py now 15 (window/monday/sky/signal-diff). Backend 295, frontend 116 green.
+        **STILL OPEN:** optional per-subject current-location (so a subject living elsewhere gets
+        *their* today, not the owner's).
 - [x] **KP system (Krishnamurti Paddhati)** (P2→P1). DONE 2026-07-04 (full, incl. horary — owner
       pick). `AstrologyCompute.get_kp_details(dob,tob,place…)` forces the **KP (Krishnamurti)
       ayanamsa** and returns, for the Ascendant + all nine grahas, the sign / star (nakshatra) / sub

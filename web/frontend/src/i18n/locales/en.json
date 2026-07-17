@@ -296,6 +296,10 @@
       "confirmed": "confirmed",
       "unsubscribed": "unsubscribed"
     },
+    "digestFrequency": "Digest frequency",
+    "digestFrequencyHint": "How often this profile appears in the daily digest. Weekly sends only on Mondays — good for family whose day-to-day rarely changes.",
+    "freqDaily": "Daily",
+    "freqWeekly": "Weekly (Mondays)",
     "placeOfBirth": "Place of Birth",
     "advancedToggle": "Advanced: adjust coordinates & timezone",
     "latitude": "Latitude",

@@ -86,6 +86,78 @@ def test_render_hoists_sky_once_and_keeps_personal_per_name():
     assert "Sun Mahadasha, Rahu Bhukti" in text
 
 
+from astrology.compute_digests import _next_good_window
+
+# A synthetic Choghadiya day (sunrise 06:00) then night wrapping past midnight.
+_CHOG = [
+    {"name": "Udveg", "nature": "bad", "start": "06:00", "end": "07:30", "period": "day"},
+    {"name": "Char", "nature": "neutral", "start": "07:30", "end": "09:00", "period": "day"},
+    {"name": "Labh", "nature": "good", "start": "09:00", "end": "10:30", "period": "day"},
+    {"name": "Amrit", "nature": "good", "start": "10:30", "end": "12:00", "period": "day"},
+    {"name": "Kaal", "nature": "bad", "start": "18:00", "end": "20:00", "period": "night"},
+    {"name": "Shubh", "nature": "good", "start": "23:00", "end": "01:00", "period": "night"},
+]
+
+
+def test_next_good_window_picks_upcoming():
+    assert _next_good_window(_CHOG, 8.0)["name"] == "Labh"
+
+
+def test_next_good_window_current_still_counts():
+    # 09:30 is inside Labh (ends 10:30) — it's still the answer, not skipped.
+    assert _next_good_window(_CHOG, 9.5)["name"] == "Labh"
+
+
+def test_next_good_window_crosses_midnight():
+    # After the daytime good windows, the next is the night Shubh at 23:00.
+    assert _next_good_window(_CHOG, 13.0)["name"] == "Shubh"
+
+
+def test_next_good_window_none_left():
+    assert _next_good_window(_CHOG, 23.5 + 2) is None  # past the wrapped Shubh end
+
+
+def test_is_monday():
+    assert digest._is_monday({"date": "2026-07-20"}) is True   # a Monday
+    assert digest._is_monday({"date": "2026-07-17"}) is False  # a Friday
+    assert digest._is_monday(None) is True                      # unknown → don't swallow
+
+
+def test_favourable_window_is_a_sky_fact():
+    sky, personal = digest._split_highlights(
+        ["Favourable window today: Amrit 10:30–12:00 (day)", "Rahu Mahadasha, Rahu Bhukti"])
+    assert any(s.startswith("Favourable window today:") for s in sky)
+    assert "Rahu Mahadasha, Rahu Bhukti" in personal
+
+
+def test_diff_signals_first_time_is_empty():
+    new = digest._extract_signals(
+        {"transits": {"retrograde": ["Mercury"], "sade_sati": False},
+         "dasha": {"maha_lord": "Rahu", "bhukti": {"lord": "Rahu"}}})
+    assert digest._diff_signals(None, new) == []
+
+
+def test_diff_signals_reports_only_what_moved():
+    old = {"retro": ["Mercury"], "maha": "Rahu", "bhukti": "Rahu", "sade_sati": False}
+    new = {"retro": ["Mercury", "Saturn"], "maha": "Rahu", "bhukti": "Jupiter",
+           "sade_sati": True}
+    lines = digest._diff_signals(old, new)
+    assert "Saturn has turned retrograde" in lines
+    assert "A new Bhukti has begun: Jupiter" in lines
+    assert "Sade-Sati has begun" in lines
+    # Mercury was already retrograde and the Mahadasha didn't change → not mentioned.
+    assert not any("Mercury" in l for l in lines)
+    assert not any("Mahadasha" in l for l in lines)
+
+
+def test_diff_signals_direct_again():
+    old = {"retro": ["Mercury", "Mars"], "maha": "Sun", "bhukti": "Sun", "sade_sati": True}
+    new = {"retro": ["Mercury"], "maha": "Sun", "bhukti": "Sun", "sade_sati": False}
+    lines = digest._diff_signals(old, new)
+    assert "Mars is direct again" in lines
+    assert "Sade-Sati has lifted" in lines
+
+
 def test_offset_clock_shape():
     # The fallback clock (used when no current location is set) must yield the
     # keys the block builder threads into the engine, carrying the given offset.

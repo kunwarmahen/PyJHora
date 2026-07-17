@@ -10,6 +10,36 @@ from .engine import *  # noqa: F401,F403  (constants + helpers the bodies use)
 AstrologyCompute = None
 
 
+def _next_good_window(choghadiya, now_h):
+    """The next auspicious Choghadiya window at/after ``now_h`` (local hours).
+
+    ``choghadiya`` is the chronological day+night list from
+    ``get_muhurta_subtools`` — each part a dict with ``name``/``nature``/``start``/
+    ``end`` ("HH:MM"). Night parts wrap past midnight, so the clock strings are
+    linearised onto a single rising axis before comparing. Returns the part dict
+    (with linear-safe ``start``/``end`` strings unchanged) or None when no good
+    window remains on the axis."""
+    def _h(s):
+        hh, mm = (s.split(":") + ["0"])[:2]
+        return int(hh) + int(mm) / 60.0
+
+    good = {"good"}
+    offset = 0.0
+    prev = None
+    for part in choghadiya:
+        s = _h(part["start"])
+        if prev is not None and s < prev - 1e-6:
+            offset += 24.0  # crossed midnight — bump onto the next day
+        prev = s
+        abs_start = s + offset
+        # A part lasts until its end; if end < start it wrapped, so +24.
+        e = _h(part["end"])
+        abs_end = e + offset + (24.0 if e < s - 1e-6 else 0.0)
+        if part.get("nature") in good and abs_end > now_h:
+            return part
+    return None
+
+
 class DigestsMixin:
 
     # ── Daily digest (§16) ─────────────────────────────────────────────────
@@ -150,6 +180,32 @@ class DigestsMixin:
                         pair = f" ({'/'.join(yg['pair'])})" if yg.get("pair") else ""
                         highlights.append(f"Tajaka yoga — {yg['name']}{pair}")
 
+            # ── Best window today: the next auspicious Choghadiya from "now" ──
+            # A single actionable "when to act" line — the same for everyone at a
+            # place on a day, so the digest hoists it into the shared-sky header.
+            action_window = None
+            try:
+                sub = AstrologyCompute.get_muhurta_subtools(
+                    date=date_str, place=place, lat=lat, lon=lon, tz=tz_offset)
+                if sub.get("status") == "success":
+                    if current_time:
+                        hh, mm = (current_time.split(":") + ["0"])[:2]
+                        now_h = int(hh) + int(mm) / 60.0
+                    else:
+                        now_h = local_now.hour + local_now.minute / 60.0
+                    best = _next_good_window(sub.get("choghadiya", []), now_h)
+                    if best:
+                        action_window = {
+                            "name": best["name"], "nature": best["nature"],
+                            "start": best["start"], "end": best["end"],
+                            "period": best.get("period"),
+                        }
+                        highlights.append(
+                            f"Favourable window today: {best['name']} "
+                            f"{best['start']}–{best['end']} ({best.get('period', '')})".strip())
+            except Exception:
+                action_window = None
+
             return {
                 "status": "success",
                 "date": date_str,
@@ -159,6 +215,7 @@ class DigestsMixin:
                 "dasha": dasha_block,
                 "transits": transit_block,
                 "pravesh": pravesh,
+                "action_window": action_window,
                 "highlights": highlights,
             }
         except Exception as e:

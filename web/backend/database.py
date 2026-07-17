@@ -100,6 +100,10 @@ class SavedProfile(BaseModel):
     # owner receives it (in their combined copy). Set to send this subject their
     # own personal digest at their own address.
     notify_email: Optional[str] = None
+    # How often this profile appears in the daily digest: "daily" (default) or
+    # "weekly" (only on Mondays — cuts the mail volume for family members whose
+    # day-to-day rarely changes). None is treated as "daily".
+    digest_frequency: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Config:

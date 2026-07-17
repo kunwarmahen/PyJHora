@@ -48,6 +48,11 @@ import deps as _deps
 router = APIRouter()
 
 
+def _clean_frequency(value: Optional[str]) -> Optional[str]:
+    """Normalize a profile's digest frequency to "weekly" or None (= daily)."""
+    return "weekly" if str(value or "").strip().lower() == "weekly" else None
+
+
 async def _invite_recipient_if_external(owner_id: str, notify_email: Optional[str]):
     """When a profile's digest email is someone *other* than the account owner,
     make sure that person has been invited to opt in (double opt-in). The owner's
@@ -102,6 +107,7 @@ async def save_profile(req: SaveProfileRequest, current_user: str = Depends(get_
             birth_details=req.birth_details,
             is_default=req.is_default,
             notify_email=(req.notify_email or "").strip() or None,
+            digest_frequency=_clean_frequency(req.digest_frequency),
         )
 
         result = await profiles_collection.insert_one(profile.model_dump(by_alias=True, exclude={"id"}))
@@ -134,10 +140,12 @@ async def update_profile(profile_id: str, req: SaveProfileRequest, current_user:
             "profile_name": req.profile_name,
             "birth_details": req.birth_details.model_dump(),
         }
-        # Only touch notify_email when the client actually sent the field, so a
-        # birth-details-only update (e.g. rectification) never erases it.
+        # Only touch these when the client actually sent them, so a
+        # birth-details-only update (e.g. rectification) never erases them.
         if "notify_email" in req.model_fields_set:
             update["notify_email"] = (req.notify_email or "").strip() or None
+        if "digest_frequency" in req.model_fields_set:
+            update["digest_frequency"] = _clean_frequency(req.digest_frequency)
 
         result = await profiles_collection.update_one(
             {"_id": ObjectId(profile_id), "user_id": current_user},

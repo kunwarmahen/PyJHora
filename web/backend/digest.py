@@ -212,12 +212,88 @@ def _split_highlights(highlights: List[str]) -> Tuple[List[str], List[str]]:
     for h in highlights:
         s = str(h)
         if (s.startswith("Retrograde now:")
+                or s.startswith("Favourable window today:")
                 or " nakshatra" in s
                 or _INGRESS_RE.search(s)):
             sky.append(s)
         else:
             personal.append(s)
     return sky, personal
+
+
+def _is_monday(observer: Optional[Dict[str, Any]]) -> bool:
+    """True when the digest's shared day is a Monday — the weekly-profile
+    delivery day. Unknown clock → True, so a misconfigured clock never silently
+    swallows a weekly send forever."""
+    if not observer:
+        return True
+    try:
+        from datetime import date as _date
+        y, m, d = map(int, observer["date"].split("-"))
+        return _date(y, m, d).weekday() == 0
+    except Exception:
+        return True
+
+
+# ── "What changed since your last digest" ──────────────────────────────────
+# A tiny per-profile snapshot of the facts worth noticing a *change* in, stored
+# between daily sends so today's digest can call out only what actually moved.
+SIGNALS_COLLECTION = "digest_signals"
+
+
+def _extract_signals(digest: Dict[str, Any]) -> Dict[str, Any]:
+    """The change-worthy signals of a daily digest: which grahas are retrograde,
+    the running Mahadasha/Bhukti lords, and whether Sade-Sati is on."""
+    t = digest.get("transits") or {}
+    dasha = digest.get("dasha") or {}
+    bh = dasha.get("bhukti") or {}
+    return {
+        "retro": sorted(t.get("retrograde") or []),
+        "maha": dasha.get("maha_lord"),
+        "bhukti": (bh or {}).get("lord"),
+        "sade_sati": bool(t.get("sade_sati")),
+    }
+
+
+def _diff_signals(old: Optional[Dict[str, Any]], new: Dict[str, Any]) -> List[str]:
+    """Human "since last time" lines from two snapshots. Empty on the first ever
+    digest (no baseline — we don't fabricate change), and empty when nothing of
+    note moved."""
+    if not old:
+        return []
+    lines: List[str] = []
+    old_r, new_r = set(old.get("retro") or []), set(new.get("retro") or [])
+    for p in sorted(new_r - old_r):
+        lines.append(f"{p} has turned retrograde")
+    for p in sorted(old_r - new_r):
+        lines.append(f"{p} is direct again")
+    if new.get("maha") and old.get("maha") != new.get("maha"):
+        lines.append(f"A new Mahadasha has begun: {new['maha']}")
+    if new.get("bhukti") and old.get("bhukti") != new.get("bhukti"):
+        lines.append(f"A new Bhukti has begun: {new['bhukti']}")
+    if old.get("sade_sati") != new.get("sade_sati"):
+        lines.append("Sade-Sati has begun" if new.get("sade_sati") else "Sade-Sati has lifted")
+    return lines
+
+
+async def _load_signals(user_id: str, profile_id: str) -> Optional[Dict[str, Any]]:
+    if not profile_id:
+        return None
+    doc = await get_database()[SIGNALS_COLLECTION].find_one(
+        {"user_id": user_id, "profile_id": profile_id})
+    return (doc or {}).get("signals")
+
+
+async def _save_signals(user_id: str, profile_id: str,
+                        signals: Dict[str, Any], date: Optional[str]) -> None:
+    if not profile_id:
+        return
+    await get_database()[SIGNALS_COLLECTION].update_one(
+        {"user_id": user_id, "profile_id": profile_id},
+        {"$set": {"user_id": user_id, "profile_id": profile_id,
+                  "signals": signals, "date": date}},
+        upsert=True,
+    )
 
 
 def _shared_sky(blocks: List[Dict[str, Any]]) -> Optional[List[str]]:
@@ -274,6 +350,19 @@ async def _profile_block(user_id: str, profile: Dict[str, Any],
         window = digest.get("date")
     else:
         window = f"{digest.get('start_date')} → {digest.get('end_date')}"
+
+    # "What changed since your last digest" — only meaningful for the daily
+    # cadence, which advances day to day. Diff against the stored snapshot, then
+    # advance it. Set on the digest dict too, so the AI narrative can lead with it.
+    changes: List[str] = []
+    if cadence == "daily":
+        pid = str(profile.get("_id") or "")
+        new_sig = _extract_signals(digest)
+        old_sig = await _load_signals(user_id, pid)
+        changes = _diff_signals(old_sig, new_sig)
+        digest["changes"] = changes
+        await _save_signals(user_id, pid, new_sig, digest.get("date"))
+
     narrative = None
     if include_ai:
         try:
@@ -293,16 +382,19 @@ async def _profile_block(user_id: str, profile: Dict[str, Any],
         "highlights": highlights,
         "sky": sky,
         "personal": personal,
+        "changes": changes,
         "narrative": narrative,
     }
 
 
-def _render_text(blocks: List[Dict[str, Any]], date: str, noun: str) -> str:
+def _render_text(blocks: List[Dict[str, Any]], date: str, noun: str,
+                 app_url: Optional[str] = None, open_path: str = "/daily-digest") -> str:
     """Plain-text combined digest, one section per profile.
 
     When every section shares the same sky (2+ profiles on the same day), the
     common facts are printed once up top and each section keeps only what is
-    personal to that chart."""
+    personal to that chart. When ``app_url`` is given, each section ends with a
+    deep link to that person's reading."""
     parts = [f"Your {settings.SITE_NAME} Vedic {noun} for {date}", ""]
     multi = len(blocks) > 1
     shared = _shared_sky(blocks)
@@ -319,17 +411,31 @@ def _render_text(blocks: List[Dict[str, Any]], date: str, noun: str) -> str:
         if b.get("narrative"):
             parts.append(b["narrative"])
             parts.append("")
+        if b.get("changes"):
+            parts.append("Since your last digest:")
+            parts.extend(f"• {c}" for c in b["changes"])
+            parts.append("")
         lines = b.get("personal") if shared else b.get("highlights")
         if lines:
             parts.append("For you:" if shared else "Highlights:")
             parts.extend(f"• {h}" for h in lines)
             parts.append("")
-    parts.append(f"Open {settings.SITE_NAME} for the full reading.")
+        if app_url and b.get("_profile_id"):
+            parts.append(f"Open {b['name']}'s reading: "
+                         f"{app_url}{open_path}?profile={b['_profile_id']}")
+            parts.append("")
+    if not app_url:
+        parts.append(f"Open {settings.SITE_NAME} for the full reading.")
     return "\n".join(parts)
 
 
-def _render_html(blocks: List[Dict[str, Any]], date: str, noun: str) -> str:
-    """HTML combined digest, one section per profile (shared sky hoisted once)."""
+def _render_html(blocks: List[Dict[str, Any]], date: str, noun: str,
+                 app_url: Optional[str] = None, open_path: str = "/daily-digest") -> str:
+    """HTML combined digest, one section per profile (shared sky hoisted once).
+
+    When ``app_url`` is given, each person's section ends with two deep-link
+    buttons — open their reading, or ask about their day — both carrying
+    ``?profile=<id>`` so the app lands on that exact chart."""
     import html as _html
 
     def esc(s: str) -> str:
@@ -339,6 +445,25 @@ def _render_html(blocks: List[Dict[str, Any]], date: str, noun: str) -> str:
         # Render blank-line-separated paragraphs; keep it dependency-free.
         paras = [p.strip() for p in text.split("\n\n") if p.strip()]
         return "".join(f"<p>{esc(p)}</p>" for p in paras)
+
+    def _btn(url: str, label: str, primary: bool) -> str:
+        bg = "#FF9933" if primary else "transparent"
+        fg = "#fff" if primary else "#B8541A"
+        border = "#FF9933"
+        return (f'<a href="{esc(url)}" style="display:inline-block;margin:0 8px 6px 0;'
+                f'padding:8px 16px;border-radius:8px;border:1px solid {border};'
+                f'background:{bg};color:{fg};text-decoration:none;font-weight:600;'
+                f'font-size:13px;">{esc(label)}</a>')
+
+    def links_html(b: Dict[str, Any]) -> str:
+        pid = b.get("_profile_id")
+        if not app_url or not pid:
+            return ""
+        q = f"?profile={_html.escape(pid, quote=True)}"
+        return ('<p style="margin:6px 0 4px;">'
+                + _btn(f"{app_url}{open_path}{q}", f"Open {b['name']}’s reading", True)
+                + _btn(f"{app_url}/ask{q}", "Ask about the day", False)
+                + "</p>")
 
     multi = len(blocks) > 1
     shared = _shared_sky(blocks)
@@ -352,10 +477,16 @@ def _render_html(blocks: List[Dict[str, Any]], date: str, noun: str) -> str:
                    if multi else f"<p>Hi {esc(b['name'])},</p>")
         if b.get("narrative"):
             out.append(narrative_html(b["narrative"]))
+        if b.get("changes"):
+            out.append('<p style="margin:8px 0 2px;color:#B8541A">'
+                       '<b>Since your last digest</b></p>')
+            out.append("<ul>" + "".join(f"<li>{esc(c)}</li>" for c in b["changes"]) + "</ul>")
         lines = b.get("personal") if shared else b.get("highlights")
         if lines:
             out.append("<ul>" + "".join(f"<li>{esc(h)}</li>" for h in lines) + "</ul>")
-    out.append(f"<p>Open {esc(settings.SITE_NAME)} for the full reading.</p>")
+        out.append(links_html(b))
+    if not app_url:
+        out.append(f"<p>Open {esc(settings.SITE_NAME)} for the full reading.</p>")
     return "".join(out)
 
 
@@ -379,8 +510,15 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
     # One clock for the whole message: the reader's current location, or — failing
     # that — the first profile's birth offset, so every profile shares one day.
     observer = await observer_clock(user_id, profiles)
+    # A profile marked "weekly" only rides the *daily* digest on Mondays — the
+    # other cadences are already infrequent, so the flag doesn't gate them.
+    monday = _is_monday(observer)
     blocks: List[Dict[str, Any]] = []
     for profile in profiles:
+        if (cadence == "daily"
+                and str(profile.get("digest_frequency") or "").lower() == "weekly"
+                and not monday):
+            continue
         try:
             block = await _profile_block(user_id, profile, include_ai, cadence,
                                          basis, observer)
@@ -390,6 +528,7 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
         if block:
             # Where this subject's own copy goes (empty → the owner's combined copy).
             block["_email"] = (profile.get("notify_email") or "").strip().lower() or None
+            block["_profile_id"] = str(profile.get("_id") or "")
             blocks.append(block)
 
     if not blocks:
@@ -398,9 +537,11 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
     date = blocks[0]["date"]
     noun = spec["noun"]
     names = [b["name"] for b in blocks]
+    app_url = settings.APP_BASE_URL.rstrip("/")
+    open_path = spec["route"]
     subject = f"Your {settings.SITE_NAME} {noun} — {date}"
-    text = _render_text(blocks, date, noun)
-    html = _render_html(blocks, date, noun)
+    text = _render_text(blocks, date, noun, app_url, open_path)
+    html = _render_html(blocks, date, noun, app_url, open_path)
 
     sent = {"email": False, "push": 0, "recipients": 0}
     if prefs.get("email"):
@@ -429,9 +570,9 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
             unsub_url = f"{base}/digest/unsubscribe?token={rec['token']}"
             g_date = gblocks[0]["date"]
             g_subject = f"Your {settings.SITE_NAME} {noun} — {g_date}"
-            g_text = (_render_text(gblocks, g_date, noun)
+            g_text = (_render_text(gblocks, g_date, noun, app_url, open_path)
                       + email_service.digest_footer_text(owner_name, unsub_url))
-            g_html = (_render_html(gblocks, g_date, noun)
+            g_html = (_render_html(gblocks, g_date, noun, app_url, open_path)
                       + email_service.digest_footer_html(owner_name, unsub_url))
             try:
                 if await email_service.send_daily_digest(addr, g_subject, g_text, g_html):
