@@ -4102,3 +4102,53 @@ and then asking the user to type its name back is silly.
 **Verified live** (playwright): one click from the Dashboard sets it with **no navigation**, the
 confirmation renders, and it survives a reload; `Etc/GMT+2` → 422 "names no city", `Mars/Olympus`
 → 400; light and dark. 111 frontend + 272 backend tests, lint and prod build clean.
+
+## 42. Two stylesheets fighting over one input (owner feedback 2026-07-17) — ✅ SHIPPED
+
+Owner, with screenshots of the login field and the Settings language dropdown:
+
+> "can you see why the input text field is weird and dropdowns are larger"
+
+Two unrelated causes, both cosmetic, both from the app having grown **two form systems** that never
+got reconciled: the compact `.form-group input/select` in `Forms.css` (10px/12px padding, 14px,
+1px border) and the roomier `.form-select` / `.control-input` / `.control-btn` in `Shared.css`
+(2px sandalwood border, `--radius-md`).
+
+### The box-in-a-box
+
+The login markup is `.form-group > .input-wrapper > input`: the **wrapper** draws the border and the
+input is meant to sit bare inside it. But `.form-group input` is a *descendant* selector, so it
+matched the wrapped input too — and at **exactly the same specificity** as `.input-wrapper input`
+(0,1,1: one class, one element). A tie, so the winner was whichever file CRA happened to bundle
+later. `Forms.css` won, the input painted its own 6px-radius border and background *inside* the
+wrapper's, and the extra 12px of horizontal padding pushed it past the wrapper's right edge.
+
+Fixed in `Auth.css` by adding `.form-group .input-wrapper input` (0,2,1) alongside the original
+selector, plus a `:focus` reset — `.form-group input:focus` was also outranking `.input-wrapper
+input`, so focusing drew a second ring inside the wrapper's.
+
+### The oversized dropdown
+
+`.form-select` used `padding: var(--space-md)` (16px on all four sides) and `font-size: 1rem`, while
+its own siblings in `Shared.css` — `.control-input`, `.control-btn` — already used `var(--space-sm)
+var(--space-md)` and `0.9375rem`. It was the odd one out **within its own system**, not just against
+`Forms.css`, so it was aligned to the siblings it shares rows with rather than restyled to a new
+scale. 41px tall now, in line with the segmented toggles beside it in Settings → General.
+
+### Traps
+
+- **Specificity ties are decided by bundle order, and bundle order is not a design.** This is the
+  same hazard §41 noted from the other side ("CRA bundles all CSS globally, which is luck, not
+  design"). A rule that *looks* like it wins locally can lose to a file it has never heard of. When
+  a component styles its own children, it needs specificity that survives being bundled next to
+  anything — not a coin flip.
+- **`.form-group input` reaches further than it reads.** It's a descendant selector, so it claims
+  every input anywhere under a `.form-group`, including ones a component deliberately wrapped. Any
+  new wrapped control under a `.form-group` will hit this.
+- **`Forms.css` duplicates its own `.form-group select` block** (lines ~74 and ~334, near-identical).
+  Left alone here — noting it because the second copy silently wins and editing the first has no
+  effect.
+
+**Verified live** (playwright, dark theme, the owner's screenshots reproduced): the login input
+computes to `borderWidth: 0px`, transparent background, no box-shadow, focused *and* unfocused;
+`.form-select` computes to `8px 16px` / `15px` / 41px tall. 111 frontend tests pass.

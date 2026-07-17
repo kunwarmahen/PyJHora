@@ -635,13 +635,14 @@
   margin-bottom: 0;
 }
 
-/* Full-width form select */
+/* Full-width form select. Sizing matches .control-input / .control-btn so the
+   three shared controls line up when they share a row. */
 .form-select {
   width: 100%;
-  padding: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
   border: 2px solid var(--sandalwood);
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-family: inherit;
   background: var(--surface);
   color: var(--text-primary);

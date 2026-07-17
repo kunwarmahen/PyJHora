@@ -115,14 +115,27 @@
   flex-shrink: 0;
 }
 
-.input-wrapper input {
+/* The wrapper draws the border; the input must stay bare. `.form-group input`
+   in Forms.css matches these too at equal specificity, so the second selector
+   outweighs it rather than depending on bundle order. */
+.input-wrapper input,
+.form-group .input-wrapper input {
   flex: 1;
   border: none;
   background: none;
+  border-radius: 0;
   padding: var(--space-md) 0;
   font-size: 1rem;
   color: var(--text-primary);
   outline: none;
+  box-shadow: none;
+}
+
+.form-group .input-wrapper input:focus {
+  border: none;
+  background: none;
+  outline: none;
+  box-shadow: none;
 }
 
 .input-wrapper input::placeholder {
