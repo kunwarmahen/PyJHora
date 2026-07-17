@@ -154,6 +154,27 @@ PLANET_NAMES = {
 # Reverse lookup (name -> index) for resolving a dasha lord-path sent by the UI.
 PLANET_INDICES = {v: k for k, v in PLANET_NAMES.items()}
 
+# PyJHora ships message resources (yoga / raja-yoga / dosha names + descriptions) only
+# for these languages — see src/jhora/lang/. There is NO Sanskrit file upstream.
+ENGINE_LANGUAGES = frozenset({"en", "ta", "te", "hi", "ka", "ml"})
+
+
+def to_engine_language(lang: Optional[str]) -> str:
+    """Map a UI language code onto one PyJHora actually has message files for.
+
+    Sanskrit routes to Hindi rather than English on purpose: upstream has no `sa`
+    resources, and Hindi shares both the script and most of this vocabulary with
+    Sanskrit, so it lands far closer for a Sanskrit reader than English would.
+    Authoring real `sa` lang files upstream is tracked in web/todo.md §5.
+
+    Note this is a per-call argument to PyJHora's get_*_resources(), NOT the global
+    utils.set_language() — so it needs no set/reset and is safe under concurrency.
+    """
+    base = (lang or "en").split("-")[0].lower()
+    if base == "sa":
+        return "hi"
+    return base if base in ENGINE_LANGUAGES else "en"
+
 # Zodiac sign names, index 0 = Aries … 11 = Pisces.
 ZODIAC_NAMES = [
     "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",

@@ -399,9 +399,10 @@ async def get_doshas(
 async def get_yogas(
     birth_details: BirthDetails,
     ayanamsa: str = DEFAULT_AYANAMSA,
+    lang: str = "en",
     current_user: str = Depends(get_current_user)
 ):
-    """Get yogas"""
+    """Get yogas. `lang` localizes the yoga names and descriptions (sa -> hi)."""
     try:
         yogas = AstrologyCompute.get_yogas(
             dob=birth_details.dob,
@@ -410,7 +411,8 @@ async def get_yogas(
             lat=birth_details.latitude,
             lon=birth_details.longitude,
             tz=birth_details.timezone,
-            ayanamsa=ayanamsa
+            ayanamsa=ayanamsa,
+            lang=lang
         )
         return yogas
     except Exception as e:
@@ -593,14 +595,18 @@ async def get_varshaphal(
 async def get_raja_yogas(
     birth_details: BirthDetails,
     ayanamsa: str = DEFAULT_AYANAMSA,
+    lang: str = "en",
     current_user: str = Depends(get_current_user)
 ):
-    """Dedicated Raja Yoga analysis (Kendra-Trikona pairs + named special types)."""
+    """Dedicated Raja Yoga analysis (Kendra-Trikona pairs + named special types).
+
+    `lang` localizes the named raja-yoga names and descriptions (sa -> hi).
+    """
     try:
         result = AstrologyCompute.get_raja_yogas(
             dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
             lat=birth_details.latitude, lon=birth_details.longitude,
-            tz=birth_details.timezone, ayanamsa=ayanamsa,
+            tz=birth_details.timezone, ayanamsa=ayanamsa, lang=lang,
         )
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))

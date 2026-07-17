@@ -563,8 +563,13 @@ class StrengthMixin:
     @staticmethod
     def get_yogas(dob: str, tob: str, place: str,
                   lat: Optional[float] = None, lon: Optional[float] = None,
-                  tz: Optional[float] = None, ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
-        """Detect the yogas present in the Rasi chart (name + description + benefits)."""
+                  tz: Optional[float] = None, ayanamsa: str = DEFAULT_AYANAMSA,
+                  lang: str = "en") -> Dict:
+        """Detect the yogas present in the Rasi chart (name + description + benefits).
+
+        `lang` is the UI language; PyJHora returns the names AND the free-text
+        descriptions in it (see to_engine_language for the sa -> hi routing).
+        """
         if not ENGINE_AVAILABLE:
             return {"error": "Jyotir AI engine not available"}
         try:
@@ -578,17 +583,31 @@ class StrengthMixin:
             jd = swe.julday(year, month, day, hour + minute / 60)
             place_obj = drik.Place(place, lat, lon, tz_offset)
 
+            # Detect in English ALWAYS, then translate the labels by key.
+            #
+            # PyJHora drives detection off the message file's KEYS — it iterates
+            # msgs.items() and eval()s each key as a yoga function — so asking it for
+            # Hindi directly would change *which yogas are found*, not just their
+            # names: yoga_msgs_hi.json is missing yukthi_samanwithavagmi_yoga_154/_155
+            # and adds dhana_yoga + yukthi_samanwithavagmi_yoga. English is the
+            # canonical key set; language must never move the astrology.
             results, found, total = yoga.get_yoga_details(
-                jd, place_obj, divisional_chart_factor=1, language="en"
+                jd, place_obj, divisional_chart_factor=1, language="en",
+            )
+            engine_lang = to_engine_language(lang)
+            # {key: [name, description, benefits]} — untouched by the insert() below.
+            translated = (
+                yoga.get_yoga_resources(language=engine_lang) if engine_lang != "en" else {}
             )
             yogas = []
             for key, details in results.items():
                 # details = [chartID, name, description, benefits]
+                t = translated.get(key)  # missing key -> English, never a blank
                 yogas.append({
                     "key": key,
-                    "name": details[1] if len(details) > 1 else key,
-                    "description": details[2] if len(details) > 2 else "",
-                    "benefits": details[3] if len(details) > 3 else "",
+                    "name": (t[0] if t else details[1]) if len(details) > 1 else key,
+                    "description": (t[1] if t else details[2]) if len(details) > 2 else "",
+                    "benefits": (t[2] if t else details[3]) if len(details) > 3 else "",
                 })
             yogas.sort(key=lambda y: y["name"])
             return {"status": "success", "yogas": yogas, "found": found, "total": total}
@@ -603,7 +622,8 @@ class StrengthMixin:
     def get_raja_yogas(dob: str, tob: str, place: str,
                        lat: Optional[float] = None, lon: Optional[float] = None,
                        tz: Optional[float] = None,
-                       ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+                       ayanamsa: str = DEFAULT_AYANAMSA,
+                       lang: str = "en") -> Dict:
         """Dedicated Raja Yoga analysis for the Rasi (D1) chart.
 
         Surfaces (a) the fundamental Kendra–Trikona raja yogas — a quadrant lord
@@ -666,15 +686,32 @@ class StrengthMixin:
                 })
 
             # (b) Named special raja yogas (from the engine's msg resources).
+            #     Detect in English and translate by key, for the same reason as
+            #     get_yogas: PyJHora eval()s the message file's keys as function
+            #     names, so the language must not decide what is detected. The
+            #     raja-yoga key sets happen to match across languages today; this
+            #     keeps that from mattering.
             try:
                 details, _cnt, _tot = ry.get_raja_yoga_details(
                     jd, place_obj, divisional_chart_factor=1, language="en")
+                engine_lang = to_engine_language(lang)
+                translated = (
+                    ry.get_raja_yoga_resources(language=engine_lang)
+                    if engine_lang != "en" else {}
+                )
                 for key, val in details.items():
                     # val = [pairs_label, name, description, benefits]
                     label = val[0] if len(val) > 3 else ""
                     name = val[1] if len(val) > 3 else val[0]
                     desc = val[2] if len(val) > 3 else (val[1] if len(val) > 1 else "")
                     benefits = val[3] if len(val) > 3 else (val[2] if len(val) > 2 else "")
+                    # The resource entry is [name, description, benefits] — no
+                    # pairs_label, which get_raja_yoga_details inserts at index 0.
+                    t = translated.get(key)
+                    if t:
+                        name = t[0] if len(t) > 0 else name
+                        desc = t[1] if len(t) > 1 else desc
+                        benefits = t[2] if len(t) > 2 else benefits
                     yogas.append({
                         "name": name,
                         "type": key,

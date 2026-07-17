@@ -1,5 +1,10 @@
 import axios from "axios";
 import { DEFAULT_AYANAMSA } from "../constants/jyotish";
+import i18n from "../i18n";
+
+// Endpoints whose *data* PyJHora can localize (yoga/raja-yoga names + descriptions)
+// take a `lang`. Read at call time so it follows the switcher without a reload.
+const uiLang = () => i18n.language || "en";
 
 // Base URL for the backend API. Prefer an explicit REACT_APP_API_URL, but when
 // it's unset default to the SAME host the page was served from (on port 8000).
@@ -266,7 +271,7 @@ export const astrologyService = {
   getDoshas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/doshas", birthDetails, { params: { ayanamsa } }),
   getYogas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
-    api.post("/api/astrology/yogas", birthDetails, { params: { ayanamsa } }),
+    api.post("/api/astrology/yogas", birthDetails, { params: { ayanamsa, lang: uiLang() } }),
   getDhasa: (birthDetails, dashaType = "vimsottari") =>
     api.post("/api/astrology/dhasa", birthDetails, {
       params: { dhasa_type: dashaType },
@@ -330,7 +335,7 @@ export const astrologyService = {
     api.post("/api/astrology/aspects", birthDetails, { params: { ayanamsa } }),
   // Dedicated Raja Yogas (Kendra-Trikona pairs + named special types).
   getRajaYogas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
-    api.post("/api/astrology/raja-yogas", birthDetails, { params: { ayanamsa } }),
+    api.post("/api/astrology/raja-yogas", birthDetails, { params: { ayanamsa, lang: uiLang() } }),
   // Ayu (longevity) category — Alpa/Madhya/Purna + factors.
   getLongevity: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/longevity", birthDetails, { params: { ayanamsa } }),

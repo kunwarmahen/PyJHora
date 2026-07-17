@@ -400,11 +400,17 @@ web exposes. High-value additions:
           to map canonical English→hi/sa and wrap `sign_name`/`nakshatra` render sites; covers
           all 3 langs incl. Sanskrit, no backend change, but only the finite enumerations
           (not free-text yoga/dosha descriptions).
-      (B) **backend `set_language`** — thread a `lang` param through endpoints + call
-          `utils.set_language()` with reset-after (like the ayanamsa pattern); gives Hindi
-          data natively but needs the backend refactored off its own tables and still has NO
-          Sanskrit. Recommended: (A) for names, leave free-text/AI English (AI already
-          answers in whatever language the user asks). Tracked as its own item below.
+      (B) **backend language** — gives Hindi data natively, incl. free text A can't touch, but
+          has NO Sanskrit upstream. **Two very different costs, don't conflate them** (this note
+          used to, and it made B look uniformly expensive):
+          - msg-driven sections (yoga/raja-yoga/dosha names + descriptions) take a **per-call**
+            `language=` arg that just reads a JSON — cheap, stateless, no race. **DONE for
+            yogas + raja yogas 2026-07-16**; `sa` routes to `hi`.
+          - the chart-name tables need global `utils.set_language()` + reset-after (the ayanamsa
+            pattern) AND the backend refactored off its own hardcoded `ZODIAC_NAMES`/
+            `nakshatra_names` — that part stays unattractive, so (A) owns names.
+          Outcome: **hybrid** — A for the enumerations (only path to Sanskrit), B for the
+          msg-driven free text. Tracked as its own item below.
 
 - [ ] 🔴 **Localize engine-returned chart-data names (i18n data layer)** (P3 — was DEPRIORITIZED
       per owner 2026-07-03; **STARTED 2026-07-16: Option A machinery + BirthChart done, 22 other
@@ -442,15 +448,53 @@ web exposes. High-value additions:
         ln() is applied ONLY at the point text is rendered** — never to a lookup key.
       - Lagna marker was a hardcoded `"As"`; now `common.lagnaAbbr` (en `As`, hi/sa `ल`).
 
+      **ALSO DONE 2026-07-16 — Option B where PyJHora actually helps (yogas + raja yogas):**
+      Owner spotted that the page was still mostly English and asked why we weren't using
+      PyJHora's language support. Right call — this entry (and the §5 note above) **overstated
+      Option B's cost**: it warned that B means global `utils.set_language()` + set/reset + races,
+      but `yoga.get_yoga_details(language=…)` / `raja_yoga.get_raja_yoga_details(language=…)` take
+      a **per-call arg** that just opens `yoga_msgs_<lang>.json`. No global state, no race, no
+      reset. That's true only for the msg-driven sections; the chart-name tables really do need
+      the global path, which is why A still owns those.
+      - `to_engine_language()` in `astrology/engine.py`: en/ta/te/hi/ka/ml pass through,
+        **`sa` → `hi`** (owner's call: Devanagari + shared vocabulary lands far closer for a
+        Sanskrit reader than English), unknown → en.
+      - `lang` query param on `POST /api/astrology/yogas` + `/raja-yogas`; `api.js` sends the
+        active `i18n.language` on those two calls. Yoga NAMES *and* free-text descriptions now
+        come back translated — the thing Option A structurally cannot do.
+      - ⚠️ **REAL BUG FOUND — never pass `language` straight to `get_yoga_details`**: PyJHora
+        drives detection off the message file's KEYS (`for yoga_function, details in msgs.items():
+        eval(yoga_function + '_from_jd_place')`), and `yoga_msgs_hi.json`'s keys DIFFER from
+        `_en.json`'s (hi lacks `yukthi_samanwithavagmi_yoga_154`/`_155`, adds `dhana_yoga` +
+        `yukthi_samanwithavagmi_yoga`). Asking for Hindi therefore changed **which yogas were
+        detected** — the language moved the astrology. Fixed by **detecting in English always,
+        then translating by key** (missing key → English text, never blank). raja_yoga/dosha msg
+        keys match across languages today, but raja yoga got the same treatment on principle.
+        Pinned by `tests/test_engine_language.py` (12 tests; 222 → 234).
+      - Verified live in Hindi: yoga cards fully Devanagari, `Neecha Bhanga Raja yoga` →
+        `नीचा भंग राजयोग`, and the one untranslatable yoga renders English as designed.
+
       **TODO — roll the same pattern across the remaining ~22 files** (65 `sign_name` sites,
       39 `.nakshatra`, 45 RASI/PLANET-constant uses): Transit / Compare / Dhasa / Panchanga /
       Predictions / KP / Jaimini / Chakras / Bhava / Marriage / digests / the rest of §5.
+      - **Author Sanskrit `lang/` files upstream** (owner's future item, 2026-07-16). Until then
+        every PyJHora-sourced string shows `sa` users **Hindi** via `to_engine_language`, which is
+        a deliberate stopgap, not the destination. Needs `src/jhora/lang/{list_values,msg_strings}_sa.txt`
+        + `{yoga,raja_yoga,dosha,prediction}_msgs_sa.json` and `const.available_languages`. Big job:
+        ~284 yoga descriptions alone. Once it exists, `to_engine_language` drops the sa→hi hop and
+        `scripts/name-locales.manual.json` could source from upstream instead of hand-authoring.
+      - **Doshas: decided to leave English for now.** Keys mostly line up with `dosha_msgs_*.json`,
+        but `compute_strength.get_doshas` writes its OWN descriptions and they're better than
+        upstream's. Switching = gain Hindi, lose the curated text. Owner to decide.
+      - **Kendra-Trikona raja yogas stay English**: names/descriptions are built by our backend
+        (f-strings with planet names), not PyJHora, so §5's A-layer must cover them.
       - **Upstream data defect to decide on**: `list_values_hi.txt` spells Mrigashira
         `म्रृगशीर्षा` (malformed म्+रृ; should be `मृगशीर्षा`). We now surface it. Either patch
         `src/jhora/lang/list_values_hi.txt` (it's this repo) or add a hi override to the manual file.
-      - OUT OF SCOPE for A (leave English): free-text yoga/dosha *descriptions*, Ashtakoot koota
-        names, and AI answers (the AI already replies in the language the user writes in; a future
-        nicety is to add a language hint to the system prompt).
+      - OUT OF SCOPE for A (leave English): Ashtakoot koota names and AI answers (the AI already
+        replies in the language the user writes in; a future nicety is to add a language hint to
+        the system prompt). Free-text yoga/dosha descriptions are **no longer** out of scope —
+        yogas are done via B above; doshas are a pending decision.
 
       **Plan — Option B (backend `utils.set_language()`), the fallback if we want native
       engine-localized data server-side (e.g. for non-web consumers, or to also localize

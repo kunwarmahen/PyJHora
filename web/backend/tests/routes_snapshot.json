@@ -629,7 +629,8 @@
  "POST /api/astrology/raja-yogas": {
   "body": "BirthDetails",
   "params": [
-   "query:ayanamsa"
+   "query:ayanamsa",
+   "query:lang"
   ]
  },
  "POST /api/astrology/rectify-birth-time": {
@@ -802,7 +803,8 @@
  "POST /api/astrology/yogas": {
   "body": "BirthDetails",
   "params": [
-   "query:ayanamsa"
+   "query:ayanamsa",
+   "query:lang"
   ]
  },
  "POST /api/auth/api-tokens": {
