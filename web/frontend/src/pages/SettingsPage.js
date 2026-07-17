@@ -36,6 +36,7 @@ import { LANGUAGES } from "../i18n";
 import { SITE_TITLE } from "../config/branding";
 import { SIGN_LABEL_MODES } from "../config/signLabel";
 import { STARTUP_PROFILE_MODES } from "../config/startupProfile";
+import { zoneLabel } from "../config/currentLocation";
 import "../styles/Settings.css";
 
 const KEYED_PROVIDERS = ["gemini", "openai", "openai-compatible"];
@@ -60,7 +61,7 @@ const MT_MAX = 8192;
 const MT_STEP = 256;
 
 export const SettingsPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { settings, updateSetting } = useSettings();
   const { user, logout, reloadUser } = useAuth();
@@ -234,7 +235,12 @@ export const SettingsPage = () => {
     setLocMsg(null);
     try {
       const saved = await saveLocation({ place, latitude, longitude });
-      setLocMsg({ type: "ok", text: t("settings.location.saved", { zone: saved?.timezone }) });
+      setLocMsg({
+        type: "ok",
+        text: t("settings.location.saved", {
+          zone: zoneLabel(saved?.timezone, saved?.utc_offset, i18n.language),
+        }),
+      });
       flash();
     } catch (err) {
       setLocMsg({ type: "error", text: err.response?.data?.detail || t("settings.location.error") });
@@ -998,12 +1004,21 @@ export const SettingsPage = () => {
               <div className="settings-location-current">
                 {location ? (
                   <>
-                    <strong>{location.place}</strong>
+                    {/* The TIMEZONE leads — it's what the user actually chose and
+                        what "now" runs on. "Central Time (UTC−5)", not
+                        "America/Chicago": the IANA name is a developer
+                        identifier and reads as a city. Raw zone in the title. */}
+                    <strong title={location.timezone}>
+                      {zoneLabel(location.timezone, location.utc_offset, i18n.language)}
+                    </strong>
+                    {/* The place is secondary, and honest about itself. Set from
+                        the browser's zone, it's the city that DEFINES the zone,
+                        not one the user ever claimed to be in — so it's marked
+                        approximate rather than asserted back at them. */}
                     <span className="settings-location-zone">
-                      {location.timezone}
-                      {Number.isFinite(location.utc_offset)
-                        ? ` · UTC${location.utc_offset >= 0 ? "+" : ""}${location.utc_offset}`
-                        : ""}
+                      {location.source === "zone"
+                        ? t("settings.location.approxPlace", { place: location.place })
+                        : location.place}
                     </span>
                   </>
                 ) : (

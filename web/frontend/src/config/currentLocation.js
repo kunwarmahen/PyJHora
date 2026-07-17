@@ -36,18 +36,43 @@ export const detectOffsetHours = () => {
 };
 
 /**
- * The city a zone is named after ("America/Chicago" → "Chicago"), for labelling
- * the button — "I'm in Chicago" beats "I'm in America/Chicago".
+ * What to CALL a zone to a human: "America/Chicago" → "Central Time".
  *
- * Display only. The server does this lookup again for real (and *verifies* it
- * against the coordinates) when saving; this must never be the thing that
- * decides what gets stored. Mirrors `timezones.representative_place`.
+ * Never the city. Naming the city states as fact the one thing this flow does
+ * not know: the zone's city *defines* the zone, but someone in Milwaukee is
+ * also America/Chicago, so "I'm in Chicago" is a claim about the user that may
+ * simply be false (owner: "it should say which timezone I'm in, not the city —
+ * the user would be confused"). The timezone is the part we know exactly, and
+ * the part everything about "now" actually runs on.
+ *
+ * The raw IANA name is no better for this: it still reads as a city, and it's a
+ * developer-facing identifier. `longGeneric` gives the name people recognise and
+ * — unlike `long` — is stable across DST ("Central Time", not "Central Daylight
+ * Time" for half the year and "Central Standard Time" for the other half).
+ * Intl localises it for free, so hi/sa get it without a translation table.
+ *
+ * Falls back to the raw zone: a name we can't prettify is still better than a
+ * blank, and it's what a fabricated pretty name would displace.
  */
-export const zoneCity = (zone) => {
-  if (!zone || !zone.includes("/")) return null;
-  const [region, ...rest] = zone.split("/");
-  if (["Etc", "SystemV", "US"].includes(region)) return null;
-  return rest[rest.length - 1].replace(/_/g, " ").trim() || null;
+export const zoneDisplayName = (zone, locale = undefined) => {
+  if (!zone) return null;
+  try {
+    const parts = new Intl.DateTimeFormat(locale, {
+      timeZone: zone,
+      timeZoneName: "longGeneric",
+    }).formatToParts(new Date());
+    return parts.find((p) => p.type === "timeZoneName")?.value || zone;
+  } catch {
+    return zone;
+  }
+};
+
+/** "Central Time (UTC-5)" — the name plus the offset it is on right now. */
+export const zoneLabel = (zone, offset, locale = undefined) => {
+  const name = zoneDisplayName(zone, locale);
+  if (!name) return null;
+  if (!Number.isFinite(offset)) return name;
+  return `${name} (UTC${offset >= 0 ? "+" : "−"}${Math.abs(offset)})`;
 };
 
 export const dismissZone = (zone) => {

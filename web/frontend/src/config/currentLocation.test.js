@@ -3,7 +3,8 @@ import {
   dismissZone,
   isZoneDismissed,
   locationPrompt,
-  zoneCity,
+  zoneDisplayName,
+  zoneLabel,
 } from "./currentLocation";
 
 const chicago = { place: "Chicago", latitude: 41.88, longitude: -87.63, timezone: "America/Chicago" };
@@ -112,29 +113,62 @@ describe("isZoneDismissed", () => {
   });
 });
 
-describe("zoneCity", () => {
-  it("names the zone's city", () => {
-    expect(zoneCity("America/Chicago")).toBe("Chicago");
-    expect(zoneCity("Asia/Kolkata")).toBe("Kolkata");
+describe("zoneDisplayName", () => {
+  it("names the zone the way a person would, never the city", () => {
+    // The point of the whole helper: "Chicago" is a claim about where the user
+    // is (Milwaukee is also America/Chicago); "Central Time" is only a claim
+    // about their clock, which is the part we actually know.
+    expect(zoneDisplayName("America/Chicago", "en")).toBe("Central Time");
+    expect(zoneDisplayName("Asia/Kolkata", "en")).toBe("India Standard Time");
+    expect(zoneDisplayName("Asia/Kathmandu", "en")).toBe("Nepal Time");
   });
 
-  it("turns underscores into spaces for display", () => {
-    expect(zoneCity("America/New_York")).toBe("New York");
+  it("is stable across DST, unlike the 'long' name", () => {
+    // longGeneric gives "Central Time" year-round rather than flipping between
+    // Central Daylight and Central Standard — the banner must not look like it
+    // changed its mind twice a year.
+    expect(zoneDisplayName("America/Chicago", "en")).not.toMatch(/Daylight|Standard/);
   });
 
-  it("takes the last segment of a three-part zone", () => {
-    expect(zoneCity("America/Argentina/Buenos_Aires")).toBe("Buenos Aires");
+  it("resolves the zone's real region, not the name it happens to carry", () => {
+    // America/Indiana/Indianapolis IS Eastern Time. Labelling it by its city
+    // would have said "Indianapolis" and told the user nothing about the clock.
+    expect(zoneDisplayName("America/Indiana/Indianapolis", "en")).toBe("Eastern Time");
   });
 
-  it("is null when the zone names no city", () => {
-    // The banner falls back to showing the raw zone rather than a bad guess.
-    ["Etc/GMT+2", "UTC", "", null, "Asia"].forEach((z) => expect(zoneCity(z)).toBeNull());
+  it("is localised by Intl, needing no translation table of our own", () => {
+    expect(zoneDisplayName("America/Chicago", "hi")).not.toBe("Central Time");
+    expect(zoneDisplayName("America/Chicago", "hi")).toBeTruthy();
   });
 
-  it("agrees with the server's representative_place, which is the real lookup", () => {
-    // This is display only — timezones.representative_place decides what's saved,
-    // and verifies it against coordinates. Drift here is cosmetic, not a bug.
-    expect(zoneCity("America/Indiana/Indianapolis")).toBe("Indianapolis");
+  it("falls back to the raw zone rather than a blank or an invented name", () => {
+    expect(zoneDisplayName("Mars/Olympus", "en")).toBe("Mars/Olympus");
+  });
+
+  it("is null only when there is no zone at all", () => {
+    expect(zoneDisplayName(null)).toBeNull();
+    expect(zoneDisplayName("")).toBeNull();
+  });
+});
+
+describe("zoneLabel", () => {
+  it("pairs the name with the offset it is on right now", () => {
+    expect(zoneLabel("America/Chicago", -5, "en")).toBe("Central Time (UTC−5)");
+    expect(zoneLabel("Asia/Kolkata", 5.5, "en")).toBe("India Standard Time (UTC+5.5)");
+  });
+
+  it("uses a real minus sign, not a hyphen", () => {
+    // U+2212. A hyphen next to a digit reads as a dash in most UI fonts.
+    expect(zoneLabel("America/Chicago", -5, "en")).toContain("−5");
+  });
+
+  it("drops the offset rather than printing a broken one", () => {
+    expect(zoneLabel("America/Chicago", undefined, "en")).toBe("Central Time");
+    expect(zoneLabel("America/Chicago", null, "en")).toBe("Central Time");
+  });
+
+  it("is null when there is no zone", () => {
+    expect(zoneLabel(null, -5)).toBeNull();
   });
 });
 

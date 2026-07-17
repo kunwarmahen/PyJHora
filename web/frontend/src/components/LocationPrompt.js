@@ -9,12 +9,12 @@ import {
   detectZone,
   dismissZone,
   locationPrompt,
-  zoneCity,
+  zoneLabel,
 } from "../config/currentLocation";
 import "../styles/LocationPrompt.css";
 
 /**
- * "Looks like you're in Chicago — I'm in Chicago / Ignore for now."
+ * "You seem to be on Central Time (UTC−5) — Use this timezone / Ignore for now."
  *
  * Detect, then **confirm**. This suggests; the user's click is what sets
  * anything. Adopting the browser's zone silently would mean a fortnight abroad
@@ -22,19 +22,22 @@ import "../styles/LocationPrompt.css";
  * cause — travelling is ordinary, while emigrating is not. See
  * config/currentLocation.js for when it chooses to speak at all.
  *
- * **Confirming is one click, not a trip to Settings** (owner feedback: detecting
- * the zone and then asking you to type its name is silly). The server geocodes
- * the zone's representative city and *verifies* the result lands back in that
- * zone, so this is a real lookup with a check — not an invented position. Its
- * coordinates are metro-accurate: the zone's city defines the zone, but someone
- * in Milwaukee is also America/Chicago. That's exact for the timezone, which is
- * what "now" runs on; Settings → Location refines the place.
+ * **It speaks in timezones, never cities** (owner: "it should say which timezone
+ * I'm in, not the city — the user would be confused"). Naming the city would
+ * state as fact the one thing this flow doesn't know: the zone's city defines
+ * the zone, but someone in Milwaukee is also America/Chicago, so "I'm in
+ * Chicago" could simply be false. The timezone is what's known exactly, and what
+ * everything about "now" runs on. A city still gets geocoded underneath — the
+ * store needs coordinates — but it's the server's business, verified there, and
+ * refinable in Settings → Location. It is never claimed to the user as their
+ * whereabouts.
  *
- * If the server can't confirm the city, we fall back to Settings rather than
- * store a guess.
+ * **Confirming is one click, not a trip to Settings** (owner: detecting the zone
+ * and then asking you to type its name is silly). If the server can't confirm
+ * the zone's city, we fall back to Settings rather than store a guess.
  */
 export const LocationPrompt = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { location, loaded, saveLocationFromZone } = useCurrentLocation();
   const { selectedProfile } = useProfile();
@@ -47,11 +50,12 @@ export const LocationPrompt = () => {
   if (!loaded || hidden) return null;
 
   const zone = detectZone();
+  const offset = detectOffsetHours();
   const prompt = locationPrompt({
     location,
     birthOffset: Number(selectedProfile?.birth_details?.timezone),
     zone,
-    offset: detectOffsetHours(),
+    offset,
   });
 
   // Confirmation after a successful set — the banner's own disappearance is too
@@ -61,13 +65,11 @@ export const LocationPrompt = () => {
       <div className="location-prompt location-prompt--done" role="status">
         <MapPin size={18} className="location-prompt-icon" />
         <p className="location-prompt-text">
-          {/* The zone's city, not the stored place: Nominatim returns the full
-              postal address ("Chicago, South Chicago Township, Cook County,
-              Illinois, United States"), which is a mouthful to confirm back at
-              someone. Settings shows the full thing. */}
+          {/* The timezone, not the stored place. Naming the place would both
+              claim a city the user may not be in and, since Nominatim returns a
+              full postal address, be a mouthful. Settings shows the place. */}
           {t("location.prompt.done", {
-            place: zoneCity(done.timezone) || done.place,
-            zone: done.timezone,
+            zone: zoneLabel(done.timezone, done.utc_offset, i18n.language),
           })}
         </p>
       </div>
@@ -75,7 +77,7 @@ export const LocationPrompt = () => {
   }
 
   if (!prompt) return null;
-  const city = zoneCity(prompt.zone) || prompt.zone;
+  const label = zoneLabel(prompt.zone, offset, i18n.language);
 
   const accept = async () => {
     setBusy(true);
@@ -99,12 +101,12 @@ export const LocationPrompt = () => {
       <MapPin size={18} className="location-prompt-icon" />
       <p className="location-prompt-text">
         {t(prompt.kind === "moved" ? "location.prompt.moved" : "location.prompt.unset", {
-          zone: prompt.zone,
+          zone: label,
         })}
       </p>
       <div className="location-prompt-actions">
         <button type="button" className="control-btn" onClick={accept} disabled={busy}>
-          {busy ? t("location.prompt.setting") : t("location.prompt.accept", { city })}
+          {busy ? t("location.prompt.setting") : t("location.prompt.accept")}
         </button>
         <button
           type="button"

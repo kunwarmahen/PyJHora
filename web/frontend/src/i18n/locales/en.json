@@ -1000,10 +1000,11 @@
       "current": "Current location",
       "unset": "Not set — using your birth profile's timezone",
       "searchPlaceholder": "Search for your city (e.g., Chicago, USA)",
-      "saved": "Saved. Your timezone is now {{zone}}.",
+      "saved": "Saved. Your times now follow {{zone}}.",
       "error": "Could not save your location. Please try again.",
       "clear": "Clear location",
-      "hint": "Used for anything about “now” — which day your digest is about, and the hour it's sent. Setting this means a 7am digest arrives at 7am where you are, not 7am where you were born. Daylight saving is handled automatically."
+      "hint": "Used for anything about “now” — which day your digest is about, and the hour it's sent. Setting this means a 7am digest arrives at 7am where you are, not 7am where you were born. Daylight saving is handled automatically. Search your city to pin the exact spot.",
+      "approxPlace": "near {{place}} (approximate)"
     },
     "ai": {
       "provider": "Provider",
@@ -2331,12 +2332,12 @@
   },
   "location": {
     "prompt": {
-      "moved": "It looks like you're in {{zone}} now, which isn't where your location is set. Update it?",
-      "unset": "You seem to be in {{zone}}, away from your birth timezone. Use it for “today” and your digests?",
-      "accept": "I'm in {{city}}",
+      "moved": "You seem to be on {{zone}} now, which isn't the timezone you have set. Update it?",
+      "unset": "You seem to be on {{zone}}, not your birth timezone. Use it for “today” and your digests?",
+      "accept": "Use this timezone",
       "setting": "Setting…",
       "ignore": "Ignore for now",
-      "done": "Location set to {{place}} ({{zone}}). Times now follow your local clock."
+      "done": "Your times now follow {{zone}}."
     }
   }
 }

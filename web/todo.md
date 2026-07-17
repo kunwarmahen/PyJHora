@@ -4152,3 +4152,57 @@ scale. 41px tall now, in line with the segmented toggles beside it in Settings �
 **Verified live** (playwright, dark theme, the owner's screenshots reproduced): the login input
 computes to `borderWidth: 0px`, transparent background, no box-shadow, focused *and* unfocused;
 `.form-select` computes to `8px 16px` / `15px` / 41px tall. 111 frontend tests pass.
+
+## 42. The banner names your TIMEZONE, not a city (owner feedback 2026-07-17) — ✅ SHIPPED
+
+Owner, on §41's "I'm in Chicago" button, same day:
+
+> "It should just say which timezone I am in and not the city, as the user would be confused."
+
+Right, and sharper than it first looks. **"I'm in Chicago" claims a city the user may not be in.**
+The zone's representative city *defines* the zone — someone in Milwaukee is also America/Chicago —
+so §41's own documented caveat ("the zone's city is not the user's city") had leaked into the copy
+and was being asserted back at the user as fact. It stated the one thing the flow doesn't know. The
+timezone is the part it knows **exactly**, and the part everything about "now" actually runs on.
+
+### Shipped
+
+- **`zoneDisplayName` / `zoneLabel`** (`config/currentLocation.js`, 12 tests) — "America/Chicago" →
+  **"Central Time (UTC−5)"**. The raw IANA name is no better than the city for this: it *is* a city
+  name, and a developer-facing identifier. `Intl` `timeZoneName: "longGeneric"` gives the name
+  people recognise, and unlike `"long"` it's **stable across DST** ("Central Time", not Central
+  Daylight for half the year and Central Standard for the other). Intl localises it, so hi/sa get it
+  with **no translation table of ours** (verified: `sa` → "उत्तर अमेरिका: मध्य समयः").
+  `America/Indiana/Indianapolis` → **"Eastern Time"**, which is the right answer and one the city
+  name could never have given.
+- **Copy**: "You seem to be on Central Time (UTC−5), not your birth timezone. Use it for “today” and
+  your digests?" → **Use this timezone** / **Ignore for now**. Confirmation: "Your times now follow
+  Central Time (UTC−5)."
+- **`source: "zone" | "place"` on the stored location**, and Settings tells the truth with it: the
+  **timezone leads** (it's what the user chose), the place is secondary and reads **"near Chicago
+  (approximate)"** when it came from a zone, plain when they searched it. Without this the banner
+  would carefully avoid naming a city and then Settings would assert "your location is Chicago,
+  South Chicago Township, Cook County, Illinois, United States" one screen over — the same confusion,
+  relocated.
+- The zone path now stores the **plain city** ("Chicago") rather than the geocoder's full postal
+  address: street-level precision is a lie about a metro-level guess, and it only ever renders
+  inside "near X (approximate)".
+
+### Traps
+
+- **Don't reach for the IANA name when avoiding the city.** `America/Chicago` fails for exactly the
+  reason "Chicago" fails.
+- **`longGeneric`, not `long`.** `long` flips with DST and makes the banner look like it changed its
+  mind twice a year. A test pins that the label contains neither "Daylight" nor "Standard".
+- **`Etc/GMT±N` has no friendly name** — Intl returns "GMT-02:00", which is fine, and
+  `representative_place` still refuses it server-side, so it can't be set anyway.
+- The offset uses a real **minus sign (U+2212)**, not a hyphen — pinned by a test, because a hyphen
+  beside a digit reads as a dash in most UI fonts.
+- `zoneCity` (frontend) is **gone** — replaced by `zoneDisplayName`. The server's
+  `representative_place` still exists and still does the real work; it's the geocoding input, never
+  a label.
+
+**Verified live** (playwright, browser faked to America/Chicago): banner and confirmation name only
+the timezone; Settings shows "Central Time (UTC−5)" + "near Chicago (approximate)"; then searching
+**Milwaukee** — the exact case the wording exists for — yields the same Central Time with an exact,
+unmarked place. 116 frontend + 272 backend tests, lint and prod build clean.

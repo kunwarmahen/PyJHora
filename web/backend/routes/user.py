@@ -201,7 +201,12 @@ async def put_current_location_from_zone(
         raise HTTPException(
             status_code=422, detail=f"Could not find “{city}” to place you")
 
-    place, lat, lon = found[0], found[1], found[2]
+    lat, lon = found[1], found[2]
+    # Label it with the plain city, not the geocoder's full postal address
+    # ("Chicago, South Chicago Township, Cook County, Illinois, United States").
+    # This place is only ever shown as "near X (approximate)", and the precision
+    # of a street-level address would be a lie about a metro-level guess.
+    place = city
     if timezones.zone_at(lat, lon) != zone:
         # The geocoder found *a* place with that name, but not one in the zone
         # the browser reported — so it isn't where the user is.
@@ -209,7 +214,11 @@ async def put_current_location_from_zone(
             status_code=422,
             detail=f"“{city}” doesn't appear to be in {zone}")
 
-    loc = await user_settings.set_current_location(current_user, place, lat, lon, zone)
+    # source="zone": the zone is exact, the coordinates are metro-accurate. The
+    # user confirmed a timezone, not a city — the UI must not tell them they live
+    # in this one.
+    loc = await user_settings.set_current_location(
+        current_user, place, lat, lon, zone, source="zone")
     return {
         "location": {**loc, "utc_offset": timezones.offset_hours(loc.get("timezone"))}
     }

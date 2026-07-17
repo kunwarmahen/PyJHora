@@ -166,13 +166,21 @@ async def get_current_location(user_id: str) -> Optional[Dict[str, Any]]:
 
 async def set_current_location(user_id: str, place: str, latitude: float,
                                longitude: float,
-                               timezone: Optional[str] = None
-                               ) -> Dict[str, Any]:
+                               timezone: Optional[str] = None,
+                               source: str = "place") -> Dict[str, Any]:
     """Store where the user is now. `timezone` is an IANA zone name; when it's
     missing or unknown to this machine's tz database it is derived from the
     coordinates, which is always possible offline.
 
     Storing a zone rather than an offset is the whole point — see timezones.py.
+
+    `source` records how much the coordinates are worth:
+      "place" — the user named their city. It's where they are.
+      "zone"  — derived from the browser's timezone via the zone's representative
+                city. The ZONE is exact; the coordinates are only metro-accurate,
+                because the zone's city defines the zone and the user may live
+                elsewhere in it. Callers must not present these as the user's
+                city — they never said so. The UI marks them approximate.
     """
     import timezones
 
@@ -184,6 +192,7 @@ async def set_current_location(user_id: str, place: str, latitude: float,
         "latitude": lat,
         "longitude": lon,
         "timezone": zone,
+        "source": "zone" if source == "zone" else "place",
     }
     db = get_database()
     await db[COLLECTION].update_one(
