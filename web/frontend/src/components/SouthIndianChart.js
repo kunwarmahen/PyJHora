@@ -1,5 +1,9 @@
 import React, { useRef } from "react";
-import { PLANET_ABBR, RASI_ABBR, ASPECT_COLORS } from "../constants/jyotish";
+import { useTranslation } from "react-i18next";
+// RASI_NAMES resolves a sign number to its canonical English name; ln() then renders it
+// in the active language.
+import { RASI_NAMES, ASPECT_COLORS } from "../constants/jyotish";
+import { useLocalizeName } from "../i18n/localizeName";
 import { ChartExportButtons } from "./ChartExportButtons";
 import "../styles/NorthIndianChart.css";
 
@@ -42,6 +46,8 @@ export const SouthIndianChart = ({
   onSelectPlanet = null,
 }) => {
   const gridRef = useRef(null);
+  const { t } = useTranslation();
+  const ln = useLocalizeName();
   const planets = planetsProp || chartData?.planets;
   const lagna = lagnaProp || chartData?.lagna;
 
@@ -79,12 +85,14 @@ export const SouthIndianChart = ({
   const itemsForSign = (signNum) => {
     const items = [];
     if (lagna && lagna.house === signNum) {
-      items.push({ name: "As", type: "lagna", degrees: lagna.degrees });
+      items.push({ name: t("common.lagnaAbbr"), type: "lagna", degrees: lagna.degrees });
     }
     Object.entries(planets).forEach(([name, data]) => {
       if (data.house === signNum) {
         items.push({
-          name: PLANET_ABBR[name] || name,
+          // `name` is display text; `fullName` stays canonical English because it keys
+          // flagsByPlanet / onSelectPlanet and must not follow the UI language.
+          name: ln(name, "graha", { abbr: true }),
           type: "planet",
           fullName: name,
           degrees: data.degrees,
@@ -119,7 +127,9 @@ export const SouthIndianChart = ({
               className={`si-cell${isLagna ? " si-lagna" : ""}${isCrowded ? " si-crowded" : ""}`}
               style={{ gridColumn: col, gridRow: row }}
             >
-              <span className="si-sign">{RASI_ABBR[signNum - 1]}</span>
+              <span className="si-sign">
+                {ln(RASI_NAMES[signNum - 1], "rasi", { abbr: true })}
+              </span>
               <div className="si-planets">
                 {items.map((item, idx) => {
                   const cond = item.fullName ? flagsByPlanet[item.fullName] : null;
@@ -130,7 +140,9 @@ export const SouthIndianChart = ({
                       className={`si-pl${item.type === "lagna" ? " si-pl-lagna" : ""}${
                         item.type === "arudha" ? " si-pl-arudha" : ""
                       }${clickable ? " si-pl-clickable" : ""}`}
-                      title={cond ? `${item.fullName}: ${cond.labels.join(", ")}` : undefined}
+                      title={
+                        cond ? `${ln(item.fullName, "graha")}: ${cond.labels.join(", ")}` : undefined
+                      }
                       onClick={
                         clickable
                           ? (e) => {

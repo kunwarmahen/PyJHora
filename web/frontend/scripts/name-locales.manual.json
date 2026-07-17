@@ -1,0 +1,50 @@
+{
+  "_comment": [
+    "Hand-authored name data that PyJHora's lang files cannot supply. NEEDS REVIEW by a",
+    "Hindi/Sanskrit reader before we treat it as authoritative — everything here was written",
+    "by hand, unlike the Hindi full names, which gen-name-locales.js reads straight out of",
+    "src/jhora/lang/list_values_hi.txt.",
+    "",
+    "Two reasons anything lands in this file:",
+    "  1. `sa` — PyJHora ships no Sanskrit language file at all. These are mostly the Hindi",
+    "     forms with the spelling a Sanskrit reader expects: cluster consonants rather than",
+    "     anusvara (कुम्भ not कुंभ), stem forms (धनुस्, चन्द्र), fuller nakshatra names",
+    "     (शतभिषक्, पूर्वभाद्रपदा).",
+    "  2. `abbr` — the charts paint 2-letter tags into ~10px SVG cells. Upstream has a",
+    "     NAKSHATRA_SHORT_LIST but no short forms for rasis or grahas in ANY language, so both",
+    "     hi and sa are authored here. Grahas take the conventional first akshara. Rasis need",
+    "     TWO aksharas to stay unambiguous — मेष/मीन and वृषभ/वृश्चिक collide at one.",
+    "",
+    "Order is load-bearing: every array MUST be in canonical order, matching the backend's",
+    "tables 1:1 by index (astrology/engine.py ZODIAC_NAMES / NAKSHATRA_NAMES / PLANET_NAMES).",
+    "The generator validates lengths but CANNOT catch a wrong name sitting in a right slot."
+  ],
+
+  "sa": {
+    "rasis": [
+      "मेष", "वृषभ", "मिथुन", "कर्कट", "सिंह", "कन्या",
+      "तुला", "वृश्चिक", "धनुस्", "मकर", "कुम्भ", "मीन"
+    ],
+    "nakshatras": [
+      "अश्विनी", "भरणी", "कृत्तिका", "रोहिणी", "मृगशीर्ष", "आर्द्रा",
+      "पुनर्वसु", "पुष्य", "आश्लेषा", "मघा", "पूर्वफल्गुनी", "उत्तरफल्गुनी",
+      "हस्त", "चित्रा", "स्वाती", "विशाखा", "अनुराधा", "ज्येष्ठा",
+      "मूल", "पूर्वाषाढा", "उत्तराषाढा", "श्रवण", "धनिष्ठा", "शतभिषक्",
+      "पूर्वभाद्रपदा", "उत्तरभाद्रपदा", "रेवती"
+    ],
+    "grahas": [
+      "सूर्य", "चन्द्र", "मङ्गल", "बुध", "बृहस्पति", "शुक्र", "शनि", "राहु", "केतु"
+    ]
+  },
+
+  "abbr": {
+    "hi": {
+      "rasis": ["मेष", "वृष", "मिथ", "कर्क", "सिंह", "कन्या", "तुला", "वृश्", "धनु", "मकर", "कुंभ", "मीन"],
+      "grahas": ["सू", "चं", "मं", "बु", "गु", "शु", "श", "रा", "के"]
+    },
+    "sa": {
+      "rasis": ["मेष", "वृष", "मिथ", "कर्क", "सिंह", "कन्या", "तुला", "वृश्", "धनु", "मकर", "कुम्भ", "मीन"],
+      "grahas": ["सू", "चं", "मं", "बु", "गु", "शु", "श", "रा", "के"]
+    }
+  }
+}

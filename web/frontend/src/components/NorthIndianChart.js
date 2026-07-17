@@ -1,5 +1,9 @@
 import React, { useState, useRef } from "react";
-import { PLANET_ABBR, RASI_NAMES, RASI_ABBR, ASPECT_COLORS } from "../constants/jyotish";
+import { useTranslation } from "react-i18next";
+// RASI_NAMES resolves a sign number to its canonical English name; ln() then renders it
+// in the active language.
+import { RASI_NAMES, ASPECT_COLORS } from "../constants/jyotish";
+import { useLocalizeName } from "../i18n/localizeName";
 import { ChartExportButtons } from "./ChartExportButtons";
 import "../styles/NorthIndianChart.css";
 
@@ -29,6 +33,8 @@ export const NorthIndianChart = ({
 }) => {
   const [hoveredHouse, setHoveredHouse] = useState(null);
   const svgRef = useRef(null);
+  const { t } = useTranslation();
+  const ln = useLocalizeName();
 
   const planets = planetsProp || chartData?.planets;
   const lagna = lagnaProp || chartData?.lagna;
@@ -75,13 +81,15 @@ export const NorthIndianChart = ({
     const signAtThisPosition = getSignForVisualHouse(visualHouseNum);
 
     if (lagna && lagna.house === signAtThisPosition) {
-      items.push({ name: "As", type: "lagna", degrees: lagna.degrees });
+      items.push({ name: t("common.lagnaAbbr"), type: "lagna", degrees: lagna.degrees });
     }
 
     Object.entries(planets).forEach(([name, data]) => {
       if (data.house === signAtThisPosition) {
         items.push({
-          name: PLANET_ABBR[name] || name,
+          // `name` is display text; `fullName` stays canonical English because it keys
+          // flagsByPlanet / onSelectPlanet and must not follow the UI language.
+          name: ln(name, "graha", { abbr: true }),
           type: "planet",
           fullName: name,
           degrees: data.degrees,
@@ -361,7 +369,10 @@ export const NorthIndianChart = ({
                   {(() => {
                     const lines = planetsInHouse
                       .filter((it) => it.fullName && flagsByPlanet[it.fullName])
-                      .map((it) => `${it.fullName}: ${flagsByPlanet[it.fullName].labels.join(", ")}`);
+                      .map(
+                        (it) =>
+                          `${ln(it.fullName, "graha")}: ${flagsByPlanet[it.fullName].labels.join(", ")}`
+                      );
                     return lines.length ? <title>{lines.join("\n")}</title> : null;
                   })()}
                 </circle>
@@ -381,7 +392,7 @@ export const NorthIndianChart = ({
                     fontWeight="500"
                     opacity={isHovered ? 1 : 0.65}
                   >
-                    {isHovered ? RASI_NAMES[sign - 1] : RASI_ABBR[sign - 1]}
+                    {ln(RASI_NAMES[sign - 1], "rasi", { abbr: !isHovered })}
                   </tspan>
                 </text>
 

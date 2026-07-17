@@ -1,35 +1,19 @@
 // Shared Jyotish display constants.
 
-export const PLANET_ABBR = {
-  Sun: "Su",
-  Moon: "Mo",
-  Mars: "Ma",
-  Mercury: "Me",
-  Jupiter: "Ju",
-  Venus: "Ve",
-  Saturn: "Sa",
-  Rahu: "Ra",
-  Ketu: "Ke",
-};
+import NAME_LOCALES, { NAME_ORDER } from "./nameLocales.generated";
+
+// The English names below are derived from the generated name tables rather than spelled
+// out here, so English and the hi/sa translations can't drift apart. To show a name in
+// the user's language, don't reach for these — call useLocalizeName() from i18n/localizeName.
+
+// Planet name -> two-letter abbreviation.
+export const PLANET_ABBR = NAME_LOCALES.en.grahasAbbr;
 
 // Rasi / sign names, index 0 = Aries … 11 = Pisces
-export const RASI_NAMES = [
-  "Aries",
-  "Taurus",
-  "Gemini",
-  "Cancer",
-  "Leo",
-  "Virgo",
-  "Libra",
-  "Scorpio",
-  "Sagittarius",
-  "Capricorn",
-  "Aquarius",
-  "Pisces",
-];
+export const RASI_NAMES = NAME_ORDER.rasis;
 
 // Two-letter sign abbreviations, same order as RASI_NAMES
-export const RASI_ABBR = ["Ar", "Ta", "Ge", "Cn", "Le", "Vi", "Li", "Sc", "Sg", "Cp", "Aq", "Pi"];
+export const RASI_ABBR = NAME_ORDER.rasis.map((n) => NAME_LOCALES.en.rasisAbbr[n]);
 
 // Divisional (varga) charts for the picker (must mirror the backend's
 // SUPPORTED_VARGAS). `value` is the divisional-chart factor.

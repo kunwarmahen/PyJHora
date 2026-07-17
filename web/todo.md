@@ -406,22 +406,48 @@ web exposes. High-value additions:
           Sanskrit. Recommended: (A) for names, leave free-text/AI English (AI already
           answers in whatever language the user asks). Tracked as its own item below.
 
-- [ ] 🔴 **Localize engine-returned chart-data names (i18n data layer)** (P3 — DEPRIORITIZED
-      per owner 2026-07-03; do this LAST, after Settings/auth/redesign/new-features). The UI chrome is
-      fully translated (en/hi/sa, see above), but values that come back from the backend are
-      still English: planet / sign / nakshatra / yoga / dosha / koota / dhasa-lord names (plus
-      panchanga limb *values* and AI answers). **Plan — Option A (frontend mapping), recommended
-      because it's the only path that covers Sanskrit:**
-      - Extend `web/frontend/src/constants/jyotish.js` (already has `RASI_NAMES`/`RASI_ABBR`/
-        `PLANET_ABBR`) with English→hi/sa lookup tables for: 12 rasis, 27 (+Abhijit) nakshatras,
-        9 grahas (Sun…Ketu), and the dasha-lord names (same as grahas). Source the hi/sa strings
-        from PyJHora's own `src/jhora/lang/list_values_hi.txt` (Hindi) and hand-author Sanskrit
-        (PyJHora has no `sa` file).
-      - Add a small `localizeName(canonicalEnglish, kind, lang)` helper (returns the mapped name,
-        falls back to the English input if unmapped) and wrap the render sites: every `sign_name`,
-        `nakshatra`, and planet-key/`lord` display across NorthIndianChart / SouthIndianChart /
-        BirthChart / Transit / Compare / Dhasa / Panchanga / Predictions.
-      - Drive it off the current i18n language (`i18n.language`), same as the rest of the UI.
+- [ ] 🔴 **Localize engine-returned chart-data names (i18n data layer)** (P3 — was DEPRIORITIZED
+      per owner 2026-07-03; **STARTED 2026-07-16: Option A machinery + BirthChart done, 22 other
+      files still to wrap**). The UI chrome is fully translated (en/hi/sa, see above), but values
+      that come back from the backend are still English: planet / sign / nakshatra / yoga / dosha /
+      koota / dhasa-lord names (plus panchanga limb *values* and AI answers). Went with **Option A
+      (frontend mapping)** — the only path that covers Sanskrit.
+
+      **DONE 2026-07-16 — the machinery + BirthChart as the reference page:**
+      - `scripts/gen-name-locales.js` (+ `npm run gen:names`) emits
+        `src/constants/nameLocales.generated.js`: en/hi/sa tables for 12 rasis, 27 nakshatras,
+        9 grahas, plus chart abbreviations for each.
+      - **The plan's "map English→Hindi by name" is impossible and the entry used to say so
+        wrongly**: PyJHora's `list_values_en.txt` uses the TAMIL tradition (`Karthigai`, `Poosam`,
+        `Thiruvaathirai`) while the backend uses the SANSKRIT one (`Krittika`, `Pushya`, `Ardra`) —
+        the two vocabularies share no strings. The only correspondence is POSITIONAL (both lists are
+        in canonical order), which is why a *generator* owns the tables: an off-by-one would
+        silently relabel every name with nothing looking broken. Hence `localizeName.test.js`
+        (22 tests, first frontend tests in the repo) pinning known pairs at the ends and middle.
+      - Sanskrit was much cheaper than feared — the canonical English names ARE Sanskrit words and
+        the Hindi file is the same words in Devanagari, so `sa` ≈ `hi` with spelling fixes
+        (कुम्भ/धनुस्/चन्द्र/शतभिषक्). Hand-authored in `scripts/name-locales.manual.json`;
+        **still wants review by a Sanskrit reader.**
+      - Abbreviations (the plan missed these): charts paint 2-letter tags into ~10px SVG cells.
+        Upstream has `NAKSHATRA_SHORT_LIST` but NO short forms for rasis/grahas in any language, so
+        both are hand-authored in the same file. Rasis need TWO aksharas — मेष/मीन and वृषभ/वृश्चिक
+        collide at one. **Verified live: Devanagari fits both charts with no overflow or collision.**
+      - `localizeName(name, kind, lang, {abbr})` + `useLocalizeName()` hook in
+        `src/i18n/localizeName.js`. `en` is a real identity table, so callers never hand-roll a
+        fallback; an unmapped name returns the English input unchanged.
+      - `constants/jyotish.js` now DERIVES `RASI_NAMES`/`RASI_ABBR`/`PLANET_ABBR` from the generated
+        tables (one source of truth); its 45 existing call sites were left untouched.
+      - Wrapped: `NorthIndianChart` / `SouthIndianChart` / `BirthChartPage`. **The pattern to copy:
+        canonical English stays the KEY (`fullName` keys flagsByPlanet + onSelectPlanet), and
+        ln() is applied ONLY at the point text is rendered** — never to a lookup key.
+      - Lagna marker was a hardcoded `"As"`; now `common.lagnaAbbr` (en `As`, hi/sa `ल`).
+
+      **TODO — roll the same pattern across the remaining ~22 files** (65 `sign_name` sites,
+      39 `.nakshatra`, 45 RASI/PLANET-constant uses): Transit / Compare / Dhasa / Panchanga /
+      Predictions / KP / Jaimini / Chakras / Bhava / Marriage / digests / the rest of §5.
+      - **Upstream data defect to decide on**: `list_values_hi.txt` spells Mrigashira
+        `म्रृगशीर्षा` (malformed म्+रृ; should be `मृगशीर्षा`). We now surface it. Either patch
+        `src/jhora/lang/list_values_hi.txt` (it's this repo) or add a hi override to the manual file.
       - OUT OF SCOPE for A (leave English): free-text yoga/dosha *descriptions*, Ashtakoot koota
         names, and AI answers (the AI already replies in the language the user writes in; a future
         nicety is to add a language hint to the system prompt).

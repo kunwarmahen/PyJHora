@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useLocalizeName } from "../i18n/localizeName";
 import {
   Calendar,
   User,
@@ -38,6 +39,7 @@ import "../styles/Shared.css";
 export const BirthChartPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const { selectedProfile } = useProfile();
 
   const [loading, setLoading] = useState(true);
@@ -459,11 +461,11 @@ export const BirthChartPage = () => {
                     <div className="lagna-grid">
                       <div>
                         <span className="kv-label">{t("common.sign")}: </span>
-                        <span className="kv-value">{result.lagna.sign_name}</span>
+                        <span className="kv-value">{ln(result.lagna.sign_name, "rasi")}</span>
                       </div>
                       <div>
                         <span className="kv-label">{t("common.nakshatra")}: </span>
-                        <span className="kv-value">{result.lagna.nakshatra}</span>
+                        <span className="kv-value">{ln(result.lagna.nakshatra, "nakshatra")}</span>
                       </div>
                       <div>
                         <span className="kv-label">{t("common.pada")}: </span>
@@ -482,17 +484,17 @@ export const BirthChartPage = () => {
                   <div className="nakshatra-grid">
                     {Object.entries(result.d1_chart).map(([planet, data]) => (
                       <div key={planet} className="nakshatra-card">
-                        <h5>{planet}</h5>
+                        <h5>{ln(planet, "graha")}</h5>
                         <div className="nakshatra-card__body">
                           <div>
                             <span className="kv-label">{t("common.sign")}: </span>
-                            <span className="kv-value">{data.sign_name}</span>
+                            <span className="kv-value">{ln(data.sign_name, "rasi")}</span>
                           </div>
                           {data.nakshatra && (
                             <>
                               <div>
                                 <span className="kv-label">{t("common.nakshatra")}: </span>
-                                <span className="kv-value">{data.nakshatra}</span>
+                                <span className="kv-value">{ln(data.nakshatra, "nakshatra")}</span>
                               </div>
                               <div>
                                 <span className="kv-label">{t("common.pada")}: </span>
