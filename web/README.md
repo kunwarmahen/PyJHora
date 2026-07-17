@@ -161,7 +161,7 @@ A **view mode** decides how much of it is advertised:
 
 - **One place for preferences**: a dedicated **Settings** page (gear icon in the Dashboard
   navbar + nav drawer, or `/settings`) with tabs — **General** (**view mode** Essentials/Everything,
-  language, chart style North/South, ayanamsa, **pravesha basis**), **AI** (provider / model / endpoint, answer-mode default, **Max response length**
+  language, chart style North/South, **sign labels**, ayanamsa, **pravesha basis**), **AI** (provider / model / endpoint, answer-mode default, **Max response length**
   slider, links to API Keys + AI Capabilities — the LLM/model choice is saved **server-side per user
   so it follows you across devices** and is what the scheduled daily digest renders with),
   **API Keys**, **Almanac** (Drik / Surya-Siddhanta
@@ -616,6 +616,10 @@ DB name), which is deliberate.
 - Calculate Rasi (D1) and Navamsa (D9) charts from birth details
 - Divisional (varga) charts D1–D60 with a picker
 - North / South Indian chart styles, selectable ayanamsa
+- **Sign labels** follow the classical convention — the numeral in a house is the **rasi**
+  number (1 = Aries … 12 = Pisces), not the house number, which the chart's geometry already
+  fixes. Settings → General chooses Number / Glyph / Number + glyph / Abbreviation; glyphs are
+  tinted by **tattva** (fire, earth, air, water). Hovering a house names the sign in full
 - Yogas & Doshas surfaced as cards
 - **Raja Yogas** card — the fundamental Kendra–Trikona raja yogas (a quadrant lord
   associated with a trine lord, each with a coarse strength) plus the named special
@@ -1242,7 +1246,7 @@ masked, and used ahead of any global env key for that user's requests.
 - `/compare` - Compare two saved profiles side by side (charts, placements table + on-demand neutral AI comparison)
 - `/share/:token` - **Public, read-only** shared chart view (no login required)
 - `/predictions` - Horoscope and predictions generator
-- `/settings` - **NEW**: Settings (single source of truth) — language, chart style, ayanamsa, AI provider/model + **max response length**, API keys, almanac engine, and change password
+- `/settings` - **NEW**: Settings (single source of truth) — language, chart style, sign labels, ayanamsa, AI provider/model + **max response length**, API keys, almanac engine, and change password
 - `/ai-tools` - AI Capabilities catalog (reached from Settings → AI)
 
 ## Development Notes

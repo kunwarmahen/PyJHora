@@ -3816,8 +3816,10 @@ theme. The work is mostly *auditing the literals*, not writing a dark palette.
       all dark, no page errors; print emulation under `data-theme="dark"` resolves `--surface:#fff`
       and body white; mobile 390px collapses the toggle to an icon with no overflow.
 - [x] ✅ Verify every page in both themes, prod build, mobile — done for the pages above.
-      **Not yet looked at in dark:** the remaining ~30 feature pages, South Indian chart, Kota/
-      Kaala/Tripataki canvases, Life Report. The tokens cover them, but "covered" ≠ "looked at".
+      **Not yet looked at in dark:** the remaining ~30 feature pages, Kota/Kaala/Tripataki
+      canvases, Life Report. The tokens cover them, but "covered" ≠ "looked at".
+      (**South Indian chart** cleared in dark on 2026-07-17 under §38 — grid, sign labels,
+      centre caption and the aspect overlay all read correctly on the night ground.)
 
 ### Owner decision (2026-07-16)
 
@@ -3826,3 +3828,76 @@ first-run behaviour (a user whose machine is already dark never sees the light t
 manual override that sticks. The pre-paint `data-theme` stamp in `index.html` must resolve
 *System* too, not just the stored literal — and it must react to the OS flipping while the tab is
 open (`matchMedia("(prefers-color-scheme: dark)")` listener), which is the bit that's easy to miss.
+
+## 38. Chart houses label the RASI + the chart's name stops eating the middle (owner feedback 2026-07-17) — ✅ SHIPPED
+
+Owner relayed two pieces of feedback on the North Indian chart:
+
+1. **"The house number 1, 2 … people confuse with Aries, Taurus."** They were right and we were
+   wrong. By convention the numeral inside a North Indian house **is the rasi number**
+   (1 = Aries … 12 = Pisces) — the house is never numbered, because the geometry fixes it (top
+   diamond = 1st house, always). We printed the *house* number in the sign's place and then
+   repeated the sign as an abbreviation beside it. JHora, AstroSage and every printed kundali
+   number the rasi.
+2. **"`Rasi Chart D1 - Natal Indian` is ugly and eats important space."** The title was drawn
+   **twice** — once as the card heading and again across the diagram's centre, which is where the
+   inner diamond's four houses meet and where the graha-drishti lines converge.
+
+### Shipped
+
+- **The numeral is the sign.** `getSignForVisualHouse()` already computed it; the label just
+  stopped rendering `house.num`. Numbers and glyphs are **language-neutral**, which spares the
+  in-progress §P3 i18n work from inventing rasi abbreviations that don't exist in hi/sa.
+- **Setting: Sign labels** — `config/signLabel.js` (pure module, jest-testable, kept out of
+  SettingsContext for the axios reason §36 documents) + `settings.signLabel`, localStorage
+  `sign_label`. Four values: **Number / Glyph / Number + glyph / Abbreviation**, default
+  `number_glyph`. **One setting with four values, not three toggles** — toggles allow "none", i.e.
+  a chart of unlabelled houses; `signLabelParts()` falls back to the default on junk. Both charts
+  read it via `useSettings()` directly — do **not** prop-drill it through the ~17 pages the way
+  `chartStyle` is. Not in `SYNCED_KEYS` (consistent with `chartStyle`). Hovering a house names the
+  sign in full in every mode, so a bare `1` or `♈` is always resolvable.
+- **Glyphs coloured by tattva** — fire vermillion, earth emerald, air gold, water indigo, cycling
+  from Aries every 4 signs (so trines share a colour). Owner liked the colour of the *emoji*
+  rendering; this is the reproducible version of that — emoji badge art is per-platform font
+  (Noto vs Apple vs Segoe), so no two users would see the same chart. `rasiTattvaColor()` returns
+  `rgb(var(--tattva-*-rgb))`, never a literal.
+- **Captions travel with the export.** North: a `<text>` in a `CAPTION_STRIP` band added to the
+  viewBox *below* the square — the bottom-right **interior** is a thin wedge shared by houses 8/9
+  and would collide once they fill. South: back in the grid's **inner 2x2** (owner: "for south keep
+  it in the center") — that space is purpose-built and nothing else can use it. Card heading now
+  carries the subtitle as a `.chart-card-sub` chip. North's centre is deliberately empty.
+
+### Traps worth keeping
+
+- **U+2648..U+2653 default to EMOJI presentation.** Bare zodiac glyphs render as colour badges
+  wherever an emoji font exists — verified, Chromium/Linux picks Noto Color Emoji and the chart came
+  out as little coloured circles. `RASI_GLYPHS` appends **U+FE0E** to force the text form.
+  `signLabel.test.js` pins the selector because it is **invisible** — a reformat could drop it and
+  nothing else would notice. (SVG glyph *paths* were planned as the robust fix and proved
+  unnecessary: VS15 works and exports were verified carrying real glyphs.)
+- **`--tattva-*-rgb` alias existing brand triples** rather than defining new hues, which is exactly
+  what lets them need **no dark override** — each triple they point at already has one, so the
+  elements follow the theme for free (water flips navy → periwinkle on the night ground).
+  `tokens.test.js` demanded a dark value for every themed token and failed on them; it now knows the
+  general rule that **`--x: var(--y)` inherits its target's dark value** — by *value*, not by name,
+  so a literal that later replaces an alias is caught again.
+- **The South caption needs `z-index: 3` + a plate behind the text.** `.si-aspect-overlay` is
+  `z-index: 2` — declared in `Aspects.css`, not the chart's own stylesheet, which is why a first
+  attempt at `z-index: 1` silently lost — and it converges on that exact point. The drishti lines
+  ran through the old centre label too, so this is a fix, not a new avoidance.
+- **`.settings-row` is a two-child flex** (label | control). A `.settings-hint` *inside* it lands
+  **beside** the control and squeezes it (owner caught this: the segment clipped mid-word). Hints go
+  as a **sibling after** the row — as every other hint on the page already does.
+- **Export bug found and fixed en route**: `elementToPngBlob()` searched a container for a
+  descendant `<svg>`, and the South grid nests the aspect-line overlay `<svg>` — so exporting a
+  South chart **with aspects shown** produced bare lines on white paper, no chart. Only an element
+  that **is** an `<svg>` takes the serializer path now.
+- **Screenshot-testing**: `theme` and `uiMode` are in `SYNCED_KEYS`, so writing localStorage is
+  futile once logged in — the login sync pulls the server copy and reasserts it; click the control.
+  `chartStyle`/`sign_label` are not synced, so localStorage works for those. `showAspects` persists,
+  so clicking its toggle is **not idempotent across runs** — set the key, don't click.
+
+**Verified live** (playwright, owner's chart 1976-06-04 Aligarh): Ascendant 25.1° Taurus sits in
+house 1 labelled `2 ♉`; all four label modes; North + South in **light and dark**; PNG exports from
+both styles with aspects on, carrying glyphs + caption and pinned light. 71 frontend tests, prod
+build clean.

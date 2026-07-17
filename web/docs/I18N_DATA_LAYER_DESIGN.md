@@ -66,6 +66,15 @@ closer than English. It is a **stopgap, not the destination** — see §6 open i
 - `constants/jyotish.js` now *derives* `RASI_NAMES`/`RASI_ABBR`/`PLANET_ABBR` from the
   generated tables, so English can't drift from the translations. Its ~45 existing call
   sites were left untouched.
+- **Some labels sidestep this layer entirely, and that's a feature.** Since §38 (2026-07-17)
+  the charts label a house with the **rasi number** and/or its **glyph** (`RASI_GLYPHS`,
+  also in `constants/jyotish.js`) — both language-neutral, so they need no table, no
+  translation and no review. That matters most for the **abbreviations**, which are the
+  weakest part of the manual layer: a two-letter "Ar"/"Ta" is an English convention, and
+  the hi/sa equivalents in `name-locales.manual.json` are inventions rather than anything a
+  reader would recognise. `number_glyph` is the chart default partly for this reason. The
+  abbreviation mode still exists and still goes through `localizeName`; it is simply no
+  longer the only way to label a sign.
 - Tests: `frontend/src/i18n/localizeName.test.js` (22). **First frontend tests in the
   repo** — run with `npx react-scripts test` (there is no `npm test` convention here yet).
 
@@ -161,6 +170,20 @@ We render it as-is. Undecided — see §6.
 
 `./dev.sh restart backend` after any `.py` edit, or you are testing the old code. The API
 keeps answering, just with stale handlers.
+
+### 4.7 The zodiac glyphs are emoji unless you say otherwise
+
+`U+2648..U+2653` (♈..♓) have **emoji presentation by default**. Rendered bare they come out
+as colour badges wherever an emoji font is installed — Chromium on Linux picks Noto Color
+Emoji, and the chart labels became little coloured circles. `RASI_GLYPHS` appends **U+FE0E**
+(VARIATION SELECTOR-15) to demand the text form.
+
+The selector is **invisible in the source**, so a reformat, a copy-paste through a lossy
+editor, or a well-meaning "cleanup" can drop it and nothing will look wrong in the diff —
+only in the browser. `config/signLabel.test.js` asserts every glyph is exactly two code
+points ending in `0xfe0e`. If you add a glyph to a **translation string** (`en.json` has one
+in the sign-label hint), it needs the selector too; the JSON escape `\uFE0E` works and
+survives prettier.
 
 ## 5. What's left
 
