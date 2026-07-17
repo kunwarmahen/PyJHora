@@ -1144,19 +1144,6 @@
   color: var(--saffron);
   flex-shrink: 0;
 }
-.ask-model-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-md);
-  flex-wrap: wrap;
-}
-.ask-model-summary__name {
-  font-weight: 700;
-  color: var(--text-primary);
-  font-size: 0.95rem;
-  word-break: break-word;
-}
 .ask-card__header--tight {
   margin-bottom: var(--space-xs);
 }
@@ -1325,24 +1312,6 @@
   gap: var(--space-lg);
   margin-bottom: var(--space-xl);
 }
-.ask-viewdata-btn {
-  margin-left: auto;
-  background: rgba(255, 153, 51, 0.1);
-  border: 1px solid var(--saffron);
-  cursor: pointer;
-  color: var(--saffron);
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-sm);
-  transition: all 0.3s ease;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-.ask-viewdata-btn:hover {
-  background: rgba(255, 153, 51, 0.2);
-}
 
 /* Ask page: provider availability warning + inline link-style button */
 .ask-warning {
@@ -1352,15 +1321,6 @@
   border: 1px solid rgba(229, 57, 53, 0.25);
   border-radius: var(--radius-md);
   padding: var(--space-sm) var(--space-md);
-}
-.ask-link-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--saffron);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  padding: 0;
 }
 
 /* ── Tool-call steps: pills row + "behind the scenes" trace timeline ── */
@@ -1567,4 +1527,67 @@
 }
 .info-modal-note p + p {
   margin-top: var(--space-sm);
+}
+
+/* ── Ask: model summary as a header chip ──────────────────────────────────
+   One line of text that used to cost a whole tile in the grid below. Lives in
+   PageHeader's `right` slot, so it stays glanceable without spending layout. */
+.ask-model-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 6px var(--space-sm) 6px var(--space-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--sandalwood-dark);
+  border-radius: var(--radius-full);
+  max-width: 100%;
+}
+.ask-model-chip > svg {
+  color: var(--saffron);
+  flex-shrink: 0;
+}
+.ask-model-chip__name {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 16ch;
+}
+.ask-model-chip__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px var(--space-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--saffron-dark);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.ask-model-chip__btn:hover {
+  background: rgba(255, 153, 51, 0.14);
+  border-color: var(--saffron);
+}
+
+/* The chip is the first thing to shed on a narrow screen: the model name and a
+   single icon-only "view data" button, no labels. */
+@media (max-width: 900px) {
+  .ask-model-chip__btn span {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .ask-model-chip {
+    padding: 4px var(--space-sm);
+  }
+  .ask-model-chip__name {
+    max-width: 10ch;
+  }
 }

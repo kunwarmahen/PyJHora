@@ -32,6 +32,7 @@ import { useRestoreReading } from "../hooks/useRestoreReading";
 import { exportConversationPdf } from "../utils/exportConversation";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { PageHeader } from "../components/PageHeader";
+import { AdvancedOnly } from "../components/AdvancedOnly";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { ChatComposer } from "../components/chat/ChatComposer";
 import { StreamingMarkdown } from "../components/chat/StreamingMarkdown";
@@ -902,6 +903,33 @@ export const AskAstrologerPage = () => {
         title={t("ask.title")}
         subtitle={t("ask.subtitle")}
         accent="terracotta"
+        right={
+          /* The model is one line of text; it used to occupy a whole tile in the
+             grid below. As a header chip it stays glanceable and gives the space
+             back to the examples. */
+          <div className="ask-model-chip">
+            <Bot size={16} />
+            <span className="ask-model-chip__name" title={t("ask.aiModel")}>
+              {providersLoading ? t("ask.detectingModels") : model || providerType}
+            </span>
+            <button
+              type="button"
+              className="ask-model-chip__btn"
+              onClick={() => openInfo(lastContext)}
+              title={t("ask.viewDataTitle")}
+            >
+              <Info size={15} />
+              <span>{t("ask.viewDataSent")}</span>
+            </button>
+            <button
+              type="button"
+              className="ask-model-chip__btn"
+              onClick={() => navigate("/settings")}
+            >
+              {t("ask.changeInSettings")}
+            </button>
+          </div>
+        }
       />
 
       {/* Content */}
@@ -1010,36 +1038,8 @@ export const AskAstrologerPage = () => {
           </div>
         )}
 
-        {/* AI Model Selector and Examples */}
+        {/* Example questions (the model summary lives in the page header) */}
         <div className="ask-grid fade-in fade-in--d4">
-          {/* AI model summary — the model/provider/endpoint are set in Settings now. */}
-          <div className="ask-card">
-            <h3 className="ask-card__header">
-              <Bot size={20} />
-              {t("ask.aiModel")}
-              <button
-                className="ask-viewdata-btn"
-                onClick={() => openInfo(lastContext)}
-                title={t("ask.viewDataTitle")}
-              >
-                <Info size={18} />
-                <span>{t("ask.viewDataSent")}</span>
-              </button>
-            </h3>
-            <div className="ask-model-summary">
-              <span className="ask-model-summary__name">
-                {providersLoading ? t("ask.detectingModels") : model || providerType}
-              </span>
-              <button
-                type="button"
-                className="ask-link-btn"
-                onClick={() => navigate("/settings")}
-              >
-                {t("ask.changeInSettings")}
-              </button>
-            </div>
-          </div>
-
           {/* Examples Card */}
           <div className="ask-card">
             <h3 className="ask-card__header">
@@ -1058,6 +1058,15 @@ export const AskAstrologerPage = () => {
             ))}
           </div>
 
+        </div>
+
+        {/* Answer mode, per-section context and the vargas picker are the expert
+            knobs. Someone who just wants to ask a question shouldn't have to
+            meet seed/tool/off first — the defaults already work. .ask-grid is a
+            CSS grid, so this needs its own grid rather than a wrapper inside the
+            previous one. */}
+        <AdvancedOnly title={t("ask.advancedControls")}>
+        <div className="ask-grid">
           {/* Answer Mode Card */}
           <div className="ask-card">
             <h3 className="ask-card__header ask-card__header--tight">
@@ -1153,6 +1162,7 @@ export const AskAstrologerPage = () => {
             </div>
           </div>
         </div>
+        </AdvancedOnly>
 
         {/* Error banner */}
         {error && (

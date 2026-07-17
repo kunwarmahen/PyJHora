@@ -7,6 +7,7 @@ import { astrologyService } from "../services/api";
 import { intlLocale } from "../utils/format";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
+import { AdvancedOnly } from "../components/AdvancedOnly";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
@@ -613,8 +614,15 @@ export const DhasaPage = () => {
           </div>
         ) : null}
 
-        {!loading && result && <OtherDashaSystems birthDetails={birthDetails} />}
-        {!loading && result && <SudarsanaChakra birthDetails={birthDetails} />}
+        {/* Vimsottari above is what "my dasha" means to most people. The other
+            14 systems and the three-wheel Sudarshana Chakra are a specialist's
+            cross-check — collapsed in Essentials, plain in Everything. */}
+        {!loading && result && (
+          <AdvancedOnly title={t("dhasa.otherSystems")}>
+            <OtherDashaSystems birthDetails={birthDetails} />
+            <SudarsanaChakra birthDetails={birthDetails} />
+          </AdvancedOnly>
+        )}
       </div>
     </div>
   );

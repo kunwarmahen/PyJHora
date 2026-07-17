@@ -111,6 +111,10 @@ export const TransitPage = () => {
 
   // Chart style + ayanamsa come from global Settings now.
   const { settings } = useSettings();
+  // The Ashtakavarga bindu column is a specialist's cross-check, and "AV Support"
+  // means nothing to a newcomer. It's a table column, so it takes a conditional
+  // rather than an <AdvancedOnly> wrapper.
+  const showBindus = settings.uiMode === "advanced";
   const chartStyle = settings.chartStyle;
   const ayanamsa = settings.ayanamsa;
   const ayanamsaLabel = AYANAMSAS.find((a) => a.value === ayanamsa)?.label || ayanamsa;
@@ -302,7 +306,7 @@ export const TransitPage = () => {
                         <th>{t("common.nakshatra")}</th>
                         <th className="text-center">{t("transit.fromLagna")}</th>
                         <th className="text-center">{t("transit.fromMoon")}</th>
-                        <th className="text-center">{t("transit.support")}</th>
+                        {showBindus && <th className="text-center">{t("transit.support")}</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -335,6 +339,7 @@ export const TransitPage = () => {
                           <td className="text-center fw-600 text-vermillion">
                             {ordinal(p.house_from_moon)}
                           </td>
+                          {showBindus && (
                           <td className="text-center">
                             {p.bindu_strength ? (
                               <span
@@ -357,13 +362,14 @@ export const TransitPage = () => {
                               <span className="text-muted">—</span>
                             )}
                           </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
                 <p className="card-note">{t("transit.houseNote")}</p>
-                <p className="card-note">{t("transit.supportNote")}</p>
+                {showBindus && <p className="card-note">{t("transit.supportNote")}</p>}
               </div>
             </div>
 

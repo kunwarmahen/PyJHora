@@ -10,6 +10,7 @@ import { RecentReadings } from "../components/RecentReadings";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { Card } from "../components/Card";
+import { AdvancedOnly } from "../components/AdvancedOnly";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { useSettings } from "../contexts/SettingsContext";
@@ -197,7 +198,10 @@ export const RemediesPage = () => {
               )}
             </div>
 
-            {/* Dignity overview */}
+            {/* Dignity overview. The remedies themselves are the point for most
+                people; the dignity/strength-ratio table is the working behind
+                them — collapsed in Essentials. */}
+            <AdvancedOnly title={t("remedies.dignityHeader")}>
             <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
               <h3 className="ui-card-header ui-card-header--sm">{t("remedies.dignityHeader")}</h3>
               <div className="table-scroll">
@@ -228,6 +232,7 @@ export const RemediesPage = () => {
                 <p className="card-note">{t("remedies.weakFootnote")}</p>
               )}
             </div>
+            </AdvancedOnly>
 
             {/* AI reading */}
             <div className="mt-xl">

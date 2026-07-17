@@ -136,8 +136,11 @@ A **view mode** decides how much of it is advertised:
 
 - **Essentials** (the default for new users) shows the 11 things most people actually want —
   Dashboard, Birth Chart, Ask AI Astrologer, Today, Compatibility, Dhasa Periods, Transits,
-  Remedies, Life Report, AI History, Settings — and collapses in-page depth (e.g. the Birth Chart's
-  divisional charts and Graha Drishti) behind a "Show advanced details" disclosure.
+  Remedies, Life Report, AI History, Settings — and collapses in-page depth behind a "Show advanced
+  details" disclosure: the Birth Chart's divisional charts + Graha Drishti, Dhasa's other 14 systems
+  + Sudarshana Chakra, Remedies' dignity table, and Ask's answer-mode / context / vargas knobs.
+  Transits hides its Ashtakavarga bindu column. (`<AdvancedOnly>` is for Essentials-tier pages only —
+  advanced-tier pages get the banner instead and render in full.)
 - **Everything** shows all of it — KP, Jaimini, Chakras, Prashna, Muhurta, Varshaphal, Pancha
   Pakshi, and the rest.
 - **Nothing is gated.** An advanced page reached by URL — a bookmark, a shared link, saved AI

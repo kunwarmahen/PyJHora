@@ -502,7 +502,8 @@
     "sectionSarvatobhadra": "सर्वतोभद्र चक्र",
     "sectionKota": "कोट चक्र (रक्षा)",
     "sectionKaala": "काल चक्र (दिशाएँ)",
-    "sectionTripataki": "त्रिपताकी चक्र (वेध)"
+    "sectionTripataki": "त्रिपताकी चक्र (वेध)",
+    "advancedControls": "उत्तर मोड, संदर्भ और परामर्श हेतु चार्ट"
   },
   "compat": {
     "title": "गुण मिलान",

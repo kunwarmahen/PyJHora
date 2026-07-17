@@ -3707,10 +3707,37 @@ Essentials vs 37 / 39 in Everything; `/kp` deep-linked in Essentials renders ful
 the banner CTA and both toggles switch modes; Birth Chart shows exactly 2 disclosures which expand
 to the real content; **no uncaught page errors**.
 
-**Follow-up (not done):** only Birth Chart got the `<AdvancedOnly>` in-page pass. The other busy
-pages (Dhasa, Transits, the Chart Deep-Dive page itself) still render at full depth in Essentials —
-the tile/nav filter already carries most of the value, but the same wrapper should be rolled across
-them page-by-page.
+### Follow-up pass — in-page depth across the Essentials pages (owner ask, same day) — ✅ DONE
+
+**Rule established: `<AdvancedOnly>` is for depth on ESSENTIALS-tier pages only.** An advanced-tier
+page reached in Essentials already shows `<AdvancedNotice>`; collapsing its body behind a disclosure
+too would be doubly annoying. So the Chart Deep-Dive page (`/advanced`) is deliberately untouched.
+
+- **Dhasa** — keeps the current period + the Vimsottari tree; the other 14 dasha systems and the
+  three-wheel Sudarshana Chakra collapse into one disclosure.
+- **Transits** — the Ashtakavarga bindu column ("AV Support") is hidden in Essentials. It's a table
+  *column*, so it takes a `settings.uiMode` conditional, not a wrapper (the `<th>`, the `<td>` and
+  the support footnote all key off one `showBindus`).
+- **Remedies** — the gemstone/mantra/charity advice stays; the dignity + strength-ratio table (the
+  working behind it) collapses.
+- **Ask** — answer mode, the per-section seed/tool/off context toggles and the vargas "Charts to
+  Consult" picker collapse. **Trap:** `.ask-grid` is a CSS grid, so an `<AdvancedOnly>` *inside* it
+  would collapse three cards into one cell — the knobs needed their own second `.ask-grid` under the
+  wrapper.
+- **Deliberately not touched:** Compatibility (already tab-gated — a tab bar *is* progressive
+  disclosure, and Ashtakoot defaults first), Daily Digest (already digest-shaped), Life Report,
+  History.
+
+**Ask page: the AI-model tile was spending a whole grid cell on one line of text** (owner ask). Moved
+to a compact chip in `PageHeader`'s previously-unused `right` slot — model name + "View data sent" +
+"Change in Settings" — in **both modes**, and the examples get the space back. Removed the three CSS
+rule sets it orphaned (`.ask-model-summary`, `.ask-model-summary__name`, `.ask-viewdata-btn`,
+`.ask-link-btn`); the chip sheds its button labels < 900px and truncates the model name < 600px.
+
+**Verified live** in both modes: Essentials → exactly 1 disclosure each on Dhasa/Remedies/Ask, no AV
+column, model chip in the header; Everything → 0 disclosures, AV Support column + 9 bindu chips back,
+content plain. No uncaught page errors. (**Test trap:** poking `localStorage.ui_mode` does NOT switch
+the mode — the login sync correctly reasserts the server's value over it. Drive the real toggle.)
 
 ## 37. Dark mode / light mode toggle (owner ask 2026-07-16)
 
