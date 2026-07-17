@@ -9,7 +9,7 @@
 .form-wrapper {
   max-width: 700px;
   margin: 0 auto;
-  background: white;
+  background: var(--surface);
   padding: 40px;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(var(--black-rgb), 0.1);
@@ -86,7 +86,7 @@
 .form-group select:focus {
   outline: none;
   border-color: var(--info);
-  background: white;
+  background: var(--surface);
   box-shadow: 0 0 0 3px rgba(var(--info-rgb), 0.1);
 }
 
@@ -114,7 +114,7 @@
   width: 100%;
   padding: 12px;
   background: linear-gradient(135deg, var(--info) 0%, var(--info-dark) 100%);
-  color: white;
+  color: var(--text-on-accent);
   border: none;
   border-radius: 6px;
   font-size: 16px;
@@ -143,7 +143,7 @@
 
 .result-header {
   background: linear-gradient(135deg, var(--info) 0%, var(--info-dark) 100%);
-  color: white;
+  color: var(--text-on-accent);
   padding: 20px;
   display: flex;
   align-items: center;
@@ -175,7 +175,7 @@
 }
 
 .score-display {
-  background: white;
+  background: var(--surface);
   padding: 20px;
   border-radius: 6px;
   margin-bottom: 20px;
@@ -207,7 +207,7 @@
 }
 
 .item {
-  background: white;
+  background: var(--surface);
   padding: 15px;
   border-radius: 6px;
   display: flex;
@@ -233,7 +233,7 @@
 .ai-prediction,
 .predictions-detail,
 .status-section {
-  background: white;
+  background: var(--surface);
   padding: 20px;
   border-radius: 6px;
   margin-top: 20px;
@@ -308,7 +308,7 @@
 }
 
 .period-info {
-  background: white;
+  background: var(--surface);
   padding: 15px;
   border-radius: 6px;
 }
@@ -345,12 +345,12 @@
 .form-group select:focus {
   outline: none;
   border-color: var(--info);
-  background: white;
+  background: var(--surface);
   box-shadow: 0 0 0 3px rgba(var(--info-rgb), 0.1);
 }
 
 .form-group select option {
-  background: white;
+  background: var(--surface);
   color: var(--text-neutral-strong);
   padding: 8px;
 }

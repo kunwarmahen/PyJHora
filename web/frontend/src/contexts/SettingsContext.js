@@ -9,6 +9,13 @@ import React, {
 import i18n from "i18next";
 import { DEFAULT_AYANAMSA } from "../constants/jyotish";
 import { resolveUiMode, UI_MODE_DEFAULT, UI_MODE_STORAGE_KEY } from "../config/uiMode";
+import {
+  applyTheme,
+  readThemePref,
+  THEME_DEFAULT,
+  THEME_STORAGE_KEY,
+  watchSystemTheme,
+} from "../config/theme";
 import { astrologyService } from "../services/api";
 import { useAuth } from "./AuthContext";
 
@@ -31,6 +38,7 @@ import { useAuth } from "./AuthContext";
 export const SETTING_KEYS = {
   language: "lang", // also owned by i18next's language detector
   uiMode: UI_MODE_STORAGE_KEY,
+  theme: THEME_STORAGE_KEY,
   ayanamsa: "ayanamsa",
   chartStyle: "chartStyle",
   panchangaSystem: "panchanga_system",
@@ -46,7 +54,22 @@ export const SETTING_KEYS = {
 // choice, plus the Essentials/Everything view mode — API keys have their own
 // encrypted store. Each of these must also be in user_settings.PREFERENCE_KEYS
 // server-side, which is a whitelist: a key missing there is dropped silently.
-const SYNCED_KEYS = ["uiMode", "aiProviderType", "aiModel", "aiBaseUrl", "aiMode", "aiMaxTokens"];
+const SYNCED_KEYS = [
+  "uiMode",
+  "theme",
+  "aiProviderType",
+  "aiModel",
+  "aiBaseUrl",
+  "aiMode",
+  "aiMaxTokens",
+];
+// Discrete one-click choices, pushed to the server immediately rather than on
+// the 600ms debounce. The debounce is there to coalesce typing (aiBaseUrl,
+// aiModel); for a toggle it only opens a race. A reload inside that window
+// leaves the server holding the OLD value, and the login sync below then
+// reasserts it over the correct local one — so the user's click silently
+// reverts on the next page load. Visible immediately with the theme toggle.
+const IMMEDIATE_KEYS = ["theme", "uiMode"];
 // storageKey -> settingKey, to apply a server payload (keyed by storage key).
 const STORAGE_TO_SETTING = Object.fromEntries(
   Object.entries(SETTING_KEYS).map(([settingKey, storageKey]) => [storageKey, settingKey]),
@@ -58,6 +81,9 @@ const DEFAULTS = {
   // = Everything. A pure VIEW preference — it must never touch aiMode, the
   // prompt or the tool catalogue (owner decision, todo.md §36).
   uiMode: UI_MODE_DEFAULT,
+  // "light" | "dark" | "system". System is the default so a user whose machine
+  // is already dark never gets shown the light theme first (owner, §37).
+  theme: THEME_DEFAULT,
   ayanamsa: DEFAULT_AYANAMSA,
   chartStyle: "north",
   panchangaSystem: "drik",
@@ -101,6 +127,7 @@ export const SettingsProvider = ({ children }) => {
   const [settings, setSettings] = useState(() => ({
     language: read("language"),
     uiMode: resolveUiMode(),
+    theme: readThemePref(),
     ayanamsa: read("ayanamsa"),
     chartStyle: read("chartStyle"),
     panchangaSystem: read("panchangaSystem"),
@@ -145,6 +172,11 @@ export const SettingsProvider = ({ children }) => {
       } catch {
         // ignore quota / privacy-mode failures
       }
+      // Theme is special: restamp <html> so the switch is immediate. The
+      // pre-paint script in index.html only covers the first load.
+      if (key === "theme") {
+        applyTheme(value);
+      }
       // Language is special: drive i18next so the switch is immediate app-wide.
       if (key === "language") {
         try {
@@ -156,10 +188,16 @@ export const SettingsProvider = ({ children }) => {
       setSettings((prev) => ({ ...prev, [key]: value }));
       // Mirror synced prefs up to the server so they follow the user's devices.
       if (loggedIn.current && SYNCED_KEYS.includes(key)) {
-        schedulePush(key, value);
+        pendingPush.current[SETTING_KEYS[key]] = String(value);
+        if (IMMEDIATE_KEYS.includes(key)) {
+          if (pushTimer.current) clearTimeout(pushTimer.current);
+          flushPush();
+        } else {
+          schedulePush(key, value);
+        }
       }
     },
-    [schedulePush],
+    [schedulePush, flushPush],
   );
 
   // On login, pull the server copy of the synced prefs (server is source of
@@ -219,6 +257,20 @@ export const SettingsProvider = ({ children }) => {
       cancelled = true;
     };
   }, [user]);
+
+  // Keep <html> in step with the preference — covers the server copy landing
+  // at login, which can disagree with what the pre-paint script stamped.
+  useEffect(() => {
+    applyTheme(settings.theme);
+  }, [settings.theme]);
+
+  // While on "system", follow the OS flipping with the tab already open.
+  // Re-subscribing per preference change is what makes the listener idle on an
+  // explicit light/dark choice instead of fighting it.
+  useEffect(() => {
+    if (settings.theme !== "system") return undefined;
+    return watchSystemTheme(() => applyTheme("system"));
+  }, [settings.theme]);
 
   // Flush any pending push on unmount.
   useEffect(

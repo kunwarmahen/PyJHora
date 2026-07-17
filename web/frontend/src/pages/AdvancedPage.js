@@ -644,8 +644,8 @@ export const AdvancedPage = () => {
                               className="fr-cell"
                               style={
                                 r.self
-                                  ? { background: "rgba(139,143,168,0.18)" }
-                                  : { background: REL_TONE[r.tone], color: "#fff" }
+                                  ? { background: "rgba(var(--text-muted-rgb), 0.18)" }
+                                  : { background: REL_TONE[r.tone], color: "var(--text-on-accent)" }
                               }
                               title={r.self ? row.planet : `${row.planet} → ${r.to}: ${r.label}`}
                             >

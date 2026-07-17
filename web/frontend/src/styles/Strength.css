@@ -67,7 +67,7 @@
   top: -2px;
   bottom: -2px;
   width: 2px;
-  background: var(--cosmic-indigo);
+  background: var(--surface-inverse);
   opacity: 0.55;
 }
 

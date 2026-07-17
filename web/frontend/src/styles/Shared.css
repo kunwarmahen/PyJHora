@@ -38,7 +38,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--text-on-accent);
   flex-shrink: 0;
 }
 
@@ -120,7 +120,7 @@
 
 /* ---- Card ---- */
 .ui-card {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-xl);
   padding: var(--space-xl);
   margin-bottom: var(--space-xl);
@@ -131,7 +131,7 @@
   border-top: 4px solid var(--saffron);
 }
 .ui-card--accent-indigo {
-  border-top: 4px solid var(--cosmic-indigo);
+  border-top: 4px solid var(--text-primary);
 }
 .ui-card--accent-vermillion {
   border-top: 4px solid var(--vermillion);
@@ -145,7 +145,7 @@
   align-items: center;
   gap: var(--space-sm);
   margin-bottom: var(--space-lg);
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 1.5rem;
   font-weight: 700;
 }
@@ -208,7 +208,7 @@
 
 .ui-btn--primary {
   background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
-  color: white;
+  color: var(--text-on-accent);
   box-shadow: var(--shadow-md);
 }
 .ui-btn--primary:hover:not(:disabled) {
@@ -233,7 +233,7 @@
 /* AI-action button (indigo → saffron) used by the on-demand analysis panels */
 .ui-btn--ai {
   background: linear-gradient(135deg, var(--cosmic-indigo) 0%, var(--saffron) 100%);
-  color: white;
+  color: var(--text-on-accent);
   box-shadow: var(--shadow-md);
 }
 .ui-btn--ai:hover:not(:disabled) {
@@ -243,7 +243,7 @@
 
 .ui-btn--ghost {
   background: none;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 .ui-btn--ghost:hover:not(:disabled) {
   background: rgba(var(--indigo-rgb), 0.06);
@@ -252,7 +252,7 @@
 /* ---- DataField ---- */
 .ui-datafield {
   padding: var(--space-md);
-  background: var(--sacred-white);
+  background: var(--surface-page);
   border-radius: var(--radius-md);
   border: 1px solid var(--sandalwood);
 }
@@ -274,7 +274,7 @@
 .ui-datafield-value {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 
 /* A responsive grid of DataFields / cards. */
@@ -298,22 +298,22 @@
   white-space: nowrap;
 }
 .adv-table thead th {
-  background: var(--cosmic-indigo);
-  color: white;
+  background: var(--surface-inverse);
+  color: var(--text-on-accent);
   font-weight: 600;
 }
 .adv-table tbody td:first-child,
 .adv-table tbody th:first-child {
   text-align: left;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 .adv-table tbody tr:nth-child(even) td {
-  background: var(--sacred-white);
+  background: var(--surface-page);
 }
 
 .adv-subhead {
   margin: var(--space-xl) 0 var(--space-md);
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 1.05rem;
   font-weight: 700;
 }
@@ -340,8 +340,8 @@
   transform: translateX(-50%);
   width: max-content;
   max-width: 260px;
-  background: var(--cosmic-indigo);
-  color: white;
+  background: var(--surface-inverse);
+  color: var(--text-on-accent);
   font-size: 0.78rem;
   font-weight: 400;
   line-height: 1.5;
@@ -365,7 +365,7 @@
   left: 50%;
   transform: translateX(-50%);
   border: 6px solid transparent;
-  border-top-color: var(--cosmic-indigo);
+  border-top-color: var(--text-primary);
 }
 .glossary-pop.open {
   opacity: 1;
@@ -426,7 +426,7 @@
   align-items: center;
   gap: var(--space-sm);
   font-weight: 600;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 .control-input {
   padding: var(--space-sm) var(--space-md);
@@ -435,7 +435,7 @@
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary);
-  background: white;
+  background: var(--surface);
 }
 .control-btn {
   display: flex;
@@ -444,8 +444,8 @@
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
   border: 2px solid var(--sandalwood);
-  background: white;
-  color: var(--cosmic-indigo);
+  background: var(--surface);
+  color: var(--text-primary);
   font-weight: 600;
   cursor: pointer;
   font-size: 0.8125rem;
@@ -455,7 +455,7 @@
 .chart-toggle {
   display: flex;
   gap: 4px;
-  background: white;
+  background: var(--surface);
   padding: 4px;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
@@ -478,18 +478,18 @@
 }
 .chart-toggle__btn:hover:not(.is-active) {
   background: var(--sandalwood);
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 .chart-toggle__btn.is-active {
   background: var(--saffron);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 /* ---- ± stepper group ---- */
 .stepper {
   display: flex;
   align-items: center;
-  background: white;
+  background: var(--surface);
   border: 2px solid var(--sandalwood);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
@@ -500,7 +500,7 @@
   padding: 2px 6px;
   border: none;
   background: transparent;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-weight: 700;
   font-size: 1rem;
   line-height: 1;
@@ -528,7 +528,7 @@
 }
 .info-pill {
   padding: var(--space-xs) var(--space-md);
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-sm);
 }
@@ -584,7 +584,7 @@
   color: var(--saffron);
 }
 .text-indigo {
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 .text-vermillion {
   color: var(--vermillion);
@@ -634,8 +634,8 @@
   border: 2px solid var(--sandalwood);
   font-size: 1rem;
   font-family: inherit;
-  background: white;
-  color: var(--cosmic-indigo);
+  background: var(--surface);
+  color: var(--text-primary);
   cursor: pointer;
 }
 
@@ -644,10 +644,10 @@
   padding: var(--space-lg);
   background: linear-gradient(135deg, rgba(var(--indigo-rgb), 0.05) 0%, rgba(var(--indigo-rgb), 0.1) 100%);
   border-radius: var(--radius-lg);
-  border: 2px solid var(--cosmic-indigo);
+  border: 2px solid var(--text-primary);
 }
 .ai-panel__title {
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   margin-bottom: var(--space-md);
   font-size: 1.25rem;
   font-weight: 700;
@@ -662,11 +662,11 @@
 }
 .ai-panel__reading {
   padding: var(--space-md);
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-md);
   font-size: 1rem;
   line-height: 1.8;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   margin-bottom: var(--space-md);
 }
 .ai-panel__meta {
@@ -679,7 +679,7 @@
 
 /* Subheading inside a results card */
 .card-subhead {
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   margin-bottom: var(--space-md);
   font-size: 1.25rem;
   font-weight: 700;
@@ -694,7 +694,7 @@
   font-size: 0.875rem;
 }
 .kv-value {
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -828,7 +828,7 @@
   position: relative;
   flex: 1;
   height: 28px;
-  background: var(--sacred-white);
+  background: var(--surface-page);
   border: 1px solid var(--sandalwood);
   border-radius: var(--radius-sm);
 }
@@ -837,7 +837,7 @@
   top: 2px;
   bottom: 2px;
   background: rgba(var(--indigo-rgb), 0.14);
-  border-right: 1px solid var(--sacred-white);
+  border-right: 1px solid var(--text-on-accent);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -883,7 +883,7 @@
   padding: var(--space-md);
   border: 1px solid var(--sandalwood);
   border-radius: var(--radius-lg);
-  background: var(--sacred-white);
+  background: var(--surface-page);
 }
 .ingress-card__planet {
   font-size: 1rem;
@@ -915,4 +915,38 @@
 .ai-tools-sources.is-off {
   background: rgba(var(--text-secondary-rgb), 0.1);
   color: var(--text-secondary);
+}
+
+/* ── Theme toggle (§37) — cycles Light → Dark → System from the header ── */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--sandalwood-dark);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.theme-toggle:hover {
+  border-color: var(--saffron);
+  color: var(--saffron);
+}
+.theme-toggle > svg {
+  flex-shrink: 0;
+}
+.theme-toggle__label {
+  white-space: nowrap;
+}
+/* Tight headers: the icon alone still says which way the switch goes. */
+@media (max-width: 640px) {
+  .theme-toggle__label {
+    display: none;
+  }
+  .theme-toggle {
+    padding: 6px;
+  }
 }

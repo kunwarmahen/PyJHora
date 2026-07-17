@@ -8,7 +8,7 @@
 }
 .goc-planet {
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 .goc-verdict {
   display: flex;

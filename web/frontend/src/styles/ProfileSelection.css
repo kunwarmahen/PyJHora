@@ -39,7 +39,7 @@
 }
 
 .mandala-icon svg {
-  color: white;
+  color: var(--text-on-accent);
   filter: drop-shadow(0 2px 4px rgba(var(--black-rgb), 0.2));
 }
 
@@ -73,7 +73,7 @@
   align-items: center;
   gap: 6px;
   background: var(--sandalwood);
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   border: 1px solid var(--sandalwood-dark);
   padding: var(--space-sm) var(--space-lg);
   border-radius: var(--radius-md);
@@ -94,7 +94,7 @@
 
 .toolbar-btn.primary {
   background: var(--saffron);
-  color: white;
+  color: var(--text-on-accent);
   border-color: var(--saffron);
 }
 
@@ -111,7 +111,7 @@
   margin-right: auto;
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 
 .export-checkbox {
@@ -134,7 +134,7 @@
 }
 
 .profile-card {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
   box-shadow: var(--shadow-md);
@@ -185,7 +185,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--text-on-accent);
   box-shadow: var(--shadow-md);
 }
 
@@ -203,7 +203,7 @@
 
 .edit-btn:hover {
   background: var(--saffron);
-  color: white;
+  color: var(--text-on-accent);
   transform: scale(1.1);
 }
 
@@ -221,13 +221,13 @@
 
 .default-btn:hover {
   background: var(--saffron);
-  color: white;
+  color: var(--text-on-accent);
   transform: scale(1.1);
 }
 
 .default-btn.is-default {
   background: var(--saffron);
-  color: white;
+  color: var(--text-on-accent);
   border-color: var(--saffron);
 }
 
@@ -262,14 +262,14 @@
 
 .delete-btn:hover {
   background: var(--vermillion);
-  color: white;
+  color: var(--text-on-accent);
   transform: scale(1.1);
 }
 
 .profile-card h3 {
   font-size: 1.5rem;
   margin-bottom: var(--space-md);
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 
 .profile-details {
@@ -334,7 +334,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--text-on-accent);
   margin-bottom: var(--space-lg);
   transition: transform 0.3s ease;
 }
@@ -356,7 +356,7 @@
 .create-profile-form {
   max-width: 700px;
   margin: 0 auto;
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-xl);
   padding: var(--space-2xl);
   box-shadow: var(--shadow-xl);
@@ -380,7 +380,7 @@
 
 .back-btn {
   background: var(--sandalwood);
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   border: none;
   padding: var(--space-sm) var(--space-lg);
   border-radius: var(--radius-md);
@@ -401,7 +401,7 @@
   align-items: center;
   gap: var(--space-sm);
   font-weight: 600;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   margin-bottom: var(--space-sm);
   font-size: 0.875rem;
   text-transform: uppercase;
@@ -419,7 +419,7 @@
   border: 2px solid var(--sandalwood);
   border-radius: var(--radius-md);
   font-size: 1rem;
-  background: var(--sacred-white);
+  background: var(--surface-page);
   color: var(--text-primary);
   transition: all 0.3s ease;
 }
@@ -429,7 +429,7 @@
   outline: none;
   border-color: var(--saffron);
   box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.1);
-  background: white;
+  background: var(--surface);
 }
 
 .form-group small {
@@ -463,7 +463,7 @@
 }
 
 .location-info strong {
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 
 .error-message {
@@ -481,7 +481,7 @@
   width: 100%;
   padding: var(--space-md) var(--space-xl);
   background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
-  color: white;
+  color: var(--text-on-accent);
   border: none;
   border-radius: var(--radius-md);
   font-size: 1.125rem;
@@ -588,7 +588,7 @@
   border: 1px solid var(--sandalwood-dark);
   border-radius: var(--radius-md);
   padding: var(--space-sm) var(--space-md);
-  background: var(--sacred-white);
+  background: var(--surface-page);
 }
 
 .advanced-coordinates summary {

@@ -366,7 +366,7 @@ export const TimelinePage = () => {
                           rx="3"
                           fill={planetColor(b.lord)}
                           fillOpacity={b.is_current ? 0.9 : 0.5}
-                          stroke="#fff"
+                          stroke="var(--surface)"
                           strokeOpacity="0.5"
                           strokeWidth="0.5"
                         />
@@ -469,10 +469,10 @@ export const TimelinePage = () => {
                   <b>{t("timeline.laneEclipse")}</b>
                 </span>
                 <span className="tl-legend__item">
-                  <span className="tl-dot" style={{ background: "#E0A020" }} /> {t("timeline.solar")}
+                  <span className="tl-dot" style={{ background: "var(--gold)" }} /> {t("timeline.solar")}
                 </span>
                 <span className="tl-legend__item">
-                  <span className="tl-dot" style={{ background: "#3A4A66" }} /> {t("timeline.lunar")}
+                  <span className="tl-dot" style={{ background: "var(--text-primary)" }} /> {t("timeline.lunar")}
                 </span>
                 <span className="tl-legend__item">
                   <span className="tl-dot tl-dot--hit" /> {t("timeline.eclipseHit")}

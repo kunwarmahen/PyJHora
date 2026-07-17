@@ -51,7 +51,7 @@
 }
 
 .lr-doc {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--sandalwood);
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
@@ -63,7 +63,7 @@
   margin-bottom: var(--space-lg);
 }
 .lr-doc__head h1 {
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   margin: 0;
   font-size: 1.7rem;
 }

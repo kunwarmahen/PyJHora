@@ -64,7 +64,7 @@
 }
 
 .tl-selected {
-  stroke: var(--cosmic-indigo);
+  stroke: var(--text-primary);
   stroke-width: 2;
 }
 

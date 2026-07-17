@@ -658,6 +658,15 @@
       "loadError": "टोकनानि न प्राप्तानि",
       "createError": "टोकनं न रचितम्",
       "revokeError": "टोकनं न निरस्तम्"
+    },
+    "theme_light": "प्रकाशः",
+    "theme_dark": "तमः",
+    "theme_system": "तन्त्रम्",
+    "themeSystemResolved": "तन्त्रम् ({{theme}})",
+    "themeCycle": "{{theme}} इति वर्णविधानं प्रति गच्छतु",
+    "general": {
+      "theme": "रूपविन्यासः",
+      "themeHint": "तन्त्रम् इति उपकरणस्य प्रकाश-तमः-विधानम् अनुसरति। प्रकाशः तमः च स्थिरौ भवतः।"
     }
   },
   "sbc": {

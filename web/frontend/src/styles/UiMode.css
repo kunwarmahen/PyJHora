@@ -52,7 +52,7 @@
 
 .ui-mode-toggle__option.active {
   background: linear-gradient(135deg, var(--saffron) 0%, var(--marigold) 100%);
-  color: var(--sacred-white);
+  color: var(--text-on-accent);
   box-shadow: var(--shadow-sm);
 }
 
@@ -79,7 +79,7 @@
 
 .ui-mode-toggle--dashboard .ui-mode-toggle__options {
   width: 100%;
-  background: var(--sacred-white);
+  background: var(--surface-page);
   box-shadow: var(--shadow-sm);
 }
 
@@ -155,7 +155,7 @@
   border: none;
   border-radius: var(--radius-full);
   background: linear-gradient(135deg, var(--saffron) 0%, var(--marigold) 100%);
-  color: var(--sacred-white);
+  color: var(--text-on-accent);
   font-family: var(--font-body);
   font-size: 0.78rem;
   font-weight: 700;

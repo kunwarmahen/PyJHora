@@ -48,7 +48,7 @@
 }
 .aspects-graha {
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   white-space: nowrap;
 }
 .aspects-special {
@@ -82,7 +82,7 @@
   padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-md);
   border: 1px solid var(--sandalwood);
-  background: white;
+  background: var(--surface);
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text-secondary);

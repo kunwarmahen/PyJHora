@@ -279,7 +279,7 @@ export const PredictionsPage = () => {
                       <p>
                         {data.sign_name} - {data.nakshatra} ({t("common.pada")} {data.pada})
                         <br />
-                        <small style={{ color: "#888" }}>
+                        <small style={{ color: "var(--text-neutral-muted)" }}>
                           {t("predictions.longitude")}: {data.longitude?.toFixed(2)}°
                         </small>
                       </p>

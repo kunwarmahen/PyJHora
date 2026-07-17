@@ -57,7 +57,7 @@
   cursor: pointer;
   font-size: 0.82rem;
   font-weight: 600;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 .ai-tool-toggle:hover {
   color: var(--saffron-dark);
@@ -104,8 +104,8 @@
 }
 .ai-tool-param-type {
   font-size: 0.72rem;
-  color: var(--cosmic-indigo);
-  background: var(--sacred-white);
+  color: var(--text-primary);
+  background: var(--surface-page);
   border: 1px solid var(--sandalwood-dark);
   padding: 1px 6px;
   border-radius: var(--radius-full);

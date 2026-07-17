@@ -1,7 +1,7 @@
 /* North Indian (diamond) chart card — Vedic theme */
 
 .chart-card {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-xl);
   padding: var(--space-xl);
   margin-bottom: var(--space-xl);
@@ -23,7 +23,7 @@
   align-items: center;
   gap: var(--space-sm);
   margin-bottom: var(--space-lg);
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 1.5rem;
 }
 /* When inside the head flex row, the title's own margin is redundant. */
@@ -51,7 +51,7 @@
 }
 .chart-export-btn:hover:not(:disabled) {
   background: var(--saffron);
-  color: white;
+  color: var(--text-on-accent);
 }
 .chart-export-btn:disabled {
   opacity: 0.6;
@@ -85,7 +85,7 @@
 /* ===== Chart style toggle (North / South) ===== */
 .chart-style-toggle {
   display: inline-flex;
-  background: white;
+  background: var(--surface);
   border: 2px solid var(--sandalwood-dark);
   border-radius: var(--radius-full);
   padding: 3px;
@@ -105,7 +105,7 @@
 }
 .chart-style-toggle button.active {
   background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
-  color: white;
+  color: var(--text-on-accent);
   box-shadow: var(--shadow-sm);
 }
 
@@ -119,7 +119,7 @@
   max-width: 580px;
   margin: 0 auto;
   border: 3px solid var(--saffron);
-  background: white;
+  background: var(--surface);
   /* Positioning context for the aspect-line overlay (.si-aspect-overlay) */
   position: relative;
 }
@@ -223,7 +223,7 @@
 }
 .si-center-title {
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 0.95rem;
 }
 .si-center-sub {
@@ -265,8 +265,8 @@
   padding: 8px 12px;
   border: 2px solid var(--sandalwood-dark);
   border-radius: var(--radius-md);
-  background: white;
-  color: var(--cosmic-indigo);
+  background: var(--surface);
+  color: var(--text-primary);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -296,7 +296,7 @@
   justify-content: center;
   gap: var(--space-md);
   padding: var(--space-2xl) var(--space-lg);
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
   color: var(--text-secondary);
@@ -306,7 +306,7 @@
   padding: var(--space-xl);
   text-align: center;
   color: var(--text-secondary);
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
 }
@@ -316,4 +316,11 @@
   margin-left: auto;
   padding: 6px 12px;
   font-size: 0.8125rem;
+}
+
+/* The kundali's own ground. A `fill="white"` attribute here stayed a white
+   slab in dark mode; as a class it themes, and the export path forces the
+   light tokens back on before rasterizing (see utils/exportChart.js). */
+.chart-ground {
+  fill: var(--surface);
 }

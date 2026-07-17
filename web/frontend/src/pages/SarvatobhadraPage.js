@@ -85,16 +85,16 @@ const readModelConfig = () => {
 
 // Per-type base background for a chakra cell.
 const CELL_BG = {
-  nakshatra: "#fff7ed", // warm cream (outer star ring)
-  akshara: "#ffffff",
-  rasi: "#eef2ff", // pale indigo (sign ring)
-  tithi: "#fef3c7", // amber (centre)
+  nakshatra: "var(--warning-bg)", // warm cream (outer star ring)
+  akshara: "var(--surface)",
+  rasi: "var(--info-bg)", // pale indigo (sign ring)
+  tithi: "var(--amber-bg)", // amber (centre)
 };
 const CELL_FG = {
   nakshatra: "var(--saffron)",
   akshara: "var(--text-muted)",
   rasi: "var(--cosmic-indigo)",
-  tithi: "#b45309",
+  tithi: "var(--warning)",
 };
 
 export const SarvatobhadraPage = () => {
@@ -279,7 +279,7 @@ export const SarvatobhadraPage = () => {
           alignItems: "center",
           justifyContent: "center",
           padding: "2px",
-          background: anchor ? "rgba(255, 153, 51, 0.18)" : CELL_BG[cell.type] || "white",
+          background: anchor ? "rgba(var(--accent-rgb), 0.18)" : CELL_BG[cell.type] || "var(--surface)",
           border: anchor
             ? "2px solid var(--saffron)"
             : isVedhaSource
@@ -323,9 +323,9 @@ export const SarvatobhadraPage = () => {
                   lineHeight: 1,
                   padding: "1px 3px",
                   borderRadius: "3px",
-                  color: "white",
+                  color: "var(--text-on-accent)",
                   background:
-                    planetNature[g] === "benefic" ? "var(--forest-green, #2e7d32)" : "var(--vermillion)",
+                    planetNature[g] === "benefic" ? "var(--success)" : "var(--vermillion)",
                 }}
               >
                 {PLANET_ABBR[g] || g.slice(0, 2)}
@@ -524,7 +524,7 @@ export const SarvatobhadraPage = () => {
                         display: "inline-block",
                         width: 12,
                         height: 12,
-                        background: "rgba(255,153,51,0.4)",
+                        background: "rgba(var(--accent-rgb), 0.4)",
                         border: "2px solid var(--saffron)",
                         borderRadius: 3,
                         verticalAlign: "middle",
@@ -552,8 +552,8 @@ export const SarvatobhadraPage = () => {
                       style={{
                         display: "inline-block",
                         padding: "0 3px",
-                        background: "var(--forest-green, #2e7d32)",
-                        color: "white",
+                        background: "var(--success)",
+                        color: "var(--text-on-accent)",
                         borderRadius: 3,
                         fontSize: "0.6rem",
                         fontWeight: 800,
@@ -570,7 +570,7 @@ export const SarvatobhadraPage = () => {
                         display: "inline-block",
                         padding: "0 3px",
                         background: "var(--vermillion)",
-                        color: "white",
+                        color: "var(--text-on-accent)",
                         borderRadius: 3,
                         fontSize: "0.6rem",
                         fontWeight: 800,
@@ -615,9 +615,9 @@ export const SarvatobhadraPage = () => {
                             borderRadius: "var(--radius-sm)",
                             border: "1px solid var(--sandalwood)",
                             borderLeft: `4px solid ${
-                              f.tone === "supportive" ? "var(--forest-green, #2e7d32)" : "var(--vermillion)"
+                              f.tone === "supportive" ? "var(--success)" : "var(--vermillion)"
                             }`,
-                            background: "white",
+                            background: "var(--surface)",
                             fontSize: "0.75rem",
                             lineHeight: 1.45,
                           }}

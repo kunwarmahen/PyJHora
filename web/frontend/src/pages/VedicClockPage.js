@@ -73,8 +73,8 @@ const ClockDial = ({ liveGhati, dayGhati }) => {
 
   return (
     <svg viewBox="0 0 220 220" className="vc-clock-svg" role="img" aria-label="Vedic clock">
-      <circle cx={cx} cy={cy} r={r} fill="#fffaf2" stroke="#e8ddc9" strokeWidth="2" />
-      {dayPath && <path d={dayPath} fill="rgba(255,179,71,0.16)" />}
+      <circle cx={cx} cy={cy} r={r} fill="var(--surface-raised)" stroke="var(--border)" strokeWidth="2" />
+      {dayPath && <path d={dayPath} fill="rgba(var(--accent-rgb), 0.16)" />}
       {ticks}
       {hand && (
         <>
@@ -83,14 +83,14 @@ const ClockDial = ({ liveGhati, dayGhati }) => {
             y1={cy}
             x2={hand[0]}
             y2={hand[1]}
-            stroke="#FF9933"
+            stroke="var(--saffron)"
             strokeWidth="3"
             strokeLinecap="round"
           />
-          <circle cx={hand[0]} cy={hand[1]} r="4" fill="#E34234" />
+          <circle cx={hand[0]} cy={hand[1]} r="4" fill="var(--planet-color)" />
         </>
       )}
-      <circle cx={cx} cy={cy} r="5" fill="#2D3561" />
+      <circle cx={cx} cy={cy} r="5" fill="var(--text-primary)" />
     </svg>
   );
 };
@@ -110,8 +110,8 @@ const RetrogradeLoop = ({ x, y }) => {
     .join(" ");
   return (
     <svg viewBox={`0 0 ${size} ${size}`} className="vc-retro-svg" role="img" aria-label="Retrograde loop">
-      <circle cx={size / 2} cy={size / 2} r="4" fill="#E34234" />
-      <polyline points={pts} fill="none" stroke="#2D3561" strokeWidth="1.4" opacity="0.85" />
+      <circle cx={size / 2} cy={size / 2} r="4" fill="var(--planet-color)" />
+      <polyline points={pts} fill="none" stroke="var(--text-primary)" strokeWidth="1.4" opacity="0.85" />
     </svg>
   );
 };

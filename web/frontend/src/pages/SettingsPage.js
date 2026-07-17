@@ -497,6 +497,26 @@ export const SettingsPage = () => {
             </p>
 
             <div className="settings-row">
+              <label className="settings-label">{t("settings.general.theme")}</label>
+              <div className="settings-segment">
+                {[
+                  { v: "light", l: t("settings.theme_light") },
+                  { v: "dark", l: t("settings.theme_dark") },
+                  { v: "system", l: t("settings.theme_system") },
+                ].map((o) => (
+                  <button
+                    key={o.v}
+                    className={`settings-seg-btn${settings.theme === o.v ? " is-active" : ""}`}
+                    onClick={() => set("theme", o.v)}
+                  >
+                    {o.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="settings-hint">{t("settings.general.themeHint")}</p>
+
+            <div className="settings-row">
               <label className="settings-label">{t("settings.general.language")}</label>
               <select
                 className="form-select"

@@ -12,7 +12,7 @@
 }
 .report-print-btn {
   background: var(--saffron);
-  color: white;
+  color: var(--text-on-accent);
   border-color: var(--saffron);
   font-size: 0.9375rem;
   padding: var(--space-sm) var(--space-lg);
@@ -23,7 +23,7 @@
 }
 
 .report-sheet {
-  background: white;
+  background: var(--surface);
   border: 1px solid var(--sandalwood);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -42,7 +42,7 @@
 .report-name {
   font-size: 2rem;
   font-weight: 800;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   margin: 0;
 }
 .report-tagline {
@@ -68,7 +68,7 @@
 .report-h2 {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   border-left: 4px solid var(--saffron);
   padding-left: var(--space-md);
   margin-bottom: var(--space-md);
@@ -100,7 +100,7 @@
 .report-vital__value {
   font-size: 1.125rem;
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 .report-vital__value em {
   font-style: normal;

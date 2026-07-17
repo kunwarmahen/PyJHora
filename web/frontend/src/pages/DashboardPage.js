@@ -6,6 +6,7 @@ import { useProfile } from "../contexts/ProfileContext";
 import { LogOut, Sparkles, Settings } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { NavDrawer } from "../components/NavDrawer";
+import { ThemeToggle } from "../components/ThemeToggle";
 import { NowChartWidget } from "../components/NowChartWidget";
 import { UiModeToggle } from "../components/UiModeToggle";
 import { BrandLogo } from "../components/BrandLogo";
@@ -50,6 +51,7 @@ export const DashboardPage = () => {
             <span className="welcome-text">{t("dashboard.welcome")}</span>
             <span className="username">{user?.name || user?.username}</span>
           </div>
+          <ThemeToggle />
           <button
             onClick={() => navigate("/settings")}
             className="logout-btn"

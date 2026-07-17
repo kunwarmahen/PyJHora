@@ -31,7 +31,7 @@
 }
 
 .auth-card {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-xl);
   padding: var(--space-3xl);
   width: 100%;
@@ -86,7 +86,7 @@
 .form-group label {
   display: block;
   margin-bottom: var(--space-sm);
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-weight: 600;
   font-size: 0.875rem;
   text-transform: uppercase;
@@ -99,13 +99,13 @@
   border: 2px solid var(--sandalwood);
   border-radius: var(--radius-md);
   padding: 0 var(--space-md);
-  background: var(--sacred-white);
+  background: var(--surface-page);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .input-wrapper:focus-within {
   border-color: var(--saffron);
-  background: white;
+  background: var(--surface);
   box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.1);
 }
 
@@ -151,7 +151,7 @@
   width: 100%;
   padding: var(--space-md) var(--space-xl);
   background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
-  color: white;
+  color: var(--text-on-accent);
   border: none;
   border-radius: var(--radius-md);
   font-size: 1.125rem;

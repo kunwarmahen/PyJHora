@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import { NavDrawer } from "./NavDrawer";
 import { AdvancedNotice } from "./AdvancedOnly";
+import { ThemeToggle } from "./ThemeToggle";
 import "../styles/Shared.css";
 
 /**
@@ -43,6 +44,7 @@ export const PageHeader = ({
         </div>
         <div className="nav-right">
           {right}
+          <ThemeToggle />
           <NavDrawer />
         </div>
       </nav>

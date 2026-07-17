@@ -658,6 +658,15 @@
       "loadError": "टोकन लोड नहीं हो सके",
       "createError": "टोकन नहीं बन सका",
       "revokeError": "टोकन निरस्त नहीं हो सका"
+    },
+    "theme_light": "उजाला",
+    "theme_dark": "अँधेरा",
+    "theme_system": "सिस्टम",
+    "themeSystemResolved": "सिस्टम ({{theme}})",
+    "themeCycle": "{{theme}} थीम पर जाएँ",
+    "general": {
+      "theme": "रूप-रंग",
+      "themeHint": "सिस्टम आपके उपकरण की उजाला/अँधेरा सेटिंग के अनुसार बदलता है। उजाला और अँधेरा स्थिर रहते हैं।"
     }
   },
   "sbc": {

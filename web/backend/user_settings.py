@@ -27,6 +27,7 @@ KEYED_PROVIDERS = ("gemini", "openai", "openai-compatible")
 # both cross-device consistency and the scheduled daily digest's AI narrative.
 PREFERENCE_KEYS = (
     "ui_mode",
+    "theme",
     "ai_provider_type",
     "ai_model",
     "ai_base_url",

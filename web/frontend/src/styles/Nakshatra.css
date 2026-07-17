@@ -17,13 +17,13 @@
   height: 56px;
   border-radius: 50%;
   background: var(--gold);
-  color: white;
+  color: var(--text-on-accent);
   flex-shrink: 0;
 }
 .nak-hero__name {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 .nak-hero__sub {
   color: var(--text-secondary);
@@ -40,7 +40,7 @@
   font-size: 2rem;
   font-weight: 700;
   color: var(--saffron);
-  background: white;
+  background: var(--surface);
   border: 2px solid var(--saffron);
   border-radius: var(--radius-md);
   min-width: 64px;
@@ -69,7 +69,7 @@
   font-weight: 700;
 }
 .nak-attr__value {
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -88,12 +88,12 @@
   padding: 4px 12px;
   border-radius: var(--radius-md);
   background: rgba(var(--text-secondary-rgb), 0.1);
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-weight: 600;
 }
 .nak-syllable--active {
   background: var(--saffron);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 /* Tarabala 27-day strip */

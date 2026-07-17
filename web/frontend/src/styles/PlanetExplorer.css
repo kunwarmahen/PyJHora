@@ -19,8 +19,8 @@
   padding: 6px 14px;
   border-radius: var(--radius-md);
   border: 1px solid var(--sandalwood);
-  background: white;
-  color: var(--cosmic-indigo);
+  background: var(--surface);
+  color: var(--text-primary);
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
@@ -32,7 +32,7 @@
 }
 .pex-chip--active {
   background: var(--saffron);
-  color: white;
+  color: var(--text-on-accent);
   border-color: var(--saffron);
 }
 
@@ -55,7 +55,7 @@
   bottom: 0;
   width: 90%;
   max-width: 360px;
-  background: white;
+  background: var(--surface);
   box-shadow: var(--shadow-lg);
   border-left: 4px solid var(--saffron);
   z-index: 301;
@@ -107,7 +107,7 @@
   font-weight: 700;
 }
 .pex-row__value {
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-weight: 600;
 }
 

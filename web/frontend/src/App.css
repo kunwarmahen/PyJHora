@@ -64,6 +64,13 @@
   --surface-neutral: #f5f5f5;
   --surface-cream: #fff8ef;
   --surface-cream-dark: #f6efe2;
+  /* The page/card white. Distinct from --surface: this one goes dark. */
+  --surface-page: var(--sacred-white);
+  /* A band that reads as the inverse of the page — dark in light mode. It only
+     borrows --cosmic-indigo's light value: dark re-tints that token to a light
+     ink (see the dark block), which is the opposite of what a surface wants,
+     so this one is overridden separately rather than left to follow it. */
+  --surface-inverse: var(--cosmic-indigo);
   --overlay: rgba(var(--black-rgb), 0.5);
   --overlay-indigo: rgba(var(--indigo-rgb), 0.45);
 
@@ -100,6 +107,9 @@
   --warning: #b45309;
   --warning-bright: #d97706;
   --warning-bg: #fff7ed;
+  /* The Sarvatobhadra chakra's tithi centre — amber, distinct from
+     --warning-bg so the innermost ring stays separable from the star ring. */
+  --amber-bg: #fef3c7;
   --gold: var(--temple-gold);
 
   /* Info / violet. NOTE: this family (#667eea → #764ba2) is an off-brand
@@ -149,6 +159,146 @@
   --radius-full: 9999px;
 }
 
+/* ==================================================================== *
+ * Dark theme (§37)
+ *
+ * A night sky, not a grey app: the ground is the indigo the brand already
+ * owns (--night-sky / --cosmic-indigo), lit by saffron, marigold and gold.
+ * Only the semantic tokens are reassigned — no rule outside :root needs to
+ * know a theme exists.
+ *
+ * Two things that are deliberate, not oversights:
+ *  - Most brand hues (--saffron, --marigold, --temple-gold…) are NOT
+ *    overridden: they already carry on indigo. --cosmic-indigo is the
+ *    exception and IS re-tinted, because it is not really used as a hue — it
+ *    is the app's dark INK, on chart strokes, rasi labels and dasha level
+ *    accents (including via JS: NorthIndianChart, DhasaPage's --lvl-accent).
+ *    Left at #2d3561 it disappears into the night sky. Re-tinting it here
+ *    fixes every one of those call sites at once, JS included.
+ *  - Saffron is lifted (#ff9933 -> #ffa64d) for TONE, not contrast. The
+ *    premise in todo §37 — that the light ramp "will fail contrast" on dark —
+ *    measured false: --saffron-dark is 5.8:1 and plain --saffron 8.4:1 on this
+ *    ground, both already AA. The darker ramp simply reads muddy against
+ *    indigo; the lift is a legibility-of-tone call, so don't "restore" it
+ *    citing contrast.
+ *
+ * Every token below is AA for body text against both --bg-primary and
+ * --surface-raised (lowest: --text-muted at 4.80 on raised).
+ * ==================================================================== */
+/* Wrapped in @media screen so PRINT never sees it: the light :root values
+   then win unopposed and the report/PDF paths stay light regardless of theme
+   (§37). This beats duplicating the whole light palette inside @media print,
+   which would silently rot the first time a token changed. */
+@media screen {
+  :root[data-theme="dark"] {
+    /* Ground */
+    --bg-primary: #12162b;
+    --bg-secondary: #1a1f3a;
+
+    /* Surfaces — each step lifts toward the viewer */
+    --surface: #1c2140;
+    --surface-page: #171c36;
+    --surface-raised: #232949;
+    --surface-sunken: #141834;
+    --surface-neutral: #232949;
+    --surface-cream: #232949;
+    --surface-cream-dark: #1c2140;
+    --surface-inverse: #2c3360;
+    --overlay: rgba(var(--black-rgb), 0.66);
+    --overlay-indigo: rgba(8, 10, 22, 0.7);
+
+    /* Borders */
+    --border-subtle: #262c4e;
+    --border: #333a63;
+    --border-strong: #454d83;
+
+    /* Text — indigo family. #eef0f8 on #12162b is 15.7:1. */
+    --text-primary: #eef0f8;
+    --text-secondary: #b6bcd8;
+    --text-muted: #8f95b4;
+    --text-on-accent: #1a1f3a;
+
+    /* Text — warm family. Sandalwood tints keep the reading surfaces warm
+       instead of dropping them to grey. */
+    --text-warm-strong: #f4e4c1;
+    --text-warm: #dccdaa;
+    --text-warm-muted: #ab9f85;
+
+    /* Text — neutral family */
+    --text-neutral-strong: #eef0f8;
+    --text-neutral: #b6bcd8;
+    --text-neutral-muted: #8f95b4;
+
+    /* Accent — saffron, lifted off the light ramp */
+    --accent: #ffa64d;
+    --accent-strong: #ffb877;
+    --accent-deep: #ffc890;
+
+    /* Status — all AA on the ground */
+    --success: #5ecb8a;
+    --success-bright: #7fdda4;
+    --success-bg: #14301f;
+    --success-border: #2c5f3f;
+    --danger: #ff8577;
+    --danger-alt: #ff9aa8;
+    --danger-bg: #331a1c;
+    --danger-border: #6b3138;
+    --warning: #f0b464;
+    --warning-bright: #ffc987;
+    --warning-bg: #33250f;
+    --amber-bg: #3d2c0c;
+    --gold: #e8ca6a;
+
+    /* Info / violet */
+    --info: #8f9dff;
+    --info-dark: #b083e0;
+    --info-bg: #1e2342;
+    --indigo-accent: #9a9bef;
+
+    /* Channel triples — tints follow automatically wherever
+       rgba(var(--x-rgb), a) is used. */
+    --accent-rgb: 255, 166, 77;
+    --vermillion-rgb: 255, 122, 107;
+    --indigo-rgb: 154, 155, 239;
+    --text-secondary-rgb: 182, 188, 216;
+    --text-muted-rgb: 143, 149, 180;
+    --success-rgb: 94, 203, 138;
+    --emerald-rgb: 94, 203, 138;
+    --danger-rgb: 255, 133, 119;
+    --gold-rgb: 232, 202, 106;
+    --terracotta-rgb: 240, 150, 116;
+    --sandalwood-rgb: 244, 228, 193;
+    --info-rgb: 143, 157, 255;
+    /* Indigo shadows are invisible on an indigo ground — go to true black,
+       and deeper, since dark UI needs more separation to read as elevation. */
+    --shadow-rgb: 0, 0, 0;
+
+    /* Brand tokens that are used as SURFACES rather than as hues, so they
+       have to move with the theme. --sandalwood is the app's border/rule
+       colour (68 uses) and --sacred-white a card ground. */
+    --sandalwood: #2b3157;
+    --sandalwood-dark: #363d6b;
+    --sacred-white: #171c36;
+    --bg-cream: #1c2140;
+
+    /* Planet glyphs need to carry on an indigo ground; the light vermillion
+       drops to ~3:1 here. */
+    --planet-color: #ff9a8b;
+
+    /* The app's dark ink — see the header note. Re-tinted rather than left as
+       a hue, so the chart strokes/rasi labels and the dasha level accents that
+       reference it from JS light up too. */
+    --cosmic-indigo: #9a9bef;
+    --cosmic-indigo-light: #b6b7f5;
+
+    --shadow-sm: 0 2px 8px rgba(var(--shadow-rgb), 0.4);
+    --shadow-md: 0 4px 16px rgba(var(--shadow-rgb), 0.48);
+    --shadow-lg: 0 8px 32px rgba(var(--shadow-rgb), 0.55);
+    --shadow-xl: 0 16px 48px rgba(var(--shadow-rgb), 0.62);
+    --shadow-glow: 0 0 24px rgba(var(--accent-rgb), 0.28);
+  }
+}
+
 /* Global Reset */
 * {
   margin: 0;
@@ -182,7 +332,7 @@ h6 {
   font-family: var(--font-display);
   font-weight: 600;
   line-height: 1.2;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 
 h1 {
@@ -246,12 +396,12 @@ textarea {
 /* Selection */
 ::selection {
   background: var(--saffron);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 ::-moz-selection {
   background: var(--saffron);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 /* Sacred Geometry Background Pattern */
@@ -326,7 +476,7 @@ body::before {
 }
 
 .card {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-lg);
   padding: var(--space-xl);
   box-shadow: var(--shadow-md);

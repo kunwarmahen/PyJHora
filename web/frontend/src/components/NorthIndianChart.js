@@ -228,7 +228,7 @@ export const NorthIndianChart = ({
             y={squareY}
             width={size}
             height={size}
-            fill="white"
+            className="chart-ground"
             stroke="url(#chartGradient)"
             strokeWidth="3"
           />

@@ -33,7 +33,7 @@
   padding: 12px 25px;
   font-size: 14px;
   font-weight: 600;
-  color: white;
+  color: var(--text-on-accent);
   background: linear-gradient(135deg, var(--info) 0%, var(--info-dark) 100%);
   border: none;
   border-radius: 8px;

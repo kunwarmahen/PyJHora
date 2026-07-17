@@ -40,7 +40,7 @@
   bottom: 0;
   width: 80%;
   max-width: 300px;
-  background: white;
+  background: var(--surface);
   box-shadow: var(--shadow-lg);
   border-right: 4px solid var(--saffron);
   z-index: 201;
@@ -102,7 +102,7 @@
 }
 .nav-drawer-account-name {
   font-weight: 600;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -124,7 +124,7 @@
   background: none;
   border: none;
   border-radius: var(--radius-md);
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 0.9375rem;
   font-weight: 600;
   cursor: pointer;

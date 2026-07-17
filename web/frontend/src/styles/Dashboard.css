@@ -7,7 +7,7 @@
 
 /* Navbar */
 .navbar {
-  background: white;
+  background: var(--surface);
   padding: var(--space-lg) var(--space-2xl);
   display: flex;
   justify-content: space-between;
@@ -60,7 +60,7 @@
 }
 
 .username {
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 1rem;
   font-weight: 700;
 }
@@ -81,7 +81,7 @@
 
 .logout-btn:hover {
   background: var(--vermillion);
-  color: white;
+  color: var(--text-on-accent);
   border-color: var(--vermillion);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
@@ -96,7 +96,7 @@
 
 /* Profile Banner */
 .profile-banner {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-xl);
   padding: var(--space-xl);
   margin-bottom: var(--space-3xl);
@@ -127,14 +127,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--text-on-accent);
   box-shadow: var(--shadow-md);
 }
 
 .profile-info h2 {
   margin: 0 0 var(--space-sm) 0;
   font-size: 1.75rem;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 
 .profile-meta {
@@ -155,7 +155,7 @@
   gap: var(--space-sm);
   padding: var(--space-md) var(--space-lg);
   background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
-  color: white;
+  color: var(--text-on-accent);
   border: none;
   border-radius: var(--radius-md);
   font-weight: 600;
@@ -199,7 +199,7 @@
 }
 
 .feature-card {
-  background: white;
+  background: var(--surface);
   padding: var(--space-xl);
   border-radius: var(--radius-xl);
   text-decoration: none;
@@ -244,7 +244,7 @@
   justify-content: center;
   border-radius: var(--radius-md);
   margin-bottom: var(--space-lg);
-  color: white;
+  color: var(--text-on-accent);
   box-shadow: var(--shadow-md);
   transition: transform 0.3s ease;
 }
@@ -256,7 +256,7 @@
 .feature-card h3 {
   margin: 0 0 var(--space-md) 0;
   font-size: 1.5rem;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 
 .feature-card p {
@@ -345,7 +345,7 @@
   padding: var(--space-lg);
   border-radius: var(--radius-lg);
   border: 1px solid var(--sandalwood);
-  background: var(--sacred-white);
+  background: var(--surface-page);
   transition: all 0.25s ease;
 }
 .dosha-card.present {
@@ -361,7 +361,7 @@
 }
 .dosha-name {
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 1rem;
 }
 .dosha-badge {
@@ -375,7 +375,7 @@
 }
 .dosha-badge.yes {
   background: var(--vermillion);
-  color: white;
+  color: var(--text-on-accent);
 }
 .dosha-badge.no {
   background: rgba(var(--indigo-rgb), 0.08);
@@ -398,11 +398,11 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--sandalwood);
   border-left: 3px solid var(--temple-gold);
-  background: var(--sacred-white);
+  background: var(--surface-page);
 }
 .yoga-name {
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 1rem;
   margin-bottom: var(--space-xs);
 }
@@ -414,7 +414,7 @@
 }
 .yoga-benefit {
   font-size: 0.82rem;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   line-height: 1.5;
 }
 .yoga-benefit-label {
@@ -434,7 +434,7 @@
 
 /* ===== Panchanga (daily almanac) panel ===== */
 .panchanga-panel {
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-xl);
   padding: var(--space-xl);
   margin-top: var(--space-xl);
@@ -454,7 +454,7 @@
   align-items: center;
   gap: var(--space-sm);
   margin: 0;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 1.5rem;
 }
 .panchanga-controls {
@@ -470,9 +470,9 @@
   padding: var(--space-xs) var(--space-md);
   border: 1px solid var(--sandalwood);
   border-radius: var(--radius-md);
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 0.9rem;
-  background: var(--sacred-white);
+  background: var(--surface-page);
 }
 .panchanga-place {
   display: inline-flex;
@@ -505,7 +505,7 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--sandalwood);
   border-left: 3px solid var(--temple-gold);
-  background: var(--sacred-white);
+  background: var(--surface-page);
 }
 .panchanga-limb-label {
   font-size: 0.64rem;
@@ -516,7 +516,7 @@
 }
 .panchanga-limb-value {
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 0.98rem;
 }
 .panchanga-limb-sub {
@@ -529,7 +529,7 @@
   gap: var(--space-xl);
   margin-bottom: var(--space-lg);
   font-size: 0.9rem;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-weight: 600;
 }
 .panchanga-suntimes span {
@@ -551,7 +551,7 @@
   gap: 2px;
   padding: var(--space-md);
   border-radius: var(--radius-lg);
-  background: var(--sacred-white);
+  background: var(--surface-page);
   border: 1px solid var(--sandalwood);
 }
 .panchanga-period.inauspicious {
@@ -569,7 +569,7 @@
 }
 .panchanga-period-time {
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 0.95rem;
 }
 .panchanga-durmuhurtam {
@@ -585,7 +585,7 @@
   display: inline-block;
   margin-right: var(--space-md);
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 0.95rem;
 }
 
@@ -640,7 +640,7 @@
   gap: 2px;
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
-  background: var(--sacred-white);
+  background: var(--surface-page);
   border: 1px solid var(--sandalwood);
   border-left: 3px solid var(--temple-gold);
 }
@@ -658,7 +658,7 @@
 }
 .almanac-hora-planet {
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 0.95rem;
 }
 
@@ -671,9 +671,9 @@
 .almanac-ecl-card {
   padding: var(--space-md);
   border-radius: var(--radius-lg);
-  background: var(--sacred-white);
+  background: var(--surface-page);
   border: 1px solid var(--sandalwood);
-  border-left: 3px solid var(--cosmic-indigo);
+  border-left: 3px solid var(--text-primary);
   margin-bottom: var(--space-sm);
 }
 .almanac-ecl-head {
@@ -690,20 +690,20 @@
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   background: var(--sandalwood);
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 .almanac-ecl-type.type-total {
   background: var(--vermillion);
-  color: white;
+  color: var(--text-on-accent);
 }
 .almanac-ecl-type.type-annular,
 .almanac-ecl-type.type-hybrid {
   background: var(--saffron);
-  color: white;
+  color: var(--text-on-accent);
 }
 .almanac-ecl-date {
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 0.9rem;
 }
 .almanac-ecl-times {
@@ -734,7 +734,7 @@
   padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-pill, 999px);
   border: 1px solid var(--sandalwood);
-  background: var(--sacred-white);
+  background: var(--surface-page);
   color: var(--text-secondary);
   font-size: 0.8rem;
   font-weight: 600;
@@ -744,7 +744,7 @@
 .almanac-chip.is-on {
   background: var(--saffron);
   border-color: var(--saffron);
-  color: white;
+  color: var(--text-on-accent);
 }
 .almanac-fest-list {
   display: flex;
@@ -757,7 +757,7 @@
   gap: var(--space-md);
   padding: var(--space-md);
   border-radius: var(--radius-lg);
-  background: var(--sacred-white);
+  background: var(--surface-page);
   border: 1px solid var(--sandalwood);
   border-left: 3px solid var(--temple-gold);
   flex-wrap: wrap;
@@ -777,7 +777,7 @@
 }
 .almanac-fest-name {
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 0.95rem;
 }
 .almanac-fest-meaning {
@@ -795,7 +795,7 @@
   padding: 1px 7px;
   border-radius: var(--radius-sm);
   background: var(--vermillion);
-  color: white;
+  color: var(--text-on-accent);
   font-size: 0.62rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -826,7 +826,7 @@
   font-size: 1.05rem;
 }
 .sbc-ai-markdown strong {
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 
 /* Sarvatobhadra page: chakra dominant (~75%), compact right column */
@@ -860,8 +860,8 @@
   padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--sandalwood);
   border-radius: var(--radius-md);
-  background: var(--sacred-white);
-  color: var(--cosmic-indigo);
+  background: var(--surface-page);
+  color: var(--text-primary);
   font-size: 0.8125rem;
 }
 
@@ -895,7 +895,7 @@
 }
 .nakshatra-card {
   padding: var(--space-md);
-  background: var(--sacred-white);
+  background: var(--surface-page);
   border-radius: var(--radius-md);
   border: 1px solid var(--sandalwood);
   transition: all 0.3s ease;
@@ -956,7 +956,7 @@
 }
 .compat-person__card {
   padding: var(--space-md);
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-md);
   border: 1px solid var(--sandalwood);
 }
@@ -967,14 +967,14 @@
 .compat-person__name {
   margin: 0 0 var(--space-sm);
   font-weight: 600;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 1.125rem;
 }
 .compat-person__select-label {
   display: block;
   margin-bottom: var(--space-sm);
   font-weight: 600;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 0.875rem;
 }
 
@@ -1008,12 +1008,12 @@
 }
 .score-box__status {
   padding: var(--space-md);
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-md);
   display: inline-block;
   box-shadow: var(--shadow-sm);
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 1.125rem;
 }
 .score-box__nakshatras {
@@ -1030,7 +1030,7 @@
 }
 .koota-card {
   padding: var(--space-md);
-  background: var(--sacred-white);
+  background: var(--surface-page);
   border-radius: var(--radius-md);
   border: 1px solid var(--sandalwood);
   text-align: center;
@@ -1078,12 +1078,12 @@
   align-items: center;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-lg);
-  background: white;
+  background: var(--surface);
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-sm);
-  border-left: 4px solid var(--cosmic-indigo);
+  border-left: 4px solid var(--text-primary);
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 .dhasa-badge__sub {
   font-size: 0.75rem;
@@ -1124,7 +1124,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--text-on-accent);
   flex-shrink: 0;
 }
 .current-period__grid {
@@ -1152,7 +1152,7 @@
   border: 1px solid var(--sandalwood);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  background: var(--sacred-white);
+  background: var(--surface-page);
 }
 .dasha-node.is-current {
   border: 2px solid var(--lvl-accent);
@@ -1179,7 +1179,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--text-on-accent);
   font-weight: 700;
   font-size: 0.75rem;
   flex-shrink: 0;
@@ -1190,7 +1190,7 @@
 }
 .dasha-node__lord {
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 .dasha-node.is-current .dasha-node__lord {
   color: var(--lvl-accent);
@@ -1211,7 +1211,7 @@
 .dasha-node__now {
   padding: var(--space-xs) var(--space-sm);
   background: var(--lvl-accent);
-  color: white;
+  color: var(--text-on-accent);
   border-radius: var(--radius-full);
   font-size: 0.625rem;
   font-weight: 700;
@@ -1233,7 +1233,7 @@
 .dasha-node__children {
   border-top: 1px solid var(--sandalwood);
   padding: var(--space-md);
-  background: white;
+  background: var(--surface);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
@@ -1274,7 +1274,7 @@
   font-size: 0.8125rem;
   font-weight: 700;
   border: 1px solid var(--sandalwood);
-  background: var(--sacred-white);
+  background: var(--surface-page);
 }
 .chakra-wheel__ref {
   font-size: 0.625rem;
@@ -1286,7 +1286,7 @@
 .chakra-wheel__house {
   font-size: 0.625rem;
   font-weight: 700;
-  color: var(--sacred-white);
+  color: var(--text-on-accent);
   background: var(--text-secondary);
   border-radius: 999px;
   padding: 0 5px;
@@ -1319,7 +1319,7 @@
   padding: var(--space-md);
   border-radius: var(--radius-md);
   border: 1px solid var(--sandalwood);
-  background: var(--sacred-white);
+  background: var(--surface-page);
 }
 .period-row.is-current {
   border: 2px solid var(--saffron);
@@ -1391,7 +1391,7 @@
 }
 .pp-window__time {
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   min-width: 5.5rem;
 }
@@ -1424,12 +1424,12 @@
 .pp-segment {
   border-radius: 10px;
   padding: 0.55rem 0.65rem;
-  background: var(--sacred-white);
+  background: var(--surface-page);
   box-shadow: var(--shadow-sm);
   border-left: 4px solid var(--saffron);
 }
 .pp-segment--night {
-  border-left-color: var(--cosmic-indigo);
+  border-left-color: var(--text-primary);
   background: rgba(var(--indigo-rgb), 0.03);
 }
 .pp-segment__head {
@@ -1440,7 +1440,7 @@
 }
 .pp-segment__time {
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 .pp-segment__bird {
@@ -1470,7 +1470,7 @@
 .pp-sub__time {
   font-size: 0.68rem;
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 .pp-sub__act {
@@ -1642,7 +1642,7 @@
 }
 .fr-sub {
   margin: 1.1rem 0 0.4rem;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 0.98rem;
 }
 
@@ -1659,7 +1659,7 @@
   align-items: center;
   gap: 6px;
   font-weight: 700;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 .dasha-reco__chips {
@@ -1991,7 +1991,7 @@
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   min-width: 96px;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
 }
 .bhrigu-activation__text { font-size: 0.9rem; }
 
@@ -2082,7 +2082,7 @@
 }
 .digest-retro {
   margin: 0.65rem 0;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-weight: 600;
 }
 .digest-retro .kv-label {
@@ -2173,7 +2173,7 @@
   border: 1px solid var(--sandalwood);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
-  background: var(--sacred-white);
+  background: var(--surface-page);
 }
 /* Deeper enclosures read hotter — reaching Sthamba is the classical alarm. */
 .kota-ring--baahya { border-left: 4px solid rgba(var(--text-muted-rgb), 0.5); }
@@ -2221,7 +2221,7 @@
   font-weight: 700;
   padding: 0 5px;
   border-radius: var(--radius-sm);
-  color: var(--sacred-white);
+  color: var(--text-on-accent);
 }
 .kota-graha.is-malefic { background: var(--vermillion); }
 .kota-graha.is-benefic { background: var(--success); }
@@ -2244,7 +2244,7 @@
   stroke-linecap: round;
 }
 .tripataki-node {
-  fill: var(--sacred-white);
+  fill: var(--text-on-accent);
   stroke: var(--text-secondary);
   stroke-width: 1.5;
 }

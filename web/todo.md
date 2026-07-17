@@ -3777,20 +3777,45 @@ theme. The work is mostly *auditing the literals*, not writing a dark palette.
       - 🗑️ **Two dead duplicate stylesheets** found: `Dashboard.css` (repo root) and
         `web/frontend/Dashboard.css` — nothing imports either, every selector is duplicated in
         `src/styles/`. Leftovers from `b0eb113` written to the wrong path. Safe to delete.
-- [ ] 🔴 **Dark palette.** Override the semantic tokens under `:root[data-theme="dark"]`. **Keep
-      the Vedic identity** (owner has reaffirmed the saffron look twice — §3, §15): a night-sky
-      indigo ground (`--night-sky` / `--cosmic-indigo` already exist) with saffron/marigold/gold
-      accents, not a generic grey dark theme. Saffron on dark needs its own tint — the light
-      `--saffron-dark` will fail contrast. Check WCAG AA on body text and chart glyphs.
-- [ ] 🔴 **The setting.** `theme: "light" | "dark" | "system"` in `SettingsContext` (key `theme`,
-      in `SYNCED_KEYS`); default **system** via `prefers-color-scheme`. Apply by stamping
-      `data-theme` on `<html>` **before first paint** (a tiny inline script in `index.html`, else
-      dark users get a white flash). Toggle in `PageHeader` + Settings → General.
-- [ ] 🔴 **The awkward surfaces** — each needs a real look, not an inherited one: the North/South
-      Indian Kundali SVGs, `--planet-color` glyphs, Kota/Kaala/Tripataki chakra canvases, the
-      Dashboard tiles, chat bubbles, and the **print/PDF paths** (`FullReportPage`, Life Report —
-      these must stay **light regardless of theme**; `@media print` forces the light tokens).
-- [ ] 🔴 Verify every page in both themes (the /verify skill), prod build, and mobile.
+- [x] ✅ **Dark palette — DONE 2026-07-16.** Night-sky indigo ground (`#12162b`) with the saffron/
+      marigold/gold accents, not a grey theme. Every dark token measured AA for body text against
+      both `--bg-primary` and `--surface-raised` (lowest: `--text-muted` 4.80 on raised).
+      **The spec's premise here was wrong and is corrected in the CSS:** "the light `--saffron-dark`
+      will fail contrast" measures *false* — it is 5.8:1 on the dark ground, and plain `--saffron`
+      8.4:1, both already AA. Saffron is lifted `#ff9933`→`#ffa64d` for **tone** (the dark ramp
+      reads muddy on indigo), not contrast. Don't "restore" it citing contrast.
+- [x] ✅ **The setting — DONE 2026-07-16.** `theme: light|dark|system` in `SettingsContext`
+      (`SYNCED_KEYS` + `PREFERENCE_KEYS` server-side), default **system**, pre-paint stamp in
+      `index.html` that resolves *system* (not the stored literal), `matchMedia` listener for an OS
+      flip with the tab open. Toggle in `PageHeader` **and `DashboardPage`** (the Dashboard rolls
+      its own `nav-right` and does not use PageHeader — easy to miss) + Settings → General.
+      **Fixed a real race while verifying:** the 600ms debounced server push meant a toggle
+      followed by a reload inside that window left the server holding the OLD value, and the login
+      sync then reasserted it over the correct local one — the click silently reverted. Discrete
+      toggles (`theme`, `uiMode`) now push immediately (`IMMEDIATE_KEYS`).
+- [x] ✅ **The awkward surfaces — DONE 2026-07-16.** The audit had TWO blind spots, both of which
+      left light slabs sitting in the dark theme; each is now covered by a guard test:
+      - **CSS colour keywords.** `background: white` ×66 and `color: white` ×47 sailed through the
+        hex/rgba audit. This is what kept the Dashboard cards, tiles and chips white.
+      - **JS: SVG paint attributes + inline styles.** `fill="white"` on the Kundali rect, the
+        VedicClock SVG's whole palette, and `SarvatobhadraPage`'s `CELL_BG` chakra rings — none of
+        it is CSS, so no stylesheet audit could ever have seen it.
+      - `--cosmic-indigo` **is re-tinted in dark** (`#9a9bef`), unlike the other brand hues: it is
+        not used as a hue but as the app's dark *ink* (chart strokes, rasi labels, `--lvl-accent`
+        from JS). Re-tinting the token fixed every call site at once, JS included, with zero light
+        drift. `--surface-inverse` is overridden separately since a surface must go the other way.
+      - `--forest-green` was one more never-defined token living on a fallback; now `--success`.
+      - **Print/PDF stays light** via a trick worth keeping: the dark block is wrapped in
+        `@media screen`, so print simply never sees it and the light `:root` wins unopposed — no
+        duplicated palette to rot. `exportChart.js` additionally forces light *during capture*
+        (`withLightTheme` / html2canvas `onclone`), because it inlines **computed** styles: a chart
+        captured in dark would otherwise export as dark glyphs onto its white canvas.
+      **Verified live** (playwright, real toggle): Dashboard/BirthChart/Settings/Ask/Chakras/Dhasa
+      all dark, no page errors; print emulation under `data-theme="dark"` resolves `--surface:#fff`
+      and body white; mobile 390px collapses the toggle to an icon with no overflow.
+- [x] ✅ Verify every page in both themes, prod build, mobile — done for the pages above.
+      **Not yet looked at in dark:** the remaining ~30 feature pages, South Indian chart, Kota/
+      Kaala/Tripataki canvases, Life Report. The tokens cover them, but "covered" ≠ "looked at".
 
 ### Owner decision (2026-07-16)
 

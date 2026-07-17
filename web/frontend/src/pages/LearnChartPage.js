@@ -506,7 +506,7 @@ export const LearnChartPage = () => {
                 </p>
                 {r.what_was_right && (
                   <p className="learn-answer-line">
-                    <span className="lbl" style={{ color: "#16a34a" }}>
+                    <span className="lbl" style={{ color: "var(--success-bright)" }}>
                       {t("learn.right")}:
                     </span>
                     {r.what_was_right}
@@ -514,7 +514,7 @@ export const LearnChartPage = () => {
                 )}
                 {r.what_was_wrong && (
                   <p className="learn-answer-line">
-                    <span className="lbl" style={{ color: "#dc2626" }}>
+                    <span className="lbl" style={{ color: "var(--danger)" }}>
                       {t("learn.wrong")}:
                     </span>
                     {r.what_was_wrong}

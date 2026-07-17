@@ -33,7 +33,7 @@
 }
 
 .ss-cycle {
-  background: var(--sacred-white);
+  background: var(--surface-page);
   border: 1px solid rgba(var(--text-muted-rgb), 0.2);
   border-radius: var(--radius-lg, 16px);
   padding: 0.9rem 1.1rem;
@@ -119,7 +119,7 @@
   text-align: right;
 }
 .ss-phase__retro {
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-weight: 700;
 }
 
@@ -132,7 +132,7 @@
 }
 .ss-other-h {
   margin: 0 0 0.4rem;
-  color: var(--cosmic-indigo);
+  color: var(--text-primary);
   font-size: 0.95rem;
 }
 .ss-other-row {

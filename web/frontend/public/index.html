@@ -15,6 +15,32 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="%REACT_APP_SITE_TITLE%" />
     <title>%REACT_APP_SITE_TITLE% - Vedic Astrology</title>
+    <script>
+      /* Stamp the theme BEFORE first paint, or a dark user gets a white flash
+         while the JS bundle loads. Deliberately inline, dependency-free and
+         duplicated from src/config/theme.js — nothing from the bundle can run
+         early enough to do this, so the two must be kept in step (the mirror is
+         asserted by src/config/theme.test.js).
+
+         Resolves "system" too: reading the stored literal alone would flash
+         light at every default-setting user on a dark machine, which is most
+         of them. */
+      (function () {
+        try {
+          var pref = localStorage.getItem("theme");
+          if (pref !== "light" && pref !== "dark") pref = "system";
+          var resolved =
+            pref === "system"
+              ? window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light"
+              : pref;
+          document.documentElement.setAttribute("data-theme", resolved);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
