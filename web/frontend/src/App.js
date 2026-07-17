@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
+import { LocationProvider } from "./contexts/LocationContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -74,6 +75,7 @@ function App() {
       <AuthProvider>
         <ProfileProvider>
           <SettingsProvider>
+          <LocationProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -479,6 +481,7 @@ function App() {
               }
             />
           </Routes>
+          </LocationProvider>
           </SettingsProvider>
         </ProfileProvider>
       </AuthProvider>

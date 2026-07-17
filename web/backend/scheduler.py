@@ -3,7 +3,9 @@
 An opt-in asyncio background task (enabled with `DIGEST_SCHEDULER_ENABLED=true`)
 that wakes every `DIGEST_SCHEDULER_INTERVAL_MINUTES` and, for each user who has
 the daily digest enabled, delivers it once per day at *or after* their preferred
-local hour (interpreted in the target birth profile's timezone). "At or after"
+local hour — local meaning **where the user is now** (their current location's
+zone, DST-aware), falling back to the target birth profile's fixed offset when
+they haven't set one. "At or after"
 (rather than only during the exact hour) means the digest still goes out if the
 process was down or restarting during the target hour — the user gets it later
 that day instead of missing the day entirely.
@@ -29,6 +31,8 @@ from config import settings
 from database import get_database
 import digest
 import notifications
+import timezones
+import user_settings
 
 _task: Optional[asyncio.Task] = None
 
@@ -50,6 +54,27 @@ async def _profile_tz(user_id: str, prefs: dict) -> float:
         return float(tz) if tz is not None else 0.0
     except (TypeError, ValueError):
         return 0.0
+
+
+async def _user_local_now(user_id: str, prefs: dict) -> datetime:
+    """The wall-clock time it is *for this user*, which is what "is it 7am yet?"
+    has to be asked of.
+
+    Their **current location** wins: someone born in India and living in the US
+    wants the 7am digest at 7am where they are, not 7am IST (which is 8:30pm the
+    previous evening for them — the bug this exists to fix). Zone-based, so it's
+    DST-correct year round.
+
+    Falling back to the birth profile's fixed offset when no current location is
+    set preserves the old behaviour exactly, which stays right for the many users
+    who still live where they were born.
+    """
+    loc = await user_settings.get_current_location(user_id)
+    if loc:
+        local = timezones.local_now(loc.get("timezone"))
+        if local is not None:
+            return local
+    return _local_now(await _profile_tz(user_id, prefs))
 
 
 # Each cadence: the prefs switch that enables it, the "is it due now?" gate
@@ -131,8 +156,7 @@ async def _run_cadence(db, spec: dict) -> int:
             continue
         prefs = {**notifications.DEFAULT_PREFS, **(doc.get("notifications") or {})}
         try:
-            tz = await _profile_tz(user_id, prefs)
-            local = _local_now(tz)
+            local = await _user_local_now(user_id, prefs)
             if not spec["due"](local, prefs):
                 continue
             claim_field = spec["claim_field"]

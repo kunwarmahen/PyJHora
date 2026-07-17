@@ -137,3 +137,62 @@ async def set_preferences(user_id: str, prefs: Dict[str, Any]) -> Dict[str, str]
         await db[COLLECTION].update_one(
             {"user_id": user_id}, {"$set": clean}, upsert=True)
     return await get_preferences(user_id)
+
+
+# --------------------------------------------------------------------------- #
+# Current location — where the user lives NOW
+# --------------------------------------------------------------------------- #
+# Deliberately NOT a `preferences` string: it is structured, and it is not a
+# preference. It answers "where is this person right now", which is a different
+# question from every birth profile's "where were they born" — and one the
+# scheduler must answer at 3am with no browser around to ask.
+#
+# A user has ONE current location, on their account, not per-profile: it
+# describes the reader, not the chart. Birth details are never touched by it.
+LOCATION_FIELD = "current_location"
+
+
+async def get_current_location(user_id: str) -> Optional[Dict[str, Any]]:
+    """The user's stored current location, or None if they never set one.
+
+    None means "fall back to the birth profile", which is the pre-location
+    behaviour and correct for the many users who still live where they were
+    born."""
+    db = get_database()
+    doc = await db[COLLECTION].find_one({"user_id": user_id})
+    loc = (doc or {}).get(LOCATION_FIELD)
+    return loc or None
+
+
+async def set_current_location(user_id: str, place: str, latitude: float,
+                               longitude: float,
+                               timezone: Optional[str] = None
+                               ) -> Dict[str, Any]:
+    """Store where the user is now. `timezone` is an IANA zone name; when it's
+    missing or unknown to this machine's tz database it is derived from the
+    coordinates, which is always possible offline.
+
+    Storing a zone rather than an offset is the whole point — see timezones.py.
+    """
+    import timezones
+
+    lat = float(latitude)
+    lon = float(longitude)
+    zone = timezone if timezones.is_valid_zone(timezone) else timezones.zone_at(lat, lon)
+    loc = {
+        "place": (place or "").strip() or f"{lat}, {lon}",
+        "latitude": lat,
+        "longitude": lon,
+        "timezone": zone,
+    }
+    db = get_database()
+    await db[COLLECTION].update_one(
+        {"user_id": user_id}, {"$set": {LOCATION_FIELD: loc}}, upsert=True)
+    return loc
+
+
+async def clear_current_location(user_id: str) -> None:
+    """Forget the current location — back to pacing off the birth profile."""
+    db = get_database()
+    await db[COLLECTION].update_one(
+        {"user_id": user_id}, {"$unset": {LOCATION_FIELD: ""}})

@@ -705,6 +705,16 @@ class PreferencesRequest(BaseModel):
     preferences: Dict[str, Any] = {}
 
 
+class CurrentLocationRequest(BaseModel):
+    """Where the user is now — NOT birth data. `timezone` is an IANA zone name
+    ("America/Chicago"), not an offset: an offset can't carry DST. It's optional
+    because the coordinates alone determine it."""
+    place: str = ""
+    latitude: float
+    longitude: float
+    timezone: Optional[str] = None
+
+
 class TithiAshtottariChildrenRequest(BaseModel):
     """One period of the compressed Tithi Ashtottari, to be subdivided.
 

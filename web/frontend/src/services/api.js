@@ -1102,6 +1102,15 @@ export const astrologyService = {
   getPreferences: () => api.get("/api/user/preferences"),
   putPreferences: (preferences) => api.put("/api/user/preferences", { preferences }),
 
+  // Where the user is NOW — not birth data. `timezone` is an IANA zone name;
+  // omit it and the server derives it from the coordinates (which is what the
+  // location picker does — its own tz is a float offset, and an offset can't
+  // carry DST).
+  getCurrentLocation: () => api.get("/api/user/location"),
+  putCurrentLocation: ({ place, latitude, longitude, timezone }) =>
+    api.put("/api/user/location", { place, latitude, longitude, timezone }),
+  deleteCurrentLocation: () => api.delete("/api/user/location"),
+
   generatePrediction: (birthDetails, predictionType = "general", model = {}) =>
     api.post(
       "/api/astrology/predict",

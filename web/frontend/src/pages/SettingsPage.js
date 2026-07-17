@@ -20,11 +20,14 @@ import {
   Copy,
   Terminal,
   Plus,
+  MapPin,
 } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { useSettings } from "../contexts/SettingsContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
+import { useCurrentLocation } from "../contexts/LocationContext";
+import LocationSearch from "../components/LocationSearch";
 import { authService, astrologyService, notificationsService, setTokens } from "../services/api";
 import { enablePush, disablePush, pushSupported, pushUnavailableReason } from "../utils/push";
 import { formatDate } from "../utils/format";
@@ -36,6 +39,22 @@ import { STARTUP_PROFILE_MODES } from "../config/startupProfile";
 import "../styles/Settings.css";
 
 const KEYED_PROVIDERS = ["gemini", "openai", "openai-compatible"];
+// The tabs, in order. One list: `?tab=` validates against it and the tab bar is
+// built from it, so the two can't drift. Every label is `settings.tabs.<key>`,
+// which is what lets the row be derived rather than repeated.
+const TAB_ICONS = {
+  general: <SettingsIcon size={16} />,
+  location: <MapPin size={16} />,
+  ai: <Sliders size={16} />,
+  apiKeys: <Key size={16} />,
+  apiAccess: <Terminal size={16} />,
+  almanac: <CalendarDays size={16} />,
+  notifications: <Bell size={16} />,
+  calendar: <Rss size={16} />,
+  system: <Activity size={16} />,
+  account: <User size={16} />,
+};
+const TAB_KEYS = Object.keys(TAB_ICONS);
 const MT_MIN = 512;
 const MT_MAX = 8192;
 const MT_STEP = 256;
@@ -46,12 +65,18 @@ export const SettingsPage = () => {
   const { settings, updateSetting } = useSettings();
   const { user, logout, reloadUser } = useAuth();
   const { profiles, loadProfiles } = useProfile();
+  const { location, saveLocation, clearLocation } = useCurrentLocation();
 
   // Google-only accounts have no password yet; offer "Set" instead of "Change".
   // Undefined (older profile payloads) defaults to true so nothing regresses.
   const hasPassword = user?.has_password !== false;
 
-  const [tab, setTab] = useState("general");
+  // `?tab=` lets other pages deep-link a specific tab (the location prompt sends
+  // people straight to Location). Unknown values fall back to General.
+  const [tab, setTab] = useState(() => {
+    const want = new URLSearchParams(window.location.search).get("tab");
+    return TAB_KEYS.includes(want) ? want : "general";
+  });
   const [savedFlash, setSavedFlash] = useState("");
 
   // iCal feed (§5.10): resolve a signed subscribe URL for a chosen profile.
@@ -190,6 +215,7 @@ export const SettingsPage = () => {
   const [acctMsg, setAcctMsg] = useState({ type: "", text: "" });
   const [delConfirm, setDelConfirm] = useState({ open: false, password: "" });
   const [busy, setBusy] = useState("");
+  const [locMsg, setLocMsg] = useState(null);
 
   const flash = (text) => {
     setSavedFlash(text || t("settings.saved"));
@@ -199,6 +225,35 @@ export const SettingsPage = () => {
   const set = (key, value) => {
     updateSetting(key, value);
     flash();
+  };
+
+  // The picker hands us a float offset; we drop it and let the server derive the
+  // IANA zone from the coordinates. An offset can't carry DST — see timezones.py.
+  const saveHere = async ({ place, latitude, longitude }) => {
+    setBusy("location");
+    setLocMsg(null);
+    try {
+      const saved = await saveLocation({ place, latitude, longitude });
+      setLocMsg({ type: "ok", text: t("settings.location.saved", { zone: saved?.timezone }) });
+      flash();
+    } catch (err) {
+      setLocMsg({ type: "error", text: err.response?.data?.detail || t("settings.location.error") });
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const clearHere = async () => {
+    setBusy("location");
+    setLocMsg(null);
+    try {
+      await clearLocation();
+      flash();
+    } catch (err) {
+      setLocMsg({ type: "error", text: err.response?.data?.detail || t("settings.location.error") });
+    } finally {
+      setBusy("");
+    }
   };
 
   useEffect(() => {
@@ -450,17 +505,11 @@ export const SettingsPage = () => {
     }
   };
 
-  const TABS = [
-    { key: "general", label: t("settings.tabs.general"), icon: <SettingsIcon size={16} /> },
-    { key: "ai", label: t("settings.tabs.ai"), icon: <Sliders size={16} /> },
-    { key: "apiKeys", label: t("settings.tabs.apiKeys"), icon: <Key size={16} /> },
-    { key: "apiAccess", label: t("settings.tabs.apiAccess"), icon: <Terminal size={16} /> },
-    { key: "almanac", label: t("settings.tabs.almanac"), icon: <CalendarDays size={16} /> },
-    { key: "notifications", label: t("settings.tabs.notifications"), icon: <Bell size={16} /> },
-    { key: "calendar", label: t("settings.tabs.calendar"), icon: <Rss size={16} /> },
-    { key: "system", label: t("settings.tabs.system"), icon: <Activity size={16} /> },
-    { key: "account", label: t("settings.tabs.account"), icon: <User size={16} /> },
-  ];
+  const TABS = TAB_KEYS.map((key) => ({
+    key,
+    label: t(`settings.tabs.${key}`),
+    icon: TAB_ICONS[key],
+  }));
 
   // Health-check items surfaced in the System tab. `ok` maps to a green/grey pill.
   const healthChecks = health
@@ -937,6 +986,57 @@ export const SettingsPage = () => {
         )}
 
         {/* ALMANAC */}
+        {/* LOCATION — where you are NOW. Never birth data. */}
+        {tab === "location" && (
+          <div className="ui-card settings-panel">
+            <p className="settings-hint" style={{ marginTop: 0 }}>
+              {t("settings.location.intro")}
+            </p>
+
+            <div className="settings-row">
+              <label className="settings-label">{t("settings.location.current")}</label>
+              <div className="settings-location-current">
+                {location ? (
+                  <>
+                    <strong>{location.place}</strong>
+                    <span className="settings-location-zone">
+                      {location.timezone}
+                      {Number.isFinite(location.utc_offset)
+                        ? ` · UTC${location.utc_offset >= 0 ? "+" : ""}${location.utc_offset}`
+                        : ""}
+                    </span>
+                  </>
+                ) : (
+                  <span className="settings-location-zone">{t("settings.location.unset")}</span>
+                )}
+              </div>
+            </div>
+
+            <LocationSearch
+              onLocationSelect={saveHere}
+              placeholder={t("settings.location.searchPlaceholder")}
+            />
+
+            {locMsg && (
+              <p className={`settings-hint${locMsg.type === "error" ? " is-error" : ""}`}>
+                {locMsg.text}
+              </p>
+            )}
+
+            {location && (
+              <button
+                type="button"
+                className="control-btn control-btn--ghost"
+                onClick={clearHere}
+                disabled={busy === "location"}
+              >
+                {t("settings.location.clear")}
+              </button>
+            )}
+            <p className="settings-hint">{t("settings.location.hint")}</p>
+          </div>
+        )}
+
         {tab === "almanac" && (
           <div className="ui-card settings-panel">
             <div className="settings-row">

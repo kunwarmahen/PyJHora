@@ -27,6 +27,7 @@ import journal
 import ical
 import tool_traces
 import user_settings
+import timezones
 import ratelimit
 import shares
 import quiz
@@ -137,3 +138,40 @@ async def put_preferences(
     """Store a partial set of the user's synced UI preferences."""
     prefs = await user_settings.set_preferences(current_user, request.preferences or {})
     return {"preferences": prefs}
+
+
+@router.get("/api/user/location")
+async def get_current_location(current_user: str = Depends(get_current_user)):
+    """Where the user is now, plus the UTC offset that zone is on *today*.
+
+    The offset is served alongside the zone so callers that need a number (the
+    engine takes hours-as-float) don't each re-derive it — and don't each get it
+    wrong across a DST boundary. `location: null` means none is set, and callers
+    should fall back to the birth profile."""
+    loc = await user_settings.get_current_location(current_user)
+    if not loc:
+        return {"location": None}
+    return {
+        "location": {**loc, "utc_offset": timezones.offset_hours(loc.get("timezone"))}
+    }
+
+
+@router.put("/api/user/location")
+async def put_current_location(
+    request: CurrentLocationRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Set where the user is now. Never touches any birth profile."""
+    loc = await user_settings.set_current_location(
+        current_user, request.place, request.latitude, request.longitude,
+        request.timezone)
+    return {
+        "location": {**loc, "utc_offset": timezones.offset_hours(loc.get("timezone"))}
+    }
+
+
+@router.delete("/api/user/location")
+async def delete_current_location(current_user: str = Depends(get_current_user)):
+    """Forget the current location — back to pacing off the birth profile."""
+    await user_settings.clear_current_location(current_user)
+    return {"success": True, "location": None}

@@ -16,6 +16,8 @@ from config import settings
 from database import get_database
 import email_service
 import notifications
+import timezones
+import user_settings
 
 
 async def resolve_profile(user_id: str, prefs: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -119,16 +121,45 @@ _CADENCES = {
     "daily": {
         "compute": "get_daily_digest", "analyze": "analyze_daily_digest",
         "noun": "digest", "route": "/daily-digest", "takes_basis": True,
+        "takes_current": True,
     },
     "fortnightly": {
         "compute": "get_fortnightly_digest", "analyze": "analyze_fortnightly_digest",
         "noun": "fortnight", "route": "/fortnightly-digest", "takes_basis": False,
+        "takes_current": False,
     },
     "monthly": {
         "compute": "get_monthly_digest", "analyze": "analyze_monthly_digest",
         "noun": "month", "route": "/monthly-digest", "takes_basis": True,
+        "takes_current": False,
     },
 }
+
+
+async def observer_clock(user_id: str) -> Optional[Dict[str, Any]]:
+    """The user's current-location clock — their local date, time, and the UTC
+    offset in force there right now — or None if they haven't set a location.
+
+    This is what makes a *scheduled* digest agree with the app's. The Daily
+    Digest **page** already sends the browser's date and offset, so an in-app
+    reading is about the reader's today. The scheduler has no browser: left to
+    itself the engine derives "today" from the tz it was handed, which is the
+    birth profile's. For someone born in India and living in the US that is the
+    Indian date — the wrong day whenever the two disagree, which is every evening
+    of their life.
+    """
+    loc = await user_settings.get_current_location(user_id)
+    if not loc:
+        return None
+    zone = loc.get("timezone")
+    local = timezones.local_now(zone)
+    if local is None:
+        return None
+    return {
+        "date": local.strftime("%Y-%m-%d"),
+        "time": local.strftime("%H:%M"),
+        "tz": timezones.offset_hours(zone, local),
+    }
 
 
 def _cadence(cadence: str) -> Dict[str, Any]:
@@ -137,10 +168,16 @@ def _cadence(cadence: str) -> Dict[str, Any]:
 
 async def _profile_block(user_id: str, profile: Dict[str, Any],
                          include_ai: bool, cadence: str = "daily",
-                         basis: str = "solar") -> Optional[Dict[str, Any]]:
+                         basis: str = "solar",
+                         observer: Optional[Dict[str, Any]] = None
+                         ) -> Optional[Dict[str, Any]]:
     """Compute one profile's digest section for the given cadence (daily/
     fortnightly/monthly): name, window label, highlights, and an optional AI
-    narrative. Returns None if the underlying calc failed."""
+    narrative. Returns None if the underlying calc failed.
+
+    `observer` is the reader's current-location clock (see `observer_clock`); it
+    fixes *which day* the digest is about. The birth details below stay untouched
+    — they are the chart, and the chart does not move when the person does."""
     spec = _cadence(cadence)
     bd = profile.get("birth_details") or {}
     compute = getattr(AstrologyCompute, spec["compute"])
@@ -150,6 +187,13 @@ async def _profile_block(user_id: str, profile: Dict[str, Any],
         ayanamsa=DEFAULT_AYANAMSA)
     if spec["takes_basis"]:
         kwargs["basis"] = basis
+    if observer:
+        kwargs["date"] = observer["date"]
+        if spec["takes_current"]:
+            # Daily alone pins the transit moment to a wall clock; the fortnight
+            # and month are windows, for which the date is the whole anchor.
+            kwargs["current_time"] = observer["time"]
+            kwargs["current_tz"] = observer["tz"]
     digest = compute(**kwargs)
     if digest.get("status") != "success":
         return None
@@ -244,10 +288,13 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
         return {"status": "error", "reason": "no_profile"}
 
     include_ai = prefs.get("include_ai", True)
+    # One clock for the whole message: the reader's, not each chart's.
+    observer = await observer_clock(user_id)
     blocks: List[Dict[str, Any]] = []
     for profile in profiles:
         try:
-            block = await _profile_block(user_id, profile, include_ai, cadence, basis)
+            block = await _profile_block(user_id, profile, include_ai, cadence,
+                                         basis, observer)
         except Exception as e:  # one bad profile shouldn't sink the whole digest
             print(f"[digest] profile calc failed for {user_id}: {e}")
             block = None

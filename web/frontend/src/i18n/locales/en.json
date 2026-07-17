@@ -944,6 +944,7 @@
     "saved": "Saved",
     "tabs": {
       "general": "General",
+      "location": "Location",
       "ai": "AI",
       "apiKeys": "API Keys",
       "almanac": "Almanac",
@@ -993,6 +994,16 @@
         "ask": "Always ask"
       },
       "startupProfileHint": "Whether signing in goes straight to a chart or to the profile picker. Opening your last profile falls back to your default profile, and to the picker if you have several profiles and no default."
+    },
+    "location": {
+      "intro": "Where you live now. This is separate from your birth details, which never change — your chart is always cast for the moment and place you were born.",
+      "current": "Current location",
+      "unset": "Not set — using your birth profile's timezone",
+      "searchPlaceholder": "Search for your city (e.g., Chicago, USA)",
+      "saved": "Saved. Your timezone is now {{zone}}.",
+      "error": "Could not save your location. Please try again.",
+      "clear": "Clear location",
+      "hint": "Used for anything about “now” — which day your digest is about, and the hour it's sent. Setting this means a 7am digest arrives at 7am where you are, not 7am where you were born. Daylight saving is handled automatically."
     },
     "ai": {
       "provider": "Provider",
@@ -2317,5 +2328,13 @@
     "showAdvanced": "Show advanced details",
     "advancedPageNotice": "This is an advanced feature, not shown in the Essentials view.",
     "switchToEverything": "Switch to Everything"
+  },
+  "location": {
+    "prompt": {
+      "moved": "It looks like you're in {{zone}} now, which isn't where your location is set. Update it?",
+      "unset": "It looks like you're in {{zone}}, away from your birth timezone. Set your current location so “today”, and your digests, follow your local clock.",
+      "set": "Set my location",
+      "dismiss": "Not now"
+    }
   }
 }

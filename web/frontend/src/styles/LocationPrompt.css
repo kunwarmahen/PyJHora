@@ -1,0 +1,69 @@
+/* "Looks like you're in Chicago" — the detect-and-confirm banner (§40).
+   Informational, not a warning: this is a helpful observation, so it uses the
+   info tint rather than the vermillion the birth-time banner reserves for
+   genuine data problems. Tinted via the channel triples so it themes in dark. */
+.location-prompt {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 1rem;
+  margin-bottom: var(--space-md);
+  border-radius: 12px;
+  background: rgba(var(--info-rgb), 0.1);
+  border: 1px solid rgba(var(--info-rgb), 0.3);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.location-prompt-icon {
+  flex-shrink: 0;
+  color: rgb(var(--info-rgb));
+}
+
+.location-prompt-text {
+  flex: 1;
+  margin: 0;
+}
+
+.location-prompt-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.location-prompt-dismiss {
+  display: flex;
+  align-items: center;
+  padding: 0.35rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.location-prompt-dismiss:hover {
+  background: rgba(var(--text-muted-rgb), 0.15);
+}
+
+/* The prompt is about the here and now — meaningless on paper, and it would
+   push the real content down a printed page. */
+@media print {
+  .location-prompt {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .location-prompt {
+    flex-wrap: wrap;
+  }
+  .location-prompt-text {
+    flex-basis: 100%;
+    order: 2;
+  }
+  .location-prompt-actions {
+    order: 3;
+    margin-left: auto;
+  }
+}

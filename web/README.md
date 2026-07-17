@@ -162,7 +162,8 @@ A **view mode** decides how much of it is advertised:
 - **One place for preferences**: a dedicated **Settings** page (gear icon in the Dashboard
   navbar + nav drawer, or `/settings`) with tabs — **General** (**view mode** Essentials/Everything,
   appearance light/dark/system, **on sign-in** resume-last-profile / always-ask,
-  language, chart style North/South, **sign labels**, ayanamsa, **pravesha basis**), **AI** (provider / model / endpoint, answer-mode default, **Max response length**
+  language, chart style North/South, **sign labels**, ayanamsa, **pravesha basis**),
+  **Location** (**where you live now** — see below), **AI** (provider / model / endpoint, answer-mode default, **Max response length**
   slider, links to API Keys + AI Capabilities — the LLM/model choice is saved **server-side per user
   so it follows you across devices** and is what the scheduled daily digest renders with),
   **API Keys**, **Almanac** (Drik / Surya-Siddhanta
@@ -176,6 +177,29 @@ A **view mode** decides how much of it is advertised:
 - **Per-question controls kept on Ask**: answer mode, the per-section Seed/Tool/Off context
   toggles, and the vargas "Charts to Consult" picker remain on the Ask page (they're
   question-specific)
+
+### Current location — where you were born vs. where you live
+
+Two different questions, and the app keeps two different answers:
+
+- **Birth details** (per profile): the moment and place you were born. A constant of the
+  chart — they carry a fixed UTC offset (`+5.5`) and **never change**, not even if you move.
+- **Current location** (per account, **Settings → Location**): where you live *now*. Used for
+  everything about "now" — which day your digest is about, and the hour it's sent.
+
+Someone born in India and living in the US has a birth offset of `+5.5` and a life that runs on
+`America/Chicago`. Before this existed, everything was paced off the birth profile, so a "7am"
+daily digest arrived at 8:30pm the previous evening — and was about the wrong day.
+
+Current location stores an **IANA zone name**, never an offset, because an offset can't carry
+DST: a stored `-6.0` for Chicago is an hour wrong for half the year (India has no DST, which is
+why this went unnoticed for so long). The zone is derived from the coordinates offline with
+`timezonefinder`; the offset is computed from the zone *for the moment it's needed*.
+
+Setting one is optional and detection is only ever a **suggestion** — a banner offers, the user
+confirms. Nothing is adopted silently, or a fortnight abroad would quietly move your digest.
+Leaving it unset falls back to the birth profile, which stays correct for anyone who still lives
+where they were born.
 
 ### AI Capabilities page
 

@@ -540,3 +540,22 @@
   border-top: 1px solid var(--sandalwood);
   padding-top: var(--space-md);
 }
+
+/* Current location (§40) — where the user is NOW, not birth data. */
+.settings-location-current {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: right;
+  /* Geocoded place names run long ("Chicago, South Chicago Township, Cook
+     County, Illinois, United States"). Without min-width:0 the value refuses to
+     shrink past its content and wraps the LABEL instead — .settings-row is a
+     two-child flex, so the squeeze has to land somewhere. */
+  flex: 1;
+  min-width: 0;
+}
+.settings-location-zone {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}

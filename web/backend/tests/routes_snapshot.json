@@ -39,6 +39,10 @@
    "path:provider*"
   ]
  },
+ "DELETE /api/user/location": {
+  "body": "",
+  "params": []
+ },
  "GET /api/ai/conversations": {
   "body": "",
   "params": [
@@ -217,6 +221,10 @@
   "params": []
  },
  "GET /api/user/charts": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/user/location": {
   "body": "",
   "params": []
  },
@@ -922,6 +930,10 @@
   "params": [
    "path:provider*"
   ]
+ },
+ "PUT /api/user/location": {
+  "body": "CurrentLocationRequest",
+  "params": []
  },
  "PUT /api/user/preferences": {
   "body": "PreferencesRequest",

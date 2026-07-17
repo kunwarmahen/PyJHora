@@ -5,6 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
 import { LogOut, Sparkles, Settings } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
+import { LocationPrompt } from "../components/LocationPrompt";
 import { NavDrawer } from "../components/NavDrawer";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { NowChartWidget } from "../components/NowChartWidget";
@@ -74,6 +75,8 @@ export const DashboardPage = () => {
           onChangeProfile={handleChangeProfile}
           changeIcon={<Sparkles size={16} />}
         />
+
+        <LocationPrompt />
 
         <NowChartWidget />
 

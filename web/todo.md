@@ -3957,3 +3957,98 @@ and the picker was a click between them and it on every single login.
   guards**, not arrival routes. They stay.
 
 **Verified**: 90 frontend tests (18 new), eslint clean on every touched file, prod build clean.
+
+## 40. Where you were born vs. where you live now (owner ask 2026-07-17) — ✅ SHIPPED
+
+Part 2 of the owner's two-part feedback (§39 was the first).
+
+> "Person born in India and now living in the US — the timings are off. Notifications and many
+> other things are being sent from the Indian timezone but it should be local. Can we store the
+> last place where the person logged in as a reference and show info as per that location?"
+
+Confirmed in the code before touching anything. `scheduler.py` took its clock from
+`resolve_profiles(...)[0].birth_details.timezone` — the **birth** offset. So a 7am digest for a
+US resident fired at 7am **IST**, i.e. 8:30pm the previous evening for them. Reproduced live
+against the running DB with the owner's chart:
+
+    no location set    -> 2026-07-17 10:18  (Aligarh)
+    location = Chicago -> 2026-07-16 23:48  (Chicago)
+
+Note the **date** differs, not just the hour — so the scheduled digest was about the wrong *day*,
+which is the "many other things" half of the report.
+
+### The distinction the whole section rests on
+
+- **Birth details are a constant of the chart.** One instant, one place; the offset in force then
+  is true forever. They are **never touched** by any of this. The chart does not move when the
+  person does.
+- **Current location is a property of the reader**, not of any chart — so it lives on the
+  **account**, not per-profile, and there is exactly one.
+
+### Shipped
+
+- **`timezones.py`** — zone lookup (`timezonefinder`, offline) + DST-aware offset/`local_now`
+  (`zoneinfo`). **24 tests.**
+- **A current location stores an IANA zone name, NEVER an offset.** An offset cannot express a
+  DST zone: whichever number you store, you are wrong for half the year. India has no DST, which
+  is precisely why a codebase grown on IST never had to learn this. The offset is derived from the
+  zone *for the moment it's needed*; `utc_offset` is served alongside the zone so callers needing
+  a number (the engine takes hours-as-float) don't each re-derive it and each get it wrong.
+- **`user_settings.{get,set,clear}_current_location`** + `GET/PUT/DELETE /api/user/location`
+  (3 new routes, snapshot regenerated — the inventory guard caught them, as designed). Structured,
+  so deliberately **not** a `preferences` string.
+- **The fix**: `scheduler._user_local_now()` paces off the user's zone; `digest.observer_clock()`
+  feeds the scheduled digest its `date` (+ `current_time`/`current_tz` for daily) so it's about
+  the reader's today.
+- **Frontend**: `LocationContext` (server-stored, so `LocationProvider` wraps the app),
+  Settings → **Location** tab, and `LocationPrompt` — a detect-**and-confirm** banner on the
+  Dashboard. `config/currentLocation.js` holds the rule, **16 tests**.
+
+### Traps
+
+- **The in-app pages were already right; only the scheduled path was broken.** `TransitPage` and
+  `DailyDigestPage` already send the browser's own DST-aware offset and date. The scheduler has no
+  browser — that asymmetry *is* the bug, and it's why the fix is server-side. Don't "fix" the
+  pages.
+- **Detection suggests; it never sets.** Silently adopting the browser's zone would let a week in
+  London rewrite someone's panchanga and move their digest with no visible cause. Travel is
+  ordinary; emigrating is not.
+- **The banner links to Settings rather than resolving the location itself.** The browser knows a
+  *zone* but not *where* — and a stored location needs real coordinates for the astrology to mean
+  anything. Synthesising a representative point for a zone would be a fabrication that later reads
+  as fact. Only the user can name their city.
+- **For an unset user the prompt compares OFFSETS, not zones** — forced, because a birth profile
+  has no zone name, only a number. Coarse (it can't tell Chicago from Mexico City, and it goes
+  quiet for half a DST year), but it only decides whether to *ask*, and its answer is never stored.
+- **`useLocation` was renamed `useCurrentLocation`** — react-router exports a `useLocation`, and in
+  a router-heavy app the collision is a live footgun.
+- **`btn-primary`/`btn-secondary` don't exist in this codebase.** Both were invented and rendered
+  unstyled until the screenshot showed it; the real class is **`.control-btn`** (`Shared.css`, so
+  it's legitimately available outside Settings) with `--ghost`/`--danger` variants in `Settings.css`.
+- **`timezonefinder` covers open water** with the nautical `Etc/GMT±N` zones rather than returning
+  None, so even a mis-dropped map pin yields a usable zone. (A test asserting None caught this —
+  the assumption was wrong, not the code. `Etc/GMT` is sign-inverted: `GMT+2` is UTC-2.)
+- **`.settings-row` is a two-child flex**, so a long geocoded place name ("Chicago, South Chicago
+  Township, Cook County, Illinois, United States") wraps the **label** unless the value gets
+  `min-width: 0`. Same family as the §38 hint-inside-the-row trap.
+- **Settings tabs are now derived from one `TAB_ICONS` list** rather than a hand-written array, so
+  `?tab=` validation and the tab bar can't drift. Every label was already `settings.tabs.<key>`,
+  which is what made the derivation possible.
+
+### Known gap (deliberate, not done)
+
+**Panchanga is still computed at the BIRTH place**, in both the scheduled digest and the in-app
+Daily Digest page — `get_daily_digest` hands one `place/lat/lon/tz` to both the natal calc and
+`get_panchanga`, so there is no observer place to pass. Sunrise in Aligarh and Chicago differ by
+hours, so a US resident's tithi/vaara labels are cast on an Indian sunrise. Fixing it means an
+`observer_*` parameter through the digest computes (all three cadences) and the endpoints. Called
+out rather than half-done: §40 makes the digest arrive at the right hour, about the right day, but
+its panchanga is still the birth place's.
+
+**Verified live** (playwright, owner's chart, browser zones faked to Chicago/London/Kolkata):
+scheduler pacing + the date shift above against the real DB; the `Etc/GMT` and DST offsets
+(`America/Chicago` → **-5.0** in July, i.e. CDT, where a stored offset would have said -6);
+`PUT/GET/DELETE /api/user/location` incl. a junk zone falling back to coordinate derivation; the
+real Nominatim search saving `America/Chicago · UTC-5`; the unset/moved/silent prompt cases; a
+dismissal surviving reload; and both light and dark. 106 frontend + 261 backend tests, lint and
+prod build clean.
