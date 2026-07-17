@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
@@ -50,6 +50,7 @@ import { NakshatraProfilePage } from "./pages/NakshatraProfilePage";
 import { GocharaPhalaPage } from "./pages/GocharaPhalaPage";
 import { JournalPage } from "./pages/JournalPage";
 import { LifeReportPage } from "./pages/LifeReportPage";
+import { StartupRedirect } from "./components/StartupRedirect";
 import { SITE_TITLE } from "./config/branding";
 import "./App.css";
 import "./styles/Responsive.css";
@@ -469,7 +470,14 @@ function App() {
               }
             />
 
-            <Route path="/" element={<Navigate to="/profile-selection" replace />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <StartupRedirect />
+                </ProtectedRoute>
+              }
+            />
           </Routes>
           </SettingsProvider>
         </ProfileProvider>

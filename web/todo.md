@@ -3901,3 +3901,59 @@ Owner relayed two pieces of feedback on the North Indian chart:
 house 1 labelled `2 ♉`; all four label modes; North + South in **light and dark**; PNG exports from
 both styles with aspects on, carrying glyphs + caption and pinned light. 71 frontend tests, prod
 build clean.
+
+## 39. Sign-in resumes your profile instead of always asking (owner ask 2026-07-17) — ✅ SHIPPED
+
+Part 1 of two pieces of owner feedback (§40 is the other: birth-timezone vs. where-you-live-now).
+
+> "When the person logs in it should just load the last profile or the default profile and just
+> goes in, or at least gives the user the option to select in settings?"
+
+Right, and it was nearly free: `selectProfile` **already** cached the profile in localStorage and
+restored it on mount. The picker wasn't holding state that didn't exist — `LoginPage` just
+unconditionally `navigate("/profile-selection")`-ed over it. Most people read one chart, their own,
+and the picker was a click between them and it on every single login.
+
+### Shipped
+
+- **`config/startupProfile.js`** — the resolution rule, as a pure function: last-used → default →
+  the only profile there is → the picker. Same reasoning as `uiMode.js`/`signLabel.js` for living
+  outside `SettingsContext` (which pulls in axios, and with it a module graph jest can't
+  transform), so the one rule that can actually strand someone is directly unit-testable.
+  **18 tests.**
+- **`ProfileContext.resumeProfile()`** — the single entry point: loads profiles, resolves, selects,
+  and returns the path to navigate to. Every arrival route goes through it — `LoginPage`,
+  `ResetPasswordPage` (the reset signs you straight in), `GoogleSignInButton`, and the new
+  `StartupRedirect` at `/`.
+- **`StartupRedirect` at `/`** — the root used to hard-`Navigate` to the picker, so *reopening the
+  app with a live session* still landed there. Which is the common case: the PWA icon and a
+  bookmarked root both hit `/`. Resuming only on login would have fixed the rarer half.
+- **Settings → General → "On sign-in"**: *Open my last profile* (default) / *Always ask*. In
+  `SYNCED_KEYS`, so the choice follows the user across devices, and in `IMMEDIATE_KEYS` because
+  it's a one-click toggle — the 600 ms debounce exists to coalesce typing, and for a toggle it only
+  opens the race §37 documents (reload inside the window → login sync reasserts the OLD value →
+  the click silently reverts). Whitelisted as `startup_profile` in `user_settings.PREFERENCE_KEYS`,
+  which drops unknown keys **silently**.
+
+### Traps
+
+- **The cached profile is a stale snapshot, and must never be resumed into directly.** It can have
+  been renamed, edited, or deleted from another device. `resolveStartupProfile` therefore uses the
+  cached `_id` only to *look up a fresh record* in the list just fetched from the server, and
+  returns an element of **that** list. A deleted profile falls through to the default, then to the
+  picker — resuming into a dashboard for a chart the server no longer has is the failure mode this
+  exists to prevent.
+- **The mode is read from localStorage, not `SettingsContext`.** On login the context is still
+  pulling the server copy of the preferences; reading it there would race that fetch and could show
+  the picker to a user who chose *resume*. Same shape as `resolveUiMode()` being callable
+  standalone.
+- **A lone profile opens rather than showing a one-card picker.** Not in the stated precedence, but
+  with exactly one saved profile the picker can only be a click on the one card — which is the
+  friction the setting exists to remove.
+- **`RegisterPage` deliberately still hard-codes the picker.** A new account has no profiles, so
+  the picker *is* the destination (it's where the first profile gets created); routing it through
+  `resumeProfile` would only buy a wasted fetch to reach the same screen.
+- The ~40 `navigate("/profile-selection")` calls on feature pages are **"no profile selected"
+  guards**, not arrival routes. They stay.
+
+**Verified**: 90 frontend tests (18 new), eslint clean on every touched file, prod build clean.

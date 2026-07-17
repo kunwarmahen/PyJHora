@@ -32,6 +32,7 @@ import { AYANAMSAS } from "../constants/jyotish";
 import { LANGUAGES } from "../i18n";
 import { SITE_TITLE } from "../config/branding";
 import { SIGN_LABEL_MODES } from "../config/signLabel";
+import { STARTUP_PROFILE_MODES } from "../config/startupProfile";
 import "../styles/Settings.css";
 
 const KEYED_PROVIDERS = ["gemini", "openai", "openai-compatible"];
@@ -563,6 +564,23 @@ export const SettingsPage = () => {
               </div>
             </div>
             <p className="settings-hint">{t("settings.general.themeHint")}</p>
+
+            <div className="settings-row">
+              <label className="settings-label">{t("settings.general.startupProfile")}</label>
+              <div className="settings-segment">
+                {STARTUP_PROFILE_MODES.map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    className={`settings-seg-btn${settings.startupProfile === v ? " is-active" : ""}`}
+                    onClick={() => set("startupProfile", v)}
+                  >
+                    {t(`settings.general.startupProfileOpt.${v}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="settings-hint">{t("settings.general.startupProfileHint")}</p>
 
             <div className="settings-row">
               <label className="settings-label">{t("settings.general.language")}</label>

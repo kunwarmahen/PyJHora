@@ -986,7 +986,13 @@
       "basisLunar": "Lunar (tithi)",
       "praveshaBasisHint": "Which pravesha ladder the Daily and Monthly readings are cast on. Solar = the Tajaka ladder (Maasa Pravesha, a solar month). Lunar = the tithi ladder (the birth-tithi return, a lunar month). Only the Monthly page can override it — there the basis picks the window itself, a solar month or a lunar one. The Fortnight is always lunar (there is no solar fortnight). Varshaphal is always solar and Tithi Pravesha always lunar, so this setting does not touch them.",
       "theme": "Appearance",
-      "themeHint": "System follows your device's light/dark setting, and changes with it. Light and Dark stay put."
+      "themeHint": "System follows your device's light/dark setting, and changes with it. Light and Dark stay put.",
+      "startupProfile": "On sign-in",
+      "startupProfileOpt": {
+        "resume": "Open my last profile",
+        "ask": "Always ask"
+      },
+      "startupProfileHint": "Whether signing in goes straight to a chart or to the profile picker. Opening your last profile falls back to your default profile, and to the picker if you have several profiles and no default."
     },
     "ai": {
       "provider": "Provider",

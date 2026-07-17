@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
+import { useProfile } from "../contexts/ProfileContext";
 import { Mail, Lock, AlertCircle } from "lucide-react";
 import { SITE_TITLE, SITE_TAGLINE } from "../config/branding";
 import { GoogleSignInButton } from "../components/GoogleSignInButton";
@@ -13,6 +14,7 @@ export const LoginPage = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const { login, error } = useAuth();
+  const { resumeProfile } = useProfile();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -20,10 +22,10 @@ export const LoginPage = () => {
     e.preventDefault();
     setIsLoading(true);
     const success = await login(username, password, rememberMe);
-    setIsLoading(false);
     if (success) {
-      navigate("/profile-selection");
+      navigate(await resumeProfile());
     }
+    setIsLoading(false);
   };
 
   return (
@@ -86,7 +88,7 @@ export const LoginPage = () => {
           </p>
         </form>
 
-        <GoogleSignInButton redirectTo="/profile-selection" />
+        <GoogleSignInButton />
 
         <p className="auth-link">
           {t("auth.noAccount")} <Link to="/register">{t("auth.registerHere")}</Link>

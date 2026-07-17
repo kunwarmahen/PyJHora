@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useProfile } from "../contexts/ProfileContext";
 
 // Client ID is baked into the build. Must equal the backend's GOOGLE_CLIENT_ID.
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || "";
@@ -26,21 +27,23 @@ const loadGsi = () => {
 /**
  * Renders Google's official "Sign in with Google" button. Renders nothing when
  * REACT_APP_GOOGLE_CLIENT_ID is unset, so password-only deployments are unaffected.
- * On success it exchanges Google's ID token for our JWT pair and navigates to the
- * profile-selection screen (same as a normal login).
+ * On success it exchanges Google's ID token for our JWT pair and lands the user
+ * exactly where a normal login would: `redirectTo` if given, otherwise whatever
+ * the startup-profile preference resolves to (resume, or the picker).
  */
-export const GoogleSignInButton = ({ redirectTo = "/profile-selection" }) => {
+export const GoogleSignInButton = ({ redirectTo = null }) => {
   const divRef = useRef(null);
   const { loginWithGoogle } = useAuth();
+  const { resumeProfile } = useProfile();
   const navigate = useNavigate();
 
   const handleCredential = useCallback(
     async (response) => {
       if (!response?.credential) return;
       const ok = await loginWithGoogle(response.credential, true);
-      if (ok) navigate(redirectTo);
+      if (ok) navigate(redirectTo || (await resumeProfile()));
     },
-    [loginWithGoogle, navigate, redirectTo]
+    [loginWithGoogle, navigate, redirectTo, resumeProfile]
   );
 
   useEffect(() => {

@@ -161,6 +161,7 @@ A **view mode** decides how much of it is advertised:
 
 - **One place for preferences**: a dedicated **Settings** page (gear icon in the Dashboard
   navbar + nav drawer, or `/settings`) with tabs — **General** (**view mode** Essentials/Everything,
+  appearance light/dark/system, **on sign-in** resume-last-profile / always-ask,
   language, chart style North/South, **sign labels**, ayanamsa, **pravesha basis**), **AI** (provider / model / endpoint, answer-mode default, **Max response length**
   slider, links to API Keys + AI Capabilities — the LLM/model choice is saved **server-side per user
   so it follows you across devices** and is what the scheduled daily digest renders with),

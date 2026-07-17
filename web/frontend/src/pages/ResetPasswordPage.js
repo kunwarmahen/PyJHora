@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Lock, AlertCircle } from "lucide-react";
 import { authService, setTokens } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
+import { useProfile } from "../contexts/ProfileContext";
 import { SITE_TITLE } from "../config/branding";
 import "../styles/Auth.css";
 
@@ -13,6 +14,7 @@ export const ResetPasswordPage = () => {
   const [params] = useSearchParams();
   const token = params.get("token") || "";
   const { reloadUser } = useAuth();
+  const { resumeProfile } = useProfile();
 
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -40,7 +42,7 @@ export const ResetPasswordPage = () => {
       // The reset signs the user straight in (fresh token pair).
       setTokens(res.data);
       if (reloadUser) await reloadUser();
-      navigate("/profile-selection");
+      navigate(await resumeProfile());
     } catch (err) {
       setError(err.response?.data?.detail || t("auth.reset.error"));
     } finally {

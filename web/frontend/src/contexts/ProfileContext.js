@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { API_URL } from "../services/api";
+import {
+  readLastProfileId,
+  readStartupProfileMode,
+  resolveStartupProfile,
+} from "../config/startupProfile";
 
 const ProfileContext = createContext();
 
@@ -16,7 +21,8 @@ export const ProfileProvider = ({ children }) => {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Load profiles from server
+  // Load profiles from server. Returns the list as well as storing it: callers
+  // that must act on it immediately (resumeProfile) can't wait for the state.
   const loadProfiles = async () => {
     setLoading(true);
     try {
@@ -28,9 +34,12 @@ export const ProfileProvider = ({ children }) => {
       const data = await response.json();
       if (data.success) {
         setProfiles(data.profiles);
+        return data.profiles;
       }
+      return [];
     } catch (err) {
       console.error("Failed to load profiles:", err);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -226,6 +235,27 @@ export const ProfileProvider = ({ children }) => {
     localStorage.removeItem("selectedProfile");
   };
 
+  /**
+   * Where to land someone who has just arrived (login, register, reset, or the
+   * app's root). Selects the resumed profile as a side effect and returns the
+   * path to navigate to: the dashboard when a profile resolved, the picker when
+   * one didn't. See config/startupProfile.js for the rule.
+   *
+   * The mode is read from localStorage rather than SettingsContext on purpose:
+   * on login the context is still pulling the server copy of the preferences, so
+   * reading it here would race that fetch and could ask a "resume" user to pick.
+   */
+  const resumeProfile = async () => {
+    const list = await loadProfiles();
+    const target = resolveStartupProfile(list, {
+      mode: readStartupProfileMode(),
+      lastId: readLastProfileId(),
+    });
+    if (!target) return "/profile-selection";
+    selectProfile(target);
+    return "/dashboard";
+  };
+
   // Load selected profile from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem("selectedProfile");
@@ -251,6 +281,7 @@ export const ProfileProvider = ({ children }) => {
     importProfiles,
     selectProfile,
     clearProfile,
+    resumeProfile,
   };
 
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;

@@ -28,6 +28,7 @@ KEYED_PROVIDERS = ("gemini", "openai", "openai-compatible")
 PREFERENCE_KEYS = (
     "ui_mode",
     "theme",
+    "startup_profile",
     "ai_provider_type",
     "ai_model",
     "ai_base_url",
