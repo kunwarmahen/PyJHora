@@ -903,33 +903,6 @@ export const AskAstrologerPage = () => {
         title={t("ask.title")}
         subtitle={t("ask.subtitle")}
         accent="terracotta"
-        right={
-          /* The model is one line of text; it used to occupy a whole tile in the
-             grid below. As a header chip it stays glanceable and gives the space
-             back to the examples. */
-          <div className="ask-model-chip">
-            <Bot size={16} />
-            <span className="ask-model-chip__name" title={t("ask.aiModel")}>
-              {providersLoading ? t("ask.detectingModels") : model || providerType}
-            </span>
-            <button
-              type="button"
-              className="ask-model-chip__btn"
-              onClick={() => openInfo(lastContext)}
-              title={t("ask.viewDataTitle")}
-            >
-              <Info size={15} />
-              <span>{t("ask.viewDataSent")}</span>
-            </button>
-            <button
-              type="button"
-              className="ask-model-chip__btn"
-              onClick={() => navigate("/settings")}
-            >
-              {t("ask.changeInSettings")}
-            </button>
-          </div>
-        }
       />
 
       {/* Content */}
@@ -1177,6 +1150,33 @@ export const AskAstrologerPage = () => {
             </button>
           </div>
         )}
+
+        {/* Which model is answering — sits with the chat it describes, right
+            above the transcript, rather than costing a tile in the grid. */}
+        <div className="ask-model-bar fade-in fade-in--d6">
+          <div className="ask-model-chip">
+            <Bot size={13} />
+            <span className="ask-model-chip__name" title={t("ask.aiModel")}>
+              {providersLoading ? t("ask.detectingModels") : model || providerType}
+            </span>
+            <button
+              type="button"
+              className="ask-model-chip__btn"
+              onClick={() => openInfo(lastContext)}
+              title={t("ask.viewDataTitle")}
+            >
+              <Info size={13} />
+              <span>{t("ask.viewDataSent")}</span>
+            </button>
+            <button
+              type="button"
+              className="ask-model-chip__btn"
+              onClick={() => navigate("/settings")}
+            >
+              {t("ask.changeInSettings")}
+            </button>
+          </div>
+        </div>
 
         {/* Chat Area */}
         <div className="chat-area fade-in fade-in--d6">

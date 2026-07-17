@@ -3728,11 +3728,15 @@ too would be doubly annoying. So the Chart Deep-Dive page (`/advanced`) is delib
   disclosure, and Ashtakoot defaults first), Daily Digest (already digest-shaped), Life Report,
   History.
 
-**Ask page: the AI-model tile was spending a whole grid cell on one line of text** (owner ask). Moved
-to a compact chip in `PageHeader`'s previously-unused `right` slot — model name + "View data sent" +
-"Change in Settings" — in **both modes**, and the examples get the space back. Removed the three CSS
-rule sets it orphaned (`.ask-model-summary`, `.ask-model-summary__name`, `.ask-viewdata-btn`,
-`.ask-link-btn`); the chip sheds its button labels < 900px and truncates the model name < 600px.
+**Ask page: the AI-model tile was spending a whole grid cell on one line of text** (owner ask). Now a
+small chip — model name + "View data sent" + "Change in Settings" — **right-aligned directly on top
+of the chat area**, in both modes, with the examples getting the tile space back. (First attempt put
+it in `PageHeader`'s `right` slot; owner rejected the location — it belongs with the transcript it
+describes, not in the page chrome.) Deliberately understated at ~24px tall and 0.69rem: it's a status
+readout, not a control the eye should land on. Removed the four CSS rule sets it orphaned
+(`.ask-model-summary`, `.ask-model-summary__name`, `.ask-viewdata-btn`, `.ask-link-btn`). Under 700px
+"View data sent" falls back to its icon while "Change in Settings" keeps its text — it has no icon,
+so hiding its label would leave an empty button.
 
 **Verified live** in both modes: Essentials → exactly 1 disclosure each on Dhasa/Remedies/Ask, no AV
 column, model chip in the header; Everything → 0 disclosures, AV Support column + 9 bindu chips back,

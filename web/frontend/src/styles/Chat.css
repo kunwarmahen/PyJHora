@@ -1529,14 +1529,20 @@
   margin-top: var(--space-sm);
 }
 
-/* ── Ask: model summary as a header chip ──────────────────────────────────
-   One line of text that used to cost a whole tile in the grid below. Lives in
-   PageHeader's `right` slot, so it stays glanceable without spending layout. */
+/* ── Ask: the "which model is answering" chip ─────────────────────────────
+   One line of text that used to cost a whole tile in the grid above. Sits
+   right-aligned directly on top of the transcript it describes — deliberately
+   small: it's a status readout, not a control the eye should land on. */
+.ask-model-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-xs);
+}
 .ask-model-chip {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: 6px var(--space-sm) 6px var(--space-md);
+  gap: 5px;
+  padding: 2px 4px 2px 8px;
   background: var(--bg-secondary);
   border: 1px solid var(--sandalwood-dark);
   border-radius: var(--radius-full);
@@ -1547,9 +1553,9 @@
   flex-shrink: 0;
 }
 .ask-model-chip__name {
-  font-size: 0.8125rem;
+  font-size: 0.6875rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1558,36 +1564,31 @@
 .ask-model-chip__btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px var(--space-sm);
-  border: 1px solid transparent;
+  gap: 3px;
+  padding: 2px 6px;
+  border: none;
   border-radius: var(--radius-full);
   background: transparent;
   color: var(--saffron-dark);
   font-family: var(--font-body);
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.18s ease, border-color 0.18s ease;
+  transition: background 0.18s ease;
 }
 .ask-model-chip__btn:hover {
-  background: rgba(255, 153, 51, 0.14);
-  border-color: var(--saffron);
+  background: rgba(255, 153, 51, 0.16);
 }
 
-/* The chip is the first thing to shed on a narrow screen: the model name and a
-   single icon-only "view data" button, no labels. */
-@media (max-width: 900px) {
+/* Narrow screens: "View data sent" falls back to its icon. "Change in Settings"
+   keeps its text — it has no icon, so hiding the label would leave an empty
+   button. */
+@media (max-width: 700px) {
   .ask-model-chip__btn span {
     display: none;
   }
-}
-@media (max-width: 600px) {
-  .ask-model-chip {
-    padding: 4px var(--space-sm);
-  }
   .ask-model-chip__name {
-    max-width: 10ch;
+    max-width: 12ch;
   }
 }
