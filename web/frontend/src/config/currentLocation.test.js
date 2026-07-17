@@ -3,6 +3,7 @@ import {
   dismissZone,
   isZoneDismissed,
   locationPrompt,
+  zoneCity,
 } from "./currentLocation";
 
 const chicago = { place: "Chicago", latitude: 41.88, longitude: -87.63, timezone: "America/Chicago" };
@@ -108,6 +109,32 @@ describe("isZoneDismissed", () => {
   it("ignores an empty zone", () => {
     expect(isZoneDismissed(null)).toBe(false);
     expect(isZoneDismissed("")).toBe(false);
+  });
+});
+
+describe("zoneCity", () => {
+  it("names the zone's city", () => {
+    expect(zoneCity("America/Chicago")).toBe("Chicago");
+    expect(zoneCity("Asia/Kolkata")).toBe("Kolkata");
+  });
+
+  it("turns underscores into spaces for display", () => {
+    expect(zoneCity("America/New_York")).toBe("New York");
+  });
+
+  it("takes the last segment of a three-part zone", () => {
+    expect(zoneCity("America/Argentina/Buenos_Aires")).toBe("Buenos Aires");
+  });
+
+  it("is null when the zone names no city", () => {
+    // The banner falls back to showing the raw zone rather than a bad guess.
+    ["Etc/GMT+2", "UTC", "", null, "Asia"].forEach((z) => expect(zoneCity(z)).toBeNull());
+  });
+
+  it("agrees with the server's representative_place, which is the real lookup", () => {
+    // This is display only — timezones.representative_place decides what's saved,
+    // and verifies it against coordinates. Drift here is cosmetic, not a bug.
+    expect(zoneCity("America/Indiana/Indianapolis")).toBe("Indianapolis");
   });
 });
 

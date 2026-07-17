@@ -69,13 +69,24 @@ export const LocationProvider = ({ children }) => {
     return saved;
   }, []);
 
+  /** Set the location from the browser's zone alone, in one click. Throws if the
+   *  server can't confirm the zone's city — callers fall back to asking. */
+  const saveLocationFromZone = useCallback(async (zone) => {
+    const res = await astrologyService.setCurrentLocationFromZone(zone);
+    const saved = res.data?.location || null;
+    setLocation(saved);
+    return saved;
+  }, []);
+
   const clearLocation = useCallback(async () => {
     await astrologyService.deleteCurrentLocation();
     setLocation(null);
   }, []);
 
   return (
-    <LocationContext.Provider value={{ location, loaded, saveLocation, clearLocation }}>
+    <LocationContext.Provider
+      value={{ location, loaded, saveLocation, saveLocationFromZone, clearLocation }}
+    >
       {children}
     </LocationContext.Provider>
   );

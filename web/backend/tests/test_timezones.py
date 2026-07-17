@@ -76,6 +76,39 @@ class TestIsValidZone:
         assert timezones.is_valid_zone(junk) is False
 
 
+class TestRepresentativePlace:
+    def test_names_the_zone_city(self):
+        assert timezones.representative_place("America/Chicago") == "Chicago"
+        assert timezones.representative_place("Asia/Kolkata") == "Kolkata"
+        assert timezones.representative_place("Europe/London") == "London"
+
+    def test_turns_underscores_into_spaces(self):
+        # Geocoders want "New York", not "New_York".
+        assert timezones.representative_place("America/New_York") == "New York"
+
+    def test_takes_the_last_segment_of_a_three_part_zone(self):
+        assert timezones.representative_place("America/Argentina/Buenos_Aires") == "Buenos Aires"
+        assert timezones.representative_place("America/Indiana/Indianapolis") == "Indianapolis"
+
+    @pytest.mark.parametrize("zone", ["Etc/GMT+2", "Etc/UTC", "UTC", "", None, "Asia"])
+    def test_is_none_when_the_zone_names_no_city(self, zone):
+        # Etc/* is open water and POSIX-inverted; a bare region names nothing.
+        # None sends the caller back to asking the user, which is the honest path.
+        assert timezones.representative_place(zone) is None
+
+    def test_every_city_it_names_is_findable_in_its_own_zone(self):
+        # The property the /from-zone endpoint's verification relies on: the
+        # representative city really does sit in the zone that's named after it.
+        # (Checked against coordinates, not a geocoder — no network here.)
+        for zone, lat, lon in [
+            ("America/Chicago", 41.88, -87.63),
+            ("Asia/Kolkata", 22.57, 88.36),
+            ("Europe/London", 51.51, -0.13),
+        ]:
+            assert timezones.representative_place(zone)
+            assert timezones.zone_at(lat, lon) == zone
+
+
 class TestLocalNow:
     def test_gives_the_wall_clock_in_that_zone(self):
         chicago = timezones.local_now("America/Chicago")

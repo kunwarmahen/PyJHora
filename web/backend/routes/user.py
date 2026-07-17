@@ -170,6 +170,51 @@ async def put_current_location(
     }
 
 
+@router.post("/api/user/location/from-zone")
+async def put_current_location_from_zone(
+    request: ZoneLocationRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Set the current location from a browser-reported zone, in one click.
+
+    The browser knows the zone but not the place; IANA names each zone after a
+    representative city, so geocoding that city is a real lookup. But it is a
+    *guess about the user*, so it is *verified*: we derive the zone back from the
+    geocoded coordinates and refuse unless it matches what the browser said.
+    Without that check, a geocoder returning the wrong Chicago would be stored
+    silently as fact.
+
+    Any failure is a 4xx the caller falls back from by asking the user to pick
+    their city — never a silent wrong answer.
+    """
+    zone = (request.timezone or "").strip()
+    if not timezones.is_valid_zone(zone):
+        raise HTTPException(status_code=400, detail=f"Unknown timezone: {zone}")
+
+    city = timezones.representative_place(zone)
+    if not city:
+        raise HTTPException(
+            status_code=422, detail=f"{zone} names no city to look up")
+
+    found = AstrologyCompute.search_location(city)
+    if not found:
+        raise HTTPException(
+            status_code=422, detail=f"Could not find “{city}” to place you")
+
+    place, lat, lon = found[0], found[1], found[2]
+    if timezones.zone_at(lat, lon) != zone:
+        # The geocoder found *a* place with that name, but not one in the zone
+        # the browser reported — so it isn't where the user is.
+        raise HTTPException(
+            status_code=422,
+            detail=f"“{city}” doesn't appear to be in {zone}")
+
+    loc = await user_settings.set_current_location(current_user, place, lat, lon, zone)
+    return {
+        "location": {**loc, "utc_offset": timezones.offset_hours(loc.get("timezone"))}
+    }
+
+
 @router.delete("/api/user/location")
 async def delete_current_location(current_user: str = Depends(get_current_user)):
     """Forget the current location — back to pacing off the birth profile."""

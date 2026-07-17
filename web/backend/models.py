@@ -705,6 +705,13 @@ class PreferencesRequest(BaseModel):
     preferences: Dict[str, Any] = {}
 
 
+class ZoneLocationRequest(BaseModel):
+    """Set the current location from a browser-reported IANA zone alone, by
+    geocoding the zone's representative city. One click instead of typing a city
+    the app already effectively knows."""
+    timezone: str
+
+
 class CurrentLocationRequest(BaseModel):
     """Where the user is now — NOT birth data. `timezone` is an IANA zone name
     ("America/Chicago"), not an offset: an offset can't carry DST. It's optional

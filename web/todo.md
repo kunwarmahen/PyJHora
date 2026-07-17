@@ -4052,3 +4052,53 @@ scheduler pacing + the date shift above against the real DB; the `Etc/GMT` and D
 real Nominatim search saving `America/Chicago · UTC-5`; the unset/moved/silent prompt cases; a
 dismissal surviving reload; and both light and dark. 106 frontend + 261 backend tests, lint and
 prod build clean.
+
+## 41. The location banner sets the location (owner feedback 2026-07-17) — ✅ SHIPPED
+
+Owner, on §40 the same day:
+
+> "It does identify my timezone, but when I hit set my location it just takes me to the settings
+> page and expects me to type. Should it already set it also? Also it says set my location or
+> ignore, for now?"
+
+Both fair, and the first one was **§40 being too cautious**. §40 reasoned: the browser reports a
+*zone*, not a *place*, and a stored location needs real coordinates — so rather than invent them it
+sent the user to Settings to type. But IANA names every zone after a representative city, so
+`America/Chicago` → geocode "Chicago" is a **real lookup**, not a fabrication. Detecting the zone
+and then asking the user to type its name back is silly.
+
+### Shipped
+
+- **`POST /api/user/location/from-zone`** — geocodes the zone's representative city and
+  **verifies** it: derives the zone back from the geocoded coordinates and refuses unless it matches
+  what the browser reported. Without that check a geocoder returning the wrong "Chicago" would be
+  stored silently as fact. Every failure is a 4xx the caller falls back from by asking; never a
+  silent wrong answer.
+- **`timezones.representative_place`** ("America/Argentina/Buenos_Aires" → "Buenos Aires"), with
+  `config/currentLocation.js`'s `zoneCity` mirroring it **for the button label only** — the server's
+  copy is the one that decides what's stored, and it's the one that verifies.
+- **The banner now reads "I'm in Chicago" / "Ignore for now"** — two plain choices. The dismiss was
+  an unlabelled ✕ whose only clue was a tooltip; the owner asked for the words. One click, in
+  place, no page hop, then a green confirmation (the banner just vanishing is too quiet to read as
+  "saved"). A failure to confirm still falls back to Settings.
+
+### Traps
+
+- **The zone's city is not the user's city.** It's the city that *defines* the zone — someone in
+  Milwaukee is `America/Chicago`. So the timezone is **exact** (which is what "now" runs on, and the
+  entire reported bug) and the coordinates are **metro-accurate**. Owner accepted that trade
+  explicitly: panchanga is cast at the birth place anyway today (the §40 gap), so metro coordinates
+  cost nothing until that's fixed. Do not present this as a *detected position*.
+- **`Etc/GMT±N` names no city** and its POSIX-inverted naming would mislead anyway, so
+  `representative_place` returns None for it and the endpoint 422s rather than guessing. Same for
+  bare regions and the `SystemV`/`US` legacy aliases.
+- **The confirmation shows `zoneCity`, not the stored place.** Nominatim returns the full postal
+  address ("Chicago, South Chicago Township, Cook County, Illinois, United States") — a mouthful to
+  confirm back at someone. Settings shows the full thing.
+- **`.control-btn--ghost` moved `Settings.css` → `Shared.css`**, next to the `.control-btn` base it
+  varies. The banner is on the *Dashboard*; it only worked from Settings.css because CRA bundles all
+  CSS globally, which is luck, not design.
+
+**Verified live** (playwright): one click from the Dashboard sets it with **no navigation**, the
+confirmation renders, and it survives a reload; `Etc/GMT+2` → 422 "names no city", `Mars/Olympus`
+→ 400; light and dark. 111 frontend + 272 backend tests, lint and prod build clean.

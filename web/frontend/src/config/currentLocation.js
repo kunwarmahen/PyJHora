@@ -35,6 +35,21 @@ export const detectOffsetHours = () => {
   }
 };
 
+/**
+ * The city a zone is named after ("America/Chicago" → "Chicago"), for labelling
+ * the button — "I'm in Chicago" beats "I'm in America/Chicago".
+ *
+ * Display only. The server does this lookup again for real (and *verifies* it
+ * against the coordinates) when saving; this must never be the thing that
+ * decides what gets stored. Mirrors `timezones.representative_place`.
+ */
+export const zoneCity = (zone) => {
+  if (!zone || !zone.includes("/")) return null;
+  const [region, ...rest] = zone.split("/");
+  if (["Etc", "SystemV", "US"].includes(region)) return null;
+  return rest[rest.length - 1].replace(/_/g, " ").trim() || null;
+};
+
 export const dismissZone = (zone) => {
   if (!zone) return;
   try {

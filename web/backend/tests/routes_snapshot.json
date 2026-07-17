@@ -889,6 +889,10 @@
   "body": "SaveProfileRequest",
   "params": []
  },
+ "POST /api/user/location/from-zone": {
+  "body": "ZoneLocationRequest",
+  "params": []
+ },
  "POST /api/v1/tools/{tool_name}": {
   "body": "ToolRunRequest",
   "params": [

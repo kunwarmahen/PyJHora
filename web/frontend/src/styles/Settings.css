@@ -333,15 +333,6 @@
   margin: var(--space-lg, 18px) 0;
 }
 
-.control-btn--ghost {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .control-btn--danger {
   background: var(--vermillion);
   border: 1px solid var(--vermillion);

@@ -1109,6 +1109,11 @@ export const astrologyService = {
   getCurrentLocation: () => api.get("/api/user/location"),
   putCurrentLocation: ({ place, latitude, longitude, timezone }) =>
     api.put("/api/user/location", { place, latitude, longitude, timezone }),
+  // One-click set from the browser's zone: the server geocodes the zone's
+  // representative city and verifies it lands back in that zone, so a wrong
+  // "Chicago" is a 422 rather than a silently stored wrong answer.
+  setCurrentLocationFromZone: (timezone) =>
+    api.post("/api/user/location/from-zone", { timezone }),
   deleteCurrentLocation: () => api.delete("/api/user/location"),
 
   generatePrediction: (birthDetails, predictionType = "general", model = {}) =>

@@ -74,6 +74,29 @@ def offset_hours(zone: str, when: Optional[datetime] = None) -> Optional[float]:
     return None if off is None else off.total_seconds() / 3600.0
 
 
+def representative_place(zone: str) -> Optional[str]:
+    """A geocodable place name for `zone` ("America/Chicago" → "Chicago"), or None.
+
+    IANA names their zones after a representative city, which is what makes this
+    a real lookup rather than an invention. It is the city that *defines the
+    zone*, though, not necessarily where the user is — someone in Milwaukee is
+    America/Chicago. So the coordinates this leads to are metro-accurate, and the
+    caller must treat them as a starting point the user can refine, never as a
+    detected position.
+
+    None for the zones that name no city: Etc/GMT±N (open water, and the
+    POSIX-inverted naming would mislead anyway), UTC, and bare region names.
+    """
+    if not zone or "/" not in zone:
+        return None
+    region, _, rest = zone.partition("/")
+    if region in ("Etc", "SystemV", "US"):  # no city / legacy aliases
+        return None
+    # "America/Argentina/Buenos_Aires" → the last segment is the city.
+    city = rest.split("/")[-1].replace("_", " ").strip()
+    return city or None
+
+
 def local_now(zone: str) -> Optional[datetime]:
     """The current wall-clock time in `zone`, as an aware datetime, or None.
 

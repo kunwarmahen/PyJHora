@@ -196,10 +196,14 @@ DST: a stored `-6.0` for Chicago is an hour wrong for half the year (India has n
 why this went unnoticed for so long). The zone is derived from the coordinates offline with
 `timezonefinder`; the offset is computed from the zone *for the moment it's needed*.
 
-Setting one is optional and detection is only ever a **suggestion** — a banner offers, the user
-confirms. Nothing is adopted silently, or a fortnight abroad would quietly move your digest.
-Leaving it unset falls back to the birth profile, which stays correct for anyone who still lives
-where they were born.
+Setting one is optional and detection is only ever a **suggestion** — a banner offers ("I'm in
+Chicago" / "Ignore for now"), the user confirms. Nothing is adopted silently, or a fortnight abroad
+would quietly move your digest. Confirming is **one click**: the server geocodes the zone's
+representative city and *verifies* the result lands back in that zone before saving, so it's a real
+lookup with a check rather than an invented position. That makes the timezone exact and the
+coordinates metro-accurate (the city defines the zone, but someone in Milwaukee is also
+America/Chicago) — Settings → Location refines the place. Leaving it unset falls back to the birth
+profile, which stays correct for anyone who still lives where they were born.
 
 ### AI Capabilities page
 

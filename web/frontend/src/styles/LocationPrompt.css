@@ -15,6 +15,15 @@
   line-height: 1.45;
 }
 
+/* Confirmed — the banner's own disappearance is too quiet to read as "saved". */
+.location-prompt--done {
+  background: rgba(var(--success-rgb), 0.1);
+  border-color: rgba(var(--success-rgb), 0.3);
+}
+.location-prompt--done .location-prompt-icon {
+  color: rgb(var(--success-rgb));
+}
+
 .location-prompt-icon {
   flex-shrink: 0;
   color: rgb(var(--info-rgb));
@@ -32,18 +41,9 @@
   flex-shrink: 0;
 }
 
-.location-prompt-dismiss {
-  display: flex;
-  align-items: center;
-  padding: 0.35rem;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-}
-.location-prompt-dismiss:hover {
-  background: rgba(var(--text-muted-rgb), 0.15);
+.location-prompt-actions .control-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 /* The prompt is about the here and now — meaningless on paper, and it would

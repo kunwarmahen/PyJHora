@@ -2332,9 +2332,11 @@
   "location": {
     "prompt": {
       "moved": "It looks like you're in {{zone}} now, which isn't where your location is set. Update it?",
-      "unset": "It looks like you're in {{zone}}, away from your birth timezone. Set your current location so “today”, and your digests, follow your local clock.",
-      "set": "Set my location",
-      "dismiss": "Not now"
+      "unset": "You seem to be in {{zone}}, away from your birth timezone. Use it for “today” and your digests?",
+      "accept": "I'm in {{city}}",
+      "setting": "Setting…",
+      "ignore": "Ignore for now",
+      "done": "Location set to {{place}} ({{zone}}). Times now follow your local clock."
     }
   }
 }
