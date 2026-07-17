@@ -8,6 +8,7 @@ import {
   Plus,
   Calendar,
   MapPin,
+  Mail,
   Clock,
   Trash2,
   ChevronRight,
@@ -46,6 +47,7 @@ export const ProfileSelectionPage = () => {
   const [formData, setFormData] = useState({
     profile_name: "",
     name: "",
+    notify_email: "",
     dob: "",
     tob: "",
     place: "",
@@ -86,6 +88,7 @@ export const ProfileSelectionPage = () => {
     setFormData({
       profile_name: profile.profile_name,
       name: profile.birth_details.name,
+      notify_email: profile.notify_email || "",
       dob: profile.birth_details.dob,
       tob: profile.birth_details.tob,
       place: profile.birth_details.place,
@@ -127,11 +130,13 @@ export const ProfileSelectionPage = () => {
       time_accuracy: formData.time_accuracy || "exact",
     };
 
+    const notifyEmail = (formData.notify_email || "").trim() || null;
     let result;
     if (editingProfile) {
-      result = await updateProfile(editingProfile._id, formData.profile_name, birthDetails);
+      result = await updateProfile(
+        editingProfile._id, formData.profile_name, birthDetails, notifyEmail);
     } else {
-      result = await saveProfile(formData.profile_name, birthDetails);
+      result = await saveProfile(formData.profile_name, birthDetails, notifyEmail);
     }
     setSaving(false);
 
@@ -485,6 +490,21 @@ export const ProfileSelectionPage = () => {
                   onChange={handleInputChange}
                   placeholder={t("profile.fullNamePlaceholder")}
                 />
+              </div>
+
+              <div className="form-group">
+                <label>
+                  <Mail size={18} />
+                  {t("profile.notifyEmail")}
+                </label>
+                <input
+                  type="email"
+                  name="notify_email"
+                  value={formData.notify_email}
+                  onChange={handleInputChange}
+                  placeholder={t("profile.notifyEmailPlaceholder")}
+                />
+                <small>{t("profile.notifyEmailHint")}</small>
               </div>
 
               <div className="form-row">

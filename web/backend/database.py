@@ -96,6 +96,10 @@ class SavedProfile(BaseModel):
     profile_name: str  # e.g., "My Chart", "John Doe", etc.
     birth_details: BirthDetails
     is_default: bool = False
+    # Where this person's digest should be delivered. Empty/None → the account
+    # owner receives it (in their combined copy). Set to send this subject their
+    # own personal digest at their own address.
+    notify_email: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Config:

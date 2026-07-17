@@ -69,7 +69,8 @@ async def save_profile(req: SaveProfileRequest, current_user: str = Depends(get_
             user_id=current_user,
             profile_name=req.profile_name,
             birth_details=req.birth_details,
-            is_default=req.is_default
+            is_default=req.is_default,
+            notify_email=(req.notify_email or "").strip() or None,
         )
 
         result = await profiles_collection.insert_one(profile.model_dump(by_alias=True, exclude={"id"}))
@@ -101,6 +102,7 @@ async def update_profile(profile_id: str, req: SaveProfileRequest, current_user:
             {"$set": {
                 "profile_name": req.profile_name,
                 "birth_details": req.birth_details.model_dump(),
+                "notify_email": (req.notify_email or "").strip() or None,
             }}
         )
 

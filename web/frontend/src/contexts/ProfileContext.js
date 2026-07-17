@@ -46,7 +46,7 @@ export const ProfileProvider = ({ children }) => {
   };
 
   // Save a new profile
-  const saveProfile = async (profileName, birthDetails) => {
+  const saveProfile = async (profileName, birthDetails, notifyEmail = null) => {
     try {
       const response = await fetch(`${API_URL}/api/profiles/save`, {
         method: "POST",
@@ -57,6 +57,7 @@ export const ProfileProvider = ({ children }) => {
         body: JSON.stringify({
           profile_name: profileName,
           birth_details: birthDetails,
+          notify_email: notifyEmail || null,
         }),
       });
 
@@ -72,7 +73,7 @@ export const ProfileProvider = ({ children }) => {
   };
 
   // Update a profile
-  const updateProfile = async (profileId, profileName, birthDetails) => {
+  const updateProfile = async (profileId, profileName, birthDetails, notifyEmail = null) => {
     try {
       const response = await fetch(`${API_URL}/api/profiles/${profileId}`, {
         method: "PUT",
@@ -83,6 +84,7 @@ export const ProfileProvider = ({ children }) => {
         body: JSON.stringify({
           profile_name: profileName,
           birth_details: birthDetails,
+          notify_email: notifyEmail || null,
         }),
       });
 
@@ -95,6 +97,7 @@ export const ProfileProvider = ({ children }) => {
             ...selectedProfile,
             profile_name: profileName,
             birth_details: birthDetails,
+            notify_email: notifyEmail || null,
           };
           setSelectedProfile(updatedProfile);
           localStorage.setItem("selectedProfile", JSON.stringify(updatedProfile));

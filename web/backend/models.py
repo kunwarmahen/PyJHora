@@ -787,6 +787,7 @@ class SaveProfileRequest(BaseModel):
     profile_name: str
     birth_details: BirthDetails
     is_default: bool = False
+    notify_email: Optional[str] = None
 
 
 class SetDefaultRequest(BaseModel):

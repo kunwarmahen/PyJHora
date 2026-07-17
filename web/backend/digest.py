@@ -9,7 +9,8 @@ available, and falling back to the rule-based highlights when it isn't — follo
 by the day's key highlights. Both the "send me a test now" endpoint and the
 background scheduler call this, so the delivery logic lives in exactly one place.
 """
-from typing import Any, Dict, List, Optional
+import re
+from typing import Any, Dict, List, Optional, Tuple
 
 from astrology import AstrologyCompute, DEFAULT_AYANAMSA
 from config import settings
@@ -136,34 +137,101 @@ _CADENCES = {
 }
 
 
-async def observer_clock(user_id: str) -> Optional[Dict[str, Any]]:
-    """The user's current-location clock — their local date, time, and the UTC
-    offset in force there right now — or None if they haven't set a location.
-
-    This is what makes a *scheduled* digest agree with the app's. The Daily
-    Digest **page** already sends the browser's date and offset, so an in-app
-    reading is about the reader's today. The scheduler has no browser: left to
-    itself the engine derives "today" from the tz it was handed, which is the
-    birth profile's. For someone born in India and living in the US that is the
-    Indian date — the wrong day whenever the two disagree, which is every evening
-    of their life.
-    """
-    loc = await user_settings.get_current_location(user_id)
-    if not loc:
-        return None
-    zone = loc.get("timezone")
-    local = timezones.local_now(zone)
-    if local is None:
-        return None
+def _offset_clock(offset: float) -> Dict[str, Any]:
+    """A clock built from a fixed UTC offset (no zone → no DST)."""
+    from datetime import datetime, timedelta, timezone as _tz
+    local = datetime.now(_tz.utc) + timedelta(hours=offset or 0.0)
     return {
         "date": local.strftime("%Y-%m-%d"),
         "time": local.strftime("%H:%M"),
-        "tz": timezones.offset_hours(zone, local),
+        "tz": offset or 0.0,
     }
+
+
+async def observer_clock(user_id: str,
+                         profiles: Optional[List[Dict[str, Any]]] = None
+                         ) -> Optional[Dict[str, Any]]:
+    """One clock for the whole digest — the reader's local date, time, and UTC
+    offset right now — shared by every profile in the message.
+
+    This is what makes a *scheduled* digest agree with the app's, and what keeps
+    a multi-profile digest on a single day. The Daily Digest **page** already
+    sends the browser's date and offset, so an in-app reading is about the
+    reader's today. The scheduler has no browser: left to itself the engine
+    derives "today" from the tz it was handed, which is each *birth profile's* —
+    so a family read together can straddle two calendar days whenever their birth
+    timezones differ. For someone born in India and living in the US that Indian
+    date is also simply the wrong day every evening of their life.
+
+    Precedence: the user's **current location** (zone-based, DST-correct) wins;
+    failing that we fall back to the first profile's fixed birth offset so the
+    whole digest still shares one day. Returns None only when there is no
+    location and no profile to borrow an offset from."""
+    loc = await user_settings.get_current_location(user_id)
+    if loc:
+        zone = loc.get("timezone")
+        local = timezones.local_now(zone)
+        if local is not None:
+            return {
+                "date": local.strftime("%Y-%m-%d"),
+                "time": local.strftime("%H:%M"),
+                "tz": timezones.offset_hours(zone, local),
+            }
+
+    # No current location: borrow the first profile's birth offset so every
+    # profile in this digest is still read for the same calendar day.
+    for p in (profiles or []):
+        tz = (p.get("birth_details") or {}).get("timezone")
+        if tz is not None:
+            try:
+                return _offset_clock(float(tz))
+            except (TypeError, ValueError):
+                continue
+    return None
 
 
 def _cadence(cadence: str) -> Dict[str, Any]:
     return _CADENCES.get(cadence, _CADENCES["daily"])
+
+
+# An ingress line, e.g. "Jupiter enters Leo on 2026-10-31".
+_INGRESS_RE = re.compile(r" enters .+ on \d{4}-\d{2}-\d{2}$")
+
+
+def _split_highlights(highlights: List[str]) -> Tuple[List[str], List[str]]:
+    """Partition a profile's highlight lines into (sky, personal).
+
+    'Sky' facts depend only on the date and the reader's location, so they read
+    identically for every profile on the same day: the panchanga headline, the
+    current retrograde list, and upcoming sign-ingresses. Everything else (dasha,
+    Sade-Sati, Jupiter-from-Moon, pravesha lagna, Tajaka yogas) is keyed to the
+    individual chart. Splitting lets the combined digest print the shared sky once
+    instead of repeating it under every name."""
+    sky, personal = [], []
+    for h in highlights:
+        s = str(h)
+        if (s.startswith("Retrograde now:")
+                or " nakshatra" in s
+                or _INGRESS_RE.search(s)):
+            sky.append(s)
+        else:
+            personal.append(s)
+    return sky, personal
+
+
+def _shared_sky(blocks: List[Dict[str, Any]]) -> Optional[List[str]]:
+    """The sky lines common to every block — returned only when there are 2+
+    blocks that *all* carry the exact same sky set (i.e. they were computed for
+    the same day and location). Otherwise None, and each section is rendered in
+    full. This is what keeps a family digest from repeating the ingresses and
+    retrogrades four times."""
+    if len(blocks) < 2:
+        return None
+    sets = [tuple(b.get("sky") or []) for b in blocks]
+    first = sets[0]
+    if first and all(s == first for s in sets):
+        return list(first)
+    return None
 
 
 async def _profile_block(user_id: str, profile: Dict[str, Any],
@@ -217,18 +285,30 @@ async def _profile_block(user_id: str, profile: Dict[str, Any],
             print(f"[digest] AI narrative skipped for {user_id}/{name}: {e}")
             narrative = None
 
+    sky, personal = _split_highlights(highlights)
     return {
         "name": name,
         "date": window,
         "highlights": highlights,
+        "sky": sky,
+        "personal": personal,
         "narrative": narrative,
     }
 
 
 def _render_text(blocks: List[Dict[str, Any]], date: str, noun: str) -> str:
-    """Plain-text combined digest, one section per profile."""
+    """Plain-text combined digest, one section per profile.
+
+    When every section shares the same sky (2+ profiles on the same day), the
+    common facts are printed once up top and each section keeps only what is
+    personal to that chart."""
     parts = [f"Your {settings.SITE_NAME} Vedic {noun} for {date}", ""]
     multi = len(blocks) > 1
+    shared = _shared_sky(blocks)
+    if shared:
+        parts.append("Across the sky today (the same for everyone):")
+        parts.extend(f"• {h}" for h in shared)
+        parts.append("")
     for b in blocks:
         if multi:
             parts.append(f"=== {b['name']} ===")
@@ -238,16 +318,17 @@ def _render_text(blocks: List[Dict[str, Any]], date: str, noun: str) -> str:
         if b.get("narrative"):
             parts.append(b["narrative"])
             parts.append("")
-        if b.get("highlights"):
-            parts.append("Highlights:")
-            parts.extend(f"• {h}" for h in b["highlights"])
+        lines = b.get("personal") if shared else b.get("highlights")
+        if lines:
+            parts.append("For you:" if shared else "Highlights:")
+            parts.extend(f"• {h}" for h in lines)
             parts.append("")
     parts.append(f"Open {settings.SITE_NAME} for the full reading.")
     return "\n".join(parts)
 
 
 def _render_html(blocks: List[Dict[str, Any]], date: str, noun: str) -> str:
-    """HTML combined digest, one section per profile."""
+    """HTML combined digest, one section per profile (shared sky hoisted once)."""
     import html as _html
 
     def esc(s: str) -> str:
@@ -259,14 +340,20 @@ def _render_html(blocks: List[Dict[str, Any]], date: str, noun: str) -> str:
         return "".join(f"<p>{esc(p)}</p>" for p in paras)
 
     multi = len(blocks) > 1
+    shared = _shared_sky(blocks)
     out = [f"<p>Your {esc(settings.SITE_NAME)} Vedic {esc(noun)} for <b>{esc(date)}</b>:</p>"]
+    if shared:
+        out.append("<p style=\"margin:14px 0 4px;color:#8a6d3b\"><b>Across the sky today</b> "
+                   "<span style=\"font-weight:normal\">(the same for everyone)</span></p>")
+        out.append("<ul>" + "".join(f"<li>{esc(h)}</li>" for h in shared) + "</ul>")
     for b in blocks:
         out.append(f"<h3 style=\"margin:18px 0 6px\">{esc(b['name'])}</h3>"
                    if multi else f"<p>Hi {esc(b['name'])},</p>")
         if b.get("narrative"):
             out.append(narrative_html(b["narrative"]))
-        if b.get("highlights"):
-            out.append("<ul>" + "".join(f"<li>{esc(h)}</li>" for h in b["highlights"]) + "</ul>")
+        lines = b.get("personal") if shared else b.get("highlights")
+        if lines:
+            out.append("<ul>" + "".join(f"<li>{esc(h)}</li>" for h in lines) + "</ul>")
     out.append(f"<p>Open {esc(settings.SITE_NAME)} for the full reading.</p>")
     return "".join(out)
 
@@ -288,8 +375,9 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
         return {"status": "error", "reason": "no_profile"}
 
     include_ai = prefs.get("include_ai", True)
-    # One clock for the whole message: the reader's, not each chart's.
-    observer = await observer_clock(user_id)
+    # One clock for the whole message: the reader's current location, or — failing
+    # that — the first profile's birth offset, so every profile shares one day.
+    observer = await observer_clock(user_id, profiles)
     blocks: List[Dict[str, Any]] = []
     for profile in profiles:
         try:
@@ -299,6 +387,8 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
             print(f"[digest] profile calc failed for {user_id}: {e}")
             block = None
         if block:
+            # Where this subject's own copy goes (empty → the owner's combined copy).
+            block["_email"] = (profile.get("notify_email") or "").strip().lower() or None
             blocks.append(block)
 
     if not blocks:
@@ -311,11 +401,38 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
     text = _render_text(blocks, date, noun)
     html = _render_html(blocks, date, noun)
 
-    sent = {"email": False, "push": 0}
+    sent = {"email": False, "push": 0, "recipients": 0}
     if prefs.get("email"):
         user = await db["users"].find_one({"username": user_id})
-        if user and user.get("email"):
-            sent["email"] = await email_service.send_daily_digest(user["email"], subject, text, html)
+        owner_email = (user or {}).get("email")
+        owner_norm = (owner_email or "").strip().lower()
+
+        # Each subject with their own address gets a personal copy carrying only
+        # their section(s); everyone without one stays in the owner's combined copy.
+        groups: Dict[str, List[Dict[str, Any]]] = {}
+        for b in blocks:
+            addr = b.get("_email")
+            if not addr or addr == owner_norm:
+                continue  # owner reads this one in the combined copy
+            groups.setdefault(addr, []).append(b)
+
+        for addr, gblocks in groups.items():
+            g_date = gblocks[0]["date"]
+            g_subject = f"Your {settings.SITE_NAME} {noun} — {g_date}"
+            g_text = _render_text(gblocks, g_date, noun)
+            g_html = _render_html(gblocks, g_date, noun)
+            try:
+                if await email_service.send_daily_digest(addr, g_subject, g_text, g_html):
+                    sent["recipients"] += 1
+            except Exception as e:
+                print(f"[digest] recipient send failed for {addr}: {e}")
+
+        # The owner's combined copy always covers every profile (full overview).
+        if owner_email:
+            sent["email"] = await email_service.send_daily_digest(
+                owner_email, subject, text, html)
+            if sent["email"]:
+                sent["recipients"] += 1
     if prefs.get("push"):
         if len(blocks) > 1:
             body = f"Your {noun} for {', '.join(names)} is ready."

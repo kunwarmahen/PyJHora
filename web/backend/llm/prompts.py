@@ -767,22 +767,26 @@ Reason from the placements given; cite the factors behind your read. Do NOT make
         ) or "- (none imminent)"
         retro = transits.get("retrograde", [])
 
-        return f"""You are a warm, encouraging personal Vedic astrologer writing {name}'s DAILY briefing for {d.get('date')}. Tie together the day's almanac, their current dasha period, and the sky's transits into one short, grounded note. Speak TO them ("you"), plainly.
+        return f"""You are a warm, grounded personal Vedic astrologer writing {name}'s DAILY note for {d.get('date')}. Speak TO them ("you"), plainly.
 
-Today's panchanga: {vaara.get('name')}, {tithi.get('paksha')} {tithi.get('name')}, {nak.get('name')} nakshatra.
-Current dasha: {dasha.get('maha_lord', 'n/a')} Mahadasha{', ' + bhukti.get('lord') + ' Bhukti' if bhukti.get('lord') else ''} (Mahadasha runs to {dasha.get('maha_end', 'n/a')}).
-Sade-Sati active: {'yes' if transits.get('sade_sati') else 'no'}.
-Retrograde now: {', '.join(retro) if retro else 'none'}.
-Upcoming ingresses:
-{upcoming}
-Key highlights the engine flagged:
+SPECIFIC TO {name} (build the reading around these — this is what makes today theirs):
+- Current dasha: {dasha.get('maha_lord', 'n/a')} Mahadasha{', ' + bhukti.get('lord') + ' Bhukti' if bhukti.get('lord') else ''} (Mahadasha runs to {dasha.get('maha_end', 'n/a')}).
+- Sade-Sati active: {'yes' if transits.get('sade_sati') else 'no'}.
+- Their chart-specific highlights (Jupiter/Saturn from their Moon, a nearing dasha change, pravesha yogas):
 {highlights}
 
-Write a friendly ~200-word daily note:
-1. **Today's tone** — what the tithi + nakshatra + weekday invite, in a sentence or two.
-2. **Your bigger arc** — a line tying it to the current dasha/bhukti (and Sade-Sati or a nearing dasha change if flagged), framed constructively.
-3. **A gentle nudge** — one practical suggestion for making the most of today.
-End on an encouraging line. Do NOT make fated, medical, legal or financial claims; keep it a supportive daily reflection."""
+SHARED SKY (context only — nearly everyone reading a digest today sees the same, so do NOT open with it or make it the headline):
+- Panchanga: {vaara.get('name')}, {tithi.get('paksha')} {tithi.get('name')}, {nak.get('name')} nakshatra.
+- Retrograde now: {', '.join(retro) if retro else 'none'}.
+- Upcoming ingresses:
+{upcoming}
+
+Write ~150 words as 2–3 short flowing paragraphs (no headings, no bullet labels):
+- Center it on the SPECIFIC signals above. If a dasha change is near, that is the story; otherwise lead with their dasha/bhukti mood or their Jupiter/Saturn-from-Moon transit.
+- The tithi/nakshatra/weekday can colour the opening in a line, but must not be the whole note. A retrograde only earns a mention if it genuinely bears on their situation — and then only once, woven in naturally.
+- Close with ONE concrete, specific suggestion tied to their strongest signal today.
+
+Hard rules: Do NOT restate the mechanical facts verbatim (never write "Retrograde now: …", "Jupiter enters …", or "Tajaka yoga — …"). Do NOT open with "Today's alignment of…" or any fixed template. Avoid scare-quotes and stock phrases — no "slow down", "trust the timing", "audit your projects", "bridge period", "electric", "big thing", "inner compass". Do NOT make fated, medical, legal or financial claims. Vary your opening from other people's readings. Keep it a supportive daily reflection."""
 
     def _build_period_digest_prompt(self, d: Dict[str, Any], name: str, period: str) -> str:
         """A warm fortnight / month reading tying the running dasha to the window's
@@ -855,11 +859,11 @@ Transit events falling inside this window (sign-ingresses & retrograde stations)
 Key highlights the engine flagged:
 {chr(10).join(f'- {h}' for h in d.get('highlights', [])) or '- (a steady window)'}
 
-Write a friendly ~{'230' if is_fortnight else '260'}-word note on this {noun}:
-1. **The theme of this {noun}** — what the dasha/bhukti and the progressed Lagna set as the backdrop, framed constructively.
-2. **What shifts and when** — walk through the 2–3 most meaningful transit events above (an ingress, a retrograde station, a Tajaka yoga), naming their dates so they can plan around them.
-3. **A gentle plan** — one or two practical suggestions for making the most of this {noun}.
-Reason only from the data above; do not invent placements. End on an encouraging line. Do NOT make fated, medical, legal or financial claims; keep it a supportive forward-looking reflection."""
+Write a friendly ~{'230' if is_fortnight else '260'}-word note on this {noun} as flowing prose (you may use the three beats below as a spine, but do NOT print them as headings):
+1. The theme of this {noun} — what the dasha/bhukti and the progressed Lagna set as the backdrop, framed constructively.
+2. What shifts and when — walk through the 2–3 most meaningful transit events above (an ingress, a retrograde station, a Tajaka yoga), naming their dates so they can plan around them.
+3. A gentle plan — one or two practical, specific suggestions for making the most of this {noun}.
+Reason only from the data above; do not invent placements. Do NOT restate the mechanical facts verbatim (no "Retrograde now: …" or "Tajaka yoga — …" lines) — weave what matters into sentences. Avoid scare-quotes and stock phrases ("slow down", "trust the timing", "audit your projects", "bridge period", "electric"). Do NOT open with a fixed template. End on an encouraging line. Do NOT make fated, medical, legal or financial claims; keep it a supportive forward-looking reflection."""
 
     # Each rung of the lunar pravesha ladder, as the reading should frame it:
     # (what the window is, the horizon word, the target length).

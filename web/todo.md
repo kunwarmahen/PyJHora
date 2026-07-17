@@ -2020,6 +2020,30 @@ server-injects birth details + resets global state, auth endpoint, saffron page,
         so only the winner sends. Delivery logic is shared with the manual endpoint via a new `digest.py`
         (`send_digest_for_user`). A deployer can leave the scheduler off and cron `/digest/send` instead.
         Verified: tick sends once + claims the date, a second tick no-ops, wrong-hour users are skipped.
+      - **FOLLOW-UP 2026-07-17 (digest quality + per-recipient delivery):**
+        (1) **Per-profile delivery email** — `SavedProfile.notify_email` (+ `SaveProfileRequest`,
+            save/update routes, ProfileContext, ProfileSelectionPage form field `profile.notifyEmail*`
+            in en/hi/sa). At send time `send_digest_for_user` **groups blocks by recipient**: a subject
+            with their own address gets a personal email carrying only their section(s); everyone else
+            stays in the owner's **combined** copy, which always covers all profiles. Push stays
+            owner-only. Returns `sent.recipients` count.
+        (2) **Shared-sky de-duplication** — `_split_highlights` sorts each block's lines into *sky*
+            (panchanga headline, `Retrograde now:`, `… enters … on YYYY-MM-DD` ingresses) vs *personal*
+            (dasha, Sade-Sati, Jupiter/Saturn-from-Moon, pravesha lagna, Tajaka yogas). `_shared_sky`
+            hoists the common set into ONE "Across the sky today" header when 2+ blocks match, else
+            falls back to full per-section (safe when days differ). Renderers updated.
+        (3) **One clock for every profile** — `observer_clock(user_id, profiles)` now falls back to the
+            first profile's birth offset (via `_offset_clock`) when no current location is set, so a
+            multi-profile digest never straddles two calendar days (was: each profile derived its own
+            "today" from its own birth tz). Current location still wins.
+        (4) **De-clichéd prompts** — `_build_daily_digest_prompt` + `_build_period_digest_prompt`
+            demote the shared sky to background context, center the reading on each chart's
+            *distinguishing* signal, ban restating mechanical facts verbatim + the stock phrases
+            ("slow down", "trust the timing", "audit your projects", "bridge period", …) and the fixed
+            "Today's alignment of…" opener, and ask for varied flowing prose over the old bold-labelled
+            3-beat template. Tests: `tests/test_digest.py` (7, pure — split/hoist/render/offset-clock).
+        **OPEN (deferred, owner to decide):** recipient consent/verification, unsubscribe for
+        non-account subjects, optional per-subject current-location.
 - [x] **KP system (Krishnamurti Paddhati)** (P2→P1). DONE 2026-07-04 (full, incl. horary — owner
       pick). `AstrologyCompute.get_kp_details(dob,tob,place…)` forces the **KP (Krishnamurti)
       ayanamsa** and returns, for the Ascendant + all nine grahas, the sign / star (nakshatra) / sub

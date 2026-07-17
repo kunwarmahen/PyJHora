@@ -168,7 +168,9 @@ A **view mode** decides how much of it is advertised:
   so it follows you across devices** and is what the scheduled daily digest renders with),
   **API Keys**, **Almanac** (Drik / Surya-Siddhanta
   engine), **Notifications** (daily-digest opt-in, target profiles — a subset or "all" — AI-reading
-  toggle + preferred hour, email + browser-push toggles, "send test now"), and **Account** (account overview, update email, change password,
+  toggle + preferred hour, email + browser-push toggles, "send test now"; **each profile can also carry
+  its own delivery email** (Profiles → edit → *Digest email*) — a subject with an address gets their own
+  personal digest, everyone without one stays in the owner's combined copy), and **Account** (account overview, update email, change password,
   log out other devices, and a danger-zone **Delete account**)
 - **Consolidated controls**: the per-page dropdowns/toggles that used to live on individual pages
   (ayanamsa, chart style, almanac engine, AI model/keys) were removed — pages now read these from
@@ -190,6 +192,15 @@ Two different questions, and the app keeps two different answers:
 Someone born in India and living in the US has a birth offset of `+5.5` and a life that runs on
 `America/Chicago`. Before this existed, everything was paced off the birth profile, so a "7am"
 daily digest arrived at 8:30pm the previous evening — and was about the wrong day.
+
+A digest covering several profiles uses **one clock for the whole message**, so a family read
+together never straddles two calendar days. The reader's current location wins; failing that the
+first profile's birth offset is borrowed as a shared fallback (before this, each profile derived its
+own "today" from its own birth timezone, so members born in different zones could land on different
+days). And the facts that are the same for everyone on that day — the panchanga headline, the
+retrograde list, upcoming ingresses — are printed **once** under an "Across the sky today" header
+rather than repeated under every name; each person's section then carries only what is specific to
+their chart.
 
 Current location stores an **IANA zone name**, never an offset, because an offset can't carry
 DST: a stored `-6.0` for Chicago is an hour wrong for half the year (India has no DST, which is
