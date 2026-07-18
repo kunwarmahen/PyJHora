@@ -18,6 +18,7 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { PLANET_ABBR, AYANAMSAS } from "../constants/jyotish";
+import { Tabs, useTabs } from "../components/Tabs";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
@@ -77,7 +78,8 @@ const readModelConfig = () => {
   return {
     providerType,
     model: localStorage.getItem("ai_model") || "",
-    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    baseUrl:
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -110,7 +112,16 @@ export const SarvatobhadraPage = () => {
   const [nameNak, setNameNak] = useState(""); // "" = not set; else "1".."27"
   // Which chakra is on screen (§2.7): the Sarvatobhadra grid, the Kota fort, or
   // the Tripataki banner diagram. All three read the same transit moment above.
-  const [chakra, setChakra] = useState("sarvatobhadra");
+  const CHAKRA_TABS = useMemo(
+    () => [
+      { key: "sarvatobhadra", label: t("sbc.tabs.sarvatobhadra"), icon: <Grid3x3 size={16} /> },
+      { key: "kota", label: t("sbc.tabs.kota"), icon: <Grid3x3 size={16} /> },
+      { key: "kaala", label: t("sbc.tabs.kaala"), icon: <Grid3x3 size={16} /> },
+      { key: "tripataki", label: t("sbc.tabs.tripataki"), icon: <Grid3x3 size={16} /> },
+    ],
+    [t]
+  );
+  const { tabs: chakraTabs, active: chakra, setActive: setChakra } = useTabs(CHAKRA_TABS);
 
   const moment = useMemo(() => new Date(momentMs), [momentMs]);
   const transitDate = dateISO(moment);
@@ -267,8 +278,8 @@ export const SarvatobhadraPage = () => {
           anchor
             ? `${anchor.label}: ${anchor.name}`
             : isVedhaSource
-            ? `Casts vedha on ${isVedhaSource.label} (${isVedhaSource.name})`
-            : cell.label
+              ? `Casts vedha on ${isVedhaSource.label} (${isVedhaSource.name})`
+              : cell.label
         }
         style={{
           position: "relative",
@@ -279,12 +290,14 @@ export const SarvatobhadraPage = () => {
           alignItems: "center",
           justifyContent: "center",
           padding: "2px",
-          background: anchor ? "rgba(var(--accent-rgb), 0.18)" : CELL_BG[cell.type] || "var(--surface)",
+          background: anchor
+            ? "rgba(var(--accent-rgb), 0.18)"
+            : CELL_BG[cell.type] || "var(--surface)",
           border: anchor
             ? "2px solid var(--saffron)"
             : isVedhaSource
-            ? "2px dashed var(--vermillion)"
-            : "1px solid var(--sandalwood)",
+              ? "2px dashed var(--vermillion)"
+              : "1px solid var(--sandalwood)",
           borderRadius: "4px",
           overflow: "hidden",
           textAlign: "center",
@@ -368,7 +381,11 @@ export const SarvatobhadraPage = () => {
             value={transitTime}
             onChange={(e) => setTimePart(e.target.value)}
           />
-          <button className="control-btn" onClick={() => setMomentMs(Date.now())} title={t("sbc.nowHint")}>
+          <button
+            className="control-btn"
+            onClick={() => setMomentMs(Date.now())}
+            title={t("sbc.nowHint")}
+          >
             <RotateCcw size={14} /> {t("sbc.now")}
           </button>
 
@@ -399,22 +416,7 @@ export const SarvatobhadraPage = () => {
         </div>
 
         {/* Chakra tabs (§2.7) — all three read the transit moment chosen above. */}
-        <div className="chart-toggle chart-toggle--workspace" style={{ marginBottom: "var(--space-lg)" }}>
-          {[
-            { key: "sarvatobhadra", label: t("sbc.tabs.sarvatobhadra") },
-            { key: "kota", label: t("sbc.tabs.kota") },
-            { key: "kaala", label: t("sbc.tabs.kaala") },
-            { key: "tripataki", label: t("sbc.tabs.tripataki") },
-          ].map((tb) => (
-            <button
-              key={tb.key}
-              className={`chart-toggle__btn ${chakra === tb.key ? "is-active" : ""}`}
-              onClick={() => setChakra(tb.key)}
-            >
-              <Grid3x3 size={16} /> {tb.label}
-            </button>
-          ))}
-        </div>
+        <Tabs tabs={chakraTabs} active={chakra} onChange={setChakra} ariaLabel={t("sbc.title")} />
 
         {chakra === "kota" && (
           <Card>
@@ -487,11 +489,7 @@ export const SarvatobhadraPage = () => {
 
             <div className="sbc-layout">
               {/* The chakra grid */}
-              <Card
-                title={t("sbc.chakraTitle")}
-                icon={<Grid3x3 size={22} />}
-                accent="saffron"
-              >
+              <Card title={t("sbc.chakraTitle")} icon={<Grid3x3 size={22} />} accent="saffron">
                 <div style={{ overflowX: "auto" }}>
                   <div
                     style={{
@@ -606,7 +604,9 @@ export const SarvatobhadraPage = () => {
                       {t("sbc.findingsNone")}
                     </p>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}>
+                    <div
+                      style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}
+                    >
                       {result.findings.map((f, i) => (
                         <div
                           key={i}
@@ -625,8 +625,8 @@ export const SarvatobhadraPage = () => {
                           <strong style={{ color: "var(--cosmic-indigo)" }}>{f.planet}</strong>{" "}
                           <span style={{ color: "var(--text-muted)" }}>({f.planet_nature})</span>{" "}
                           {f.kind === "occupation" ? t("sbc.findOccupies") : t("sbc.findVedha")}{" "}
-                          <strong style={{ color: "var(--saffron)" }}>{f.anchor_label}</strong>{" "}
-                          ({f.anchor_name})
+                          <strong style={{ color: "var(--saffron)" }}>{f.anchor_label}</strong> (
+                          {f.anchor_name})
                         </div>
                       ))}
                     </div>
