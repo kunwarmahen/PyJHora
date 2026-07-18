@@ -167,6 +167,21 @@
   --radius-lg: 16px;
   --radius-xl: 24px;
   --radius-full: 9999px;
+
+  /* ---- Density (§15) ----
+     The compact scale, in one place. Cards and tiles used to hard-code
+     --space-xl padding and --radius-xl corners, which at 39 features made the
+     dashboard a very long wall and put roughly one panel on a phone screen.
+     Tune these to re-scale the whole app rather than editing pages. */
+  --card-pad: 16px;
+  --card-radius: 14px;
+  --card-gap: 16px;
+  --card-mb: 14px;
+  --card-header-size: 1.12rem;
+  --card-header-mb: 12px;
+  --tile-pad: 14px;
+  --tile-icon: 40px;
+  --tile-min: 200px;
 }
 
 /* ==================================================================== *

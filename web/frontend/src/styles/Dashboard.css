@@ -214,14 +214,14 @@
 /* Features Grid */
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: var(--space-xl);
+  grid-template-columns: repeat(auto-fit, minmax(var(--tile-min), 1fr));
+  gap: var(--card-gap);
 }
 
 .feature-card {
   background: var(--surface);
-  padding: var(--space-xl);
-  border-radius: var(--radius-xl);
+  padding: var(--tile-pad);
+  border-radius: var(--card-radius);
   text-decoration: none;
   color: inherit;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -257,13 +257,13 @@
 }
 
 .feature-icon {
-  width: 72px;
-  height: 72px;
+  width: var(--tile-icon);
+  height: var(--tile-icon);
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-sm);
   color: var(--text-on-accent);
   box-shadow: var(--shadow-md);
   transition: transform 0.3s ease;
@@ -274,16 +274,16 @@
 }
 
 .feature-card h3 {
-  margin: 0 0 var(--space-md) 0;
-  font-size: 1.5rem;
+  margin: 0 0 var(--space-xs) 0;
+  font-size: 1.05rem;
   color: var(--text-primary);
 }
 
 .feature-card p {
-  margin: 0 0 var(--space-lg) 0;
+  margin: 0 0 var(--space-sm) 0;
   color: var(--text-secondary);
-  font-size: 0.9375rem;
-  line-height: 1.6;
+  font-size: 0.8rem;
+  line-height: 1.45;
 }
 
 .feature-arrow {

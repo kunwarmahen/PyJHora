@@ -13,38 +13,7 @@
   margin-bottom: var(--space-md, 12px);
 }
 
-.settings-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: var(--space-lg, 16px);
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 4px;
-}
-
-.settings-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  font-weight: 600;
-  border-radius: var(--radius-sm, 8px);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-}
-
-.settings-tab:hover {
-  background: var(--cream-dark);
-}
-
-.settings-tab.is-active {
-  color: var(--saffron);
-  border-bottom-color: var(--saffron);
-}
+/* Tab bar now comes from the shared <Tabs> component (styles/Tabs.css). */
 
 .settings-panel {
   max-width: 640px;

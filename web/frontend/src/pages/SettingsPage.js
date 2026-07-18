@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -37,6 +37,7 @@ import { SITE_TITLE } from "../config/branding";
 import { SIGN_LABEL_MODES } from "../config/signLabel";
 import { STARTUP_PROFILE_MODES } from "../config/startupProfile";
 import { zoneLabel } from "../config/currentLocation";
+import { Tabs, useTabs } from "../components/Tabs";
 import "../styles/Settings.css";
 
 const KEYED_PROVIDERS = ["gemini", "openai", "openai-compatible"];
@@ -73,11 +74,13 @@ export const SettingsPage = () => {
   const hasPassword = user?.has_password !== false;
 
   // `?tab=` lets other pages deep-link a specific tab (the location prompt sends
-  // people straight to Location). Unknown values fall back to General.
-  const [tab, setTab] = useState(() => {
-    const want = new URLSearchParams(window.location.search).get("tab");
-    return TAB_KEYS.includes(want) ? want : "general";
-  });
+  // people straight to Location). Unknown values fall back to General. Now
+  // two-way: picking a tab updates the URL, so Back and refresh both behave.
+  const TABS = useMemo(
+    () => TAB_KEYS.map((key) => ({ key, label: t(`settings.tabs.${key}`), icon: TAB_ICONS[key] })),
+    [t]
+  );
+  const { tabs: visibleTabs, active: tab, setActive: setTab } = useTabs(TABS);
   const [savedFlash, setSavedFlash] = useState("");
 
   // iCal feed (§5.10): resolve a signed subscribe URL for a chosen profile.
@@ -511,12 +514,6 @@ export const SettingsPage = () => {
     }
   };
 
-  const TABS = TAB_KEYS.map((key) => ({
-    key,
-    label: t(`settings.tabs.${key}`),
-    icon: TAB_ICONS[key],
-  }));
-
   // Health-check items surfaced in the System tab. `ok` maps to a green/grey pill.
   const healthChecks = health
     ? [
@@ -560,21 +557,12 @@ export const SettingsPage = () => {
           </div>
         )}
 
-        <div className="settings-tabs" role="tablist">
-          {TABS.map((tb) => (
-            <button
-              key={tb.key}
-              type="button"
-              role="tab"
-              aria-selected={tab === tb.key}
-              className={`settings-tab${tab === tb.key ? " is-active" : ""}`}
-              onClick={() => setTab(tb.key)}
-            >
-              {tb.icon}
-              <span>{tb.label}</span>
-            </button>
-          ))}
-        </div>
+        <Tabs
+          tabs={visibleTabs}
+          active={tab}
+          onChange={setTab}
+          ariaLabel={t("settings.title")}
+        />
 
         {/* GENERAL */}
         {tab === "general" && (

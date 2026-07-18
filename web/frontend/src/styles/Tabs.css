@@ -1,0 +1,106 @@
+/* The shared tab bar (§15).
+ *
+ * Saffron pill on a sunken track. Replaces the three hand-rolled bars that used
+ * to live in Settings.css, Admin.css and the KP page.
+ *
+ * Every colour is a theme token — a literal here would be a value dark mode
+ * can't reach (see styles/tokens.test.js). */
+
+.ui-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  margin-bottom: var(--space-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  /* Many tabs on a narrow screen scroll sideways rather than wrapping to a
+     second row, which would shove the panel down the page as tabs are added. */
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ui-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  white-space: nowrap;
+  padding: 7px 15px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.ui-tab:hover:not(.ui-tab--on) {
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+}
+
+.ui-tab--on {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--vermillion) 100%);
+  color: var(--text-on-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.ui-tab:focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 2px;
+}
+
+/* Count badge (e.g. "Yogas 4"). Inherits the pill's colour when selected. */
+.ui-tab__count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+}
+
+/* On the selected pill the badge inherits the pill's own text colour, so it
+   stays legible in both themes without needing a colour of its own. */
+.ui-tab--on .ui-tab__count {
+  background: transparent;
+  color: inherit;
+}
+
+.ui-tab svg {
+  /* Icons are flex children: without this they collapse when the bar overflows,
+     the same way the navbar icons did on iPhone. */
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .ui-tabs {
+    /* Full-bleed edge-to-edge so the scroll affordance is obvious on a phone. */
+    border-radius: var(--radius-lg);
+    padding: 4px;
+  }
+
+  .ui-tab {
+    padding: 7px 12px;
+    font-size: 0.82rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-tab {
+    transition: none;
+  }
+}
+
+/* Printing a tabbed page should print what you were looking at, not a row of
+   buttons that mean nothing on paper. */
+@media print {
+  .ui-tabs {
+    display: none !important;
+  }
+}

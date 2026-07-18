@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShieldAlert, Users, Activity, ScrollText, Trash2, Ban, Eye, RefreshCw } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
@@ -8,6 +8,7 @@ import { Card } from "../components/Card";
 import { LoadingState } from "../components/LoadingState";
 import { ErrorBanner } from "../components/ErrorBanner";
 import "../styles/Shared.css";
+import { Tabs, useTabs } from "../components/Tabs";
 import "../styles/Admin.css";
 
 const errMsg = (e) => e?.response?.data?.detail || e?.message || "Something went wrong";
@@ -36,7 +37,17 @@ const StatCard = ({ label, value }) => (
 export const AdminPage = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
-  const [tab, setTab] = useState("overview");
+  // Console sections. Deployer-only screen, so labels stay untranslated like the
+  // rest of this page.
+  const ADMIN_TABS = useMemo(
+    () => [
+      { key: "overview", label: "Overview", icon: <Activity size={15} /> },
+      { key: "users", label: "Users", icon: <Users size={15} /> },
+      { key: "audit", label: "Audit log", icon: <ScrollText size={15} /> },
+    ],
+    []
+  );
+  const { tabs, active: tab, setActive: setTab } = useTabs(ADMIN_TABS);
 
   // Redirect anyone who isn't an admin once auth has resolved.
   useEffect(() => {
@@ -55,17 +66,7 @@ export const AdminPage = () => {
         accent="indigo"
       />
       <div className="dashboard-content">
-        <div className="admin-tabs">
-          <button className={`admin-tab ${tab === "overview" ? "admin-tab--active" : ""}`} onClick={() => setTab("overview")}>
-            <Activity size={15} style={{ verticalAlign: "-2px", marginRight: 6 }} />Overview
-          </button>
-          <button className={`admin-tab ${tab === "users" ? "admin-tab--active" : ""}`} onClick={() => setTab("users")}>
-            <Users size={15} style={{ verticalAlign: "-2px", marginRight: 6 }} />Users
-          </button>
-          <button className={`admin-tab ${tab === "audit" ? "admin-tab--active" : ""}`} onClick={() => setTab("audit")}>
-            <ScrollText size={15} style={{ verticalAlign: "-2px", marginRight: 6 }} />Audit log
-          </button>
-        </div>
+        <Tabs tabs={tabs} active={tab} onChange={setTab} ariaLabel="Admin console" />
 
         {tab === "overview" && <OverviewTab />}
         {tab === "users" && <UsersTab />}

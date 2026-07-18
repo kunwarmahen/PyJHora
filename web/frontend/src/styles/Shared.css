@@ -121,9 +121,9 @@
 /* ---- Card ---- */
 .ui-card {
   background: var(--surface);
-  border-radius: var(--radius-xl);
-  padding: var(--space-xl);
-  margin-bottom: var(--space-xl);
+  border-radius: var(--card-radius);
+  padding: var(--card-pad);
+  margin-bottom: var(--card-mb);
   box-shadow: var(--shadow-lg);
 }
 
@@ -144,9 +144,9 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--card-header-mb);
   color: var(--text-primary);
-  font-size: 1.5rem;
+  font-size: var(--card-header-size);
   font-weight: 700;
 }
 .ui-card-header svg {

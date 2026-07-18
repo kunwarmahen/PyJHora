@@ -15,6 +15,7 @@ import { LoadingState } from "../components/LoadingState";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
 import { useSettings } from "../contexts/SettingsContext";
+import { Tabs, useTabs } from "../components/Tabs";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
@@ -53,7 +54,14 @@ export const KPPage = () => {
   const chartStyle = settings.chartStyle;
   const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
 
-  const [tab, setTab] = useState("natal");
+  const KP_TABS = useMemo(
+    () => [
+      { key: "natal", label: t("kp.tabs.natal"), icon: <Star size={16} /> },
+      { key: "horary", label: t("kp.tabs.horary"), icon: <HelpCircle size={16} /> },
+    ],
+    [t]
+  );
+  const { tabs, active: tab, setActive: setTab } = useTabs(KP_TABS);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -94,7 +102,9 @@ export const KPPage = () => {
       }
       setPendingReading(null);
     }
-  }, [pendingReading, loading]);
+    // `setTab` changes identity when the URL does; re-running is harmless
+    // because pendingReading is cleared above, so the guard above fails.
+  }, [pendingReading, loading, setTab]);
 
   const birthDetails = useMemo(
     () =>
@@ -223,14 +233,7 @@ export const KPPage = () => {
         <RecentReadings source="kp" profileId={selectedProfile?._id} />
         <ProfileBanner profile={selectedProfile} />
 
-        <div className="chart-toggle" style={{ marginBottom: "var(--space-lg)" }}>
-          <button className={`chart-toggle__btn ${tab === "natal" ? "is-active" : ""}`} onClick={() => setTab("natal")}>
-            <Star size={16} /> {t("kp.tabs.natal")}
-          </button>
-          <button className={`chart-toggle__btn ${tab === "horary" ? "is-active" : ""}`} onClick={() => setTab("horary")}>
-            <HelpCircle size={16} /> {t("kp.tabs.horary")}
-          </button>
-        </div>
+        <Tabs tabs={tabs} active={tab} onChange={setTab} ariaLabel={t("kp.title")} />
 
         {tab === "natal" && (
           <>

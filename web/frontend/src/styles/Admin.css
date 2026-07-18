@@ -1,29 +1,7 @@
 /* Admin console (§44). All colours come from the theme tokens (App.css :root)
    so the console is dark/light-aware like the rest of the app. */
 
-.admin-tabs {
-  display: flex;
-  gap: var(--space-xs);
-  border-bottom: 1px solid var(--border);
-  margin-bottom: var(--space-lg);
-  flex-wrap: wrap;
-}
-.admin-tab {
-  appearance: none;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: var(--space-sm) var(--space-md);
-  font: inherit;
-  font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-.admin-tab:hover { color: var(--text-primary); }
-.admin-tab--active {
-  color: var(--accent-deep);
-  border-bottom-color: var(--accent);
-}
+/* Tab bar now comes from the shared <Tabs> component (styles/Tabs.css). */
 
 .admin-stat-grid {
   display: grid;
