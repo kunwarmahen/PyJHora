@@ -61,7 +61,12 @@ export const DashboardPage = () => {
           >
             <Settings size={18} />
           </button>
-          <button onClick={handleLogout} className="logout-btn">
+          <button
+            onClick={handleLogout}
+            className="logout-btn"
+            title={t("common.logout")}
+            aria-label={t("common.logout")}
+          >
             <LogOut size={18} />
             <span>{t("common.logout")}</span>
           </button>

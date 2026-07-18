@@ -4339,3 +4339,75 @@ audit trail). Built a real, auditable admin surface instead.
 
 **Verified:** 98 backend tests pass, token-literal guard passes, prod build
 clean. Grant an admin by setting `ADMIN_USERNAMES` and redeploying.
+
+## 45. iPhone layout fixes + Life Report that survives the phone sleeping (owner ask 2026-07-18)
+
+Four owner-reported issues, all shipped.
+
+### 45.1 Navbar icons invisible on iPhone
+The settings gear rendered as an empty box and the logout button showed only its
+text. Root cause was **not** colour: lucide icons are flex children, and once
+`.nav-right` overflowed at phone width they shrank to zero. `.theme-toggle > svg`
+was the only icon in the app with a `flex-shrink: 0` guard, which is exactly why
+the theme toggle was the only visible one.
+- [x] `flex-shrink: 0` on every `.nav-right` / `.navbar-brand` svg (and on
+      `.logout-btn` itself) — applies to **all** pages, since `PageHeader` reuses
+      the same `.navbar` classes.
+- [x] New ≤640px block: tighter navbar padding/gaps, smaller brand, and
+      **icon-only** actions (`.logout-btn span` hidden) to reclaim the width.
+      Added `title`/`aria-label` to the logout button so the icon-only form keeps
+      an accessible name.
+- [x] Brand pinned to one line **scoped to `.dashboard-container`** — a blanket
+      `white-space: nowrap` on `.navbar h1` would have overflowed long PageHeader
+      titles like "Birth Time Rectification".
+
+### 45.2 Profile name tile reformatted for phones
+`.profile-avatar-large` had no `flex-shrink: 0` (circle squashed to an oval) and
+`.profile-meta` was a nowrap flex row (the three birth fields crushed into narrow
+columns).
+- [x] `flex-shrink: 0` on the avatar at all widths; `min-width: 0` +
+      `overflow-wrap` on `.profile-info` so long names/places wrap instead of
+      widening the banner past the viewport.
+- [x] ≤640px: avatar (56px) left with the name beside it, birth details stacked
+      one per line, bullet separators hidden. **Owner picked this layout** over a
+      centered card / compact single row.
+
+### 45.3 Life Report no longer dies when the phone sleeps
+Generation was a **client-side loop** of 7 sequential chapter requests. iOS
+suspends a backgrounded page's JavaScript and kills in-flight fetches, so locking
+the screen stopped the run — and since the report was only persisted once *every*
+chapter finished, everything generated so far was lost.
+
+**Owner chose the server-side background job** (over "client loop + resume", which
+would only stop losing work rather than keep going).
+- [x] New `life_report.py`: job documents in `life_report_jobs`, per-chapter
+      persistence, cancel, and a **staleness reaper** — a run whose heartbeat is
+      >15 min old (pod restart mid-job) is flipped to error so the UI can't spin
+      forever and a restart isn't blocked.
+- [x] 3 endpoints: `POST life-report/start` (idempotent — re-attaches to a run
+      already going for that profile, so a reconnect can't start a second one),
+      `GET life-report/job`, `POST life-report/cancel`. Run via FastAPI
+      `BackgroundTasks`; the resolved model config (incl. API key) is passed in
+      memory and never written to the job doc.
+- [x] Frontend polls every 4s and **also refreshes on `visibilitychange`** — iOS
+      freezes timers while the screen is off, so this gives an instant catch-up
+      the moment you unlock. Client loop + the save-on-complete effect deleted;
+      orphaned `generateLifeReportChapter`/`saveLifeReport` service wrappers
+      removed (the endpoints themselves stay as public API).
+- [x] A "this keeps running, you can leave" note while generating, plus a Stop
+      button.
+
+### 45.4 Report persists and stays in AI history
+- [x] The page loads the latest job for the profile on open, so it shows your
+      last report instead of a blank slate; **Regenerate** starts a fresh run.
+- [x] **Owner chose "keep old versions"** — a regenerate never overwrites: each
+      finished run files its own reading in the unified AI history (`source:
+      "life_report"`), so previous reports stay browsable there.
+
+**Verified:** 328 backend tests (11 new in `tests/test_life_report.py`, DB-free)
++ 116 frontend tests pass, prod build clean, route snapshot regenerated (3 new
+routes, nothing lost or changed). Also driven end-to-end against live Mongo with
+a stubbed LLM: full run → 7/7 chapters + history entry; regenerate → 2 jobs and
+2 history entries (old kept); **interrupted run → the 2 chapters already done
+survive** (the actual bug); cancel, cross-user cancel rejection, and the stale
+reaper all behave.

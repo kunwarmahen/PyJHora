@@ -268,6 +268,21 @@ stable across DST and localised for free; the raw IANA name is a developer ident
 Leaving it unset falls back to the birth profile, which stays correct for anyone who still lives
 where they were born.
 
+### Life Report (long-form, generated on the server)
+
+- **Seven composed chapters** — personality, career, wealth, relationships, health, dharma and the
+  current outlook — assembled into one document you can read, print or save as PDF
+- **Generation runs on the server, not in the browser.** The page starts a job and then only polls
+  it, so you can lock your phone, switch apps or close the tab and the report keeps being written.
+  (It used to be a loop in the browser: an iPhone locking its screen suspended the JavaScript, killed
+  the in-flight request, and — because nothing was saved until *every* chapter finished — threw away
+  all the work done so far.)
+- **Every chapter is persisted the moment it lands**, so partial progress survives an interrupted
+  run, and a job abandoned by a server restart is reaped rather than spinning forever
+- **The page opens on your latest report** for that profile instead of a blank slate; **Regenerate**
+  starts a fresh run and **keeps the previous reports** — every finished one is filed in the unified
+  AI history and stays browsable
+
 ### AI Capabilities page
 
 - **Tool catalog / capability disclosure**: the **AI Capabilities** page (reached from
@@ -332,6 +347,7 @@ pyjhora-web/
 │   ├── tools.py             # Tool registry for agentic mode (wraps AstrologyCompute) + GET /api/ai/tools catalog
 │   ├── tool_traces.py       # Lazy side-storage for smart-lookup tool results
 │   ├── conversations.py     # Unified AI history: chat threads + one-shot readings (source registry, save_reading, retention cap)
+│   ├── life_report.py       # Server-side Life Report job: runs the 7 chapters in the background so a sleeping phone can't interrupt it
 │   ├── user_settings.py     # Per-user encrypted API keys
 │   ├── ratelimit.py         # Per-user rate limiting for AI endpoints
 │   ├── shares.py            # Read-only shareable chart links
@@ -1309,6 +1325,10 @@ masked, and used ahead of any global env key for that user's requests.
 - `POST /api/astrology/predict` - Generate AI-powered predictions (general, health, career, relationships)
 - `POST /api/astrology/compatibility-analysis` - Get detailed AI compatibility analysis
 - `POST /api/astrology/compare-analysis` - Get a neutral AI comparison of two charts (not marriage matching)
+- `GET /api/astrology/life-report/chapters` - The ordered Life Report chapter list
+- `POST /api/astrology/life-report/start` - Start a server-side Life Report run (re-attaches to one already running for the profile)
+- `GET /api/astrology/life-report/job?profile_id=` - Progress while generating, the finished report afterwards (the page polls this)
+- `POST /api/astrology/life-report/cancel?job_id=` - Stop a running report
 
 ### Saved Profiles
 

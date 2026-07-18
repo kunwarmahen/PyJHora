@@ -87,6 +87,17 @@
   box-shadow: var(--shadow-md);
 }
 
+/* Icons are flex children: without this they shrink to zero width as soon as the
+   navbar overflows (iPhone), which made the settings gear and the logout icon
+   vanish entirely. Guard every navbar icon, not just the theme toggle's. */
+.nav-right svg,
+.navbar-brand svg {
+  flex-shrink: 0;
+}
+.logout-btn {
+  flex-shrink: 0;
+}
+
 /* Dashboard Content */
 .dashboard-content {
   padding: var(--space-3xl) var(--space-2xl);
@@ -122,6 +133,8 @@
 .profile-avatar-large {
   width: 80px;
   height: 80px;
+  /* Without this the circle is squashed into an oval on narrow screens. */
+  flex-shrink: 0;
   background: linear-gradient(135deg, var(--marigold) 0%, var(--saffron) 100%);
   border-radius: 50%;
   display: flex;
@@ -131,10 +144,17 @@
   box-shadow: var(--shadow-md);
 }
 
+.profile-info {
+  /* Allow the text block to shrink below its content width so long names and
+     places wrap instead of forcing the banner wider than the viewport. */
+  min-width: 0;
+}
+
 .profile-info h2 {
   margin: 0 0 var(--space-sm) 0;
   font-size: 1.75rem;
   color: var(--text-primary);
+  overflow-wrap: anywhere;
 }
 
 .profile-meta {
@@ -332,6 +352,79 @@
 
   .features-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Phone widths (iPhone) =====
+   The navbar ran out of room here: the brand title wrapped to two lines and the
+   action buttons kept their desktop padding, overflowing .nav-right. Reclaim the
+   space so every icon stays visible, and stack the profile tile's details. */
+@media (max-width: 640px) {
+  .navbar {
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-sm);
+  }
+
+  .navbar-brand {
+    gap: var(--space-sm);
+    min-width: 0;
+  }
+
+  .navbar h1 {
+    font-size: 1.15rem;
+  }
+
+  /* Only the dashboard brand is short enough to pin to one line; PageHeader
+     titles ("Birth Time Rectification") must stay free to wrap. */
+  .dashboard-container .navbar h1 {
+    white-space: nowrap;
+  }
+
+  .nav-right {
+    gap: var(--space-sm);
+  }
+
+  /* Icon-only actions: the icon alone is clear, and dropping the label is what
+     buys the room. Keep the accessible name via title/aria-label in the JSX. */
+  .logout-btn {
+    padding: var(--space-sm);
+    gap: 0;
+  }
+
+  .logout-btn span {
+    display: none;
+  }
+
+  /* Profile tile: avatar left with the name beside it, birth details stacked
+     underneath one per line instead of a squeezed bullet-separated row. */
+  .profile-banner {
+    padding: var(--space-lg);
+  }
+
+  .profile-banner-left {
+    align-items: flex-start;
+    gap: var(--space-md);
+  }
+
+  .profile-avatar-large {
+    width: 56px;
+    height: 56px;
+  }
+
+  .profile-info h2 {
+    font-size: 1.3rem;
+    margin-bottom: var(--space-xs);
+  }
+
+  .profile-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    line-height: 1.35;
+  }
+
+  .profile-meta .separator {
+    display: none;
   }
 }
 

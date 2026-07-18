@@ -3,7 +3,7 @@
 Part of the §4b main.py split — handlers moved verbatim; only the
 decorator changed from @app.* to @router.*.
 """
-from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi import FastAPI, Depends, HTTPException, status, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse, Response
@@ -24,6 +24,7 @@ from llm_service import llm_service, LLMProvider
 import tools as tool_registry
 import conversations as convo
 import journal
+import life_report
 import ical
 import tool_traces
 import user_settings
@@ -1737,6 +1738,61 @@ async def life_report_chapter(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/api/astrology/life-report/start")
+async def life_report_start(
+    request: LifeReportStartRequest,
+    background: BackgroundTasks,
+    current_user: str = Depends(get_current_user),
+):
+    """Start (or re-attach to) a server-side Life Report run.
+
+    Generation happens on the server precisely so it survives the client going
+    away — an iPhone locking its screen used to suspend the browser loop and kill
+    the report mid-way. If a run is already going for this profile we return it
+    rather than starting a second one, which makes the client's start call safe to
+    repeat after a reconnect.
+    """
+    _enforce_rate_limit(current_user)
+    running = await life_report.get_running(current_user, request.profile_id)
+    if running:
+        return running
+    cfg = await _resolve_cfg(current_user, request)
+    job = await life_report.create_job(
+        current_user,
+        profile_id=request.profile_id,
+        person_name=request.person_name or request.birth_details.name,
+        birth_details=request.birth_details.model_dump(),
+        ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+        sections=request.sections,
+        vargas=request.vargas,
+    )
+    background.add_task(life_report.run_job, job["job_id"], current_user, cfg)
+    return job
+
+
+@router.get("/api/astrology/life-report/job")
+async def life_report_job(
+    profile_id: Optional[str] = None,
+    current_user: str = Depends(get_current_user),
+):
+    """The latest run for this profile — progress while generating, the finished
+    report afterwards. The page polls this and re-opens the last report on return."""
+    job = await life_report.get_latest(current_user, profile_id)
+    return job or {"status": "none"}
+
+
+@router.post("/api/astrology/life-report/cancel")
+async def life_report_cancel(
+    job_id: str,
+    current_user: str = Depends(get_current_user),
+):
+    """Stop a running report; the job loop bails before its next chapter."""
+    ok = await life_report.cancel_job(current_user, job_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="No running report to cancel")
+    return {"status": "cancelled"}
+
 
 @router.post("/api/astrology/life-report/save")
 async def life_report_save(

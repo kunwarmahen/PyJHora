@@ -2237,6 +2237,8 @@
     "chapterActive": "Composing…",
     "chapterDone": "Done",
     "print": "Print / Save PDF",
+    "cancel": "Stop",
+    "keepsRunning": "This runs on the server — you can lock your phone, switch apps or close this page. Come back any time and the report will be here.",
     "saved": "Saved to history",
     "saveError": "Could not save the report.",
     "error": "Could not generate a chapter. You can retry.",

@@ -15,6 +15,10 @@ import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/LifeReport.css";
 
+// How often to ask the server how the run is going. Chapters take tens of
+// seconds each, so this is about keeping the progress honest, not low latency.
+const POLL_MS = 4000;
+
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
   return {
@@ -34,20 +38,15 @@ export const LifeReportPage = () => {
   const { settings } = useSettings();
   const ayanamsa = settings.ayanamsa;
 
-  const [chapters, setChapters] = useState([]); // [{key,title}]
-  const [results, setResults] = useState({}); // key -> {text, status}
-  const [running, setRunning] = useState(false);
-  const [activeIdx, setActiveIdx] = useState(-1);
+  const [chapters, setChapters] = useState([]); // catalog [{key,title}]
+  const [job, setJob] = useState(null); // server-side run (progress + report)
+  const [restored, setRestored] = useState(null); // {text, model} from history
   const [error, setError] = useState("");
-  const [model, setModel] = useState("");
-  const [saved, setSaved] = useState(false);
+  const [starting, setStarting] = useState(false);
 
   // Restore a saved report from history (opens as a read-only snapshot).
   useRestoreReading((r) => {
-    if (r.reading) {
-      setResults({ __restored: { text: r.reading, status: "done", title: "" } });
-      setModel(r.model || "");
-    }
+    if (r.reading) setRestored({ text: r.reading, model: r.model || "" });
   });
 
   const birthDetails = useMemo(
@@ -75,80 +74,90 @@ export const LifeReportPage = () => {
     }
   }, [t]);
 
+  // Pick up whatever the server already has for this profile: a run still in
+  // progress (so a phone that slept re-attaches to it) or the last finished
+  // report (so the page opens on it instead of a blank slate).
+  const loadJob = useCallback(async () => {
+    if (!selectedProfile?._id) return null;
+    try {
+      const res = await astrologyService.getLifeReportJob(selectedProfile._id);
+      const data = res.data && res.data.status !== "none" ? res.data : null;
+      setJob(data);
+      return data;
+    } catch {
+      return null; // transient — polling will try again
+    }
+  }, [selectedProfile]);
+
   useEffect(() => {
     if (!selectedProfile) {
       navigate("/profile-selection");
       return;
     }
     loadChapters();
-  }, [selectedProfile, navigate, loadChapters]);
+    loadJob();
+  }, [selectedProfile, navigate, loadChapters, loadJob]);
 
-  const assembledMarkdown = useCallback(() => {
-    if (results.__restored) return results.__restored.text;
-    return chapters
-      .filter((c) => results[c.key]?.status === "done")
-      .map((c) => `## ${c.title}\n\n${results[c.key].text}`)
-      .join("\n\n");
-  }, [chapters, results]);
+  const running = job?.status === "running";
 
-  const generate = async () => {
-    if (!birthDetails || !chapters.length) return;
-    setRunning(true);
+  // Poll while a run is in flight. Generation itself lives on the server, so the
+  // page can be backgrounded or reloaded without affecting it — this only keeps
+  // the display current. iOS freezes timers while the screen is off, so also
+  // refresh the moment the tab becomes visible again for an instant catch-up.
+  useEffect(() => {
+    if (!running) return undefined;
+    const id = setInterval(loadJob, POLL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") loadJob();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [running, loadJob]);
+
+  const generate = async (regenerate = false) => {
+    if (!birthDetails) return;
     setError("");
-    setSaved(false);
-    setResults({});
-    const mcfg = { ...readModelConfig(), ayanamsa };
-    const opts = { personName: birthDetails.name, profileId: selectedProfile?._id };
-    let lastModel = "";
-    for (let i = 0; i < chapters.length; i++) {
-      const ch = chapters[i];
-      setActiveIdx(i);
-      setResults((r) => ({ ...r, [ch.key]: { status: "active", text: "" } }));
-      try {
-        const res = await astrologyService.generateLifeReportChapter(
-          birthDetails,
-          ch.key,
-          opts,
-          mcfg
-        );
-        lastModel = res.data.model || res.data.provider || lastModel;
-        setResults((r) => ({ ...r, [ch.key]: { status: "done", text: res.data.text } }));
-      } catch (err) {
-        setResults((r) => ({ ...r, [ch.key]: { status: "error", text: "" } }));
-        setError(err.response?.data?.detail || t("lifeReport.error"));
-        setRunning(false);
-        setActiveIdx(-1);
-        return;
-      }
+    setRestored(null);
+    setStarting(true);
+    try {
+      const res = await astrologyService.startLifeReport(
+        birthDetails,
+        { personName: birthDetails.name, profileId: selectedProfile?._id, regenerate },
+        { ...readModelConfig(), ayanamsa }
+      );
+      setJob(res.data);
+    } catch (err) {
+      setError(err.response?.data?.detail || t("lifeReport.error"));
+    } finally {
+      setStarting(false);
     }
-    setActiveIdx(-1);
-    setModel(lastModel);
-    setRunning(false);
-    // The save-when-complete effect below handles persistence from fresh state
-    // (avoids the stale-closure `results` here).
   };
 
-  // Save uses a fresh assembly once all chapters resolved (covers the stale-closure case).
-  useEffect(() => {
-    if (running || activeIdx !== -1) return;
-    const done = chapters.length && chapters.every((c) => results[c.key]?.status === "done");
-    if (done && !saved && !results.__restored) {
-      astrologyService
-        .saveLifeReport(birthDetails, assembledMarkdown(), {
-          personName: birthDetails?.name,
-          profileId: selectedProfile?._id,
-        }, { ...readModelConfig(), ayanamsa })
-        .then(() => setSaved(true))
-        .catch(() => {});
+  const cancel = async () => {
+    if (!job?.job_id) return;
+    try {
+      await astrologyService.cancelLifeReport(job.job_id);
+    } catch {
+      /* already finished — the next poll settles it */
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running, activeIdx, results]);
+    loadJob();
+  };
 
   if (!selectedProfile) return null;
 
-  const anyDone =
-    results.__restored || chapters.some((c) => results[c.key]?.status === "done");
-  const total = chapters.length;
+  // Chapter rows come from the running/finished job (they carry the text); before
+  // any job exists, fall back to the catalog so the chapter list is still shown.
+  const rows = job?.chapters?.length
+    ? job.chapters
+    : chapters.map((c) => ({ ...c, status: "pending", text: "" }));
+  const total = job?.total || chapters.length;
+  const doneCount = job?.done_count || 0;
+  const reportModel = restored ? restored.model : job?.model || job?.provider || "";
+  const anyDone = Boolean(restored) || doneCount > 0;
+  const jobError = job?.status === "error" ? job.error : "";
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -164,25 +173,34 @@ export const LifeReportPage = () => {
         <ProfileBanner profile={selectedProfile} />
         <p className="card-note">{t("lifeReport.intro")}</p>
 
-        <ErrorBanner message={error} />
+        <ErrorBanner message={error || jobError} />
 
         {/* Controls + progress */}
         <div className="lr-controls">
-          <button className="ui-btn ui-btn--ai" onClick={generate} disabled={running}>
+          <button
+            className="ui-btn ui-btn--ai"
+            onClick={() => generate(anyDone)}
+            disabled={running || starting}
+          >
             <Sparkles size={18} />
             {running
-              ? t("lifeReport.generating", { n: activeIdx + 1, total })
+              ? t("lifeReport.generating", { n: Math.min(doneCount + 1, total), total })
               : anyDone
                 ? t("lifeReport.regenerate")
                 : t("lifeReport.generate")}
           </button>
+          {running && (
+            <button className="ui-btn ui-btn--ghost" onClick={cancel}>
+              {t("lifeReport.cancel")}
+            </button>
+          )}
           {anyDone && !running && (
             <>
               <button className="ui-btn ui-btn--ghost" onClick={() => window.print()}>
                 <Printer size={18} />
                 {t("lifeReport.print")}
               </button>
-              {saved && (
+              {job?.status === "done" && !restored && (
                 <span className="lr-saved">
                   <Check size={16} /> {t("lifeReport.saved")}
                 </span>
@@ -191,11 +209,15 @@ export const LifeReportPage = () => {
           )}
         </div>
 
+        {/* Reassure the user they can leave — this is the whole point of moving
+            generation to the server. */}
+        {running && <p className="card-note lr-keeps-running">{t("lifeReport.keepsRunning")}</p>}
+
         {/* Chapter progress chips (live) */}
         {running && (
           <div className="lr-progress">
-            {chapters.map((c, i) => {
-              const st = results[c.key]?.status || "pending";
+            {rows.map((c) => {
+              const st = c.status || "pending";
               return (
                 <span key={c.key} className={`lr-chip lr-chip--${st}`}>
                   {st === "active" && <Loader2 size={14} className="lr-spin" />}
@@ -212,20 +234,22 @@ export const LifeReportPage = () => {
           <div className="lr-doc mt-xl">
             <div className="lr-doc__head">
               <h1>{t("lifeReport.forName", { name: birthDetails.name || "" })}</h1>
-              {model && <p className="lr-doc__meta">{t("lifeReport.model", { model })}</p>}
+              {reportModel && (
+                <p className="lr-doc__meta">{t("lifeReport.model", { model: reportModel })}</p>
+              )}
             </div>
 
-            {results.__restored ? (
+            {restored ? (
               <div className="lr-chapter sbc-ai-markdown">
-                <ReactMarkdown>{results.__restored.text}</ReactMarkdown>
+                <ReactMarkdown>{restored.text}</ReactMarkdown>
               </div>
             ) : (
-              chapters.map((c) =>
-                results[c.key]?.status === "done" ? (
+              rows.map((c) =>
+                c.status === "done" && c.text ? (
                   <div className="lr-chapter" key={c.key}>
                     <h2>{c.title}</h2>
                     <div className="sbc-ai-markdown">
-                      <ReactMarkdown>{results[c.key].text}</ReactMarkdown>
+                      <ReactMarkdown>{c.text}</ReactMarkdown>
                     </div>
                   </div>
                 ) : null

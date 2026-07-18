@@ -558,6 +558,24 @@ class LifeReportChapterRequest(BaseModel):
     max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
+class LifeReportStartRequest(BaseModel):
+    """Kick off a server-side Life Report run. Same shape as the per-chapter
+    request minus `chapter_key` — the server walks the whole chapter list."""
+    birth_details: BirthDetails
+    profile_id: Optional[str] = None
+    person_name: Optional[str] = None
+    sections: Optional[dict] = None
+    vargas: Optional[list] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
+    # Start a fresh run even when a finished report already exists.
+    regenerate: bool = False
+
 class LifeReportSaveRequest(BaseModel):
     birth_details: BirthDetails
     markdown: str

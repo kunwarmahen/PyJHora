@@ -856,32 +856,29 @@ export const astrologyService = {
 
   // ---- Composed Life Report (multi-chapter) ----
   getLifeReportChapters: () => api.get("/api/astrology/life-report/chapters"),
-  generateLifeReportChapter: (birthDetails, chapterKey, opts = {}, model = {}) =>
-    api.post(
-      "/api/astrology/life-report/chapter",
-      {
-        birth_details: birthDetails,
-        chapter_key: chapterKey,
-        person_name: opts.personName,
-        profile_id: opts.profileId,
-        llm_provider: model.legacyProvider || "qwen",
-        provider_type: model.providerType,
-        model: model.model,
-        base_url: model.baseUrl,
-        api_key: model.apiKey,
-        max_tokens: model.maxTokens || undefined,
-        ayanamsa: model.ayanamsa,
-      },
-      { timeout: 300000 }
-    ),
-  saveLifeReport: (birthDetails, markdown, opts = {}, model = {}) =>
-    api.post("/api/astrology/life-report/save", {
+  // The per-chapter and save endpoints still exist on the API, but the app no
+  // longer drives generation from the browser — see startLifeReport below.
+
+  // Server-side Life Report run. The browser only starts it and polls: generation
+  // continues on the server even while the phone is asleep or the tab is closed.
+  startLifeReport: (birthDetails, opts = {}, model = {}) =>
+    api.post("/api/astrology/life-report/start", {
       birth_details: birthDetails,
-      markdown,
       person_name: opts.personName,
       profile_id: opts.profileId,
+      regenerate: opts.regenerate || false,
+      llm_provider: model.legacyProvider || "qwen",
+      provider_type: model.providerType,
+      model: model.model,
+      base_url: model.baseUrl,
+      api_key: model.apiKey,
+      max_tokens: model.maxTokens || undefined,
       ayanamsa: model.ayanamsa,
     }),
+  getLifeReportJob: (profileId) =>
+    api.get("/api/astrology/life-report/job", { params: { profile_id: profileId } }),
+  cancelLifeReport: (jobId) =>
+    api.post("/api/astrology/life-report/cancel", null, { params: { job_id: jobId } }),
 
   // ---- iCal calendar subscription ----
   getCalendarToken: (profileId) =>

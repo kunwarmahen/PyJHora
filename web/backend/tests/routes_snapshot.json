@@ -1000,5 +1000,21 @@
       "query:limit"
     ],
     "body": ""
+  },
+  "GET /api/astrology/life-report/job": {
+    "params": [
+      "query:profile_id"
+    ],
+    "body": ""
+  },
+  "POST /api/astrology/life-report/cancel": {
+    "params": [
+      "query:job_id*"
+    ],
+    "body": ""
+  },
+  "POST /api/astrology/life-report/start": {
+    "params": [],
+    "body": "LifeReportStartRequest"
   }
 }

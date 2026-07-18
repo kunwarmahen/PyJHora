@@ -16,6 +16,12 @@
   font-size: 0.9rem;
 }
 
+/* Shown while a run is in flight: says the phone can sleep without losing it. */
+.lr-keeps-running {
+  margin-top: var(--space-sm);
+  max-width: 62ch;
+}
+
 .lr-progress {
   display: flex;
   flex-wrap: wrap;
