@@ -207,7 +207,10 @@ A digest covering several profiles uses **one clock for the whole message**, so 
 together never straddles two calendar days. The reader's current location wins; failing that the
 first profile's birth offset is borrowed as a shared fallback (before this, each profile derived its
 own "today" from its own birth timezone, so members born in different zones could land on different
-days). And the facts that are the same for everyone on that day — the panchanga headline, the
+days). A profile can also carry **its own "lives now" location** (Profiles → edit → *Lives now*) — a
+family member studying abroad then gets a digest about *their* today, in *their* zone, while everyone
+else stays on the owner's clock. Like the account location it stores an IANA zone (derived from the
+coordinates), never an offset, so it is DST-correct. And the facts that are the same for everyone on that day — the panchanga headline, the
 retrograde list, upcoming ingresses — are printed **once** under an "Across the sky today" header
 rather than repeated under every name; each person's section then carries only what is specific to
 their chart.

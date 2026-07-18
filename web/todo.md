@@ -2086,8 +2086,20 @@ server-injects birth details + resets global state, auth endpoint, saffron page,
              last time" lines (empty on first-ever, no fabrication), rendered "Since your last digest"
              and fed to the daily prompt to LEAD with. Daily cadence only; advances the snapshot each send.
         Tests: test_digest.py now 15 (window/monday/sky/signal-diff). Backend 295, frontend 116 green.
-        **STILL OPEN:** optional per-subject current-location (so a subject living elsewhere gets
-        *their* today, not the owner's).
+      - **FOLLOW-UP 2026-07-17 (per-subject current location + UI polish):**
+        (14) **Per-profile "lives now"** — `SavedProfile.current_location` (same {place,lat,lon,zone,
+             source} shape as the account-level; zone derived server-side via `timezones.zone_at` in
+             `_resolve_current_location`). `_profile_block` builds a per-profile clock from it
+             (`_zone_clock`, factored out of `observer_clock`) and it OVERRIDES the shared observer for
+             that section, so a subject abroad gets their own today; the weekly-Monday gate uses the
+             subject's own clock too. Form: a second `LocationSearch` ("Lives now") + set/clear display
+             + i18n `profile.currentLocation*`. Refactored the form's 3 drifted reset literals into one
+             `EMPTY_FORM` const (they were missing notify_email/digest_frequency).
+        (15) **Formatting fixes** — `.settings-test-row` had NO css so the "Send a test …" links ran
+             together ("nowSend…") → stacked flex-column; mobile `.settings-row{align-items:stretch}`
+             was ballooning the inline `.settings-segment` toggles (View/Appearance) full-width with an
+             empty track → `align-self:flex-start` under the 640px query.
+        Tests: test_digest.py=17 (+zone_clock). Backend 295, frontend 116 green.
 - [x] **KP system (Krishnamurti Paddhati)** (P2→P1). DONE 2026-07-04 (full, incl. horary — owner
       pick). `AstrologyCompute.get_kp_details(dob,tob,place…)` forces the **KP (Krishnamurti)
       ayanamsa** and returns, for the Ascendant + all nine grahas, the sign / star (nakshatra) / sub

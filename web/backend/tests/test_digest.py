@@ -168,6 +168,16 @@ def test_offset_clock_shape():
     assert len(clock["time"]) == 5 and clock["time"][2] == ":"
 
 
+def test_zone_clock():
+    # None/unknown zone → None (caller falls back to the shared/owner clock).
+    assert digest._zone_clock(None) is None
+    assert digest._zone_clock("Not/AZone") is None
+    # A real zone yields the same shape as the offset clock, DST-correct.
+    clock = digest._zone_clock("America/Chicago")
+    assert set(clock) == {"date", "time", "tz"}
+    assert clock["tz"] in (-5.0, -6.0)  # CDT / CST
+
+
 def test_render_no_hoist_when_days_differ_keeps_full_sections():
     other = [h.replace("2026-10-31", "2026-10-30") for h in _HL_A]
     blocks = [_block("A", _HL_A), _block("B", other)]

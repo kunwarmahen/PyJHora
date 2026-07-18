@@ -789,6 +789,9 @@ class SaveProfileRequest(BaseModel):
     is_default: bool = False
     notify_email: Optional[str] = None
     digest_frequency: Optional[str] = None
+    # {place, latitude, longitude} of where this subject lives now; the zone is
+    # derived server-side. Send null to clear it.
+    current_location: Optional[Dict[str, Any]] = None
 
 
 class SetDefaultRequest(BaseModel):

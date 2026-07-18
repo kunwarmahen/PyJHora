@@ -193,6 +193,15 @@
   text-decoration: underline;
 }
 
+/* Per-cadence "send a test now" links — stack them so they don't run together. */
+.settings-test-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: var(--space-sm);
+}
+
 /* API keys */
 .settings-key-row {
   padding: 12px 0;
@@ -407,6 +416,13 @@
   .settings-row .control-input {
     max-width: none;
     min-width: 0;
+  }
+  /* The stacked row stretches its children; keep the segmented toggle sized to
+     its buttons (left-aligned) instead of ballooning to full width with a big
+     empty track on the right. */
+  .settings-segment {
+    align-self: flex-start;
+    max-width: 100%;
   }
 }
 

@@ -24,6 +24,25 @@ import LocationSearch from "../components/LocationSearch";
 import MapPicker from "../components/MapPicker";
 import "../styles/ProfileSelection.css";
 
+// One source of truth for a blank form, so every reset stays in sync (the
+// per-digest fields below used to drift when only some resets were updated).
+const EMPTY_FORM = {
+  profile_name: "",
+  name: "",
+  notify_email: "",
+  digest_frequency: "daily",
+  current_place: "",
+  current_lat: null,
+  current_lon: null,
+  dob: "",
+  tob: "",
+  place: "",
+  latitude: null,
+  longitude: null,
+  timezone: "5.5",
+  time_accuracy: "exact",
+};
+
 export const ProfileSelectionPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -44,19 +63,7 @@ export const ProfileSelectionPage = () => {
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
-  const [formData, setFormData] = useState({
-    profile_name: "",
-    name: "",
-    notify_email: "",
-    digest_frequency: "daily",
-    dob: "",
-    tob: "",
-    place: "",
-    latitude: null,
-    longitude: null,
-    timezone: "5.5",
-    time_accuracy: "exact",
-  });
+  const [formData, setFormData] = useState({ ...EMPTY_FORM });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -83,6 +90,26 @@ export const ProfileSelectionPage = () => {
     }));
   };
 
+  // Where this person lives now (optional) — paces THEIR digest to THEIR today.
+  // Only the coordinates matter here; the server derives the IANA zone.
+  const handleCurrentLocationSelect = (location) => {
+    setFormData((prev) => ({
+      ...prev,
+      current_place: location.place,
+      current_lat: location.latitude,
+      current_lon: location.longitude,
+    }));
+  };
+
+  const clearCurrentLocation = () => {
+    setFormData((prev) => ({
+      ...prev,
+      current_place: "",
+      current_lat: null,
+      current_lon: null,
+    }));
+  };
+
   const handleEditProfile = (e, profile) => {
     e.stopPropagation();
     setEditingProfile(profile);
@@ -91,6 +118,9 @@ export const ProfileSelectionPage = () => {
       name: profile.birth_details.name,
       notify_email: profile.notify_email || "",
       digest_frequency: profile.digest_frequency || "daily",
+      current_place: profile.current_location?.place || "",
+      current_lat: profile.current_location?.latitude ?? null,
+      current_lon: profile.current_location?.longitude ?? null,
       dob: profile.birth_details.dob,
       tob: profile.birth_details.tob,
       place: profile.birth_details.place,
@@ -134,31 +164,30 @@ export const ProfileSelectionPage = () => {
 
     const notifyEmail = (formData.notify_email || "").trim() || null;
     const digestFrequency = formData.digest_frequency === "weekly" ? "weekly" : "daily";
+    const currentLocation =
+      formData.current_lat != null && formData.current_lon != null
+        ? {
+            place: formData.current_place || "",
+            latitude: parseFloat(formData.current_lat),
+            longitude: parseFloat(formData.current_lon),
+          }
+        : null;
     let result;
     if (editingProfile) {
       result = await updateProfile(
         editingProfile._id, formData.profile_name, birthDetails, notifyEmail,
-        digestFrequency);
+        digestFrequency, currentLocation);
     } else {
       result = await saveProfile(
-        formData.profile_name, birthDetails, notifyEmail, digestFrequency);
+        formData.profile_name, birthDetails, notifyEmail, digestFrequency,
+        currentLocation);
     }
     setSaving(false);
 
     if (result.success) {
       setShowCreateForm(false);
       setEditingProfile(null);
-      setFormData({
-        profile_name: "",
-        name: "",
-        dob: "",
-        tob: "",
-        place: "",
-        latitude: null,
-        longitude: null,
-        timezone: "5.5",
-        time_accuracy: "exact",
-      });
+      setFormData({ ...EMPTY_FORM });
     } else {
       setError(result.error || t("profile.errSaveFailed"));
     }
@@ -463,17 +492,7 @@ export const ProfileSelectionPage = () => {
                 onClick={() => {
                   setShowCreateForm(false);
                   setEditingProfile(null);
-                  setFormData({
-                    profile_name: "",
-                    name: "",
-                    dob: "",
-                    tob: "",
-                    place: "",
-                    latitude: null,
-                    longitude: null,
-                    timezone: "5.5",
-                    time_accuracy: "exact",
-                  });
+                  setFormData({ ...EMPTY_FORM });
                 }}
               >
                 {t("profile.backToProfiles")}
@@ -540,6 +559,34 @@ export const ProfileSelectionPage = () => {
                   <option value="weekly">{t("profile.freqWeekly")}</option>
                 </select>
                 <small>{t("profile.digestFrequencyHint")}</small>
+              </div>
+
+              <div className="form-group">
+                <label>
+                  <MapPin size={18} />
+                  {t("profile.currentLocation")}
+                </label>
+                {formData.current_lat != null ? (
+                  <div className="profile-curloc-set">
+                    <span>
+                      {formData.current_place ||
+                        `${formData.current_lat}, ${formData.current_lon}`}
+                    </span>
+                    <button
+                      type="button"
+                      className="profile-curloc-clear"
+                      onClick={clearCurrentLocation}
+                    >
+                      {t("profile.currentLocationClear")}
+                    </button>
+                  </div>
+                ) : (
+                  <LocationSearch
+                    onLocationSelect={handleCurrentLocationSelect}
+                    placeholder={t("profile.currentLocationPlaceholder")}
+                  />
+                )}
+                <small>{t("profile.currentLocationHint")}</small>
               </div>
 
               <div className="form-row">

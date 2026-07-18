@@ -629,3 +629,28 @@
   background: var(--surface-neutral);
   color: var(--text-secondary);
 }
+
+/* Per-profile "lives now" location, once set: the place + a clear link. */
+.profile-curloc-set {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+.profile-curloc-clear {
+  background: none;
+  border: none;
+  color: var(--saffron);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.profile-curloc-clear:hover {
+  text-decoration: underline;
+}

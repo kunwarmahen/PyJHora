@@ -53,6 +53,29 @@ def _clean_frequency(value: Optional[str]) -> Optional[str]:
     return "weekly" if str(value or "").strip().lower() == "weekly" else None
 
 
+def _resolve_current_location(cl: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Turn a {place, latitude, longitude} payload into the stored current-location
+    shape, deriving the IANA zone from the coordinates (offline, DST-correct — the
+    same reason the account-level location stores a zone, not an offset). Returns
+    None when there are no usable coordinates (which also clears the field)."""
+    import timezones
+    if not cl:
+        return None
+    lat, lon = cl.get("latitude"), cl.get("longitude")
+    if lat is None or lon is None:
+        return None
+    try:
+        lat, lon = float(lat), float(lon)
+    except (TypeError, ValueError):
+        return None
+    return {
+        "place": (cl.get("place") or "").strip() or f"{lat}, {lon}",
+        "latitude": lat, "longitude": lon,
+        "timezone": timezones.zone_at(lat, lon),
+        "source": "place",
+    }
+
+
 async def _invite_recipient_if_external(owner_id: str, notify_email: Optional[str]):
     """When a profile's digest email is someone *other* than the account owner,
     make sure that person has been invited to opt in (double opt-in). The owner's
@@ -108,6 +131,7 @@ async def save_profile(req: SaveProfileRequest, current_user: str = Depends(get_
             is_default=req.is_default,
             notify_email=(req.notify_email or "").strip() or None,
             digest_frequency=_clean_frequency(req.digest_frequency),
+            current_location=_resolve_current_location(req.current_location),
         )
 
         result = await profiles_collection.insert_one(profile.model_dump(by_alias=True, exclude={"id"}))
@@ -146,6 +170,8 @@ async def update_profile(profile_id: str, req: SaveProfileRequest, current_user:
             update["notify_email"] = (req.notify_email or "").strip() or None
         if "digest_frequency" in req.model_fields_set:
             update["digest_frequency"] = _clean_frequency(req.digest_frequency)
+        if "current_location" in req.model_fields_set:
+            update["current_location"] = _resolve_current_location(req.current_location)
 
         result = await profiles_collection.update_one(
             {"_id": ObjectId(profile_id), "user_id": current_user},

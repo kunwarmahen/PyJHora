@@ -149,6 +149,21 @@ def _offset_clock(offset: float) -> Dict[str, Any]:
     }
 
 
+def _zone_clock(zone: Optional[str]) -> Optional[Dict[str, Any]]:
+    """A DST-correct clock (date/time/offset right now) for an IANA zone, or None
+    if the zone is missing/unknown."""
+    if not zone:
+        return None
+    local = timezones.local_now(zone)
+    if local is None:
+        return None
+    return {
+        "date": local.strftime("%Y-%m-%d"),
+        "time": local.strftime("%H:%M"),
+        "tz": timezones.offset_hours(zone, local),
+    }
+
+
 async def observer_clock(user_id: str,
                          profiles: Optional[List[Dict[str, Any]]] = None
                          ) -> Optional[Dict[str, Any]]:
@@ -170,14 +185,9 @@ async def observer_clock(user_id: str,
     location and no profile to borrow an offset from."""
     loc = await user_settings.get_current_location(user_id)
     if loc:
-        zone = loc.get("timezone")
-        local = timezones.local_now(zone)
-        if local is not None:
-            return {
-                "date": local.strftime("%Y-%m-%d"),
-                "time": local.strftime("%H:%M"),
-                "tz": timezones.offset_hours(zone, local),
-            }
+        clock = _zone_clock(loc.get("timezone"))
+        if clock is not None:
+            return clock
 
     # No current location: borrow the first profile's birth offset so every
     # profile in this digest is still read for the same calendar day.
@@ -332,6 +342,10 @@ async def _profile_block(user_id: str, profile: Dict[str, Any],
         ayanamsa=DEFAULT_AYANAMSA)
     if spec["takes_basis"]:
         kwargs["basis"] = basis
+    # A subject who lives somewhere else gets THEIR today: the profile's own
+    # current location wins over the shared (owner's) clock for this section.
+    prof_loc = profile.get("current_location") or {}
+    observer = _zone_clock(prof_loc.get("timezone")) or observer
     if observer:
         kwargs["date"] = observer["date"]
         if spec["takes_current"]:
@@ -510,15 +524,17 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
     # One clock for the whole message: the reader's current location, or — failing
     # that — the first profile's birth offset, so every profile shares one day.
     observer = await observer_clock(user_id, profiles)
-    # A profile marked "weekly" only rides the *daily* digest on Mondays — the
-    # other cadences are already infrequent, so the flag doesn't gate them.
-    monday = _is_monday(observer)
     blocks: List[Dict[str, Any]] = []
     for profile in profiles:
+        # A profile marked "weekly" only rides the *daily* digest on Mondays — the
+        # other cadences are already infrequent, so the flag doesn't gate them.
+        # Monday is judged on the subject's own clock when they have one.
         if (cadence == "daily"
-                and str(profile.get("digest_frequency") or "").lower() == "weekly"
-                and not monday):
-            continue
+                and str(profile.get("digest_frequency") or "").lower() == "weekly"):
+            prof_clock = _zone_clock(
+                (profile.get("current_location") or {}).get("timezone")) or observer
+            if not _is_monday(prof_clock):
+                continue
         try:
             block = await _profile_block(user_id, profile, include_ai, cadence,
                                          basis, observer)

@@ -1,6 +1,6 @@
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from config import settings
-from typing import Optional
+from typing import Any, Dict, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
 from bson import ObjectId
@@ -104,6 +104,11 @@ class SavedProfile(BaseModel):
     # "weekly" (only on Mondays — cuts the mail volume for family members whose
     # day-to-day rarely changes). None is treated as "daily".
     digest_frequency: Optional[str] = None
+    # Where this person lives *now* (IANA zone + coords), for pacing THEIR digest
+    # to THEIR today — distinct from birth details, which never move. None → the
+    # digest uses the account owner's clock. Same shape as user_settings'
+    # account-level current_location.
+    current_location: Optional[Dict[str, Any]] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Config:

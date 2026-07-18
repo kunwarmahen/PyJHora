@@ -47,7 +47,7 @@ export const ProfileProvider = ({ children }) => {
 
   // Save a new profile
   const saveProfile = async (profileName, birthDetails, notifyEmail = null,
-                             digestFrequency = null) => {
+                             digestFrequency = null, currentLocation = null) => {
     try {
       const response = await fetch(`${API_URL}/api/profiles/save`, {
         method: "POST",
@@ -60,6 +60,7 @@ export const ProfileProvider = ({ children }) => {
           birth_details: birthDetails,
           notify_email: notifyEmail || null,
           digest_frequency: digestFrequency || null,
+          current_location: currentLocation || null,
         }),
       });
 
@@ -78,7 +79,8 @@ export const ProfileProvider = ({ children }) => {
   // (undefined = leave the stored value untouched), so callers that just tweak
   // birth details — e.g. the rectification page — never wipe the digest email.
   const updateProfile = async (profileId, profileName, birthDetails,
-                               notifyEmail = undefined, digestFrequency = undefined) => {
+                               notifyEmail = undefined, digestFrequency = undefined,
+                               currentLocation = undefined) => {
     try {
       const body = {
         profile_name: profileName,
@@ -86,6 +88,7 @@ export const ProfileProvider = ({ children }) => {
       };
       if (notifyEmail !== undefined) body.notify_email = notifyEmail || null;
       if (digestFrequency !== undefined) body.digest_frequency = digestFrequency || null;
+      if (currentLocation !== undefined) body.current_location = currentLocation || null;
 
       const response = await fetch(`${API_URL}/api/profiles/${profileId}`, {
         method: "PUT",
@@ -108,6 +111,9 @@ export const ProfileProvider = ({ children }) => {
             ...(notifyEmail !== undefined ? { notify_email: notifyEmail || null } : {}),
             ...(digestFrequency !== undefined
               ? { digest_frequency: digestFrequency || null }
+              : {}),
+            ...(currentLocation !== undefined
+              ? { current_location: currentLocation || null }
               : {}),
           };
           setSelectedProfile(updatedProfile);
