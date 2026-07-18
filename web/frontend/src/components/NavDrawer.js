@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Menu, X, Sparkles, LogOut } from "lucide-react";
+import { Menu, X, Sparkles, LogOut, ShieldAlert } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -97,6 +97,17 @@ export const NavDrawer = () => {
             <Sparkles size={20} />
             <span>{t("common.changeChart")}</span>
           </button>
+          {/* Admin console (§44): only shown to the deployer's allowlisted
+              accounts. The route + every API call are enforced server-side. */}
+          {user?.is_admin && (
+            <button
+              className={`nav-drawer-link ${location.pathname === "/admin" ? "active" : ""}`}
+              onClick={() => go("/admin")}
+            >
+              <ShieldAlert size={20} />
+              <span>Admin console</span>
+            </button>
+          )}
           <button className="nav-drawer-link logout" onClick={handleLogout}>
             <LogOut size={20} />
             <span>{t("common.logout")}</span>

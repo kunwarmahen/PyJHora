@@ -76,6 +76,21 @@ class Settings(BaseSettings):
     DIGEST_SCHEDULER_ENABLED: bool = False
     DIGEST_SCHEDULER_INTERVAL_MINUTES: int = 15
 
+    # ── Admin console (§44) ────────────────────────────────────────────────
+    # Deployer-controlled superuser access. This env var is the SOURCE OF TRUTH
+    # for who is an admin — the app reconciles the `is_admin` flag on `users`
+    # from it at startup, so an admin is granted purely by editing the deploy
+    # secret, never by touching Mongo (which is only reachable inside the pod).
+    # Comma-separated; each entry matches a user by username OR email (case-
+    # insensitive). Empty ⇒ no admins, and the whole console is effectively off.
+    ADMIN_USERNAMES: str = ""
+    # "Break glass" switch for drilling into a user's actual PRIVATE content
+    # (readings, chats, journal, birth details) — not just metadata/counts.
+    # OFF by default: the console shows aggregates only. Flip to true and
+    # redeploy when something is genuinely wrong and you must inspect content;
+    # every such access is audit-logged regardless.
+    ADMIN_CONTENT_ACCESS: bool = False
+
     class Config:
         env_file = ".env"
         case_sensitive = True

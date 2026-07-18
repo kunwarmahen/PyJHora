@@ -4286,3 +4286,56 @@ timezone is the part it knows **exactly**, and the part everything about "now" a
 the timezone; Settings shows "Central Time (UTC−5)" + "near Chicago (approximate)"; then searching
 **Milwaukee** — the exact case the wording exists for — yields the same Central Time with an exact,
 unmarked place. 116 frontend + 272 backend tests, lint and prod build clean.
+
+## §44 Admin console — deployer-only cross-account view + moderation (SHIPPED 2026-07-18)
+
+**Ask:** the deployer wanted a page to see all data across every account. The
+original idea was "a vague URL + a shared secret token only I hold." Rejected as
+security-by-obscurity (leaks via logs/history/Referer, not tied to a person, no
+audit trail). Built a real, auditable admin surface instead.
+
+### Identity — env allowlist is the source of truth
+- `ADMIN_USERNAMES` (`.env`, comma-separated; matches a user by **username OR
+  email**, case-insensitive) is authoritative. `reconcile_admins()` runs at
+  startup (main.py lifespan) and mirrors it onto a new `users.is_admin` flag —
+  granting listed accounts, **revoking** de-listed ones. So an operator grants
+  admin by editing the deploy secret and redeploying, **never** by touching
+  Mongo (which is pod-internal). This directly answered the deployer's question
+  "how do I flip a DB flag when the DB is only reachable inside the pod?".
+- `get_admin_user` (deps.py) requires a normal session (real login/JWT) **and**
+  admin identity. Non-admins get **404, not 403**, so a logged-in probe can't
+  confirm the console exists. `is_admin_user()` checks the env list live (works
+  before the next reconcile) then the DB flag.
+- The admin logs in with their **own** password — no shared token anywhere.
+
+### Data scope — metadata always, content is "break glass"
+- Always available: user list + per-user counts, deployment aggregates
+  (total/new-7d/30d/suspended/admins/google), stored-record totals.
+- Drilling into a user's **actual private content** (readings/chats/journal/
+  birth data) is gated behind `ADMIN_CONTENT_ACCESS` (default **false**;
+  `require_content_access` → 403). Flip it + redeploy only when something is
+  genuinely wrong; every content view is **audit-logged** (`admin_audit`).
+
+### Moderation (Read + moderate, per owner)
+- Suspend/unsuspend (blocks login + refresh via `assert_not_suspended` on the
+  login/google/refresh routes — takes effect within one access-token lifetime).
+- Cascade delete: `admin.py`'s `USER_COLLECTIONS` map (collection → user-key
+  field; most `user_id`, but api_tokens/refresh_tokens/password_reset_tokens use
+  `username`) drives both the counts and a full delete across all 13 per-user
+  collections + the `users` doc.
+- Guardrails: can't suspend/delete yourself or another admin; delete requires
+  typing the username to confirm.
+
+### Surface
+- Backend: `admin.py` (logic), `routes/admin.py` (8 endpoints under
+  `/api/admin/*`), wired in main.py; `/api/user/profile` now returns `is_admin`.
+- Frontend: `AdminPage.js` (Overview / Users / Audit tabs; detail + delete
+  modals), `styles/Admin.css` (all colours via theme tokens — dark/light safe),
+  `adminService` in api.js, `/admin` route, and a **conditional** NavDrawer entry
+  shown only when `user.is_admin`.
+- Tests: `tests/test_admin.py` (allowlist parsing, identity, content toggle,
+  the 404 gate, `/me`) — DB-free paths only, hermetic like the other smoke
+  tests. Route snapshot regenerated (8 new routes appended).
+
+**Verified:** 98 backend tests pass, token-literal guard passes, prod build
+clean. Grant an admin by setting `ADMIN_USERNAMES` and redeploying.

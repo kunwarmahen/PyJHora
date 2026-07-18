@@ -954,5 +954,51 @@
       "query:token"
     ],
     "body": ""
+  },
+  "GET /api/admin/me": {
+    "params": [],
+    "body": ""
+  },
+  "GET /api/admin/stats": {
+    "params": [],
+    "body": ""
+  },
+  "GET /api/admin/users": {
+    "params": [
+      "query:limit",
+      "query:q"
+    ],
+    "body": ""
+  },
+  "GET /api/admin/users/{username}": {
+    "params": [
+      "path:username*"
+    ],
+    "body": ""
+  },
+  "DELETE /api/admin/users/{username}": {
+    "params": [
+      "path:username*"
+    ],
+    "body": ""
+  },
+  "GET /api/admin/users/{username}/content/{kind}": {
+    "params": [
+      "path:kind*",
+      "path:username*"
+    ],
+    "body": ""
+  },
+  "POST /api/admin/users/{username}/suspend": {
+    "params": [
+      "path:username*"
+    ],
+    "body": "SuspendRequest"
+  },
+  "GET /api/admin/audit": {
+    "params": [
+      "query:limit"
+    ],
+    "body": ""
   }
 }

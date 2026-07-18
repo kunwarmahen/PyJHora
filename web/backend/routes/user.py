@@ -67,6 +67,10 @@ async def get_user_profile(current_user: str = Depends(get_current_user)):
         user["has_password"] = bool(user.get("hashed_password"))
         # Google-only accounts have no password field — pop defensively.
         user.pop("hashed_password", None)
+        # Admin console (§44): let the client gate the console entry. The env
+        # allowlist is authoritative, so recompute rather than trusting the flag.
+        import admin as admin_service
+        user["is_admin"] = admin_service.is_admin_user(current_user, user)
         return user
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

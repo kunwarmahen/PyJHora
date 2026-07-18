@@ -84,7 +84,12 @@ class User(BaseModel):
     email: str
     hashed_password: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    
+    # Admin console (§44). `is_admin` is reconciled from ADMIN_USERNAMES at
+    # startup — do not set it by hand. `suspended` blocks login/refresh when a
+    # moderator disables the account.
+    is_admin: bool = False
+    suspended: bool = False
+
     class Config:
         populate_by_name = True
         arbitrary_types_allowed = True

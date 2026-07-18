@@ -609,6 +609,15 @@ VAPID_SUBJECT=mailto:admin@example.com
 DIGEST_SCHEDULER_ENABLED=false
 DIGEST_SCHEDULER_INTERVAL_MINUTES=15
 
+# Admin console (deployer-only /admin page: all accounts, usage, moderation).
+# ADMIN_USERNAMES is the source of truth — comma-separated usernames/emails; the
+# app reconciles each user's is_admin flag from it at startup, so you grant/revoke
+# admin by editing this and redeploying, never by touching Mongo. Empty = no admins.
+# ADMIN_CONTENT_ACCESS is a "break glass" switch: false (default) shows metadata +
+# counts only; true also lets an admin open a user's private content (audit-logged).
+ADMIN_USERNAMES=
+ADMIN_CONTENT_ACCESS=false
+
 # CORS
 CORS_ORIGINS=["http://localhost:3000","http://localhost:8000"]
 

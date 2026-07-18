@@ -202,6 +202,23 @@ export const authService = {
   revokeApiToken: (id) => api.delete(`/api/auth/api-tokens/${id}`),
 };
 
+// Admin console (§44). Deployer-only; every call is gated server-side by the
+// ADMIN_USERNAMES allowlist. `me` is the only one a non-admin may call.
+export const adminService = {
+  me: () => api.get("/api/admin/me"),
+  stats: () => api.get("/api/admin/stats"),
+  listUsers: (q = "", limit = 200) =>
+    api.get("/api/admin/users", { params: { q, limit } }),
+  userDetail: (username) => api.get(`/api/admin/users/${encodeURIComponent(username)}`),
+  userContent: (username, kind) =>
+    api.get(`/api/admin/users/${encodeURIComponent(username)}/content/${kind}`),
+  suspend: (username, suspended) =>
+    api.post(`/api/admin/users/${encodeURIComponent(username)}/suspend`, { suspended }),
+  deleteUser: (username) =>
+    api.delete(`/api/admin/users/${encodeURIComponent(username)}`),
+  audit: (limit = 200) => api.get("/api/admin/audit", { params: { limit } }),
+};
+
 // Daily-digest notification preferences + Web Push (§16).
 export const notificationsService = {
   getPrefs: () => api.get("/api/notifications/prefs"),

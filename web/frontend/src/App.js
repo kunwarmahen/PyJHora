@@ -52,6 +52,7 @@ import { NakshatraProfilePage } from "./pages/NakshatraProfilePage";
 import { GocharaPhalaPage } from "./pages/GocharaPhalaPage";
 import { JournalPage } from "./pages/JournalPage";
 import { LifeReportPage } from "./pages/LifeReportPage";
+import { AdminPage } from "./pages/AdminPage";
 import { StartupRedirect } from "./components/StartupRedirect";
 import { SITE_TITLE } from "./config/branding";
 import "./App.css";
@@ -100,6 +101,17 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin console (§44). ProtectedRoute requires a session; AdminPage
+                itself redirects non-admins. The API enforces admin server-side. */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <AdminPage />
                 </ProtectedRoute>
               }
             />

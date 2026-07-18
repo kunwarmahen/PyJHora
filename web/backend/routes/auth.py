@@ -110,6 +110,8 @@ async def login(req: LoginRequest, request: Request):
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
         ratelimit.login_succeeded(client_ip)
+        import admin as admin_service
+        await admin_service.assert_not_suspended(req.username)  # §44
         return await _issue_token_pair(req.username, req.remember_me)
     except HTTPException:
         raise
@@ -190,6 +192,8 @@ async def google_auth(req: GoogleAuthRequest):
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
 
+    import admin as admin_service
+    await admin_service.assert_not_suspended(username)  # §44
     return await _issue_token_pair(username, req.remember_me)
 
 
@@ -201,6 +205,8 @@ async def refresh(req: RefreshRequest):
     username, new_refresh = await refresh_tokens.rotate(req.refresh_token)
     if not username:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+    import admin as admin_service
+    await admin_service.assert_not_suspended(username)  # §44: revoke access on suspend
     access_token = create_access_token(
         data={"sub": username},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),

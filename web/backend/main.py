@@ -47,7 +47,8 @@ import uuid
 
 # Shared dependencies — re-exported so `main.get_current_user` stays a valid
 # dependency_overrides key for callers/tests that referenced it before the split.
-from deps import get_current_user, get_api_user, security  # noqa: F401
+from deps import get_current_user, get_api_user, get_admin_user, security  # noqa: F401
+import admin as admin_service
 
 
 # Lifecycle events
@@ -55,6 +56,14 @@ from deps import get_current_user, get_api_user, security  # noqa: F401
 async def lifespan(app: FastAPI):
     # Startup
     await connect_to_mongo()
+    # Mirror ADMIN_USERNAMES (env, deployer-controlled) onto the is_admin flag so
+    # admin grants/revokes take effect on deploy without touching Mongo (§44).
+    try:
+        result = await admin_service.reconcile_admins()
+        if result["granted"] or result["revoked"]:
+            print(f"[admin] reconciled admins: {result}")
+    except Exception as e:
+        print(f"[admin] reconcile skipped: {e}")
     scheduler.start()  # daily-digest scheduler (no-op unless DIGEST_SCHEDULER_ENABLED)
     yield
     # Shutdown
@@ -89,6 +98,7 @@ from routes import profiles as profiles_routes
 from routes import journal as journal_routes
 from routes import notifications as notifications_routes
 from routes import misc as misc_routes
+from routes import admin as admin_routes
 
 app.include_router(auth_routes.router)
 app.include_router(v1_routes.router)
@@ -101,6 +111,7 @@ app.include_router(profiles_routes.router)
 app.include_router(journal_routes.router)
 app.include_router(notifications_routes.router)
 app.include_router(misc_routes.router)
+app.include_router(admin_routes.router)
 
 if __name__ == "__main__":
     import uvicorn

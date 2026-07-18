@@ -93,6 +93,33 @@ async def get_api_user(credentials: HTTPAuthorizationCredentials = Depends(secur
     return username
 
 
+async def get_admin_user(current_user: str = Depends(get_current_user)) -> str:
+    """Admin-console gate (§44). Requires a valid session AND that the caller is on
+    the ADMIN_USERNAMES allowlist (or has the reconciled `is_admin` flag). Returns
+    404 — not 403 — for non-admins so the console's existence isn't confirmed to a
+    logged-in non-admin probing the URL."""
+    import admin as admin_service
+    if admin_service.is_admin_user(current_user):
+        return current_user
+    from database import database
+    if database is not None:
+        doc = await database["users"].find_one(
+            {"username": current_user}, {"is_admin": 1, "email": 1})
+        if doc and admin_service.is_admin_user(current_user, doc):
+            return current_user
+    raise HTTPException(status_code=404, detail="Not found")
+
+
+def require_content_access() -> None:
+    """Second gate for content drill-down: ADMIN_CONTENT_ACCESS must be on. Off by
+    default so private content is 'break glass' only, even for admins."""
+    import admin as admin_service
+    if not admin_service.content_access_enabled():
+        raise HTTPException(
+            status_code=403,
+            detail="Content access is disabled. Set ADMIN_CONTENT_ACCESS=true and redeploy to enable.")
+
+
 async def _resolve_birth_details(req: ToolRunRequest, user: str) -> Dict[str, Any]:
     """Resolve the birth data for a v1 tool call: a saved `profile_id` (scoped to
     the caller) takes precedence, else inline `birth_details`. Returns the dict the
