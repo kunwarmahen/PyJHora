@@ -246,7 +246,10 @@ export const SettingsPage = () => {
       });
       flash();
     } catch (err) {
-      setLocMsg({ type: "error", text: err.response?.data?.detail || t("settings.location.error") });
+      setLocMsg({
+        type: "error",
+        text: err.response?.data?.detail || t("settings.location.error"),
+      });
     } finally {
       setBusy("");
     }
@@ -259,7 +262,10 @@ export const SettingsPage = () => {
       await clearLocation();
       flash();
     } catch (err) {
-      setLocMsg({ type: "error", text: err.response?.data?.detail || t("settings.location.error") });
+      setLocMsg({
+        type: "error",
+        text: err.response?.data?.detail || t("settings.location.error"),
+      });
     } finally {
       setBusy("");
     }
@@ -557,12 +563,7 @@ export const SettingsPage = () => {
           </div>
         )}
 
-        <Tabs
-          tabs={visibleTabs}
-          active={tab}
-          onChange={setTab}
-          ariaLabel={t("settings.title")}
-        />
+        <Tabs tabs={visibleTabs} active={tab} onChange={setTab} ariaLabel={t("settings.title")} />
 
         {/* GENERAL */}
         {tab === "general" && (

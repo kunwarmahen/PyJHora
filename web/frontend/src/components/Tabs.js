@@ -1,12 +1,7 @@
 import React, { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useSettings } from "../contexts/SettingsContext";
-import {
-  TAB_PARAM,
-  resolveActiveTab,
-  shouldWriteTab,
-  visibleTabs,
-} from "../config/tabs";
+import { TAB_PARAM, resolveActiveTab, shouldWriteTab, visibleTabs } from "../config/tabs";
 import "../styles/Tabs.css";
 
 /**
@@ -30,10 +25,7 @@ export const useTabs = (tabs, { param = TAB_PARAM } = {}) => {
   const requested = searchParams.get(param);
   const uiMode = settings.uiMode;
 
-  const shown = useMemo(
-    () => visibleTabs(tabs, uiMode, requested),
-    [tabs, uiMode, requested]
-  );
+  const shown = useMemo(() => visibleTabs(tabs, uiMode, requested), [tabs, uiMode, requested]);
   const active = useMemo(
     () => resolveActiveTab(tabs, uiMode, requested),
     [tabs, uiMode, requested]

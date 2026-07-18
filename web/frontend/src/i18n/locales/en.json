@@ -1303,6 +1303,14 @@
   "birthChart": {
     "title": "Birth Chart",
     "subtitle": "Rasi & Navamsa Charts",
+    "tabs": {
+      "chart": "Chart",
+      "nakshatra": "Nakshatra & Lagna",
+      "panchanga": "Panchanga",
+      "yogas": "Yogas & Doshas",
+      "aspects": "Aspects",
+      "advanced": "Advanced"
+    },
     "loading": "Calculating Birth Chart — analyzing planetary positions…",
     "chartDetails": "Chart Details",
     "share": "Share",

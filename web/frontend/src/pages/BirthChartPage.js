@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useLocalizeName } from "../i18n/localizeName";
@@ -32,6 +32,7 @@ import { Card } from "../components/Card";
 import { DataField } from "../components/DataField";
 import { AspectsCard } from "../components/AspectsCard";
 import { AdvancedOnly } from "../components/AdvancedOnly";
+import { Tabs, useTabs } from "../components/Tabs";
 import { BirthTimeBanner } from "../components/BirthTimeBanner";
 import { VARGAS, DEFAULT_VARGA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
@@ -40,6 +41,22 @@ import "../styles/Shared.css";
 export const BirthChartPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+
+  // The page's sections (§15). Aspects and the divisional charts were both
+  // <AdvancedOnly> before, so their tabs carry the same gating — in Essentials
+  // they're hidden outright rather than collapsed, unless a link names one.
+  const CHART_TABS = useMemo(
+    () => [
+      { key: "chart", label: t("birthChart.tabs.chart") },
+      { key: "nakshatra", label: t("birthChart.tabs.nakshatra") },
+      { key: "panchanga", label: t("birthChart.tabs.panchanga") },
+      { key: "yogas", label: t("birthChart.tabs.yogas") },
+      { key: "aspects", label: t("birthChart.tabs.aspects"), advanced: true },
+      { key: "advanced", label: t("birthChart.tabs.advanced"), advanced: true },
+    ],
+    [t]
+  );
+  const { tabs: visibleTabs, active: tab, setActive: setTab } = useTabs(CHART_TABS);
   const ln = useLocalizeName();
   const { selectedProfile } = useProfile();
 
@@ -50,22 +67,23 @@ export const BirthChartPage = () => {
   const [yogas, setYogas] = useState(null);
   const [rajaYogas, setRajaYogas] = useState(null);
   const [aspects, setAspects] = useState(null);
-  const [showAspects, setShowAspects] = useState(
-    () => localStorage.getItem("showAspects") === "1"
-  );
+  const [showAspects, setShowAspects] = useState(() => localStorage.getItem("showAspects") === "1");
   const [conditions, setConditions] = useState(null);
   const [showConditions, setShowConditions] = useState(
     () => localStorage.getItem("showConditions") === "1"
   );
   const [arudhas, setArudhas] = useState(null);
-  const [showArudhas, setShowArudhas] = useState(
-    () => localStorage.getItem("showArudhas") === "1"
-  );
+  const [showArudhas, setShowArudhas] = useState(() => localStorage.getItem("showArudhas") === "1");
   const [focusPlanet, setFocusPlanet] = useState(null);
   const [explorerPlanet, setExplorerPlanet] = useState(null);
   // Chart style + ayanamsa are now global settings (edited in the Settings page).
   const { settings } = useSettings();
   const chartStyle = settings.chartStyle;
+  // Component scope: the Chart tab and the Advanced (divisional) tab both draw
+  // kundalis, and they no longer share an enclosing closure.
+  const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
+  const styleLabel =
+    chartStyle === "south" ? t("birthChart.southIndian") : t("birthChart.northIndian");
   const ayanamsa = settings.ayanamsa;
   const [varga, setVarga] = useState(() => Number(localStorage.getItem("varga")) || DEFAULT_VARGA);
   const [vargaChart, setVargaChart] = useState(null);
@@ -242,396 +260,424 @@ export const BirthChartPage = () => {
           </Card>
         ) : result ? (
           <div className="fade-in">
-            {/* Chart Details Card */}
-            <Card
-              title={t("birthChart.chartDetails")}
-              icon={<Star size={24} />}
-              actions={
-                <button
-                  className="chart-export-btn chart-export-btn--inline"
-                  onClick={handleShare}
-                  disabled={shareBusy}
-                  title={t("birthChart.shareTitle")}
-                >
-                  {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
-                  <span>
-                    {shareBusy
-                      ? "…"
-                      : shareCopied
-                        ? t("birthChart.linkCopied")
-                        : t("birthChart.share")}
-                  </span>
-                </button>
-              }
-            >
-              <div className="ui-field-grid">
-                <DataField
-                  label={t("common.name")}
-                  icon={<User size={16} />}
-                  value={selectedProfile.birth_details.name || selectedProfile.profile_name}
-                />
-                <DataField
-                  label={t("common.dateOfBirth")}
-                  icon={<Calendar size={16} />}
-                  value={formatDate(selectedProfile.birth_details.dob)}
-                />
-                <DataField
-                  label={t("common.timeOfBirth")}
-                  icon={<Clock size={16} />}
-                  value={orDash(selectedProfile.birth_details.tob)}
-                />
-                <DataField
-                  label={t("common.place")}
-                  icon={<MapPin size={16} />}
-                  value={orDash(selectedProfile.birth_details.place)}
-                />
-              </div>
-              {shareUrl && (
-                <div className="share-row">
-                  <Copy size={14} style={{ color: "var(--saffron)", flexShrink: 0 }} />
-                  <input
-                    readOnly
-                    className="share-url-input"
-                    value={shareUrl}
-                    onFocus={(e) => e.target.select()}
-                  />
-                </div>
-              )}
-            </Card>
-
-            <BirthTimeBanner accuracy={selectedProfile.birth_details.time_accuracy} />
-
-            {/* Chart style toggle: North / South Indian */}
-            {(() => {
-              const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
-              const styleLabel =
-                chartStyle === "south" ? t("birthChart.southIndian") : t("birthChart.northIndian");
-              // Birth time unknown → present the D1 from the Moon (Chandra Lagna),
-              // since the real Ascendant can't be trusted.
-              const unknownTime =
-                (selectedProfile.birth_details.time_accuracy || "exact") === "unknown";
-              const moon = result.planets?.Moon;
-              const chandraLagna =
-                unknownTime && moon
-                  ? { house: moon.house, degrees: 0, sign_name: moon.sign_name }
-                  : null;
-              return (
-                <>
-                  <div className="aspect-controls">
-                    {aspects && aspects.length > 0 && (
-                      <button
-                        type="button"
-                        className={`aspect-toggle${showAspects ? " is-active" : ""}`}
-                        onClick={() => {
-                          const next = !showAspects;
-                          setShowAspects(next);
-                          localStorage.setItem("showAspects", next ? "1" : "0");
-                        }}
-                      >
-                        <Eye size={16} />
-                        {showAspects ? t("aspects.hideOnChart") : t("aspects.showOnChart")}
-                      </button>
-                    )}
-                    {arudhas && arudhas.length > 0 && (
-                      <button
-                        type="button"
-                        className={`aspect-toggle${showArudhas ? " is-active" : ""}`}
-                        onClick={() => {
-                          const next = !showArudhas;
-                          setShowArudhas(next);
-                          localStorage.setItem("showArudhas", next ? "1" : "0");
-                        }}
-                      >
-                        <Landmark size={16} />
-                        {showArudhas ? t("arudhas.hideOnChart") : t("arudhas.showOnChart")}
-                      </button>
-                    )}
-                    {conditions && conditions.length > 0 && (
-                      <button
-                        type="button"
-                        className={`aspect-toggle${showConditions ? " is-active" : ""}`}
-                        onClick={() => {
-                          const next = !showConditions;
-                          setShowConditions(next);
-                          localStorage.setItem("showConditions", next ? "1" : "0");
-                        }}
-                      >
-                        <ShieldAlert size={16} />
-                        {showConditions
-                          ? t("conditions.hideOnChart")
-                          : t("conditions.showOnChart")}
-                      </button>
-                    )}
-                    {showAspects && aspects && aspects.length > 0 && (
-                      <span className="aspect-controls__hint">{t("aspects.hoverHint")}</span>
-                    )}
-                    {showConditions && conditions && conditions.length > 0 && (
-                      <span className="aspect-controls__hint">{t("conditions.hoverHint")}</span>
-                    )}
-                  </div>
-
-                  <Kundali
-                    chartData={result}
-                    lagna={chandraLagna || undefined}
-                    title={t("birthChart.rasiChart")}
-                    subtitle={
-                      chandraLagna
-                        ? `D1 · ${t("birthTime.chandraLagna")} · ${styleLabel}`
-                        : `D1 · ${styleLabel}`
-                    }
-                    exportable
-                    aspects={aspects}
-                    showAspects={showAspects}
-                    focusPlanet={focusPlanet}
-                    arudhas={arudhas}
-                    showArudhas={showArudhas}
-                    conditions={showConditions ? conditions : null}
-                    onSelectPlanet={setExplorerPlanet}
-                  />
-
-                  {/* §5.5 Interactive explorer: click a graha (in the chart or the
-                      chip strip) for its full picture */}
-                  <PlanetExplorer
-                    chart={result}
-                    aspects={aspects}
-                    conditions={conditions}
-                    personName={selectedProfile.birth_details.name}
-                    selected={explorerPlanet}
-                    onSelect={setExplorerPlanet}
-                  />
-
-                  {/* Divisional (varga) chart with picker. Real Jyotish, but
-                      "D9 / D10 / Shashtiamsa" is exactly the jargon a newcomer
-                      shouldn't meet first — collapsed in Essentials. */}
-                  <AdvancedOnly title={t("birthChart.divisionalChart")}>
-                    {(() => {
-                      const vargaMeta = VARGAS.find((v) => v.value === varga) || VARGAS[0];
-                      return (
-                        <div className="varga-section">
-                          <label className="ayanamsa-select varga-picker">
-                            <span>{t("birthChart.divisionalChart")}</span>
-                            <select
-                              value={varga}
-                              onChange={(e) => changeVarga(Number(e.target.value))}
-                            >
-                              {VARGAS.map((v) => (
-                                <option key={v.value} value={v.value}>
-                                  {v.code} · {v.name}
-                                </option>
-                              ))}
-                            </select>
-                            <span className="varga-significance">{vargaMeta.significance}</span>
-                          </label>
-
-                          {vargaLoading ? (
-                            <div className="varga-loading">
-                              <div className="spinner"></div>
-                              <span>
-                                {t("birthChart.calculatingChart", { code: vargaMeta.code })}
-                              </span>
-                            </div>
-                          ) : vargaChart && vargaChart.planets ? (
-                            <Kundali
-                              planets={vargaChart.planets}
-                              lagna={vargaChart.lagna}
-                              title={t("birthChart.nameChart", { name: vargaMeta.name })}
-                              subtitle={`${vargaMeta.code} · ${styleLabel}`}
-                              exportable
-                              arudhas={vargaChart.arudha_padas}
-                              showArudhas={showArudhas}
-                            />
-                          ) : (
-                            <div className="varga-empty">{t("birthChart.chartUnavailable")}</div>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </AdvancedOnly>
-                </>
-              );
-            })()}
-
-            {/* Nakshatra Information Section */}
-            {result.lagna || result.d1_chart ? (
-              <div className="ui-card ui-card--accent ui-card--flush mt-xl">
-                <h3 className="ui-card-header">
-                  <Star size={24} />
-                  {t("birthChart.nakshatraInfo")}
-                </h3>
-
-                {/* Lagna Nakshatra */}
-                {result.lagna && result.lagna.nakshatra && (
-                  <div className="lagna-highlight">
-                    <h4>{t("birthChart.lagnaAscendant")}</h4>
-                    <div className="lagna-grid">
-                      <div>
-                        <span className="kv-label">{t("common.sign")}: </span>
-                        <span className="kv-value">{ln(result.lagna.sign_name, "rasi")}</span>
-                      </div>
-                      <div>
-                        <span className="kv-label">{t("common.nakshatra")}: </span>
-                        <span className="kv-value">{ln(result.lagna.nakshatra, "nakshatra")}</span>
-                      </div>
-                      <div>
-                        <span className="kv-label">{t("common.pada")}: </span>
-                        <span className="kv-value">{result.lagna.nakshatra_pada}</span>
-                      </div>
-                      <div>
-                        <span className="kv-label">{t("common.degrees")}: </span>
-                        <span className="kv-value">{result.lagna.degrees}°</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Planetary Nakshatras */}
-                {result.d1_chart && (
-                  <div className="nakshatra-grid">
-                    {Object.entries(result.d1_chart).map(([planet, data]) => (
-                      <div key={planet} className="nakshatra-card">
-                        <h5>{ln(planet, "graha")}</h5>
-                        <div className="nakshatra-card__body">
-                          <div>
-                            <span className="kv-label">{t("common.sign")}: </span>
-                            <span className="kv-value">{ln(data.sign_name, "rasi")}</span>
-                          </div>
-                          {data.nakshatra && (
-                            <>
-                              <div>
-                                <span className="kv-label">{t("common.nakshatra")}: </span>
-                                <span className="kv-value">{ln(data.nakshatra, "nakshatra")}</span>
-                              </div>
-                              <div>
-                                <span className="kv-label">{t("common.pada")}: </span>
-                                <span className="kv-value">{data.nakshatra_pada}</span>
-                              </div>
-                            </>
-                          )}
-                          <div>
-                            <span className="kv-label">{t("common.degrees")}: </span>
-                            <span className="kv-value">{data.degrees}°</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : null}
-
-            {/* Panchanga (daily almanac) for the profile's location */}
-            <PanchangaPanel
-              place={selectedProfile.birth_details.place}
-              latitude={parseFloat(selectedProfile.birth_details.latitude)}
-              longitude={parseFloat(selectedProfile.birth_details.longitude)}
-              timezone={parseFloat(selectedProfile.birth_details.timezone)}
+            <Tabs
+              tabs={visibleTabs}
+              active={tab}
+              onChange={setTab}
+              ariaLabel={t("birthChart.title")}
             />
 
-            {/* Yogas */}
-            {yogas && yogas.length > 0 && (
-              <div className="ui-card ui-card--accent ui-card--flush mt-xl">
-                <h3 className="ui-card-header">
-                  <Star size={24} />
-                  {t("birthChart.yogas")}
-                  <span className="section-count">
-                    {t("birthChart.yogasFound", { count: yogas.length })}
-                  </span>
-                </h3>
-                <div className="yoga-grid">
-                  {yogas.map((y) => (
-                    <div key={y.key} className="yoga-card">
-                      <div className="yoga-name">{y.name}</div>
-                      {y.description && <p className="yoga-desc">{y.description}</p>}
-                      {y.benefits && (
-                        <div className="yoga-benefit">
-                          <span className="yoga-benefit-label">{t("birthChart.effects")}</span>
-                          {y.benefits}
+            {tab === "chart" && (
+              <>
+                {/* Chart Details Card */}
+                <Card
+                  title={t("birthChart.chartDetails")}
+                  icon={<Star size={24} />}
+                  actions={
+                    <button
+                      className="chart-export-btn chart-export-btn--inline"
+                      onClick={handleShare}
+                      disabled={shareBusy}
+                      title={t("birthChart.shareTitle")}
+                    >
+                      {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
+                      <span>
+                        {shareBusy
+                          ? "…"
+                          : shareCopied
+                            ? t("birthChart.linkCopied")
+                            : t("birthChart.share")}
+                      </span>
+                    </button>
+                  }
+                >
+                  <div className="ui-field-grid">
+                    <DataField
+                      label={t("common.name")}
+                      icon={<User size={16} />}
+                      value={selectedProfile.birth_details.name || selectedProfile.profile_name}
+                    />
+                    <DataField
+                      label={t("common.dateOfBirth")}
+                      icon={<Calendar size={16} />}
+                      value={formatDate(selectedProfile.birth_details.dob)}
+                    />
+                    <DataField
+                      label={t("common.timeOfBirth")}
+                      icon={<Clock size={16} />}
+                      value={orDash(selectedProfile.birth_details.tob)}
+                    />
+                    <DataField
+                      label={t("common.place")}
+                      icon={<MapPin size={16} />}
+                      value={orDash(selectedProfile.birth_details.place)}
+                    />
+                  </div>
+                  {shareUrl && (
+                    <div className="share-row">
+                      <Copy size={14} style={{ color: "var(--saffron)", flexShrink: 0 }} />
+                      <input
+                        readOnly
+                        className="share-url-input"
+                        value={shareUrl}
+                        onFocus={(e) => e.target.select()}
+                      />
+                    </div>
+                  )}
+                </Card>
+
+                <BirthTimeBanner accuracy={selectedProfile.birth_details.time_accuracy} />
+
+                {/* Chart style toggle: North / South Indian */}
+                {(() => {
+                  // Birth time unknown → present the D1 from the Moon (Chandra Lagna),
+                  // since the real Ascendant can't be trusted.
+                  const unknownTime =
+                    (selectedProfile.birth_details.time_accuracy || "exact") === "unknown";
+                  const moon = result.planets?.Moon;
+                  const chandraLagna =
+                    unknownTime && moon
+                      ? { house: moon.house, degrees: 0, sign_name: moon.sign_name }
+                      : null;
+                  return (
+                    <>
+                      <div className="aspect-controls">
+                        {aspects && aspects.length > 0 && (
+                          <button
+                            type="button"
+                            className={`aspect-toggle${showAspects ? " is-active" : ""}`}
+                            onClick={() => {
+                              const next = !showAspects;
+                              setShowAspects(next);
+                              localStorage.setItem("showAspects", next ? "1" : "0");
+                            }}
+                          >
+                            <Eye size={16} />
+                            {showAspects ? t("aspects.hideOnChart") : t("aspects.showOnChart")}
+                          </button>
+                        )}
+                        {arudhas && arudhas.length > 0 && (
+                          <button
+                            type="button"
+                            className={`aspect-toggle${showArudhas ? " is-active" : ""}`}
+                            onClick={() => {
+                              const next = !showArudhas;
+                              setShowArudhas(next);
+                              localStorage.setItem("showArudhas", next ? "1" : "0");
+                            }}
+                          >
+                            <Landmark size={16} />
+                            {showArudhas ? t("arudhas.hideOnChart") : t("arudhas.showOnChart")}
+                          </button>
+                        )}
+                        {conditions && conditions.length > 0 && (
+                          <button
+                            type="button"
+                            className={`aspect-toggle${showConditions ? " is-active" : ""}`}
+                            onClick={() => {
+                              const next = !showConditions;
+                              setShowConditions(next);
+                              localStorage.setItem("showConditions", next ? "1" : "0");
+                            }}
+                          >
+                            <ShieldAlert size={16} />
+                            {showConditions
+                              ? t("conditions.hideOnChart")
+                              : t("conditions.showOnChart")}
+                          </button>
+                        )}
+                        {showAspects && aspects && aspects.length > 0 && (
+                          <span className="aspect-controls__hint">{t("aspects.hoverHint")}</span>
+                        )}
+                        {showConditions && conditions && conditions.length > 0 && (
+                          <span className="aspect-controls__hint">{t("conditions.hoverHint")}</span>
+                        )}
+                      </div>
+
+                      <Kundali
+                        chartData={result}
+                        lagna={chandraLagna || undefined}
+                        title={t("birthChart.rasiChart")}
+                        subtitle={
+                          chandraLagna
+                            ? `D1 · ${t("birthTime.chandraLagna")} · ${styleLabel}`
+                            : `D1 · ${styleLabel}`
+                        }
+                        exportable
+                        aspects={aspects}
+                        showAspects={showAspects}
+                        focusPlanet={focusPlanet}
+                        arudhas={arudhas}
+                        showArudhas={showArudhas}
+                        conditions={showConditions ? conditions : null}
+                        onSelectPlanet={setExplorerPlanet}
+                      />
+
+                      {/* §5.5 Interactive explorer: click a graha (in the chart or the
+                      chip strip) for its full picture */}
+                      <PlanetExplorer
+                        chart={result}
+                        aspects={aspects}
+                        conditions={conditions}
+                        personName={selectedProfile.birth_details.name}
+                        selected={explorerPlanet}
+                        onSelect={setExplorerPlanet}
+                      />
+                    </>
+                  );
+                })()}
+              </>
+            )}
+
+            {tab === "nakshatra" && (
+              <>
+                {/* Nakshatra Information Section */}
+                {result.lagna || result.d1_chart ? (
+                  <div className="ui-card ui-card--accent ui-card--flush mt-xl">
+                    <h3 className="ui-card-header">
+                      <Star size={24} />
+                      {t("birthChart.nakshatraInfo")}
+                    </h3>
+
+                    {/* Lagna Nakshatra */}
+                    {result.lagna && result.lagna.nakshatra && (
+                      <div className="lagna-highlight">
+                        <h4>{t("birthChart.lagnaAscendant")}</h4>
+                        <div className="lagna-grid">
+                          <div>
+                            <span className="kv-label">{t("common.sign")}: </span>
+                            <span className="kv-value">{ln(result.lagna.sign_name, "rasi")}</span>
+                          </div>
+                          <div>
+                            <span className="kv-label">{t("common.nakshatra")}: </span>
+                            <span className="kv-value">
+                              {ln(result.lagna.nakshatra, "nakshatra")}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="kv-label">{t("common.pada")}: </span>
+                            <span className="kv-value">{result.lagna.nakshatra_pada}</span>
+                          </div>
+                          <div>
+                            <span className="kv-label">{t("common.degrees")}: </span>
+                            <span className="kv-value">{result.lagna.degrees}°</span>
+                          </div>
                         </div>
+                      </div>
+                    )}
+
+                    {/* Planetary Nakshatras */}
+                    {result.d1_chart && (
+                      <div className="nakshatra-grid">
+                        {Object.entries(result.d1_chart).map(([planet, data]) => (
+                          <div key={planet} className="nakshatra-card">
+                            <h5>{ln(planet, "graha")}</h5>
+                            <div className="nakshatra-card__body">
+                              <div>
+                                <span className="kv-label">{t("common.sign")}: </span>
+                                <span className="kv-value">{ln(data.sign_name, "rasi")}</span>
+                              </div>
+                              {data.nakshatra && (
+                                <>
+                                  <div>
+                                    <span className="kv-label">{t("common.nakshatra")}: </span>
+                                    <span className="kv-value">
+                                      {ln(data.nakshatra, "nakshatra")}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="kv-label">{t("common.pada")}: </span>
+                                    <span className="kv-value">{data.nakshatra_pada}</span>
+                                  </div>
+                                </>
+                              )}
+                              <div>
+                                <span className="kv-label">{t("common.degrees")}: </span>
+                                <span className="kv-value">{data.degrees}°</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </>
+            )}
+
+            {tab === "panchanga" && (
+              <>
+                {/* Panchanga (daily almanac) for the profile's location */}
+                <PanchangaPanel
+                  place={selectedProfile.birth_details.place}
+                  latitude={parseFloat(selectedProfile.birth_details.latitude)}
+                  longitude={parseFloat(selectedProfile.birth_details.longitude)}
+                  timezone={parseFloat(selectedProfile.birth_details.timezone)}
+                />
+              </>
+            )}
+
+            {tab === "yogas" && (
+              <>
+                {/* Yogas */}
+                {yogas && yogas.length > 0 && (
+                  <div className="ui-card ui-card--accent ui-card--flush mt-xl">
+                    <h3 className="ui-card-header">
+                      <Star size={24} />
+                      {t("birthChart.yogas")}
+                      <span className="section-count">
+                        {t("birthChart.yogasFound", { count: yogas.length })}
+                      </span>
+                    </h3>
+                    <div className="yoga-grid">
+                      {yogas.map((y) => (
+                        <div key={y.key} className="yoga-card">
+                          <div className="yoga-name">{y.name}</div>
+                          {y.description && <p className="yoga-desc">{y.description}</p>}
+                          {y.benefits && (
+                            <div className="yoga-benefit">
+                              <span className="yoga-benefit-label">{t("birthChart.effects")}</span>
+                              {y.benefits}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Raja Yogas (dedicated) */}
+                {rajaYogas && (
+                  <div className="ui-card ui-card--accent-gold ui-card--flush mt-xl">
+                    <h3 className="ui-card-header">
+                      <Crown size={24} />
+                      {t("birthChart.rajaYogas")}
+                      {rajaYogas.length > 0 && (
+                        <span className="section-count">
+                          {t("birthChart.rajaYogasFound", { count: rajaYogas.length })}
+                        </span>
+                      )}
+                    </h3>
+                    {rajaYogas.length > 0 ? (
+                      <div className="yoga-grid">
+                        {rajaYogas.map((y, i) => (
+                          <div key={i} className="yoga-card raja-yoga-card">
+                            <div className="yoga-name">
+                              {y.name}
+                              <span
+                                className={`raja-yoga-strength raja-yoga-strength--${y.strength}`}
+                                style={{ marginLeft: "0.5rem" }}
+                              >
+                                {t(`birthChart.rajaYogaStrength.${y.strength}`)}
+                              </span>
+                            </div>
+                            {y.planets && y.planets.length > 0 && (
+                              <div className="text-saffron fw-600" style={{ fontSize: "0.85rem" }}>
+                                {y.planets.join(" – ")}
+                              </div>
+                            )}
+                            {y.pairs_label && (
+                              <div className="text-secondary" style={{ fontSize: "0.8rem" }}>
+                                {y.pairs_label}
+                              </div>
+                            )}
+                            {y.description && <p className="yoga-desc">{y.description}</p>}
+                            {y.benefits && (
+                              <div className="yoga-benefit">
+                                <span className="yoga-benefit-label">
+                                  {t("birthChart.effects")}
+                                </span>
+                                {y.benefits}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="card-note">{t("birthChart.rajaYogasNone")}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Doshas */}
+                {doshas && doshas.length > 0 && (
+                  <div className="ui-card ui-card--accent ui-card--flush mt-xl">
+                    <h3 className="ui-card-header">
+                      <Star size={24} />
+                      {t("birthChart.doshas")}
+                    </h3>
+                    <div className="dosha-grid">
+                      {doshas.map((d) => (
+                        <div key={d.key} className={`dosha-card${d.present ? " present" : ""}`}>
+                          <div className="dosha-head">
+                            <span className="dosha-name">{d.name}</span>
+                            <span className={`dosha-badge ${d.present ? "yes" : "no"}`}>
+                              {d.present ? t("birthChart.present") : t("birthChart.absent")}
+                            </span>
+                          </div>
+                          <p className="dosha-desc">{d.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {tab === "aspects" && (
+              <>
+                {/* Graha Drishti (aspects) */}
+                <AdvancedOnly title={t("birthChart.aspectsAdvanced")}>
+                  <AspectsCard
+                    aspects={aspects}
+                    onFocus={setFocusPlanet}
+                    focusPlanet={focusPlanet}
+                  />
+                </AdvancedOnly>
+              </>
+            )}
+
+            {tab === "advanced" && (
+              <>
+                {(() => {
+                  const vargaMeta = VARGAS.find((v) => v.value === varga) || VARGAS[0];
+                  return (
+                    <div className="varga-section">
+                      <label className="ayanamsa-select varga-picker">
+                        <span>{t("birthChart.divisionalChart")}</span>
+                        <select value={varga} onChange={(e) => changeVarga(Number(e.target.value))}>
+                          {VARGAS.map((v) => (
+                            <option key={v.value} value={v.value}>
+                              {v.code} · {v.name}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="varga-significance">{vargaMeta.significance}</span>
+                      </label>
+
+                      {vargaLoading ? (
+                        <div className="varga-loading">
+                          <div className="spinner"></div>
+                          <span>{t("birthChart.calculatingChart", { code: vargaMeta.code })}</span>
+                        </div>
+                      ) : vargaChart && vargaChart.planets ? (
+                        <Kundali
+                          planets={vargaChart.planets}
+                          lagna={vargaChart.lagna}
+                          title={t("birthChart.nameChart", { name: vargaMeta.name })}
+                          subtitle={`${vargaMeta.code} · ${styleLabel}`}
+                          exportable
+                          arudhas={vargaChart.arudha_padas}
+                          showArudhas={showArudhas}
+                        />
+                      ) : (
+                        <div className="varga-empty">{t("birthChart.chartUnavailable")}</div>
                       )}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  );
+                })()}
+              </>
             )}
-
-            {/* Raja Yogas (dedicated) */}
-            {rajaYogas && (
-              <div className="ui-card ui-card--accent-gold ui-card--flush mt-xl">
-                <h3 className="ui-card-header">
-                  <Crown size={24} />
-                  {t("birthChart.rajaYogas")}
-                  {rajaYogas.length > 0 && (
-                    <span className="section-count">
-                      {t("birthChart.rajaYogasFound", { count: rajaYogas.length })}
-                    </span>
-                  )}
-                </h3>
-                {rajaYogas.length > 0 ? (
-                  <div className="yoga-grid">
-                    {rajaYogas.map((y, i) => (
-                      <div key={i} className="yoga-card raja-yoga-card">
-                        <div className="yoga-name">
-                          {y.name}
-                          <span
-                            className={`raja-yoga-strength raja-yoga-strength--${y.strength}`}
-                            style={{ marginLeft: "0.5rem" }}
-                          >
-                            {t(`birthChart.rajaYogaStrength.${y.strength}`)}
-                          </span>
-                        </div>
-                        {y.planets && y.planets.length > 0 && (
-                          <div className="text-saffron fw-600" style={{ fontSize: "0.85rem" }}>
-                            {y.planets.join(" – ")}
-                          </div>
-                        )}
-                        {y.pairs_label && (
-                          <div className="text-secondary" style={{ fontSize: "0.8rem" }}>
-                            {y.pairs_label}
-                          </div>
-                        )}
-                        {y.description && <p className="yoga-desc">{y.description}</p>}
-                        {y.benefits && (
-                          <div className="yoga-benefit">
-                            <span className="yoga-benefit-label">{t("birthChart.effects")}</span>
-                            {y.benefits}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="card-note">{t("birthChart.rajaYogasNone")}</p>
-                )}
-              </div>
-            )}
-
-            {/* Doshas */}
-            {doshas && doshas.length > 0 && (
-              <div className="ui-card ui-card--accent ui-card--flush mt-xl">
-                <h3 className="ui-card-header">
-                  <Star size={24} />
-                  {t("birthChart.doshas")}
-                </h3>
-                <div className="dosha-grid">
-                  {doshas.map((d) => (
-                    <div key={d.key} className={`dosha-card${d.present ? " present" : ""}`}>
-                      <div className="dosha-head">
-                        <span className="dosha-name">{d.name}</span>
-                        <span className={`dosha-badge ${d.present ? "yes" : "no"}`}>
-                          {d.present ? t("birthChart.present") : t("birthChart.absent")}
-                        </span>
-                      </div>
-                      <p className="dosha-desc">{d.description}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Graha Drishti (aspects) */}
-            <AdvancedOnly title={t("birthChart.aspectsAdvanced")}>
-              <AspectsCard aspects={aspects} onFocus={setFocusPlanet} focusPlanet={focusPlanet} />
-            </AdvancedOnly>
           </div>
         ) : null}
       </div>

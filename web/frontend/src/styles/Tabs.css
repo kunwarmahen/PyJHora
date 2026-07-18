@@ -36,7 +36,9 @@
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.16s ease, color 0.16s ease;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
 }
 
 .ui-tab:hover:not(.ui-tab--on) {

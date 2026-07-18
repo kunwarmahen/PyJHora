@@ -24,7 +24,8 @@ const readModelConfig = () => {
   return {
     providerType,
     model: localStorage.getItem("ai_model") || "",
-    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    baseUrl:
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -264,12 +265,18 @@ export const KPPage = () => {
                       <tbody>
                         {planets.map((p) => (
                           <tr key={p.body}>
-                            <td><strong>{p.body}</strong></td>
-                            <td>{p.sign_name} {p.degrees}°</td>
+                            <td>
+                              <strong>{p.body}</strong>
+                            </td>
+                            <td>
+                              {p.sign_name} {p.degrees}°
+                            </td>
                             <td>{p.house}</td>
                             <td>{p.sign_lord}</td>
                             <td>{p.star_lord}</td>
-                            <td><strong>{p.sub_lord}</strong></td>
+                            <td>
+                              <strong>{p.sub_lord}</strong>
+                            </td>
                             <td className="text-secondary">{p.sub_sub_lord}</td>
                           </tr>
                         ))}
@@ -295,11 +302,17 @@ export const KPPage = () => {
                       <tbody>
                         {cusps.map((c) => (
                           <tr key={c.house}>
-                            <td><strong>{c.house}</strong></td>
-                            <td>{c.sign_name} {c.degrees}°</td>
+                            <td>
+                              <strong>{c.house}</strong>
+                            </td>
+                            <td>
+                              {c.sign_name} {c.degrees}°
+                            </td>
                             <td>{c.sign_lord}</td>
                             <td>{c.star_lord}</td>
-                            <td><strong>{c.sub_lord}</strong></td>
+                            <td>
+                              <strong>{c.sub_lord}</strong>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -327,7 +340,9 @@ export const KPPage = () => {
                           const s = houseSig[h] || {};
                           return (
                             <tr key={h}>
-                              <td><strong>{h}</strong></td>
+                              <td>
+                                <strong>{h}</strong>
+                              </td>
                               <td>{(s.A || []).join(", ") || "—"}</td>
                               <td>{(s.B || []).join(", ") || "—"}</td>
                               <td>{(s.C || []).join(", ") || "—"}</td>
@@ -345,11 +360,14 @@ export const KPPage = () => {
                   <h3 className="ui-card-header ui-card-header--sm">{t("kp.rpHeader")}</h3>
                   <div className="info-pills">
                     {(rp.planets || []).map((p) => (
-                      <span key={p} className="info-pill">{p}</span>
+                      <span key={p} className="info-pill">
+                        {p}
+                      </span>
                     ))}
                   </div>
                   <p className="card-note">
-                    {t("kp.rpAsOf", { time: data.ruling_time })} · {t("kp.rpDayLord")}: {rp.day_lord}
+                    {t("kp.rpAsOf", { time: data.ruling_time })} · {t("kp.rpDayLord")}:{" "}
+                    {rp.day_lord}
                   </p>
                 </div>
 
@@ -357,12 +375,18 @@ export const KPPage = () => {
                 <div className="mt-xl">
                   <Card title={t("kp.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
                     <ErrorBanner message={aiError} />
-                    {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("kp.aiHint")}</p>}
+                    {!aiAnalysis && !aiLoading && (
+                      <p className="ai-panel__hint">{t("kp.aiHint")}</p>
+                    )}
                     {aiLoading && <LoadingState message={t("kp.aiLoading")} />}
                     {aiAnalysis && !aiLoading && (
                       <div className="sbc-ai-markdown ai-panel__reading">
                         <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
-                        {aiModel && <div className="ai-panel__meta">{t("kp.aiModel", { model: aiModel })}</div>}
+                        {aiModel && (
+                          <div className="ai-panel__meta">
+                            {t("kp.aiModel", { model: aiModel })}
+                          </div>
+                        )}
                       </div>
                     )}
                     {!aiLoading && (
@@ -407,11 +431,26 @@ export const KPPage = () => {
                   />
                 </div>
               </div>
-              <div style={{ display: "flex", gap: "var(--space-sm)", flexWrap: "wrap", marginTop: "var(--space-md)" }}>
-                <button className="ui-btn ui-btn--primary" onClick={castHorary} disabled={horLoading}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "var(--space-sm)",
+                  flexWrap: "wrap",
+                  marginTop: "var(--space-md)",
+                }}
+              >
+                <button
+                  className="ui-btn ui-btn--primary"
+                  onClick={castHorary}
+                  disabled={horLoading}
+                >
                   {horLoading ? t("kp.horary.casting") : t("kp.horary.cast")}
                 </button>
-                <button className="ui-btn ui-btn--ai" onClick={horaryAi} disabled={horLoading || !horNumber}>
+                <button
+                  className="ui-btn ui-btn--ai"
+                  onClick={horaryAi}
+                  disabled={horLoading || !horNumber}
+                >
                   <Sparkles size={18} /> {t("kp.horary.judge")}
                 </button>
               </div>
@@ -426,21 +465,27 @@ export const KPPage = () => {
                 <div className="score-box">
                   <div className="score-box__label">{t("kp.horary.ascendant")}</div>
                   <div className="score-box__status">
-                    {horData.ascendant?.sign_name} {horData.ascendant?.degrees}° ·{" "}
-                    {t("kp.subLord")}: <strong>{horData.ascendant?.sub_lord}</strong>
+                    {horData.ascendant?.sign_name} {horData.ascendant?.degrees}° · {t("kp.subLord")}
+                    : <strong>{horData.ascendant?.sub_lord}</strong>
                   </div>
                 </div>
                 {horData.chart && (
                   <div className="chart-grid" style={{ marginTop: "var(--space-lg)" }}>
                     <Card title={t("kp.horary.moment")} accent="indigo">
-                      <Kundali planets={horData.chart.planets} lagna={horData.chart.lagna} title={t("kp.horary.moment")} />
+                      <Kundali
+                        planets={horData.chart.planets}
+                        lagna={horData.chart.lagna}
+                        title={t("kp.horary.moment")}
+                      />
                     </Card>
                   </div>
                 )}
                 <div className="info-pills" style={{ marginTop: "var(--space-md)" }}>
                   <span className="text-secondary">{t("kp.rpHeader")}:</span>
                   {(horData.ruling_planets?.planets || []).map((p) => (
-                    <span key={p} className="info-pill">{p}</span>
+                    <span key={p} className="info-pill">
+                      {p}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -448,10 +493,16 @@ export const KPPage = () => {
 
             {horReading && (
               <div className="mt-xl">
-                <Card title={t("kp.horary.judgement")} icon={<Sparkles size={24} />} accent="indigo">
+                <Card
+                  title={t("kp.horary.judgement")}
+                  icon={<Sparkles size={24} />}
+                  accent="indigo"
+                >
                   <div className="sbc-ai-markdown ai-panel__reading">
                     <ReactMarkdown>{horReading}</ReactMarkdown>
-                    {horModel && <div className="ai-panel__meta">{t("kp.aiModel", { model: horModel })}</div>}
+                    {horModel && (
+                      <div className="ai-panel__meta">{t("kp.aiModel", { model: horModel })}</div>
+                    )}
                   </div>
                 </Card>
               </div>

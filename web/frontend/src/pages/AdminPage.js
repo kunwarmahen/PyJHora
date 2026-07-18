@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShieldAlert, Users, Activity, ScrollText, Trash2, Ban, Eye, RefreshCw } from "lucide-react";
+import {
+  ShieldAlert,
+  Users,
+  Activity,
+  ScrollText,
+  Trash2,
+  Ban,
+  Eye,
+  RefreshCw,
+} from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { adminService } from "../services/api";
 import { PageHeader } from "../components/PageHeader";
@@ -16,7 +25,11 @@ const errMsg = (e) => e?.response?.data?.detail || e?.message || "Something went
 const fmtDate = (v) => {
   if (!v) return "—";
   try {
-    return new Date(v).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+    return new Date(v).toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
   } catch {
     return String(v);
   }
@@ -115,14 +128,14 @@ function OverviewTab() {
       <div className="admin-content-note" style={{ marginTop: "var(--space-lg)" }}>
         {stats.content_access_enabled ? (
           <>
-            <strong>Content access is ON.</strong> You can open individual users' private
-            readings, chats and journal entries. Every such view is recorded in the audit log.
+            <strong>Content access is ON.</strong> You can open individual users' private readings,
+            chats and journal entries. Every such view is recorded in the audit log.
           </>
         ) : (
           <>
-            <strong>Content access is OFF.</strong> The console shows metadata and counts
-            only. To inspect a user's actual content, set <code>ADMIN_CONTENT_ACCESS=true</code> and
-            redeploy — a deliberate "break glass" step.
+            <strong>Content access is OFF.</strong> The console shows metadata and counts only. To
+            inspect a user's actual content, set <code>ADMIN_CONTENT_ACCESS=true</code> and redeploy
+            — a deliberate "break glass" step.
           </>
         )}
       </div>
@@ -217,7 +230,9 @@ function UsersTab() {
                     <td>{u.counts.ai_conversations}</td>
                     <td>
                       {u.is_admin && <span className="admin-badge admin-badge--admin">admin</span>}{" "}
-                      {u.suspended && <span className="admin-badge admin-badge--suspended">suspended</span>}
+                      {u.suspended && (
+                        <span className="admin-badge admin-badge--suspended">suspended</span>
+                      )}
                       {!u.is_admin && !u.suspended && <span className="admin-badge">active</span>}
                     </td>
                     <td>
@@ -230,7 +245,8 @@ function UsersTab() {
                           disabled={u.is_admin}
                           onClick={() => toggleSuspend(u)}
                         >
-                          <Ban size={13} style={{ verticalAlign: "-2px" }} /> {u.suspended ? "Unsuspend" : "Suspend"}
+                          <Ban size={13} style={{ verticalAlign: "-2px" }} />{" "}
+                          {u.suspended ? "Unsuspend" : "Suspend"}
                         </button>
                         <button
                           className="admin-btn admin-btn--danger"
@@ -245,7 +261,14 @@ function UsersTab() {
                 ))}
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={7} style={{ color: "var(--text-muted)", textAlign: "center", padding: "var(--space-lg)" }}>
+                    <td
+                      colSpan={7}
+                      style={{
+                        color: "var(--text-muted)",
+                        textAlign: "center",
+                        padding: "var(--space-lg)",
+                      }}
+                    >
                       No users found.
                     </td>
                   </tr>
@@ -299,11 +322,22 @@ function UserDetailModal({ username, onClose }) {
         {detail && (
           <>
             <dl className="admin-kv">
-              <dt>Email</dt><dd>{detail.email || "—"}</dd>
-              <dt>Name</dt><dd>{detail.name || "—"}</dd>
-              <dt>Joined</dt><dd>{fmtDate(detail.created_at)}</dd>
-              <dt>Sign-in</dt><dd>{detail.auth_provider}{detail.has_password ? " · has password" : ""}</dd>
-              <dt>Status</dt><dd>{detail.is_admin ? "admin " : ""}{detail.suspended ? "suspended" : "active"}</dd>
+              <dt>Email</dt>
+              <dd>{detail.email || "—"}</dd>
+              <dt>Name</dt>
+              <dd>{detail.name || "—"}</dd>
+              <dt>Joined</dt>
+              <dd>{fmtDate(detail.created_at)}</dd>
+              <dt>Sign-in</dt>
+              <dd>
+                {detail.auth_provider}
+                {detail.has_password ? " · has password" : ""}
+              </dd>
+              <dt>Status</dt>
+              <dd>
+                {detail.is_admin ? "admin " : ""}
+                {detail.suspended ? "suspended" : "active"}
+              </dd>
             </dl>
 
             <h4 style={{ color: "var(--text-secondary)" }}>Records</h4>
@@ -321,14 +355,18 @@ function UserDetailModal({ username, onClose }) {
             <ErrorBanner message={contentErr} />
             {content && (
               <>
-                <h4 style={{ color: "var(--text-secondary)" }}>{content.kind.replace(/_/g, " ")} · {content.items.length}</h4>
+                <h4 style={{ color: "var(--text-secondary)" }}>
+                  {content.kind.replace(/_/g, " ")} · {content.items.length}
+                </h4>
                 <pre className="admin-content-pre">{JSON.stringify(content.items, null, 2)}</pre>
               </>
             )}
           </>
         )}
         <div style={{ marginTop: "var(--space-lg)", textAlign: "right" }}>
-          <button className="admin-btn" onClick={onClose}>Close</button>
+          <button className="admin-btn" onClick={onClose}>
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -342,8 +380,8 @@ function DeleteConfirmModal({ username, onCancel, onConfirm }) {
       <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
         <h3>Delete {username}?</h3>
         <p style={{ color: "var(--text-secondary)" }}>
-          This permanently deletes the account and <strong>every</strong> record it owns —
-          profiles, readings, chats, journal, settings and tokens. This cannot be undone.
+          This permanently deletes the account and <strong>every</strong> record it owns — profiles,
+          readings, chats, journal, settings and tokens. This cannot be undone.
         </p>
         <p style={{ color: "var(--text-secondary)" }}>
           Type the username <strong>{username}</strong> to confirm:
@@ -354,9 +392,23 @@ function DeleteConfirmModal({ username, onCancel, onConfirm }) {
           onChange={(e) => setTyped(e.target.value)}
           placeholder={username}
         />
-        <div style={{ marginTop: "var(--space-md)", textAlign: "right", display: "flex", gap: "var(--space-sm)", justifyContent: "flex-end" }}>
-          <button className="admin-btn" onClick={onCancel}>Cancel</button>
-          <button className="admin-btn admin-btn--danger" disabled={typed !== username} onClick={onConfirm}>
+        <div
+          style={{
+            marginTop: "var(--space-md)",
+            textAlign: "right",
+            display: "flex",
+            gap: "var(--space-sm)",
+            justifyContent: "flex-end",
+          }}
+        >
+          <button className="admin-btn" onClick={onCancel}>
+            Cancel
+          </button>
+          <button
+            className="admin-btn admin-btn--danger"
+            disabled={typed !== username}
+            onClick={onConfirm}
+          >
             <Trash2 size={13} style={{ verticalAlign: "-2px" }} /> Delete permanently
           </button>
         </div>
@@ -408,15 +460,33 @@ function AuditTab() {
                 <tr key={e._id}>
                   <td>{new Date(e.at).toLocaleString()}</td>
                   <td>{e.admin}</td>
-                  <td><span className="admin-badge">{e.action}</span></td>
+                  <td>
+                    <span className="admin-badge">{e.action}</span>
+                  </td>
                   <td>{e.target || "—"}</td>
-                  <td style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.detail || "—"}</td>
+                  <td
+                    style={{
+                      maxWidth: 240,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {e.detail || "—"}
+                  </td>
                   <td>{e.ip || "—"}</td>
                 </tr>
               ))}
               {entries.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ color: "var(--text-muted)", textAlign: "center", padding: "var(--space-lg)" }}>
+                  <td
+                    colSpan={6}
+                    style={{
+                      color: "var(--text-muted)",
+                      textAlign: "center",
+                      padding: "var(--space-lg)",
+                    }}
+                  >
                     No admin activity recorded yet.
                   </td>
                 </tr>
