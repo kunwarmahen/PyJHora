@@ -169,11 +169,8 @@ A **view mode** decides how much of it is advertised:
   **API Keys**, **Almanac** (Drik / Surya-Siddhanta
   engine), **Notifications** (daily-digest opt-in, target profiles — a subset or "all" — AI-reading
   toggle + preferred hour, email + browser-push toggles, "send test now"; **each profile can also carry
-  its own delivery email** (Profiles → edit → *Digest email*) — a subject with an address gets their own
-  personal digest, everyone without one stays in the owner's combined copy. An external address is
-  **double opt-in**: adding it emails that person a one-time confirmation, and nothing is delivered to
-  them until they click it; every digest they then receive carries a one-click unsubscribe. The profile
-  card shows the delivery state (invite pending / confirmed / unsubscribed)), and **Account** (account overview, update email, change password,
+  its own delivery email** (Profiles → edit → *Digest email*) — see
+  [How digest email delivery works](#how-digest-email-delivery-works) below), and **Account** (account overview, update email, change password,
   log out other devices, and a danger-zone **Delete account**)
 - **Consolidated controls**: the per-page dropdowns/toggles that used to live on individual pages
   (ayanamsa, chart style, almanac engine, AI model/keys) were removed — pages now read these from
@@ -182,6 +179,41 @@ A **view mode** decides how much of it is advertised:
 - **Per-question controls kept on Ask**: answer mode, the per-section Seed/Tool/Off context
   toggles, and the vargas "Charts to Consult" picker remain on the Ask page (they're
   question-specific)
+
+### How digest email delivery works
+
+Every saved profile has an optional **Digest email** field (Profiles → edit). At send time each
+profile is sorted by that field into one of two deliveries — and the two never compete:
+
+- **You (the account owner) always get one combined email** covering *every* profile, at your own
+  account address. This is unconditional.
+- **Any profile whose Digest email is someone else's address also gets its own personal email** with
+  just that person's section — *and* still appears in your combined copy.
+
+So the mental model is: **your combined email = everyone, always; a per-profile email = an extra,
+opt-in copy for someone who lives elsewhere or wants their own.** Nobody ever drops out of your view.
+
+A worked example — your account is `you@example.com`:
+
+| Profile | Digest email | Who receives that profile's reading |
+| --- | --- | --- |
+| Mahendra (you) | *(blank)* | You, in your combined email |
+| Naina | `naina@…` | You (combined) **and** Naina (her own email) |
+| Anoushka | `anoushka@…` | You (combined) **and** Anoushka (her own email) |
+| Akansha | *(blank)* | You, in your combined email |
+
+**Consent (why a newly-added address may not receive anything yet).** An *external* address is
+**double opt-in**: saving the profile emails that person a one-time confirmation, and their daily
+digest does **not** start until they click **Confirm**. Until then their status is *pending* — but
+they are still in your combined copy the whole time. Every digest they do receive carries a one-click
+**unsubscribe**, which stops their personal emails (again, without removing them from your combined
+copy). The profile card shows the state: **invite pending / confirmed / unsubscribed** — that pill is
+the first place to look if someone "isn't getting emails" (usually they just haven't confirmed).
+
+**Two edge cases.** A profile whose Digest email is *your own* account address counts as "you" — it
+goes in the combined copy only, no confirmation, no duplicate. And **browser push is always
+owner-only**: a non-account family member has no logged-in device to push to, so they only ever get
+email.
 
 ### Current location — where you were born vs. where you live
 
