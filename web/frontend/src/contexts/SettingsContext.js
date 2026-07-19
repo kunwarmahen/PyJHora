@@ -3,10 +3,7 @@ import i18n from "i18next";
 import { DEFAULT_AYANAMSA } from "../constants/jyotish";
 import { resolveUiMode, UI_MODE_DEFAULT, UI_MODE_STORAGE_KEY } from "../config/uiMode";
 import { SIGN_LABEL_DEFAULT, SIGN_LABEL_STORAGE_KEY } from "../config/signLabel";
-import {
-  STARTUP_PROFILE_DEFAULT,
-  STARTUP_PROFILE_STORAGE_KEY,
-} from "../config/startupProfile";
+import { STARTUP_PROFILE_DEFAULT, STARTUP_PROFILE_STORAGE_KEY } from "../config/startupProfile";
 import {
   applyTheme,
   readThemePref,
@@ -14,6 +11,12 @@ import {
   THEME_STORAGE_KEY,
   watchSystemTheme,
 } from "../config/theme";
+import {
+  applyDensity,
+  readDensityPref,
+  DENSITY_DEFAULT,
+  DENSITY_STORAGE_KEY,
+} from "../config/density";
 import { astrologyService } from "../services/api";
 import { useAuth } from "./AuthContext";
 
@@ -37,6 +40,7 @@ export const SETTING_KEYS = {
   language: "lang", // also owned by i18next's language detector
   uiMode: UI_MODE_STORAGE_KEY,
   theme: THEME_STORAGE_KEY,
+  density: DENSITY_STORAGE_KEY,
   startupProfile: STARTUP_PROFILE_STORAGE_KEY,
   ayanamsa: "ayanamsa",
   chartStyle: "chartStyle",
@@ -57,6 +61,7 @@ export const SETTING_KEYS = {
 const SYNCED_KEYS = [
   "uiMode",
   "theme",
+  "density",
   "startupProfile",
   "aiProviderType",
   "aiModel",
@@ -70,7 +75,7 @@ const SYNCED_KEYS = [
 // leaves the server holding the OLD value, and the login sync below then
 // reasserts it over the correct local one — so the user's click silently
 // reverts on the next page load. Visible immediately with the theme toggle.
-const IMMEDIATE_KEYS = ["theme", "uiMode", "startupProfile"];
+const IMMEDIATE_KEYS = ["theme", "density", "uiMode", "startupProfile"];
 // storageKey -> settingKey, to apply a server payload (keyed by storage key).
 const STORAGE_TO_SETTING = Object.fromEntries(
   Object.entries(SETTING_KEYS).map(([settingKey, storageKey]) => [storageKey, settingKey])
@@ -85,6 +90,8 @@ const DEFAULTS = {
   // "light" | "dark" | "system". System is the default so a user whose machine
   // is already dark never gets shown the light theme first (owner, §37).
   theme: THEME_DEFAULT,
+  // "compact" | "comfortable" — how much room cards and tiles take (§15).
+  density: DENSITY_DEFAULT,
   // What login does with the profile picker: "resume" the last-used/default
   // profile, or always "ask".
   startupProfile: STARTUP_PROFILE_DEFAULT,
@@ -134,6 +141,7 @@ export const SettingsProvider = ({ children }) => {
     language: read("language"),
     uiMode: resolveUiMode(),
     theme: readThemePref(),
+    density: readDensityPref(),
     startupProfile: read("startupProfile"),
     ayanamsa: read("ayanamsa"),
     chartStyle: read("chartStyle"),
@@ -184,6 +192,8 @@ export const SettingsProvider = ({ children }) => {
       // pre-paint script in index.html only covers the first load.
       if (key === "theme") {
         applyTheme(value);
+      } else if (key === "density") {
+        applyDensity(value);
       }
       // Language is special: drive i18next so the switch is immediate app-wide.
       if (key === "language") {
@@ -270,7 +280,8 @@ export const SettingsProvider = ({ children }) => {
   // at login, which can disagree with what the pre-paint script stamped.
   useEffect(() => {
     applyTheme(settings.theme);
-  }, [settings.theme]);
+    applyDensity(settings.density);
+  }, [settings.theme, settings.density]);
 
   // While on "system", follow the OS flipping with the tab already open.
   // Re-subscribing per preference change is what makes the listener idle on an

@@ -28,6 +28,7 @@ KEYED_PROVIDERS = ("gemini", "openai", "openai-compatible")
 PREFERENCE_KEYS = (
     "ui_mode",
     "theme",
+    "density",
     "startup_profile",
     "ai_provider_type",
     "ai_model",
@@ -97,7 +98,10 @@ async def get_user_keys(user_id: str) -> Dict[str, str]:
     db = get_database()
     doc = await db[COLLECTION].find_one({"user_id": user_id})
     out: Dict[str, str] = {}
-    for provider, token in (doc.get("api_keys") if doc else {} or {}).items():
+    # Note the parenthesis: `x if doc else {} or {}` binds as `x if doc else ({} or {})`,
+    # so a user document that exists but has no `api_keys` yielded None and blew up
+    # here with AttributeError (surfacing as a 500 from /api/llm/providers).
+    for provider, token in ((doc or {}).get("api_keys") or {}).items():
         plain = _decrypt(token)
         if plain:
             out[provider] = plain

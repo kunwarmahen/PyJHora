@@ -181,7 +181,30 @@
   --card-header-mb: 12px;
   --tile-pad: 14px;
   --tile-icon: 40px;
+  --tile-icon-mb: 8px;
   --tile-min: 200px;
+  --tile-title-size: 1.05rem;
+  --tile-text-size: 0.8rem;
+  --tile-text-leading: 1.45;
+}
+
+/* The roomier scale the app used before §15, kept as a preference (Settings →
+   General → Display density). Compact is the default and lives in :root above,
+   so it needs no attribute — which means an unknown value falls back to it. */
+:root[data-density="comfortable"] {
+  --card-pad: var(--space-xl);
+  --card-radius: var(--radius-xl);
+  --card-gap: var(--space-xl);
+  --card-mb: var(--space-xl);
+  --card-header-size: 1.5rem;
+  --card-header-mb: var(--space-lg);
+  --tile-pad: var(--space-xl);
+  --tile-icon: 72px;
+  --tile-icon-mb: var(--space-lg);
+  --tile-min: 320px;
+  --tile-title-size: 1.5rem;
+  --tile-text-size: 0.9375rem;
+  --tile-text-leading: 1.6;
 }
 
 /* ==================================================================== *

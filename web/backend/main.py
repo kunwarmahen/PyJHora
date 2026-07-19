@@ -114,5 +114,8 @@ app.include_router(misc_routes.router)
 app.include_router(admin_routes.router)
 
 if __name__ == "__main__":
+    import os
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Overridable so this can run alongside another service already holding the
+    # default port (dev.sh passes BACKEND_PORT through).
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("BACKEND_PORT", "8000")))

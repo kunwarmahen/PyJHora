@@ -57,8 +57,10 @@ FRONTEND_PID="$RUN_DIR/frontend.pid"
 BACKEND_LOG="$RUN_DIR/backend.log"
 FRONTEND_LOG="$RUN_DIR/frontend.log"
 
-BACKEND_PORT=8000
-FRONTEND_PORT=3000
+# Overridable so the stack can run beside another service already holding a
+# default port:  BACKEND_PORT=8001 ./dev.sh start
+BACKEND_PORT="${BACKEND_PORT:-8000}"
+FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 
 COMPOSE_FILE="$ROOT_DIR/docker-compose.yml"
 COMPOSE_BIN=""                    # resolved lazily by detect_compose
@@ -106,6 +108,20 @@ kill_tree() {  # kill_tree <pid> — kill a pid and ALL descendants, leaves firs
   kill "$pid" 2>/dev/null || true
 }
 
+kill_port_if_ours() {  # kill_port_if_ours <port> <cmdline-pattern>
+  # Kill port holders only when their command line matches OUR entrypoint, so a
+  # co-resident app (another project's uvicorn, say) is reported and left alone.
+  local port="$1" pattern="$2" pid cmd
+  for pid in $(lsof -ti tcp:"$port" -sTCP:LISTEN 2>/dev/null || true); do
+    cmd="$(ps -p "$pid" -o args= 2>/dev/null || true)"
+    case "$cmd" in
+      *"$pattern"*) kill "$pid" 2>/dev/null || true ;;
+      *) err "port $port is held by another app (pid $pid) — leaving it alone:"
+         printf '      %s\n' "$(printf '%s' "$cmd" | cut -c1-100)" ;;
+    esac
+  done
+}
+
 kill_port() {  # kill_port <port> — kill whatever is LISTENing on a tcp port
   local port="$1" pids
   pids="$(lsof -ti tcp:"$port" -sTCP:LISTEN 2>/dev/null || true)"
@@ -134,6 +150,7 @@ start_backend() {
     # Sign in with Google: surface the client ID from web/.env into the process
     # env so pydantic-settings picks it up in local (non-docker) dev too.
     export GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-$(env_val GOOGLE_CLIENT_ID)}"
+    export BACKEND_PORT
     # Invoke the venv interpreter directly rather than sourcing activate:
     # a venv resolves from the executable's location, so this is robust even
     # if the venv was created under an old (since-renamed) directory path.
@@ -159,9 +176,12 @@ stop_backend() {
     # kill the whole tree so uvicorn child workers go too
     kill_tree "$pid"
   fi
-  # safety net: anything still matching the entrypoint or holding the port
+  # Safety net for a backend we lost the pidfile for. Deliberately NOT a blanket
+  # kill_port: another project may legitimately hold this port, and killing a
+  # stranger's server because it answers on :8000 is never what "stop the
+  # backend" should mean.
   pkill -f "python main.py" 2>/dev/null || true
-  kill_port "$BACKEND_PORT"
+  kill_port_if_ours "$BACKEND_PORT" "main.py"
   rm -f "$BACKEND_PID"
   ok "backend stopped"
 }
@@ -178,6 +198,8 @@ start_frontend() {
     # Pass the Google client ID from web/.env to CRA's dev server (create-react-app
     # only inlines REACT_APP_* vars present in its environment at build/start).
     exec env BROWSER=none \
+      PORT="$FRONTEND_PORT" \
+      REACT_APP_API_URL="${REACT_APP_API_URL:-http://localhost:$BACKEND_PORT}" \
       REACT_APP_GOOGLE_CLIENT_ID="${REACT_APP_GOOGLE_CLIENT_ID:-$(env_val REACT_APP_GOOGLE_CLIENT_ID)}" \
       npm start
   ) >"$FRONTEND_LOG" 2>&1 &

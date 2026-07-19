@@ -36,6 +36,7 @@ import { LANGUAGES } from "../i18n";
 import { SITE_TITLE } from "../config/branding";
 import { SIGN_LABEL_MODES } from "../config/signLabel";
 import { STARTUP_PROFILE_MODES } from "../config/startupProfile";
+import { DENSITIES } from "../config/density";
 import { zoneLabel } from "../config/currentLocation";
 import { Tabs, useTabs } from "../components/Tabs";
 import "../styles/Settings.css";
@@ -608,6 +609,23 @@ export const SettingsPage = () => {
               </div>
             </div>
             <p className="settings-hint">{t("settings.general.themeHint")}</p>
+
+            <div className="settings-row">
+              <label className="settings-label">{t("settings.general.density")}</label>
+              <div className="settings-segment">
+                {DENSITIES.map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    className={`settings-seg-btn${settings.density === v ? " is-active" : ""}`}
+                    onClick={() => set("density", v)}
+                  >
+                    {t(`settings.general.densityOpt.${v}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="settings-hint">{t("settings.general.densityHint")}</p>
 
             <div className="settings-row">
               <label className="settings-label">{t("settings.general.startupProfile")}</label>

@@ -263,7 +263,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--tile-icon-mb);
   color: var(--text-on-accent);
   box-shadow: var(--shadow-md);
   transition: transform 0.3s ease;
@@ -275,15 +275,15 @@
 
 .feature-card h3 {
   margin: 0 0 var(--space-xs) 0;
-  font-size: 1.05rem;
+  font-size: var(--tile-title-size);
   color: var(--text-primary);
 }
 
 .feature-card p {
   margin: 0 0 var(--space-sm) 0;
   color: var(--text-secondary);
-  font-size: 0.8rem;
-  line-height: 1.45;
+  font-size: var(--tile-text-size);
+  line-height: var(--tile-text-leading);
 }
 
 .feature-arrow {
