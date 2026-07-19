@@ -397,38 +397,37 @@ web exposes. High-value additions:
       for the design (this note used to sketch the two options and got B's cost wrong — the
       doc supersedes it).
 
-- [ ] 🔴 **Localize engine-returned chart-data names (i18n data layer)** (P3 — was
-      DEPRIORITIZED per owner 2026-07-03). **IN PROGRESS since 2026-07-16.**
+- [x] ✅ **Localize engine-returned chart-data names (i18n data layer)** — **SHIPPED 2026-07-19.**
 
-      📖 **Full design, decisions and traps: [`docs/I18N_DATA_LAYER_DESIGN.md`](docs/I18N_DATA_LAYER_DESIGN.md).**
-      That doc is the source of truth — this entry is just the task status, so keep the detail
-      there and don't re-litigate it here.
+      📖 Full design, decisions and traps: [`docs/I18N_DATA_LAYER_DESIGN.md`](docs/I18N_DATA_LAYER_DESIGN.md).
 
-      Outcome is a **hybrid**: frontend mapping (A) owns the fixed enumerations (rasis /
-      nakshatras / grahas — the only path that covers Sanskrit), PyJHora's per-call `language=`
-      (B) owns the engine free text (yoga/dosha names + descriptions, which A structurally
-      cannot do). Sanskrit routes to Hindi wherever B is involved — a stopgap, not the
-      destination.
+      Hybrid as designed: frontend mapping (A) owns the fixed enumerations
+      (rasis / nakshatras / grahas), PyJHora's per-call `language=` (B) owns the engine free
+      text. **A is now rolled out across all 38 files** that render engine names — signs,
+      nakshatras and graha abbreviations follow the selected language everywhere a human
+      reads them. B covers yogas, raja yogas and (new) doshas.
 
-      **Done:** A machinery (`scripts/gen-name-locales.js` + `i18n/localizeName.js` +
-      22 tests, the repo's first frontend tests) · BirthChart + both chart components ·
-      B for yogas + raja yogas (`to_engine_language`, `lang` param on 2 routes, 12 tests;
-      suite 222 → 234).
+      **Two places deliberately NOT localized**, both recorded in the doc so they aren't
+      "fixed" later:
+      - `AskAstrologerPage` — its `sign_name`/`nakshatra` sites build the chart context
+        **sent to the model**, not rendered text. The prompts and tool schemas are English;
+        translating the payload would hand the AI Hindi names to reason over.
+      - The §4.4 identity sites — `PlanetExplorer`'s `name` (keys `flagsByPlanet`, passed to
+        `onSelectPlanet`) and `MarriageTimeline`'s `p.lord`. Only their visible labels are
+        wrapped; localizing the identity would break planet selection silently.
 
-      **Left:** roll the A pattern across ~22 files (65 `sign_name` sites, 39 `.nakshatra`,
-      45 RASI/PLANET-constant uses) — Transit / Compare / Dhasa / Panchanga / Predictions /
-      KP / Jaimini / Chakras / Bhava / Marriage / digests.
+      **Bonus cleanup:** four page-local copies of the abbreviation tables were retired
+      (`SIGN_ABBR` in Ephemeris, `PLANET_ABBR3` + a `RASI_ABBR` array in Advanced, plus
+      direct `PLANET_ABBR` imports in six pages) — exactly the drift the generated tables
+      exist to prevent.
 
-      **Two things that will bite anyone resuming this** (both explained in the doc):
-      - ⚠️ Never pass `language` to `get_yoga_details` — PyJHora eval()s the message file's
-        KEYS as function names and the hi/en key sets differ, so the language changes **which
-        yogas are detected**. Detect in English, translate by key.
-      - ⚠️ Canonical English is an IDENTITY (`fullName` keys flagsByPlanet + onSelectPlanet).
-        Apply `ln()` only where text is rendered, never to a lookup key.
+      **Owner decisions (2026-07-19):** keep the sa→hi stopgap (upstream Sanskrit files
+      deferred) · ship the hand-authored Sanskrit but **flag it as unreviewed in Settings** ·
+      doshas take the engine's text for hi/sa while English keeps our better descriptions.
 
-      **Open decisions for the owner** (full list in the doc §6): author Sanskrit `lang/`
-      files upstream · the hand-authored Sanskrit is unreviewed · doshas (gain Hindi, lose our
-      better descriptions?) · the `म्रृगशीर्षा` typo in `list_values_hi.txt`.
+      **Still English by design** (open in doc §6): Kendra-Trikona raja yoga labels,
+      panchanga limb values, Ashtakoot koota names. Also open: the `म्रृगशीर्षा` typo in
+      upstream `list_values_hi.txt`, and whether new-page UI strings stay English-only.
 
 ## 6. Suggested execution order
 
