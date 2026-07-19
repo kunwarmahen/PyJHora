@@ -16,6 +16,7 @@ import { useSettings } from "../contexts/SettingsContext";
 import { intlLocale } from "../utils/format";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -46,6 +47,7 @@ const formatDate = (dateStr, locale = "en-US") => {
 
 export const BhriguMarkersPage = () => {
   const navigate = useNavigate();
+  const ln = useLocalizeName();
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
@@ -184,7 +186,7 @@ export const BhriguMarkersPage = () => {
             {bb && (
               <div className="info-pills">
                 <span className="info-pill">
-                  <Compass size={14} /> {t("bhrigu.bbSign", { sign: bb.sign_name, deg: bb.degrees })}
+                  <Compass size={14} /> {t("bhrigu.bbSign", { sign: ln(bb.sign_name, "rasi"), deg: bb.degrees })}
                 </span>
                 <span className="info-pill">{t("bhrigu.bbHouse", { n: bb.house_from_lagna })}</span>
                 <span className="info-pill">{t("bhrigu.moonSign", { sign: data.moon_sign })}</span>
@@ -210,7 +212,8 @@ export const BhriguMarkersPage = () => {
                       {p.year} <span className="text-secondary">· {t("bhrigu.age", { n: p.age })}</span>
                     </div>
                     <div className="bhrigu-prog__sign">
-                      {p.sign_name} <span className="text-secondary">({p.sign_lord})</span>
+                      {ln(p.sign_name, "rasi")}{" "}
+                      <span className="text-secondary">({ln(p.sign_lord, "graha")})</span>
                     </div>
                     <div className="bhrigu-prog__planets">
                       {p.planets.length ? p.planets.join(", ") : t("bhrigu.emptySign")}
@@ -243,7 +246,7 @@ export const BhriguMarkersPage = () => {
                       <span className="bhrigu-activation__text">
                         {t("bhrigu.activationRow", {
                           planet: a.planet,
-                          sign: a.sign_name,
+                          sign: ln(a.sign_name, "rasi"),
                           target: a.target,
                         })}
                       </span>

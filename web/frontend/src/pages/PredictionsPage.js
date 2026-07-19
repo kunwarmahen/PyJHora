@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle, MapPin } from "lucide-react";
 import { astrologyService } from "../services/api";
 import LocationSearch from "../components/LocationSearch";
 import "../styles/Forms.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 // Read the user's AI provider/model choice (Settings → AI, persisted in
 // localStorage) so predictions run through the unified LLM service — the same
@@ -26,6 +27,7 @@ const AI_TYPE = { horoscope: "general", health: "health", career: "career" };
 
 export const PredictionsPage = () => {
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const [formData, setFormData] = useState({
     name: "",
     dob: "",
@@ -242,7 +244,7 @@ export const PredictionsPage = () => {
                     <strong>{t("birthChart.lagnaAscendant")}:</strong>
                     <span>
                       {typeof result.lagna === "object"
-                        ? result.lagna.sign_name ||
+                        ? ln(result.lagna.sign_name, "rasi") ||
                           `Rasi ${result.lagna.house || result.lagna.rasi || ""}`
                         : result.lagna}
                     </span>
@@ -253,7 +255,7 @@ export const PredictionsPage = () => {
                     <strong>{t("predictions.moonSign")}:</strong>
                     <span>
                       {typeof result.moon_sign === "object"
-                        ? result.moon_sign.sign_name || result.moon_sign
+                        ? ln(result.moon_sign.sign_name, "rasi") || result.moon_sign
                         : result.moon_sign}
                     </span>
                   </div>
@@ -263,7 +265,7 @@ export const PredictionsPage = () => {
                     <strong>{t("predictions.sunSign")}:</strong>
                     <span>
                       {typeof result.sun_sign === "object"
-                        ? result.sun_sign.sign_name || result.sun_sign
+                        ? ln(result.sun_sign.sign_name, "rasi") || result.sun_sign
                         : result.sun_sign}
                     </span>
                   </div>

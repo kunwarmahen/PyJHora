@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { X, Sparkles } from "lucide-react";
 import "../styles/PlanetExplorer.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 // Sign (0-based rasi) owned by each graha — used to derive the houses it lords.
 const RULERSHIP = {
@@ -34,6 +35,7 @@ export const PlanetExplorer = ({
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   // Controlled (from chart clicks) when `onSelect` is provided; else self-managed.
   const [selfSelected, setSelfSelected] = useState(null);
   const selected = onSelect ? selectedProp : selfSelected;
@@ -52,10 +54,10 @@ export const PlanetExplorer = ({
     const owned = (RULERSHIP[name] || []).map((r) => ORD[houseFromLagna(r)]);
     return {
       name,
-      sign: p.sign_name,
+      sign: ln(p.sign_name, "rasi"),
       degrees: p.degrees,
       house: ORD[houseFromLagna(p.rasi)],
-      nakshatra: p.nakshatra,
+      nakshatra: ln(p.nakshatra, "nakshatra"),
       pada: p.nakshatra_pada,
       owned,
       aspectsHouses: (asp?.aspects_houses || []).map((h) => ORD[h.house - 1] || `H${h.house}`),

@@ -15,6 +15,7 @@ import { LoadingState } from "../components/LoadingState";
 import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -30,6 +31,7 @@ const readModelConfig = () => {
 export const JaiminiPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const { selectedProfile } = useProfile();
   const { settings } = useSettings();
   const ayanamsa = settings.ayanamsa;
@@ -159,7 +161,7 @@ export const JaiminiPage = () => {
                       <tr key={k.karaka} className={k.karaka.startsWith("Atma") ? "rem-row--weak" : ""}>
                         <td><strong>{k.karaka}</strong></td>
                         <td>{k.planet}</td>
-                        <td>{k.sign_name}</td>
+                        <td>{ln(k.sign_name, "rasi")}</td>
                         <td>{k.house || "—"}</td>
                       </tr>
                     ))}
@@ -173,7 +175,10 @@ export const JaiminiPage = () => {
               <div className="ui-card ui-card--accent-indigo ui-card--pad-lg">
                 <h3 className="ui-card-header ui-card-header--sm">{t("jaimini.karakamsa")}</h3>
                 <p className="card-intro">
-                  {t("jaimini.karakamsaDesc", { planet: data.atmakaraka, sign: kk.sign_name })}
+                  {t("jaimini.karakamsaDesc", {
+                    planet: ln(data.atmakaraka, "graha"),
+                    sign: ln(kk.sign_name, "rasi"),
+                  })}
                 </p>
                 <dl className="detail-list">
                   <div><strong>{t("jaimini.occupants")}:</strong> {(kk.occupants || []).join(", ") || t("jaimini.none")}</div>
@@ -182,7 +187,7 @@ export const JaiminiPage = () => {
               </div>
               <div className="ui-card ui-card--accent ui-card--pad-lg">
                 <h3 className="ui-card-header ui-card-header--sm">{t("jaimini.swamsa")}</h3>
-                <p className="card-intro">{t("jaimini.swamsaDesc", { sign: sw.sign_name })}</p>
+                <p className="card-intro">{t("jaimini.swamsaDesc", { sign: ln(sw.sign_name, "rasi") })}</p>
                 <dl className="detail-list">
                   <div><strong>{t("jaimini.occupants")}:</strong> {(sw.occupants || []).join(", ") || t("jaimini.none")}</div>
                   <div><strong>{t("jaimini.aspects")}:</strong> {(sw.aspecting_planets || []).join(", ") || t("jaimini.none")}</div>
@@ -210,7 +215,7 @@ export const JaiminiPage = () => {
                     {argala.map((a) => (
                       <tr key={a.house}>
                         <td><strong>{a.house}</strong></td>
-                        <td>{a.sign_name}</td>
+                        <td>{ln(a.sign_name, "rasi")}</td>
                         <td>{(a.argala || []).join(", ") || "—"}</td>
                         <td className="text-secondary">{(a.virodhargala || []).join(", ") || "—"}</td>
                       </tr>

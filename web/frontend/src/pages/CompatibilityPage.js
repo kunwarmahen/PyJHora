@@ -31,6 +31,7 @@ import { useSettings } from "../contexts/SettingsContext";
 import { Tabs, useTabs } from "../components/Tabs";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 // Read the model config the user already picked in "Ask Astrologer". The server
 // resolves the actual API key (per-user stored key → env key), so we only need
@@ -168,6 +169,7 @@ const SaturnOutlook = ({ t, name, data }) => {
 export const CompatibilityPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const { selectedProfile, profiles, loadProfiles } = useProfile();
 
   const { settings } = useSettings();
@@ -519,8 +521,8 @@ export const CompatibilityPage = () => {
               </div>
               {(result.boy?.nakshatra || result.girl?.nakshatra) && (
                 <div className="score-box__nakshatras">
-                  {nameA}: {result.boy?.nakshatra} ({t("compat.pada")} {result.boy?.pada})
-                  &nbsp;•&nbsp; {nameB}: {result.girl?.nakshatra} ({t("compat.pada")}{" "}
+                  {nameA}: {ln(result.boy?.nakshatra, "nakshatra")} ({t("compat.pada")} {result.boy?.pada})
+                  &nbsp;•&nbsp; {nameB}: {ln(result.girl?.nakshatra, "nakshatra")} ({t("compat.pada")}{" "}
                   {result.girl?.pada})
                 </div>
               )}

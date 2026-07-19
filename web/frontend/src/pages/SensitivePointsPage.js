@@ -16,6 +16,7 @@ import { useSettings } from "../contexts/SettingsContext";
 import { Tabs, useTabs } from "../components/Tabs";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -32,6 +33,7 @@ const readModelConfig = () => {
 export const SensitivePointsPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const ln = useLocalizeName();
 
   const POINT_TABS = useMemo(
     () => [
@@ -196,7 +198,7 @@ export const SensitivePointsPage = () => {
                             <td className="fw-700">{s.name}</td>
                             <td className="text-secondary">{s.significance}</td>
                             <td>
-                              {s.sign_name} {s.degrees}°
+                              {ln(s.sign_name, "rasi")} {s.degrees}°
                             </td>
                             <td>{s.house}</td>
                           </tr>
@@ -235,7 +237,7 @@ export const SensitivePointsPage = () => {
                               <td className="fw-700">{s.name}</td>
                               <td className="text-secondary">{s.significance}</td>
                               <td>
-                                {s.sign_name} {s.degrees}°
+                                {ln(s.sign_name, "rasi")} {s.degrees}°
                               </td>
                               <td>{s.house}</td>
                             </tr>
@@ -277,7 +279,7 @@ export const SensitivePointsPage = () => {
                             {argala.map((h) => (
                               <tr key={h.bhava}>
                                 <td className="fw-700">{h.bhava}</td>
-                                <td>{h.sign_name}</td>
+                                <td>{ln(h.sign_name, "rasi")}</td>
                                 <td>
                                   {h.argala
                                     .map((a) => `${a.planets.join(", ")} (${a.from})`)

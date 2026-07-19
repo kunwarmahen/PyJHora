@@ -18,6 +18,7 @@ import { useSettings } from "../contexts/SettingsContext";
 import { Tabs, useTabs } from "../components/Tabs";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -50,6 +51,7 @@ const currentLocation = () =>
 export const KPPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const { selectedProfile } = useProfile();
   const { settings } = useSettings();
   const chartStyle = settings.chartStyle;
@@ -269,7 +271,7 @@ export const KPPage = () => {
                               <strong>{p.body}</strong>
                             </td>
                             <td>
-                              {p.sign_name} {p.degrees}°
+                              {ln(p.sign_name, "rasi")} {p.degrees}°
                             </td>
                             <td>{p.house}</td>
                             <td>{p.sign_lord}</td>
@@ -306,7 +308,7 @@ export const KPPage = () => {
                               <strong>{c.house}</strong>
                             </td>
                             <td>
-                              {c.sign_name} {c.degrees}°
+                              {ln(c.sign_name, "rasi")} {c.degrees}°
                             </td>
                             <td>{c.sign_lord}</td>
                             <td>{c.star_lord}</td>
@@ -465,7 +467,7 @@ export const KPPage = () => {
                 <div className="score-box">
                   <div className="score-box__label">{t("kp.horary.ascendant")}</div>
                   <div className="score-box__status">
-                    {horData.ascendant?.sign_name} {horData.ascendant?.degrees}° · {t("kp.subLord")}
+                    {ln(horData.ascendant?.sign_name, "rasi")} {horData.ascendant?.degrees}° · {t("kp.subLord")}
                     : <strong>{horData.ascendant?.sub_lord}</strong>
                   </div>
                 </div>

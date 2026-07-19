@@ -17,10 +17,11 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
-import { PLANET_ABBR, AYANAMSAS } from "../constants/jyotish";
+import { AYANAMSAS } from "../constants/jyotish";
 import { Tabs, useTabs } from "../components/Tabs";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 const dateISO = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -101,6 +102,7 @@ const CELL_FG = {
 
 export const SarvatobhadraPage = () => {
   const navigate = useNavigate();
+  const ln = useLocalizeName();
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
@@ -341,7 +343,7 @@ export const SarvatobhadraPage = () => {
                     planetNature[g] === "benefic" ? "var(--success)" : "var(--vermillion)",
                 }}
               >
-                {PLANET_ABBR[g] || g.slice(0, 2)}
+                {ln(g, "graha", { abbr: true })}
               </span>
             ))}
           </div>

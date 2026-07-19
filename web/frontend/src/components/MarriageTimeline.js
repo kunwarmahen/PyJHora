@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { PLANET_ABBR } from "../constants/jyotish";
+import { useLocalizeName } from "../i18n/localizeName";
 
 // A dual Vimsottari-Mahadasha overlap band for a couple (§2.6). Both partners'
 // maha periods are laid on one shared calendar axis; periods ruled by a marriage
@@ -10,31 +10,34 @@ const parse = (s) => {
   return y ? new Date(y, (m || 1) - 1, d || 1).getTime() : NaN;
 };
 
-const PartnerBand = ({ name, periods, significant, domainStart, domainSpan }) => (
-  <div className="mt-band">
-    <div className="mt-band__name">{name}</div>
-    <div className="mt-band__track">
-      {periods.map((p, i) => {
-        const s = parse(p.start_date);
-        const e = parse(p.end_date);
-        if (isNaN(s) || isNaN(e)) return null;
-        const left = ((s - domainStart) / domainSpan) * 100;
-        const width = ((e - s) / domainSpan) * 100;
-        const isSig = significant.has(p.lord);
-        return (
-          <div
-            key={i}
-            className={`mt-seg ${isSig ? "mt-seg--sig" : ""}`}
-            style={{ left: `${left}%`, width: `${width}%` }}
-            title={`${p.lord}: ${p.start_date} → ${p.end_date}`}
-          >
-            <span className="mt-seg__label">{PLANET_ABBR[p.lord] || p.lord}</span>
-          </div>
-        );
-      })}
+const PartnerBand = ({ name, periods, significant, domainStart, domainSpan }) => {
+  const ln = useLocalizeName();
+  return (
+    <div className="mt-band">
+      <div className="mt-band__name">{name}</div>
+      <div className="mt-band__track">
+        {periods.map((p, i) => {
+          const s = parse(p.start_date);
+          const e = parse(p.end_date);
+          if (isNaN(s) || isNaN(e)) return null;
+          const left = ((s - domainStart) / domainSpan) * 100;
+          const width = ((e - s) / domainSpan) * 100;
+          const isSig = significant.has(p.lord);
+          return (
+            <div
+              key={i}
+              className={`mt-seg ${isSig ? "mt-seg--sig" : ""}`}
+              style={{ left: `${left}%`, width: `${width}%` }}
+              title={`${p.lord}: ${p.start_date} → ${p.end_date}`}
+            >
+              <span className="mt-seg__label">{ln(p.lord, "graha", { abbr: true })}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const MarriageTimeline = ({ t, nameA, nameB, dashaA, dashaB, sigA, sigB }) => {
   const seqA = useMemo(() => dashaA?.dasha_sequence || [], [dashaA]);

@@ -17,6 +17,7 @@ import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -32,6 +33,7 @@ const readModelConfig = () => {
 export const PrashnaPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const { selectedProfile } = useProfile();
   const { settings } = useSettings();
   const ayanamsa = settings.ayanamsa;
@@ -172,11 +174,11 @@ export const PrashnaPage = () => {
                 </span>
                 <span className="info-pill">
                   <Sunrise size={14} style={{ color: "var(--saffron)" }} /> {t("prashna.lagna")}:{" "}
-                  {lagna.sign_name}
+                  {ln(lagna.sign_name, "rasi")}
                 </span>
                 <span className="info-pill">
                   <Moon size={14} style={{ color: "var(--cosmic-indigo)" }} /> {t("prashna.moon")}:{" "}
-                  {moon.sign_name} ({moon.nakshatra})
+                  {ln(moon.sign_name, "rasi")} ({ln(moon.nakshatra, "nakshatra")})
                 </span>
                 {chart.hora_lord && (
                   <span className="info-pill">{t("prashna.hora", { lord: chart.hora_lord })}</span>
