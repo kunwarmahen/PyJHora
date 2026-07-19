@@ -153,10 +153,10 @@ describe("theme tokens", () => {
     const dark = decls(/:root\[data-theme="dark"\]\s*\{[\s\S]*?\n {2}\}/);
     // Tokens that are intentionally theme-independent: brand hues, geometry
     // and type. Anything else missing from dark is a bug.
-    // `card-(pad|radius|gap|mb|header-*)` and `tile-*` are the §15 density
-    // scale: geometry, deliberately identical in both themes.
+    // The §15 density scale — card-*, tile-*, banner-*, avatar-size,
+    // now-chart-size — is geometry, deliberately identical in both themes.
     const shared = (t) =>
-      /^--(font|space|radius|saffron|marigold|vermillion|emerald|cosmic|terracotta|temple|night|white-rgb|black-rgb|card-bg|card-pad|card-radius|card-gap|card-mb|card-header|tile-|border-color|cream|text$|ink-light|accent$|gold$|planet)/.test(
+      /^--(font|space|radius|saffron|marigold|vermillion|emerald|cosmic|terracotta|temple|night|white-rgb|black-rgb|card-bg|card-pad|card-radius|card-gap|card-mb|card-header|tile-|banner-|avatar-size|now-chart-size|border-color|cream|text$|ink-light|accent$|gold$|planet)/.test(
         t
       ) || ["--surface-page", "--surface-inverse", "--text", "--radius-pill"].includes(t);
     // A pure alias (`--x: var(--y)`) resolves through to its target at use time,

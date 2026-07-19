@@ -186,6 +186,12 @@
   --tile-title-size: 1.05rem;
   --tile-text-size: 0.8rem;
   --tile-text-leading: 1.45;
+  /* Profile banner (the "who am I looking at" tile on every chart page). */
+  --banner-pad: 14px;
+  --banner-mb: 16px;
+  --avatar-size: 52px;
+  --banner-name-size: 1.2rem;
+  --now-chart-size: 118px;
 }
 
 /* The roomier scale the app used before §15, kept as a preference (Settings →
@@ -205,6 +211,11 @@
   --tile-title-size: 1.5rem;
   --tile-text-size: 0.9375rem;
   --tile-text-leading: 1.6;
+  --banner-pad: var(--space-xl);
+  --banner-mb: var(--space-3xl);
+  --avatar-size: 80px;
+  --banner-name-size: 1.75rem;
+  --now-chart-size: 160px;
 }
 
 /* ==================================================================== *

@@ -108,9 +108,9 @@
 /* Profile Banner */
 .profile-banner {
   background: var(--surface);
-  border-radius: var(--radius-xl);
-  padding: var(--space-xl);
-  margin-bottom: var(--space-3xl);
+  border-radius: var(--card-radius);
+  padding: var(--banner-pad);
+  margin-bottom: var(--banner-mb);
   box-shadow: var(--shadow-lg);
   display: flex;
   justify-content: space-between;
@@ -131,8 +131,8 @@
 }
 
 .profile-avatar-large {
-  width: 80px;
-  height: 80px;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
   /* Without this the circle is squashed into an oval on narrow screens. */
   flex-shrink: 0;
   background: linear-gradient(135deg, var(--marigold) 0%, var(--saffron) 100%);
@@ -151,8 +151,8 @@
 }
 
 .profile-info h2 {
-  margin: 0 0 var(--space-sm) 0;
-  font-size: 1.75rem;
+  margin: 0 0 var(--space-xs) 0;
+  font-size: var(--banner-name-size);
   color: var(--text-primary);
   overflow-wrap: anywhere;
 }
@@ -396,24 +396,12 @@
   }
 
   /* Profile tile: avatar left with the name beside it, birth details stacked
-     underneath one per line instead of a squeezed bullet-separated row. */
-  .profile-banner {
-    padding: var(--space-lg);
-  }
-
+     underneath one per line instead of a squeezed bullet-separated row.
+     Sizes come from the density tokens now — only the LAYOUT changes here, so
+     this can't fight a density the user chose. */
   .profile-banner-left {
     align-items: flex-start;
     gap: var(--space-md);
-  }
-
-  .profile-avatar-large {
-    width: 56px;
-    height: 56px;
-  }
-
-  .profile-info h2 {
-    font-size: 1.3rem;
-    margin-bottom: var(--space-xs);
   }
 
   .profile-meta {
@@ -2187,11 +2175,11 @@
   display: flex;
   gap: var(--space-lg);
   align-items: center;
-  padding: var(--space-lg);
-  margin-bottom: var(--space-xl);
+  padding: var(--banner-pad);
+  margin-bottom: var(--card-gap);
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: var(--card-radius);
   box-shadow: 0 2px 12px rgba(var(--indigo-rgb), 0.06);
   text-decoration: none;
   color: inherit;
@@ -2202,9 +2190,9 @@
   transform: translateY(-2px);
 }
 .now-widget__chart {
-  width: 160px;
-  min-width: 160px;
-  max-width: 160px;
+  width: var(--now-chart-size);
+  min-width: var(--now-chart-size);
+  max-width: var(--now-chart-size);
 }
 .now-widget__body {
   flex: 1;
