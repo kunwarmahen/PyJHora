@@ -3975,8 +3975,10 @@ theme. The work is mostly *auditing the literals*, not writing a dark palette.
       all dark, no page errors; print emulation under `data-theme="dark"` resolves `--surface:#fff`
       and body white; mobile 390px collapses the toggle to an icon with no overflow.
 - [x] ✅ Verify every page in both themes, prod build, mobile — done for the pages above.
-      **Not yet looked at in dark:** the remaining ~30 feature pages, Kota/Kaala/Tripataki
-      canvases, Life Report. The tokens cover them, but "covered" ≠ "looked at".
+      **Owner swept the remainder manually on 2026-07-19 and reported dark mode correct
+      everywhere** — the ~30 remaining feature pages, the Kota/Kaala/Tripataki canvases and
+      Life Report included. The "covered ≠ looked at" gap is now closed by eye, not just by
+      the token guard.
       (**South Indian chart** cleared in dark on 2026-07-17 under §38 — grid, sign labels,
       centre caption and the aspect overlay all read correctly on the night ground.)
 
