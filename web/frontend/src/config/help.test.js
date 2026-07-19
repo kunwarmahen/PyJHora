@@ -1,4 +1,11 @@
-import { HELP_SECTIONS, allHelpItemIds, filterHelp } from "./help";
+import {
+  HELP_SECTIONS,
+  allHelpItemIds,
+  filterHelp,
+  helpAnchorForPath,
+  helpLinkForPath,
+} from "./help";
+import { FEATURES } from "./features";
 import en from "../i18n/locales/en.json";
 
 // The point of the structure/text split is that adding a question is one id
@@ -76,5 +83,52 @@ describe("filterHelp", () => {
 
   test("tolerates missing text for an id without throwing", () => {
     expect(() => filterHelp("anything", () => undefined)).not.toThrow();
+  });
+});
+
+describe("contextual help links", () => {
+  test('every feature page has a tour entry, so its "?" is never generic', () => {
+    // This is the guard that keeps the tour complete: add a feature without a
+    // help entry and this fails, rather than the page quietly shipping with a
+    // "?" that dumps the user at the top of the FAQ.
+    const missing = FEATURES.filter((f) => !f.navOnly && !helpAnchorForPath(f.path)).map(
+      (f) => f.path
+    );
+    expect(missing).toEqual([]);
+  });
+
+  test("resolves a feature page to its own anchor", () => {
+    expect(helpAnchorForPath("/birth-chart")).toBe("featBirthChart");
+    expect(helpLinkForPath("/dhasa")).toBe("/help#featDasha");
+  });
+
+  test("falls back to a unique match outside the tour", () => {
+    // Explained once, in the AI section — no tour entry needed to resolve it.
+    expect(helpAnchorForPath("/ask-astrologer")).toBe("aiWhatIsIt");
+    expect(helpAnchorForPath("/history")).toBe("aiHistory");
+  });
+
+  test("the tour wins when a path is in both the tour and elsewhere", () => {
+    // /rectify is both a tour entry and the answer to "I don't know my time".
+    expect(helpAnchorForPath("/rectify")).toBe("featRectify");
+  });
+
+  test("tolerates a trailing slash, query and hash", () => {
+    expect(helpAnchorForPath("/birth-chart/")).toBe("featBirthChart");
+    expect(helpAnchorForPath("/birth-chart?tab=yogas")).toBe("featBirthChart");
+    expect(helpAnchorForPath("/birth-chart#x")).toBe("featBirthChart");
+  });
+
+  test("an ambiguous page falls back to the top of the FAQ", () => {
+    // /settings is referenced from privacy, the AI section and more; picking one
+    // arbitrarily would be worse than not jumping at all.
+    expect(helpAnchorForPath("/settings")).toBeNull();
+    expect(helpLinkForPath("/settings")).toBe("/help");
+  });
+
+  test("an unknown or empty path falls back safely", () => {
+    expect(helpLinkForPath("/nope")).toBe("/help");
+    expect(helpLinkForPath("")).toBe("/help");
+    expect(helpLinkForPath(undefined)).toBe("/help");
   });
 });

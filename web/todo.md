@@ -1955,9 +1955,19 @@ first appears.
       answers collapse by default so the whole list stays scannable. `#id` in the
       URL opens and scrolls to one answer — which is what makes the optional
       contextual links possible.
-- [ ] 🟡 (Optional, deferred) contextual "?" links from each feature page into
-      its specific FAQ anchor. The anchor support is built (`/help#aiModes`
-      works); only the per-page links are outstanding.
+- [x] **Contextual "?" links** — DONE 2026-07-18. Rather than editing 30+ pages,
+      the anchor is **derived from the route**: `helpAnchorForPath()` reverse-maps
+      the `to` links already in the outline, and `PageHeader` sends its "?" to
+      `/help#<anchor>`. One change covers every page, and a new feature gets a
+      contextual "?" the moment it joins the tour.
+      Resolution order: the feature tour first (that's the "what does this page
+      do?" answer), then any **unambiguous** match elsewhere — `/ask-astrologer`
+      is explained once in the AI section so it resolves, while `/settings` is
+      referenced six times and deliberately falls back to the top of the FAQ
+      rather than jumping somewhere arbitrary.
+      The tour was completed to all 34 feature pages (18 blurbs added), and
+      `help.test.js` now **fails if a feature is added without one** — so the
+      guard, not diligence, is what keeps every "?" specific.
 
 **Verified:** 152 frontend tests pass, prod build clean, `/help` serves and the
 content is present in the built bundle.

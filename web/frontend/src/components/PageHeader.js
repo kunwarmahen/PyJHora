@@ -1,10 +1,11 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, HelpCircle } from "lucide-react";
 import { NavDrawer } from "./NavDrawer";
 import { AdvancedNotice } from "./AdvancedOnly";
 import { ThemeToggle } from "./ThemeToggle";
+import { helpLinkForPath } from "../config/help";
 import "../styles/Shared.css";
 
 /**
@@ -23,6 +24,7 @@ export const PageHeader = ({
   right,
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
   return (
     <>
@@ -48,7 +50,7 @@ export const PageHeader = ({
               they're on. Icon-only: it must never crowd the page's own actions. */}
           <button
             className="page-help-btn"
-            onClick={() => navigate("/help")}
+            onClick={() => navigate(helpLinkForPath(location.pathname))}
             title={t("nav.help")}
             aria-label={t("nav.help")}
           >

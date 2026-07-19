@@ -270,7 +270,7 @@ where they were born.
 
 ### Help & FAQ
 
-- **`/help`** (also `/faq`): 42 plain-language questions for someone who has never
+- **`/help`** (also `/faq`): 60 plain-language questions for someone who has never
   read a chart — what a birth chart is, why the exact birth time matters, what the
   square diagram actually shows, a one-line tour of every feature, what the AI can
   see and how far to trust it, and what's stored about you
@@ -282,6 +282,11 @@ where they were born.
   rendered from `constants/glossary.js`, the same table the hover definitions use
 - Answers collapse by default and are searchable; `#id` deep-links a single
   answer (e.g. `/help#aiModes`)
+- **The "?" is contextual**: it opens the answer about the page you're on, not
+  the top of the FAQ. The anchor is derived from the route
+  (`helpAnchorForPath`), so no page declares it and a new feature gets a
+  specific "?" as soon as it joins the tour. A page explained in several places
+  (`/settings`) falls back to the top rather than jumping arbitrarily
 
 ### Life Report (long-form, generated on the server)
 

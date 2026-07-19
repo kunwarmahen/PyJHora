@@ -59,6 +59,27 @@ export const HELP_SECTIONS = [
       { id: "featRectify", to: "/rectify" },
       { id: "featLearn", to: "/learn" },
       { id: "featJournal", to: "/journal" },
+      // The rest of the feature set, so every page in the app has an entry its
+      // "?" can land on. help.test.js fails if a feature is ever added without
+      // one, which is what keeps this tour complete.
+      { id: "featNow", to: "/now" },
+      { id: "featTimeline", to: "/timeline" },
+      { id: "featStrength", to: "/strength" },
+      { id: "featSadeSati", to: "/sade-sati" },
+      { id: "featCompare", to: "/compare" },
+      { id: "featGochara", to: "/gochara" },
+      { id: "featBhava", to: "/bhava" },
+      { id: "featEphemeris", to: "/ephemeris" },
+      { id: "featReport", to: "/report" },
+      { id: "featFortnightly", to: "/fortnightly-digest" },
+      { id: "featMonthly", to: "/monthly-digest" },
+      { id: "featTithiPravesha", to: "/tithi-pravesha" },
+      { id: "featBhrigu", to: "/bhrigu-markers" },
+      { id: "featPanchaPakshi", to: "/pancha-pakshi" },
+      { id: "featChakras", to: "/chakras" },
+      { id: "featKp", to: "/kp" },
+      { id: "featJaimini", to: "/jaimini" },
+      { id: "featAdvanced", to: "/advanced" },
     ],
   },
   {
@@ -86,6 +107,42 @@ export const HELP_SECTIONS = [
 
 /** Every question id, flattened — used by the tests and the search index. */
 export const allHelpItemIds = () => HELP_SECTIONS.flatMap((s) => s.items.map((i) => i.id));
+
+/**
+ * The help anchor for a page, so its "?" can open the answer about *that* page
+ * instead of the top of the FAQ.
+ *
+ * Derived from the `to` links already in the outline rather than declared again
+ * per page — one list to keep correct, and a new feature gets a contextual "?"
+ * the moment it's added to the tour.
+ *
+ * Resolution order:
+ *  1. The feature tour, which is the "what does this page do?" answer and so the
+ *     right landing spot when someone is confused about the page they're on.
+ *  2. Failing that, a match anywhere else in the outline — but only if exactly
+ *     one entry links to that path. `/ask-astrologer` is explained once in the
+ *     AI section, so it resolves; `/settings` is referenced six times across
+ *     privacy, AI and getting-started, and picking one arbitrarily would be
+ *     worse than not jumping at all, so it returns null.
+ */
+export const helpAnchorForPath = (pathname) => {
+  if (!pathname) return null;
+  // Ignore any trailing slash and query/hash noise from the router.
+  const path = pathname.replace(/[?#].*$/, "").replace(/\/+$/, "") || "/";
+
+  const tour = HELP_SECTIONS.find((s) => s.id === "features");
+  const tourHit = tour?.items.find((i) => i.to === path);
+  if (tourHit) return tourHit.id;
+
+  const everywhere = HELP_SECTIONS.flatMap((s) => s.items).filter((i) => i.to === path);
+  return everywhere.length === 1 ? everywhere[0].id : null;
+};
+
+/** `/help#featDasha` for a page with an entry, plain `/help` otherwise. */
+export const helpLinkForPath = (pathname) => {
+  const anchor = helpAnchorForPath(pathname);
+  return anchor ? `/help#${anchor}` : "/help";
+};
 
 /**
  * Filter the outline by a search string.
