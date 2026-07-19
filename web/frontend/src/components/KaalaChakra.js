@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Compass } from "lucide-react";
 import { astrologyService } from "../services/api";
-import { PLANET_ABBR } from "../constants/jyotish";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { ChakraAiPanel } from "./ChakraAiPanel";
+import { useLocalizeName } from "../i18n/localizeName";
 
 // Kaala Chakra (§2.7) — the wheel of directions. Four stars at the hub and eight
 // spokes of three, each spoke a compass direction; a graha on a spoke colours
@@ -24,8 +24,16 @@ const pt = (angleDeg, r) => {
   return [C + r * Math.cos(rad), C - r * Math.sin(rad)];
 };
 
-export const KaalaChakra = ({ birthDetails, profile, transitDate, transitTime, transitTz, ayanamsa }) => {
+export const KaalaChakra = ({
+  birthDetails,
+  profile,
+  transitDate,
+  transitTime,
+  transitTz,
+  ayanamsa,
+}) => {
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -76,7 +84,12 @@ export const KaalaChakra = ({ birthDetails, profile, transitDate, transitTime, t
       </div>
 
       <div className="kaala-wrap">
-        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="kaala-svg" role="img" aria-label={t("kaala.title")}>
+        <svg
+          viewBox={`0 0 ${SIZE} ${SIZE}`}
+          className="kaala-svg"
+          role="img"
+          aria-label={t("kaala.title")}
+        >
           <circle cx={C} cy={C} r={R_HUB} className="kaala-hub" />
 
           {/* Eight spokes = eight directions */}
@@ -89,7 +102,9 @@ export const KaalaChakra = ({ birthDetails, profile, transitDate, transitTime, t
                 <line x1={x1} y1={y1} x2={x2} y2={y2} className="kaala-spoke" />
                 {d.cells.map((c, j) => {
                   const [cx, cy] = pt(d.angle, R_HUB + ((R_SPOKE - R_HUB) / 3) * (j + 0.6));
-                  const grahas = c.planets.map((p) => PLANET_ABBR[p.name] || p.name).join(" ");
+                  const grahas = c.planets
+                    .map((p) => ln(p.name, "graha", { abbr: true }))
+                    .join(" ");
                   return (
                     <g key={c.star}>
                       <title>{c.star}</title>
@@ -112,7 +127,7 @@ export const KaalaChakra = ({ birthDetails, profile, transitDate, transitTime, t
           {/* Four hub stars */}
           {data.inner.map((c) => {
             const [x, y] = pt(c.angle, R_HUB * 0.55);
-            const grahas = c.planets.map((p) => PLANET_ABBR[p.name] || p.name).join(" ");
+            const grahas = c.planets.map((p) => ln(p.name, "graha", { abbr: true })).join(" ");
             return (
               <g key={c.star}>
                 <title>{c.star}</title>
@@ -144,7 +159,9 @@ export const KaalaChakra = ({ birthDetails, profile, transitDate, transitTime, t
             <tbody>
               {data.directions.map((d) => (
                 <tr key={d.direction} className={`kaala-row kaala-row--${d.tone}`}>
-                  <td className="fw-700">{t(`kaala.dir.${d.direction.toLowerCase()}`, d.direction)}</td>
+                  <td className="fw-700">
+                    {t(`kaala.dir.${d.direction.toLowerCase()}`, d.direction)}
+                  </td>
                   <td className="text-secondary">{d.cells.map((c) => c.star).join(", ")}</td>
                   <td>
                     {d.cells.flatMap((c) =>
@@ -153,13 +170,15 @@ export const KaalaChakra = ({ birthDetails, profile, transitDate, transitTime, t
                           key={p.name}
                           className={`kota-graha${p.malefic ? " is-malefic" : " is-benefic"}`}
                         >
-                          {PLANET_ABBR[p.name] || p.name}
+                          {ln(p.name, "graha", { abbr: true })}
                           {p.retrograde ? "℞" : ""}
                         </span>
                       ))
                     )}
                   </td>
-                  <td className={`kaala-tone kaala-tone--${d.tone}`}>{t(`kaala.tone.${d.tone}`)}</td>
+                  <td className={`kaala-tone kaala-tone--${d.tone}`}>
+                    {t(`kaala.tone.${d.tone}`)}
+                  </td>
                 </tr>
               ))}
             </tbody>

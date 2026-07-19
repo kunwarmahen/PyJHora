@@ -187,20 +187,34 @@ survives prettier.
 
 ## 5. What's left
 
-Roll the A pattern across the remaining ~22 files: **65 `sign_name` sites, 39
-`.nakshatra`, 45 `RASI_NAMES`/`RASI_ABBR`/`PLANET_ABBR` uses**. Pages: Transit, Compare,
-Dhasa, Panchanga, Predictions, KP, Jaimini, Chakras, Bhava, Marriage, digests, and the
-rest of §5.
+**The A-layer rollout is DONE (2026-07-19).** All 38 files that rendered engine
+names now go through `localizeName` — signs, nakshatras and graha abbreviations
+follow the selected language everywhere they are displayed.
 
-The mechanical part is easy; the risk is §4.4 and simply missing a site. Find them with:
+Applied site-by-site from an explicit list rather than a regex sweep, precisely
+because of §4.4. Three things that came out of doing it:
 
-```bash
-cd web/frontend/src
-grep -rn "sign_name\|\.nakshatra\b\|RASI_NAMES\|RASI_ABBR\|PLANET_ABBR" --include=*.js
-```
+- **Four page-local copies of the abbreviation tables were retired** —
+  `SIGN_ABBR` in Ephemeris, `PLANET_ABBR3` and a `RASI_ABBR` array in Advanced,
+  plus direct `PLANET_ABBR` imports in six more pages. Exactly the drift the
+  generated tables exist to prevent; they are all gone.
+- **`AskAstrologerPage` is deliberately NOT localized.** Its four `sign_name` /
+  `nakshatra` sites build the chart-context payload **sent to the model**, not
+  rendered text. The prompts and tool schemas are English, so localizing it would
+  hand the AI Hindi names to reason over. Engine data going *to* the model stays
+  canonical; only what a human reads is translated.
+- **Two §4.4 identity sites confirmed and left alone**: `PlanetExplorer`'s `name`
+  (keys `flagsByPlanet`, passed to `onSelectPlanet`) and `MarriageTimeline`'s
+  `p.lord` (used in `significant.has()` and the tooltip title). Only their visible
+  labels are wrapped.
 
-Also still English by design, pending decisions in §6: doshas, the Kendra-Trikona raja
-yoga labels, panchanga limb values, Ashtakoot koota names.
+Scope notes: `ComparePage.compareRows` is a module-level helper so `ln` is passed
+in as an argument, and `MarriageTimeline.PartnerBand` gained a block body to hold
+the hook. The build caught both — neither was visible from the call sites.
+
+Still English by design, pending decisions in §6: the Kendra-Trikona raja yoga
+labels, panchanga limb values, and Ashtakoot koota names. Doshas are decided
+(§6.3) but not yet implemented.
 
 ## 6. Open decisions — for the owner
 

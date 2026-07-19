@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Ban } from "lucide-react";
 import { astrologyService } from "../services/api";
-import { PLANET_ABBR, RASI_ABBR } from "../constants/jyotish";
+import { RASI_NAMES } from "../constants/jyotish";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { ChakraAiPanel } from "./ChakraAiPanel";
+import { useLocalizeName } from "../i18n/localizeName";
 
 // Tripataki Chakra (§2.7) — the twelve rasis around a 5x5 grid, crossed by the
 // three "pataki" (banner) lines. The engine only ever shipped this as a drawing
@@ -15,8 +16,16 @@ const STEP = 96; // px per grid unit (grid coords run 1..5)
 
 const px = (n) => PAD + (n - 1) * STEP;
 
-export const TripatakiChakra = ({ birthDetails, profile, transitDate, transitTime, transitTz, ayanamsa }) => {
+export const TripatakiChakra = ({
+  birthDetails,
+  profile,
+  transitDate,
+  transitTime,
+  transitTz,
+  ayanamsa,
+}) => {
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -134,19 +143,19 @@ export const TripatakiChakra = ({ birthDetails, profile, transitDate, transitTim
           {data.cells.map((c) => {
             const cx = px(c.x);
             const cy = px(c.y);
-            const grahas = c.transit.map((p) => PLANET_ABBR[p.name] || p.name);
+            const grahas = c.transit.map((p) => ln(p.name, "graha", { abbr: true }));
             const cls =
               `tripataki-cell${c.is_lagna ? " is-lagna" : ""}` +
               `${c.is_moon ? " is-moon" : ""}${c.casts_vedha ? " casts-vedha" : ""}`;
             return (
               <g key={c.sign} className={cls}>
                 <title>
-                  {c.sign_name} · {t(`tripataki.class.${c.sign_class}`)}
+                  {ln(c.sign_name, "rasi")} · {t(`tripataki.class.${c.sign_class}`)}
                   {c.casts_vedha ? ` · ${t("tripataki.castsVedha")}` : ""}
                 </title>
                 <circle cx={cx} cy={cy} r={26} className="tripataki-node" />
                 <text x={cx} y={cy - 4} className="tripataki-rasi" textAnchor="middle">
-                  {RASI_ABBR[c.sign - 1] || c.sign_name}
+                  {ln(c.sign_name || RASI_NAMES[c.sign - 1], "rasi", { abbr: true })}
                 </text>
                 <text x={cx} y={cy + 9} className="tripataki-house" textAnchor="middle">
                   {c.house_from_lagna}
@@ -158,7 +167,7 @@ export const TripatakiChakra = ({ birthDetails, profile, transitDate, transitTim
                 )}
                 {c.natal.length > 0 && (
                   <text x={cx} y={cy + 54} className="tripataki-natal" textAnchor="middle">
-                    {c.natal.map((n) => PLANET_ABBR[n] || n).join(" ")}
+                    {c.natal.map((n) => ln(n, "graha", { abbr: true })).join(" ")}
                   </text>
                 )}
               </g>

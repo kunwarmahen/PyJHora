@@ -181,7 +181,8 @@ export const NakshatraProfilePage = () => {
               <div>
                 <div className="nak-hero__name">{p.name}</div>
                 <div className="nak-hero__sub">
-                  {t("nakshatra.pada", { n: p.pada })} · {t("nakshatra.moonSign", { sign: data.moon_sign })}
+                  {t("nakshatra.pada", { n: p.pada })} ·{" "}
+                  {t("nakshatra.moonSign", { sign: data.moon_sign })}
                 </div>
                 <div className="nak-hero__theme">{p.theme}</div>
               </div>
@@ -219,7 +220,11 @@ export const NakshatraProfilePage = () => {
 
             {/* Tarabala calendar */}
             <div className="mt-xl">
-              <Card title={t("nakshatra.tarabalaTitle")} icon={<Sparkles size={22} />} accent="saffron">
+              <Card
+                title={t("nakshatra.tarabalaTitle")}
+                icon={<Sparkles size={22} />}
+                accent="saffron"
+              >
                 <p className="card-intro">{t("nakshatra.tarabalaIntro")}</p>
                 <p className="card-note">{t("nakshatra.from", { date: data.calendar_from })}</p>
                 <div className="nak-cal">
@@ -241,13 +246,17 @@ export const NakshatraProfilePage = () => {
             <div className="mt-xl">
               <Card title={t("nakshatra.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
                 <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("nakshatra.aiHint")}</p>}
+                {!aiAnalysis && !aiLoading && (
+                  <p className="ai-panel__hint">{t("nakshatra.aiHint")}</p>
+                )}
                 {aiLoading && <LoadingState message={t("nakshatra.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
                     <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
                     {aiModel && (
-                      <div className="ai-panel__meta">{t("nakshatra.aiModel", { model: aiModel })}</div>
+                      <div className="ai-panel__meta">
+                        {t("nakshatra.aiModel", { model: aiModel })}
+                      </div>
                     )}
                   </div>
                 )}

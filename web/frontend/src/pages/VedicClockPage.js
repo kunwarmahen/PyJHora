@@ -24,9 +24,7 @@ const readModelConfig = () => {
     providerType,
     model: localStorage.getItem("ai_model") || "",
     baseUrl:
-      providerType === "ollama"
-        ? localStorage.getItem("ai_base_url") || undefined
-        : undefined,
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -34,7 +32,7 @@ const readModelConfig = () => {
 
 // Polar → cartesian on the clock dial (0 ghati at top, clockwise).
 const polar = (cx, cy, r, ghatiFraction) => {
-  const a = (ghatiFraction * 2 * Math.PI) - Math.PI / 2;
+  const a = ghatiFraction * 2 * Math.PI - Math.PI / 2;
   return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
 };
 
@@ -74,7 +72,14 @@ const ClockDial = ({ liveGhati, dayGhati }) => {
 
   return (
     <svg viewBox="0 0 220 220" className="vc-clock-svg" role="img" aria-label="Vedic clock">
-      <circle cx={cx} cy={cy} r={r} fill="var(--surface-raised)" stroke="var(--border)" strokeWidth="2" />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill="var(--surface-raised)"
+        stroke="var(--border)"
+        strokeWidth="2"
+      />
       {dayPath && <path d={dayPath} fill="rgba(var(--accent-rgb), 0.16)" />}
       {ticks}
       {hand && (
@@ -110,9 +115,20 @@ const RetrogradeLoop = ({ x, y }) => {
     })
     .join(" ");
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} className="vc-retro-svg" role="img" aria-label="Retrograde loop">
+    <svg
+      viewBox={`0 0 ${size} ${size}`}
+      className="vc-retro-svg"
+      role="img"
+      aria-label="Retrograde loop"
+    >
       <circle cx={size / 2} cy={size / 2} r="4" fill="var(--planet-color)" />
-      <polyline points={pts} fill="none" stroke="var(--text-primary)" strokeWidth="1.4" opacity="0.85" />
+      <polyline
+        points={pts}
+        fill="none"
+        stroke="var(--text-primary)"
+        strokeWidth="1.4"
+        opacity="0.85"
+      />
     </svg>
   );
 };
@@ -297,24 +313,26 @@ export const VedicClockPage = () => {
                   </div>
                   <div className="info-pills">
                     {panch.tithi && (
-                      <span className="info-pill">{t("panchanga.tithi")}: {panch.tithi}</span>
+                      <span className="info-pill">
+                        {t("panchanga.tithi")}: {panch.tithi}
+                      </span>
                     )}
                     {panch.nakshatra && (
-                      <span className="info-pill">{t("common.nakshatra")}: {ln(panch.nakshatra, "nakshatra")}</span>
+                      <span className="info-pill">
+                        {t("common.nakshatra")}: {ln(panch.nakshatra, "nakshatra")}
+                      </span>
                     )}
                     {panch.yoga && (
-                      <span className="info-pill">{t("panchanga.yoga")}: {panch.yoga}</span>
+                      <span className="info-pill">
+                        {t("panchanga.yoga")}: {panch.yoga}
+                      </span>
                     )}
                   </div>
                 </div>
               </Card>
 
               {/* Retrograde loop */}
-              <Card
-                title={t("vedicClock.retroTitle")}
-                icon={<RotateCcw size={22} />}
-                accent="gold"
-              >
+              <Card title={t("vedicClock.retroTitle")} icon={<RotateCcw size={22} />} accent="gold">
                 <div className="vc-planet-toggle">
                   {RETRO_PLANETS.map((p) => (
                     <button
@@ -326,19 +344,13 @@ export const VedicClockPage = () => {
                     </button>
                   ))}
                 </div>
-                {selected && (
-                  <RetrogradeLoop x={selected.orbit_x} y={selected.orbit_y} />
-                )}
+                {selected && <RetrogradeLoop x={selected.orbit_x} y={selected.orbit_y} />}
                 {selected && (
                   <p className="card-note text-center">
                     <span
-                      className={`vc-retro-badge ${
-                        selected.retrograde ? "is-retro" : "is-direct"
-                      }`}
+                      className={`vc-retro-badge ${selected.retrograde ? "is-retro" : "is-direct"}`}
                     >
-                      {selected.retrograde
-                        ? t("vedicClock.retrograde")
-                        : t("vedicClock.direct")}
+                      {selected.retrograde ? t("vedicClock.retrograde") : t("vedicClock.direct")}
                     </span>{" "}
                     {selected.next_station &&
                       t("vedicClock.nextStation", {
@@ -372,9 +384,7 @@ export const VedicClockPage = () => {
                                 p.retrograde ? "is-retro" : "is-direct"
                               }`}
                             >
-                              {p.retrograde
-                                ? t("vedicClock.retrograde")
-                                : t("vedicClock.direct")}
+                              {p.retrograde ? t("vedicClock.retrograde") : t("vedicClock.direct")}
                             </span>
                           </td>
                           <td>

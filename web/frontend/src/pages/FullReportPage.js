@@ -12,14 +12,23 @@ import { PageHeader } from "../components/PageHeader";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
-import { PLANET_ABBR, AYANAMSAS } from "../constants/jyotish";
+import { AYANAMSAS } from "../constants/jyotish";
 import { SITE_TITLE } from "../config/branding";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Report.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const PLANET_ORDER = [
-  "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu",
+  "Sun",
+  "Moon",
+  "Mars",
+  "Mercury",
+  "Jupiter",
+  "Venus",
+  "Saturn",
+  "Rahu",
+  "Ketu",
 ];
 const ordinal = (n) => {
   const s = ["th", "st", "nd", "rd"];
@@ -29,6 +38,7 @@ const ordinal = (n) => {
 
 export const FullReportPage = () => {
   const navigate = useNavigate();
+  const ln = useLocalizeName();
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
@@ -158,7 +168,8 @@ export const FullReportPage = () => {
                   <strong>{t("report.ayanamsa")}:</strong> {ayanamsaLabel}
                 </span>
                 <span>
-                  <strong>{t("report.generated")}:</strong> {formatDate(new Date().toISOString(), locale)}
+                  <strong>{t("report.generated")}:</strong>{" "}
+                  {formatDate(new Date().toISOString(), locale)}
                 </span>
               </div>
             </header>
@@ -170,24 +181,30 @@ export const FullReportPage = () => {
                 <div className="report-vital">
                   <span className="report-vital__label">{t("report.lagna")}</span>
                   <span className="report-vital__value">
-                    {chart.lagna?.sign_name}
-                    <em>{chart.lagna?.nakshatra ? ` · ${chart.lagna.nakshatra}` : ""}</em>
+                    {ln(chart.lagna?.sign_name, "rasi")}
+                    <em>
+                      {chart.lagna?.nakshatra ? ` · ${ln(chart.lagna.nakshatra, "nakshatra")}` : ""}
+                    </em>
                   </span>
                 </div>
                 <div className="report-vital">
                   <span className="report-vital__label">{t("report.moonSign")}</span>
-                  <span className="report-vital__value">{d1Planets.Moon?.sign_name || "—"}</span>
+                  <span className="report-vital__value">
+                    {ln(d1Planets.Moon?.sign_name, "rasi") || "—"}
+                  </span>
                 </div>
                 <div className="report-vital">
                   <span className="report-vital__label">{t("report.nakshatra")}</span>
                   <span className="report-vital__value">
-                    {d1Planets.Moon?.nakshatra || "—"}
+                    {ln(d1Planets.Moon?.nakshatra, "nakshatra") || "—"}
                     {d1Planets.Moon?.nakshatra_pada ? ` (${d1Planets.Moon.nakshatra_pada})` : ""}
                   </span>
                 </div>
                 <div className="report-vital">
                   <span className="report-vital__label">{t("report.sunSign")}</span>
-                  <span className="report-vital__value">{d1Planets.Sun?.sign_name || "—"}</span>
+                  <span className="report-vital__value">
+                    {ln(d1Planets.Sun?.sign_name, "rasi") || "—"}
+                  </span>
                 </div>
               </div>
             </section>
@@ -227,14 +244,15 @@ export const FullReportPage = () => {
                   {orderedPlanets.map(([name, p]) => (
                     <tr key={name}>
                       <td className="fw-700">
-                        {PLANET_ABBR[name] || name} <span className="text-secondary">{name}</span>
+                        {ln(name, "graha", { abbr: true })}{" "}
+                        <span className="text-secondary">{ln(name, "graha")}</span>
                       </td>
-                      <td>{p.sign_name}</td>
+                      <td>{ln(p.sign_name, "rasi")}</td>
                       <td className="text-secondary">
                         {p.degrees != null ? `${p.degrees.toFixed(2)}°` : "—"}
                       </td>
                       <td className="text-secondary">
-                        {p.nakshatra}
+                        {ln(p.nakshatra, "nakshatra")}
                         {p.nakshatra_pada ? ` (${p.nakshatra_pada})` : ""}
                       </td>
                     </tr>
@@ -259,8 +277,12 @@ export const FullReportPage = () => {
                     {dhasaList.map((d, i) => (
                       <tr key={i}>
                         <td className="fw-600">{d.lord || d.planet || d.name || d.dhasa_lord}</td>
-                        <td className="text-secondary">{formatDate(d.start || d.start_date, locale)}</td>
-                        <td className="text-secondary">{formatDate(d.end || d.end_date, locale)}</td>
+                        <td className="text-secondary">
+                          {formatDate(d.start || d.start_date, locale)}
+                        </td>
+                        <td className="text-secondary">
+                          {formatDate(d.end || d.end_date, locale)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -278,7 +300,9 @@ export const FullReportPage = () => {
                   {yogasPresent.map((y) => (
                     <li key={y.key}>
                       <strong>{y.name}</strong>
-                      {y.benefits ? <span className="report-list__note"> — {y.benefits}</span> : null}
+                      {y.benefits ? (
+                        <span className="report-list__note"> — {y.benefits}</span>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
@@ -294,7 +318,9 @@ export const FullReportPage = () => {
                     {doshasPresent.map((d) => (
                       <li key={d.key}>
                         <strong>{d.name}</strong>
-                        {d.description ? <span className="report-list__note"> — {d.description}</span> : null}
+                        {d.description ? (
+                          <span className="report-list__note"> — {d.description}</span>
+                        ) : null}
                       </li>
                     ))}
                   </ul>
@@ -310,7 +336,9 @@ export const FullReportPage = () => {
                 <h2 className="report-h2">
                   {t("report.transits")}{" "}
                   <span className="report-count">
-                    {data.transits.transit_date ? `· ${formatDate(data.transits.transit_date, locale)}` : ""}
+                    {data.transits.transit_date
+                      ? `· ${formatDate(data.transits.transit_date, locale)}`
+                      : ""}
                   </span>
                 </h2>
                 <table className="data-table report-table">
@@ -327,10 +355,11 @@ export const FullReportPage = () => {
                       return (
                         <tr key={name}>
                           <td className="fw-600">
-                            {PLANET_ABBR[name] || name} <span className="text-secondary">{name}</span>
+                            {ln(name, "graha", { abbr: true })}{" "}
+                            <span className="text-secondary">{ln(name, "graha")}</span>
                             {p.retrograde ? " ℞" : ""}
                           </td>
-                          <td>{p.sign_name}</td>
+                          <td>{ln(p.sign_name, "rasi")}</td>
                           <td className="text-center">{ordinal(p.house_from_moon)}</td>
                         </tr>
                       );

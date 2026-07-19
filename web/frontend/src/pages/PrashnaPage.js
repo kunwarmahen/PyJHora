@@ -24,7 +24,8 @@ const readModelConfig = () => {
   return {
     providerType,
     model: localStorage.getItem("ai_model") || "",
-    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    baseUrl:
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -60,8 +61,13 @@ export const PrashnaPage = () => {
       setModel(pendingReading.model);
       astrologyService
         .getPrashna({
-          question: c.question, date: c.date, time: c.time, place: c.place,
-          latitude: c.latitude, longitude: c.longitude, timezone: c.timezone,
+          question: c.question,
+          date: c.date,
+          time: c.time,
+          place: c.place,
+          latitude: c.latitude,
+          longitude: c.longitude,
+          timezone: c.timezone,
           ayanamsa: c.ayanamsa,
         })
         .then((res) => setChart(res.data))
@@ -199,7 +205,9 @@ export const PrashnaPage = () => {
                 {reading ? (
                   <div className="sbc-ai-markdown ai-panel__reading">
                     <ReactMarkdown>{reading}</ReactMarkdown>
-                    {model && <div className="ai-panel__meta">{t("prashna.aiModel", { model })}</div>}
+                    {model && (
+                      <div className="ai-panel__meta">{t("prashna.aiModel", { model })}</div>
+                    )}
                   </div>
                 ) : (
                   <p className="ai-panel__hint">{t("prashna.noReading")}</p>

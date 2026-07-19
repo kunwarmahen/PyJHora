@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CalendarDays, MapPin, Clock, Moon, Sun, PartyPopper, Swords, Sparkles } from "lucide-react";
+import {
+  CalendarDays,
+  MapPin,
+  Clock,
+  Moon,
+  Sun,
+  PartyPopper,
+  Swords,
+  Sparkles,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
@@ -22,9 +31,7 @@ const readModelConfig = () => {
     providerType,
     model: localStorage.getItem("ai_model") || "",
     baseUrl:
-      providerType === "ollama"
-        ? localStorage.getItem("ai_base_url") || undefined
-        : undefined,
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -88,9 +95,7 @@ const AlmanacReading = ({ loc }) => {
       {analysis && !loading && (
         <div className="sbc-ai-markdown ai-panel__reading">
           <ReactMarkdown>{analysis}</ReactMarkdown>
-          {model && (
-            <div className="ai-panel__meta">{t("almanac.aiModel", { model })}</div>
-          )}
+          {model && <div className="ai-panel__meta">{t("almanac.aiModel", { model })}</div>}
         </div>
       )}
       {!loading && (
@@ -324,9 +329,7 @@ const FestivalPanel = ({ loc }) => {
   }, [load]);
 
   const toggleType = (key) =>
-    setTypes((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    );
+    setTypes((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
 
   const events = data?.events || [];
 

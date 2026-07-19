@@ -521,9 +521,9 @@ export const CompatibilityPage = () => {
               </div>
               {(result.boy?.nakshatra || result.girl?.nakshatra) && (
                 <div className="score-box__nakshatras">
-                  {nameA}: {ln(result.boy?.nakshatra, "nakshatra")} ({t("compat.pada")} {result.boy?.pada})
-                  &nbsp;•&nbsp; {nameB}: {ln(result.girl?.nakshatra, "nakshatra")} ({t("compat.pada")}{" "}
-                  {result.girl?.pada})
+                  {nameA}: {ln(result.boy?.nakshatra, "nakshatra")} ({t("compat.pada")}{" "}
+                  {result.boy?.pada}) &nbsp;•&nbsp; {nameB}:{" "}
+                  {ln(result.girl?.nakshatra, "nakshatra")} ({t("compat.pada")} {result.girl?.pada})
                 </div>
               )}
             </div>

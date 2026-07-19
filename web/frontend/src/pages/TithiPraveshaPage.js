@@ -17,12 +17,21 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { TithiAshtottariTree } from "../components/TithiAshtottariTree";
-import { PLANET_ABBR, AYANAMSAS } from "../constants/jyotish";
+import { AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const PLANET_ORDER = [
-  "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu",
+  "Sun",
+  "Moon",
+  "Mars",
+  "Mercury",
+  "Jupiter",
+  "Venus",
+  "Saturn",
+  "Rahu",
+  "Ketu",
 ];
 
 // The lunar (tithi) pravesha ladder, shortest rung first. Each is a real pravesha
@@ -60,7 +69,9 @@ const formatDate = (dateStr, locale = "en-US") => {
     // Greenwich; pin date-only strings to local midnight.
     const local = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? `${dateStr}T00:00:00` : dateStr;
     return new Date(local).toLocaleDateString(locale, {
-      year: "numeric", month: "short", day: "numeric",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   } catch {
     return "—";
@@ -72,7 +83,8 @@ const readModelConfig = () => {
   return {
     providerType,
     model: localStorage.getItem("ai_model") || "",
-    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    baseUrl:
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -91,6 +103,7 @@ const readModelConfig = () => {
  */
 export const TithiPraveshaPage = () => {
   const navigate = useNavigate();
+  const ln = useLocalizeName();
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
@@ -357,7 +370,8 @@ export const TithiPraveshaPage = () => {
           <div className="fade-in">
             <div className="info-pills">
               <span className="info-pill">
-                {t("tp.lagna")}: <strong className="text-indigo">{result.lagna?.sign_name}</strong>
+                {t("tp.lagna")}:{" "}
+                <strong className="text-indigo">{ln(result.lagna?.sign_name, "rasi")}</strong>
               </span>
               <span className="info-pill">
                 {/* Only the annual window is entered *on* the natal tithi; the shorter
@@ -368,8 +382,11 @@ export const TithiPraveshaPage = () => {
               {/* Year-reckoned; annual rung only. */}
               {isAnnual && result.muntha && (
                 <span className="info-pill">
-                  {t("tp.muntha")}: <strong className="text-saffron">{result.muntha.sign_name}</strong>
-                  {result.muntha.house ? ` (${ordinal(result.muntha.house)} ${t("tp.houseWord")})` : ""}
+                  {t("tp.muntha")}:{" "}
+                  <strong className="text-saffron">{ln(result.muntha.sign_name, "rasi")}</strong>
+                  {result.muntha.house
+                    ? ` (${ordinal(result.muntha.house)} ${t("tp.houseWord")})`
+                    : ""}
                 </span>
               )}
               {isAnnual && result.year_lord && (
@@ -413,10 +430,12 @@ export const TithiPraveshaPage = () => {
                       {orderedPlanets.map(([p, v]) => (
                         <tr key={p}>
                           <td className="fw-700">
-                            <span className="text-saffron">{PLANET_ABBR[p] || p}</span> {p}
+                            <span className="text-saffron">{ln(p, "graha", { abbr: true })}</span>{" "}
+                            {ln(p, "graha")}
                           </td>
                           <td className="text-secondary">
-                            {v.sign_name} <span className="text-muted">{v.degrees}°</span>
+                            {ln(v.sign_name, "rasi")}{" "}
+                            <span className="text-muted">{v.degrees}°</span>
                           </td>
                           <td className="text-indigo">{v.house}</td>
                         </tr>
@@ -447,7 +466,8 @@ export const TithiPraveshaPage = () => {
                         <tr key={i}>
                           <td className="fw-700 text-saffron">{s.name}</td>
                           <td className="text-secondary">
-                            {s.sign_name} <span className="text-muted">{s.degrees}°</span>
+                            {ln(s.sign_name, "rasi")}{" "}
+                            <span className="text-muted">{s.degrees}°</span>
                           </td>
                           <td className="text-indigo">{s.house}</td>
                         </tr>

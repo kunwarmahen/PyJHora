@@ -22,7 +22,8 @@ const readModelConfig = () => {
   return {
     providerType,
     model: localStorage.getItem("ai_model") || "",
-    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    baseUrl:
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -142,7 +143,9 @@ export const NowChartPage = () => {
       <div className="dashboard-content">
         <RecentReadings source="now_chart" />
 
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "var(--space-md)" }}>
+        <div
+          style={{ display: "flex", justifyContent: "flex-end", marginBottom: "var(--space-md)" }}
+        >
           <button className="ui-btn ui-btn--secondary" onClick={load} disabled={loading}>
             <RefreshCw size={16} /> {t("now.refresh")}
           </button>
@@ -164,7 +167,12 @@ export const NowChartPage = () => {
 
             <div className="chart-grid">
               <Card title={t("now.chartTitle")} accent="indigo">
-                <Kundali planets={data.planets} lagna={data.lagna} title={t("now.chartTitle")} exportable />
+                <Kundali
+                  planets={data.planets}
+                  lagna={data.lagna}
+                  title={t("now.chartTitle")}
+                  exportable
+                />
               </Card>
             </div>
 
@@ -174,9 +182,13 @@ export const NowChartPage = () => {
                 <div className="info-pills">
                   {panch.vaara?.name && <span className="info-pill">{panch.vaara.name}</span>}
                   {panch.tithi?.name && <span className="info-pill">{panch.tithi.name}</span>}
-                  {panch.nakshatra?.name && <span className="info-pill">{ln(panch.nakshatra.name, "nakshatra")}</span>}
+                  {panch.nakshatra?.name && (
+                    <span className="info-pill">{ln(panch.nakshatra.name, "nakshatra")}</span>
+                  )}
                   {panch.yoga?.name && <span className="info-pill">{panch.yoga.name}</span>}
-                  {data.hora_lord && <span className="info-pill">{t("now.hora", { lord: data.hora_lord })}</span>}
+                  {data.hora_lord && (
+                    <span className="info-pill">{t("now.hora", { lord: data.hora_lord })}</span>
+                  )}
                 </div>
               </div>
             )}
@@ -189,7 +201,9 @@ export const NowChartPage = () => {
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
                     <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
-                    {aiModel && <div className="ai-panel__meta">{t("now.aiModel", { model: aiModel })}</div>}
+                    {aiModel && (
+                      <div className="ai-panel__meta">{t("now.aiModel", { model: aiModel })}</div>
+                    )}
                   </div>
                 )}
                 {!aiLoading && (

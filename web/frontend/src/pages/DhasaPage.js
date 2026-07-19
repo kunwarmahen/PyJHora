@@ -118,10 +118,7 @@ function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
       className={`dasha-node${level === 1 ? " dasha-node--root" : ""}${isCurrent ? " is-current" : ""}`}
       style={{ marginLeft: indent, "--lvl-accent": meta.accent, "--avatar": `${avatar}px` }}
     >
-      <div
-        onClick={toggle}
-        className={`dasha-node__head${canExpand ? " is-expandable" : ""}`}
-      >
+      <div onClick={toggle} className={`dasha-node__head${canExpand ? " is-expandable" : ""}`}>
         <div className="dasha-node__avatar">{(node.lord || "?").slice(0, 2)}</div>
 
         <div>
@@ -575,17 +572,29 @@ export const DhasaPage = () => {
                   {currentSubPeriod && (
                     <div>
                       <div className="field-label">{t("dhasa.currentBhukti")}</div>
-                      <div style={{ fontSize: "1.125rem", fontWeight: 600, color: "var(--vermillion)" }}>
+                      <div
+                        style={{
+                          fontSize: "1.125rem",
+                          fontWeight: 600,
+                          color: "var(--vermillion)",
+                        }}
+                      >
                         {currentSubPeriod.lord}
                       </div>
-                      <div className="text-secondary" style={{ fontSize: "0.75rem", marginTop: "var(--space-xs)" }}>
+                      <div
+                        className="text-secondary"
+                        style={{ fontSize: "0.75rem", marginTop: "var(--space-xs)" }}
+                      >
                         {formatDate(currentSubPeriod.start_date, locale)} -{" "}
                         {formatDate(currentSubPeriod.end_date, locale)}
                       </div>
                     </div>
                   )}
                 </div>
-                <p className="text-secondary" style={{ margin: "var(--space-lg) 0 0", fontSize: "0.8125rem" }}>
+                <p
+                  className="text-secondary"
+                  style={{ margin: "var(--space-lg) 0 0", fontSize: "0.8125rem" }}
+                >
                   {t("dhasa.liveHint")}
                 </p>
               </div>

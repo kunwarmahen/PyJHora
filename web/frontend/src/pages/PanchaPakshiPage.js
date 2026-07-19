@@ -311,7 +311,11 @@ export const PanchaPakshiPage = () => {
 
             {/* AI reading */}
             <div className="mt-xl">
-              <Card title={t("panchaPakshi.aiTitle")} icon={<Sparkles size={24} />} accent="terracotta">
+              <Card
+                title={t("panchaPakshi.aiTitle")}
+                icon={<Sparkles size={24} />}
+                accent="terracotta"
+              >
                 <ErrorBanner message={aiError} />
                 {!aiAnalysis && !aiLoading && (
                   <p className="ai-panel__hint">{t("panchaPakshi.aiHint")}</p>

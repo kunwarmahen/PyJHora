@@ -467,8 +467,8 @@ export const KPPage = () => {
                 <div className="score-box">
                   <div className="score-box__label">{t("kp.horary.ascendant")}</div>
                   <div className="score-box__status">
-                    {ln(horData.ascendant?.sign_name, "rasi")} {horData.ascendant?.degrees}° · {t("kp.subLord")}
-                    : <strong>{horData.ascendant?.sub_lord}</strong>
+                    {ln(horData.ascendant?.sign_name, "rasi")} {horData.ascendant?.degrees}° ·{" "}
+                    {t("kp.subLord")}: <strong>{horData.ascendant?.sub_lord}</strong>
                   </div>
                 </div>
                 {horData.chart && (

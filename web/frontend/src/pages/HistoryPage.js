@@ -29,7 +29,10 @@ export const HistoryPage = () => {
     if (!iso) return "";
     try {
       return new Date(iso).toLocaleString(locale, {
-        month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       });
     } catch (e) {
       return "";
@@ -104,7 +107,8 @@ export const HistoryPage = () => {
     }
     return Array.from(map.entries()).map(([key, list]) => ({
       key,
-      name: key === "__none__" ? t("history.noProfile") : profileName(key) || t("history.noProfile"),
+      name:
+        key === "__none__" ? t("history.noProfile") : profileName(key) || t("history.noProfile"),
       list,
     }));
   }, [visible, profileName, t]);
@@ -139,7 +143,9 @@ export const HistoryPage = () => {
           </div>
         ) : visible.length === 0 ? (
           <div className="ui-card ui-card--pad-lg">
-            <p className="text-secondary" style={{ margin: 0 }}>{t("history.empty")}</p>
+            <p className="text-secondary" style={{ margin: 0 }}>
+              {t("history.empty")}
+            </p>
           </div>
         ) : (
           groups.map((g) => (
@@ -166,9 +172,7 @@ export const HistoryPage = () => {
                         </span>
                         {c.title}
                       </div>
-                      {c.preview && (
-                        <div className="history-item__preview">{c.preview}…</div>
-                      )}
+                      {c.preview && <div className="history-item__preview">{c.preview}…</div>}
                       <div className="history-item__meta">
                         {c.last_model ? `${c.last_model} · ` : ""}
                         {fmt(c.updated_at)}

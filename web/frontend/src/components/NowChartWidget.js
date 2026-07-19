@@ -90,7 +90,9 @@ export const NowChartWidget = () => {
         <div className="now-widget__pills">
           {panch.vaara?.name && <span className="info-pill">{panch.vaara.name}</span>}
           {panch.tithi?.name && <span className="info-pill">{panch.tithi.name}</span>}
-          {panch.nakshatra?.name && <span className="info-pill">{ln(panch.nakshatra.name, "nakshatra")}</span>}
+          {panch.nakshatra?.name && (
+            <span className="info-pill">{ln(panch.nakshatra.name, "nakshatra")}</span>
+          )}
         </div>
         <span className="now-widget__cta">
           {t("now.widgetCta")} <ChevronRight size={16} />

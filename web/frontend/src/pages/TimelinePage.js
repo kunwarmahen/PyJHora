@@ -25,9 +25,7 @@ const readModelConfig = () => {
     providerType,
     model: localStorage.getItem("ai_model") || "",
     baseUrl:
-      providerType === "ollama"
-        ? localStorage.getItem("ai_base_url") || undefined
-        : undefined,
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -302,9 +300,7 @@ export const TimelinePage = () => {
         ) : data ? (
           <div className="fade-in">
             <div className="info-pills">
-              <span className="info-pill">
-                {t("timeline.moonSign", { sign: data.moon_sign })}
-              </span>
+              <span className="info-pill">{t("timeline.moonSign", { sign: data.moon_sign })}</span>
               <span className="info-pill">
                 {formatDate(win.start_date, locale)} – {formatDate(win.end_date, locale)}
               </span>
@@ -471,10 +467,12 @@ export const TimelinePage = () => {
                   <b>{t("timeline.laneEclipse")}</b>
                 </span>
                 <span className="tl-legend__item">
-                  <span className="tl-dot" style={{ background: "var(--gold)" }} /> {t("timeline.solar")}
+                  <span className="tl-dot" style={{ background: "var(--gold)" }} />{" "}
+                  {t("timeline.solar")}
                 </span>
                 <span className="tl-legend__item">
-                  <span className="tl-dot" style={{ background: "var(--text-primary)" }} /> {t("timeline.lunar")}
+                  <span className="tl-dot" style={{ background: "var(--text-primary)" }} />{" "}
+                  {t("timeline.lunar")}
                 </span>
                 <span className="tl-legend__item">
                   <span className="tl-dot tl-dot--hit" /> {t("timeline.eclipseHit")}
@@ -536,7 +534,8 @@ export const TimelinePage = () => {
                     {selection.eclipses.map((e, i) => (
                       <span key={`we${i}`} className="tl-event">
                         {e.kind === "solar" ? <Sun size={13} /> : <Moon size={13} />}
-                        {formatDate(e.date, locale)} · {t(`timeline.${e.kind}`)} · {ln(e.nakshatra, "nakshatra")}
+                        {formatDate(e.date, locale)} · {t(`timeline.${e.kind}`)} ·{" "}
+                        {ln(e.nakshatra, "nakshatra")}
                         {e.on_natal_nakshatra && (
                           <b className="tl-event__hit">
                             {" "}

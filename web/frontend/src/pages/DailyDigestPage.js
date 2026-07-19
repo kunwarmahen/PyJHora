@@ -23,7 +23,8 @@ const readModelConfig = () => {
   return {
     providerType,
     model: localStorage.getItem("ai_model") || "",
-    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    baseUrl:
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -250,7 +251,10 @@ export const DailyDigestPage = () => {
               </h3>
               <ul className="digest-highlights">
                 {highlights.map((h, i) => (
-                  <li key={i} className={h.startsWith("⚠") ? "digest-hl digest-hl--warn" : "digest-hl"}>
+                  <li
+                    key={i}
+                    className={h.startsWith("⚠") ? "digest-hl digest-hl--warn" : "digest-hl"}
+                  >
                     {h}
                   </li>
                 ))}
@@ -265,13 +269,35 @@ export const DailyDigestPage = () => {
                     <Sun size={18} /> {t("digest.panchanga")}
                   </h3>
                   <div className="detail-list digest-details">
-                    <div><span className="kv-label">{t("digest.tithi")}</span><span className="kv-value">{panch.tithi?.name}</span></div>
-                    <div><span className="kv-label">{t("digest.nakshatra")}</span><span className="kv-value">{ln(panch.nakshatra?.name, "nakshatra")}</span></div>
-                    <div><span className="kv-label">{t("digest.yoga")}</span><span className="kv-value">{panch.yoga?.name}</span></div>
-                    <div><span className="kv-label">{t("digest.vaara")}</span><span className="kv-value">{panch.vaara?.name}</span></div>
-                    <div><span className="kv-label">{t("digest.sunrise")}</span><span className="kv-value">{panch.sunrise} / {panch.sunset}</span></div>
+                    <div>
+                      <span className="kv-label">{t("digest.tithi")}</span>
+                      <span className="kv-value">{panch.tithi?.name}</span>
+                    </div>
+                    <div>
+                      <span className="kv-label">{t("digest.nakshatra")}</span>
+                      <span className="kv-value">{ln(panch.nakshatra?.name, "nakshatra")}</span>
+                    </div>
+                    <div>
+                      <span className="kv-label">{t("digest.yoga")}</span>
+                      <span className="kv-value">{panch.yoga?.name}</span>
+                    </div>
+                    <div>
+                      <span className="kv-label">{t("digest.vaara")}</span>
+                      <span className="kv-value">{panch.vaara?.name}</span>
+                    </div>
+                    <div>
+                      <span className="kv-label">{t("digest.sunrise")}</span>
+                      <span className="kv-value">
+                        {panch.sunrise} / {panch.sunset}
+                      </span>
+                    </div>
                     {panch.abhijit && (
-                      <div><span className="kv-label">{t("digest.abhijit")}</span><span className="kv-value">{panch.abhijit.start}–{panch.abhijit.end}</span></div>
+                      <div>
+                        <span className="kv-label">{t("digest.abhijit")}</span>
+                        <span className="kv-value">
+                          {panch.abhijit.start}–{panch.abhijit.end}
+                        </span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -284,12 +310,23 @@ export const DailyDigestPage = () => {
                     <Clock size={18} /> {t("digest.dasha")}
                   </h3>
                   <div className="detail-list digest-details">
-                    <div><span className="kv-label">{t("digest.mahadasha")}</span><span className="kv-value">{dasha.maha_lord}</span></div>
+                    <div>
+                      <span className="kv-label">{t("digest.mahadasha")}</span>
+                      <span className="kv-value">{dasha.maha_lord}</span>
+                    </div>
                     {dasha.bhukti && (
-                      <div><span className="kv-label">{t("digest.bhukti")}</span><span className="kv-value">{dasha.bhukti.lord} → {dasha.bhukti.end_date}</span></div>
+                      <div>
+                        <span className="kv-label">{t("digest.bhukti")}</span>
+                        <span className="kv-value">
+                          {dasha.bhukti.lord} → {dasha.bhukti.end_date}
+                        </span>
+                      </div>
                     )}
                     {dasha.next_maha && (
-                      <div><span className="kv-label">{t("digest.nextMaha")}</span><span className="kv-value">{dasha.next_maha}</span></div>
+                      <div>
+                        <span className="kv-label">{t("digest.nextMaha")}</span>
+                        <span className="kv-value">{dasha.next_maha}</span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -302,7 +339,9 @@ export const DailyDigestPage = () => {
                 <h3 className="ui-card-header ui-card-header--sm">
                   <Orbit size={18} /> {t("digest.transits")}
                 </h3>
-                {transits.sade_sati && <p className="digest-hl digest-hl--warn">{t("digest.sadeSati")}</p>}
+                {transits.sade_sati && (
+                  <p className="digest-hl digest-hl--warn">{t("digest.sadeSati")}</p>
+                )}
                 {transits.retrograde?.length > 0 && (
                   <p className="digest-retro">
                     <span className="kv-label">{t("digest.retrograde")}:</span>{" "}
@@ -328,12 +367,18 @@ export const DailyDigestPage = () => {
             <div className="mt-xl">
               <Card title={t("digest.aiTitle")} icon={<Sparkles size={24} />} accent="saffron">
                 <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("digest.aiHint")}</p>}
+                {!aiAnalysis && !aiLoading && (
+                  <p className="ai-panel__hint">{t("digest.aiHint")}</p>
+                )}
                 {aiLoading && <LoadingState message={t("digest.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
                     <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
-                    {aiModel && <div className="ai-panel__meta">{t("digest.aiModel", { model: aiModel })}</div>}
+                    {aiModel && (
+                      <div className="ai-panel__meta">
+                        {t("digest.aiModel", { model: aiModel })}
+                      </div>
+                    )}
                   </div>
                 )}
                 {!aiLoading && (

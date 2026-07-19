@@ -52,9 +52,7 @@ const MapPicker = ({ onLocationSelect, latitude, longitude }) => {
   const [resolving, setResolving] = useState(false);
   const [error, setError] = useState("");
   const [marker, setMarker] = useState(
-    latitude != null && longitude != null
-      ? [Number(latitude), Number(longitude)]
-      : null,
+    latitude != null && longitude != null ? [Number(latitude), Number(longitude)] : null
   );
   const mapRef = useRef(null);
   const reverseTimer = useRef(null);
@@ -62,10 +60,7 @@ const MapPicker = ({ onLocationSelect, latitude, longitude }) => {
   // pin without re-running every time the pin moves.
   const markerRef = useRef(marker);
 
-  const center = useMemo(
-    () => marker || DEFAULT_CENTER,
-    [marker],
-  );
+  const center = useMemo(() => marker || DEFAULT_CENTER, [marker]);
 
   const reverseGeocode = useCallback(
     (lat, lng) => {
@@ -92,7 +87,7 @@ const MapPicker = ({ onLocationSelect, latitude, longitude }) => {
         .catch(() => setError("Failed to resolve location. Please try again."))
         .finally(() => setResolving(false));
     },
-    [onLocationSelect],
+    [onLocationSelect]
   );
 
   // Move the pin and (debounced) resolve its place name + timezone. Debouncing
@@ -106,7 +101,7 @@ const MapPicker = ({ onLocationSelect, latitude, longitude }) => {
       if (reverseTimer.current) clearTimeout(reverseTimer.current);
       reverseTimer.current = setTimeout(() => reverseGeocode(rl, rg), 600);
     },
-    [reverseGeocode],
+    [reverseGeocode]
   );
 
   // Keep the pin in sync with coordinates set elsewhere (the text search, or
@@ -140,7 +135,7 @@ const MapPicker = ({ onLocationSelect, latitude, longitude }) => {
         pick(lat, lng);
       },
       () => setError("Could not get your location (permission denied?)."),
-      { enableHighAccuracy: false, timeout: 10000 },
+      { enableHighAccuracy: false, timeout: 10000 }
     );
   };
 
@@ -160,11 +155,7 @@ const MapPicker = ({ onLocationSelect, latitude, longitude }) => {
       {open && (
         <div className="map-picker-body">
           <div className="map-picker-actions">
-            <button
-              type="button"
-              className="map-picker-locate"
-              onClick={handleUseMyLocation}
-            >
+            <button type="button" className="map-picker-locate" onClick={handleUseMyLocation}>
               📍 Use my location
             </button>
             <span className="map-picker-hint">
@@ -201,9 +192,7 @@ const MapPicker = ({ onLocationSelect, latitude, longitude }) => {
             </MapContainer>
           </div>
 
-          {resolving && (
-            <div className="map-picker-status">Resolving location…</div>
-          )}
+          {resolving && <div className="map-picker-status">Resolving location…</div>}
           {error && <div className="map-picker-error">⚠️ {error}</div>}
         </div>
       )}

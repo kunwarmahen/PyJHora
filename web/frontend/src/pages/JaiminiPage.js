@@ -22,7 +22,8 @@ const readModelConfig = () => {
   return {
     providerType,
     model: localStorage.getItem("ai_model") || "",
-    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    baseUrl:
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -158,8 +159,13 @@ export const JaiminiPage = () => {
                   </thead>
                   <tbody>
                     {ck.map((k) => (
-                      <tr key={k.karaka} className={k.karaka.startsWith("Atma") ? "rem-row--weak" : ""}>
-                        <td><strong>{k.karaka}</strong></td>
+                      <tr
+                        key={k.karaka}
+                        className={k.karaka.startsWith("Atma") ? "rem-row--weak" : ""}
+                      >
+                        <td>
+                          <strong>{k.karaka}</strong>
+                        </td>
                         <td>{k.planet}</td>
                         <td>{ln(k.sign_name, "rasi")}</td>
                         <td>{k.house || "—"}</td>
@@ -181,16 +187,30 @@ export const JaiminiPage = () => {
                   })}
                 </p>
                 <dl className="detail-list">
-                  <div><strong>{t("jaimini.occupants")}:</strong> {(kk.occupants || []).join(", ") || t("jaimini.none")}</div>
-                  <div><strong>{t("jaimini.aspects")}:</strong> {(kk.aspecting_planets || []).join(", ") || t("jaimini.none")}</div>
+                  <div>
+                    <strong>{t("jaimini.occupants")}:</strong>{" "}
+                    {(kk.occupants || []).join(", ") || t("jaimini.none")}
+                  </div>
+                  <div>
+                    <strong>{t("jaimini.aspects")}:</strong>{" "}
+                    {(kk.aspecting_planets || []).join(", ") || t("jaimini.none")}
+                  </div>
                 </dl>
               </div>
               <div className="ui-card ui-card--accent ui-card--pad-lg">
                 <h3 className="ui-card-header ui-card-header--sm">{t("jaimini.swamsa")}</h3>
-                <p className="card-intro">{t("jaimini.swamsaDesc", { sign: ln(sw.sign_name, "rasi") })}</p>
+                <p className="card-intro">
+                  {t("jaimini.swamsaDesc", { sign: ln(sw.sign_name, "rasi") })}
+                </p>
                 <dl className="detail-list">
-                  <div><strong>{t("jaimini.occupants")}:</strong> {(sw.occupants || []).join(", ") || t("jaimini.none")}</div>
-                  <div><strong>{t("jaimini.aspects")}:</strong> {(sw.aspecting_planets || []).join(", ") || t("jaimini.none")}</div>
+                  <div>
+                    <strong>{t("jaimini.occupants")}:</strong>{" "}
+                    {(sw.occupants || []).join(", ") || t("jaimini.none")}
+                  </div>
+                  <div>
+                    <strong>{t("jaimini.aspects")}:</strong>{" "}
+                    {(sw.aspecting_planets || []).join(", ") || t("jaimini.none")}
+                  </div>
                 </dl>
               </div>
             </div>
@@ -214,10 +234,14 @@ export const JaiminiPage = () => {
                   <tbody>
                     {argala.map((a) => (
                       <tr key={a.house}>
-                        <td><strong>{a.house}</strong></td>
+                        <td>
+                          <strong>{a.house}</strong>
+                        </td>
                         <td>{ln(a.sign_name, "rasi")}</td>
                         <td>{(a.argala || []).join(", ") || "—"}</td>
-                        <td className="text-secondary">{(a.virodhargala || []).join(", ") || "—"}</td>
+                        <td className="text-secondary">
+                          {(a.virodhargala || []).join(", ") || "—"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -229,12 +253,18 @@ export const JaiminiPage = () => {
             <div className="mt-xl">
               <Card title={t("jaimini.aiTitle")} icon={<Sparkles size={24} />} accent="terracotta">
                 <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("jaimini.aiHint")}</p>}
+                {!aiAnalysis && !aiLoading && (
+                  <p className="ai-panel__hint">{t("jaimini.aiHint")}</p>
+                )}
                 {aiLoading && <LoadingState message={t("jaimini.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
                     <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
-                    {aiModel && <div className="ai-panel__meta">{t("jaimini.aiModel", { model: aiModel })}</div>}
+                    {aiModel && (
+                      <div className="ai-panel__meta">
+                        {t("jaimini.aiModel", { model: aiModel })}
+                      </div>
+                    )}
                   </div>
                 )}
                 {!aiLoading && (

@@ -175,12 +175,21 @@ export const ProfileSelectionPage = () => {
     let result;
     if (editingProfile) {
       result = await updateProfile(
-        editingProfile._id, formData.profile_name, birthDetails, notifyEmail,
-        digestFrequency, currentLocation);
+        editingProfile._id,
+        formData.profile_name,
+        birthDetails,
+        notifyEmail,
+        digestFrequency,
+        currentLocation
+      );
     } else {
       result = await saveProfile(
-        formData.profile_name, birthDetails, notifyEmail, digestFrequency,
-        currentLocation);
+        formData.profile_name,
+        birthDetails,
+        notifyEmail,
+        digestFrequency,
+        currentLocation
+      );
     }
     setSaving(false);
 
@@ -240,7 +249,7 @@ export const ProfileSelectionPage = () => {
 
   const toggleSelectAll = () => {
     setSelectedIds((prev) =>
-      prev.size === profiles.length ? new Set() : new Set(profiles.map((p) => p._id)),
+      prev.size === profiles.length ? new Set() : new Set(profiles.map((p) => p._id))
     );
   };
 
@@ -264,7 +273,9 @@ export const ProfileSelectionPage = () => {
       const parsed = JSON.parse(text);
       const result = await importProfiles(parsed);
       if (result.success) {
-        window.alert(t("profile.importDone", { imported: result.imported, skipped: result.skipped }));
+        window.alert(
+          t("profile.importDone", { imported: result.imported, skipped: result.skipped })
+        );
       } else {
         window.alert(result.error || t("profile.importFailed"));
       }
@@ -392,10 +403,7 @@ export const ProfileSelectionPage = () => {
                                   : t("profile.setDefaultAria")
                               }
                             >
-                              <Star
-                                size={16}
-                                fill={profile.is_default ? "currentColor" : "none"}
-                              />
+                              <Star size={16} fill={profile.is_default ? "currentColor" : "none"} />
                             </button>
                             <button
                               className="edit-btn"
@@ -444,14 +452,13 @@ export const ProfileSelectionPage = () => {
                           <div className="detail-item">
                             <Mail size={14} />
                             <span>{profile.notify_email}</span>
-                            {profile.notify_status &&
-                              profile.notify_status !== "owner" && (
-                                <span
-                                  className={`digest-status digest-status--${profile.notify_status}`}
-                                >
-                                  {t(`profile.digestStatus.${profile.notify_status}`)}
-                                </span>
-                              )}
+                            {profile.notify_status && profile.notify_status !== "owner" && (
+                              <span
+                                className={`digest-status digest-status--${profile.notify_status}`}
+                              >
+                                {t(`profile.digestStatus.${profile.notify_status}`)}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -569,8 +576,7 @@ export const ProfileSelectionPage = () => {
                 {formData.current_lat != null ? (
                   <div className="profile-curloc-set">
                     <span>
-                      {formData.current_place ||
-                        `${formData.current_lat}, ${formData.current_lon}`}
+                      {formData.current_place || `${formData.current_lat}, ${formData.current_lon}`}
                     </span>
                     <button
                       type="button"

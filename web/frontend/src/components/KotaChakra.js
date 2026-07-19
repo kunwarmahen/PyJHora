@@ -2,16 +2,24 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Shield, ShieldAlert } from "lucide-react";
 import { astrologyService } from "../services/api";
-import { PLANET_ABBR } from "../constants/jyotish";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { ChakraAiPanel } from "./ChakraAiPanel";
+import { useLocalizeName } from "../i18n/localizeName";
 
 // Kota Chakra — the fort (§2.7). Four concentric enclosures counted from the
 // janma nakshatra; a malefic transiting into the inner rings threatens the fort.
 // Self-contained (own fetch) so a failure can't blank the host page.
-export const KotaChakra = ({ birthDetails, profile, transitDate, transitTime, transitTz, ayanamsa }) => {
+export const KotaChakra = ({
+  birthDetails,
+  profile,
+  transitDate,
+  transitTime,
+  transitTz,
+  ayanamsa,
+}) => {
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -84,7 +92,7 @@ export const KotaChakra = ({ birthDetails, profile, transitDate, transitTime, tr
                           className={`kota-graha${p.malefic ? " is-malefic" : " is-benefic"}`}
                           title={p.name}
                         >
-                          {PLANET_ABBR[p.name] || p.name}
+                          {ln(p.name, "graha", { abbr: true })}
                           {p.retrograde ? "℞" : ""}
                         </span>
                       ))}
@@ -92,7 +100,7 @@ export const KotaChakra = ({ birthDetails, profile, transitDate, transitTime, tr
                   )}
                   {c.natal.length > 0 && (
                     <span className="kota-cell__natal">
-                      {c.natal.map((n) => PLANET_ABBR[n] || n).join(" ")}
+                      {c.natal.map((n) => ln(n, "graha", { abbr: true })).join(" ")}
                     </span>
                   )}
                 </div>
@@ -111,7 +119,8 @@ export const KotaChakra = ({ birthDetails, profile, transitDate, transitTime, tr
           <ul className="detail-list">
             {data.findings.map((f, i) => (
               <li key={i} className={`kota-finding kota-finding--${f.tone}`}>
-                {f.tone === "supportive" ? <Shield size={14} /> : <ShieldAlert size={14} />} {f.text}
+                {f.tone === "supportive" ? <Shield size={14} /> : <ShieldAlert size={14} />}{" "}
+                {f.text}
               </li>
             ))}
           </ul>

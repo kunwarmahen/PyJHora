@@ -24,7 +24,8 @@ const readModelConfig = () => {
     model: localStorage.getItem("ai_model") || "",
     // base_url only matters for the self-hosted (ollama) provider; sending it for
     // hosted providers could override their API base, so scope it to ollama.
-    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    baseUrl:
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
   };
 };
@@ -88,9 +89,7 @@ export const TransitChat = ({ birthDetails, profile, result, ayanamsa = DEFAULT_
     }
     const ingress = (result?.upcoming || []).find((u) => SLOW.has(u.planet));
     if (ingress) {
-      out.push(
-        t("transitChat.chipIngress", { planet: ingress.planet, sign: ingress.to_sign })
-      );
+      out.push(t("transitChat.chipIngress", { planet: ingress.planet, sign: ingress.to_sign }));
     }
     out.push(t("transitChat.chipSummary"));
     out.push(t("transitChat.chipMostImportant"));
@@ -159,8 +158,7 @@ export const TransitChat = ({ birthDetails, profile, result, ayanamsa = DEFAULT_
             provider: meta.provider || m.provider,
             model: meta.model || m.model,
           })),
-        onToken: (tok) =>
-          updateLastAi((m) => ({ ...m, content: m.content + tok })),
+        onToken: (tok) => updateLastAi((m) => ({ ...m, content: m.content + tok })),
         onDone: (d) => {
           if (d.conversation_id) convIdRef.current = d.conversation_id;
           updateLastAi((m) => ({ ...m, streaming: false }));

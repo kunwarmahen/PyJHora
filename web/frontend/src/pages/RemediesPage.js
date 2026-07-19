@@ -24,9 +24,7 @@ const readModelConfig = () => {
     providerType,
     model: localStorage.getItem("ai_model") || "",
     baseUrl:
-      providerType === "ollama"
-        ? localStorage.getItem("ai_base_url") || undefined
-        : undefined,
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -204,49 +202,51 @@ export const RemediesPage = () => {
                 people; the dignity/strength-ratio table is the working behind
                 them — collapsed in Essentials. */}
             <AdvancedOnly title={t("remedies.dignityHeader")}>
-            <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
-              <h3 className="ui-card-header ui-card-header--sm">{t("remedies.dignityHeader")}</h3>
-              <div className="table-scroll">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>{t("remedies.planet")}</th>
-                      <th>{t("remedies.sign")}</th>
-                      <th>{t("remedies.house")}</th>
-                      <th>{t("remedies.dignity")}</th>
-                      <th>{t("remedies.strength")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(data.planets || []).map((p) => (
-                      <tr key={p.planet} className={p.weak ? "rem-row--weak" : ""}>
-                        <td>{p.planet}</td>
-                        <td>{ln(p.sign_name, "rasi")}</td>
-                        <td>{p.house}</td>
-                        <td>{t(`remedies.dignities.${p.dignity}`, p.dignity)}</td>
-                        <td>{p.strength_ratio != null ? p.strength_ratio.toFixed(2) : "—"}</td>
+              <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm">{t("remedies.dignityHeader")}</h3>
+                <div className="table-scroll">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>{t("remedies.planet")}</th>
+                        <th>{t("remedies.sign")}</th>
+                        <th>{t("remedies.house")}</th>
+                        <th>{t("remedies.dignity")}</th>
+                        <th>{t("remedies.strength")}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {(data.planets || []).map((p) => (
+                        <tr key={p.planet} className={p.weak ? "rem-row--weak" : ""}>
+                          <td>{p.planet}</td>
+                          <td>{ln(p.sign_name, "rasi")}</td>
+                          <td>{p.house}</td>
+                          <td>{t(`remedies.dignities.${p.dignity}`, p.dignity)}</td>
+                          <td>{p.strength_ratio != null ? p.strength_ratio.toFixed(2) : "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {weak.length > 0 && <p className="card-note">{t("remedies.weakFootnote")}</p>}
               </div>
-              {weak.length > 0 && (
-                <p className="card-note">{t("remedies.weakFootnote")}</p>
-              )}
-            </div>
             </AdvancedOnly>
 
             {/* AI reading */}
             <div className="mt-xl">
               <Card title={t("remedies.aiTitle")} icon={<Sparkles size={24} />} accent="terracotta">
                 <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("remedies.aiHint")}</p>}
+                {!aiAnalysis && !aiLoading && (
+                  <p className="ai-panel__hint">{t("remedies.aiHint")}</p>
+                )}
                 {aiLoading && <LoadingState message={t("remedies.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
                     <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
                     {aiModel && (
-                      <div className="ai-panel__meta">{t("remedies.aiModel", { model: aiModel })}</div>
+                      <div className="ai-panel__meta">
+                        {t("remedies.aiModel", { model: aiModel })}
+                      </div>
                     )}
                   </div>
                 )}

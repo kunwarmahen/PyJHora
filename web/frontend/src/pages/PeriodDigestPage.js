@@ -1,7 +1,17 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CalendarDays, CalendarRange, Sparkles, Bell, Clock, Orbit, Star, Moon, Sun } from "lucide-react";
+import {
+  CalendarDays,
+  CalendarRange,
+  Sparkles,
+  Bell,
+  Clock,
+  Orbit,
+  Star,
+  Moon,
+  Sun,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -23,7 +33,8 @@ const readModelConfig = () => {
   return {
     providerType,
     model: localStorage.getItem("ai_model") || "",
-    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    baseUrl:
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -205,7 +216,9 @@ const PeriodDigestPage = ({ period }) => {
               </button>
               <span className="stepper__label" style={{ minWidth: "14rem" }}>
                 {formatDate(digest?.start_date, locale)} → {formatDate(digest?.end_date, locale)}
-                {digest?.span_days ? ` · ${t("periodDigest.spanDays", { count: digest.span_days })}` : ""}
+                {digest?.span_days
+                  ? ` · ${t("periodDigest.spanDays", { count: digest.span_days })}`
+                  : ""}
               </span>
               <button
                 type="button"
@@ -273,14 +286,18 @@ const PeriodDigestPage = ({ period }) => {
 
         {/* What window the reading actually covers — this is not a calendar month/week. */}
         {digest?.window_label && (
-          <p className="settings-hint">{t("periodDigest.windowNote", { window: digest.window_label })}</p>
+          <p className="settings-hint">
+            {t("periodDigest.windowNote", { window: digest.window_label })}
+          </p>
         )}
 
         <ErrorBanner message={error} />
 
         {loading ? (
           <Card>
-            <LoadingState message={t(isMonth ? "periodDigest.loadingMonth" : "periodDigest.loadingFortnight")} />
+            <LoadingState
+              message={t(isMonth ? "periodDigest.loadingMonth" : "periodDigest.loadingFortnight")}
+            />
           </Card>
         ) : digest ? (
           <div className="fade-in">
@@ -291,7 +308,10 @@ const PeriodDigestPage = ({ period }) => {
               </h3>
               <ul className="digest-highlights">
                 {highlights.map((h, i) => (
-                  <li key={i} className={h.startsWith("⚠") ? "digest-hl digest-hl--warn" : "digest-hl"}>
+                  <li
+                    key={i}
+                    className={h.startsWith("⚠") ? "digest-hl digest-hl--warn" : "digest-hl"}
+                  >
                     {h}
                   </li>
                 ))}
@@ -306,9 +326,18 @@ const PeriodDigestPage = ({ period }) => {
                     <CalendarDays size={18} /> {t("periodDigest.panchanga")}
                   </h3>
                   <div className="detail-list digest-details">
-                    <div><span className="kv-label">{t("periodDigest.tithi")}</span><span className="kv-value">{panch.tithi?.name}</span></div>
-                    <div><span className="kv-label">{t("periodDigest.nakshatra")}</span><span className="kv-value">{ln(panch.nakshatra?.name, "nakshatra")}</span></div>
-                    <div><span className="kv-label">{t("periodDigest.vaara")}</span><span className="kv-value">{panch.vaara?.name}</span></div>
+                    <div>
+                      <span className="kv-label">{t("periodDigest.tithi")}</span>
+                      <span className="kv-value">{panch.tithi?.name}</span>
+                    </div>
+                    <div>
+                      <span className="kv-label">{t("periodDigest.nakshatra")}</span>
+                      <span className="kv-value">{ln(panch.nakshatra?.name, "nakshatra")}</span>
+                    </div>
+                    <div>
+                      <span className="kv-label">{t("periodDigest.vaara")}</span>
+                      <span className="kv-value">{panch.vaara?.name}</span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -320,12 +349,23 @@ const PeriodDigestPage = ({ period }) => {
                     <Clock size={18} /> {t("periodDigest.dasha")}
                   </h3>
                   <div className="detail-list digest-details">
-                    <div><span className="kv-label">{t("periodDigest.mahadasha")}</span><span className="kv-value">{dasha.maha_lord}</span></div>
+                    <div>
+                      <span className="kv-label">{t("periodDigest.mahadasha")}</span>
+                      <span className="kv-value">{dasha.maha_lord}</span>
+                    </div>
                     {dasha.bhukti && (
-                      <div><span className="kv-label">{t("periodDigest.bhukti")}</span><span className="kv-value">{dasha.bhukti.lord} → {dasha.bhukti.end_date}</span></div>
+                      <div>
+                        <span className="kv-label">{t("periodDigest.bhukti")}</span>
+                        <span className="kv-value">
+                          {dasha.bhukti.lord} → {dasha.bhukti.end_date}
+                        </span>
+                      </div>
                     )}
                     {dasha.next_maha && (
-                      <div><span className="kv-label">{t("periodDigest.nextMaha")}</span><span className="kv-value">{dasha.next_maha}</span></div>
+                      <div>
+                        <span className="kv-label">{t("periodDigest.nextMaha")}</span>
+                        <span className="kv-value">{dasha.next_maha}</span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -345,7 +385,9 @@ const PeriodDigestPage = ({ period }) => {
               <h3 className="ui-card-header ui-card-header--sm">
                 <Orbit size={18} /> {t("periodDigest.events")}
               </h3>
-              {transits?.sade_sati && <p className="digest-hl digest-hl--warn">{t("periodDigest.sadeSati")}</p>}
+              {transits?.sade_sati && (
+                <p className="digest-hl digest-hl--warn">{t("periodDigest.sadeSati")}</p>
+              )}
               {transits?.retrograde?.length > 0 && (
                 <p className="digest-retro">
                   <span className="kv-label">{t("periodDigest.retrograde")}:</span>{" "}
@@ -385,7 +427,11 @@ const PeriodDigestPage = ({ period }) => {
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
                     <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
-                    {aiModel && <div className="ai-panel__meta">{t("periodDigest.aiModel", { model: aiModel })}</div>}
+                    {aiModel && (
+                      <div className="ai-panel__meta">
+                        {t("periodDigest.aiModel", { model: aiModel })}
+                      </div>
+                    )}
                   </div>
                 )}
                 {!aiLoading && (
@@ -393,7 +439,11 @@ const PeriodDigestPage = ({ period }) => {
                     <Sparkles size={18} />
                     {aiAnalysis
                       ? t("periodDigest.aiRegenerate")
-                      : t(isMonth ? "periodDigest.aiGenerateMonth" : "periodDigest.aiGenerateFortnight")}
+                      : t(
+                          isMonth
+                            ? "periodDigest.aiGenerateMonth"
+                            : "periodDigest.aiGenerateFortnight"
+                        )}
                   </button>
                 )}
                 <p className="card-note">{t("periodDigest.disclaimer")}</p>

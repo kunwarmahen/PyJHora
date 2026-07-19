@@ -29,7 +29,8 @@ const readModelConfig = () => {
   return {
     providerType,
     model: localStorage.getItem("ai_model") || "",
-    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    baseUrl:
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -103,7 +104,9 @@ export const ComparePage = () => {
   // pair so the (chart-gated) comparison + saved reading are visible. Factual
   // only — no AI re-generation.
   const [pendingReading, setPendingReading] = useState(null);
-  useRestoreReading((r) => setPendingReading({ reading: r.reading, model: r.model, context: r.context }));
+  useRestoreReading((r) =>
+    setPendingReading({ reading: r.reading, model: r.model, context: r.context })
+  );
   useEffect(() => {
     if (pendingReading && !loading) {
       const c = pendingReading.context || {};

@@ -12,9 +12,10 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
-import { PLANET_ABBR, AYANAMSAS } from "../constants/jyotish";
+import { AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 // House systems the UI offers (mirrors backend AstrologyCompute.BHAVA_METHODS).
 const METHODS = [
@@ -41,6 +42,7 @@ const fmtCusp = (absLong, signName) => {
 export const BhavaChartPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const { selectedProfile } = useProfile();
   const { settings } = useSettings();
   const chartStyle = settings.chartStyle;
@@ -138,16 +140,14 @@ export const BhavaChartPage = () => {
           <div className="fade-in">
             <div className="info-pills">
               <span className="info-pill">
-                {t("bhava.system")}:{" "}
-                <strong className="text-saffron">{result.method_label}</strong>
+                {t("bhava.system")}: <strong className="text-saffron">{result.method_label}</strong>
               </span>
               <span className="info-pill">
                 {t("bhava.lagna")}:{" "}
-                <strong className="text-indigo">{result.lagna?.sign_name}</strong>
+                <strong className="text-indigo">{ln(result.lagna?.sign_name, "rasi")}</strong>
               </span>
               <span className="info-pill">
-                {t("bhava.ayanamsa")}:{" "}
-                <strong className="text-indigo">{ayanamsaLabel}</strong>
+                {t("bhava.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
               </span>
             </div>
 
@@ -180,16 +180,20 @@ export const BhavaChartPage = () => {
                     <tbody>
                       {houses.map((h) => (
                         <tr key={h.bhava}>
-                          <td className="text-center fw-700 text-saffron">
-                            {ordinal(h.bhava)}
+                          <td className="text-center fw-700 text-saffron">{ordinal(h.bhava)}</td>
+                          <td>{ln(h.sign_name, "rasi")}</td>
+                          <td className="text-secondary">
+                            {fmtCusp(h.cusp, ln(h.sign_name, "rasi"))}
                           </td>
-                          <td>{h.sign_name}</td>
-                          <td className="text-secondary">{fmtCusp(h.cusp, h.sign_name)}</td>
                           <td>
                             {h.planets.length ? (
                               h.planets.map((p) => (
-                                <span key={p} className="fw-600 text-indigo" style={{ marginRight: 6 }}>
-                                  {PLANET_ABBR[p] || p}
+                                <span
+                                  key={p}
+                                  className="fw-600 text-indigo"
+                                  style={{ marginRight: 6 }}
+                                >
+                                  {ln(p, "graha", { abbr: true })}
                                 </span>
                               ))
                             ) : (

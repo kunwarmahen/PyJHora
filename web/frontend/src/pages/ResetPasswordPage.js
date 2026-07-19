@@ -63,9 +63,7 @@ export const ResetPasswordPage = () => {
               <span>{error}</span>
             </div>
           )}
-          {!token && (
-            <p className="auth-note">{t("auth.reset.missingToken")}</p>
-          )}
+          {!token && <p className="auth-note">{t("auth.reset.missingToken")}</p>}
           <div className="form-group">
             <label>{t("auth.reset.newPassword")}</label>
             <div className="input-wrapper">

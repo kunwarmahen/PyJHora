@@ -164,8 +164,7 @@ export const EphemerisPage = () => {
           <div className="fade-in">
             <div className="info-pills">
               <span className="info-pill">
-                {t("ephemeris.ayanamsa")}:{" "}
-                <strong className="text-indigo">{ayanamsaLabel}</strong>
+                {t("ephemeris.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
               </span>
               <span className="info-pill">{t("ephemeris.noonNote")}</span>
             </div>
@@ -227,12 +226,19 @@ export const EphemerisPage = () => {
                         </td>
                         {order.map((p) => {
                           const cell = row.planets[p];
-                          if (!cell) return <td key={p} className="text-center text-muted">—</td>;
+                          if (!cell)
+                            return (
+                              <td key={p} className="text-center text-muted">
+                                —
+                              </td>
+                            );
                           return (
                             <td key={p} className="text-center" style={{ whiteSpace: "nowrap" }}>
                               <span className="fw-600">{Math.floor(cell.degrees)}°</span>{" "}
                               <span className="text-saffron">
-                                {ln(cell.sign_name || RASI_NAMES[cell.sign - 1], "rasi", { abbr: true })}
+                                {ln(cell.sign_name || RASI_NAMES[cell.sign - 1], "rasi", {
+                                  abbr: true,
+                                })}
                               </span>
                               {cell.retrograde && <span className="retro-badge">℞</span>}
                             </td>

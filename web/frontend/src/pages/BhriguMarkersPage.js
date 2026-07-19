@@ -24,9 +24,7 @@ const readModelConfig = () => {
     providerType,
     model: localStorage.getItem("ai_model") || "",
     baseUrl:
-      providerType === "ollama"
-        ? localStorage.getItem("ai_base_url") || undefined
-        : undefined,
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -186,7 +184,8 @@ export const BhriguMarkersPage = () => {
             {bb && (
               <div className="info-pills">
                 <span className="info-pill">
-                  <Compass size={14} /> {t("bhrigu.bbSign", { sign: ln(bb.sign_name, "rasi"), deg: bb.degrees })}
+                  <Compass size={14} />{" "}
+                  {t("bhrigu.bbSign", { sign: ln(bb.sign_name, "rasi"), deg: bb.degrees })}
                 </span>
                 <span className="info-pill">{t("bhrigu.bbHouse", { n: bb.house_from_lagna })}</span>
                 <span className="info-pill">{t("bhrigu.moonSign", { sign: data.moon_sign })}</span>
@@ -209,7 +208,8 @@ export const BhriguMarkersPage = () => {
                     }${p.planets.length ? " bhrigu-prog--active" : ""}`}
                   >
                     <div className="bhrigu-prog__year">
-                      {p.year} <span className="text-secondary">· {t("bhrigu.age", { n: p.age })}</span>
+                      {p.year}{" "}
+                      <span className="text-secondary">· {t("bhrigu.age", { n: p.age })}</span>
                     </div>
                     <div className="bhrigu-prog__sign">
                       {ln(p.sign_name, "rasi")}{" "}
@@ -240,9 +240,7 @@ export const BhriguMarkersPage = () => {
                 <ul className="bhrigu-activation-list">
                   {activations.map((a, i) => (
                     <li key={i} className="bhrigu-activation">
-                      <span className="bhrigu-activation__date">
-                        {formatDate(a.date, locale)}
-                      </span>
+                      <span className="bhrigu-activation__date">{formatDate(a.date, locale)}</span>
                       <span className="bhrigu-activation__text">
                         {t("bhrigu.activationRow", {
                           planet: a.planet,
@@ -260,13 +258,17 @@ export const BhriguMarkersPage = () => {
             <div className="mt-xl">
               <Card title={t("bhrigu.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
                 <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("bhrigu.aiHint")}</p>}
+                {!aiAnalysis && !aiLoading && (
+                  <p className="ai-panel__hint">{t("bhrigu.aiHint")}</p>
+                )}
                 {aiLoading && <LoadingState message={t("bhrigu.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
                     <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
                     {aiModel && (
-                      <div className="ai-panel__meta">{t("bhrigu.aiModel", { model: aiModel })}</div>
+                      <div className="ai-panel__meta">
+                        {t("bhrigu.aiModel", { model: aiModel })}
+                      </div>
                     )}
                   </div>
                 )}

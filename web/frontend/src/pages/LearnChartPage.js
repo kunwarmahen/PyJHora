@@ -33,7 +33,8 @@ const readModelConfig = () => {
   return {
     providerType,
     model: localStorage.getItem("ai_model") || "",
-    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    baseUrl:
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -219,8 +220,7 @@ export const LearnChartPage = () => {
               {stats.overall_avg != null && (
                 <>
                   {" "}
-                  · {t("learn.overall")}:{" "}
-                  <strong>{Math.round(stats.overall_avg * 100)}%</strong>
+                  · {t("learn.overall")}: <strong>{Math.round(stats.overall_avg * 100)}%</strong>
                 </>
               )}
             </span>
@@ -233,7 +233,10 @@ export const LearnChartPage = () => {
                   <span className="learn-bar-track">
                     <span
                       className="learn-bar-fill"
-                      style={{ width: `${Math.round(info.avg * 100)}%`, background: barColor(info.avg) }}
+                      style={{
+                        width: `${Math.round(info.avg * 100)}%`,
+                        background: barColor(info.avg),
+                      }}
                     />
                   </span>
                   <span>{Math.round(info.avg * 100)}%</span>
@@ -273,7 +276,10 @@ export const LearnChartPage = () => {
                 checked={adaptive}
                 onChange={(e) => setAdaptive(e.target.checked)}
               />
-              {t("learn.adaptive")} — <span className="learn-hint" style={{ margin: 0 }}>{t("learn.adaptiveHint")}</span>
+              {t("learn.adaptive")} —{" "}
+              <span className="learn-hint" style={{ margin: 0 }}>
+                {t("learn.adaptiveHint")}
+              </span>
             </label>
             {!adaptive && (
               <div className="learn-chips">
@@ -324,7 +330,11 @@ export const LearnChartPage = () => {
             <Button variant="ghost" icon={<HistoryIcon size={16} />} onClick={openHistory}>
               {t("learn.viewHistory")}
             </Button>
-            <Button icon={<GraduationCap size={16} />} onClick={() => startQuiz()} disabled={loading}>
+            <Button
+              icon={<GraduationCap size={16} />}
+              onClick={() => startQuiz()}
+              disabled={loading}
+            >
               {t("learn.start")}
             </Button>
           </div>
@@ -345,10 +355,7 @@ export const LearnChartPage = () => {
       {q.format === "mcq" ? (
         <div className="learn-options">
           {q.options.map((opt, oi) => (
-            <label
-              key={oi}
-              className={`learn-option ${answers[q.id] === oi ? "is-selected" : ""}`}
-            >
+            <label key={oi} className={`learn-option ${answers[q.id] === oi ? "is-selected" : ""}`}>
               <input
                 type="radio"
                 name={q.id}
@@ -443,7 +450,10 @@ export const LearnChartPage = () => {
                   <span className="learn-bar-track">
                     <span
                       className="learn-bar-fill"
-                      style={{ width: `${Math.round(info.avg * 100)}%`, background: barColor(info.avg) }}
+                      style={{
+                        width: `${Math.round(info.avg * 100)}%`,
+                        background: barColor(info.avg),
+                      }}
                     />
                   </span>
                   <span>{Math.round(info.avg * 100)}%</span>

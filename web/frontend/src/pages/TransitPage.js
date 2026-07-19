@@ -270,7 +270,9 @@ export const TransitPage = () => {
               <span className="info-pill">{t("transit.asOf", { moment: transitMoment })}</span>
               <span className="info-pill">
                 {t("transit.natalLagna")}:{" "}
-                <strong className="text-saffron">{ln(result.natal?.lagna?.sign_name, "rasi")}</strong>
+                <strong className="text-saffron">
+                  {ln(result.natal?.lagna?.sign_name, "rasi")}
+                </strong>
               </span>
               <span className="info-pill">
                 {t("transit.natalMoon")}:{" "}
@@ -342,28 +344,28 @@ export const TransitPage = () => {
                             {ordinal(p.house_from_moon)}
                           </td>
                           {showBindus && (
-                          <td className="text-center">
-                            {p.bindu_strength ? (
-                              <span
-                                className={`bindu-chip bindu-chip--${p.bindu_strength}`}
-                                title={
-                                  p.bav_bindus != null
-                                    ? t("transit.binduTitle", {
-                                        bav: p.bav_bindus,
-                                        sav: p.sav_bindus,
-                                      })
-                                    : t("transit.binduTitleSav", { sav: p.sav_bindus })
-                                }
-                              >
-                                {p.bav_bindus != null ? p.bav_bindus : p.sav_bindus}
-                                <span className="bindu-chip__label">
-                                  {t(STRENGTH_LABEL_KEY[p.bindu_strength])}
+                            <td className="text-center">
+                              {p.bindu_strength ? (
+                                <span
+                                  className={`bindu-chip bindu-chip--${p.bindu_strength}`}
+                                  title={
+                                    p.bav_bindus != null
+                                      ? t("transit.binduTitle", {
+                                          bav: p.bav_bindus,
+                                          sav: p.sav_bindus,
+                                        })
+                                      : t("transit.binduTitleSav", { sav: p.sav_bindus })
+                                  }
+                                >
+                                  {p.bav_bindus != null ? p.bav_bindus : p.sav_bindus}
+                                  <span className="bindu-chip__label">
+                                    {t(STRENGTH_LABEL_KEY[p.bindu_strength])}
+                                  </span>
                                 </span>
-                              </span>
-                            ) : (
-                              <span className="text-muted">—</span>
-                            )}
-                          </td>
+                              ) : (
+                                <span className="text-muted">—</span>
+                              )}
+                            </td>
                           )}
                         </tr>
                       ))}

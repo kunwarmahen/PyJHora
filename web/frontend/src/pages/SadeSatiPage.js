@@ -215,11 +215,7 @@ export const SadeSatiPage = () => {
             {/* Current status banner */}
             {status && (
               <div className={`ss-status ss-status--${status.tone}`}>
-                {status.tone === "clear" ? (
-                  <CheckCircle2 size={20} />
-                ) : (
-                  <AlertTriangle size={20} />
-                )}
+                {status.tone === "clear" ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
                 <span>{status.text}</span>
               </div>
             )}
@@ -258,7 +254,10 @@ export const SadeSatiPage = () => {
                           c.is_current && c.current_phase === ph.phase ? " ss-phase--now" : ""
                         }`}
                       >
-                        <span className="ss-phase__dot" style={{ background: PHASE_COLORS[ph.phase] }} />
+                        <span
+                          className="ss-phase__dot"
+                          style={{ background: PHASE_COLORS[ph.phase] }}
+                        />
                         <span className="ss-phase__name">{t(`sadeSati.phase.${ph.phase}`)}</span>
                         <span className="ss-phase__sign">{ln(ph.sign_name, "rasi")}</span>
                         <span className="ss-phase__dates">
@@ -279,7 +278,11 @@ export const SadeSatiPage = () => {
 
             {/* Ashtama + Kantaka */}
             <div className="mt-xl">
-              <Card title={t("sadeSati.otherTitle")} icon={<Aperture size={24} />} accent="terracotta">
+              <Card
+                title={t("sadeSati.otherTitle")}
+                icon={<Aperture size={24} />}
+                accent="terracotta"
+              >
                 <p className="card-intro">{t("sadeSati.otherIntro")}</p>
                 <div className="ss-other-grid">
                   <div>
@@ -318,13 +321,17 @@ export const SadeSatiPage = () => {
             <div className="mt-xl">
               <Card title={t("sadeSati.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
                 <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("sadeSati.aiHint")}</p>}
+                {!aiAnalysis && !aiLoading && (
+                  <p className="ai-panel__hint">{t("sadeSati.aiHint")}</p>
+                )}
                 {aiLoading && <LoadingState message={t("sadeSati.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
                     <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
                     {aiModel && (
-                      <div className="ai-panel__meta">{t("sadeSati.aiModel", { model: aiModel })}</div>
+                      <div className="ai-panel__meta">
+                        {t("sadeSati.aiModel", { model: aiModel })}
+                      </div>
                     )}
                   </div>
                 )}

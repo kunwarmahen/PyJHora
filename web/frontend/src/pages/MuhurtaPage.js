@@ -22,7 +22,8 @@ const readModelConfig = () => {
   return {
     providerType,
     model: localStorage.getItem("ai_model") || "",
-    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    baseUrl:
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -38,7 +39,15 @@ const addDaysISO = (iso, days) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-const ACTIVITIES = ["general", "marriage", "travel", "business", "housewarming", "education", "medical"];
+const ACTIVITIES = [
+  "general",
+  "marriage",
+  "travel",
+  "business",
+  "housewarming",
+  "education",
+  "medical",
+];
 
 const QUALITY_CLASS = {
   excellent: "muh-q--excellent",
@@ -96,8 +105,12 @@ export const MuhurtaPage = () => {
       // is visible. Factual only — no AI re-generation.
       astrologyService
         .getMuhurta({
-          activity: c.activity, startDate: c.start_date, endDate: c.end_date,
-          place: c.place, latitude: c.latitude, longitude: c.longitude,
+          activity: c.activity,
+          startDate: c.start_date,
+          endDate: c.end_date,
+          place: c.place,
+          latitude: c.latitude,
+          longitude: c.longitude,
           timezone: c.timezone,
         })
         .then((res) => setResult(res.data))
@@ -286,7 +299,9 @@ export const MuhurtaPage = () => {
                     <span
                       className={`muh-badge muh-badge--${subData.panchaka?.active ? "bad" : "good"}`}
                     >
-                      {subData.panchaka?.active ? t("muhurta.subtools.avoid") : t("muhurta.subtools.clear")}
+                      {subData.panchaka?.active
+                        ? t("muhurta.subtools.avoid")
+                        : t("muhurta.subtools.clear")}
                     </span>
                   </div>
                   <div className="muh-status__note">{subData.panchaka?.meaning}</div>
@@ -350,7 +365,9 @@ export const MuhurtaPage = () => {
                             <span className="muh-chog__time">
                               {c.start}–{c.end}
                             </span>
-                            {c.current && <span className="muh-chog__now">{t("muhurta.subtools.now")}</span>}
+                            {c.current && (
+                              <span className="muh-chog__now">{t("muhurta.subtools.now")}</span>
+                            )}
                           </li>
                         ))}
                     </ul>
@@ -415,12 +432,18 @@ export const MuhurtaPage = () => {
             <div className="mt-xl">
               <Card title={t("muhurta.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
                 <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("muhurta.aiHint")}</p>}
+                {!aiAnalysis && !aiLoading && (
+                  <p className="ai-panel__hint">{t("muhurta.aiHint")}</p>
+                )}
                 {aiLoading && <LoadingState message={t("muhurta.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
                     <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
-                    {aiModel && <div className="ai-panel__meta">{t("muhurta.aiModel", { model: aiModel })}</div>}
+                    {aiModel && (
+                      <div className="ai-panel__meta">
+                        {t("muhurta.aiModel", { model: aiModel })}
+                      </div>
+                    )}
                   </div>
                 )}
                 {!aiLoading && (

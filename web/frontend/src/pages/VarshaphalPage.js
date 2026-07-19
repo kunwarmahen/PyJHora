@@ -16,12 +16,21 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
-import { PLANET_ABBR, AYANAMSAS } from "../constants/jyotish";
+import { AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const PLANET_ORDER = [
-  "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu",
+  "Sun",
+  "Moon",
+  "Mars",
+  "Mercury",
+  "Jupiter",
+  "Venus",
+  "Saturn",
+  "Rahu",
+  "Ketu",
 ];
 
 // Selectable annual-dasha systems (labels are i18n keys). Keys match the backend
@@ -61,7 +70,8 @@ const readModelConfig = () => {
   return {
     providerType,
     model: localStorage.getItem("ai_model") || "",
-    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    baseUrl:
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -69,6 +79,7 @@ const readModelConfig = () => {
 
 export const VarshaphalPage = () => {
   const navigate = useNavigate();
+  const ln = useLocalizeName();
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
@@ -170,7 +181,11 @@ export const VarshaphalPage = () => {
     setAiModel("");
     try {
       const res = await astrologyService.getVarshaphal(
-        birthDetails, year, ayanamsa, dashaRef.current);
+        birthDetails,
+        year,
+        ayanamsa,
+        dashaRef.current
+      );
       setResult(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || t("varshaphal.calcError"));
@@ -310,8 +325,7 @@ export const VarshaphalPage = () => {
             {/* Year summary */}
             <div className="info-pills">
               <span className="info-pill">
-                {t("varshaphal.forYear")}:{" "}
-                <strong className="text-saffron">{result.year}</strong>
+                {t("varshaphal.forYear")}: <strong className="text-saffron">{result.year}</strong>
               </span>
               <span className="info-pill">
                 {t("varshaphal.solarYearBegins")}:{" "}
@@ -320,18 +334,18 @@ export const VarshaphalPage = () => {
               </span>
               <span className="info-pill">
                 {t("varshaphal.annualLagna")}:{" "}
-                <strong className="text-indigo">{result.lagna?.sign_name}</strong>
+                <strong className="text-indigo">{ln(result.lagna?.sign_name, "rasi")}</strong>
               </span>
               <span className="info-pill">
                 {t("varshaphal.muntha")}:{" "}
-                <strong className="text-saffron">{result.muntha?.sign_name}</strong>
-                {result.muntha?.house ? ` (${ordinal(result.muntha.house)} ${t("varshaphal.houseWord")})` : ""}
+                <strong className="text-saffron">{ln(result.muntha?.sign_name, "rasi")}</strong>
+                {result.muntha?.house
+                  ? ` (${ordinal(result.muntha.house)} ${t("varshaphal.houseWord")})`
+                  : ""}
               </span>
               <span className="info-pill">
                 {t("varshaphal.yearLord")}:{" "}
-                <strong className="text-vermillion">
-                  {result.year_lord?.planet || "—"}
-                </strong>
+                <strong className="text-vermillion">{result.year_lord?.planet || "—"}</strong>
               </span>
               <span className="info-pill">
                 {t("transit.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
@@ -367,20 +381,18 @@ export const VarshaphalPage = () => {
                       {orderedPlanets.map(([name, p]) => (
                         <tr key={name}>
                           <td className="fw-700 text-indigo">
-                            {PLANET_ABBR[name] || name}{" "}
+                            {ln(name, "graha", { abbr: true })}{" "}
                             <span style={{ fontWeight: 400 }} className="text-secondary">
                               {name}
                             </span>
                           </td>
                           <td>
-                            {p.sign_name}{" "}
+                            {ln(p.sign_name, "rasi")}{" "}
                             <span className="text-muted">
                               {p.degrees != null ? `${p.degrees.toFixed(1)}°` : ""}
                             </span>
                           </td>
-                          <td className="text-center fw-600 text-saffron">
-                            {ordinal(p.house)}
-                          </td>
+                          <td className="text-center fw-600 text-saffron">{ordinal(p.house)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -413,7 +425,7 @@ export const VarshaphalPage = () => {
                           <td className="fw-700 text-saffron">{s.name}</td>
                           <td className="text-secondary">{s.significance}</td>
                           <td>
-                            {s.sign_name}{" "}
+                            {ln(s.sign_name, "rasi")}{" "}
                             <span className="text-muted">
                               {s.degrees != null ? `${s.degrees.toFixed(1)}°` : ""}
                             </span>
@@ -443,7 +455,10 @@ export const VarshaphalPage = () => {
                           <span className="text-secondary fw-400"> · {y.pair.join(" – ")}</span>
                         )}
                       </div>
-                      <div className="text-secondary" style={{ fontSize: "0.85rem", marginTop: "0.35rem" }}>
+                      <div
+                        className="text-secondary"
+                        style={{ fontSize: "0.85rem", marginTop: "0.35rem" }}
+                      >
                         {y.description}
                       </div>
                     </div>
@@ -508,7 +523,9 @@ export const VarshaphalPage = () => {
             <div className="mt-xl">
               <Card title={t("varshaphal.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
                 <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("varshaphal.aiHint")}</p>}
+                {!aiAnalysis && !aiLoading && (
+                  <p className="ai-panel__hint">{t("varshaphal.aiHint")}</p>
+                )}
                 {aiLoading && <LoadingState message={t("varshaphal.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">

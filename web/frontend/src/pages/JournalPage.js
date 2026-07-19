@@ -28,8 +28,17 @@ const fmt = (dateStr, locale) => {
 };
 
 const CATEGORIES = [
-  "career", "relationship", "family", "health", "finance",
-  "move", "education", "spiritual", "loss", "milestone", "other",
+  "career",
+  "relationship",
+  "family",
+  "health",
+  "finance",
+  "move",
+  "education",
+  "spiritual",
+  "loss",
+  "milestone",
+  "other",
 ];
 
 const emptyForm = () => ({
@@ -144,8 +153,7 @@ export const JournalPage = () => {
 
   if (!selectedProfile) return null;
 
-  const dashaText = (d) =>
-    d && d.maha ? d.maha + (d.bhukti ? `/${d.bhukti}` : "") : null;
+  const dashaText = (d) => (d && d.maha ? d.maha + (d.bhukti ? `/${d.bhukti}` : "") : null);
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -163,7 +171,11 @@ export const JournalPage = () => {
         <ErrorBanner message={error} />
 
         {/* Editor */}
-        <Card title={form.id ? t("journal.editTitle") : t("journal.addTitle")} icon={<Plus size={22} />} accent="terracotta">
+        <Card
+          title={form.id ? t("journal.editTitle") : t("journal.addTitle")}
+          icon={<Plus size={22} />}
+          accent="terracotta"
+        >
           <form className="jrn-form" onSubmit={save}>
             <div className="jrn-form__row">
               <label className="jrn-field">
@@ -210,7 +222,11 @@ export const JournalPage = () => {
             </label>
             <div className="jrn-form__actions">
               {form.id && (
-                <button type="button" className="ui-btn ui-btn--ghost" onClick={() => setForm(emptyForm())}>
+                <button
+                  type="button"
+                  className="ui-btn ui-btn--ghost"
+                  onClick={() => setForm(emptyForm())}
+                >
                   {t("journal.cancel")}
                 </button>
               )}
@@ -236,7 +252,9 @@ export const JournalPage = () => {
                   <div className="jrn-entry__date">{fmt(e.date, locale)}</div>
                   <div className="jrn-entry__body">
                     <div className="jrn-entry__top">
-                      <span className={`jrn-cat jrn-cat--${e.category}`}>{t(`journal.cat.${e.category}`)}</span>
+                      <span className={`jrn-cat jrn-cat--${e.category}`}>
+                        {t(`journal.cat.${e.category}`)}
+                      </span>
                       <span className="jrn-entry__title">{e.title}</span>
                     </div>
                     {e.notes && <p className="jrn-entry__notes">{e.notes}</p>}
@@ -248,10 +266,18 @@ export const JournalPage = () => {
                     )}
                   </div>
                   <div className="jrn-entry__actions">
-                    <button className="jrn-icon-btn" onClick={() => edit(e)} aria-label={t("journal.edit")}>
+                    <button
+                      className="jrn-icon-btn"
+                      onClick={() => edit(e)}
+                      aria-label={t("journal.edit")}
+                    >
                       <Pencil size={16} />
                     </button>
-                    <button className="jrn-icon-btn jrn-icon-btn--danger" onClick={() => remove(e)} aria-label={t("journal.delete")}>
+                    <button
+                      className="jrn-icon-btn jrn-icon-btn--danger"
+                      onClick={() => remove(e)}
+                      aria-label={t("journal.delete")}
+                    >
                       <Trash2 size={16} />
                     </button>
                   </div>

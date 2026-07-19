@@ -58,7 +58,10 @@ export const RecentReadings = ({ source, profileId, limit = 8 }) => {
     if (!iso) return "";
     try {
       return new Date(iso).toLocaleString(locale, {
-        month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       });
     } catch (e) {
       return "";
@@ -97,10 +100,7 @@ export const RecentReadings = ({ source, profileId, limit = 8 }) => {
       >
         <History size={16} />
         {t("recent.title")} ({items.length})
-        <ChevronDown
-          size={16}
-          className={`recent-readings__chev${open ? " is-open" : ""}`}
-        />
+        <ChevronDown size={16} className={`recent-readings__chev${open ? " is-open" : ""}`} />
       </button>
       {open && (
         <div className="history-list recent-readings__list">

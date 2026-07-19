@@ -25,8 +25,8 @@ import { AspectsCard } from "../components/AspectsCard";
 import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
-
-const RASI_ABBR = ["Ar", "Ta", "Ge", "Cn", "Le", "Vi", "Li", "Sc", "Sg", "Cp", "Aq", "Pi"];
+import { RASI_NAMES } from "../constants/jyotish";
+import { useLocalizeName } from "../i18n/localizeName";
 
 // Flag tone → chip colour (benefic green / challenging vermillion / neutral gray).
 const TONE_COLOR = { benefic: "#2E9E5B", challenging: "#e34234", neutral: "#8b8fa8" };
@@ -55,6 +55,7 @@ const savColor = (v) => {
 export const AdvancedPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const { selectedProfile } = useProfile();
 
   const { settings } = useSettings();
@@ -103,7 +104,6 @@ export const AdvancedPage = () => {
         : null,
     [selectedProfile]
   );
-
 
   useEffect(() => {
     if (!selectedProfile) {
@@ -259,16 +259,6 @@ export const AdvancedPage = () => {
     Shatru: "Sh",
     Adhishatru: "AS",
   };
-  const PLANET_ABBR3 = {
-    Sun: "Su",
-    Moon: "Mo",
-    Mars: "Ma",
-    Mercury: "Me",
-    Jupiter: "Ju",
-    Venus: "Ve",
-    Saturn: "Sa",
-  };
-
   return (
     <div className="dashboard-container mandala-bg">
       <PageHeader
@@ -304,8 +294,8 @@ export const AdvancedPage = () => {
                     <thead>
                       <tr>
                         <th>{t("advanced.contributor")}</th>
-                        {RASI_ABBR.map((r) => (
-                          <th key={r}>{r}</th>
+                        {RASI_NAMES.map((r) => (
+                          <th key={r}>{ln(r, "rasi", { abbr: true })}</th>
                         ))}
                       </tr>
                     </thead>
@@ -342,7 +332,7 @@ export const AdvancedPage = () => {
                 </h4>
                 <div className="ui-field-grid">
                   {details.arudha_padas.map((a) => (
-                    <DataField key={a.bhava} label={a.label} value={a.sign_name} />
+                    <DataField key={a.bhava} label={a.label} value={ln(a.sign_name, "rasi")} />
                   ))}
                 </div>
 
@@ -360,7 +350,11 @@ export const AdvancedPage = () => {
                 </h4>
                 <div className="ui-field-grid">
                   {details.special_lagnas.map((s) => (
-                    <DataField key={s.name} label={s.name} value={`${s.sign_name} ${s.degrees}°`} />
+                    <DataField
+                      key={s.name}
+                      label={s.name}
+                      value={`${ln(s.sign_name, "rasi")} ${s.degrees}°`}
+                    />
                   ))}
                 </div>
 
@@ -370,7 +364,11 @@ export const AdvancedPage = () => {
                 </h4>
                 <div className="ui-field-grid">
                   {details.upagrahas.map((u) => (
-                    <DataField key={u.name} label={u.name} value={`${u.sign_name} ${u.degrees}°`} />
+                    <DataField
+                      key={u.name}
+                      label={u.name}
+                      value={`${ln(u.sign_name, "rasi")} ${u.degrees}°`}
+                    />
                   ))}
                 </div>
               </Card>
@@ -417,7 +415,9 @@ export const AdvancedPage = () => {
                           <td>{p.drik}</td>
                           <td className="fw-700">{p.total_rupa}</td>
                           <td>{p.required_rupa}</td>
-                          <td className={`fw-700 ${p.sufficient ? "text-saffron" : "text-vermillion"}`}>
+                          <td
+                            className={`fw-700 ${p.sufficient ? "text-saffron" : "text-vermillion"}`}
+                          >
                             {p.strength_ratio}
                           </td>
                           <td>{p.rank}</td>
@@ -482,11 +482,7 @@ export const AdvancedPage = () => {
 
             {/* Planet conditions (combustion, vargottama, gandanta, …) */}
             {conditions && (
-              <Card
-                title={t("conditions.title")}
-                icon={<ShieldAlert size={24} />}
-                accent="indigo"
-              >
+              <Card title={t("conditions.title")} icon={<ShieldAlert size={24} />} accent="indigo">
                 <p className="card-intro">{t("conditions.intro")}</p>
                 {(conditions.flagged || []).length === 0 ? (
                   <p className="card-note">{t("conditions.none")}</p>
@@ -497,7 +493,7 @@ export const AdvancedPage = () => {
                         <div className="pc-row__planet">
                           <span className="pc-row__name">{p.planet}</span>
                           <span className="pc-row__pos">
-                            {p.sign_name} · {t("conditions.house", { n: p.house })}
+                            {ln(p.sign_name, "rasi")} · {t("conditions.house", { n: p.house })}
                           </span>
                         </div>
                         <div className="pc-row__flags">
@@ -567,7 +563,7 @@ export const AdvancedPage = () => {
                             {p.planet}
                             <span className="av-sub">
                               {" "}
-                              {p.sign_name} · {p.dignity}
+                              {ln(p.sign_name, "rasi")} · {p.dignity}
                             </span>
                           </td>
                           <td>
@@ -581,7 +577,9 @@ export const AdvancedPage = () => {
                           <td>
                             <span
                               className="pc-flag"
-                              style={{ background: TONE_COLOR[p.deeptadi.tone] || TONE_COLOR.neutral }}
+                              style={{
+                                background: TONE_COLOR[p.deeptadi.tone] || TONE_COLOR.neutral,
+                              }}
                             >
                               {p.deeptadi.state}
                             </span>
@@ -595,7 +593,9 @@ export const AdvancedPage = () => {
                 {/* AI reading */}
                 <div className="mt-lg">
                   <ErrorBanner message={avAiError} />
-                  {!avAi && !avAiLoading && <p className="ai-panel__hint">{t("avasthas.aiHint")}</p>}
+                  {!avAi && !avAiLoading && (
+                    <p className="ai-panel__hint">{t("avasthas.aiHint")}</p>
+                  )}
                   {avAiLoading && <LoadingState message={t("avasthas.aiLoading")} />}
                   {avAi && !avAiLoading && (
                     <div className="sbc-ai-markdown ai-panel__reading">
@@ -630,14 +630,16 @@ export const AdvancedPage = () => {
                       <tr>
                         <th />
                         {friendships.planets.map((p) => (
-                          <th key={p}>{PLANET_ABBR3[p] || p}</th>
+                          <th key={p}>{ln(p, "graha", { abbr: true })}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {friendships.matrix.map((row) => (
                         <tr key={row.planet}>
-                          <td className="fw-700 text-indigo">{PLANET_ABBR3[row.planet]}</td>
+                          <td className="fw-700 text-indigo">
+                            {ln(row.planet, "graha", { abbr: true })}
+                          </td>
                           {row.relations.map((r, i) => (
                             <td
                               key={i}
@@ -720,7 +722,9 @@ export const AdvancedPage = () => {
                 {/* AI reading */}
                 <div className="mt-lg">
                   <ErrorBanner message={frAiError} />
-                  {!frAi && !frAiLoading && <p className="ai-panel__hint">{t("friendships.aiHint")}</p>}
+                  {!frAi && !frAiLoading && (
+                    <p className="ai-panel__hint">{t("friendships.aiHint")}</p>
+                  )}
                   {frAiLoading && <LoadingState message={t("friendships.aiLoading")} />}
                   {frAi && !frAiLoading && (
                     <div className="sbc-ai-markdown ai-panel__reading">

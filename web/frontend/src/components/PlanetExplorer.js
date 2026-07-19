@@ -101,13 +101,23 @@ export const PlanetExplorer = ({
           <aside className="pex-panel" role="dialog" aria-label={info.name}>
             <div className="pex-panel__head">
               <h3>{info.name}</h3>
-              <button className="pex-close" aria-label={t("common.close")} onClick={() => setSelected(null)}>
+              <button
+                className="pex-close"
+                aria-label={t("common.close")}
+                onClick={() => setSelected(null)}
+              >
                 <X size={20} />
               </button>
             </div>
             <div className="pex-panel__body">
-              <Row label={t("explorer.placement")} value={`${info.sign} ${info.degrees}° · ${info.house} ${t("explorer.house")}`} />
-              <Row label={t("explorer.nakshatra")} value={`${info.nakshatra} · ${t("explorer.pada")} ${info.pada}`} />
+              <Row
+                label={t("explorer.placement")}
+                value={`${info.sign} ${info.degrees}° · ${info.house} ${t("explorer.house")}`}
+              />
+              <Row
+                label={t("explorer.nakshatra")}
+                value={`${info.nakshatra} · ${t("explorer.pada")} ${info.pada}`}
+              />
               {info.owned.length > 0 && (
                 <Row label={t("explorer.housesOwned")} value={info.owned.join(", ")} />
               )}

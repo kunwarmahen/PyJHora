@@ -41,9 +41,7 @@ export const ForgotPasswordPage = () => {
               <CheckCircle size={16} />
               <span>{t("auth.forgot.sent")}</span>
             </div>
-            {!emailConfigured && (
-              <p className="auth-note">{t("auth.forgot.noEmailConfigured")}</p>
-            )}
+            {!emailConfigured && <p className="auth-note">{t("auth.forgot.noEmailConfigured")}</p>}
             <p className="auth-link">
               <Link to="/login">{t("auth.forgot.backToLogin")}</Link>
             </p>

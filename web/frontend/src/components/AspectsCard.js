@@ -84,7 +84,11 @@ export const AspectsCard = ({ aspects, onFocus, focusPlanet, headerExtra }) => {
                     {a.aspects_planets && a.aspects_planets.length ? (
                       <span className="aspects-pl-list">
                         {a.aspects_planets.map((p) => (
-                          <span key={p.planet} className="aspects-pl" style={strengthStyle(p.strength)}>
+                          <span
+                            key={p.planet}
+                            className="aspects-pl"
+                            style={strengthStyle(p.strength)}
+                          >
                             {p.planet} {p.strength}%
                           </span>
                         ))}

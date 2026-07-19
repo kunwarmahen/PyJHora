@@ -197,13 +197,17 @@ export const GocharaPhalaPage = () => {
             <div className="mt-xl">
               <Card title={t("gochara.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
                 <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("gochara.aiHint")}</p>}
+                {!aiAnalysis && !aiLoading && (
+                  <p className="ai-panel__hint">{t("gochara.aiHint")}</p>
+                )}
                 {aiLoading && <LoadingState message={t("gochara.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
                     <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
                     {aiModel && (
-                      <div className="ai-panel__meta">{t("gochara.aiModel", { model: aiModel })}</div>
+                      <div className="ai-panel__meta">
+                        {t("gochara.aiModel", { model: aiModel })}
+                      </div>
                     )}
                   </div>
                 )}

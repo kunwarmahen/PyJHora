@@ -66,14 +66,25 @@ const CONTEXT_SECTIONS = [
 // Default tri-state for Smart-lookup mode: seed the natal base + dasha chain,
 // let the AI fetch everything else on demand. Full-context mode seeds all.
 const DEFAULT_SECTION_STATE = {
-  dasha_tree: "seed", yogas: "tool", doshas: "tool", transits: "tool",
-  aspects: "tool", arudhas: "tool", ashtakavarga: "tool", shadbala: "tool",
-  conditions: "tool", avasthas: "tool", friendships: "tool",
-  nakshatra: "tool", gochara_phala: "tool",
+  dasha_tree: "seed",
+  yogas: "tool",
+  doshas: "tool",
+  transits: "tool",
+  aspects: "tool",
+  arudhas: "tool",
+  ashtakavarga: "tool",
+  shadbala: "tool",
+  conditions: "tool",
+  avasthas: "tool",
+  friendships: "tool",
+  nakshatra: "tool",
+  gochara_phala: "tool",
   // Chakras (§2.7): fetched on demand — only some questions need them.
-  sarvatobhadra: "tool", kota: "tool", kaala: "tool", tripataki: "tool",
+  sarvatobhadra: "tool",
+  kota: "tool",
+  kaala: "tool",
+  tripataki: "tool",
 };
-
 
 /**
  * One node in the "Behind the scenes" timeline: a coloured dot sitting on a
@@ -600,14 +611,10 @@ export const AskAstrologerPage = () => {
     setOpenTrace((p) => ({ ...p, [index]: willOpen }));
     if (!willOpen) return;
     const steps = message.toolSteps || [];
-    const needs =
-      message.trace_id && steps.some((s) => !s.notice && s.result === undefined);
+    const needs = message.trace_id && steps.some((s) => !s.notice && s.result === undefined);
     if (!needs) return;
     try {
-      const resp = await astrologyService.getConversationTrace(
-        conversationId,
-        message.trace_id
-      );
+      const resp = await astrologyService.getConversationTrace(conversationId, message.trace_id);
       const results = resp.data?.results || [];
       setMessages((prev) => {
         const next = [...prev];
@@ -1030,7 +1037,6 @@ export const AskAstrologerPage = () => {
               </button>
             ))}
           </div>
-
         </div>
 
         {/* Answer mode, per-section context and the vargas picker are the expert
@@ -1039,102 +1045,101 @@ export const AskAstrologerPage = () => {
             CSS grid, so this needs its own grid rather than a wrapper inside the
             previous one. */}
         <AdvancedOnly title={t("ask.advancedControls")}>
-        <div className="ask-grid">
-          {/* Answer Mode Card */}
-          <div className="ask-card">
-            <h3 className="ask-card__header ask-card__header--tight">
-              <Wrench size={20} />
-              {t("ask.answerMode")}
-            </h3>
-            <p className="ask-card__hint">
-              {modeLocked ? t("ask.modeLockedHint") : t("ask.modeHint")}
-            </p>
-            <div className="ask-toggle-row">
-              {[
-                { val: "pass_all", label: t("ask.modeFullContext") },
-                { val: "tools", label: t("ask.modeSmartLookup") },
-              ].map((o) => {
-                const active = mode === o.val;
-                return (
-                  <button
-                    key={o.val}
-                    type="button"
-                    className={`ask-toggle-btn${active ? " is-active" : ""}`}
-                    onClick={() => !modeLocked && setMode(o.val)}
-                    disabled={modeLocked}
-                    style={modeLocked && !active ? { opacity: 0.5 } : undefined}
-                  >
-                    {o.label}
-                  </button>
-                );
-              })}
+          <div className="ask-grid">
+            {/* Answer Mode Card */}
+            <div className="ask-card">
+              <h3 className="ask-card__header ask-card__header--tight">
+                <Wrench size={20} />
+                {t("ask.answerMode")}
+              </h3>
+              <p className="ask-card__hint">
+                {modeLocked ? t("ask.modeLockedHint") : t("ask.modeHint")}
+              </p>
+              <div className="ask-toggle-row">
+                {[
+                  { val: "pass_all", label: t("ask.modeFullContext") },
+                  { val: "tools", label: t("ask.modeSmartLookup") },
+                ].map((o) => {
+                  const active = mode === o.val;
+                  return (
+                    <button
+                      key={o.val}
+                      type="button"
+                      className={`ask-toggle-btn${active ? " is-active" : ""}`}
+                      onClick={() => !modeLocked && setMode(o.val)}
+                      disabled={modeLocked}
+                      style={modeLocked && !active ? { opacity: 0.5 } : undefined}
+                    >
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          {/* Context Sections Card */}
-          <div className="ask-card">
-            <h3 className="ask-card__header ask-card__header--tight">
-              <Wrench size={20} />
-              {t("ask.contextSections")}
-            </h3>
-            <p className="ask-card__hint">
-              {mode === "tools" ? t("ask.sectionsHintTools") : t("ask.sectionsHintFull")}
-            </p>
-            <div className="ask-section-list">
-              {CONTEXT_SECTIONS.map((s) => {
-                const state = mode === "tools"
-                  ? sections[s.key]
-                  : (sections[s.key] === "off" ? "off" : "seed");
-                return (
-                  <button
-                    key={s.key}
-                    type="button"
-                    className={`ask-section-row ask-section-row--${state}`}
-                    onClick={() => cycleSection(s.key)}
-                    title={t("ask.clickToChange")}
-                  >
-                    <span className="ask-section-row__label">{t(s.labelKey)}</span>
-                    <span className={`ask-section-row__state ask-section-row__state--${state}`}>
-                      {state === "seed"
-                        ? t("ask.stateSeed")
-                        : state === "tool"
-                          ? t("ask.stateTool")
-                          : t("ask.stateOff")}
-                    </span>
-                  </button>
-                );
-              })}
+            {/* Context Sections Card */}
+            <div className="ask-card">
+              <h3 className="ask-card__header ask-card__header--tight">
+                <Wrench size={20} />
+                {t("ask.contextSections")}
+              </h3>
+              <p className="ask-card__hint">
+                {mode === "tools" ? t("ask.sectionsHintTools") : t("ask.sectionsHintFull")}
+              </p>
+              <div className="ask-section-list">
+                {CONTEXT_SECTIONS.map((s) => {
+                  const state =
+                    mode === "tools" ? sections[s.key] : sections[s.key] === "off" ? "off" : "seed";
+                  return (
+                    <button
+                      key={s.key}
+                      type="button"
+                      className={`ask-section-row ask-section-row--${state}`}
+                      onClick={() => cycleSection(s.key)}
+                      title={t("ask.clickToChange")}
+                    >
+                      <span className="ask-section-row__label">{t(s.labelKey)}</span>
+                      <span className={`ask-section-row__state ask-section-row__state--${state}`}>
+                        {state === "seed"
+                          ? t("ask.stateSeed")
+                          : state === "tool"
+                            ? t("ask.stateTool")
+                            : t("ask.stateOff")}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          {/* Divisional Charts (Vargas) Card */}
-          <div className="ask-card">
-            <h3 className="ask-card__header ask-card__header--tight">
-              <Star size={20} />
-              {t("ask.chartsToConsult")}
-            </h3>
-            <p className="ask-card__hint">{t("ask.chartsHint")}</p>
-            <div className="ask-toggle-row">
-              {VARGAS.map((v) => {
-                const active = selectedVargas.includes(v.value);
-                const isD1 = v.value === 1;
-                return (
-                  <button
-                    key={v.value}
-                    type="button"
-                    className={`ask-toggle-btn${active ? " is-active" : ""}`}
-                    onClick={() => !isD1 && toggleVarga(v.value)}
-                    disabled={isD1}
-                    title={`${v.name} — ${v.significance}`}
-                    style={isD1 ? { cursor: "default", opacity: 0.8 } : undefined}
-                  >
-                    {v.code}
-                  </button>
-                );
-              })}
+            {/* Divisional Charts (Vargas) Card */}
+            <div className="ask-card">
+              <h3 className="ask-card__header ask-card__header--tight">
+                <Star size={20} />
+                {t("ask.chartsToConsult")}
+              </h3>
+              <p className="ask-card__hint">{t("ask.chartsHint")}</p>
+              <div className="ask-toggle-row">
+                {VARGAS.map((v) => {
+                  const active = selectedVargas.includes(v.value);
+                  const isD1 = v.value === 1;
+                  return (
+                    <button
+                      key={v.value}
+                      type="button"
+                      className={`ask-toggle-btn${active ? " is-active" : ""}`}
+                      onClick={() => !isD1 && toggleVarga(v.value)}
+                      disabled={isD1}
+                      title={`${v.name} — ${v.significance}`}
+                      style={isD1 ? { cursor: "default", opacity: 0.8 } : undefined}
+                    >
+                      {v.code}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
         </AdvancedOnly>
 
         {/* Error banner */}
@@ -1332,15 +1337,19 @@ export const AskAstrologerPage = () => {
                                     {s.args && Object.keys(s.args).length ? (
                                       <span className="trace-label__args">
                                         {" "}
-                                        ({Object.entries(s.args)
+                                        (
+                                        {Object.entries(s.args)
                                           .map(([k, v]) => `${k}: ${v}`)
-                                          .join(", ")})
+                                          .join(", ")}
+                                        )
                                       </span>
                                     ) : null}
                                   </div>
                                   {s.result !== undefined && (
                                     <details className="trace-data">
-                                      <summary className="trace-data__summary">{t("ask.traceViewData")}</summary>
+                                      <summary className="trace-data__summary">
+                                        {t("ask.traceViewData")}
+                                      </summary>
                                       <pre className="trace-data__pre">
                                         {JSON.stringify(s.result, null, 2)}
                                       </pre>
@@ -1380,10 +1389,7 @@ export const AskAstrologerPage = () => {
                         {t("ask.consulting")}
                       </div>
                     ) : (
-                      <StreamingMarkdown
-                        content={message.content}
-                        streaming={message.streaming}
-                      />
+                      <StreamingMarkdown content={message.content} streaming={message.streaming} />
                     )
                   ) : (
                     message.content

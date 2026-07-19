@@ -32,6 +32,7 @@ import { AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Chat.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 // The three BV Raman suddhi methods the backend exposes. `needsGender` gates the
 // gender selector (janma suddhi is the only one that needs it).
@@ -44,8 +45,18 @@ const METHODS = [
 // Event types for the event-based mode. Keys must match the backend
 // EVENT_SIGNIFICATORS map.
 const EVENT_TYPES = [
-  "marriage", "childbirth", "career", "promotion", "education", "wealth",
-  "property", "relocation", "illness", "accident", "father_death", "mother_death",
+  "marriage",
+  "childbirth",
+  "career",
+  "promotion",
+  "education",
+  "wealth",
+  "property",
+  "relocation",
+  "illness",
+  "accident",
+  "father_death",
+  "mother_death",
 ];
 
 const WINDOWS = [
@@ -60,7 +71,8 @@ const readModelConfig = () => {
   return {
     providerType,
     model: localStorage.getItem("ai_model") || "",
-    baseUrl: providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
+    baseUrl:
+      providerType === "ollama" ? localStorage.getItem("ai_base_url") || undefined : undefined,
     legacyProvider: providerType === "ollama" ? "qwen" : providerType,
     maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "0", 10) || undefined,
   };
@@ -69,15 +81,14 @@ const readModelConfig = () => {
 export const BirthTimeRectificationPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const { selectedProfile, updateProfile } = useProfile();
 
   // Top-level mode: rule-based (śuddhi) vs event-based.
   const [mode, setMode] = useState(() => localStorage.getItem("rectify_mode") || "rule");
 
   // Rule-mode state.
-  const [method, setMethod] = useState(
-    () => localStorage.getItem("rectify_method") || "nakshatra"
-  );
+  const [method, setMethod] = useState(() => localStorage.getItem("rectify_method") || "nakshatra");
   const [gender, setGender] = useState(null); // 0=male, 1=female (janma only)
 
   // Event-mode state.
@@ -397,7 +408,10 @@ export const BirthTimeRectificationPage = () => {
         <ProfileBanner profile={selectedProfile} />
 
         {/* Experimental disclaimer — always visible, this is the core caveat. */}
-        <div className="readonly-banner" style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start" }}>
+        <div
+          className="readonly-banner"
+          style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start" }}
+        >
           <AlertTriangle size={20} style={{ flexShrink: 0, marginTop: "0.1rem" }} />
           <span>{t("rectify.experimental")}</span>
         </div>
@@ -546,9 +560,7 @@ export const BirthTimeRectificationPage = () => {
               >
                 {loading ? t("rectify.loading") : t("rectify.runEvents")}
               </button>
-              {validEvents.length === 0 && (
-                <p className="card-note">{t("rectify.eventsPrompt")}</p>
-              )}
+              {validEvents.length === 0 && <p className="card-note">{t("rectify.eventsPrompt")}</p>}
             </div>
           </div>
         )}
@@ -570,12 +582,7 @@ export const BirthTimeRectificationPage = () => {
               <>
                 <div className="rectify-chat__log">
                   {chatMessages.map((m, i) => (
-                    <ChatBubble
-                      key={i}
-                      role={m.role}
-                      content={m.content}
-                      error={m.error}
-                    />
+                    <ChatBubble key={i} role={m.role} content={m.content} error={m.error} />
                   ))}
                   {chatBusy && (
                     <ChatBubble
@@ -665,15 +672,14 @@ export const BirthTimeRectificationPage = () => {
                     {result.already_consistent
                       ? t("rectify.alreadyConsistent")
                       : isEventResult
-                      ? t("rectify.eventsNoChange")
-                      : t("rectify.notConverged")}
+                        ? t("rectify.eventsNoChange")
+                        : t("rectify.notConverged")}
                   </strong>
                 </span>
               )}
               {isEventResult && result.confidence != null && (
                 <span className="info-pill">
-                  {t("rectify.fit")}:{" "}
-                  <strong className="text-saffron">{result.confidence}%</strong>
+                  {t("rectify.fit")}: <strong className="text-saffron">{result.confidence}%</strong>
                 </span>
               )}
               <span className="info-pill">
@@ -742,27 +748,33 @@ export const BirthTimeRectificationPage = () => {
                       <tr>
                         <td className="fw-700 text-indigo">{t("rectify.moonStar")}</td>
                         <td>
-                          {before.moon?.nakshatra} · {t("rectify.pada")} {before.moon?.pada}
+                          {ln(before.moon?.nakshatra, "nakshatra")} · {t("rectify.pada")}{" "}
+                          {before.moon?.pada}
                         </td>
                         <td className="text-center">
                           <ArrowRight size={16} style={{ color: "var(--saffron)" }} />
                         </td>
                         <td className="fw-600 text-saffron">
-                          {after.moon?.nakshatra} · {t("rectify.pada")} {after.moon?.pada}
+                          {ln(after.moon?.nakshatra, "nakshatra")} · {t("rectify.pada")}{" "}
+                          {after.moon?.pada}
                         </td>
                       </tr>
                       <tr>
                         <td className="fw-700 text-indigo">{t("rectify.risingSign")}</td>
                         <td>
-                          {before.lagna?.sign_name}{" "}
-                          <span className="text-muted">({before.lagna?.nakshatra})</span>
+                          {ln(before.lagna?.sign_name, "rasi")}{" "}
+                          <span className="text-muted">
+                            ({ln(before.lagna?.nakshatra, "nakshatra")})
+                          </span>
                         </td>
                         <td className="text-center">
                           <ArrowRight size={16} style={{ color: "var(--saffron)" }} />
                         </td>
                         <td className="fw-600 text-saffron">
-                          {after.lagna?.sign_name}{" "}
-                          <span className="text-muted">({after.lagna?.nakshatra})</span>
+                          {ln(after.lagna?.sign_name, "rasi")}{" "}
+                          <span className="text-muted">
+                            ({ln(after.lagna?.nakshatra, "nakshatra")})
+                          </span>
                         </td>
                       </tr>
                     </tbody>
@@ -814,7 +826,9 @@ export const BirthTimeRectificationPage = () => {
               <div className="mt-xl">
                 <Card title={t("rectify.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
                   <ErrorBanner message={aiError} />
-                  {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("rectify.aiHint")}</p>}
+                  {!aiAnalysis && !aiLoading && (
+                    <p className="ai-panel__hint">{t("rectify.aiHint")}</p>
+                  )}
                   {aiLoading && <LoadingState message={t("rectify.aiLoading")} />}
                   {aiAnalysis && !aiLoading && (
                     <div className="sbc-ai-markdown ai-panel__reading">

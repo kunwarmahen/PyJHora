@@ -199,8 +199,7 @@ export const PanchangaPanel = ({
 
           {data.hijri && (
             <div className="panchanga-place">
-              {t("panchanga.hijri")}: {data.hijri.day} {data.hijri.month_name}{" "}
-              {data.hijri.year} AH
+              {t("panchanga.hijri")}: {data.hijri.day} {data.hijri.month_name} {data.hijri.year} AH
             </div>
           )}
 
