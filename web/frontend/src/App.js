@@ -29,6 +29,7 @@ import { AiToolsPage } from "./pages/AiToolsPage";
 import { SensitivePointsPage } from "./pages/SensitivePointsPage";
 import { VedicClockPage } from "./pages/VedicClockPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { HelpPage } from "./pages/HelpPage";
 import { MuhurtaPage } from "./pages/MuhurtaPage";
 import { PrashnaPage } from "./pages/PrashnaPage";
 import { BhriguMarkersPage } from "./pages/BhriguMarkersPage";
@@ -77,426 +78,448 @@ function App() {
       <AuthProvider>
         <ProfileProvider>
           <SettingsProvider>
-          <LocationProvider>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/digest/confirm" element={<DigestConsentPage mode="confirm" />} />
-            <Route path="/digest/unsubscribe" element={<DigestConsentPage mode="unsubscribe" />} />
-            <Route path="/share/:token" element={<SharedChartPage />} />
+            <LocationProvider>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/digest/confirm" element={<DigestConsentPage mode="confirm" />} />
+                <Route
+                  path="/digest/unsubscribe"
+                  element={<DigestConsentPage mode="unsubscribe" />}
+                />
+                <Route path="/share/:token" element={<SharedChartPage />} />
 
-            <Route
-              path="/profile-selection"
-              element={
-                <ProtectedRoute>
-                  <ProfileSelectionPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/profile-selection"
+                  element={
+                    <ProtectedRoute>
+                      <ProfileSelectionPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            {/* Admin console (§44). ProtectedRoute requires a session; AdminPage
+                {/* Admin console (§44). ProtectedRoute requires a session; AdminPage
                 itself redirects non-admins. The API enforces admin server-side. */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute>
-                  <AdminPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/birth-chart"
-              element={
-                <ProtectedRoute>
-                  <BirthChartPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/birth-chart"
+                  element={
+                    <ProtectedRoute>
+                      <BirthChartPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/compatibility"
-              element={
-                <ProtectedRoute>
-                  <CompatibilityPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/compatibility"
+                  element={
+                    <ProtectedRoute>
+                      <CompatibilityPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/dhasa"
-              element={
-                <ProtectedRoute>
-                  <DhasaPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/dhasa"
+                  element={
+                    <ProtectedRoute>
+                      <DhasaPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/transit"
-              element={
-                <ProtectedRoute>
-                  <TransitPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/transit"
+                  element={
+                    <ProtectedRoute>
+                      <TransitPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/ephemeris"
-              element={
-                <ProtectedRoute>
-                  <EphemerisPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/ephemeris"
+                  element={
+                    <ProtectedRoute>
+                      <EphemerisPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/bhava"
-              element={
-                <ProtectedRoute>
-                  <BhavaChartPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/bhava"
+                  element={
+                    <ProtectedRoute>
+                      <BhavaChartPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/report"
-              element={
-                <ProtectedRoute>
-                  <FullReportPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/report"
+                  element={
+                    <ProtectedRoute>
+                      <FullReportPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/almanac"
-              element={
-                <ProtectedRoute>
-                  <AlmanacPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/almanac"
+                  element={
+                    <ProtectedRoute>
+                      <AlmanacPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/muhurta"
-              element={
-                <ProtectedRoute>
-                  <MuhurtaPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/muhurta"
+                  element={
+                    <ProtectedRoute>
+                      <MuhurtaPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/prashna"
-              element={
-                <ProtectedRoute>
-                  <PrashnaPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/prashna"
+                  element={
+                    <ProtectedRoute>
+                      <PrashnaPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/bhrigu-markers"
-              element={
-                <ProtectedRoute>
-                  <BhriguMarkersPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/bhrigu-markers"
+                  element={
+                    <ProtectedRoute>
+                      <BhriguMarkersPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/timeline"
-              element={
-                <ProtectedRoute>
-                  <TimelinePage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/timeline"
+                  element={
+                    <ProtectedRoute>
+                      <TimelinePage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/strength"
-              element={
-                <ProtectedRoute>
-                  <StrengthPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/strength"
+                  element={
+                    <ProtectedRoute>
+                      <StrengthPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/sade-sati"
-              element={
-                <ProtectedRoute>
-                  <SadeSatiPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/sade-sati"
+                  element={
+                    <ProtectedRoute>
+                      <SadeSatiPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/remedies"
-              element={
-                <ProtectedRoute>
-                  <RemediesPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/remedies"
+                  element={
+                    <ProtectedRoute>
+                      <RemediesPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/daily-digest"
-              element={
-                <ProtectedRoute>
-                  <DailyDigestPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/daily-digest"
+                  element={
+                    <ProtectedRoute>
+                      <DailyDigestPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/fortnightly-digest"
-              element={
-                <ProtectedRoute>
-                  <FortnightlyDigestPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/fortnightly-digest"
+                  element={
+                    <ProtectedRoute>
+                      <FortnightlyDigestPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/monthly-digest"
-              element={
-                <ProtectedRoute>
-                  <MonthlyDigestPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/monthly-digest"
+                  element={
+                    <ProtectedRoute>
+                      <MonthlyDigestPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/kp"
-              element={
-                <ProtectedRoute>
-                  <KPPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/kp"
+                  element={
+                    <ProtectedRoute>
+                      <KPPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/jaimini"
-              element={
-                <ProtectedRoute>
-                  <JaiminiPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/jaimini"
+                  element={
+                    <ProtectedRoute>
+                      <JaiminiPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/now"
-              element={
-                <ProtectedRoute>
-                  <NowChartPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/now"
+                  element={
+                    <ProtectedRoute>
+                      <NowChartPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/nakshatra"
-              element={
-                <ProtectedRoute>
-                  <NakshatraProfilePage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/nakshatra"
+                  element={
+                    <ProtectedRoute>
+                      <NakshatraProfilePage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/gochara"
-              element={
-                <ProtectedRoute>
-                  <GocharaPhalaPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/gochara"
+                  element={
+                    <ProtectedRoute>
+                      <GocharaPhalaPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/journal"
-              element={
-                <ProtectedRoute>
-                  <JournalPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/journal"
+                  element={
+                    <ProtectedRoute>
+                      <JournalPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/life-report"
-              element={
-                <ProtectedRoute>
-                  <LifeReportPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/life-report"
+                  element={
+                    <ProtectedRoute>
+                      <LifeReportPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/advanced"
-              element={
-                <ProtectedRoute>
-                  <AdvancedPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/advanced"
+                  element={
+                    <ProtectedRoute>
+                      <AdvancedPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/compare"
-              element={
-                <ProtectedRoute>
-                  <ComparePage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/compare"
+                  element={
+                    <ProtectedRoute>
+                      <ComparePage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/predictions"
-              element={
-                <ProtectedRoute>
-                  <PredictionsPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/predictions"
+                  element={
+                    <ProtectedRoute>
+                      <PredictionsPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/ask-astrologer"
-              element={
-                <ProtectedRoute>
-                  <AskAstrologerPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/ask-astrologer"
+                  element={
+                    <ProtectedRoute>
+                      <AskAstrologerPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/ai-tools"
-              element={
-                <ProtectedRoute>
-                  <AiToolsPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/ai-tools"
+                  element={
+                    <ProtectedRoute>
+                      <AiToolsPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            {/* The page now hosts three chakras (Sarvatobhadra / Kota / Tripataki),
+                {/* The page now hosts three chakras (Sarvatobhadra / Kota / Tripataki),
                 so /chakras is the name-matching URL. /sarvatobhadra is kept as an
                 alias — existing bookmarks, share links and saved readings
                 (conversations SOURCE_META) still point at it. */}
-            <Route
-              path="/chakras"
-              element={
-                <ProtectedRoute>
-                  <SarvatobhadraPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/sarvatobhadra"
-              element={
-                <ProtectedRoute>
-                  <SarvatobhadraPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/chakras"
+                  element={
+                    <ProtectedRoute>
+                      <SarvatobhadraPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/sarvatobhadra"
+                  element={
+                    <ProtectedRoute>
+                      <SarvatobhadraPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/learn"
-              element={
-                <ProtectedRoute>
-                  <LearnChartPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/learn"
+                  element={
+                    <ProtectedRoute>
+                      <LearnChartPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/varshaphal"
-              element={
-                <ProtectedRoute>
-                  <VarshaphalPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/varshaphal"
+                  element={
+                    <ProtectedRoute>
+                      <VarshaphalPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/tithi-pravesha"
-              element={
-                <ProtectedRoute>
-                  <TithiPraveshaPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/tithi-pravesha"
+                  element={
+                    <ProtectedRoute>
+                      <TithiPraveshaPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/pancha-pakshi"
-              element={
-                <ProtectedRoute>
-                  <PanchaPakshiPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/pancha-pakshi"
+                  element={
+                    <ProtectedRoute>
+                      <PanchaPakshiPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/rectify"
-              element={
-                <ProtectedRoute>
-                  <BirthTimeRectificationPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/rectify"
+                  element={
+                    <ProtectedRoute>
+                      <BirthTimeRectificationPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/sensitive-points"
-              element={
-                <ProtectedRoute>
-                  <SensitivePointsPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/sensitive-points"
+                  element={
+                    <ProtectedRoute>
+                      <SensitivePointsPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/vedic-clock"
-              element={
-                <ProtectedRoute>
-                  <VedicClockPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/vedic-clock"
+                  element={
+                    <ProtectedRoute>
+                      <VedicClockPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <SettingsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/history"
-              element={
-                <ProtectedRoute>
-                  <HistoryPage />
-                </ProtectedRoute>
-              }
-            />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <SettingsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Help is reachable without a chart selected — someone who is lost
+                should never have to pick a profile before reading the FAQ.
+                `/faq` is an alias people type. */}
+                <Route
+                  path="/help"
+                  element={
+                    <ProtectedRoute>
+                      <HelpPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/faq"
+                  element={
+                    <ProtectedRoute>
+                      <HelpPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/history"
+                  element={
+                    <ProtectedRoute>
+                      <HistoryPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <StartupRedirect />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-          </LocationProvider>
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <StartupRedirect />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </LocationProvider>
           </SettingsProvider>
         </ProfileProvider>
       </AuthProvider>

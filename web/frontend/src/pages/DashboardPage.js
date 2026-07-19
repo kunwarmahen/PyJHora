@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
-import { LogOut, Sparkles, Settings } from "lucide-react";
+import { LogOut, Sparkles, Settings, HelpCircle } from "lucide-react";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { LocationPrompt } from "../components/LocationPrompt";
 import { NavDrawer } from "../components/NavDrawer";
@@ -53,6 +53,14 @@ export const DashboardPage = () => {
             <span className="username">{user?.name || user?.username}</span>
           </div>
           <ThemeToggle />
+          <button
+            onClick={() => navigate("/help")}
+            className="logout-btn"
+            title={t("nav.help")}
+            aria-label={t("nav.help")}
+          >
+            <HelpCircle size={18} />
+          </button>
           <button
             onClick={() => navigate("/settings")}
             className="logout-btn"

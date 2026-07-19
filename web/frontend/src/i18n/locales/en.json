@@ -445,7 +445,8 @@
     "nakshatra": "Nakshatra Profile",
     "gochara": "Gochara-phala",
     "journal": "Astro-Journal",
-    "lifeReport": "Life Report"
+    "lifeReport": "Life Report",
+    "help": "Help & FAQ"
   },
   "aiTools": {
     "title": "AI Capabilities",
@@ -2391,6 +2392,136 @@
       "setting": "Setting…",
       "ignore": "Ignore for now",
       "done": "Your times now follow {{zone}}."
+    }
+  },
+  "help": {
+    "title": "Help & FAQ",
+    "subtitle": "Plain answers, no jargon assumed",
+    "intro": "New to all this? Start at the top — the first few answers assume you know nothing about astrology, and that's fine. Nothing here expects you to already speak the language.",
+    "search": "Search the help…",
+    "noResults": "Nothing matched \"{{query}}\". Try a simpler word, or browse the sections below.",
+    "clearSearch": "Clear",
+    "openLink": "Open this",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "sections": {
+      "start": {
+        "title": "Getting started",
+        "blurb": "What this is, and what it needs from you."
+      },
+      "reading": {
+        "title": "Reading your chart",
+        "blurb": "How to make sense of the diagram and the words around it."
+      },
+      "features": {
+        "title": "What each page does",
+        "blurb": "A one-line tour. Follow any link to go straight there."
+      },
+      "ai": {
+        "title": "The AI astrologer",
+        "blurb": "What it can see, how it answers, and how far to trust it."
+      },
+      "privacy": {
+        "title": "Privacy & your account",
+        "blurb": "What's stored, what's shared, and how to remove it."
+      }
+    },
+    "glossary": {
+      "title": "Glossary",
+      "blurb": "Short definitions for the terms you'll meet most often. Any underlined term elsewhere in the app shows its definition on hover."
+    },
+    "stillStuck": {
+      "title": "Still stuck?",
+      "body": "Ask the AI astrologer — it can see your chart and is happy to explain anything on this page in more detail, or in simpler words.",
+      "cta": "Ask the AI astrologer"
+    },
+    "q": {
+      "aiAccurate": "Is any of this accurate? Should I make decisions based on it?",
+      "aiHistory": "Where do my readings go afterwards?",
+      "aiModes": "What's the difference between \"Full context\" and \"Smart lookup\"?",
+      "aiWhatIsIt": "What is the AI astrologer?",
+      "aiWhatItSees": "What information does the AI actually see?",
+      "aiWhichModel": "Which AI model is it using? Can I change it?",
+      "believe": "Do I have to believe in astrology to get something out of this?",
+      "essentialsVsEverything": "There seem to be a lot of pages. Do I need all of them?",
+      "featAlmanac": "Almanac",
+      "featBirthChart": "Birth Chart",
+      "featCompatibility": "Compatibility",
+      "featDasha": "Dasha Periods",
+      "featJournal": "Astro-Journal",
+      "featLearn": "Learn the Chart",
+      "featLifeReport": "Life Report",
+      "featMuhurta": "Muhurta",
+      "featPrashna": "Prashna",
+      "featRectify": "Birth Time Rectification",
+      "featRemedies": "Remedies",
+      "featSensitivePoints": "Sensitive Points",
+      "featToday": "Today",
+      "featTransit": "Transits (Gochara)",
+      "featVarshaphal": "Varshaphal (Annual)",
+      "featVedicClock": "Vedic Clock",
+      "noBirthTime": "I don't know my birth time. Can I still use this?",
+      "northVsSouth": "Why does my chart look different from one I've seen elsewhere?",
+      "privDelete": "How do I delete my account and everything in it?",
+      "privEmails": "Will you email me?",
+      "privKeys": "What are API keys, and do I need one?",
+      "privSharing": "What happens when I share a chart link?",
+      "privWhatStored": "What do you store about me?",
+      "rasiVsNavamsa": "What's the difference between the Rasi and Navamsa charts?",
+      "retrograde": "What does \"retrograde\" mean?",
+      "whatAmILookingAt": "What am I actually looking at in that square diagram?",
+      "whatIsChart": "What is a birth chart?",
+      "whatIsHouse": "What is a \"house\"?",
+      "whatIsNakshatra": "What is a nakshatra?",
+      "whatIsSign": "What does it mean that a planet is \"in\" a sign?",
+      "whatIsThis": "What is this app, in one sentence?",
+      "whereToStart": "I've added my details. Where do I start?",
+      "whyBirthTime": "Why does it keep asking for my exact birth time?",
+      "yogaAndDosha": "What are yogas and doshas?"
+    },
+    "a": {
+      "aiAccurate": "It faithfully reports what the calculations say and interprets them in the tradition's own terms — the maths is real astronomy. Whether astrology itself predicts anything is a question this app can't settle for you. Please treat every reading as reflection, not instruction, and never as medical, legal or financial advice. AI models can also simply be wrong, and this one occasionally will be.",
+      "aiHistory": "Everything is saved automatically. AI History holds every reading and chat, and you can reopen any of them exactly as they were. Readings also show up under the page that produced them.",
+      "aiModes": "Full context hands the model your whole chart up front — thorough, and better for open-ended questions, but slower and heavier. Smart lookup gives it a summary plus the ability to fetch specific calculations on demand, which is quicker and usually enough. If an answer seems to have missed something, switch to Full context and ask again.",
+      "aiWhatIsIt": "A conversational astrologer that has already been handed your chart. You can ask it anything — \"what does my chart say about money?\", \"explain my current period\", \"what is a nakshatra?\" — and ask follow-ups. It's also the layer that writes the readings on other pages.",
+      "aiWhatItSees": "The chart data for the profile you have selected: birth details, planetary positions, houses, periods, yogas and whatever the specific page computed. It does not see your password, your email, other users' data, or anything you haven't given the app. If you're using a cloud AI provider, that chart context is sent to them to answer — if you'd rather it never left your machine, run a local model (Ollama) instead.",
+      "aiWhichModel": "Whichever you've configured in Settings → AI. You can point it at a local model running on your own machine (nothing leaves home) or at a cloud provider with your own API key. The model's name is shown on each reading, so you can always tell what wrote it.",
+      "believe": "Not at all. Plenty of people read a chart the way they'd read a personality sketch or a journalling prompt: something to think with, not something to obey. The app is deliberately written to describe tendencies rather than issue verdicts, and nothing here should replace medical, legal or financial advice.",
+      "essentialsVsEverything": "No. The app starts in Essentials, which shows about a dozen pages most people want. Everything unlocks the full set — over thirty — including the specialist systems. Switch any time in Settings → General → View mode. Nothing is ever taken away from you; Essentials just doesn't advertise it all at once.",
+      "featAlmanac": "The traditional calendar: the day's panchanga, auspicious and inauspicious windows, festivals and vratha dates, and eclipses.",
+      "featBirthChart": "Your chart and everything read directly from it: planets and houses, your ascendant and birth star, the yogas and doshas that were found, and the daily almanac for your birthplace.",
+      "featCompatibility": "Traditional match-making between two charts: the classic points score, a fuller ten-factor version, the Mangal-dosha question, and how the two people's timing periods overlap.",
+      "featDasha": "Vedic astrology's timing system. Your life is divided into planetary periods that run for years, each with sub-periods inside it, so a chart's promises are tied to *when*. If you only learn one advanced idea, make it this one.",
+      "featJournal": "Log real events from your life against the planetary periods that were running. Over time this is how you find out whether any of it tracks for you.",
+      "featLearn": "A quiz on your own chart. The AI asks, you answer, it grades and explains. The fastest way to stop needing this help page.",
+      "featLifeReport": "A long, composed reading of your whole chart in seven chapters — personality, career, wealth, relationships, health, purpose and your current outlook. Generated on our server, so you can close the page and come back to it.",
+      "featMuhurta": "Choosing a good moment. Give it a window and a purpose — a wedding, travel, signing something — and it finds the times traditionally considered supportive.",
+      "featPrashna": "Horary astrology: instead of your birth chart, it reads a chart cast for the moment you ask a question. Used when the question matters more than the person.",
+      "featRectify": "For an uncertain birth time. Give it a range and some dated life events, and it suggests which times fit best. Experimental by nature — it narrows possibilities rather than proving one.",
+      "featRemedies": "The traditional remedial suggestions — gemstones, mantras, charity — for the planets that look strained in your chart. Offered as tradition, not prescription.",
+      "featSensitivePoints": "Specific calculated points in the chart — sphutas, the 36 Sahams, and argala — that experienced readers use for fine detail. Comfortably skippable at first.",
+      "featToday": "A short daily briefing for you specifically — the day's almanac, which planetary period you're in, and what's moving over your chart. The best page to check habitually.",
+      "featTransit": "Where the planets are right now, laid over your birth chart — what the sky is currently doing to your map, with an AI reading of it.",
+      "featVarshaphal": "Your year ahead, from a chart cast for the moment the Sun returns to its exact birth position. A separate classical system (Tajaka) with its own year-lord and periods.",
+      "featVedicClock": "The day as traditional time-keeping sees it, plus which planets are currently retrograde.",
+      "noBirthTime": "Yes. Two options. You can set the time accuracy to \"unknown\" when you save the profile — the app then reads your chart from the Moon instead of the ascendant, and quietly avoids the things that need an exact time. Or, if you know roughly when you were born and can remember a few dated life events, Birth Time Rectification will suggest the times that best fit them. Treat its answer as a good guess, not a fact.",
+      "northVsSouth": "There are two common ways to draw the same chart. In the North Indian style the houses stay in fixed positions and the signs move; in the South Indian style the signs stay fixed and the houses move. The planets are identical either way — it's the same information in a different frame. Pick whichever you grew up with in Settings → General.",
+      "privDelete": "Settings → Account → Delete account. It removes the account and cascades through everything attached to it: profiles, charts, readings, chats, journal entries, shared links and settings. It's immediate and can't be undone.",
+      "privEmails": "Only what you switch on — the daily or periodic digest, and password resets. Digests are off until you enable them, and every one has an unsubscribe link. You can add other recipients, but only after they confirm.",
+      "privKeys": "Only if you want to use a cloud AI provider under your own account. A key is a password that lets this app use your allowance at, say, OpenAI or Google. Stored encrypted, and shown to you only masked. If you use a local model instead, you never need one.",
+      "privSharing": "You get a link that shows a read-only copy of that chart to anyone who opens it — no login needed. Treat it as public: a link is a key, so only send it to people you'd show the birth details to. You can revoke it later.",
+      "privWhatStored": "Your account (username, email, name), the birth profiles you create, the charts and readings you generate, your settings, and your journal entries if you write any. It lives in this app's own database. It isn't sold, shared or mined.",
+      "rasiVsNavamsa": "The Rasi (also called D1) is your main birth chart — the actual sky. The Navamsa (D9) is a derived chart that magnifies one part of the picture: it's traditionally read for marriage, partnership and inner strength, and as a second opinion on how well a planet really does. A planet that looks weak in the Rasi but strong in the Navamsa is the classic \"grows into it\" signature.",
+      "retrograde": "Planets sometimes appear to move backwards from where we stand, because we're orbiting too. Nothing physically reverses. Astrologically a retrograde planet is usually read as turned inward or revisiting something rather than as bad news.",
+      "whatAmILookingAt": "A map of the sky, flattened. The twelve compartments are the houses — twelve areas of life, in a fixed order starting from your ascendant. The abbreviations inside them are planets. So \"Sun in the 10th\" means the Sun sat in the part of the sky your tradition associates with career and public standing. That's the whole grammar: a planet, in a sign, in a house.",
+      "whatIsChart": "A snapshot of the sky at the moment you were born, drawn as a diagram. Astrology treats that snapshot as a map of your life's themes. The map has twelve segments (\"houses\"), and the position of the Sun, Moon and planets across them is what everything else is read from. You don't need to understand the diagram to use this app — every page explains what it found in words.",
+      "whatIsHouse": "One of twelve areas of life. Roughly: 1st you and your body, 2nd money and family, 3rd effort and siblings, 4th home and mother, 5th children and creativity, 6th work, health and obstacles, 7th partnership, 8th upheaval and inheritance, 9th belief and fortune, 10th career, 11th gains and networks, 12th loss, retreat and release. A planet in a house colours that area.",
+      "whatIsNakshatra": "A finer division of the sky than a sign: 27 of them, each about 13°20' wide, sometimes called lunar mansions. Your \"birth star\" is the nakshatra the Moon was in when you were born, and it's used for personality detail and — importantly — for the timing system below.",
+      "whatIsSign": "The zodiac is a circle split into twelve 30° signs, and at any moment each planet sits in one of them. The sign describes the *manner* of a planet — Mars in a cautious sign behaves differently from Mars in a bold one. Note that Vedic astrology uses the sidereal zodiac, measured against the actual stars, so your Sun sign here is often one back from the one in a newspaper horoscope. That's expected, not a bug.",
+      "whatIsThis": "It takes your birth date, time and place, works out where the planets were at that moment, and helps you read what Vedic astrology (Jyotish) traditionally makes of it — with an AI that can explain any of it in plain English.",
+      "whereToStart": "Open your Birth Chart and read the plain-English panels rather than the diagram. Then try Today for what's happening right now, and ask the AI astrologer anything you're curious about — it can see your chart, so \"what does my chart say about my work?\" is a perfectly good question.",
+      "whyBirthTime": "Because the sky changes fast. The \"ascendant\" — the sign coming up over the horizon — moves to a new sign roughly every two hours, and it decides how the whole chart is laid out. A few minutes usually doesn't matter; a few hours changes almost everything. Date and place matter too, but time is the sensitive one.",
+      "yogaAndDosha": "A yoga is a specific planetary combination said to produce a particular result — many are simply favourable patterns worth knowing about. A dosha is an affliction or rough patch in the chart. Both get named dramatically in traditional texts. Read them as emphasis rather than fate: a chart with a dosha is extremely common, and it isn't a diagnosis."
     }
   }
 }

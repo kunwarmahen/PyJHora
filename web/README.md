@@ -268,6 +268,21 @@ stable across DST and localised for free; the raw IANA name is a developer ident
 Leaving it unset falls back to the birth profile, which stays correct for anyone who still lives
 where they were born.
 
+### Help & FAQ
+
+- **`/help`** (also `/faq`): 42 plain-language questions for someone who has never
+  read a chart — what a birth chart is, why the exact birth time matters, what the
+  square diagram actually shows, a one-line tour of every feature, what the AI can
+  see and how far to trust it, and what's stored about you
+- **Reachable from anywhere**: a "?" in every page header and on the dashboard,
+  plus an entry in the nav-drawer footer
+- **Maintainable**: structure in `config/help.js`, words in the `help.*` i18n
+  block keyed by id — adding a question is one id plus two strings, and
+  `config/help.test.js` fails if the two ever drift apart. The glossary is
+  rendered from `constants/glossary.js`, the same table the hover definitions use
+- Answers collapse by default and are searchable; `#id` deep-links a single
+  answer (e.g. `/help#aiModes`)
+
 ### Life Report (long-form, generated on the server)
 
 - **Seven composed chapters** — personality, career, wealth, relationships, health, dharma and the

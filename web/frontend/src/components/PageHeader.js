@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, HelpCircle } from "lucide-react";
 import { NavDrawer } from "./NavDrawer";
 import { AdvancedNotice } from "./AdvancedOnly";
 import { ThemeToggle } from "./ThemeToggle";
@@ -44,6 +44,16 @@ export const PageHeader = ({
         </div>
         <div className="nav-right">
           {right}
+          {/* Always-present way out for someone who doesn't understand the page
+              they're on. Icon-only: it must never crowd the page's own actions. */}
+          <button
+            className="page-help-btn"
+            onClick={() => navigate("/help")}
+            title={t("nav.help")}
+            aria-label={t("nav.help")}
+          >
+            <HelpCircle size={18} />
+          </button>
           <ThemeToggle />
           <NavDrawer />
         </div>

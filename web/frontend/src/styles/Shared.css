@@ -652,7 +652,11 @@
 /* On-demand AI analysis panel (Compatibility / Compare / Sarvatobhadra) */
 .ai-panel {
   padding: var(--space-lg);
-  background: linear-gradient(135deg, rgba(var(--indigo-rgb), 0.05) 0%, rgba(var(--indigo-rgb), 0.1) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--indigo-rgb), 0.05) 0%,
+    rgba(var(--indigo-rgb), 0.1) 100%
+  );
   border-radius: var(--radius-lg);
   border: 2px solid var(--text-primary);
 }
@@ -959,4 +963,26 @@
   .theme-toggle {
     padding: 6px;
   }
+}
+
+/* Help "?" in every page header (§14). Sized like the theme toggle beside it. */
+.page-help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.page-help-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.page-help-btn:focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 2px;
 }

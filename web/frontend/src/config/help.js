@@ -85,8 +85,7 @@ export const HELP_SECTIONS = [
 ];
 
 /** Every question id, flattened — used by the tests and the search index. */
-export const allHelpItemIds = () =>
-  HELP_SECTIONS.flatMap((s) => s.items.map((i) => i.id));
+export const allHelpItemIds = () => HELP_SECTIONS.flatMap((s) => s.items.map((i) => i.id));
 
 /**
  * Filter the outline by a search string.

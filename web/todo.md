@@ -1923,19 +1923,44 @@ Plan:
       *list* view isn't built — opaque hashed refresh tokens make it possible but it wasn't needed;
       "log out other devices" covers the practical case.)
 
-## 14. Layman FAQ / Help page (P1, owner ask 2026-07-03)
+## 14. Layman FAQ / Help page (P1, owner ask 2026-07-03) — SHIPPED 2026-07-18
 
-A friendly, jargon-light FAQ so a non-astrologer understands what the app does and how to use it.
-- [ ] 🔴 **`HelpPage.js` / FAQ** (route `/help` or `/faq`, "?" in navbar + drawer): plain-language
-      Q&A grouped by area — *Getting started* (what's a birth chart, why time/place matter),
-      *Reading your chart* (Rasi vs Navamsa, North vs South, what a house/planet/nakshatra means),
-      *Features tour* (Dhasa, Transits, Varshaphal, Compatibility, Almanac, Sensitive Points,
-      Vedic Clock, Rectification — one short blurb + link each), *The AI astrologer* (Full context
-      vs Smart lookup, what data it sees, the disclaimer), *Privacy & accounts* (what's stored,
-      sharing links, API keys), and a *Glossary* pointer (reuse `constants/glossary.js`).
-- [ ] 🔴 Keep it maintainable: drive from a structured `faq.*` i18n block (or an MDX/JSON content
-      file) so entries are easy to add. en first; hi/sa fall back.
-- [ ] 🔴 (Optional) contextual "?" links from each feature page into the relevant FAQ anchor.
+A friendly, jargon-light FAQ so a non-astrologer understands what the app does.
+Owner framing: **"think that a person is not an expert and we have to help him"** —
+so the content assumes zero prior knowledge and explains every term where it
+first appears.
+
+- [x] **`HelpPage.js`** at `/help` (with `/faq` as an alias people type). 42
+      questions across five areas: *Getting started* (what this is, what a birth
+      chart is, why the exact time matters, what to do without one, Essentials vs
+      Everything, and "do I have to believe in this?"), *Reading your chart*
+      (what the square diagram actually shows, North vs South style, houses,
+      signs, Rasi vs Navamsa, nakshatras, yogas/doshas, retrograde), *What each
+      page does* (a one-line tour of all 16 features, each linking straight
+      there), *The AI astrologer* (what it can see, Full context vs Smart lookup,
+      which model, how far to trust it, where readings go), and *Privacy & your
+      account* (what's stored, share links, API keys, emails, deletion).
+- [x] **Maintainable by construction**: structure in `config/help.js`, words in
+      the `help.*` i18n block keyed by id. Adding a question = one id + two
+      strings; hi/sa fall back to English. `config/help.test.js` (11 tests) fails
+      on an id with no text, on orphaned text no section uses, on duplicate ids,
+      and on a relative link — so a half-added entry can't ship as a blank row.
+- [x] **Entry points**: a "?" button in every page header (via `PageHeader`) and
+      on the dashboard navbar, plus a Help entry in the nav-drawer footer beside
+      the other always-available actions — it isn't a feature, it's the way out
+      when a feature doesn't make sense.
+- [x] **Glossary** rendered from `constants/glossary.js`, the same table the
+      hover definitions use, so the two can't drift.
+- [x] Search filters on the rendered question + answer text (not our ids), and
+      answers collapse by default so the whole list stays scannable. `#id` in the
+      URL opens and scrolls to one answer — which is what makes the optional
+      contextual links possible.
+- [ ] 🟡 (Optional, deferred) contextual "?" links from each feature page into
+      its specific FAQ anchor. The anchor support is built (`/help#aiModes`
+      works); only the per-page links are outstanding.
+
+**Verified:** 152 frontend tests pass, prod build clean, `/help` serves and the
+content is present in the built bundle.
 
 ## 15. UI redesign — compact density + tabs (P1, owner ask 2026-07-03) — MOCK FIRST
 

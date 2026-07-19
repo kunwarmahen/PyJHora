@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Menu, X, Sparkles, LogOut, ShieldAlert } from "lucide-react";
+import { Menu, X, Sparkles, LogOut, ShieldAlert, HelpCircle } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -96,6 +96,16 @@ export const NavDrawer = () => {
           <button className="nav-drawer-link" onClick={handleChangeChart}>
             <Sparkles size={20} />
             <span>{t("common.changeChart")}</span>
+          </button>
+          {/* Help sits in the footer next to the other always-available actions
+              rather than in the feature list — it isn't a feature, it's the way
+              out when a feature doesn't make sense. */}
+          <button
+            className={`nav-drawer-link ${location.pathname === "/help" ? "active" : ""}`}
+            onClick={() => go("/help")}
+          >
+            <HelpCircle size={20} />
+            <span>{t("nav.help")}</span>
           </button>
           {/* Admin console (§44): only shown to the deployer's allowlisted
               accounts. The route + every API call are enforced server-side. */}
