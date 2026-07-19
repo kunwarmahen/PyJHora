@@ -386,7 +386,8 @@
   },
   "POST /api/astrology/doshas": {
     "params": [
-      "query:ayanamsa"
+      "query:ayanamsa",
+      "query:lang"
     ],
     "body": "BirthDetails"
   },

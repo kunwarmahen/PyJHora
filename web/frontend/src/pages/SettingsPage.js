@@ -658,6 +658,13 @@ export const SettingsPage = () => {
                 ))}
               </select>
             </div>
+            {/* Sanskrit is hand-authored and has not been checked by a Sanskrit
+                reader, and anything the engine translates falls back to Hindi.
+                Say so rather than presenting it with the same confidence as the
+                reviewed languages (owner decision, 2026-07-19). */}
+            {settings.language === "sa" && (
+              <p className="settings-hint">{t("settings.general.sanskritUnreviewed")}</p>
+            )}
 
             <div className="settings-row">
               <label className="settings-label">{t("settings.general.chartStyle")}</label>

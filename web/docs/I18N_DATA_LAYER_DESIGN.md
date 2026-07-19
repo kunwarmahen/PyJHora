@@ -212,9 +212,28 @@ Scope notes: `ComparePage.compareRows` is a module-level helper so `ln` is passe
 in as an argument, and `MarriageTimeline.PartnerBand` gained a block body to hold
 the hook. The build caught both — neither was visible from the call sites.
 
+**Doshas are DONE (2026-07-19)** — `lang` on `get_doshas` + the endpoint, English
+keeping our curated text and other languages taking PyJHora's. Worth knowing
+before touching it:
+
+- Upstream's dosha text is **variant-indexed**, not a name+description pair:
+  `dosha_msgs_*.json` holds arrays where `[0]` is "no such dosha" and `[1..n]` are
+  variant-specific, and the index has a bespoke derivation per dosha (Rahu's house
+  for kala sarpa, Mars' for manglik…). Our `dosha.*` predicates return booleans, so
+  we do **not** index those arrays ourselves — we call
+  `dosha.get_dosha_details(jd, place, language=)`, which does the derivation.
+- That function keys its result by the **English display name in every language**
+  (the keys come from the global `utils.resource_strings`, which we never switch).
+  `_DOSHA_ENGINE_KEY` pins our catalog keys to those names — needed because
+  upstream says "Manglik Dosha" where we say "Manglik (Kuja) Dosha".
+- Its text is `<html>`-wrapped with `<br>`; `_strip_html` unwraps it so markup
+  never reaches the reader.
+- **Unlike yogas, the language cannot move the astrology here** — detection is
+  boolean and never reads the message file. `test_language_never_moves_the_astrology`
+  pins that, and is what would catch it becoming untrue.
+
 Still English by design, pending decisions in §6: the Kendra-Trikona raja yoga
-labels, panchanga limb values, and Ashtakoot koota names. Doshas are decided
-(§6.3) but not yet implemented.
+labels, panchanga limb values, and Ashtakoot koota names.
 
 ## 6. Open decisions — for the owner
 

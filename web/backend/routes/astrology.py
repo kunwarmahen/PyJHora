@@ -379,9 +379,10 @@ async def get_horoscope(
 async def get_doshas(
     birth_details: BirthDetails,
     ayanamsa: str = DEFAULT_AYANAMSA,
+    lang: str = "en",
     current_user: str = Depends(get_current_user)
 ):
-    """Get doshas"""
+    """Get doshas. `lang` picks the description wording — see get_doshas()."""
     try:
         doshas = AstrologyCompute.get_doshas(
             dob=birth_details.dob,
@@ -390,7 +391,8 @@ async def get_doshas(
             lat=birth_details.latitude,
             lon=birth_details.longitude,
             tz=birth_details.timezone,
-            ayanamsa=ayanamsa
+            ayanamsa=ayanamsa,
+            lang=lang,
         )
         return doshas
     except Exception as e:

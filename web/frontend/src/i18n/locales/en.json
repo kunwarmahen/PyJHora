@@ -997,6 +997,7 @@
     },
     "general": {
       "language": "Language",
+      "sanskritUnreviewed": "Sanskrit is a work in progress: the names shown were written for this app and haven't been checked by a Sanskrit reader, and anything the astrology engine itself translates currently falls back to Hindi.",
       "chartStyle": "Chart style",
       "north": "North Indian",
       "south": "South Indian",

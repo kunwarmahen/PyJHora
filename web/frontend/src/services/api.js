@@ -289,7 +289,7 @@ export const astrologyService = {
       { timeout: 300000 }
     ),
   getDoshas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
-    api.post("/api/astrology/doshas", birthDetails, { params: { ayanamsa } }),
+    api.post("/api/astrology/doshas", birthDetails, { params: { ayanamsa, lang: uiLang() } }),
   getYogas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/yogas", birthDetails, { params: { ayanamsa, lang: uiLang() } }),
   getDhasa: (birthDetails, dashaType = "vimsottari") =>

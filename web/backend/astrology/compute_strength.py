@@ -6,6 +6,32 @@ core.py so cross-module `AstrologyCompute.x` calls keep working.
 """
 from .engine import *  # noqa: F401,F403  (constants + helpers the bodies use)
 
+import re as _re
+
+# Our catalog key -> the English display name PyJHora keys its dosha results by.
+# Not derivable: upstream spells it "Manglik Dosha" where we say "Manglik (Kuja)
+# Dosha", so the two lists have to be pinned to each other explicitly.
+_DOSHA_ENGINE_KEY = {
+    "kala_sarpa": "Kala Sarpa Dosha",
+    "manglik": "Manglik Dosha",
+    "pitru": "Pitru Dosha",
+    "guru_chandala": "Guru Chandala Dosha",
+    "ganda_moola": "Ganda Moola Dosha",
+    "kalathra": "Kalathra Dosha",
+    "ghata": "Ghata Dosha",
+    "shrapit": "Shrapit Dosha",
+}
+
+
+def _strip_html(text: str) -> str:
+    """PyJHora wraps its dosha text in <html> with <br> breaks; the UI renders
+    plain text, so unwrap it rather than showing markup to the reader."""
+    if not text:
+        return text
+    out = _re.sub(r"<br\s*/?>", "\n", text, flags=_re.I)
+    out = _re.sub(r"<[^>]+>", "", out)
+    return out.strip()
+
 # Rebound by core.py once the composed class exists (late binding).
 AstrologyCompute = None
 
@@ -499,8 +525,20 @@ class StrengthMixin:
     @staticmethod
     def get_doshas(dob: str, tob: str, place: str,
                    lat: Optional[float] = None, lon: Optional[float] = None,
-                   tz: Optional[float] = None, ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
-        """Detect the common doshas for a birth chart (present/absent + description)."""
+                   tz: Optional[float] = None, ayanamsa: str = DEFAULT_AYANAMSA,
+                   lang: str = "en") -> Dict:
+        """Detect the common doshas for a birth chart (present/absent + description).
+
+        Descriptions are language-conditional (owner decision, 2026-07-19). In
+        English we keep the curated text below, which is better than upstream's.
+        In another language we take PyJHora's, because a weaker translation still
+        beats untranslated English — but swapping English for weaker English
+        would be a pure loss, so `en` never does.
+
+        Unlike yogas (see get_yogas), detection here is language-independent: the
+        dosha.* predicates are booleans that never look at the message file, so
+        the language cannot move the astrology. It only chooses the wording.
+        """
         if not ENGINE_AVAILABLE:
             return {"error": "Jyotir AI engine not available"}
         try:
@@ -544,10 +582,27 @@ class StrengthMixin:
                 ("shrapit", "Shrapit Dosha", dosha.shrapit(pp),
                  "Rahu–Saturn conjunction. Associated with chronic, carried-over difficulties."),
             ]
-            doshas = [
-                {"key": k, "name": n, "present": _present(v), "description": d}
-                for (k, n, v, d) in catalog
-            ]
+            # PyJHora's variant-correct, translated descriptions. Its dict is
+            # keyed by the ENGLISH display name in every language (the keys come
+            # from the global utils.resource_strings, which we never switch), so
+            # this map is stable — but fall back per-dosha rather than assuming.
+            engine_lang = to_engine_language(lang)
+            engine_text = {}
+            if engine_lang != "en":
+                try:
+                    engine_text = dosha.get_dosha_details(jd, place_obj, language=engine_lang)
+                except Exception as e:  # never lose the doshas over a translation
+                    print(f"dosha translation unavailable ({engine_lang}): {e}")
+
+            doshas = []
+            for (k, n, v, d) in catalog:
+                text = engine_text.get(_DOSHA_ENGINE_KEY.get(k, ""))
+                doshas.append({
+                    "key": k,
+                    "name": n,
+                    "present": _present(v),
+                    "description": _strip_html(text) if text else d,
+                })
             return {
                 "status": "success",
                 "doshas": doshas,

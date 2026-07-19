@@ -117,3 +117,54 @@ class TestRajaYogaLocalization:
 
     def test_english_default_unchanged(self):
         assert all(n.isascii() for n in self._named("en"))
+
+
+# ── Doshas (owner decision, 2026-07-19) ──────────────────────────────────────
+# English keeps our curated descriptions; other languages take PyJHora's, because
+# a weaker translation beats untranslated English — but swapping English for
+# weaker English would be a pure loss, so `en` never does.
+
+def test_doshas_english_keeps_our_curated_text():
+    d = A.get_doshas(**CHART, lang="en")["doshas"]
+    kala = next(x for x in d if x["key"] == "kala_sarpa")
+    assert "Rahu–Ketu axis" in kala["description"]
+    assert not is_devanagari(kala["description"])
+
+
+def test_doshas_hindi_uses_the_engine_text():
+    d = A.get_doshas(**CHART, lang="hi")["doshas"]
+    assert any(is_devanagari(x["description"]) for x in d)
+
+
+def test_doshas_sanskrit_routes_to_hindi():
+    # Same stopgap as yogas: no Sanskrit dosha file upstream.
+    hi = A.get_doshas(**CHART, lang="hi")["doshas"]
+    sa = A.get_doshas(**CHART, lang="sa")["doshas"]
+    assert [x["description"] for x in sa] == [x["description"] for x in hi]
+
+
+def test_language_never_moves_the_astrology():
+    # Unlike yogas, dosha detection is boolean and never reads the message file.
+    # If this ever fails, the language is changing WHAT is detected, not just its
+    # wording — which is the §4.3 trap.
+    base = A.get_doshas(**CHART, lang="en")
+    for lang in ("hi", "sa", "ta", "nonsense"):
+        other = A.get_doshas(**CHART, lang=lang)
+        assert other["present_count"] == base["present_count"]
+        assert [x["key"] for x in other["doshas"]] == [x["key"] for x in base["doshas"]]
+        assert [x["present"] for x in other["doshas"]] == [x["present"] for x in base["doshas"]]
+
+
+def test_dosha_descriptions_are_plain_text():
+    # PyJHora wraps its dosha text in <html> with <br> breaks; the UI renders
+    # plain text, so markup must never reach the reader.
+    for lang in ("en", "hi"):
+        for x in A.get_doshas(**CHART, lang=lang)["doshas"]:
+            assert "<" not in x["description"], (lang, x["key"])
+
+
+def test_every_dosha_has_a_description_in_every_language():
+    # A missing engine key must fall back to our text, never to a blank card.
+    for lang in ("en", "hi", "sa"):
+        for x in A.get_doshas(**CHART, lang=lang)["doshas"]:
+            assert x["description"].strip(), (lang, x["key"])
