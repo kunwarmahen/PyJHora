@@ -16,6 +16,7 @@ import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -64,6 +65,7 @@ const formatDate = (dateStr, locale = "en-US") => {
 
 export const DailyDigestPage = () => {
   const navigate = useNavigate();
+  const ln = useLocalizeName();
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
@@ -264,7 +266,7 @@ export const DailyDigestPage = () => {
                   </h3>
                   <div className="detail-list digest-details">
                     <div><span className="kv-label">{t("digest.tithi")}</span><span className="kv-value">{panch.tithi?.name}</span></div>
-                    <div><span className="kv-label">{t("digest.nakshatra")}</span><span className="kv-value">{panch.nakshatra?.name}</span></div>
+                    <div><span className="kv-label">{t("digest.nakshatra")}</span><span className="kv-value">{ln(panch.nakshatra?.name, "nakshatra")}</span></div>
                     <div><span className="kv-label">{t("digest.yoga")}</span><span className="kv-value">{panch.yoga?.name}</span></div>
                     <div><span className="kv-label">{t("digest.vaara")}</span><span className="kv-value">{panch.vaara?.name}</span></div>
                     <div><span className="kv-label">{t("digest.sunrise")}</span><span className="kv-value">{panch.sunrise} / {panch.sunset}</span></div>

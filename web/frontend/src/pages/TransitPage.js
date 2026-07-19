@@ -15,9 +15,10 @@ import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { TransitChat } from "../components/TransitChat";
 import { RecentReadings } from "../components/RecentReadings";
-import { PLANET_ABBR, AYANAMSAS } from "../constants/jyotish";
+import { AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
@@ -69,6 +70,7 @@ const STRENGTH_LABEL_KEY = {
 
 export const TransitPage = () => {
   const navigate = useNavigate();
+  const ln = useLocalizeName();
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
@@ -268,11 +270,11 @@ export const TransitPage = () => {
               <span className="info-pill">{t("transit.asOf", { moment: transitMoment })}</span>
               <span className="info-pill">
                 {t("transit.natalLagna")}:{" "}
-                <strong className="text-saffron">{result.natal?.lagna?.sign_name}</strong>
+                <strong className="text-saffron">{ln(result.natal?.lagna?.sign_name, "rasi")}</strong>
               </span>
               <span className="info-pill">
                 {t("transit.natalMoon")}:{" "}
-                <strong className="text-indigo">{result.natal?.moon?.sign_name}</strong>
+                <strong className="text-indigo">{ln(result.natal?.moon?.sign_name, "rasi")}</strong>
               </span>
               <span className="info-pill">
                 {t("transit.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
@@ -313,7 +315,7 @@ export const TransitPage = () => {
                       {orderedPlanets.map(([name, p]) => (
                         <tr key={name}>
                           <td className="fw-700 text-indigo">
-                            {PLANET_ABBR[name] || name}{" "}
+                            {ln(name, "graha", { abbr: true })}{" "}
                             <span style={{ fontWeight: 400 }} className="text-secondary">
                               {name}
                             </span>
@@ -324,13 +326,13 @@ export const TransitPage = () => {
                             )}
                           </td>
                           <td>
-                            {p.sign_name}{" "}
+                            {ln(p.sign_name, "rasi")}{" "}
                             <span className="text-muted">
                               {p.degrees != null ? `${p.degrees.toFixed(1)}°` : ""}
                             </span>
                           </td>
                           <td className="text-secondary">
-                            {p.nakshatra}
+                            {ln(p.nakshatra, "nakshatra")}
                             {p.nakshatra_pada ? ` (${p.nakshatra_pada})` : ""}
                           </td>
                           <td className="text-center fw-600 text-saffron">

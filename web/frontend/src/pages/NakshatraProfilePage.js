@@ -17,6 +17,7 @@ import { intlLocale } from "../utils/format";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Nakshatra.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -51,6 +52,7 @@ const fmtDay = (dateStr, locale) => {
 
 export const NakshatraProfilePage = () => {
   const navigate = useNavigate();
+  const ln = useLocalizeName();
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
@@ -225,7 +227,7 @@ export const NakshatraProfilePage = () => {
                     <div
                       key={c.date}
                       className={`nak-cal__cell ${TONE_CLASS[c.tone] || "nak-tone--neutral"}`}
-                      title={`${c.nakshatra} · ${c.tarabala}`}
+                      title={`${ln(c.nakshatra, "nakshatra")} · ${c.tarabala}`}
                     >
                       <span className="nak-cal__date">{fmtDay(c.date, locale)}</span>
                       <span className="nak-cal__tara">{c.tarabala}</span>

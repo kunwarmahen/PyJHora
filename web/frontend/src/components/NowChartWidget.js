@@ -7,6 +7,7 @@ import { useProfile } from "../contexts/ProfileContext";
 import { NorthIndianChart } from "./NorthIndianChart";
 import { SouthIndianChart } from "./SouthIndianChart";
 import { useSettings } from "../contexts/SettingsContext";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const browserLocation = () =>
   new Promise((resolve) => {
@@ -29,6 +30,7 @@ const browserLocation = () =>
 // never blank the dashboard.
 export const NowChartWidget = () => {
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const { selectedProfile } = useProfile();
   const { settings } = useSettings();
   const ayanamsa = settings.ayanamsa;
@@ -88,7 +90,7 @@ export const NowChartWidget = () => {
         <div className="now-widget__pills">
           {panch.vaara?.name && <span className="info-pill">{panch.vaara.name}</span>}
           {panch.tithi?.name && <span className="info-pill">{panch.tithi.name}</span>}
-          {panch.nakshatra?.name && <span className="info-pill">{panch.nakshatra.name}</span>}
+          {panch.nakshatra?.name && <span className="info-pill">{ln(panch.nakshatra.name, "nakshatra")}</span>}
         </div>
         <span className="now-widget__cta">
           {t("now.widgetCta")} <ChevronRight size={16} />

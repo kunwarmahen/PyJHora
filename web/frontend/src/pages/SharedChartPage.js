@@ -12,11 +12,13 @@ import { formatDate, orDash } from "../utils/format";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import { SITE_TITLE } from "../config/branding";
+import { useLocalizeName } from "../i18n/localizeName";
 
 /** Public, read-only view of a shared chart (no auth required). */
 export const SharedChartPage = () => {
   const { token } = useParams();
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -89,7 +91,7 @@ export const SharedChartPage = () => {
                 <DataField
                   label={t("common.lagna")}
                   icon={<Star size={16} />}
-                  value={chart.lagna?.sign_name || "—"}
+                  value={ln(chart.lagna?.sign_name, "rasi") || "—"}
                 />
               </div>
             </Card>

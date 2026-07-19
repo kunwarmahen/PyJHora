@@ -14,6 +14,7 @@ import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const RETRO_PLANETS = ["Mars", "Mercury", "Jupiter", "Venus", "Saturn"];
 
@@ -119,6 +120,7 @@ const RetrogradeLoop = ({ x, y }) => {
 export const VedicClockPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const { selectedProfile } = useProfile();
 
   const [clock, setClock] = useState(null);
@@ -298,7 +300,7 @@ export const VedicClockPage = () => {
                       <span className="info-pill">{t("panchanga.tithi")}: {panch.tithi}</span>
                     )}
                     {panch.nakshatra && (
-                      <span className="info-pill">{t("common.nakshatra")}: {panch.nakshatra}</span>
+                      <span className="info-pill">{t("common.nakshatra")}: {ln(panch.nakshatra, "nakshatra")}</span>
                     )}
                     {panch.yoga && (
                       <span className="info-pill">{t("panchanga.yoga")}: {panch.yoga}</span>

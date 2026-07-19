@@ -15,6 +15,7 @@ import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -61,6 +62,7 @@ const formatDate = (dateStr, locale = "en-US") => {
 
 export const MuhurtaPage = () => {
   const navigate = useNavigate();
+  const ln = useLocalizeName();
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
@@ -402,7 +404,7 @@ export const MuhurtaPage = () => {
                     <div className="muh-day__date">{formatDate(d.date, locale)}</div>
                     <div className={`muh-day__rating`}>{t(`muhurta.ratings.${d.rating}`)}</div>
                     <div className="muh-day__limbs text-secondary">
-                      {d.nakshatra?.name} · {d.tithi?.name}
+                      {ln(d.nakshatra?.name, "nakshatra")} · {d.tithi?.name}
                     </div>
                   </div>
                 ))}

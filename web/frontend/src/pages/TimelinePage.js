@@ -17,6 +17,7 @@ import { intlLocale } from "../utils/format";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Timeline.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -75,6 +76,7 @@ const PW = PX1 - PX0;
 
 export const TimelinePage = () => {
   const navigate = useNavigate();
+  const ln = useLocalizeName();
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
@@ -534,7 +536,7 @@ export const TimelinePage = () => {
                     {selection.eclipses.map((e, i) => (
                       <span key={`we${i}`} className="tl-event">
                         {e.kind === "solar" ? <Sun size={13} /> : <Moon size={13} />}
-                        {formatDate(e.date, locale)} · {t(`timeline.${e.kind}`)} · {e.nakshatra}
+                        {formatDate(e.date, locale)} · {t(`timeline.${e.kind}`)} · {ln(e.nakshatra, "nakshatra")}
                         {e.on_natal_nakshatra && (
                           <b className="tl-event__hit">
                             {" "}

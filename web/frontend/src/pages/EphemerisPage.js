@@ -11,9 +11,10 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
-import { PLANET_ABBR, RASI_ABBR, AYANAMSAS } from "../constants/jyotish";
+import { RASI_NAMES, AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 const dateISO = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -39,13 +40,9 @@ const fmtWeekday = (iso, locale) => {
 };
 
 // Sign name → compact abbreviation (Ar, Ta, …) for the dense ephemeris grid.
-const SIGN_ABBR = {
-  Aries: "Ar", Taurus: "Ta", Gemini: "Ge", Cancer: "Cn", Leo: "Le", Virgo: "Vi",
-  Libra: "Li", Scorpio: "Sc", Sagittarius: "Sg", Capricorn: "Cp", Aquarius: "Aq", Pisces: "Pi",
-};
-
 export const EphemerisPage = () => {
   const navigate = useNavigate();
+  const ln = useLocalizeName();
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
@@ -184,7 +181,7 @@ export const EphemerisPage = () => {
                   {ingresses.map((u, i) => (
                     <div key={i} className="ingress-card">
                       <div className="ingress-card__planet">
-                        {PLANET_ABBR[u.planet] || u.planet} {u.planet}
+                        {ln(u.planet, "graha", { abbr: true })} {ln(u.planet, "graha")}
                         {u.retrograde && (
                           <span className="retro-badge" title={t("ephemeris.retrograde")}>
                             ℞
@@ -216,7 +213,7 @@ export const EphemerisPage = () => {
                       <th>{t("ephemeris.date")}</th>
                       {order.map((p) => (
                         <th key={p} className="text-center" title={p}>
-                          {PLANET_ABBR[p] || p}
+                          {ln(p, "graha", { abbr: true })}
                         </th>
                       ))}
                     </tr>
@@ -235,7 +232,7 @@ export const EphemerisPage = () => {
                             <td key={p} className="text-center" style={{ whiteSpace: "nowrap" }}>
                               <span className="fw-600">{Math.floor(cell.degrees)}°</span>{" "}
                               <span className="text-saffron">
-                                {SIGN_ABBR[cell.sign_name] || RASI_ABBR[cell.sign - 1] || cell.sign_name}
+                                {ln(cell.sign_name || RASI_NAMES[cell.sign - 1], "rasi", { abbr: true })}
                               </span>
                               {cell.retrograde && <span className="retro-badge">℞</span>}
                             </td>

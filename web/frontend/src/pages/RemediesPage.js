@@ -16,6 +16,7 @@ import { LoadingState } from "../components/LoadingState";
 import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -34,6 +35,7 @@ const readModelConfig = () => {
 export const RemediesPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const { selectedProfile } = useProfile();
   const { settings } = useSettings();
   const ayanamsa = settings.ayanamsa;
@@ -219,7 +221,7 @@ export const RemediesPage = () => {
                     {(data.planets || []).map((p) => (
                       <tr key={p.planet} className={p.weak ? "rem-row--weak" : ""}>
                         <td>{p.planet}</td>
-                        <td>{p.sign_name}</td>
+                        <td>{ln(p.sign_name, "rasi")}</td>
                         <td>{p.house}</td>
                         <td>{t(`remedies.dignities.${p.dignity}`, p.dignity)}</td>
                         <td>{p.strength_ratio != null ? p.strength_ratio.toFixed(2) : "—"}</td>

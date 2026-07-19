@@ -17,6 +17,7 @@ import { SouthIndianChart } from "../components/SouthIndianChart";
 import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const PLANETS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
 
@@ -45,17 +46,31 @@ const toBirthDetails = (p) => ({
 });
 
 // One "Lagna / Moon / Sun / planet → sign" row, comparing the two charts.
-const compareRows = (a, b) => {
+// `ln` is passed in rather than hooked here: this is a module-level helper, so
+// it can't call useLocalizeName() itself.
+const compareRows = (a, b, ln) => {
   const rows = [
-    { label: "Lagna", a: a?.lagna?.sign_name, b: b?.lagna?.sign_name },
-    { label: "Moon", a: a?.d1_chart?.Moon?.sign_name, b: b?.d1_chart?.Moon?.sign_name },
-    { label: "Sun", a: a?.d1_chart?.Sun?.sign_name, b: b?.d1_chart?.Sun?.sign_name },
+    {
+      label: "Lagna",
+      a: ln(a?.lagna?.sign_name, "rasi"),
+      b: ln(b?.lagna?.sign_name, "rasi"),
+    },
+    {
+      label: "Moon",
+      a: ln(a?.d1_chart?.Moon?.sign_name, "rasi"),
+      b: ln(b?.d1_chart?.Moon?.sign_name, "rasi"),
+    },
+    {
+      label: "Sun",
+      a: ln(a?.d1_chart?.Sun?.sign_name, "rasi"),
+      b: ln(b?.d1_chart?.Sun?.sign_name, "rasi"),
+    },
   ];
   PLANETS.forEach((pl) => {
     rows.push({
       label: pl,
-      a: a?.d1_chart?.[pl]?.sign_name,
-      b: b?.d1_chart?.[pl]?.sign_name,
+      a: ln(a?.d1_chart?.[pl]?.sign_name, "rasi"),
+      b: ln(b?.d1_chart?.[pl]?.sign_name, "rasi"),
       sub: true,
     });
   });
@@ -65,6 +80,7 @@ const compareRows = (a, b) => {
 export const ComparePage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const { selectedProfile, profiles, loadProfiles } = useProfile();
 
   const { settings } = useSettings();
@@ -257,7 +273,7 @@ export const ComparePage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {compareRows(chartA, chartB).map((r) => {
+                    {compareRows(chartA, chartB, ln).map((r) => {
                       const match = r.a && r.a === r.b ? "is-match" : "";
                       return (
                         <tr key={r.label}>

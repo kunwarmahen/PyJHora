@@ -204,16 +204,31 @@ yoga labels, panchanga limb values, Ashtakoot koota names.
 
 ## 6. Open decisions — for the owner
 
-1. **Author Sanskrit `lang/` files upstream.** Until this exists, every PyJHora-sourced
+**Owner answered 1–3 on 2026-07-19** (decisions inline below; 4–6 still open):
+
+- **(1) Keep the sa→hi stopgap.** Do not block the A-layer rollout on authoring upstream
+  Sanskrit. Sanskrit continues to show Hindi wherever PyJHora does the translating.
+- **(2) Ship the hand-authored Sanskrit, but say so in the UI.** It stays unreviewed, so
+  the language picker flags Sanskrit as unreviewed rather than presenting a possibly-wrong
+  term with the same confidence as a checked one.
+- **(3) Take the engine's dosha text — but only where it buys a translation.** The owner
+  chose the engine's Hindi over our curated descriptions. Implemented **language-conditional**:
+  hi/sa get the engine's text (the point of the change), `en` keeps our better descriptions,
+  because swapping English for weaker English would be a pure loss — English is the default
+  and needs no translation. Flagged to the owner when implemented.
+
+1. **Author Sanskrit `lang/` files upstream.** — **DEFERRED (owner, 2026-07-19).** Until this exists, every PyJHora-sourced
    string shows `sa` users **Hindi**. Needs `src/jhora/lang/{list_values,msg_strings}_sa.txt`
    + `{yoga,raja_yoga,dosha,prediction}_msgs_sa.json` and `const.available_languages`.
    Big job — ~284 yoga descriptions alone. Once it lands, `to_engine_language` drops the
    sa→hi hop and `name-locales.manual.json` could source from upstream instead of being
    hand-authored.
-2. **The hand-authored Sanskrit is unreviewed.** Written by Claude, not a Sanskrit reader.
+2. **The hand-authored Sanskrit is unreviewed.** — **SHIP + FLAG (owner, 2026-07-19).**
+   Written by Claude, not a Sanskrit reader.
    It looks right (कुम्भ, धनुस्, चन्द्र, शतभिषक्) but should be checked before it's treated
    as authoritative.
-3. **Doshas.** Keys mostly line up with `dosha_msgs_*.json`, but
+3. **Doshas.** — **DECIDED (owner, 2026-07-19): take the engine text for hi/sa, keep ours
+   for en.** Keys mostly line up with `dosha_msgs_*.json`, but
    `compute_strength.get_doshas` writes its own descriptions and they're better than
    upstream's. Switching gains Hindi and loses the curated text.
 4. **The `म्रृगशीर्षा` typo** (§4.5): patch `src/jhora/lang/list_values_hi.txt` (it's this

@@ -16,6 +16,7 @@ import { SouthIndianChart } from "../components/SouthIndianChart";
 import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 // ── Shared helpers ──────────────────────────────────────────────────────────
 const NOW = new Date();
@@ -341,6 +342,7 @@ function OtherDashaSystems({ birthDetails }) {
 // ── Sudarsana Chakra: three wheels (Lagna / Moon / Sun as ascendant) ──────────
 function SudarsanaChakra({ birthDetails }) {
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const [open, setOpen] = useState(false);
   const [offset, setOffset] = useState(0);
   const [data, setData] = useState(null);
@@ -433,7 +435,7 @@ function SudarsanaChakra({ birthDetails }) {
                     planets={data.planets}
                     lagna={{ house: w.lagna_house, sign_name: w.sign_name }}
                     title={wheelLabel(w.ref)}
-                    subtitle={w.sign_name}
+                    subtitle={ln(w.sign_name, "rasi")}
                   />
                 ))}
               </div>

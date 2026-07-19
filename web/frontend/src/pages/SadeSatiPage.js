@@ -17,6 +17,7 @@ import { intlLocale } from "../utils/format";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/SadeSati.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -47,6 +48,7 @@ const fmt = (dateStr, locale) => {
 
 export const SadeSatiPage = () => {
   const navigate = useNavigate();
+  const ln = useLocalizeName();
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
@@ -180,7 +182,7 @@ export const SadeSatiPage = () => {
                 width: `${width}%`,
                 background: PHASE_COLORS[ph.phase],
               }}
-              title={`${t(`sadeSati.phase.${ph.phase}`)} · ${ph.sign_name}`}
+              title={`${t(`sadeSati.phase.${ph.phase}`)} · ${ln(ph.sign_name, "rasi")}`}
             />
           );
         })}
@@ -258,7 +260,7 @@ export const SadeSatiPage = () => {
                       >
                         <span className="ss-phase__dot" style={{ background: PHASE_COLORS[ph.phase] }} />
                         <span className="ss-phase__name">{t(`sadeSati.phase.${ph.phase}`)}</span>
-                        <span className="ss-phase__sign">{ph.sign_name}</span>
+                        <span className="ss-phase__sign">{ln(ph.sign_name, "rasi")}</span>
                         <span className="ss-phase__dates">
                           {fmt(ph.start_date, locale)} – {fmt(ph.end_date, locale)}
                         </span>

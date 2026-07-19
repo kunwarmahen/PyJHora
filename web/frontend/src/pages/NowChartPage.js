@@ -15,6 +15,7 @@ import { SouthIndianChart } from "../components/SouthIndianChart";
 import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -44,6 +45,7 @@ const browserLocation = () =>
 
 export const NowChartPage = () => {
   const { t } = useTranslation();
+  const ln = useLocalizeName();
   const { selectedProfile } = useProfile();
   const { settings } = useSettings();
   const ayanamsa = settings.ayanamsa;
@@ -172,7 +174,7 @@ export const NowChartPage = () => {
                 <div className="info-pills">
                   {panch.vaara?.name && <span className="info-pill">{panch.vaara.name}</span>}
                   {panch.tithi?.name && <span className="info-pill">{panch.tithi.name}</span>}
-                  {panch.nakshatra?.name && <span className="info-pill">{panch.nakshatra.name}</span>}
+                  {panch.nakshatra?.name && <span className="info-pill">{ln(panch.nakshatra.name, "nakshatra")}</span>}
                   {panch.yoga?.name && <span className="info-pill">{panch.yoga.name}</span>}
                   {data.hora_lord && <span className="info-pill">{t("now.hora", { lord: data.hora_lord })}</span>}
                 </div>

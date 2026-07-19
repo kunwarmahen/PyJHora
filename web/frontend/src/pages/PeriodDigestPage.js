@@ -16,6 +16,7 @@ import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { useLocalizeName } from "../i18n/localizeName";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -63,6 +64,7 @@ const formatDate = (dateStr, locale = "en-US") => {
 const PeriodDigestPage = ({ period }) => {
   const isMonth = period === "monthly";
   const navigate = useNavigate();
+  const ln = useLocalizeName();
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
@@ -305,7 +307,7 @@ const PeriodDigestPage = ({ period }) => {
                   </h3>
                   <div className="detail-list digest-details">
                     <div><span className="kv-label">{t("periodDigest.tithi")}</span><span className="kv-value">{panch.tithi?.name}</span></div>
-                    <div><span className="kv-label">{t("periodDigest.nakshatra")}</span><span className="kv-value">{panch.nakshatra?.name}</span></div>
+                    <div><span className="kv-label">{t("periodDigest.nakshatra")}</span><span className="kv-value">{ln(panch.nakshatra?.name, "nakshatra")}</span></div>
                     <div><span className="kv-label">{t("periodDigest.vaara")}</span><span className="kv-value">{panch.vaara?.name}</span></div>
                   </div>
                 </div>
