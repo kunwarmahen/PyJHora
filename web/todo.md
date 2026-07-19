@@ -1946,18 +1946,62 @@ re-theme — owner reaffirmed the existing look).
 
 **Process (owner directive 2026-07-03): build a MOCK first, get it verified, THEN do the real
 implementation.** Do not start converting real pages until the mock is approved.
-- [ ] 🔴 **Density/compact pass (mock)**: a static mock (HTML/Artifact or a throwaway `/mockup`
-      route) showing the reduced scale — smaller card padding, tighter type ramp, denser tables,
-      smaller tiles — on 1–2 representative pages (Birth Chart + Dashboard) in the saffron palette.
-- [ ] 🔴 **Tabbed layout (mock)**: show the tab pattern — e.g. Birth Chart page with tabs
-      *Chart* / *Nakshatra & Lagna* / *Panchanga* / *Yogas & Doshas* / *Aspects* / *Advanced*
-      instead of one long scroll; desktop = horizontal tabs, mobile = stacked/accordion.
-- [ ] 🔴 **Owner verifies the mock** → capture decisions (exact scale, which pages get tabs, which
-      panels group under which tab).
-- [ ] 🔴 **Real implementation** (only after sign-off): a reusable `<Tabs>` component + a compact
-      CSS scale (tighten the shared `.ui-card`/`.data-table`/spacing tokens in `Shared.css`),
-      rolled page-by-page. Preserve all existing functionality, i18n, and the saffron identity.
-      Verify prod build + mobile reflow after each page.
+- [x] **Density/compact pass** — SHIPPED. Mock built and approved (two rounds:
+      v1, then v2 rebuilt once the app had grown to 39 features and gained a dark
+      theme). The compact scale lives in `App.css` as density tokens
+      (`--card-pad`, `--card-radius`, `--tile-*`, …) consumed by
+      `Shared.css`/`Dashboard.css`, so the app re-scales from one place.
+- [x] **Tabbed layout** — SHIPPED. Owner picked the **saffron pill** (over the
+      underline variant I recommended). Shared `<Tabs>` + `useTabs`
+      (`components/Tabs.js`) with the resolution rules as pure, unit-tested
+      functions in `config/tabs.js` (17 tests).
+- [x] **Owner verified the mock** → decisions captured: compact density; saffron
+      pill; the six-tab Birth Chart grouping; full rollout; tab state in the URL;
+      restyle the three existing bars; hide the Advanced tab in Essentials.
+- [x] **Real implementation** — rolled out page by page, verifying the prod build
+      after each.
+
+### How it works
+- **Tab state lives in the URL** (`?tab=`), so Back/Forward work, refresh keeps
+  your place, and a tab is linkable — load-bearing because AI readings and
+  digests already deep-link into pages. Settings' pre-existing one-way `?tab=`
+  keeps working: same parameter, now two-way. A second bar on one page takes its
+  own key (Compatibility uses `?tab=` + `?system=`).
+- **`advanced: true` tabs are hidden in Essentials**, *except* when the URL names
+  one — deep-links must never dead-end, mirroring `AdvancedNotice`.
+- The initial resolve never writes the URL, so arriving on a page costs no
+  history entry.
+
+### Density is a preference, not a decree (owner ask, 2026-07-18)
+Settings → General → **Display density**: Compact / Comfortable, applied
+instantly and synced across devices like theme. `:root` is compact;
+`:root[data-density="comfortable"]` restores the pre-§15 spacing. Also added
+`density` to the backend `PREFERENCE_KEYS` whitelist — without it the server
+drops the key silently and the choice never leaves the browser.
+
+### Pages tabbed
+Settings (10) · Admin (3) · KP (2) — these three already had **divergent**
+hand-rolled bars (`.settings-tabs` pill on `--border-color`, `.admin-tabs`
+underline on `--border`, KP a segmented control); unifying them deleted the
+duplication. Then Birth Chart (6: Chart / Nakshatra & Lagna / Panchanga / Yogas
+& Doshas / Aspects / Advanced), Compatibility (two bars), Chakras (4),
+Sensitive Points (3), Planetary Strength (4). Per-page AI reading cards stay
+**outside** the tabs so they remain visible on every section.
+
+### Where tabs deliberately do NOT go
+The mock's rollout table ranked pages by counting `ui-card-header`, which
+overstated the work twice over — worth recording so it isn't re-derived:
+- **Segmented form controls, not navigation**: Varshaphal's dasha system, Period
+  digest's solar/lunar basis, Tithi Pravesha's window rung, Rectification's
+  method. They carry `role="group"`/`aria-pressed` and select a *value*. Styling
+  them as pills would misreport what they do.
+- **Sub-headings inside one card**: Jaimini and Varshaphal use
+  `ui-card-header--sm` within a single Card; tabbing would fragment it.
+- **Too few real sections**: Nakshatra Profile (syllables live inside the
+  attributes card, leaving two sections) — a tab would hide Tarabala for no
+  scroll saving.
+- **Side-by-side by design**: Compare Charts shows two charts together; tabs
+  would hide half the comparison.
 
 ## 16. New feature ideas — engine-grounded backlog (P1/P2, owner ask 2026-07-03)
 

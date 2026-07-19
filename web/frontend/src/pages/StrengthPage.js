@@ -13,6 +13,7 @@ import { Card } from "../components/Card";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { useSettings } from "../contexts/SettingsContext";
+import { Tabs, useTabs } from "../components/Tabs";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Strength.css";
@@ -59,6 +60,17 @@ const RatioBar = ({ ratio, sufficient }) => {
 export const StrengthPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+
+  const STRENGTH_TABS = useMemo(
+    () => [
+      { key: "shadbala", label: t("strength.tabs.shadbala") },
+      { key: "composition", label: t("strength.tabs.composition") },
+      { key: "bhava", label: t("strength.tabs.bhava") },
+      { key: "vimsopaka", label: t("strength.tabs.vimsopaka") },
+    ],
+    [t]
+  );
+  const { tabs: visibleTabs, active: tab, setActive: setTab } = useTabs(STRENGTH_TABS);
   const { selectedProfile } = useProfile();
   const { settings } = useSettings();
   const ayanamsa = settings.ayanamsa;
@@ -171,132 +183,166 @@ export const StrengthPage = () => {
           </Card>
         ) : data ? (
           <div className="fade-in">
-            {/* Shadbala ratio */}
-            <Card title={t("strength.shadbalaTitle")} icon={<Gauge size={24} />} accent="saffron">
-              <p className="card-intro">{t("strength.shadbalaIntro")}</p>
-              <div className="st-rows">
-                {planets.map((p) => (
-                  <div key={p.planet} className="st-row">
-                    <div className="st-row__label">
-                      <span className="st-rank">#{p.rank}</span> {p.planet}
-                    </div>
-                    <RatioBar ratio={p.strength_ratio} sufficient={p.sufficient} />
-                    <div className="st-row__val">
-                      {p.total_rupa} / {p.required_rupa}
-                      <span className="st-ratio"> ×{p.strength_ratio}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="card-note">{t("strength.thresholdNote")}</p>
-            </Card>
+            <Tabs
+              tabs={visibleTabs}
+              active={tab}
+              onChange={setTab}
+              ariaLabel={t("strength.title")}
+            />
 
-            {/* Six-fold composition */}
-            <div className="mt-xl">
-              <Card
-                title={t("strength.compositionTitle")}
-                icon={<Layers size={24} />}
-                accent="indigo"
-              >
-                <p className="card-intro">{t("strength.compositionIntro")}</p>
-                <div className="st-legend">
-                  {components.map((c) => (
-                    <span key={c} className="st-legend__item">
-                      <span className="st-swatch" style={{ background: COMPONENT_COLORS[c] }} />
-                      {t(`strength.component.${c}`)}
-                    </span>
-                  ))}
-                </div>
-                <div className="st-rows">
-                  {planets.map((p) => {
-                    const total =
-                      components.reduce((s, c) => s + (p[c] || 0), 0) || 1;
-                    return (
+            {tab === "shadbala" && (
+              <>
+                {/* Shadbala ratio */}
+                <Card
+                  title={t("strength.shadbalaTitle")}
+                  icon={<Gauge size={24} />}
+                  accent="saffron"
+                >
+                  <p className="card-intro">{t("strength.shadbalaIntro")}</p>
+                  <div className="st-rows">
+                    {planets.map((p) => (
                       <div key={p.planet} className="st-row">
-                        <div className="st-row__label">{p.planet}</div>
-                        <div className="st-stack">
-                          {components.map((c) => {
-                            const w = ((p[c] || 0) / total) * 100;
-                            if (w <= 0) return null;
-                            return (
-                              <div
-                                key={c}
-                                className="st-stack__seg"
-                                style={{ width: `${w}%`, background: COMPONENT_COLORS[c] }}
-                                title={`${t(`strength.component.${c}`)}: ${p[c]}`}
-                              />
-                            );
-                          })}
+                        <div className="st-row__label">
+                          <span className="st-rank">#{p.rank}</span> {p.planet}
+                        </div>
+                        <RatioBar ratio={p.strength_ratio} sufficient={p.sufficient} />
+                        <div className="st-row__val">
+                          {p.total_rupa} / {p.required_rupa}
+                          <span className="st-ratio"> ×{p.strength_ratio}</span>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            </div>
+                    ))}
+                  </div>
+                  <p className="card-note">{t("strength.thresholdNote")}</p>
+                </Card>
+              </>
+            )}
 
-            {/* Bhava Bala */}
-            <div className="mt-xl">
-              <Card title={t("strength.bhavaTitle")} icon={<Home size={24} />} accent="terracotta">
-                <p className="card-intro">{t("strength.bhavaIntro")}</p>
-                <div className="st-rows">
-                  {bhava.map((b) => (
-                    <div key={b.house} className="st-row">
-                      <div className="st-row__label st-row__label--bhava">
-                        <span className="st-rank">H{b.house}</span>
-                        <span className="st-bhava-sig">{b.signification}</span>
-                      </div>
-                      <RatioBar ratio={b.strength_ratio} sufficient={b.sufficient} />
-                      <div className="st-row__val">
-                        {b.rupa}
-                        <span className="st-ratio"> ×{b.strength_ratio}</span>
-                      </div>
+            {tab === "composition" && (
+              <>
+                {/* Six-fold composition */}
+                <div className="mt-xl">
+                  <Card
+                    title={t("strength.compositionTitle")}
+                    icon={<Layers size={24} />}
+                    accent="indigo"
+                  >
+                    <p className="card-intro">{t("strength.compositionIntro")}</p>
+                    <div className="st-legend">
+                      {components.map((c) => (
+                        <span key={c} className="st-legend__item">
+                          <span className="st-swatch" style={{ background: COMPONENT_COLORS[c] }} />
+                          {t(`strength.component.${c}`)}
+                        </span>
+                      ))}
                     </div>
-                  ))}
+                    <div className="st-rows">
+                      {planets.map((p) => {
+                        const total = components.reduce((s, c) => s + (p[c] || 0), 0) || 1;
+                        return (
+                          <div key={p.planet} className="st-row">
+                            <div className="st-row__label">{p.planet}</div>
+                            <div className="st-stack">
+                              {components.map((c) => {
+                                const w = ((p[c] || 0) / total) * 100;
+                                if (w <= 0) return null;
+                                return (
+                                  <div
+                                    key={c}
+                                    className="st-stack__seg"
+                                    style={{ width: `${w}%`, background: COMPONENT_COLORS[c] }}
+                                    title={`${t(`strength.component.${c}`)}: ${p[c]}`}
+                                  />
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
                 </div>
-              </Card>
-            </div>
+              </>
+            )}
 
-            {/* Vimsopaka Bala */}
-            <div className="mt-xl">
-              <Card
-                title={t("strength.vimsopakaTitle")}
-                icon={<Layers size={24} />}
-                accent="gold"
-              >
-                <p className="card-intro">{t("strength.vimsopakaIntro")}</p>
-                <div className="st-rows">
-                  {vimsopaka.map((v) => (
-                    <div key={v.planet} className="st-row">
-                      <div className="st-row__label">{v.planet}</div>
-                      <div className="st-track" title={`${v.shodhasavarga}/${vMax}`}>
-                        <div
-                          className="st-fill st-fill--vim"
-                          style={{ width: `${(v.shodhasavarga / vMax) * 100}%` }}
-                        />
-                      </div>
-                      <div className="st-row__val">
-                        {v.shodhasavarga}
-                        <span className="st-ratio">/{vMax}</span>
-                      </div>
+            {tab === "bhava" && (
+              <>
+                {/* Bhava Bala */}
+                <div className="mt-xl">
+                  <Card
+                    title={t("strength.bhavaTitle")}
+                    icon={<Home size={24} />}
+                    accent="terracotta"
+                  >
+                    <p className="card-intro">{t("strength.bhavaIntro")}</p>
+                    <div className="st-rows">
+                      {bhava.map((b) => (
+                        <div key={b.house} className="st-row">
+                          <div className="st-row__label st-row__label--bhava">
+                            <span className="st-rank">H{b.house}</span>
+                            <span className="st-bhava-sig">{b.signification}</span>
+                          </div>
+                          <RatioBar ratio={b.strength_ratio} sufficient={b.sufficient} />
+                          <div className="st-row__val">
+                            {b.rupa}
+                            <span className="st-ratio"> ×{b.strength_ratio}</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </Card>
                 </div>
-                <p className="card-note">{t("strength.vimsopakaNote")}</p>
-              </Card>
-            </div>
+              </>
+            )}
+
+            {tab === "vimsopaka" && (
+              <>
+                {/* Vimsopaka Bala */}
+                <div className="mt-xl">
+                  <Card
+                    title={t("strength.vimsopakaTitle")}
+                    icon={<Layers size={24} />}
+                    accent="gold"
+                  >
+                    <p className="card-intro">{t("strength.vimsopakaIntro")}</p>
+                    <div className="st-rows">
+                      {vimsopaka.map((v) => (
+                        <div key={v.planet} className="st-row">
+                          <div className="st-row__label">{v.planet}</div>
+                          <div className="st-track" title={`${v.shodhasavarga}/${vMax}`}>
+                            <div
+                              className="st-fill st-fill--vim"
+                              style={{ width: `${(v.shodhasavarga / vMax) * 100}%` }}
+                            />
+                          </div>
+                          <div className="st-row__val">
+                            {v.shodhasavarga}
+                            <span className="st-ratio">/{vMax}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="card-note">{t("strength.vimsopakaNote")}</p>
+                  </Card>
+                </div>
+              </>
+            )}
 
             {/* AI reading */}
             <div className="mt-xl">
               <Card title={t("strength.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
                 <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("strength.aiHint")}</p>}
+                {!aiAnalysis && !aiLoading && (
+                  <p className="ai-panel__hint">{t("strength.aiHint")}</p>
+                )}
                 {aiLoading && <LoadingState message={t("strength.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
                     <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
                     {aiModel && (
-                      <div className="ai-panel__meta">{t("strength.aiModel", { model: aiModel })}</div>
+                      <div className="ai-panel__meta">
+                        {t("strength.aiModel", { model: aiModel })}
+                      </div>
                     )}
                   </div>
                 )}

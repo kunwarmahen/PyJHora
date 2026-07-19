@@ -1576,6 +1576,11 @@
   "sensitive": {
     "title": "Sensitive Points",
     "subtitle": "Sphutas, Sahams & Argala",
+    "tabs": {
+      "sphuta": "Sphutas",
+      "sahams": "Sahams",
+      "argala": "Argala"
+    },
     "intro": "Sensitive points are supporting longitudes that fine-tune a reading — they colour and confirm the main chart rather than override it.",
     "loading": "Computing sensitive points…",
     "calcError": "Could not compute the sensitive points.",
@@ -1930,6 +1935,12 @@
   "strength": {
     "title": "Planetary Strength",
     "subtitle": "Shadbala, Bhava Bala and Vimsopaka — made visible",
+    "tabs": {
+      "shadbala": "Shadbala",
+      "composition": "Composition",
+      "bhava": "Bhava Bala",
+      "vimsopaka": "Vimsopaka"
+    },
     "intro": "How capably each planet and house can deliver its results. Strength is not good or bad — a strong malefic simply acts more forcefully.",
     "loading": "Weighing the chart…",
     "calcError": "Couldn't compute the strength.",
