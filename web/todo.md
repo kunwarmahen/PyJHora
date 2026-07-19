@@ -1972,7 +1972,7 @@ first appears.
 **Verified:** 152 frontend tests pass, prod build clean, `/help` serves and the
 content is present in the built bundle.
 
-## 15. UI redesign — compact density + tabs (P1, owner ask 2026-07-03) — MOCK FIRST
+## 15. UI redesign — compact density + tabs (P1, owner ask 2026-07-03) — SHIPPED 2026-07-18
 
 Owner feedback: tiles/cards and their content are **too big**; wants a **more compact** layout and
 **tabbed sections** (e.g. one page with tabs for *Nakshatra Information*, *Panchanga*, *Yogas/Doshas*,
