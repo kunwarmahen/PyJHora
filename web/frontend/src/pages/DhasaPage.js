@@ -193,6 +193,8 @@ function OtherDashaSystems({ birthDetails }) {
   const [applicable, setApplicable] = useState([]);
   const [searchParams] = useSearchParams();
   const deepLinkDone = useRef(false);
+  const pendingScroll = useRef(false);
+  const sectionRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -250,10 +252,25 @@ function OtherDashaSystems({ birthDetails }) {
       deepLinkDone.current = true;
       setSelected(key);
       load(key);
+      // The picker sits far below the Vimsottari tree, so a deep link would
+      // otherwise land silently at the top of the page. Defer the scroll until
+      // the period table has loaded (below) so the layout has settled.
+      pendingScroll.current = true;
     }
   }, [searchParams, systems, birthDetails, load]);
 
+  // Bring the deep-linked system into view once its table has rendered.
+  useEffect(() => {
+    if (pendingScroll.current && data && !loading) {
+      pendingScroll.current = false;
+      requestAnimationFrame(() =>
+        sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      );
+    }
+  }, [data, loading]);
+
   return (
+    <div ref={sectionRef}>
     <Card title={t("dhasa.otherSystems")} icon={<Clock size={24} />}>
       {applicable.length > 0 && (
         <div className="dasha-reco">
@@ -348,6 +365,7 @@ function OtherDashaSystems({ birthDetails }) {
         </div>
       )}
     </Card>
+    </div>
   );
 }
 

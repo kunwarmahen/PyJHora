@@ -4584,11 +4584,15 @@ that deep-links straight to the exact sub-tool.
   Shown regardless of Essentials/Everything (a deep-link must never dead-end).
   Enter prefers a tile match, else opens the top sub-tool.
 - **Only page needing code:** `DhasaPage` reads `?system=` and preselects+loads
-  that dasha once the catalog + chart are ready (one-shot via a ref). Its "Other
-  systems" section is behind `<AdvancedOnly>` (collapsed + unmounted in
-  Essentials), so the page now passes `defaultOpen` when `?system=` is present —
-  otherwise the picker wouldn't even mount and the deep-link would dead-end. The
-  Chakras and Sensitive-Points tabs already survived Essentials via `useTabs`.
+  that dasha once the catalog + chart are ready (one-shot via a ref), then
+  **scrolls the section into view once its table has rendered** — the picker sits
+  far below the long Vimsottari tree, so without the scroll a deep link lands
+  silently at the top of the page and looks like nothing happened (caught in live
+  verification). Its "Other systems" section is behind `<AdvancedOnly>` (collapsed
+  + unmounted in Essentials), so the page also passes `defaultOpen` when
+  `?system=` is present — otherwise the picker wouldn't mount and the deep-link
+  would dead-end. The Chakras and Sensitive-Points tabs already survived
+  Essentials via `useTabs`.
 
 Files: `config/features.js` (`FEATURE_SUBITEMS`, `featureForKey`),
 `pages/DashboardPage.js`, `pages/DhasaPage.js`, `styles/Dashboard.css`
