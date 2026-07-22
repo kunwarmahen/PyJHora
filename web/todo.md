@@ -4535,3 +4535,31 @@ as `NADI_KARAKAS` / `NADI_THEMES`):
 Chart-1's karakas/conjunctions/gender/themes/triggers, 1 endpoint smoke, tools
 catalog) + 159 frontend tests pass, prod build clean, route snapshot updated
 (2 new routes, nothing lost or changed).
+
+## 47. Dashboard type-to-filter launcher (SHIPPED 2026-07-21)
+
+Owner asked for "just start typing on the dashboard and it filters the tiles."
+Built as a **collapsible icon-reveal launcher** (owner chose the hybrid over an
+always-visible box or a fully-hidden one — an invisible box is undiscoverable):
+
+- A small **"⌕ Filter" pill** sits under the section header. Click it to reveal
+  the search box; **typing anywhere** on the dashboard also opens it and seeds
+  the query (the first keystroke is captured via a document `keydown` listener,
+  added to state, then an `[open]` effect focuses the freshly-rendered input so
+  the seed char isn't lost). Esc or the × clears **and collapses** back to the
+  icon; blurring an empty box collapses it too. **Enter opens the top match**, so
+  it doubles as a launcher.
+- Filtering matches each tile's **localized title + description PLUS English
+  keyword aliases** (`FEATURE_ALIASES` in `config/features.js`) so intuitive
+  words find the right tile — "marriage"→Compatibility, "gemstone"→Remedies,
+  "star"→Nakshatra, etc. Multi-word queries require every token to hit. Respects
+  the current Essentials/Everything mode (only filters what's already shown).
+- Guards: ambient capture ignores Cmd/Ctrl/Alt combos and any keystroke while a
+  real input/textarea/contenteditable is focused, so shortcuts and other fields
+  are untouched. All colours are theme tokens (focus ring via
+  `rgba(var(--accent-rgb), …)`, passes the `tokens.test.js` literal guard).
+
+Files: `pages/DashboardPage.js`, `config/features.js` (`FEATURE_ALIASES`),
+`styles/Dashboard.css` (`.dashboard-search*`), i18n `dashboard.search.*` (en +
+hi + sa, since it's dashboard chrome). 159 frontend tests pass, prod build clean.
+No backend change.

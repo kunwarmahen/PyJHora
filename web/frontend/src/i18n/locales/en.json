@@ -468,6 +468,13 @@
     "sectionTitle": "Explore Your Cosmic Journey",
     "sectionSubtitle": "Choose a service to dive deeper into your Vedic astrology insights",
     "explore": "Explore",
+    "search": {
+      "toggleLabel": "Filter",
+      "open": "Filter features (or just start typing)",
+      "placeholder": "Type to filter — or press Enter to open the first match",
+      "clear": "Clear filter",
+      "noResults": "No features match “{{query}}”"
+    },
     "features": {
       "birthChart": {
         "title": "Birth Chart",

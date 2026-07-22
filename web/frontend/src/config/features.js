@@ -385,6 +385,55 @@ export const FEATURES = [
   },
 ];
 
+/**
+ * Extra search keywords per feature, for the dashboard's type-to-filter launcher.
+ * These are intuitive words a user might type that AREN'T already in the tile's
+ * title/description (which the filter also matches) — e.g. "marriage" should
+ * find Compatibility, "gemstone" should find Remedies. English-only on purpose:
+ * they're a hit-rate booster layered on top of the (localized) title+description
+ * match, not a translation. Add to this as features grow. Keyed by feature key.
+ */
+export const FEATURE_ALIASES = {
+  birthChart: "kundali rasi natal horoscope lagna ascendant d1 d9 navamsa planets",
+  ask: "chat question ai astrologer talk advice",
+  dailyDigest: "today daily forecast horoscope of the day",
+  compatibility: "marriage match matching guna milan ashtakoot dashakoota partner spouse relationship love porutham mangal dosha",
+  dhasa: "dasha vimshottari vimsottari mahadasha bhukti antardasha period timing",
+  transit: "gochara current planets movement now",
+  remedies: "gemstone gem stone mantra upaya parihara donation deity",
+  lifeReport: "report full life story chapters narrative",
+  history: "saved readings past previous history",
+  gochara: "transit phala moon vedha",
+  nakshatra: "star birth star janma tarabala constellation",
+  ephemeris: "planet positions longitude tables ephemeris",
+  bhava: "house cusp chart placidus sripati equal kp bhava",
+  report: "pdf print full report export",
+  varshaphal: "annual solar return tajaka year varsha muntha",
+  tithiPravesha: "annual lunar return tithi pravesha",
+  almanac: "panchang panchanga calendar festival vratha eclipse hora hijri",
+  fortnightlyDigest: "paksha fortnight two week",
+  monthlyDigest: "maasa month lunar month",
+  muhurta: "auspicious time electional choghadiya panchaka good time",
+  prashna: "horary question kp prashna",
+  timeline: "life timeline dasha transit events",
+  strength: "shadbala planetary strength bhava bala vimsopaka",
+  sadeSati: "saturn shani seven and half sade sati kantaka ashtama",
+  bhrigu: "nadi bhrigu bindu markers yearly progression",
+  nadi: "karaka significator nadi timing conjunction",
+  panchaPakshi: "bird timing five birds pancha pakshi",
+  sarvatobhadra: "chakra kota kaala tripataki vedha sarvatobhadra",
+  sensitivePoints: "sphuta saham argala sensitive points",
+  vedicClock: "clock ghati hora retrograde vakra vedic clock",
+  kp: "krishnamurti sub lord significator ruling planets horary kp system",
+  jaimini: "chara karaka karakamsa swamsa argala jaimini",
+  now: "chart of the moment now current instant",
+  compare: "compare two charts synastry side by side",
+  rectify: "birth time correction rectification unknown time",
+  learn: "quiz learn practice study lesson",
+  journal: "diary log events astro journal notes",
+  advanced: "more all everything advanced tools",
+};
+
 /** Features to advertise for a ui mode. "advanced" mode shows everything. */
 export const visibleFeatures = (uiMode) =>
   uiMode === "advanced" ? FEATURES : FEATURES.filter((f) => f.tier === "simple");
