@@ -4542,8 +4542,10 @@ Owner asked for "just start typing on the dashboard and it filters the tiles."
 Built as a **collapsible icon-reveal launcher** (owner chose the hybrid over an
 always-visible box or a fully-hidden one — an invisible box is undiscoverable):
 
-- A small **"⌕ Filter" pill** sits under the section header. Click it to reveal
-  the search box; **typing anywhere** on the dashboard also opens it and seeds
+- A small **"⌕ Type to filter" pill** sits under the section header (the label
+  states the interaction so the ambient-typing affordance is discoverable — owner
+  asked how to signal it; the button carries the verb). Click it to reveal the
+  search box; **typing anywhere** on the dashboard also opens it and seeds
   the query (the first keystroke is captured via a document `keydown` listener,
   added to state, then an `[open]` effect focuses the freshly-rendered input so
   the seed char isn't lost). Esc or the × clears **and collapses** back to the
