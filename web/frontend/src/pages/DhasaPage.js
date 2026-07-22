@@ -68,7 +68,7 @@ const formatDuration = (node, level, t) => {
   return "";
 };
 
-// ── Recursive period node (Maha → Bhukti → Antara → Sookshma) ───────────────
+// ── Recursive period node (Mahadasha → Antardasha → Pratyantardasha → Sookshma) ─
 // `eagerChildren` carries children already present in the payload (the Maha
 // Dasha ships its Bhuktis). Deeper levels are lazy-fetched on first expand.
 function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
@@ -97,7 +97,7 @@ function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
   }, [birthDetails, path, t]);
 
   // Auto-load children when a node opens (incl. the current-period cascade,
-  // which expands the whole live Maha→Bhukti→Antara→Sookshma chain on mount).
+  // which expands the whole live Mahadasha→Antardasha→Pratyantardasha→Sookshma chain on mount).
   useEffect(() => {
     if (expanded && canExpand && children == null && !loading) {
       fetchChildren();

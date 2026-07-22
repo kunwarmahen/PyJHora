@@ -49,8 +49,12 @@ DEFAULT_SECTIONS = {
 # computed and added in a dedicated section.
 DEFAULT_VARGAS = [1, 9, 10]
 
-_LEVEL_NAMES = {1: "Maha Dasha", 2: "Bhukti (Antardasha)",
-                3: "Antara (Pratyantar)", 4: "Sookshma"}
+# Vimsottari level names, aligned with Jagannatha Hora's standard nomenclature.
+# CRITICAL: "Antardasha" and "Bhukti" are synonyms for level 2 ONLY. Level 3 is
+# the Pratyantardasha — never "Antara"/"Antardasha", which collides with L2 and
+# makes the LLM mislabel a level-3 lord as the Antardasha.
+_LEVEL_NAMES = {1: "Mahadasha", 2: "Antardasha (Bhukti)",
+                3: "Pratyantardasha", 4: "Sookshma (Sookshma-antardasha)"}
 
 
 def _today_str() -> str:

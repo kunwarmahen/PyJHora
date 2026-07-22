@@ -1690,13 +1690,25 @@ Planetary Positions (All 9 Grahas):"""
         dasha_tree = chart_data.get("dasha_tree", [])
 
         if dasha_tree:
-            # Preferred: the precise running chain Maha -> Bhukti -> Antara -> Sookshma
+            # Preferred: the precise running chain Mahadasha -> Antardasha ->
+            # Pratyantardasha -> Sookshma.
             chart_description += f"\n\nCurrently Active Vimsottari Dasha Chain (as of {current_date}):"
             for node in dasha_tree:
                 chart_description += (
                     f"\n- {node.get('level_name', 'Level')}: {node.get('lord', 'Unknown')} "
                     f"({node.get('start_date', '?')} to {node.get('end_date', '?')})"
                 )
+            # Guardrail: models routinely collapse identical consecutive lords (e.g.
+            # Rahu Mahadasha / Rahu Antardasha) and then mislabel the next distinct
+            # lord's level — calling a level-3 Pratyantardasha an "Antardasha". Pin
+            # the vocabulary to the level names above so the prose stays accurate.
+            chart_description += (
+                "\n(Name each period by its EXACT level above. Level 2 = Antardasha "
+                "(a.k.a. Bhukti); level 3 = Pratyantardasha; level 4 = Sookshma. "
+                "'Antardasha'/'Bhukti' refers ONLY to level 2 — never call a level-3 "
+                "or deeper lord the 'Antardasha'. When consecutive levels share the "
+                "same lord, still state each level by its correct name.)"
+            )
         elif current_dasha:
             chart_description += f"\n\nCurrent Dasha (Vimsottari):"
             chart_description += f"\n- Maha Dasha: {current_dasha.get('lord', 'Unknown')} ({current_dasha.get('start_date', 'Unknown')} to {current_dasha.get('end_date', 'Unknown')})"

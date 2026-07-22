@@ -793,8 +793,10 @@ DB name), which is deliberate.
 
 ### 5. Dhasa Periods
 
-- **Vimsottari**: full drill-down tree Maha Dasha → Bhukti → Antara → Sookshma.
-  Maha + Bhukti load up front; deeper levels lazy-load on expand (computed at full
+- **Vimsottari**: full drill-down tree Mahadasha → Antardasha (Bhukti) →
+  Pratyantardasha → Sookshma. (Note: "Antardasha" and "Bhukti" are synonyms for
+  level 2 — level 3 is the Pratyantardasha, matching Jagannatha Hora's naming.)
+  Maha + Antardasha load up front; deeper levels lazy-load on expand (computed at full
   precision from the natal chart). The currently running period auto-expands the
   whole live chain and is highlighted.
 - **Other systems** (14 total): Ashtottari, Yogini, Shodasottari, Dwadasottari,
@@ -1318,7 +1320,7 @@ masked, and used ahead of any global env key for that user's requests.
 - `POST /api/astrology/yogas` - Get yogas
 - `POST /api/astrology/dhasa` - Calculate Vimsottari Dhasa periods (Maha + Bhukti)
 - `POST /api/astrology/dhasa/children?lords=Venus,Saturn` - Lazily fetch the child
-  periods (Antara/Sookshma) of a Vimsottari node for the drill-down tree
+  periods (Pratyantardasha/Sookshma) of a Vimsottari node for the drill-down tree
 - `GET /api/astrology/dasha-systems` - List the other (non-Vimsottari) dasha systems
 - `POST /api/astrology/dasha-periods?dhasa_type=` - Maha-level periods for ashtottari/
   yogini/narayana/kalachakra
