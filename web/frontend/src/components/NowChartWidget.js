@@ -75,7 +75,12 @@ export const NowChartWidget = () => {
   return (
     <Link to="/now" className="now-widget fade-in">
       <div className="now-widget__chart">
-        <Kundali planets={data.planets} lagna={data.lagna} title={t("now.chartTitle")} />
+        <Kundali
+          planets={data.planets}
+          lagna={data.lagna}
+          title={t("now.chartTitle")}
+          subtitle=""
+        />
       </div>
       <div className="now-widget__body">
         <div className="now-widget__head">
