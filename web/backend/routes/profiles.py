@@ -85,8 +85,8 @@ async def _invite_recipient_if_external(owner_id: str, notify_email: Optional[st
     email = digest_recipients.normalize(notify_email)
     if not email:
         return
-    db = get_database()
-    owner = await db["users"].find_one({"username": owner_id})
+    from database import database
+    owner = await database["users"].find_one({"username": owner_id})
     owner_email = digest_recipients.normalize((owner or {}).get("email"))
     if email == owner_email:
         return  # the owner's own address — no invite needed
