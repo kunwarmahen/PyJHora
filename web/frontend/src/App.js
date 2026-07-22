@@ -33,6 +33,7 @@ import { HelpPage } from "./pages/HelpPage";
 import { MuhurtaPage } from "./pages/MuhurtaPage";
 import { PrashnaPage } from "./pages/PrashnaPage";
 import { BhriguMarkersPage } from "./pages/BhriguMarkersPage";
+import { NadiPage } from "./pages/NadiPage";
 import { TimelinePage } from "./pages/TimelinePage";
 import { StrengthPage } from "./pages/StrengthPage";
 import { SadeSatiPage } from "./pages/SadeSatiPage";
@@ -215,6 +216,15 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <BhriguMarkersPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/nadi"
+                  element={
+                    <ProtectedRoute>
+                      <NadiPage />
                     </ProtectedRoute>
                   }
                 />

@@ -83,6 +83,7 @@ const PROFILE_READING_PATHS = new Set([
   "/api/astrology/nakshatra-profile-analysis",
   "/api/astrology/gochara-phala-analysis",
   "/api/astrology/friendships-analysis",
+  "/api/astrology/nadi-analysis",
   "/api/astrology/bhrigu-markers-analysis",
   "/api/astrology/remedies-analysis",
   "/api/astrology/daily-digest-analysis",
@@ -709,6 +710,29 @@ export const astrologyService = {
       date, place, latitude, longitude, timezone,
       birth_details: birthDetails || undefined,
     }),
+
+  // ---- Nadi karaka reading (significators + transit triggers) ----
+  getNadiReading: (birthDetails, { gender, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+    api.post("/api/astrology/nadi", birthDetails, {
+      params: { gender, ayanamsa },
+    }),
+  analyzeNadiReadingAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/nadi-analysis",
+      {
+        birth_details: birthDetails,
+        gender: opts.gender,
+        person_name: opts.personName,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
 
   // ---- Nadi / Bhrigu-style yearly markers ----
   getBhriguMarkers: (birthDetails, { fromAge, years = 12, ayanamsa = DEFAULT_AYANAMSA } = {}) =>

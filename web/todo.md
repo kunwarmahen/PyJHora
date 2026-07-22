@@ -4491,3 +4491,47 @@ a stubbed LLM: full run → 7/7 chapters + history entry; regenerate → 2 jobs 
 2 history entries (old kept); **interrupted run → the 2 chapters already done
 survive** (the actual bug); cancel, cross-user cancel rejection, and the stale
 reaper all behave.
+
+## 46. Nadi karaka reading — significators + event timing (SHIPPED 2026-07-21)
+
+Owner asked whether a Nadi system could be added, and pointed at a Nadi-karaka
+predictive text (a *karaka + transit* method, distinct from the D-150 Nadiamsa
+and from palm-leaf reading, both of which we ruled out — leaf-reading has no
+algorithm; D-150 the owner didn't want). We built the karaka method as its own
+page. **The source book/author is deliberately named nowhere in code or docs** —
+the karakatwas, significator rule and transit-timing are all traditional; only
+the phrasing is ours.
+
+**What it computes** (`AstrologyCompute.get_nadi_reading`, in
+`astrology/compute_reference.py`; karaka + theme tables in `astrology/engine.py`
+as `NADI_KARAKAS` / `NADI_THEMES`):
+- **Karakas & significators** — for each graha: its naisargika significations,
+  the sign it sits in (+ that sign's lord = dispositor), its nakshatra and
+  star-lord, the sign(s) it owns, and whom it is conjunct. A graha *signifies*
+  its occupied sign + owned signs + its star-lord's sign. Houses and aspects are
+  deliberately set aside; **conjunctions carry the weight**.
+- **Life themes** — 9 areas each headed by its karaka (marriage carries both
+  spouse karakas). Marriage/spouse karaka is gender-sensitive (Venus = man's
+  wife-karaka, Jupiter = woman's husband-karaka); `gender` (0/1) only picks which
+  to foreground, both are always shown.
+- **Transit triggers** — next ingress of the slow movers **Jupiter, Saturn,
+  Rahu** into the pivot karaka signs (Moon, Ascendant, marriage, career,
+  children), via the same coarse-scan+bisect helper as the Bhrigu markers. A
+  slow graha reaching a karaka's sign is the timing device.
+
+**Wiring** (mirrors the Bhrigu-markers feature end-to-end):
+- Backend: `POST /api/astrology/nadi` (data) + `POST /api/astrology/nadi-analysis`
+  (AI reading, prompt `_build_nadi_prompt` — declares the computed data
+  authoritative, no invented placements). `NadiAnalysisRequest` model; saved
+  readings register `source: "nadi"` in `conversations.py` (route `/nadi`).
+- **Ask agent tool** `get_nadi` (tools.py) — added to `ALWAYS_TOOLS` and the
+  catalog (category "Systems") so the chat agent can pull a karaka reading.
+- Frontend: `NadiPage.js` (`/nadi`), `features.js` entry (advanced, group
+  "analysis", `ScrollText` icon), `getNadiReading`/`analyzeNadiReadingAI` in
+  api.js, Help/FAQ entry `featNadi`, i18n `nadi.*` (en full; hi/sa nav+tile per
+  the established page-body-falls-back-to-en convention), `.nadi-*` CSS.
+
+**Verified:** 340 backend tests (5 new — 3 golden in `test_golden.py` pinning
+Chart-1's karakas/conjunctions/gender/themes/triggers, 1 endpoint smoke, tools
+catalog) + 159 frontend tests pass, prod build clean, route snapshot updated
+(2 new routes, nothing lost or changed).

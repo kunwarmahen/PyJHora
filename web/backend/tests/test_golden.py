@@ -445,3 +445,53 @@ def test_bindu_chip_thresholds():
     assert chip(None, 30)[0] == "good"
     assert chip(None, 25)[0] == "neutral"
     assert chip(None, 24)[0] == "weak"
+
+
+# ── Nadi karaka reading ─────────────────────────────────────────────────────
+def test_nadi_karakas_and_conjunctions(args1):
+    """The karaka significators read by sign: Venus in its own Taurus with the
+    Sun and Mercury, Saturn in Cancer with Mars, Jupiter in Aries with Ketu —
+    and each graha signifies its occupied + owned + star-lord's signs."""
+    r = A.get_nadi_reading(**args1)
+    assert r.get("status") == "success", r
+    assert len(r["karakas"]) == 9
+    kb = {k["planet"]: k for k in r["karakas"]}
+
+    venus = kb["Venus"]
+    assert venus["sign_name"] == "Taurus"
+    assert venus["sign_lord"] == "Venus"          # own sign → self-dispositor
+    assert set(venus["conjunct"]) == {"Sun", "Mercury"}
+    # Signifies its occupied sign + the other sign it owns (Libra).
+    assert "Taurus" in venus["signifies_signs"]
+    assert "Libra" in venus["signifies_signs"]
+
+    assert kb["Saturn"]["sign_name"] == "Cancer"
+    assert kb["Saturn"]["conjunct"] == ["Mars"]
+    assert kb["Jupiter"]["sign_name"] == "Aries"
+    assert kb["Jupiter"]["conjunct"] == ["Ketu"]
+    assert kb["Moon"]["conjunct"] == []            # Moon alone in Leo
+
+
+def test_nadi_spouse_karaka_gender(args1):
+    """The spouse karaka to foreground flips with gender: Venus (wife-karaka)
+    for a man, Jupiter (husband-karaka) for a woman; default is Venus."""
+    assert A.get_nadi_reading(**args1)["spouse_karaka"] == "Venus"
+    assert A.get_nadi_reading(gender=0, **args1)["spouse_karaka"] == "Venus"
+    assert A.get_nadi_reading(gender=1, **args1)["spouse_karaka"] == "Jupiter"
+
+
+def test_nadi_themes_and_triggers(args1):
+    """Nine life themes, each headed by its karaka (marriage carries both spouse
+    karakas), and transit triggers only from the slow movers into pivot signs."""
+    r = A.get_nadi_reading(**args1)
+    assert len(r["themes"]) == 9
+    marriage = next(t for t in r["themes"] if "Marriage" in t["area"])
+    assert [k["planet"] for k in marriage["karakas"]] == ["Venus", "Jupiter"]
+
+    assert r["triggers"], "expected at least one transit trigger"
+    for tr in r["triggers"]:
+        assert tr["planet"] in {"Jupiter", "Saturn", "Rahu"}
+        # ISO date, and sorted ascending.
+        assert len(tr["date"]) == 10 and tr["date"][4] == "-"
+    dates = [tr["date"] for tr in r["triggers"]]
+    assert dates == sorted(dates)

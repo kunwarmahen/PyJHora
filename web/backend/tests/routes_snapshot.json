@@ -559,6 +559,17 @@
     "params": [],
     "body": "MuhurtaSubtoolsRequest"
   },
+  "POST /api/astrology/nadi": {
+    "params": [
+      "query:ayanamsa",
+      "query:gender"
+    ],
+    "body": "BirthDetails"
+  },
+  "POST /api/astrology/nadi-analysis": {
+    "params": [],
+    "body": "NadiAnalysisRequest"
+  },
   "POST /api/astrology/nakshatra-profile": {
     "params": [
       "query:ayanamsa",

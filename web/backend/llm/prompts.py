@@ -997,6 +997,59 @@ Write a grounded ~280-word note:
 3. **How to use it** — one calm, practical line.
 Reason only from the markers given. Frame everything as a traditional predictive *aid* — evocative, not fated. Do NOT make medical, legal or financial predictions. Close with one line noting these are indicative markers, and free will shapes the outcome."""
 
+    def _build_nadi_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """Read the Nadi karaka significators + transit triggers. The method reads
+        by karaka and by sign (not houses/aspects); conjunctions carry weight and
+        slow-graha transits over a karaka's sign time its events."""
+        asc = d.get("ascendant") or {}
+        karakas = d.get("karakas") or []
+        themes = d.get("themes") or []
+        trig = d.get("triggers") or []
+        spouse = d.get("spouse_karaka") or "Venus"
+
+        kar_lines = "\n".join(
+            f"- **{k['planet']}** (karaka of {', '.join(k['significations'][:3])}): "
+            f"in {k['sign_name']} (dispositor {k['sign_lord']}), "
+            f"star {k['nakshatra']} (star-lord {k['star_lord']})"
+            + (f", with {', '.join(k['conjunct'])}" if k.get("conjunct") else ", alone")
+            + (f"; signifies {', '.join(k['signifies_signs'])}" if k.get("signifies_signs") else "")
+            for k in karakas
+        ) or "- (none)"
+
+        theme_lines = "\n".join(
+            f"- {t['area']}: "
+            + "; ".join(
+                f"{kk['planet']} in {kk['sign_name']} (lord {kk['sign_lord']})"
+                + (f" with {', '.join(kk['conjunct'])}" if kk.get("conjunct") else "")
+                for kk in t.get("karakas", [])
+            )
+            for t in themes
+        ) or "- (none)"
+
+        trig_lines = "\n".join(
+            f"- {x['date']}: {x['planet']} enters {x['sign_name']} — the {x['karaka']} sign"
+            for x in trig
+        ) or "- (none in the searched horizon)"
+
+        return f"""You are a thoughtful Vedic astrologer giving {name} a **Nadi karaka reading**. Everything below is pre-computed — read it, do not recompute or invent placements. This method reads the chart through the **karakas** (fixed natural significators) and their placement **by sign**; it deliberately sets houses and aspects aside. Two rules matter: a planet **conjunct** another (sharing its sign) colours that karaka's affairs, and a **slow graha transiting a karaka's sign** is what times its events.
+
+Ascendant is {asc.get('sign_name')} (lord {asc.get('sign_lord')}); the Moon is in {d.get('moon_sign')}. For this native the spouse-karaka to foreground is **{spouse}**.
+
+**Karakas & significators**
+{kar_lines}
+
+**Life themes (each headed by its karaka)**
+{theme_lines}
+
+**Transit triggers (slow grahas entering the pivotal karaka signs)**
+{trig_lines}
+
+Write a grounded ~320-word reading:
+1. **The chart's signature** — 2–3 karakas whose sign, dispositor or conjunctions stand out, and the life areas they govern. Weigh conjunctions heavily (who sits with whom).
+2. **Two or three life themes** — read marriage (through **{spouse}**), career (Saturn) and one more, from where the karaka sits and whom it joins.
+3. **Timing** — name the nearest one or two transit triggers above and why a slow graha reaching that karaka's sign is treated as a turning point.
+Reason only from the data given. Frame it as a traditional predictive *aid* — indicative, not fated. Do NOT make medical, legal or financial predictions. Close with one line noting these are indicative karaka signals, and free will shapes the outcome."""
+
     def _build_timeline_window_prompt(self, d: Dict[str, Any], name: str) -> str:
         """Read a single point on the life timeline: the running dasha, the Saturn
         phase, and the transits clustering around that date."""

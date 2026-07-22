@@ -39,6 +39,7 @@ SOURCE_META: Dict[str, Dict[str, str]] = {
     "prashna":          {"label": "Prashna",            "route": "/prashna",           "kind": "reading"},
     "remedies":         {"label": "Remedies",           "route": "/remedies",          "kind": "reading"},
     "bhrigu":           {"label": "Bhrigu markers",     "route": "/bhrigu-markers",    "kind": "reading"},
+    "nadi":             {"label": "Nadi karakas",       "route": "/nadi",              "kind": "reading"},
     "daily_digest":       {"label": "Daily digest",       "route": "/daily-digest",       "kind": "reading"},
     "fortnightly_digest": {"label": "Fortnightly digest", "route": "/fortnightly-digest", "kind": "reading"},
     "monthly_digest":     {"label": "Monthly digest",     "route": "/monthly-digest",     "kind": "reading"},

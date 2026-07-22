@@ -75,6 +75,7 @@ export const HELP_SECTIONS = [
       { id: "featMonthly", to: "/monthly-digest" },
       { id: "featTithiPravesha", to: "/tithi-pravesha" },
       { id: "featBhrigu", to: "/bhrigu-markers" },
+      { id: "featNadi", to: "/nadi" },
       { id: "featPanchaPakshi", to: "/pancha-pakshi" },
       { id: "featChakras", to: "/chakras" },
       { id: "featKp", to: "/kp" },

@@ -848,6 +848,42 @@ OWN_SIGNS = {
     "Jupiter": {8, 11}, "Venus": {1, 6}, "Saturn": {9, 10},
     "Rahu": set(), "Ketu": set(),
 }
+
+# ── Nadi karaka method ─────────────────────────────────────────────────────
+# The naisargika (fixed natural) significations each graha stands for. This
+# reading is built from the karakas and their placements by sign, NOT from
+# houses or aspects — conjunctions (planets sharing a sign) carry the weight,
+# and the slow movers (Jupiter, Saturn, Rahu) transiting a karaka's sign time
+# its events. The signification lists are the traditional karakatwas; the
+# life-area phrasing is ours. Spouse karaka is gender-sensitive: Venus is the
+# wife-karaka (read for a man) and Jupiter the husband-karaka (read for a
+# woman) — both are surfaced and the reader picks by the native's gender.
+NADI_KARAKAS = {
+    "Sun":     ["soul & vitality", "father", "authority & government", "status & fame", "health"],
+    "Moon":    ["mind & emotions", "mother", "home & inner life", "public & the masses", "comforts"],
+    "Mars":    ["energy & courage", "younger siblings", "land & property", "engineering & competition", "drive"],
+    "Mercury": ["intellect & speech", "business & commerce", "education & analysis", "maternal relatives", "skill"],
+    "Jupiter": ["wisdom & dharma", "children", "wealth & fortune", "teacher / guru", "husband-karaka (for a woman)"],
+    "Venus":   ["marriage & partner", "love & pleasure", "vehicles & comforts", "arts & beauty", "wife-karaka (for a man)"],
+    "Saturn":  ["career & profession", "discipline & labour", "longevity", "delay & detachment", "servants & the masses"],
+    "Rahu":    ["worldly desire", "foreign & the unconventional", "sudden gains", "obsession & ambition"],
+    "Ketu":    ["spirituality & moksha", "detachment", "loss & separation", "past-life skill"],
+}
+
+# Life themes, each headed by the planet that is its natural karaka. Read the
+# theme through where that karaka sits, its dispositor, its star-lord and whom
+# it sits with. Marriage carries both spouse karakas for the gender note.
+NADI_THEMES = [
+    ("Self, vitality & father",              ["Sun"]),
+    ("Mind, mother & emotional life",        ["Moon"]),
+    ("Drive, siblings & property",           ["Mars"]),
+    ("Intellect, speech & business",         ["Mercury"]),
+    ("Wisdom, children & fortune",           ["Jupiter"]),
+    ("Marriage, partner & comforts",         ["Venus", "Jupiter"]),
+    ("Career, discipline & longevity",       ["Saturn"]),
+    ("Worldly desire & the unconventional",  ["Rahu"]),
+    ("Detachment & liberation",              ["Ketu"]),
+]
 # Curated per-planet remedies (clearly traditional guidance, NOT prescriptive
 # advice). Each carries the classical gemstone, beeja mantra, presiding deity,
 # weekday, charitable donation and colour.

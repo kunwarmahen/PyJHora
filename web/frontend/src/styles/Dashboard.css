@@ -2076,6 +2076,73 @@
 }
 .bhrigu-activation__text { font-size: 0.9rem; }
 
+/* ── Nadi karakas ──────────────────────────────────────────────────────────── */
+.nadi-karaka-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+.nadi-karaka {
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--saffron);
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+  background: var(--card-bg);
+}
+.nadi-karaka__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.3rem 0.6rem;
+}
+.nadi-karaka__planet { font-weight: 800; font-size: 0.95rem; color: var(--text-primary); }
+.nadi-karaka__sign { font-weight: 600; font-size: 0.88rem; }
+.nadi-karaka__signifies {
+  font-size: 0.82rem;
+  color: var(--saffron);
+  font-weight: 600;
+  margin: 0.3rem 0;
+}
+.nadi-karaka__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.7rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+.nadi-karaka__conj {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+.nadi-theme-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.nadi-theme {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--gold);
+  border-radius: 8px;
+  background: var(--card-bg);
+}
+.nadi-theme__area { font-weight: 700; font-size: 0.9rem; color: var(--text-primary); }
+.nadi-theme__karakas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  margin-top: 0.2rem;
+  font-size: 0.85rem;
+}
+.nadi-theme__karaka { font-weight: 600; }
+
 /* ── Remedies ─────────────────────────────────────────────────────────────── */
 .rem-grid {
   display: grid;

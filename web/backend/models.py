@@ -455,6 +455,19 @@ class BhriguMarkersAnalysisRequest(BaseModel):
     max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
+class NadiAnalysisRequest(BaseModel):
+    birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
+    gender: Optional[int] = None      # 0=male, 1=female — selects the spouse karaka
+    person_name: Optional[str] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
+
 class TimelineAnalysisRequest(BaseModel):
     birth_details: BirthDetails
     profile_id: Optional[str] = None  # for grouping the saved reading in history

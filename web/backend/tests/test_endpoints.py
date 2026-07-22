@@ -114,3 +114,16 @@ def test_marriage_workspace(client):
     body = r.json()
     assert body["status"] == "success"
     assert body["seventh_house"]["male"]["seventh_lord"] == "Mars"
+
+
+def test_nadi(client):
+    r = _post(client, "nadi", CHART1, gender=0)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["status"] == "success"
+    assert len(body["karakas"]) == 9
+    assert body["spouse_karaka"] == "Venus"
+    kb = {k["planet"]: k for k in body["karakas"]}
+    assert kb["Venus"]["sign_name"] == "Taurus"
+    assert set(kb["Venus"]["conjunct"]) == {"Sun", "Mercury"}
+    assert len(body["themes"]) == 9

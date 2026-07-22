@@ -280,6 +280,14 @@ export const FEATURES = [
     gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
   },
   {
+    key: "nadi",
+    path: "/nadi",
+    Icon: ScrollText,
+    tier: "advanced",
+    group: "analysis",
+    gradient: "linear-gradient(135deg, #3A3F5A 0%, #C97B4A 100%)",
+  },
+  {
     key: "panchaPakshi",
     path: "/pancha-pakshi",
     Icon: Bird,

@@ -1571,6 +1571,29 @@ async def get_bhrigu_markers(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/api/astrology/nadi")
+async def get_nadi_reading(
+    birth_details: BirthDetails,
+    gender: Optional[int] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Nadi karaka reading: the fixed natural significators and their placement
+    by sign, the life themes each karaka heads, and the Jupiter/Saturn/Rahu
+    transit triggers over the pivotal karaka signs."""
+    try:
+        result = AstrologyCompute.get_nadi_reading(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, gender=gender, ayanamsa=ayanamsa)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/api/astrology/life-timeline")
 async def get_life_timeline(
     birth_details: BirthDetails,

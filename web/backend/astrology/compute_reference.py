@@ -165,6 +165,200 @@ class ReferenceMixin:
         finally:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
+    # ── Nadi karaka reading (significators + transit triggers) ──────────────
+    @staticmethod
+    def get_nadi_reading(dob: str, tob: str, place: str,
+                         lat: Optional[float] = None, lon: Optional[float] = None,
+                         tz: Optional[float] = None, gender: Optional[int] = None,
+                         ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Nadi karaka reading of a birth chart.
+
+        The Nadi karaka method reads the chart through the *karakas* (the fixed
+        natural significators of the grahas) and their placement **by sign** —
+        deliberately setting houses and aspects aside. Three devices are computed:
+
+          1. **Karakas & significators** — for every graha: its naisargika
+             significations, the sign it sits in (and that sign's lord =
+             dispositor), its nakshatra and star-lord, the sign(s) it owns, and
+             whom it is conjunct (planets sharing its sign). A graha *signifies*
+             its occupied sign, the signs it owns, and its star-lord's sign.
+          2. **Life themes** — each life area headed by its karaka, so the reader
+             sees at a glance where (say) marriage or career is anchored.
+          3. **Transit triggers** — the next ingress of the slow movers Jupiter,
+             Saturn and Rahu into the pivotal karaka signs (Moon, Ascendant,
+             marriage, career, children). In Nadi timing a slow graha entering a
+             karaka's sign is what fructifies its events.
+
+        `gender` (0 = male, 1 = female) only selects which spouse-karaka to
+        foreground (Venus for a man, Jupiter for a woman); both are always shown.
+        This is a traditional predictive aid, not a deterministic forecast."""
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+            jd = swe.julday(year, month, day, hour + minute / 60.0)
+
+            pp = charts.rasi_chart(jd, place_obj)
+            lagna_sign0 = pp[0][1][0]
+            # planet index -> (sign0, absolute longitude 0-360)
+            ppos = {}
+            for pid, (sign0, lon_in_sign) in pp[1:]:
+                if pid in PLANET_NAMES:
+                    ppos[pid] = (sign0, sign0 * 30.0 + lon_in_sign)
+
+            # Star (nakshatra) lord per planet, and the sign each planet occupies.
+            planet_sign0 = {pid: s for pid, (s, _l) in ppos.items()}
+            star_lord_idx = {}
+            nak_name = {}
+            for pid, (_s, abslon) in ppos.items():
+                kp = _kp_lords(pid if pid != 1 else 1, abslon)
+                star_lord_idx[pid] = kp["star_lord_idx"]
+                nak_i = int((abslon % 360.0) / (360.0 / 27.0)) % 27
+                nak_name[pid] = NAKSHATRA_NAMES[nak_i]
+
+            # Which signs each planet owns (0-based).
+            owns0 = {pid: sorted(OWN_SIGNS.get(PLANET_NAMES[pid], set()))
+                     for pid in ppos}
+            # Conjunctions: planets sharing a sign.
+            sign_members = {}
+            for pid, s in planet_sign0.items():
+                sign_members.setdefault(s, []).append(pid)
+
+            karakas = []
+            for pid in sorted(ppos):
+                name = PLANET_NAMES[pid]
+                s0 = planet_sign0[pid]
+                sl_idx = star_lord_idx[pid]
+                sl_sign0 = planet_sign0.get(sl_idx)
+                # Signs this graha signifies: its own sign + owned + star-lord's sign.
+                sig = []
+                for x in [s0] + owns0[pid] + ([sl_sign0] if sl_sign0 is not None else []):
+                    if x is not None and x not in sig:
+                        sig.append(x)
+                conj = [PLANET_NAMES[o] for o in sign_members.get(s0, []) if o != pid]
+                karakas.append({
+                    "planet": name,
+                    "significations": NADI_KARAKAS.get(name, []),
+                    "sign_name": ZODIAC_NAMES[s0],
+                    "sign_lord": RASI_LORDS[s0],
+                    "nakshatra": nak_name[pid],
+                    "star_lord": PLANET_NAMES.get(sl_idx, str(sl_idx)),
+                    "owns": [ZODIAC_NAMES[x] for x in owns0[pid]],
+                    "conjunct": conj,
+                    "signifies_signs": [ZODIAC_NAMES[x] for x in sig],
+                })
+
+            karaka_by_name = {k["planet"]: k for k in karakas}
+            themes = []
+            for area, planets in NADI_THEMES:
+                themes.append({
+                    "area": area,
+                    "karakas": [
+                        {"planet": p,
+                         "sign_name": karaka_by_name[p]["sign_name"],
+                         "sign_lord": karaka_by_name[p]["sign_lord"],
+                         "conjunct": karaka_by_name[p]["conjunct"]}
+                        for p in planets if p in karaka_by_name
+                    ],
+                })
+
+            # ── Transit triggers ───────────────────────────────────────────
+            # Coarse-scan (1-day steps — safe for slow grahas) then bisect to the
+            # hour; capped at roughly one cycle of the transiting planet.
+            def _next_sign_entry(pl_idx, jd_start, tgt_sign0, max_years):
+                pl = drik.ephemeris_planet_index(pl_idx)
+
+                def sign_at(j):
+                    return int(drik.sidereal_longitude(j - tz_offset / 24.0, pl) // 30) % 12
+
+                jd0 = jd_start
+                prev = sign_at(jd0)
+                limit = jd_start + max_years * 365.25
+                while jd0 < limit:
+                    jd1 = jd0 + 1.0
+                    s = sign_at(jd1)
+                    if s == tgt_sign0 and prev != tgt_sign0:
+                        lo, hi = jd0, jd1
+                        for _ in range(40):
+                            mid = (lo + hi) / 2.0
+                            if sign_at(mid) == tgt_sign0:
+                                hi = mid
+                            else:
+                                lo = mid
+                            if hi - lo < 1.0 / 24.0:
+                                break
+                        return hi
+                    prev = s
+                    jd0 = jd1
+                return None
+
+            from datetime import datetime
+            today = datetime.now()
+            jd_now = swe.julday(today.year, today.month, today.day, 12)
+            moon_sign0 = planet_sign0.get(1, lagna_sign0)
+            venus_sign0 = planet_sign0.get(5, moon_sign0)
+            saturn_sign0 = planet_sign0.get(6, moon_sign0)
+            jup_sign0 = planet_sign0.get(4, moon_sign0)
+            # Pivot signs → the karaka area they anchor (dedup, keep first label).
+            pivots = [
+                (moon_sign0, "Moon (mind)"),
+                (lagna_sign0, "Ascendant (self)"),
+                (venus_sign0, "Venus (marriage)"),
+                (saturn_sign0, "Saturn (career)"),
+                (jup_sign0, "Jupiter (children & fortune)"),
+            ]
+            seen_signs = {}
+            for s0, label in pivots:
+                seen_signs.setdefault(s0, label)
+
+            triggers = []
+            for pl_idx, pl_name, max_years in ((4, "Jupiter", 13), (6, "Saturn", 30),
+                                               (7, "Rahu", 19)):
+                for s0, label in seen_signs.items():
+                    try:
+                        ejd = _next_sign_entry(pl_idx, jd_now, s0, max_years)
+                        if ejd is None:
+                            continue
+                        g = utils.jd_to_gregorian(ejd)
+                        triggers.append({
+                            "planet": pl_name,
+                            "sign_name": ZODIAC_NAMES[s0],
+                            "karaka": label,
+                            "date": f"{g[0]:04d}-{g[1]:02d}-{g[2]:02d}",
+                        })
+                    except Exception:
+                        pass
+            triggers.sort(key=lambda x: x["date"])
+
+            age_now = today.year - year - ((today.month, today.day) < (month, day))
+            spouse_karaka = "Jupiter" if gender == 1 else "Venus"
+
+            return {
+                "status": "success",
+                "dob": dob,
+                "age_now": age_now,
+                "ascendant": {"sign_name": ZODIAC_NAMES[lagna_sign0],
+                              "sign_lord": RASI_LORDS[lagna_sign0]},
+                "moon_sign": ZODIAC_NAMES[moon_sign0],
+                "spouse_karaka": spouse_karaka,
+                "karakas": karakas,
+                "themes": themes,
+                "triggers": triggers,
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
     # ── Remedies (traditional guidance from dignity + shadbala) ─────────────
     @staticmethod
     def get_remedies(dob: str, tob: str, place: str,

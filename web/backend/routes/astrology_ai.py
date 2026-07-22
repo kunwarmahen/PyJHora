@@ -715,6 +715,39 @@ async def analyze_bhrigu_markers(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/api/astrology/nadi-analysis")
+async def analyze_nadi_reading(
+    request: NadiAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Plain-language reading of the Nadi karaka significators + transit triggers."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_nadi_reading(
+            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+            lon=bd.longitude, tz=bd.timezone, gender=request.gender,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_nadi_reading(
+            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        await _save_reading(
+            current_user, source="nadi",
+            title=f"Nadi karaka reading — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name, "gender": request.gender,
+                     "ayanamsa": request.ayanamsa},
+        )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/api/astrology/life-timeline-analysis")
 async def analyze_life_timeline(
     request: TimelineAnalysisRequest,

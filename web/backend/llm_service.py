@@ -454,6 +454,15 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
+    async def analyze_nadi_reading(self,
+                                   data: Dict[str, Any],
+                                   name: str = "this person",
+                                   config: Optional[ModelConfig] = None) -> str:
+        """Reading of the Nadi karaka significators + transit triggers."""
+        prompt = self._build_nadi_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
     async def analyze_timeline_window(self,
                                       data: Dict[str, Any],
                                       name: str = "this person",

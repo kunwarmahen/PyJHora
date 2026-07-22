@@ -490,6 +490,26 @@ def _life_timeline(bd, ayanamsa, target_date: Optional[str] = None, **_):
     }
 
 
+def _nadi(bd, ayanamsa, gender: Optional[int] = None, **_):
+    # Nadi karaka reading: the fixed significators + placement by sign, the life
+    # themes each karaka heads, and the slow-graha transit triggers.
+    r = AstrologyCompute.get_nadi_reading(gender=gender, ayanamsa=ayanamsa, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    return {
+        "ascendant": r.get("ascendant"), "moon_sign": r.get("moon_sign"),
+        "spouse_karaka": r.get("spouse_karaka"),
+        "karakas": [
+            {"planet": k["planet"], "signifies": k["significations"],
+             "sign": k["sign_name"], "dispositor": k["sign_lord"],
+             "star_lord": k["star_lord"], "conjunct": k["conjunct"]}
+            for k in r.get("karakas", [])
+        ],
+        "themes": r.get("themes", []),
+        "triggers": r.get("triggers", [])[:8],
+    }
+
+
 def _longevity(bd, ayanamsa, **_):
     r = AstrologyCompute.get_longevity(ayanamsa=ayanamsa, **_args(bd))
     if r.get("status") != "success":
@@ -916,6 +936,23 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _raja_yogas,
     ),
     _Tool(
+        "get_nadi",
+        "Nadi karaka reading: reads the chart through the fixed natural "
+        "significators (karakas) and their placement by SIGN — setting houses and "
+        "aspects aside. Returns each graha's karakatwas, the sign it sits in (and "
+        "its dispositor + star-lord), whom it is conjunct, the life themes each "
+        "karaka heads (marriage → Venus/Jupiter, career → Saturn, etc.), and the "
+        "next Jupiter/Saturn/Rahu transits into the pivotal karaka signs that time "
+        "events. Use for karaka-based, conjunction-driven readings and Nadi-style "
+        "event timing. Pass gender (0=male, 1=female) to foreground the right "
+        "spouse karaka.",
+        {"type": "object", "properties": {
+            "gender": {"type": "integer", "enum": [0, 1],
+                       "description": "0=male, 1=female — selects the spouse karaka."}},
+         "required": []},
+        _nadi,
+    ),
+    _Tool(
         "get_longevity",
         "Ayu (longevity) *category* — Alpa (short) / Madhya (medium) / Purna (long) "
         "— from the classical sign-pair Ayurdaya method, with the contributing "
@@ -1191,7 +1228,7 @@ ALWAYS_TOOLS: List[str] = [
     "get_natal_chart", "get_chart_details", "get_dasha_children",
     "get_divisional_chart", "get_panchanga", "get_varshaphal",
     "get_fortnightly_digest", "get_monthly_digest", "get_tithi_pravesha",
-    "get_raja_yogas", "get_longevity", "get_pancha_pakshi",
+    "get_raja_yogas", "get_nadi", "get_longevity", "get_pancha_pakshi",
     "get_sphuta", "get_sahams", "get_argala",
     "get_vedic_clock", "get_retrograde", "get_muhurta",
     "get_kp", "get_jaimini", "get_life_timeline", "get_strength",
@@ -1274,6 +1311,7 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_shadbala":         {"label": "Shadbala strength",      "category": "Strengths & afflictions"},
     "get_strength":         {"label": "Strength (Shadbala + Bhava + Vimsopaka)", "category": "Strengths & afflictions"},
     "get_longevity":        {"label": "Ayu (longevity)",        "category": "Strengths & afflictions"},
+    "get_nadi":             {"label": "Nadi karaka reading (significators + timing)", "category": "Systems"},
     "get_sphuta":           {"label": "Sphutas (sensitive points)", "category": "Sensitive points"},
     "get_sahams":           {"label": "Sahams (36 points)",     "category": "Sensitive points"},
     "get_argala":           {"label": "Argala (intervention)",  "category": "Sensitive points"},
