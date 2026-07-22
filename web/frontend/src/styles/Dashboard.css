@@ -283,6 +283,54 @@
   padding: 1rem 0.25rem;
 }
 
+/* Sub-tool search results (a tab/picker option inside a tile) */
+.dashboard-subresults {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.dashboard-subresults__heading {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  margin-bottom: 0.15rem;
+}
+.dashboard-subresult {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--surface);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.dashboard-subresult:hover {
+  border-color: var(--saffron);
+  transform: translateX(2px);
+}
+.dashboard-subresult__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  color: var(--text-on-accent);
+  flex-shrink: 0;
+}
+.dashboard-subresult__label { font-weight: 600; }
+.dashboard-subresult__parent {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
 /* Features Grid */
 .features-grid {
   display: grid;

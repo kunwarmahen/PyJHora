@@ -12,7 +12,7 @@ import { NowChartWidget } from "../components/NowChartWidget";
 import { UiModeToggle } from "../components/UiModeToggle";
 import { BrandLogo } from "../components/BrandLogo";
 import { SITE_TITLE } from "../config/branding";
-import { visibleFeatures, FEATURE_ALIASES } from "../config/features";
+import { visibleFeatures, FEATURE_ALIASES, FEATURE_SUBITEMS, featureForKey } from "../config/features";
 import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 
@@ -60,10 +60,11 @@ export const DashboardPage = () => {
     if (open) searchRef.current?.focus();
   }, [open]);
 
+  const q = query.trim().toLowerCase();
+  const tokens = useMemo(() => (q ? q.split(/\s+/) : []), [q]);
+
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
     if (!q) return features;
-    const tokens = q.split(/\s+/);
     return features.filter((f) => {
       const hay = [
         t(`dashboard.features.${f.key}.title`),
@@ -74,7 +75,25 @@ export const DashboardPage = () => {
         .toLowerCase();
       return tokens.every((tok) => hay.includes(tok));
     });
-  }, [features, query, t]);
+  }, [features, q, tokens, t]);
+
+  // Sub-tools that live inside a tile (Sudarshana → Dhasa, Kota → Chakras…).
+  // Only surfaced while searching, and regardless of Essentials/Everything mode:
+  // a deep-link must never dead-end just because its parent tile is hidden.
+  const subMatches = useMemo(() => {
+    if (!q) return [];
+    return FEATURE_SUBITEMS.filter((s) => {
+      const parent = featureForKey(s.parent);
+      const hay = [
+        s.label,
+        s.keywords || "",
+        parent ? t(`dashboard.features.${parent.key}.title`) : "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return tokens.every((tok) => hay.includes(tok));
+    });
+  }, [q, tokens, t]);
 
   const closeSearch = () => {
     setQuery("");
@@ -105,8 +124,10 @@ export const DashboardPage = () => {
   }, [open, query]);
 
   const onSearchKeyDown = (e) => {
-    if (e.key === "Enter" && filtered.length > 0) {
-      navigate(filtered[0].path);
+    if (e.key === "Enter") {
+      // Prefer a tile match; otherwise open the top sub-tool result.
+      const top = filtered[0]?.path || subMatches[0]?.to;
+      if (top) navigate(top);
     } else if (e.key === "Escape") {
       closeSearch();
     }
@@ -213,38 +234,74 @@ export const DashboardPage = () => {
           )}
         </div>
 
-        {query && filtered.length === 0 ? (
+        {q && filtered.length === 0 && subMatches.length === 0 ? (
           <p className="dashboard-search__empty fade-in">
             {t("dashboard.search.noResults", { query })}
           </p>
         ) : (
-        <div className="features-grid">
-          {filtered.map((feature, index) => (
-            <Link
-              key={feature.key}
-              to={feature.path}
-              className={`feature-card fade-in stagger-${index + 1}`}
-            >
-              <div className="feature-icon" style={{ background: feature.gradient }}>
-                <feature.Icon size={32} />
+          <>
+            {filtered.length > 0 && (
+              <div className="features-grid">
+                {filtered.map((feature, index) => (
+                  <Link
+                    key={feature.key}
+                    to={feature.path}
+                    className={`feature-card fade-in stagger-${index + 1}`}
+                  >
+                    <div className="feature-icon" style={{ background: feature.gradient }}>
+                      <feature.Icon size={32} />
+                    </div>
+                    <h3>{t(`dashboard.features.${feature.key}.title`)}</h3>
+                    <p>{t(`dashboard.features.${feature.key}.description`)}</p>
+                    <div className="feature-arrow">
+                      <span>{t("dashboard.explore")}</span>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path
+                          d="M6 3L11 8L6 13"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                  </Link>
+                ))}
               </div>
-              <h3>{t(`dashboard.features.${feature.key}.title`)}</h3>
-              <p>{t(`dashboard.features.${feature.key}.description`)}</p>
-              <div className="feature-arrow">
-                <span>{t("dashboard.explore")}</span>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M6 3L11 8L6 13"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+            )}
+
+            {subMatches.length > 0 && (
+              <div className="dashboard-subresults fade-in">
+                <div className="dashboard-subresults__heading">
+                  {t("dashboard.search.insideTools")}
+                </div>
+                {subMatches.map((s) => {
+                  const parent = featureForKey(s.parent);
+                  const ParentIcon = parent?.Icon;
+                  return (
+                    <Link key={s.to} to={s.to} className="dashboard-subresult">
+                      {ParentIcon && (
+                        <span
+                          className="dashboard-subresult__icon"
+                          style={{ background: parent.gradient }}
+                        >
+                          <ParentIcon size={18} />
+                        </span>
+                      )}
+                      <span className="dashboard-subresult__label">{s.label}</span>
+                      {parent && (
+                        <span className="dashboard-subresult__parent">
+                          {t("dashboard.search.inTile", {
+                            tile: t(`dashboard.features.${parent.key}.title`),
+                          })}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
-            </Link>
-          ))}
-        </div>
+            )}
+          </>
         )}
 
         {/* Below the tiles, not hidden in Settings: the dashboard is where

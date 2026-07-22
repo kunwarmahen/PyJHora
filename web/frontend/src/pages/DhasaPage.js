@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Clock, AlertCircle, Star, ChevronDown, Calendar } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
@@ -191,6 +191,8 @@ function OtherDashaSystems({ birthDetails }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [applicable, setApplicable] = useState([]);
+  const [searchParams] = useSearchParams();
+  const deepLinkDone = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -237,6 +239,19 @@ function OtherDashaSystems({ birthDetails }) {
     setSelected(key);
     load(key);
   };
+
+  // Deep link: /dhasa?system=<key> preselects that dasha and loads it once the
+  // systems catalog and the chart are both ready. Runs once (the dashboard
+  // launcher and any shared link land straight on the chosen system).
+  useEffect(() => {
+    if (deepLinkDone.current || !birthDetails || systems.length === 0) return;
+    const key = searchParams.get("system");
+    if (key && systems.some((s) => s.key === key)) {
+      deepLinkDone.current = true;
+      setSelected(key);
+      load(key);
+    }
+  }, [searchParams, systems, birthDetails, load]);
 
   return (
     <Card title={t("dhasa.otherSystems")} icon={<Clock size={24} />}>
@@ -449,6 +464,7 @@ export const DhasaPage = () => {
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
+  const [dhasaSearchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -629,7 +645,10 @@ export const DhasaPage = () => {
             14 systems and the three-wheel Sudarshana Chakra are a specialist's
             cross-check — collapsed in Essentials, plain in Everything. */}
         {!loading && result && (
-          <AdvancedOnly title={t("dhasa.otherSystems")}>
+          <AdvancedOnly
+            title={t("dhasa.otherSystems")}
+            defaultOpen={!!dhasaSearchParams.get("system")}
+          >
             <OtherDashaSystems birthDetails={birthDetails} />
             <SudarsanaChakra birthDetails={birthDetails} />
           </AdvancedOnly>

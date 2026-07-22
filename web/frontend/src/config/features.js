@@ -434,12 +434,58 @@ export const FEATURE_ALIASES = {
   advanced: "more all everything advanced tools",
 };
 
+/**
+ * Sub-features that live INSIDE a tile — a tab or a picker option — rather than
+ * as their own tile. The dashboard filter searches these too and deep-links
+ * straight to them, so typing "Sudarshana" finds the Sudarshana Chakra dasha
+ * even though it's buried in the Dhasa picker.
+ *
+ *   label     the sub-tool's own name (a technical proper noun — kept here
+ *             rather than i18n since PyJHora doesn't localize most of them; the
+ *             localized part is the "in <Tile>" wrapper, from the parent tile).
+ *   parent    owning feature key — supplies the "in <Tile>" label and the icon.
+ *   keywords  English search terms (matched alongside the label + parent title).
+ *   to        deep-link. Tab pages read `?tab=` (handled by useTabs, so no page
+ *             change needed); the Dhasa picker reads `?system=`.
+ *
+ * Dhasa `system` values are the backend SUPPORTED_DASHAS keys, verbatim.
+ */
+export const FEATURE_SUBITEMS = [
+  // ── Dhasa picker: the conditional / rasi dasha systems ──
+  { label: "Sudarshana Chakra Dasha", parent: "dhasa", to: "/dhasa?system=sudharsana_chakra", keywords: "sudarshana sudarsana chakra wheel three charts" },
+  { label: "Ashtottari Dasha", parent: "dhasa", to: "/dhasa?system=ashtottari", keywords: "ashtottari 108" },
+  { label: "Yogini Dasha", parent: "dhasa", to: "/dhasa?system=yogini", keywords: "yogini" },
+  { label: "Kalachakra Dasha", parent: "dhasa", to: "/dhasa?system=kalachakra", keywords: "kalachakra kaalachakra wheel of time" },
+  { label: "Narayana Dasha", parent: "dhasa", to: "/dhasa?system=narayana", keywords: "narayana pada rasi jaimini" },
+  { label: "Chara Dasha", parent: "dhasa", to: "/dhasa?system=chara", keywords: "chara jaimini rasi movable" },
+  { label: "Sthira Dasha", parent: "dhasa", to: "/dhasa?system=sthira", keywords: "sthira fixed rasi" },
+  { label: "Trikona Dasha", parent: "dhasa", to: "/dhasa?system=trikona", keywords: "trikona trine rasi" },
+  { label: "Drig Dasha", parent: "dhasa", to: "/dhasa?system=drig", keywords: "drig aspectual rasi jaimini" },
+  { label: "Sudasa Dasha", parent: "dhasa", to: "/dhasa?system=sudasa", keywords: "sudasa sree lagna rasi" },
+  { label: "Kendradhi Rasi Dasha", parent: "dhasa", to: "/dhasa?system=kendradhi_rasi", keywords: "kendradhi rasi kendra" },
+  { label: "Shodasottari Dasha", parent: "dhasa", to: "/dhasa?system=shodasottari", keywords: "shodasottari 116" },
+  { label: "Dwadasottari Dasha", parent: "dhasa", to: "/dhasa?system=dwadasottari", keywords: "dwadasottari 112" },
+  { label: "Panchottari Dasha", parent: "dhasa", to: "/dhasa?system=panchottari", keywords: "panchottari 105" },
+  { label: "Shatabdika Dasha", parent: "dhasa", to: "/dhasa?system=shatabdika", keywords: "shatabdika 100" },
+  // ── Chakras page: the individual chakras (tab deep-links via useTabs) ──
+  { label: "Kota Chakra", parent: "sarvatobhadra", to: "/chakras?tab=kota", keywords: "kota fort protection siege" },
+  { label: "Kaala Chakra", parent: "sarvatobhadra", to: "/chakras?tab=kaala", keywords: "kaala kala directions wheel" },
+  { label: "Tripataki Chakra", parent: "sarvatobhadra", to: "/chakras?tab=tripataki", keywords: "tripataki vedha moon lagna" },
+  // ── Sensitive Points page: the three sub-tools (tab deep-links) ──
+  { label: "Sahams", parent: "sensitivePoints", to: "/sensitive-points?tab=sahams", keywords: "sahams 36 arabic parts lots" },
+  { label: "Argala", parent: "sensitivePoints", to: "/sensitive-points?tab=argala", keywords: "argala intervention obstruction" },
+  { label: "Sphutas", parent: "sensitivePoints", to: "/sensitive-points?tab=sphuta", keywords: "sphuta sensitive longitudes beeja kshetra" },
+];
+
 /** Features to advertise for a ui mode. "advanced" mode shows everything. */
 export const visibleFeatures = (uiMode) =>
   uiMode === "advanced" ? FEATURES : FEATURES.filter((f) => f.tier === "simple");
 
 /** The registry entry owning a route, or undefined. */
 export const featureForPath = (path) => FEATURES.find((f) => f.path === path);
+
+/** The registry entry with this key, or undefined (for sub-feature parents). */
+export const featureForKey = (key) => FEATURES.find((f) => f.key === key);
 
 /** Is this route advertised in the given mode? Unknown routes count as visible
  * (login, profile-selection, /share/... — pages the registry deliberately omits,

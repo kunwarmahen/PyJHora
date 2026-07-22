@@ -473,7 +473,9 @@
       "open": "Filter features (or just start typing)",
       "placeholder": "Type to filter — or press Enter to open the first match",
       "clear": "Clear filter",
-      "noResults": "No features match “{{query}}”"
+      "noResults": "No features match “{{query}}”",
+      "insideTools": "Inside other tools",
+      "inTile": "in {{tile}}"
     },
     "features": {
       "birthChart": {

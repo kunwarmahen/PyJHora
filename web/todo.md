@@ -4565,3 +4565,32 @@ Files: `pages/DashboardPage.js`, `config/features.js` (`FEATURE_ALIASES`),
 `styles/Dashboard.css` (`.dashboard-search*`), i18n `dashboard.search.*` (en +
 hi + sa, since it's dashboard chrome). 159 frontend tests pass, prod build clean.
 No backend change.
+
+## 48. Dashboard search — deep-link into sub-tools (SHIPPED 2026-07-21)
+
+Follow-up to §47: the tile filter only knew the ~40 top-level tiles, so a sub-tool
+buried inside one (owner's example: **Sudarshana Chakra**, which lives in the
+Dhasa picker) couldn't be found by name. Added a searchable **sub-feature index**
+that deep-links straight to the exact sub-tool.
+
+- `FEATURE_SUBITEMS` in `config/features.js`: each entry is `{ label, parent,
+  keywords, to }`. `to` is a deep-link — tab pages use `?tab=` (already honoured
+  by `useTabs`, zero page change), the Dhasa picker uses `?system=<key>` (the
+  backend `SUPPORTED_DASHAS` keys verbatim). Covers all 15 conditional/rasi dasha
+  systems, the Kota/Kaala/Tripataki chakras, and the Sahams/Argala/Sphuta points.
+- Dashboard search now also matches these (label + keywords + parent tile title,
+  every token must hit) and renders them as their own result rows below the tile
+  grid — "Sudarshana Chakra Dasha · in Dhasa", parent icon + click-through.
+  Shown regardless of Essentials/Everything (a deep-link must never dead-end).
+  Enter prefers a tile match, else opens the top sub-tool.
+- **Only page needing code:** `DhasaPage` reads `?system=` and preselects+loads
+  that dasha once the catalog + chart are ready (one-shot via a ref). Its "Other
+  systems" section is behind `<AdvancedOnly>` (collapsed + unmounted in
+  Essentials), so the page now passes `defaultOpen` when `?system=` is present —
+  otherwise the picker wouldn't even mount and the deep-link would dead-end. The
+  Chakras and Sensitive-Points tabs already survived Essentials via `useTabs`.
+
+Files: `config/features.js` (`FEATURE_SUBITEMS`, `featureForKey`),
+`pages/DashboardPage.js`, `pages/DhasaPage.js`, `styles/Dashboard.css`
+(`.dashboard-subresult*`), i18n `dashboard.search.{insideTools,inTile}` (en/hi/sa).
+159 frontend tests pass, prod build clean. No backend change.
