@@ -33,6 +33,11 @@
 #
 # NAS deploy (remote Docker over SSH, Cloudflare Tunnel for domain + SSL):
 #   ./dev.sh nas deploy       # build images locally, ship + load on NAS, start stack
+#   #   only ships an image whose ID actually changed, streams it through the
+#   #   fastest compressor both ends share, and builds the two images in parallel
+#   ./dev.sh nas deploy backend      # only the backend image (or: web)
+#   ./dev.sh nas deploy --force      # re-ship even if the NAS already has this ID
+#   ./dev.sh nas deploy --skip-build # ship the images already built locally
 #   ./dev.sh nas up           # (re)start on NAS without rebuilding
 #   ./dev.sh nas down         # stop the stack on NAS
 #   ./dev.sh nas logs [svc]   # tail NAS logs (optionally one service)
@@ -72,6 +77,12 @@ COMPOSE_NAS="$ROOT_DIR/docker-compose.nas.yml"
 # Image names (built locally, loaded on the NAS — never built there).
 IMG_BACKEND="jyotirai-backend:latest"
 IMG_WEB="jyotirai-web:latest"
+
+# Record of what is actually loaded on the NAS: "<image> <image-id>" per line,
+# rewritten after every successful load. Lets a deploy skip an image whose ID
+# hasn't changed — the common case, since most changes touch one side only.
+# Readable without sudo, so checking it costs no extra password prompt.
+NAS_STATE_FILE=".deployed-images"
 
 # Read a single KEY=value from web/.env (first match, value verbatim; empty if absent).
 env_val() { [ -f "$ENV_FILE" ] && grep -E "^$1=" "$ENV_FILE" | head -1 | cut -d= -f2- || true; }
@@ -352,65 +363,176 @@ nas_scp() {  # nas_scp <local> <remote>
       -o "ControlPath=${NAS_SSH_CTL}" -o ControlPersist=120 $key "$1" "${NAS_USER}@${NAS_HOST}:$2"
 }
 
-nas_build_images() {
-  detect_engine
-  info "building backend image $IMG_BACKEND (context = repo root) ..."
-  # Context is the repo root so the image can vendor the jhora `src/` library.
+build_backend_image() {  # context = repo root, so the image can vendor the jhora `src/` library
   ( cd "$ROOT_DIR/.." && $ENGINE build -t "$IMG_BACKEND" -f web/backend/Dockerfile . )
+}
 
-  info "building web image $IMG_WEB (static build + nginx) ..."
+build_web_image() {
   # Same-origin build (REACT_APP_API_URL=""); pull branding from .env when present.
   local wargs=(--build-arg "REACT_APP_API_URL=")
   local v
-  v="$(env_val REACT_APP_SITE_TITLE)";       [ -n "$v" ] && wargs+=(--build-arg "REACT_APP_SITE_TITLE=$v")
+  v="$(env_val REACT_APP_SITE_TITLE)";        [ -n "$v" ] && wargs+=(--build-arg "REACT_APP_SITE_TITLE=$v")
   v="$(env_val REACT_APP_SITE_TAGLINE)";      [ -n "$v" ] && wargs+=(--build-arg "REACT_APP_SITE_TAGLINE=$v")
   v="$(env_val REACT_APP_ENABLE_MAP_PICKER)"; [ -n "$v" ] && wargs+=(--build-arg "REACT_APP_ENABLE_MAP_PICKER=$v")
   v="$(env_val REACT_APP_GOOGLE_CLIENT_ID)";  [ -n "$v" ] && wargs+=(--build-arg "REACT_APP_GOOGLE_CLIENT_ID=$v")
   ( cd "$FRONTEND_DIR" && $ENGINE build "${wargs[@]}" -t "$IMG_WEB" -f Dockerfile.nas . )
-  ok "images built"
+}
+
+nas_build_images() {  # nas_build_images <backend?> <web?> — builds the requested images in parallel
+  detect_engine
+  local do_be="$1" do_web="$2"
+  local lb="${TMPDIR:-/tmp}/jyotirai-build-backend.$$.log"
+  local lw="${TMPDIR:-/tmp}/jyotirai-build-web.$$.log"
+  local pb="" pw="" rc=0
+
+  # The two builds share nothing, and the web build is dominated by a cold
+  # `npm run build` while the backend's is mostly cache hits — so overlapping
+  # them costs the backend's wall time nothing and hides it under the web build.
+  if [ "$do_be" = 1 ]; then
+    info "building backend image $IMG_BACKEND (log: $lb) ..."
+    build_backend_image >"$lb" 2>&1 & pb=$!
+  fi
+  if [ "$do_web" = 1 ]; then
+    info "building web image $IMG_WEB (log: $lw) ..."
+    build_web_image >"$lw" 2>&1 & pw=$!
+  fi
+
+  if [ -n "$pb" ]; then
+    if wait "$pb"; then ok "backend image built"; else rc=1; err "backend image build FAILED:"; tail -n 30 "$lb" >&2; fi
+  fi
+  if [ -n "$pw" ]; then
+    if wait "$pw"; then ok "web image built";     else rc=1; err "web image build FAILED:";     tail -n 30 "$lw" >&2; fi
+  fi
+  [ "$rc" -eq 0 ] || exit 1
+  rm -f "$lb" "$lw"
+}
+
+# --- image transfer -----------------------------------------------------
+# The old path was: save → gzip → ~350MB local tarball → scp → remote tarball →
+# docker load. Single-threaded gzip over a 1GB image was the single biggest cost
+# in a deploy (~35s per image, measured), and both disk round-trips were pure
+# overhead. Now: save → fastest codec both ends share → straight into ssh.
+NAS_CODEC=""
+detect_codec() {
+  [ -n "$NAS_CODEC" ] && return 0
+  if [ -n "${NAS_TRANSFER_CODEC:-}" ]; then
+    NAS_CODEC="$NAS_TRANSFER_CODEC"; info "transfer codec: $NAS_CODEC (forced)"; return 0
+  fi
+  # Both ends must have it: we compress here and decompress there.
+  local remote c
+  remote="$(nas_ssh 'for c in zstd pigz gzip; do command -v $c >/dev/null 2>&1 && echo $c; done' 2>/dev/null || true)"
+  for c in zstd pigz gzip; do
+    if command -v "$c" >/dev/null 2>&1 && printf '%s\n' "$remote" | grep -qx "$c"; then NAS_CODEC="$c"; break; fi
+  done
+  NAS_CODEC="${NAS_CODEC:-gzip}"   # always present; the slow-but-safe floor
+  info "transfer codec: $NAS_CODEC"
+}
+# zstd -T0 measured ~27x faster than gzip on this image *and* ~10% smaller.
+# pigz is multi-core gzip and produces an ordinary .gz. Level 3 throughout:
+# past that, compression time costs more than the bytes it saves on a LAN.
+codec_ext()    { case "$NAS_CODEC" in zstd) echo zst ;; *) echo gz ;; esac; }
+codec_comp()   { case "$NAS_CODEC" in zstd) echo "zstd -T0 -3 -c" ;; pigz) echo "pigz -3 -c" ;; *) echo "gzip -3 -c" ;; esac; }
+codec_decomp() { case "$NAS_CODEC" in zstd) echo "zstd -dc" ;; pigz) echo "pigz -dc" ;; *) echo "gzip -dc" ;; esac; }
+
+image_id() { $ENGINE image inspect -f '{{.Id}}' "$1" 2>/dev/null || true; }
+
+nas_ship_image() {  # nas_ship_image <image> <remote-basename>
+  local img="$1" base="$2" ext; ext="$(codec_ext)"
+  info "shipping $img (streaming, $NAS_CODEC) ..."
+  # shellcheck disable=SC2046  # codec_comp is a command + flags, split on purpose
+  $ENGINE save "$img" | $(codec_comp) | nas_ssh "cat > '${NAS_PATH}/${base}.tar.${ext}'"
 }
 
 nas_deploy() {
-  require_nas_host; require_env
-  nas_build_images
+  # ./dev.sh nas deploy [backend|web] [--force] [--skip-build]
+  local want_be=1 want_web=1 force=0 skip_build=0 a
+  for a in "$@"; do
+    case "$a" in
+      backend)          want_web=0 ;;
+      web|frontend)     want_be=0 ;;
+      --force|-f)       force=1 ;;
+      --skip-build)     skip_build=1 ;;
+      "")               ;;
+      *) err "unknown option '$a' (use: backend | web | --force | --skip-build)"; exit 1 ;;
+    esac
+  done
 
-  local tb="/tmp/jyotirai-backend.tar.gz" tw="/tmp/jyotirai-web.tar.gz"
-  info "exporting images to tarballs ..."
-  $ENGINE save "$IMG_BACKEND" | gzip > "$tb"
-  $ENGINE save "$IMG_WEB"     | gzip > "$tw"
-  ok "exported (backend $(du -sh "$tb" | cut -f1), web $(du -sh "$tw" | cut -f1))"
+  require_nas_host; require_env
+  detect_engine
+  [ "$skip_build" = 1 ] || nas_build_images "$want_be" "$want_web"
 
   nas_ssh_open
   trap 'nas_ssh_close' EXIT
+  detect_codec
 
   info "preparing ${NAS_PATH} on ${NAS_HOST} ..."
   nas_ssh "mkdir -p '${NAS_PATH}/nginx' '${NAS_PATH}/mongo-data'"
 
-  info "transferring images + config ..."
-  nas_scp "$tb"                          "${NAS_PATH}/jyotirai-backend.tar.gz"
-  nas_scp "$tw"                          "${NAS_PATH}/jyotirai-web.tar.gz"
+  # What is already loaded there? Skipping an unchanged image saves the whole
+  # save/compress/transfer/load chain — and most edits touch only one side.
+  local state=""
+  [ "$force" = 1 ] || state="$(nas_ssh "cat '${NAS_PATH}/${NAS_STATE_FILE}' 2>/dev/null" || true)"
+  remote_id() { printf '%s\n' "$state" | awk -v n="$1" '$1==n {print $2; exit}'; }
+
+  local ship_be=0 ship_web=0
+  local id_be id_web
+  id_be="$(image_id "$IMG_BACKEND")"; id_web="$(image_id "$IMG_WEB")"
+  if [ "$want_be" = 1 ]; then
+    if [ -n "$id_be" ] && [ "$id_be" = "$(remote_id "$IMG_BACKEND")" ]; then
+      ok "backend image unchanged — skipping transfer"
+    else ship_be=1; fi
+  fi
+  if [ "$want_web" = 1 ]; then
+    if [ -n "$id_web" ] && [ "$id_web" = "$(remote_id "$IMG_WEB")" ]; then
+      ok "web image unchanged — skipping transfer"
+    else ship_web=1; fi
+  fi
+
+  info "syncing compose + config ..."
   nas_scp "$COMPOSE_NAS"                 "${NAS_PATH}/docker-compose.yml"
   nas_scp "$ENV_FILE"                    "${NAS_PATH}/.env"
   nas_scp "$ROOT_DIR/nginx/nginx.conf"   "${NAS_PATH}/nginx/nginx.conf"
 
+  [ "$ship_be" = 1 ]  && nas_ship_image "$IMG_BACKEND" "jyotirai-backend"
+  [ "$ship_web" = 1 ] && nas_ship_image "$IMG_WEB"     "jyotirai-web"
+
+  # Build the remote script: load only what we shipped, then bring the stack up.
+  local ext; ext="$(codec_ext)"
+  local dec; dec="$(codec_decomp)"
+  local load_cmds=""
+  _load_for() {  # _load_for <image> <basename>
+    load_cmds="$load_cmds
+    echo '[nas] loading $1 ...'
+    $dec < '$2.tar.$ext' | sudo docker load
+    # podman-built images may land as localhost/<name>; retag to the plain name compose expects
+    sudo docker tag localhost/$1 $1 2>/dev/null || true
+    rm -f '$2.tar.$ext'"
+  }
+  [ "$ship_be" = 1 ]  && _load_for "$IMG_BACKEND" "jyotirai-backend"
+  [ "$ship_web" = 1 ] && _load_for "$IMG_WEB"     "jyotirai-web"
+
+  # Rewrite the full state file: shipped images get the ID we just built, the
+  # rest keep whatever was recorded, so a one-image deploy doesn't forget the other.
+  local st_be st_web
+  st_be="$([ "$ship_be" = 1 ] && echo "$id_be" || remote_id "$IMG_BACKEND")"
+  st_web="$([ "$ship_web" = 1 ] && echo "$id_web" || remote_id "$IMG_WEB")"
+
   info "loading images + (re)starting the stack on NAS ..."
+  # No `compose down` first: compose recreates exactly the containers whose image
+  # ID changed, so mongo and the tunnel stay up instead of bouncing every deploy.
+  # Need a hard reset? ./dev.sh nas down && ./dev.sh nas up
   nas_ssh -t "
     set -e
-    cd '${NAS_PATH}'
-    echo '[nas] loading images ...'
-    sudo docker load < jyotirai-backend.tar.gz
-    sudo docker load < jyotirai-web.tar.gz
-    # podman-built images may land as localhost/<name>; retag to the plain name compose expects
-    sudo docker tag localhost/${IMG_BACKEND} ${IMG_BACKEND} 2>/dev/null || true
-    sudo docker tag localhost/${IMG_WEB} ${IMG_WEB} 2>/dev/null || true
+    cd '${NAS_PATH}'${load_cmds}
     echo '[nas] restarting stack ...'
-    sudo docker compose down 2>/dev/null || true
     sudo docker compose up -d --remove-orphans
     sudo docker compose ps
-    rm -f jyotirai-backend.tar.gz jyotirai-web.tar.gz
+    : > '${NAS_STATE_FILE}'
+    [ -n '${st_be}' ]  && echo '${IMG_BACKEND} ${st_be}'  >> '${NAS_STATE_FILE}'
+    [ -n '${st_web}' ] && echo '${IMG_WEB} ${st_web}' >> '${NAS_STATE_FILE}'
+    exit 0
   "
 
-  rm -f "$tb" "$tw"
   nas_ssh_close
   trap - EXIT
 
@@ -546,7 +668,7 @@ case "$ACTION" in
   clogs)   container_clogs ;;
   nas)
     case "${2:-}" in
-      deploy) nas_deploy ;;
+      deploy) nas_deploy "${@:3}" ;;
       up)     nas_up ;;
       down)   nas_down ;;
       logs)   nas_logs "${3:-}" ;;
@@ -556,7 +678,7 @@ case "$ACTION" in
     esac
     ;;
   ""|-h|--help|help)
-    sed -n '2,44p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,49p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     ;;
   *)
     err "unknown action '$ACTION'"

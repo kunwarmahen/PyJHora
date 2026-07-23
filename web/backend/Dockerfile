@@ -2,10 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# No compiler toolchain: every pinned dependency resolves to a manylinux wheel
+# except http-ece (a pure-Python sdist pulled in by pywebpush), which needs only
+# setuptools. build-essential used to live here and cost 354MB — a third of the
+# image, re-shipped to the NAS on every deploy. If a future dependency does need
+# to compile, add it in a `FROM python:3.11-slim AS build` stage and copy the
+# wheels forward rather than putting gcc back in the runtime image.
 
 # NOTE: the build context is the repository root (see web/docker-compose.yml), so all
 # COPY paths below are relative to PyJHora/. This lets us vendor the jhora library

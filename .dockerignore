@@ -16,3 +16,13 @@ web/frontend/build
 *.egg-info
 build
 dist
+
+# The vendored jhora library ships the desktop PyQt app alongside the engine. The
+# backend only ever imports the engine, so the GUI, its icons and the upstream test
+# suite are dead weight in the image (~23MB). `./dev.sh test engine` runs pvr_tests
+# from the working tree, not the container, so excluding tests here is safe.
+# (Verified: nothing outside src/jhora/tests imports jhora.ui.)
+src/jhora/ui
+src/jhora/tests
+src/jhora/images
+src/jhora/docs

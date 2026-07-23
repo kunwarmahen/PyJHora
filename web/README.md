@@ -537,6 +537,40 @@ serving over the LAN:
 Unlike `./dev.sh start` (the hot-reloading `npm start` dev server), `serve`
 runs the minified production build, so it reflects exactly what ships.
 
+#### NAS deploy (`./dev.sh nas …`)
+
+Builds both images **locally** and loads them on the NAS — the NAS never builds
+anything. Everything below runs over a single SSH ControlMaster connection, so
+you're asked for a password once.
+
+```bash
+./dev.sh nas deploy              # build, ship what changed, restart the stack
+./dev.sh nas deploy backend      # only the backend image (or: web)
+./dev.sh nas deploy --force      # re-ship even if the NAS already has this image ID
+./dev.sh nas deploy --skip-build # ship the images already built locally
+./dev.sh nas logs [svc]          # tail NAS logs
+./dev.sh nas ps | down | up | shell [svc]
+```
+
+The deploy is **incremental**. After each successful load, `dev.sh` records the
+image IDs in `.deployed-images` on the NAS (plain text, no `sudo` needed to read
+it). The next deploy compares that against what it just built and skips the whole
+save → compress → transfer → load chain for any image that didn't change — which
+is usually one of the two, since most edits touch either the backend or the
+frontend, not both. `--force` bypasses the check if the NAS state ever drifts
+(e.g. you removed an image there by hand).
+
+Images are **streamed** — `podman save | <codec> | ssh` — with no intermediate
+tarball on either side. The codec is negotiated at deploy time to the fastest one
+*both* ends have: `zstd -T0` → `pigz` → `gzip`. Override with
+`NAS_TRANSFER_CODEC=gzip ./dev.sh nas deploy` if you ever need to pin it. The two
+image builds run in parallel, and the backend image carries no compiler toolchain
+(see `web/backend/Dockerfile`), so there is a lot less to ship in the first place.
+
+The deploy no longer runs `compose down` before `up`: compose recreates exactly
+the containers whose image ID changed, so Mongo and the Cloudflare tunnel stay up
+across a redeploy. For a hard reset use `./dev.sh nas down && ./dev.sh nas up`.
+
 ## Configuration
 
 ### Which `.env` file does what

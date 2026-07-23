@@ -2509,9 +2509,10 @@ SSH → `sudo docker compose up`) but tunnel-only, so **nothing is exposed on th
       off` + 1 h timeouts on `/api/` for the SSE streaming (`/api/astrology/ask/stream`) and slow
       LLM calls.
 - [x] **`dev.sh nas` command group** — `deploy | up | down | logs | ps | shell`. `deploy` builds
-      both images locally (`jyotirai-backend`, `jyotirai-web`), gzips + scps them over an SSH
+      both images locally (`jyotirai-backend`, `jyotirai-web`), ships them over an SSH
       ControlMaster (one password prompt), loads + retags on the NAS, and `docker compose up -d`.
       Config comes from `web/.env` / env vars: `NAS_HOST/USER/PATH/SSH_KEY/SSH_PORT`.
+      (Originally gzip + `scp` of both images every time — see the deploy-speed section below.)
 - [x] **`.env.nas.example`** documents every var (NAS conn, `TUNNEL_TOKEN`, `MONGO_PASSWORD`,
       `MONGO_DATA_PATH`, `SECRET_KEY`, `CORS_ORIGINS`, `APP_BASE_URL`, LLM/SMTP keys, branding
       build-args). **Comments live on their own lines above each var** — the shell/`env_file`
@@ -2541,6 +2542,48 @@ SSH → `sudo docker compose up`) but tunnel-only, so **nothing is exposed on th
       `rstrip("/")`s the base URL at every call site so it can't recur.
 - [x] **`MONGO_PASSWORD` must avoid `@`** — it's injected raw into `mongodb://user:pass@host`, and a
       literal `@` breaks URI parsing. Documented in `.env.nas.example`.
+
+### Deploy speed — `./dev.sh nas deploy` was much slower than calorieapp's (owner ask 2026-07-22)
+
+Owner noticed `dev.sh` took far longer to build + deploy than `calorieapp/deploy.sh`. Profiled
+rather than guessed; three causes, all worth fixing. All figures measured on this box (16 cores).
+
+- [x] **`build-essential` was 354MB — a third of the backend image**, re-shipped every deploy.
+      Verified it isn't needed: every pinned dep resolves to a manylinux wheel, and the one sdist
+      (`http-ece`, via `pywebpush`) is pure Python. Removed from `web/backend/Dockerfile` with a
+      note to use a `FROM … AS build` stage rather than putting gcc back if a future dep needs it.
+      **1.01GB → 637MB.**
+- [x] **`.dockerignore` now drops the vendored PyQt desktop app** (`src/jhora/ui`, `images`,
+      `docs`) and the upstream test suite (`src/jhora/tests`) from the backend context — the
+      backend only ever imports the engine. Verified nothing outside `src/jhora/tests` imports
+      `jhora.ui`, and `./dev.sh test engine` runs `pvr_tests` from the working tree, not the image.
+- [x] **Single-threaded `gzip` over a 1GB image cost ~33s per deploy.** `dev.sh` now negotiates
+      the fastest codec *both* ends have (`detect_codec`): `zstd -T0` → `pigz` → `gzip`, with
+      `NAS_TRANSFER_CODEC` to pin it. zstd measured **~27x faster than gzip and ~10% smaller**.
+      Level 3 throughout — past that, compression costs more time than the bytes save on a LAN.
+- [x] **Images are streamed** (`save | codec | ssh`) instead of staged: the old path wrote a
+      ~350MB tarball locally, read it back for `scp`, and wrote it again on the NAS. Both local
+      disk passes are gone.
+- [x] **Skip-if-unchanged.** `.deployed-images` on the NAS records `"<image> <image-id>"` per line,
+      rewritten after every successful load; a deploy skips the entire save/compress/ship/load
+      chain for any image whose ID matches. Most edits touch one side only, so this usually halves
+      the work outright. Deliberately a **plain file readable without `sudo`** — querying
+      `docker image inspect` on the NAS would have cost a second password prompt. `--force`
+      bypasses it if the NAS state drifts. Single-target deploys (`nas deploy backend`) must
+      preserve the *other* image's line — that's the case worth a test.
+- [x] **Parallel image builds** — the backend build is mostly cache hits and now hides under the
+      web image's cold `npm run build`.
+- [x] **Dropped `compose down` before `up`** — compose recreates exactly the containers whose
+      image ID changed, so Mongo and the tunnel no longer bounce on every deploy. Hard reset is
+      still `./dev.sh nas down && ./dev.sh nas up`.
+- [x] **New flags** — `nas deploy [backend|web] [--force] [--skip-build]`.
+- NET: export step **33.1s → 3.4s**, wire payload **395MB → 256MB**, and an unchanged image costs
+  nothing at all. Verified by running the **full 340-test backend suite inside the slimmed image**
+  (exercises the engine against the trimmed `src/`, which is where the `.dockerignore` cuts would
+  bite), plus a stubbed-NAS harness over 5 scenarios: first deploy, no-op redeploy, `--force`,
+  single-target, and one-image-changed.
+- CAVEAT: a real `./dev.sh nas deploy` against the NAS was **not** run — the remote script changed
+  materially, so watch the first one. If the NAS lacks `zstd` the codec falls back automatically.
 
 ## 21. Export / import birth profiles (owner ask 2026-07-08)
 
