@@ -4641,3 +4641,52 @@ Files: `config/features.js` (`FEATURE_SUBITEMS`, `featureForKey`),
 `pages/DashboardPage.js`, `pages/DhasaPage.js`, `styles/Dashboard.css`
 (`.dashboard-subresult*`), i18n `dashboard.search.{insideTools,inTile}` (en/hi/sa).
 159 frontend tests pass, prod build clean. No backend change.
+
+## 49. Public marketing landing page (SHIPPED 2026-07-23)
+
+Owner ask: a commercial front door for signed-out visitors, "with image and all
+the bells and whistles" and Log in top-right. Until now `/` was a `ProtectedRoute`
+→ `StartupRedirect`, so any anonymous visitor was bounced straight to `/login` —
+there was no public page at all. Design was finalized as a private Artifact mockup
+first, then ported verbatim.
+
+- **Routing.** `/` now renders `<RootRoute>` (`components/RootRoute.js`): signed-in
+  → `StartupRedirect` (resume-to-dashboard, unchanged); signed-out → `LandingPage`.
+  Renders nothing while `isLoading` so a user about to be redirected never sees a
+  flash of the landing page. `App.js` no longer imports `StartupRedirect` directly
+  (RootRoute owns it).
+- **The page** (`pages/LandingPage.js` + `styles/Landing.css`). Night-sky hero,
+  cosmic saffron, old-style serif display (Palatino/Hoefler-class stack — no Inter/
+  Space Grotesk, no monospace anywhere). Sections: nav → hero → trust strip →
+  6 feature cards → 3-step how-it-works → AI-differentiator (cited-reading mock) →
+  practitioner depth band → pricing (gated) → privacy → final CTA → footer.
+- **Signature = the North Indian diamond chart** (unmistakably Jyotish, not a
+  Western wheel), glowing only on the linework, with planet **glyphs** (☉☽♂☿♃♀♄☊☋).
+  It **crossfades continuously** with a South Indian fixed-sign chart of the *same*
+  horoscope (Lagna Aries, Ju Taurus, Mo+Me Cancer, Ma Libra, Su+Ve Sagittarius,
+  Sa Capricorn, Ke Virgo, Ra Pisces) on a slow 24s loop; captions crossfade in sync.
+  Ambient starfield canvas with a slow spiral **galaxy** tucked in the hero's
+  top-right corner. All motion respects `prefers-reduced-motion` (freezes to the
+  North chart, static galaxy).
+- **CSS is fully scoped under `.landing`** — its own editorial token system must not
+  leak into the app and App.css must not bleed in. Tokens still key off the app's
+  `<html data-theme>`, so Light/Dark/System from the header works here too; the hero
+  deliberately commits to the night sky in both themes.
+- **Theme toggle** in the nav drives the real `settings.theme` (Light/Dark/System
+  cycle via `useSettings`), not a private mechanism. Log in → `/login`, Get started
+  free → `/register` (nav, hero, final CTA). Brand name from `SITE_TITLE`.
+- **Pricing behind `REACT_APP_SHOW_PRICING`** (`.env` + `.env.example`, default
+  hidden). `true` shows Free / Pro ($9·mo, $84·yr) / Practitioner ($29·mo, $276·yr)
+  with a monthly/annual toggle; any other value drops the whole section AND its nav
+  link (a live check confirmed `#pricing` count 0 when off). **Tier numbers are
+  hardcoded placeholders in `LandingPage.js` (`PLANS`)** — that's the one place to
+  edit when finalized.
+- **Trap:** the scroll-reveal (`.reveal` starts `opacity:0`, `IntersectionObserver`
+  adds `.in`) means a full-page screenshot shows mid sections blank — the observer
+  never fires for off-screen elements in a static capture. On real scroll they
+  reveal to `opacity:1` (verified). Not a bug; don't "fix" it by removing reveal.
+
+Files: `pages/LandingPage.js`, `styles/Landing.css`, `components/RootRoute.js`,
+`App.js` (`/` route), `.env` + `.env.example` (`REACT_APP_SHOW_PRICING`). Verified
+live in-browser (hero, features, AI card, theme toggle, pricing gate); ESLint clean,
+webpack compiled successfully.

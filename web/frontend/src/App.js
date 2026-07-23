@@ -55,7 +55,7 @@ import { GocharaPhalaPage } from "./pages/GocharaPhalaPage";
 import { JournalPage } from "./pages/JournalPage";
 import { LifeReportPage } from "./pages/LifeReportPage";
 import { AdminPage } from "./pages/AdminPage";
-import { StartupRedirect } from "./components/StartupRedirect";
+import { RootRoute } from "./components/RootRoute";
 import { SITE_TITLE } from "./config/branding";
 import "./App.css";
 import "./styles/Responsive.css";
@@ -520,14 +520,7 @@ function App() {
                   }
                 />
 
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <StartupRedirect />
-                    </ProtectedRoute>
-                  }
-                />
+                <Route path="/" element={<RootRoute />} />
               </Routes>
             </LocationProvider>
           </SettingsProvider>

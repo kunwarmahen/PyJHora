@@ -347,6 +347,19 @@ where they were born.
   or streamable-HTTP. It talks to the public API with your token; setup is in
   [`web/mcp/README.md`](mcp/README.md).
 
+### Public landing page
+
+`/` serves a public **marketing landing page** to signed-out visitors (glowing
+North/South Indian charts that crossfade, cosmic starfield hero, feature and
+"how it works" sections, and Log in / Get started free calls-to-action top-right).
+Signed-in users still resume straight into the app (`StartupRedirect`), so the
+landing page never gets in a returning user's way — the `/` route branches on auth
+in `components/RootRoute.js`. The page ships its own theme-aware styles scoped under
+`.landing` and reuses the app's Light/Dark/System toggle. An optional pricing
+section (Free / Pro / Practitioner) is hidden by default and shown only when
+`REACT_APP_SHOW_PRICING=true`; tier numbers are placeholders in
+`pages/LandingPage.js` until you finalize them.
+
 ## Project Structure
 
 ```
