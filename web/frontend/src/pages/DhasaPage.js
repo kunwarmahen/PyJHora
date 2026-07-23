@@ -108,20 +108,21 @@ function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
     if (canExpand) setExpanded((v) => !v);
   };
 
-  // Indentation + size taper with depth so deep trees stay compact.
-  const indent = (level - 1) * 16;
+  // Size taper with depth so deep trees stay compact. Indentation is driven by
+  // --depth (a CSS var) so the per-step size can shrink on narrow screens —
+  // see .dasha-node / the mobile media query in Dashboard.css.
   const avatar = level === 1 ? 40 : level === 2 ? 34 : 28;
   const lordSize = level === 1 ? "1.125rem" : level === 2 ? "1rem" : "0.9375rem";
 
   return (
     <div
       className={`dasha-node${level === 1 ? " dasha-node--root" : ""}${isCurrent ? " is-current" : ""}`}
-      style={{ marginLeft: indent, "--lvl-accent": meta.accent, "--avatar": `${avatar}px` }}
+      style={{ "--depth": level - 1, "--lvl-accent": meta.accent, "--avatar": `${avatar}px` }}
     >
       <div onClick={toggle} className={`dasha-node__head${canExpand ? " is-expandable" : ""}`}>
         <div className="dasha-node__avatar">{(node.lord || "?").slice(0, 2)}</div>
 
-        <div>
+        <div className="dasha-node__body">
           <div className="dasha-node__lord" style={{ fontSize: lordSize }}>
             {node.lord}
             <span className="dasha-node__level">{t(meta.labelKey)}</span>

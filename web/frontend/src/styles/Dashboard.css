@@ -1346,10 +1346,14 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  /* Horizontal indent added per nesting level; shrinks on narrow screens so
+     deep (Maha→Antar→Pratyant→Sookshma) trees don't creep off the right edge. */
+  --dasha-indent: 16px;
 }
-/* Per-level accent + avatar size flow in via inline --lvl-accent / --avatar. */
+/* Per-level accent + avatar size flow in via inline --lvl-accent / --avatar;
+   depth (0-based) flows in via --depth to drive the responsive indent. */
 .dasha-node {
-  margin-left: 0;
+  margin-left: calc(var(--depth, 0) * var(--dasha-indent));
   border: 1px solid var(--sandalwood);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -1389,9 +1393,16 @@
 .dasha-node.is-current .dasha-node__avatar {
   background: linear-gradient(135deg, var(--saffron) 0%, var(--vermillion) 100%);
 }
+/* The middle grid cell must be allowed to shrink below its content's intrinsic
+   width, otherwise long level labels / date ranges overflow and get clipped by
+   the node's `overflow: hidden` (the skew seen on iPhone). */
+.dasha-node__body {
+  min-width: 0;
+}
 .dasha-node__lord {
   font-weight: 700;
   color: var(--text-primary);
+  overflow-wrap: anywhere;
 }
 .dasha-node.is-current .dasha-node__lord {
   color: var(--lvl-accent);
@@ -1452,6 +1463,27 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+}
+
+/* Phones: tighten padding + indent and let the level label drop to its own line
+   so the deep, auto-expanded current-period chain stays inside the viewport. */
+@media (max-width: 600px) {
+  .dasha-tree {
+    --dasha-indent: 6px;
+  }
+  .dasha-node__head,
+  .dasha-node--root .dasha-node__head {
+    padding: var(--space-sm);
+    gap: var(--space-sm);
+  }
+  .dasha-node__children {
+    padding: var(--space-sm);
+  }
+  .dasha-node__level {
+    display: block;
+    margin-left: 0;
+    margin-top: 2px;
+  }
 }
 
 .period-list {
