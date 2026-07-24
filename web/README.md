@@ -687,8 +687,15 @@ VAPID_PRIVATE_KEY=
 VAPID_SUBJECT=mailto:admin@example.com
 
 # Daily-digest scheduler (opt-in): deliver each opted-in user's digest once a day
-# at their preferred local hour. Off by default (cron POST /notifications/digest/send
-# instead). Safe with multiple workers (an atomic DB claim prevents double-sends).
+# at their preferred local hour. Safe with multiple workers (an atomic DB claim
+# prevents double-sends).
+#
+# LEAVING THIS FALSE MEANS NOTHING IS EVER DELIVERED ON A SCHEDULE — no digest
+# emails, no push. It fails *silently*: scheduler.start() returns immediately and
+# no error is logged, so the backend looks healthy. Worse, Settings › "Send test
+# now" keeps working (it calls POST /api/notifications/digest/send directly and
+# bypasses the scheduler), which makes the feature look correctly configured.
+# Set it true unless you are driving that endpoint from your own cron.
 DIGEST_SCHEDULER_ENABLED=false
 DIGEST_SCHEDULER_INTERVAL_MINUTES=15
 
@@ -1090,7 +1097,9 @@ Three approaches, chosen with a mode toggle:
   exact hour) means a target hour missed because the process was down/restarting still delivers
   later the same day instead of skipping it. Multi-worker-safe via an atomic DB claim
   (`notifications.last_sent_date`). Or leave it off and point your own cron at
-  `POST /api/notifications/digest/send` per user (both share `digest.send_digest_for_user`)
+  `POST /api/notifications/digest/send` per user (both share `digest.send_digest_for_user`).
+  **It defaults to `false`, and forgetting it is silent** — see
+  [Troubleshooting → No digest emails or notifications](#no-digest-emails-or-notifications-arrive)
 
 #### Fortnightly & Monthly readings (`/fortnightly-digest`, `/monthly-digest`)
 
@@ -1611,6 +1620,74 @@ ls -la frontend/build/
 # Check REACT_APP_API_URL configuration
 cat frontend/.env
 ```
+
+### Digest Emails & Notifications
+
+#### No digest emails or notifications arrive
+
+Almost always **`DIGEST_SCHEDULER_ENABLED` is unset or `false`**. It defaults to `false`
+(`config.py`), so a deployment that never sets it has *never* delivered a scheduled digest —
+on any cadence, on either channel. The failure is completely silent: `main.py`'s lifespan
+calls `scheduler.start()`, which returns at the first line without starting the loop and
+without logging anything. Nothing errors, so the logs look clean.
+
+Two things make this easy to misdiagnose as a regression:
+
+- Settings › **"Send test now"** keeps working. It calls
+  `POST /api/notifications/digest/send` directly and shares only the *delivery* code
+  (`digest.send_digest_for_user`), not the scheduler — so the feature looks configured.
+- On the NAS, `web/.env` is the only env source and is `scp`'d over the remote copy on
+  **every** deploy, so a value hand-edited on the NAS does not survive. Set it in your local
+  `web/.env` (template: `.env.nas.example`).
+
+Confirm by the boot log line — its **absence** is the tell:
+
+```bash
+./dev.sh nas logs backend | grep '\[scheduler\]'
+# expect: [scheduler] daily-digest scheduler started (every 15 min)
+```
+
+If it *is* running but nothing arrives, the quiet log prefixes carry the reason — they read
+as normal chatter on a skim: `[email:noop]` (no `SMTP_HOST` — mail is logged, not sent),
+`[email:error]` (SMTP rejected/throttled the send; note Gmail app passwords cap around 500
+recipients/day), `[push] pywebpush not installed`, `[digest] …`.
+
+```bash
+./dev.sh nas logs backend | grep -E '\[scheduler\]|\[email:|\[push\]|\[digest\]'
+```
+
+The decisive state is `notifications.last_sent_date` on the user's `user_settings` doc.
+The scheduler *claims* the day atomically **before** sending (`scheduler.py`), so a recent
+date with no email means the scheduler ran and delivery failed downstream — and that day is
+burnt, since the claim is not rolled back. Missing or stale means it never ran. Mongo 4.4
+ships the legacy `mongo` shell, not `mongosh`:
+
+```bash
+sudo docker exec jyotirai-mongodb mongo -u admin -p '<MONGO_PASSWORD>' \
+  --authenticationDatabase admin jyotirai_db --quiet \
+  --eval 'db.user_settings.find({},{user_id:1,notifications:1}).forEach(printjson)'
+```
+
+#### A profile's `notify_email` recipient never receives anything
+
+By design. An address that isn't the account owner's is a third party, so it goes through
+**double opt-in** (`digest_recipients.py`): saving the profile emails them an invite, and
+until they click *Confirm* they sit in `pending` and are **skipped silently** at send time.
+`unsubscribed` is permanent — re-saving the profile never re-invites, so a standing opt-out
+is never overwritten.
+
+This does not affect the owner's own copy, which always covers every profile. The
+per-recipient state shows as a chip on the **Profiles** page (pending / confirmed /
+unsubscribed) — note it is *not* surfaced on Settings › Notifications. To inspect it:
+
+```bash
+sudo docker exec jyotirai-mongodb mongo -u admin -p '<MONGO_PASSWORD>' \
+  --authenticationDatabase admin jyotirai_db --quiet \
+  --eval 'db.digest_recipients.find({},{email:1,status:1}).forEach(printjson)'
+```
+
+If the invite itself never arrived, check the `[email:` lines above — a failed invite is
+caught and logged rather than failing the profile save.
 
 ### AI Provider / Ollama Issues
 
