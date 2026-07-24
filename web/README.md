@@ -1640,10 +1640,12 @@ Two things make this easy to misdiagnose as a regression:
   **every** deploy, so a value hand-edited on the NAS does not survive. Set it in your local
   `web/.env` (template: `.env.nas.example`).
 
-Confirm by the boot log line — its **absence** is the tell:
+Confirm by the boot log line — its **absence** is the tell. It prints **once, at startup**,
+so you must replay the whole log; the default 100-line tail will have scrolled past it on a
+container that has been up any length of time, and the grep comes back empty either way:
 
 ```bash
-./dev.sh nas logs backend | grep '\[scheduler\]'
+./dev.sh nas logs backend all | grep '\[scheduler\]'
 # expect: [scheduler] daily-digest scheduler started (every 15 min)
 ```
 
@@ -1653,8 +1655,16 @@ as normal chatter on a skim: `[email:noop]` (no `SMTP_HOST` — mail is logged, 
 recipients/day), `[push] pywebpush not installed`, `[digest] …`.
 
 ```bash
-./dev.sh nas logs backend | grep -E '\[scheduler\]|\[email:|\[push\]|\[digest\]'
+./dev.sh nas logs backend all | grep -E '\[scheduler\]|\[email:|\[push\]|\[digest\]'
 ```
+
+> **If none of those prefixes ever appear, suspect the logs, not the code.** Every one of
+> them is a bare `print()`, and Python block-buffers stdout whenever it isn't a TTY — which
+> is exactly the case under `docker logs`. Uvicorn's own lines go through the `logging`
+> module to stderr and appear immediately, so the container looks like it is logging fine
+> while our diagnostics sit in an 8KB buffer for hours. `ENV PYTHONUNBUFFERED=1` in
+> `web/backend/Dockerfile` is what prevents this; if you are running an image built before
+> that was added, rebuild (`./dev.sh nas deploy backend`) before trusting an empty grep.
 
 The decisive state is `notifications.last_sent_date` on the user's `user_settings` doc.
 The scheduler *claims* the day atomically **before** sending (`scheduler.py`), so a recent

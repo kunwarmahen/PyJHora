@@ -2,6 +2,15 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Unbuffered stdout. Python block-buffers stdout (~8KB) whenever it isn't a TTY,
+# which is exactly the case under `docker logs`. Every diagnostic in this backend
+# is a bare print() — [scheduler], [digest], [email:noop], [email:error], [push] —
+# so without this they sit in the buffer for hours or days on a quiet instance
+# while uvicorn's own lines (logging module → stderr) appear immediately. The
+# result is a container that looks like it is logging normally while telling you
+# nothing about the thing you are debugging. Cost is negligible; never remove it.
+ENV PYTHONUNBUFFERED=1
+
 # No compiler toolchain: every pinned dependency resolves to a manylinux wheel
 # except http-ece (a pure-Python sdist pulled in by pywebpush), which needs only
 # setuptools. build-essential used to live here and cost 354MB — a third of the

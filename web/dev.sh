@@ -40,7 +40,9 @@
 #   ./dev.sh nas deploy --skip-build # ship the images already built locally
 #   ./dev.sh nas up           # (re)start on NAS without rebuilding
 #   ./dev.sh nas down         # stop the stack on NAS
-#   ./dev.sh nas logs [svc]   # tail NAS logs (optionally one service)
+#   ./dev.sh nas logs [svc] [n]  # tail NAS logs (one service; n lines, default 100,
+#   #   "all" for the whole log — needed to reach once-per-boot lines like the
+#   #   "[scheduler] daily-digest scheduler started" startup message)
 #   ./dev.sh nas ps           # container status on NAS
 #   ./dev.sh nas shell [svc]  # shell into a NAS container (default: backend)
 #   #   config via web/.env (see .env.nas.example): NAS_HOST/USER/PATH, TUNNEL_TOKEN, ...
@@ -547,8 +549,12 @@ nas_up()    { require_nas_host; nas_ssh_open; trap 'nas_ssh_close' EXIT; info "(
               nas_ssh_close; trap - EXIT; ok "done"; }
 nas_down()  { require_nas_host; nas_ssh_open; trap 'nas_ssh_close' EXIT; info "stopping stack on ${NAS_HOST} ...";
               nas_ssh -t "cd '${NAS_PATH}' && sudo docker compose down"; nas_ssh_close; trap - EXIT; ok "done"; }
-nas_logs()  { require_nas_host; local svc="${1:-}"; nas_ssh_open; trap 'nas_ssh_close' EXIT; info "tailing NAS logs (Ctrl-C to stop) ...";
-              nas_ssh -t "cd '${NAS_PATH}' && sudo docker compose logs -f --tail=100 $svc"; nas_ssh_close; trap - EXIT; }
+# nas_logs [svc] [n]  — n defaults to 100; "all" replays the whole log from
+# container start. Startup lines (e.g. "[scheduler] ... started") print once at
+# boot, so on a long-running container they sit far past a 100-line tail and a
+# grep for them comes back empty even though the line was logged.
+nas_logs()  { require_nas_host; local svc="${1:-}" n="${2:-100}"; nas_ssh_open; trap 'nas_ssh_close' EXIT; info "tailing NAS logs (Ctrl-C to stop) ...";
+              nas_ssh -t "cd '${NAS_PATH}' && sudo docker compose logs -f --tail=$n $svc"; nas_ssh_close; trap - EXIT; }
 nas_ps()    { require_nas_host; nas_ssh_open; trap 'nas_ssh_close' EXIT;
               nas_ssh -t "cd '${NAS_PATH}' && sudo docker compose ps"; nas_ssh_close; trap - EXIT; }
 nas_shell() { require_nas_host; local svc="${1:-backend}"; nas_ssh_open; trap 'nas_ssh_close' EXIT; info "shell into '$svc' on ${NAS_HOST} ...";
@@ -671,14 +677,14 @@ case "$ACTION" in
       deploy) nas_deploy "${@:3}" ;;
       up)     nas_up ;;
       down)   nas_down ;;
-      logs)   nas_logs "${3:-}" ;;
+      logs)   nas_logs "${3:-}" "${4:-}" ;;
       ps)     nas_ps ;;
       shell)  nas_shell "${3:-}" ;;
       *) err "unknown nas command '${2:-}' (use: deploy | up | down | logs | ps | shell)"; exit 1 ;;
     esac
     ;;
   ""|-h|--help|help)
-    sed -n '2,49p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,51p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     ;;
   *)
     err "unknown action '$ACTION'"
