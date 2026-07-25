@@ -4930,17 +4930,42 @@ to**, one route). AI: `get_special_points` tool + `special_points` section, seed
 by default (`SECTION_TOOL`, so the chip can turn it off and the tool can still
 fetch the full table on demand).
 
-**⚠ OPEN — our ascendant and JHora's differ by 13.91′ on the reference chart.**
-JHora prints 25 Ta 04′ 23.79″; we compute 24 Ta 50′ 29.18″. This is *not* a
-formula bug: **raw Swiss Ephemeris agrees with us to 2″**, and every planet
-matches JHora to 0.01″ (so the JD is identical). The gap is exactly reproduced by
-moving the birth longitude ~0.24° east — at lon 78.3175 the ascendant matches to
-0.03′ **and** Sree Lagna, Bhrigu Bindu and all twelve Varnadas snap to exact.
-Conclusion: the two programs were given different coordinates for "Aligarh".
-Needs the owner to confirm what lat/lon JHora holds. Until then
-`test_special_points.py` pins ascendant-independent points to JHora's values and
-ascendant-dependent ones to ours, with JHora's in the comment — that file is the
-single place to update if the coordinates are settled.
+**RESOLVED — the 13.91′ ascendant gap was a wrong birth place.** JHora's data
+file for this chart is **Shahgarh, 78 E 20′ 03″, 27 N 50′ 43″** (78.334167,
+27.845278) — the app profile stores **Aligarh, 78.08 / 27.88**, ~0.25° west. With
+JHora's own coordinates the ascendant matches to **11″** and sunrise to **2 s**.
+Not an engine bug: raw Swiss Ephemeris always agreed with us, and every planet
+matched to 0.01″. **Open for the owner: which place is actually correct?** It
+does not change the rising sign, but it shifts the Lagna 13.9′ and every
+lagna-derived point with it. `conftest.CHART1` still says Aligarh;
+`test_special_points.py` deliberately uses JHora's coordinates, since its job is
+to prove agreement with JHora.
+
+**SECOND BUG FIXED — PyJHora's kaala lagnas are ~13-16′ wrong.**
+`drik.special_ascendant` (behind `bhava_lagna` / `hora_lagna` / `ghati_lagna` /
+`vighati_lagna`) does `jd_at_sunrise = srise[2] + place.timezone/24`, but
+`srise[2]` is already in the local-clock JD convention `charts.divisional_chart`
+expects — the same one the natal jd uses, which is why the natal planets are
+fine. Adding the offset evaluates the Sun a **full timezone late** (5.5 h for
+IST ≈ 13.2′ of solar motion), and all four kaala lagnas inherit it. Since Hora
+and Ghati Lagna are two of the four points we give *predictive rules* to, this is
+recomputed in our own layer (`engine._kaala_lagna`) rather than lived with:
+Bhava/Hora/Ghati Lagna go from **13.7′–15.8′ off JHora to 0.4′/0.8′/2.5′**, i.e.
+within the API's own 2-dp rounding. `test_kaala_lagnas_beat_the_pyjhora_bug`
+asserts both that ours matches JHora *and* that drik's still doesn't — so if
+upstream ever fixes it, the test tells us `_kaala_lagna` can be retired.
+
+**JHora 7.33 release notes** (owner asked): the only relevant change is Swiss
+Ephemeris 1.64.01 → 1.76, which for modern dates is "less than a fraction of
+arc-second". Nothing about lagna, special lagnas, upagrahas, sunrise or the place
+database. Irrelevant to a 1976 chart.
+
+**Remaining known deltas, documented not swept away:** Pranapada Lagna ~84′ (a
+genuine formula difference in `drik.pranapada_lagna`; reference-only, no rule
+attached), Kunda Lagna ~15′ (*correct* — Kunda is ascendant × 81, so the 11″
+ascendant residual is amplified 81×), Sookshma Tri Sphuta ~9′ (a composite,
+inherits its inputs' residuals), Vighati Lagna (advances a full sign every two
+minutes; not meaningfully comparable).
 
 Files: `astrology/engine.py` (`SPECIAL_LAGNA_DEFS`, `KAALA_VELA_DEFS`,
 `SOLAR_UPAGRAHA_DEFS`, `KAALA_VELA_PLANETS`, `VARNADA_METHODS`,
@@ -4951,5 +4976,5 @@ Files: `astrology/engine.py` (`SPECIAL_LAGNA_DEFS`, `KAALA_VELA_DEFS`,
 `routes/astrology.py`, `contexts/SettingsContext.js`, `pages/SensitivePointsPage.js`,
 `pages/SettingsPage.js`, `services/api.js`, the three locale files.
 
-**Tests: 26 new (`test_special_points.py`) — 407 backend tests pass**, frontend
+**Tests: 29 new (`test_special_points.py`) — 410 backend tests pass**, frontend
 builds clean. (`styles/tokens.test.js` has 3 failures that pre-date this work.)

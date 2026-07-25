@@ -490,9 +490,12 @@ class ChartsMixin:
             special_lagnas = []
             for label, family, fn_name, significance in SPECIAL_LAGNA_DEFS:
                 try:
-                    fn = getattr(drik, fn_name)
-                    special_lagnas.append(
-                        _entry(label, fn(jd, place_obj), significance, family))
+                    if family == "time":
+                        # Recomputed locally — drik's lambdas carry a timezone bug.
+                        pair = _kaala_lagna(jd, place_obj, KAALA_LAGNA_RATES[label])
+                    else:
+                        pair = getattr(drik, fn_name)(jd, place_obj)
+                    special_lagnas.append(_entry(label, pair, significance, family))
                 except Exception as e:
                     print(f"Special lagna {label} error: {e}")
 

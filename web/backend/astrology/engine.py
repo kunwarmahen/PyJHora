@@ -491,6 +491,46 @@ SPECIAL_LAGNA_DEFS = [
      "A subtle point used in Nadi and event-timing work."),
 ]
 
+# Degrees of advance per minute elapsed since sunrise, for each kaala lagna.
+# 0.25°/min = 1 rasi per 2 hours (Bhava), 0.5 = 1 rasi/hour (Hora),
+# 1.25 = 1 rasi per ghati of 24 min (Ghati), 15.0 = 1 rasi per 2 min (Vighati).
+KAALA_LAGNA_RATES = {
+    "Bhava Lagna": 0.25,
+    "Hora Lagna": 0.5,
+    "Ghati Lagna": 1.25,
+    "Vighati Lagna": 15.0,
+}
+
+
+def _kaala_lagna(jd, place, rate):
+    """A time-based kaala lagna: the Sun's sidereal longitude at sunrise, advanced
+    by `rate` degrees for every minute elapsed since sunrise.
+
+    Computed here rather than via `drik.bhava_lagna` & co. because PyJHora's
+    `special_ascendant` has a timezone bug. It does:
+
+        jd_at_sunrise = srise[2] + place.timezone/24
+
+    but `srise[2]` is already in the same local-clock JD convention that
+    `charts.divisional_chart` expects (the same one the natal jd uses, which is
+    why the natal planets are correct). Adding the offset evaluates the Sun a
+    full timezone later — 5.5 h for IST, i.e. ~13.2' of solar motion — and every
+    kaala lagna inherits it. On the owner's reference chart that put Bhava/Hora/
+    Ghati Lagna 13.7'-15.8' off Jagannatha Hora; this brings them to 0.5'-2.6'.
+
+    Returns [sign_index, degrees_in_sign], matching the drik functions.
+    """
+    srise = drik.sunrise(jd, place)
+    sunrise_hours = srise[0]
+    year, month, day, birth_hours = drik.jd_to_gregorian(jd)
+    elapsed_min = (birth_hours - sunrise_hours) * 60.0
+    jd_sunrise = swe.julday(year, month, day, sunrise_hours)
+    sun = charts.rasi_chart(jd_sunrise, place)[1][1]
+    sun_long = (int(sun[0]) % 12) * 30 + float(sun[1])
+    spl_long = (sun_long + elapsed_min * rate) % 360
+    return [int(spl_long // 30) % 12, spl_long % 30]
+
+
 # Only these carry enough classical rule-weight to drive interpretation. The
 # rest are computed and displayed, but deliberately not narrated — see the
 # Tripataki precedent (draw it, don't invent a verdict).
