@@ -596,6 +596,15 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
+    async def analyze_planetary_nakshatras(self,
+                                           data: Dict[str, Any],
+                                           name: str = "this person",
+                                           config: Optional[ModelConfig] = None) -> str:
+        """Reading of the star each graha occupies (as against the janma star alone)."""
+        prompt = self._build_planetary_nakshatras_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
     async def analyze_gochara_phala(self,
                                     data: Dict[str, Any],
                                     name: str = "this person",
@@ -630,6 +639,17 @@ Reply with STRICT JSON only, exactly this shape:
                               config: Optional[ModelConfig] = None) -> str:
         """Jaimini reading — Chara Karakas, Karakamsa/Swamsa, argala."""
         prompt = self._build_jaimini_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
+    async def analyze_arudhas(self,
+                              data: Dict[str, Any],
+                              name: str = "this person",
+                              selected: Optional[List[str]] = None,
+                              config: Optional[ModelConfig] = None) -> str:
+        """Bhava-arudha reading — the projected chart (image vs reality). `selected`
+        is the list of arudha short codes the user ticked (AL/UL/A2..A11)."""
+        prompt = self._build_arudha_prompt(data, name, selected)
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 

@@ -152,3 +152,26 @@
     margin-left: 0;
   }
 }
+
+/* Planetary-nakshatra table: every graha's own star, with the janma (Moon) row
+   marked so it's clear which one the profile above is about. */
+.nak-row--janma td {
+  background: rgba(var(--accent-rgb), 0.1);
+  font-weight: 600;
+}
+.nak-janma-tag {
+  margin-left: var(--space-xs);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(var(--accent-rgb), 0.22);
+  color: var(--text-primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.nak-theme-cell {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  min-width: 14rem;
+}

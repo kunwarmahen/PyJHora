@@ -68,12 +68,29 @@ export const NakshatraProfilePage = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
 
+  // Second, separate reading: the star every *other* graha sits in. Kept apart
+  // from the janma-star reading above so neither dilutes the other.
+  const [pnAnalysis, setPnAnalysis] = useState("");
+  const [pnModel, setPnModel] = useState("");
+  const [pnLoading, setPnLoading] = useState(false);
+  const [pnError, setPnError] = useState("");
+
+  // This page now saves two *different* kinds of reading, so the restore has to
+  // know which panel a history item belongs in — otherwise a planetary-nakshatra
+  // snapshot would reopen inside the birth-star card.
   const [pendingReading, setPendingReading] = useState(null);
-  useRestoreReading((r) => setPendingReading({ reading: r.reading, model: r.model }));
+  useRestoreReading((r) =>
+    setPendingReading({ reading: r.reading, model: r.model, source: r.source })
+  );
   useEffect(() => {
     if (pendingReading && !loading) {
-      setAiAnalysis(pendingReading.reading);
-      setAiModel(pendingReading.model);
+      if (pendingReading.source === "planetary_nakshatras") {
+        setPnAnalysis(pendingReading.reading);
+        setPnModel(pendingReading.model);
+      } else {
+        setAiAnalysis(pendingReading.reading);
+        setAiModel(pendingReading.model);
+      }
       setPendingReading(null);
     }
   }, [pendingReading, loading]);
@@ -100,6 +117,8 @@ export const NakshatraProfilePage = () => {
     setError("");
     setAiAnalysis("");
     setAiError("");
+    setPnAnalysis("");
+    setPnError("");
     try {
       const res = await astrologyService.getNakshatraProfile(birthDetails, null, ayanamsa);
       setData(res.data);
@@ -125,7 +144,11 @@ export const NakshatraProfilePage = () => {
     try {
       const res = await astrologyService.analyzeNakshatraProfileAI(
         birthDetails,
-        { personName: birthDetails.name, currentDate: data?.calendar_from },
+        {
+          personName: birthDetails.name,
+          profileId: selectedProfile?._id,
+          currentDate: data?.calendar_from,
+        },
         { ...readModelConfig(), ayanamsa }
       );
       setAiAnalysis(res.data.ai_analysis || "");
@@ -134,6 +157,29 @@ export const NakshatraProfilePage = () => {
       setAiError(err.response?.data?.detail || t("nakshatra.aiError"));
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const handlePlanetaryAi = async () => {
+    if (!birthDetails) return;
+    setPnLoading(true);
+    setPnError("");
+    try {
+      const res = await astrologyService.analyzePlanetaryNakshatrasAI(
+        birthDetails,
+        {
+          personName: birthDetails.name,
+          profileId: selectedProfile?._id,
+          currentDate: data?.calendar_from,
+        },
+        { ...readModelConfig(), ayanamsa }
+      );
+      setPnAnalysis(res.data.ai_analysis || "");
+      setPnModel(res.data.model || res.data.provider || "");
+    } catch (err) {
+      setPnError(err.response?.data?.detail || t("nakshatra.aiError"));
+    } finally {
+      setPnLoading(false);
     }
   };
 
@@ -161,7 +207,10 @@ export const NakshatraProfilePage = () => {
       />
 
       <div className="dashboard-content">
-        <RecentReadings source="nakshatra_profile" profileId={selectedProfile?._id} />
+        <RecentReadings
+          source={["nakshatra_profile", "planetary_nakshatras"]}
+          profileId={selectedProfile?._id}
+        />
         <ProfileBanner profile={selectedProfile} />
         <p className="card-note">{t("nakshatra.intro")}</p>
 
@@ -241,6 +290,77 @@ export const NakshatraProfilePage = () => {
                 </div>
               </Card>
             </div>
+
+            {/* Every graha's own star — the layer the janma-star profile above
+            never covers. A graha gives its results through its star lord, which
+            is why Vimsottari runs on the star lord and not the sign lord. */}
+            {(data.planetary_nakshatras || []).length > 0 && (
+              <div className="mt-xl">
+                <Card
+                  title={t("nakshatra.planetaryTitle")}
+                  icon={<Star size={22} />}
+                  accent="indigo"
+                >
+                  <p className="card-intro">{t("nakshatra.planetaryIntro")}</p>
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>{t("nakshatra.colPlanet")}</th>
+                          <th>{t("common.sign")}</th>
+                          <th>{t("common.nakshatra")}</th>
+                          <th>{t("common.pada")}</th>
+                          <th>{t("nakshatra.colStarLord")}</th>
+                          <th>{t("nakshatra.colTheme")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.planetary_nakshatras.map((r) => (
+                          <tr
+                            key={r.planet}
+                            className={r.is_janma ? "nak-row--janma" : undefined}
+                          >
+                            <td>
+                              {r.planet}
+                              {r.is_janma && (
+                                <span className="nak-janma-tag">{t("nakshatra.janmaTag")}</span>
+                              )}
+                            </td>
+                            <td>{ln(r.sign_name, "rasi")}</td>
+                            <td>{ln(r.nakshatra, "nakshatra")}</td>
+                            <td>{r.pada}</td>
+                            <td>{r.lord}</td>
+                            <td className="nak-theme-cell">{r.theme}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <ErrorBanner message={pnError} />
+                  {!pnAnalysis && !pnLoading && (
+                    <p className="ai-panel__hint">{t("nakshatra.planetaryAiHint")}</p>
+                  )}
+                  {pnLoading && <LoadingState message={t("nakshatra.aiLoading")} />}
+                  {pnAnalysis && !pnLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <ReactMarkdown>{pnAnalysis}</ReactMarkdown>
+                      {pnModel && (
+                        <div className="ai-panel__meta">
+                          {t("nakshatra.aiModel", { model: pnModel })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!pnLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handlePlanetaryAi}>
+                      <Sparkles size={18} />
+                      {pnAnalysis ? t("nakshatra.aiRegenerate") : t("nakshatra.aiGenerate")}
+                    </button>
+                  )}
+                </Card>
+              </div>
+            )}
 
             {/* AI reading */}
             <div className="mt-xl">

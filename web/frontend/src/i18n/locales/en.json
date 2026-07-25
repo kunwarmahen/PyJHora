@@ -2218,7 +2218,14 @@
     "aiGenerate": "Generate reading",
     "aiRegenerate": "Regenerate",
     "aiModel": "Model: {{model}}",
-    "disclaimer": "A personality-and-timing sketch drawn from classical nakshatra lore — not prediction."
+    "disclaimer": "A personality-and-timing sketch drawn from classical nakshatra lore — not prediction.",
+    "planetaryTitle": "Every graha's nakshatra",
+    "planetaryIntro": "Your birth star above is the Moon's. But each graha sits in a star of its own, and a graha delivers its results coloured by that star's lord — which is why the Vimsottari dasha runs on the star lord, not the sign lord.",
+    "planetaryAiHint": "Get a reading of what each graha's star adds to how it actually behaves.",
+    "colPlanet": "Graha",
+    "colStarLord": "Star lord",
+    "colTheme": "Theme",
+    "janmaTag": "birth star"
   },
   "gochara": {
     "title": "Gochara-phala",
@@ -2608,5 +2615,15 @@
       "whyBirthTime": "Because the sky changes fast. The \"ascendant\" — the sign coming up over the horizon — moves to a new sign roughly every two hours, and it decides how the whole chart is laid out. A few minutes usually doesn't matter; a few hours changes almost everything. Date and place matter too, but time is the sensitive one.",
       "yogaAndDosha": "A yoga is a specific planetary combination said to produce a particular result — many are simply favourable patterns worth knowing about. A dosha is an affliction or rough patch in the chart. Both get named dramatically in traditional texts. Read them as emphasis rather than fate: a chart with a dosha is extremely common, and it isn't a diagnosis."
     }
+  },
+  "arudhaAi": {
+    "title": "AI reading of the arudhas",
+    "hint": "Arudhas show how each part of life appears to the world, as against how it actually is. Pick the ones to read — AL (image), UL (marriage), A10 (career) and A11 (gains) carry the most distinct meaning.",
+    "pickLabel": "Choose which arudhas to read",
+    "loading": "Reading the arudhas…",
+    "error": "Could not generate the reading",
+    "generate": "Generate reading",
+    "regenerate": "Regenerate",
+    "model": "Model: {{model}}"
   }
 }

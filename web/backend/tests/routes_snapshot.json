@@ -1028,5 +1028,13 @@
   "POST /api/astrology/life-report/start": {
     "params": [],
     "body": "LifeReportStartRequest"
+  },
+  "POST /api/astrology/arudha-analysis": {
+    "params": [],
+    "body": "ArudhaAnalysisRequest"
+  },
+  "POST /api/astrology/planetary-nakshatras-analysis": {
+    "params": [],
+    "body": "NakshatraProfileAnalysisRequest"
   }
 }

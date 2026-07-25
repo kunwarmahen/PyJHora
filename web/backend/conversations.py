@@ -64,8 +64,10 @@ SOURCE_META: Dict[str, Dict[str, str]] = {
     "kp":               {"label": "KP system",          "route": "/kp",                "kind": "reading"},
     "kp_horary":        {"label": "KP horary",          "route": "/kp",                "kind": "reading"},
     "jaimini":          {"label": "Jaimini",            "route": "/jaimini",           "kind": "reading"},
+    "arudha":           {"label": "Arudha padas",       "route": "/birth-chart",       "kind": "reading"},
     "now_chart":        {"label": "Chart of the moment","route": "/now",               "kind": "reading"},
     "nakshatra_profile": {"label": "Nakshatra profile",  "route": "/nakshatra",         "kind": "reading"},
+    "planetary_nakshatras": {"label": "Planetary nakshatras", "route": "/nakshatra",    "kind": "reading"},
     "gochara_phala":     {"label": "Gochara-phala",       "route": "/gochara",           "kind": "reading"},
     "life_report":       {"label": "Life Report",          "route": "/life-report",       "kind": "reading"},
 }

@@ -32,6 +32,9 @@ import { Card } from "../components/Card";
 import { DataField } from "../components/DataField";
 import { AspectsCard } from "../components/AspectsCard";
 import { AdvancedOnly } from "../components/AdvancedOnly";
+import { ArudhaAiPanel } from "../components/ArudhaAiPanel";
+import { RecentReadings } from "../components/RecentReadings";
+import { useRestoreReading } from "../hooks/useRestoreReading";
 import { Tabs, useTabs } from "../components/Tabs";
 import { BirthTimeBanner } from "../components/BirthTimeBanner";
 import { VARGAS, DEFAULT_VARGA } from "../constants/jyotish";
@@ -91,6 +94,22 @@ export const BirthChartPage = () => {
   const [shareUrl, setShareUrl] = useState("");
   const [shareBusy, setShareBusy] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+
+  // Reopening a saved arudha reading from History (or the Recent-readings strip).
+  // The panel only renders with the arudha overlay on, so turn it on rather than
+  // deep-linking the user to a page where the restored reading is invisible.
+  const [restoredArudha, setRestoredArudha] = useState(null);
+  useRestoreReading((r) => {
+    if (r.source !== "arudha") return;
+    setTab("chart");
+    setShowArudhas(true);
+    localStorage.setItem("showArudhas", "1");
+    setRestoredArudha({
+      reading: r.reading,
+      model: r.model,
+      selected: r.context?.selected || null,
+    });
+  });
 
   const changeVarga = (value) => {
     setVarga(value);
@@ -423,6 +442,24 @@ export const BirthChartPage = () => {
                         selected={explorerPlanet}
                         onSelect={setExplorerPlanet}
                       />
+
+                      {/* Arudha reading — shown once the arudhas are actually on the
+                      chart, so the AL/UL chips refer to labels the user can see. */}
+                      {showArudhas && (
+                        <div className="mt-xl">
+                          <RecentReadings
+                            source="arudha"
+                            profileId={selectedProfile?._id}
+                          />
+                          <ArudhaAiPanel
+                            arudhas={arudhas}
+                            birthDetails={selectedProfile.birth_details}
+                            profile={selectedProfile}
+                            ayanamsa={ayanamsa}
+                            restored={restoredArudha}
+                          />
+                        </div>
+                      )}
                     </>
                   );
                 })()}

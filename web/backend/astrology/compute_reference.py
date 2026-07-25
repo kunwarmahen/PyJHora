@@ -514,10 +514,43 @@ class ReferenceMixin:
                     "tone": tb_tone,
                 })
 
+            # ── Every graha's own nakshatra, not just the Moon's ───────────
+            # The janma star above is the Moon's; but each graha also sits in a
+            # star, and a graha delivers its results coloured by that star's lord
+            # (this is why the star lord, not the sign lord, drives Vimsottari).
+            # Nothing read this until now, so the whole nakshatra layer of the
+            # chart was invisible outside KP's own framing.
+            planetary = []
+            for row in natal:
+                pid = row[0]
+                rasi, deg = row[1]
+                if pid == "L":
+                    label = "Lagna"
+                elif pid in PLANET_NAMES:
+                    label = PLANET_NAMES[pid]
+                else:
+                    continue
+                lon_abs = rasi * 30.0 + deg
+                nak_i = int(lon_abs / nak_span)
+                nak_pada = int((lon_abs % nak_span) / (nak_span / 4.0)) + 1
+                planetary.append({
+                    "planet": label,
+                    "sign_name": ZODIAC_NAMES[rasi],
+                    "nakshatra": NAKSHATRA_NAMES[nak_i],
+                    "nakshatra_index": nak_i + 1,
+                    "pada": nak_pada,
+                    "lord": refdata.NAKSHATRA_LORD[nak_i],
+                    "deity": refdata.NAKSHATRA_DEITY[nak_i],
+                    "symbol": refdata.NAKSHATRA_SYMBOL[nak_i],
+                    "theme": refdata.NAKSHATRA_THEME[nak_i],
+                    "is_janma": nak_i == janma_nak and label == "Moon",
+                })
+
             return {
                 "status": "success",
                 "profile": profile,
                 "moon_sign": ZODIAC_NAMES[moon_rasi],
+                "planetary_nakshatras": planetary,
                 "tarabala_calendar": calendar,
                 "calendar_from": f"{cy:04d}-{cm:02d}-{cd:02d}",
             }

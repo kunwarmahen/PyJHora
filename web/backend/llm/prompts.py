@@ -1232,6 +1232,36 @@ Write a friendly ~260-word profile:
 3. One grounded, encouraging closing line.
 This is a personality-and-timing sketch, not prediction. No medical, financial, lifespan or legal claims."""
 
+    def _build_planetary_nakshatras_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """Read the nakshatra each graha sits in — the layer the janma-star profile
+        never touches. The janma (Moon) star gets its own warm reading elsewhere;
+        this one is about how every *other* graha is coloured by its star lord."""
+        rows = d.get("planetary_nakshatras") or []
+        janma = next((r for r in rows if r.get("is_janma")), None)
+        lines = "\n".join(
+            f"- **{r.get('planet')}** in {r.get('sign_name')} — {r.get('nakshatra')} "
+            f"pada {r.get('pada')}, star lord **{r.get('lord')}** "
+            f"(deity {r.get('deity')}; symbol {r.get('symbol')}; theme: {r.get('theme')})"
+            for r in rows)
+        janma_line = (f"Their birth star is **{janma.get('nakshatra')}** (the Moon's), "
+                      f"ruled by {janma.get('lord')}."
+                      if janma else "")
+        return f"""You are an expert Vedic astrologer reading {name}'s **planetary nakshatras** — the star each graha occupies. Everything below is pre-computed; interpret it, do not recompute.
+
+**Why this matters** (say it plainly, once, early): a graha's *sign* says where it works, but its *nakshatra* says in whose voice it speaks. A graha delivers its results coloured by its **star lord** — which is exactly why Vimsottari dasha is built on the star lord and not the sign lord. Two people with Mars in Cancer are not alike if one's Mars is in Ashlesha and the other's in Pushya.
+
+{janma_line}
+
+Every body and its star:
+{lines}
+
+Write a ~320-word reading:
+1. **One plain line** on sign-vs-star, as above.
+2. **The three or four most telling placements** — pick them yourself from the list, favouring the Lagna, the Sun, and any graha whose star lord sits oddly against its sign (e.g. a malefic graha in a benefic's star, or a graha in its own star). For each, say what the star's deity, symbol and theme add to how that graha actually behaves.
+3. **Repeated star lords** — if several grahas share one star lord, say so and what it concentrates; that lord's dasha will carry all of them at once. If none repeat, say the chart's stars are spread rather than concentrated.
+4. **One grounding close.**
+Do not re-read the birth star's personality profile — that is covered separately; stay on the other grahas. Cite the placements you reason from. Astrological insight, not fate; no medical, legal or financial claims."""
+
     def _build_gochara_phala_prompt(self, d: Dict[str, Any], name: str) -> str:
         """Warm reading of the Moon-referenced gochara-phala with vedha."""
         rows = d.get("results") or []
@@ -1428,6 +1458,90 @@ Write a ~320-word Jaimini reading:
 2. **The Chara Karakas** — read 2-3 of the key karakas (Atma, Amatya, Dara) and what their placement suggests for self, career and partnership.
 3. **Argala** — one line on where the Lagna receives supportive intervention vs a counter (virodhargala).
 Reason from the factors given; cite them. Frame it as astrological insight, not fate; no medical/legal/financial guarantees."""
+
+    # Classical signification of each bhava arudha, so the reading names what an
+    # arudha is *about* rather than restating its sign. Arudhas are the *projected*
+    # version of a house — how it appears to the world, not the thing itself.
+    ARUDHA_MEANINGS = {
+        "AL": "the perceived self — image, status, how the world sees them (vs who they actually are)",
+        "A2": "perceived wealth and speech — how resources and voice appear to others",
+        "A3": "perceived initiative, siblings and self-effort",
+        "A4": "perceived home, comfort and emotional base",
+        "A5": "perceived creativity, intelligence and children",
+        "A6": "perceived obstacles, service, rivals and debts",
+        "A7": "perceived partnerships and dealings with others",
+        "A8": "perceived crises, hidden matters and vulnerabilities",
+        "A9": "perceived fortune, belief and guidance",
+        "A10": "perceived career and public reputation",
+        "A11": "perceived gains, income and networks",
+        "UL": "the spouse and the marriage itself (Upapada) — its character and durability",
+    }
+
+    def _build_arudha_prompt(self, d: Dict[str, Any], name: str,
+                             selected: Optional[List[str]] = None) -> str:
+        """Read the bhava arudhas — the *projected* chart. Only the arudhas the user
+        ticked are read (default AL/UL/A10/A11), so the reading stays a reading and
+        does not degrade into a twelve-item list. The AL/UL derived houses are only
+        included when their parent arudha is selected."""
+        picks = [s for s in (selected or ["AL", "UL", "A10", "A11"])
+                 if s in self.ARUDHA_MEANINGS]
+        if not picks:
+            picks = ["AL", "UL"]
+        by_short = {a.get("short"): a for a in (d.get("arudhas") or [])}
+        lagna = (d.get("lagna") or {}).get("sign_name", "n/a")
+
+        def ordinal(n):
+            if not isinstance(n, int):
+                return "n/a"
+            suffix = "th" if 11 <= (n % 100) <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+            return f"{n}{suffix}"
+
+        def block(short):
+            a = by_short.get(short)
+            if not a:
+                return ""
+            occ = ", ".join(a.get("occupants") or []) or "none"
+            asp = ", ".join(a.get("aspecting_planets") or []) or "none"
+            return (
+                f"\n**{a.get('label')}** — {self.ARUDHA_MEANINGS[short]}\n"
+                f"- Falls in **{a.get('sign_name')}** ({ordinal(a.get('house_from_lagna'))} house from the Lagna)\n"
+                f"- Planets occupying it: {occ}\n"
+                f"- Planets aspecting it (rasi drishti): {asp}\n"
+                f"- Its lord **{a.get('lord')}** sits in {a.get('lord_sign_name')} — "
+                f"the {ordinal(a.get('lord_house_from_arudha'))} from the arudha itself\n")
+
+        def derived(rows, key, header):
+            lines = []
+            for r in rows or []:
+                occ = ", ".join(r.get("occupants") or []) or "none"
+                asp = ", ".join(r.get("aspecting_planets") or []) or "none"
+                lines.append(
+                    f"- {ordinal(r.get(key))} from it = {r.get('sign_name')} "
+                    f"({r.get('signifies')}); occupants: {occ}; aspects: {asp}")
+            return f"\n{header}\n" + "\n".join(lines) + "\n" if lines else ""
+
+        body = "".join(block(s) for s in picks)
+        if "AL" in picks:
+            body += derived(d.get("al_derived"), "house_from_al",
+                            "Houses counted **from the Arudha Lagna** (this is where AL is "
+                            "actually judged from):")
+        if "UL" in picks:
+            body += derived(d.get("ul_derived"), "house_from_ul",
+                            "Houses counted **from the Upapada**:")
+
+        focus = ", ".join(by_short[s].get("label", s) for s in picks if s in by_short)
+        return f"""You are an expert Vedic astrologer reading {name}'s **bhava arudhas** (arudha padas). Everything below is pre-computed — interpret it, do not recompute or second-guess the signs.
+
+**What arudhas are** (state this in one plain line early on, in your own words): a house shows the *reality* of a matter; its arudha shows the *projection* — how that matter appears to the world. The gap between the two is the point. Someone can have a strong 10th house yet an afflicted A10: real competence, little visible credit. That contrast is the most useful thing you can give the reader.
+
+Natal Lagna: **{lagna}**. The arudhas asked about: {focus}.
+{body}
+Write a ~320-word reading covering **only the arudhas listed above** — do not introduce arudhas that were not supplied:
+1. **Open** with the one-line explanation of image-vs-reality.
+2. **Read each supplied arudha** in turn: what its sign, occupants, aspects and lord's placement suggest about how that area of life *appears*. Benefics on an arudha classically inflate the projection; malefics and the 12th-from-AL erode or detach from it.
+3. If AL was supplied, spend your strongest paragraph on it — the perceived self, and specifically where that image may run ahead of, or behind, the real chart.
+4. **Close** with one grounded line on what this person can do with the gap between image and substance.
+Cite the placements you reason from. Arudhas describe perception, not worth — never imply the projection is the person. Astrological insight, not fate; no medical, legal or financial guarantees."""
 
     def _build_now_chart_prompt(self, d: Dict[str, Any]) -> str:
         """Read the chart of the moment (the current sky) as a general tenor."""

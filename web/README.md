@@ -824,6 +824,15 @@ DB name), which is deliberate.
   temple-gold markers in each rasi's cell, in both the North and South styles
   (off by default). Shown on the **Rasi (D1) and every divisional (varga) chart** —
   each chart's arudhas are computed on its own positions, so they differ per varga
+- **AI reading of the arudhas** — with the overlay on, a panel below the chart
+  reads the *projected* chart (how each area of life appears, as against how it
+  is). You pick which arudhas to read from a chip row (**AL, UL, A10, A11**
+  pre-ticked; any of the twelve can be toggled). The reading is grounded in more
+  than the sign: each arudha's **lord and where it sits relative to its own
+  arudha**, its **occupants**, the planets casting **rasi drishti**, plus the
+  houses counted *from* AL and UL that classical practice actually reads —
+  2nd/10th/11th/12th from AL and 2nd/7th from UL. Saved to the AI history and
+  reopenable (the chips restore to the selection the reading was generated with)
 - Panchanga (daily almanac) panel: tithi, vaara, nakshatra, yoga, karana plus
   sunrise/sunset and rahu kalam / yamaganda / gulika / abhijit / durmuhurtam,
   with a date picker and a Birth-place / Current-location (geolocation) toggle
@@ -1418,6 +1427,15 @@ masked, and used ahead of any global env key for that user's requests.
 - `POST /api/astrology/ashtakavarga?ayanamsa=` - Bhinna + Sarva Ashtakavarga tables
 - `POST /api/astrology/chart-details?ayanamsa=` - Arudha padas, Chara karakas,
   Special lagnas, Upagrahas
+- `POST /api/astrology/arudha-analysis` - AI reading of the bhava arudhas
+  (`ArudhaAnalysisRequest`). `selected` is the list of arudha short codes to read
+  (`["AL","UL","A10","A11"]` when omitted); unknown codes are filtered out, never
+  interpolated into the prompt. Computes the enriched arudha payload internally —
+  lords, occupants, rasi drishti and the houses derived from AL/UL
+- `POST /api/astrology/planetary-nakshatras-analysis` - AI reading of the star each
+  graha occupies (`NakshatraProfileAnalysisRequest`, the same body as the janma-star
+  reading). Distinct from `nakshatra-profile-analysis`, which reads only the Moon's
+  birth star
 - `POST /api/astrology/shadbala?ayanamsa=` - Six-fold planetary strength (Shadbala)
 - `POST /api/astrology/share` - Create a read-only share token for a chart
 - `GET /api/astrology/share/{token}` - **Public** (no auth): recompute a shared chart
@@ -1474,6 +1492,7 @@ masked, and used ahead of any global env key for that user's requests.
 - `/almanac` - Almanac: planetary hours (hora), upcoming eclipses, tithi-driven festival / vratha dates, and planetary conjunctions (Graha Yuddha), with a birth-place vs current-location toggle
 - `/sarvatobhadra` - Sarvatobhadra Chakra: today's transits on the 9×9 star grid + occupation/vedha on your sensitive stars, with a layman AI reading
 - `/advanced` - Advanced details: Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala
+- `/nakshatra` - Nakshatra profile: your **birth star** (janma-nakshatra) with its classical attributes and a 27-day tarabala strip, plus **every graha's own nakshatra** (star, pada, star lord, theme) — each with its own AI reading
 - `/compare` - Compare two saved profiles side by side (charts, placements table + on-demand neutral AI comparison)
 - `/share/:token` - **Public, read-only** shared chart view (no login required)
 - `/predictions` - Horoscope and predictions generator

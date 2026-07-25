@@ -4764,3 +4764,110 @@ retired-default substitution, `KEYED_PROVIDERS` completeness. 356 backend tests
 pass. Verified live in-browser on a fresh account: before saving, Gemini and
 OpenRouter both read "— unavailable"; after saving keys and switching tabs (one
 navigation entry — no reload) both read available.
+
+## 51. Readings for the two layers we computed but never interpreted — arudhas + planetary nakshatras (owner ask 2026-07-25)
+
+Owner ask: "I have been looking through the birth chart of mahen and realise we show
+arudhas, but if someone asks what the arudhas are saying about a person, I have no
+clue — should we add an AI reading for these arudhas or do we already have it?"
+Then, mid-implementation: "btw same may apply for nakshatras as well".
+
+**Both were half-built, in the same shape.** The data was computed and drawn; the
+interpretation was missing. Arudhas: `get_arudha_padas` existed, the "Show arudhas"
+overlay existed, `get_arudha_padas` was a registered AI tool and `chart_context`
+already shipped an `arudhas` section — so *Ask Astrologer* could answer if you
+typed the question, but there was no one-click reading, unlike ~30 other topics.
+Nakshatras: per-planet star + pada was computed for every graha in
+`calculate_birth_chart` and shown in the chart, but the only nakshatra *reading*
+was the **janma (Moon) star** on `/nakshatra`. Nothing ever interpreted the other
+nine bodies' stars. (Jaimini's reading covers Chara Karakas / Karakamsa / argala
+and deliberately does **not** touch arudhas, so this was a real hole, not a dupe.)
+
+### The part that mattered: enrich before prompting
+
+`get_arudha_padas` returns `{bhava, label, short, sign, sign_name}` — literally "AL
+is in Aquarius". A reading built on bare signs would have been horoscope filler.
+Owner chose "enrich first". New **`get_arudha_analysis`** adds, per arudha: the
+**sign lord and where it sits relative to its own arudha** (the standard way to
+judge whether an arudha is supported), the **occupants**, the planets casting
+**rasi drishti** (`house.aspected_planets_of_the_raasi` — the Jaimini sign-aspect
+arudhas are actually judged by, not graha drishti), and the house from the Lagna.
+
+On top of that it derives the houses counted **from** AL and UL, because an
+arudha's meaning comes from what surrounds it: **2nd/10th/11th/12th from AL** and
+**2nd/7th from UL**. Each carries its classical signification as a `signifies`
+string — the 12th from AL as the seat of loss, expenditure and detachment being
+the best known. We supply the signification and the occupants; **the verdict is
+left to the reading** (same discipline as Tripataki in §2.7 — no invented rules).
+
+`get_arudha_padas` is unchanged, so the chart cells and pass-all context keep their
+existing contract; a test asserts the two calls never drift apart on the signs.
+
+### Selectable, not all-twelve
+
+Owner: "may be selectable, AL+UL+key few automatically selected but user can select
+or unselect others". The panel shows all twelve as chips (code + the sign it falls
+in) with **AL/UL/A10/A11 pre-ticked** — those carry the most distinct classical
+meaning, and reading all twelve turns a reading into a list. The prompt reads
+**only** what was ticked, and AL's/UL's derived houses ride along only when their
+parent arudha is selected. Unknown codes from the client are filtered against
+`ARUDHA_MEANINGS`, never interpolated raw; an empty/garbage selection falls back to
+AL+UL rather than emitting an empty reading.
+
+The panel appears **under the chart once the "Show arudhas" overlay is on**, so the
+AL/UL chips refer to labels the user can actually see.
+
+### Nakshatras — extended `/nakshatra` rather than a new page (owner choice)
+
+`get_nakshatra_profile` now also returns **`planetary_nakshatras`**: every graha
+*and the Lagna* with its star, pada, **star lord**, deity, symbol and theme, with
+the janma row flagged. Rendered as a table on `/nakshatra` with the birth-star row
+marked, and given its **own** reading kept separate from the janma-star profile so
+neither dilutes the other. The prompt leans on the one fact that makes this layer
+worth reading at all: a graha delivers its results through its **star lord**, which
+is exactly why Vimsottari runs on the star lord and not the sign lord.
+
+### History — owner follow-up: "the ai conv could be accessed through AI history page like others"
+
+Both readings save via `_save_reading` and appear in `/history` with correct badges.
+Two gaps that had to be closed for "like others" to be true:
+
+- **`/birth-chart` had no `useRestoreReading` at all** — clicking an arudha reading
+  in History would land on the page with nothing reopened. Added, and it **turns the
+  arudha overlay on and switches to the Chart tab**, since the panel only renders
+  with the overlay up; deep-linking to a page where the restored reading is
+  invisible would look broken. The chips restore to the selection the reading was
+  generated with (from the saved `context.selected`), so the controls match the text.
+- **`/nakshatra`'s restore was source-blind** — it always wrote into the janma panel,
+  so a `planetary_nakshatras` snapshot would have reopened inside the *birth-star*
+  card. It now routes on `r.source`.
+- `RecentReadings` accepts an **array** of sources (needed: `/nakshatra` now owns two
+  reading kinds). An array prop is a fresh literal each render, so the load effect
+  depends on a joined string — otherwise it re-fires forever.
+- Fixed: `ArudhaAiPanel` sent `profile?.id`; profiles use **`_id`**, so readings were
+  saving unbound to the profile and grouping under "No profile". Also added the
+  missing `profile_id` to *both* nakshatra reading calls (the janma one never sent
+  it either — pre-existing).
+
+Files: `astrology/compute_charts.py` (`get_arudha_analysis`),
+`astrology/compute_reference.py` (`planetary_nakshatras`), `llm/prompts.py`
+(`ARUDHA_MEANINGS`, `_build_arudha_prompt`, `_build_planetary_nakshatras_prompt`),
+`llm_service.py`, `models.py` (`ArudhaAnalysisRequest`), `routes/astrology_ai.py`
+(2 routes), `conversations.py` (2 `SOURCE_META` entries),
+`components/ArudhaAiPanel.js` (new), `components/RecentReadings.js`,
+`pages/BirthChartPage.js`, `pages/NakshatraProfilePage.js`, `services/api.js`,
+`styles/Shared.css`, `styles/Nakshatra.css`, the three locale files, `README.md`.
+
+**Tests: 25 new (`test_arudhas.py`, `test_planetary_nakshatras.py`,
+`test_arudha_nakshatra_endpoints.py`) — 380 backend tests pass.** The two strongest:
+the derived houses are asserted to be counted **from their own arudha, not the
+Lagna** (the obvious way to get this silently wrong), and the new per-planet
+nakshatras are asserted to **agree with the birth chart's own nakshatra fields**,
+since the two derive independently and drifting apart would be the worst failure.
+The route-inventory guard caught both new endpoints; the snapshot was **appended
+to, not regenerated**, keeping the diff to the new routes only.
+
+Verified in-browser end to end against a live `gemma4:12b`: generated both readings,
+toggled chips (AL+A7+UL — the title records the selection), reopened both from
+`/history` into the correct panel, and confirmed the model did not hallucinate —
+Pushya's "cow's udder" and Bharani's deity Yama both trace back to `reference_data`.

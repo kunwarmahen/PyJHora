@@ -678,6 +678,22 @@ class JaiminiAnalysisRequest(BaseModel):
     max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
+
+class ArudhaAnalysisRequest(BaseModel):
+    birth_details: BirthDetails
+    profile_id: Optional[str] = None
+    person_name: Optional[str] = None
+    # Arudha short codes the user ticked (AL/UL/A2..A11). None = the default set
+    # the prompt falls back to (AL, UL, A10, A11).
+    selected: Optional[List[str]] = None
+    llm_provider: str = "qwen"
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
+
 class NowChartAnalysisRequest(BaseModel):
     # Location-driven "chart of the moment" (not birth-chart bound).
     place: str = ""

@@ -834,6 +834,28 @@ export const astrologyService = {
       "/api/astrology/nakshatra-profile-analysis",
       {
         birth_details: birthDetails,
+        profile_id: opts.profileId,
+        person_name: opts.personName,
+        current_date: opts.currentDate,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
+  // Reading of the star each graha occupies — distinct from the janma-star
+  // profile above, which only ever reads the Moon's nakshatra.
+  analyzePlanetaryNakshatrasAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/planetary-nakshatras-analysis",
+      {
+        birth_details: birthDetails,
+        profile_id: opts.profileId,
         person_name: opts.personName,
         current_date: opts.currentDate,
         llm_provider: model.legacyProvider || "qwen",
@@ -1319,6 +1341,28 @@ export const astrologyService = {
         current_tz: opts.currentTz,
         basis: opts.basis,
         year: opts.year,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
+  // AI reading of the bhava arudhas. `opts.selected` is the list of arudha short
+  // codes the user ticked (AL/UL/A2..A11); omitting it lets the server fall back
+  // to its default set.
+  analyzeArudhas: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/arudha-analysis",
+      {
+        birth_details: birthDetails,
+        profile_id: opts.profileId,
+        person_name: opts.personName,
+        selected: opts.selected,
         llm_provider: model.legacyProvider || "qwen",
         provider_type: model.providerType,
         model: model.model,

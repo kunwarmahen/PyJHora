@@ -910,6 +910,39 @@ async def analyze_nakshatra_profile(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/api/astrology/planetary-nakshatras-analysis")
+async def analyze_planetary_nakshatras(
+    request: NakshatraProfileAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Reading of the nakshatra each graha occupies — the star layer beyond the
+    janma star, which `nakshatra-profile-analysis` covers on its own."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_nakshatra_profile(
+            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+            lon=bd.longitude, tz=bd.timezone, current_date=request.current_date,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_planetary_nakshatras(
+            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+        await _save_reading(
+            current_user, source="planetary_nakshatras",
+            title=f"Planetary nakshatras — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name, "ayanamsa": request.ayanamsa},
+        )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/api/astrology/gochara-phala-analysis")
 async def analyze_gochara_phala(
     request: GocharaPhalaAnalysisRequest,
@@ -1126,6 +1159,40 @@ async def analyze_jaimini(
             text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
             birth_details=bd.model_dump(),
             context={"person_name": request.person_name, "ayanamsa": request.ayanamsa},
+        )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
+                "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/api/astrology/arudha-analysis")
+async def analyze_arudhas(
+    request: ArudhaAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """AI reading of the bhava arudhas — the *projected* chart (image vs reality)."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        result = AstrologyCompute.get_arudha_analysis(
+            dob=bd.dob, tob=bd.tob, place=bd.place, lat=bd.latitude,
+            lon=bd.longitude, tz=bd.timezone, ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_arudhas(
+            data=result, name=request.person_name or bd.name or "this person",
+            selected=request.selected, config=cfg)
+        picks = ", ".join(request.selected) if request.selected else "AL, UL, A10, A11"
+        await _save_reading(
+            current_user, source="arudha",
+            title=f"Arudha reading ({picks}) — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name, "ayanamsa": request.ayanamsa,
+                     "selected": request.selected},
         )
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
                 "model": cfg.model}

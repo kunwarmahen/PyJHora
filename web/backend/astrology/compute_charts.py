@@ -301,6 +301,130 @@ class ChartsMixin:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
+    def get_arudha_analysis(dob: str, tob: str, place: str,
+                            lat: Optional[float] = None, lon: Optional[float] = None,
+                            tz: Optional[float] = None,
+                            ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Bhava arudhas *with the structure an actual reading needs*.
+
+        `get_arudha_padas` answers only "which sign is AL in?" — enough to label a
+        chart cell, far too thin to interpret. This adds, per arudha: the sign lord
+        and where it sits, the planets **occupying** the arudha, the planets casting
+        **rasi drishti** (Jaimini sign-aspect — the drishti arudhas are judged by),
+        and which house from the Lagna the arudha falls in.
+
+        On top of that it derives the houses *counted from AL and UL* that classical
+        practice actually reads — 2nd/10th/11th/12th from AL, 2nd/7th from UL — since
+        an arudha's meaning comes from what surrounds it, not from its sign alone.
+        Each derived house carries its classical signification as `signifies`; the
+        occupants/aspects are computed, the verdict is left to the reader.
+        """
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            _set_ayanamsa(ayanamsa)
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            second = int(tp[2]) if len(tp) > 2 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
+            pp = charts.rasi_chart(jd, place_obj)
+            lagna_sign = pp[0][1][0]
+            padas = _format_arudha_padas(arudhas.bhava_arudhas_from_planet_positions(pp))
+
+            # sign occupied by each graha in the D1, and the house→planets map the
+            # rasi-drishti helper wants.
+            d1_sign = {pid: sign for pid, (sign, _l) in pp[1:] if pid in PLANET_NAMES}
+            h2p = utils.get_house_planet_list_from_planet_positions(pp)
+
+            def _occupants(sign):
+                return [PLANET_NAMES[pid] for pid, s in d1_sign.items() if s == sign]
+
+            def _aspects(sign):
+                return [PLANET_NAMES.get(int(p), str(p))
+                        for p in house.aspected_planets_of_the_raasi(h2p, sign)]
+
+            def _cell(sign, **extra):
+                """The shared shape for any sign we describe: name, who sits there,
+                who aspects it, and which house from the Lagna it is."""
+                sign = sign % 12
+                return {
+                    "sign": sign + 1,
+                    "sign_name": ZODIAC_NAMES[sign],
+                    "occupants": _occupants(sign),
+                    "aspecting_planets": _aspects(sign),
+                    "house_from_lagna": ((sign - lagna_sign) % 12) + 1,
+                    **extra,
+                }
+
+            enriched = []
+            for p in padas:
+                sign = p["sign"] - 1          # _format_arudha_padas returns 1-based
+                lord = SIGN_LORD[sign]
+                lord_sign = d1_sign.get(lord)
+                enriched.append({
+                    **p,
+                    **_cell(sign),
+                    "lord": PLANET_NAMES.get(lord, str(lord)),
+                    "lord_sign_name": (ZODIAC_NAMES[lord_sign % 12]
+                                       if lord_sign is not None else "—"),
+                    # Where the lord sits *relative to its own arudha* — the standard
+                    # way to judge whether the arudha is supported or undermined.
+                    "lord_house_from_arudha": (((lord_sign - sign) % 12) + 1
+                                               if lord_sign is not None else None),
+                    "lord_house_from_lagna": (((lord_sign - lagna_sign) % 12) + 1
+                                              if lord_sign is not None else None),
+                })
+
+            by_short = {p["short"]: p for p in padas}
+            al_sign = by_short["AL"]["sign"] - 1
+            ul_sign = by_short["UL"]["sign"] - 1
+
+            # Classical significations of the houses counted FROM an arudha. These are
+            # the standard readings (the 12th from AL as the seat of loss/expenditure
+            # and detachment is the best-known); we supply the signification and the
+            # occupants, and let the reading do the interpreting.
+            al_derived = [
+                _cell(al_sign + 1, house_from_al=2,
+                      signifies="sustenance and the income that supports the image"),
+                _cell(al_sign + 9, house_from_al=10,
+                      signifies="public role and standing in work"),
+                _cell(al_sign + 10, house_from_al=11,
+                      signifies="gains, networks and what accrues to the image"),
+                _cell(al_sign + 11, house_from_al=12,
+                      signifies="loss, expenditure and detachment from the image "
+                                "(benefics here read as giving away, malefics as erosion)"),
+            ]
+            ul_derived = [
+                _cell(ul_sign + 1, house_from_ul=2,
+                      signifies="the sustenance and durability of the marriage"),
+                _cell(ul_sign + 6, house_from_ul=7,
+                      signifies="how the partnership meets the wider world"),
+            ]
+
+            return {
+                "status": "success",
+                "lagna": {"sign": lagna_sign + 1, "sign_name": ZODIAC_NAMES[lagna_sign]},
+                "arudhas": enriched,
+                "al_derived": al_derived,
+                "ul_derived": ul_derived,
+                "note": ("AL = Arudha Lagna (the perceived self/image/status, maya), "
+                         "UL = Upapada (spouse/marriage); A2..A11 are the arudhas of "
+                         "houses 2-11. Aspects are Jaimini rasi drishti (sign aspect), "
+                         "which is the drishti arudhas are judged by."),
+            }
+        except Exception as e:
+            print(f"Arudha analysis error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
     def get_chart_details(dob: str, tob: str, place: str,
                           lat: Optional[float] = None, lon: Optional[float] = None,
                           tz: Optional[float] = None,

@@ -15,6 +15,9 @@ import "../styles/Chat.css";
 // profile, it switches to that profile first (like the global History page).
 // `profileId` is an optional soft preference: the active profile's readings sort
 // first. Renders nothing when the tool has no saved readings yet.
+// `source` may be a single source key or an array of them, for pages that save
+// more than one kind of reading (e.g. /nakshatra: the birth-star profile and the
+// per-graha stars are separate readings that both belong in this page's history).
 export const RecentReadings = ({ source, profileId, limit = 8 }) => {
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
@@ -25,10 +28,15 @@ export const RecentReadings = ({ source, profileId, limit = 8 }) => {
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
 
+  // An array `source` prop is a fresh literal on every render, so depend on a
+  // stable string instead — otherwise the load effect would re-fire forever.
+  const sourceKey = Array.isArray(source) ? source.join(",") : source;
+
   const load = useCallback(async () => {
     try {
       const resp = await astrologyService.listHistory();
-      const all = (resp.data.conversations || []).filter((c) => c.source === source);
+      const wanted = sourceKey ? sourceKey.split(",") : [];
+      const all = (resp.data.conversations || []).filter((c) => wanted.includes(c.source));
       // Active profile's readings first, then the rest (backend already sorts each
       // group newest-first).
       all.sort((a, b) => {
@@ -40,7 +48,7 @@ export const RecentReadings = ({ source, profileId, limit = 8 }) => {
     } catch (e) {
       /* history is best-effort — a failed fetch just hides the panel */
     }
-  }, [source, profileId]);
+  }, [sourceKey, profileId]);
 
   useEffect(() => {
     load();
