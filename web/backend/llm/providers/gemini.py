@@ -9,25 +9,57 @@ from ..base import *  # noqa: F401,F403
 
 class GeminiMixin:
 
-    def _gemini_status(self, user_key: Optional[str] = None) -> Dict[str, Any]:
-        available = bool(user_key or self.gemini_api_key)
+    # Shown only when the live catalogue can't be read (no key yet, or the API is
+    # unreachable). Anything newer than this list comes from _gemini_models().
+    # Newest first: this doubles as the substitution order when the configured
+    # default no longer exists.
+    _GEMINI_FALLBACK_MODELS = (
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+    )
+
+    async def _gemini_status(self, user_key: Optional[str] = None) -> Dict[str, Any]:
+        key = user_key or self.gemini_api_key
+        available = bool(key)
+        models = await self._gemini_models(key) if key else []
         return {
             "type": ProviderType.GEMINI.value,
             "label": "Google Gemini",
             "base_url": None,
-            "default_model": self.gemini_default_model,
+            "default_model": self._pick_default_model(
+                self.gemini_default_model, models, self._GEMINI_FALLBACK_MODELS),
             "requires_key": True,
             "editable_base_url": False,
             "has_user_key": bool(user_key),
-            "models": [
-                "gemini-1.5-flash",
-                "gemini-1.5-pro",
-                "gemini-2.0-flash",
-                "gemini-2.0-flash-lite",
-            ],
+            "models": models or list(self._GEMINI_FALLBACK_MODELS),
             "available": available,
             "reason": None if available else "No Gemini API key. Add one in API Keys (or set GEMINI_API_KEY).",
         }
+
+    async def _gemini_models(self, api_key: str) -> List[str]:
+        """Live model list from AI Studio's ListModels, newest releases included.
+
+        Keeps only models that can actually answer a prompt (`generateContent`),
+        which drops the embedding/vision-only entries the endpoint also returns.
+        """
+        async def _fetch() -> List[str]:
+            url = "https://generativelanguage.googleapis.com/v1beta/models"
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                resp = await client.get(url, params={"key": api_key, "pageSize": 200})
+                if resp.status_code != 200:
+                    return []
+                out = []
+                for m in resp.json().get("models", []):
+                    if "generateContent" not in (m.get("supportedGenerationMethods") or []):
+                        continue
+                    name = (m.get("name") or "").split("/")[-1]
+                    if name:
+                        out.append(name)
+                return sorted(set(out))
+
+        return await self._cached_models("gemini", _fetch)
 
     async def _stream_gemini(self, messages, cfg, max_tokens, usage=None) -> AsyncGenerator[str, None]:
         api_key = cfg.api_key or self.gemini_api_key

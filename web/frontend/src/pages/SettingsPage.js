@@ -41,7 +41,7 @@ import { zoneLabel } from "../config/currentLocation";
 import { Tabs, useTabs } from "../components/Tabs";
 import "../styles/Settings.css";
 
-const KEYED_PROVIDERS = ["gemini", "openai", "openai-compatible"];
+const KEYED_PROVIDERS = ["gemini", "openai", "openai-compatible", "openrouter"];
 // The tabs, in order. One list: `?tab=` validates against it and the tab bar is
 // built from it, so the two can't drift. Every label is `settings.tabs.<key>`,
 // which is what lets the row be derived rather than repeated.
@@ -272,19 +272,17 @@ export const SettingsPage = () => {
     }
   };
 
-  useEffect(() => {
-    let cancelled = false;
+  // Availability depends on the stored API keys, so this is re-run after a key
+  // is saved or removed — not just on mount. Without that, adding a key left the
+  // AI tab showing the provider as unavailable until a full page reload.
+  const loadProviders = () =>
     astrologyService
       .getLlmProviders()
-      .then((resp) => {
-        if (!cancelled) setProviders(resp.data?.providers || []);
-      })
-      .catch(() => {
-        if (!cancelled) setProviders([]);
-      });
-    return () => {
-      cancelled = true;
-    };
+      .then((resp) => setProviders(resp.data?.providers || []))
+      .catch(() => setProviders([]));
+  useEffect(() => {
+    loadProviders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadKeys = () => {
@@ -391,6 +389,7 @@ export const SettingsPage = () => {
       await astrologyService.setApiKey(provider, val);
       setKeyInputs((p) => ({ ...p, [provider]: "" }));
       loadKeys();
+      loadProviders();
       flash();
     } catch {
       flash(t("settings.apiKeys.saveError"));
@@ -401,6 +400,7 @@ export const SettingsPage = () => {
     try {
       await astrologyService.deleteApiKey(provider);
       loadKeys();
+      loadProviders();
       flash();
     } catch {
       /* ignore */
@@ -887,7 +887,12 @@ export const SettingsPage = () => {
               return (
                 <div key={prov} className="settings-key-row">
                   <div className="settings-key-head">
-                    <span className="settings-key-name">{prov}</span>
+                    {/* The provider's own label ("OpenRouter", "OpenAI (ChatGPT)")
+                        rather than the raw type, which capitalizes into
+                        "Openrouter" / "Openai-Compatible". */}
+                    <span className="settings-key-name">
+                      {providers.find((p) => p.type === prov)?.label || prov}
+                    </span>
                     <span className={`settings-key-status${masked ? " is-set" : ""}`}>
                       {masked || t("settings.apiKeys.notSet")}
                     </span>

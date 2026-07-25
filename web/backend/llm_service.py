@@ -1,6 +1,6 @@
 """Multi-provider LLM service — the public API the app calls.
 
-Provider adapters (Ollama / OpenAI-compatible / Gemini) live in llm/providers/*.py
+Provider adapters (Ollama / OpenAI-compatible / OpenRouter / Gemini) live in llm/providers/*.py
 and the ~1,700 lines of prompt builders in llm/prompts.py; LLMService composes them
 as mixins. Constants/enums/ModelConfig live in llm/base.py and are re-exported here,
 so the import surface is unchanged (`from llm_service import llm_service, LLMProvider`)
@@ -19,6 +19,7 @@ class LLMService(PromptsMixin, OllamaMixin, OpenAIMixin, GeminiMixin):
         self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
         self.openai_api_key = os.getenv("OPENAI_API_KEY", "")
         self.openai_compat_key = os.getenv("OPENAI_COMPATIBLE_API_KEY", "")
+        self.openrouter_api_key = os.getenv("OPENROUTER_API_KEY", "")
 
         # Endpoints. rstrip("/") so a trailing slash can't produce a "//api/tags"
         # double slash, which Ollama answers with a 307 redirect httpx won't follow.
@@ -28,12 +29,23 @@ class LLMService(PromptsMixin, OllamaMixin, OpenAIMixin, GeminiMixin):
         self.openai_compat_url = os.getenv(
             "OPENAI_COMPATIBLE_URL", "http://localhost:1234/v1"
         ).rstrip("/")
+        self.openrouter_url = os.getenv(
+            "OPENROUTER_URL", "https://openrouter.ai/api/v1"
+        ).rstrip("/")
+        # Optional attribution header sent to OpenRouter (see _openai_style_headers).
+        self.openrouter_site_url = os.getenv("SITE_URL", "")
 
         # Default models per provider
         self.ollama_default_model = os.getenv("OLLAMA_DEFAULT_MODEL", "qwen2.5:14b")
         self.gemini_default_model = os.getenv("GEMINI_DEFAULT_MODEL", "gemini-1.5-flash")
         self.openai_default_model = os.getenv("OPENAI_DEFAULT_MODEL", "gpt-4o-mini")
         self.openai_compat_model = os.getenv("OPENAI_COMPATIBLE_MODEL", "")
+        self.openrouter_default_model = os.getenv(
+            "OPENROUTER_DEFAULT_MODEL", "google/gemini-2.5-flash")
+
+        # Live model catalogues per provider, {provider: (models, fetched_at)}.
+        self._model_cache: Dict[str, tuple] = {}
+        self.model_cache_ttl = float(os.getenv("LLM_MODEL_CACHE_TTL", "900"))
 
     # ------------------------------------------------------------------ #
     # Config resolution
@@ -62,6 +74,10 @@ class LLMService(PromptsMixin, OllamaMixin, OpenAIMixin, GeminiMixin):
             return ModelConfig(pt, model or self.openai_compat_model,
                                base_url or self.openai_compat_url,
                                api_key or self.openai_compat_key)
+        if pt == ProviderType.OPENROUTER:
+            return ModelConfig(pt, model or self.openrouter_default_model,
+                               base_url or self.openrouter_url,
+                               api_key or self.openrouter_api_key)
         if pt == ProviderType.GEMINI:
             return ModelConfig(pt, model or self.gemini_default_model,
                                None, api_key or self.gemini_api_key)
@@ -72,6 +88,44 @@ class LLMService(PromptsMixin, OllamaMixin, OpenAIMixin, GeminiMixin):
     # ------------------------------------------------------------------ #
     # Provider / model discovery
     # ------------------------------------------------------------------ #
+    async def _cached_models(self, provider: str, fetch) -> List[str]:
+        """Model ids for `provider`, fetched at most once per model_cache_ttl.
+
+        Every provider lists its models from the vendor rather than a hardcoded
+        array — that is the only way a newly released model (Gemini 3.5, a fresh
+        GPT) shows up in the picker without a code change. The catalogues are
+        large and near-static while this runs on every settings/chat page load,
+        hence the cache; a failed refresh serves the previous list (empty on a
+        cold start), so an outage degrades the dropdown instead of the provider.
+        """
+        cached, fetched_at = self._model_cache.get(provider, ([], 0.0))
+        if cached and (time.monotonic() - fetched_at) < self.model_cache_ttl:
+            return cached
+        try:
+            ids = await fetch()
+        except Exception:
+            ids = []
+        if ids:
+            self._model_cache[provider] = (ids, time.monotonic())
+            return ids
+        return cached
+
+    @staticmethod
+    def _pick_default_model(configured: str, models: List[str],
+                            preferred: tuple = ()) -> str:
+        """The default to advertise, given what the vendor actually offers today.
+
+        Vendors retire model ids (gemini-1.5-*, gpt-4-*), and the picker hands
+        `default_model` straight to the next request — so a default the live
+        catalogue no longer lists is a guaranteed error. Substitute the first
+        known-good alternative that IS listed; if none is, keep what was
+        configured rather than inventing a choice (an empty catalogue means we
+        couldn't read it, not that the model is gone).
+        """
+        if not models or configured in models:
+            return configured
+        return next((m for m in preferred if m in models), configured)
+
     async def list_providers(self, user_keys: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
         """Return configured providers, their availability, and model lists.
 
@@ -81,12 +135,17 @@ class LLMService(PromptsMixin, OllamaMixin, OpenAIMixin, GeminiMixin):
         even if no global env key is set.
         """
         user_keys = user_keys or {}
-        return [
-            await self._ollama_status(),
-            await self._openai_compat_status(user_keys.get("openai-compatible")),
+        # Concurrently: every provider probes its endpoint (reachability and/or
+        # the live model list), so awaiting them in sequence would stack five
+        # timeouts on a cold cache and stall the Settings page. gather preserves
+        # order, which is the order the picker lists them in.
+        return list(await asyncio.gather(
+            self._ollama_status(),
+            self._openai_compat_status(user_keys.get("openai-compatible")),
             self._gemini_status(user_keys.get("gemini")),
             self._openai_status(user_keys.get("openai")),
-        ]
+            self._openrouter_status(user_keys.get("openrouter")),
+        ))
 
     # ------------------------------------------------------------------ #
     # High-level tasks
@@ -772,7 +831,7 @@ Reply with STRICT JSON only, exactly this shape:
         sys_prompt = system or SYSTEM_PROMPT
         if cfg.provider_type == ProviderType.OLLAMA:
             return await self._call_ollama(prompt, cfg, max_tokens, sys_prompt, usage)
-        if cfg.provider_type in (ProviderType.OPENAI, ProviderType.OPENAI_COMPATIBLE):
+        if cfg.provider_type in OPENAI_STYLE_PROVIDERS:
             return await self._call_openai_style(prompt, cfg, max_tokens, sys_prompt, usage)
         if cfg.provider_type == ProviderType.GEMINI:
             return await self._call_gemini(prompt, cfg, max_tokens, sys_prompt, usage)
@@ -814,7 +873,7 @@ Reply with STRICT JSON only, exactly this shape:
         def _new_gen():
             if cfg.provider_type == ProviderType.OLLAMA:
                 return self._stream_ollama(messages, cfg, max_tokens, usage)
-            if cfg.provider_type in (ProviderType.OPENAI, ProviderType.OPENAI_COMPATIBLE):
+            if cfg.provider_type in OPENAI_STYLE_PROVIDERS:
                 return self._stream_openai_style(messages, cfg, max_tokens, usage)
             if cfg.provider_type == ProviderType.GEMINI:
                 return self._stream_gemini(messages, cfg, max_tokens, usage)
@@ -1101,7 +1160,7 @@ Reply with STRICT JSON only, exactly this shape:
             return {"content": content, "tool_calls": [], "usage": u}
         if cfg.provider_type == ProviderType.OLLAMA:
             return await self._chat_once_ollama(messages, specs, cfg)
-        if cfg.provider_type in (ProviderType.OPENAI, ProviderType.OPENAI_COMPATIBLE):
+        if cfg.provider_type in OPENAI_STYLE_PROVIDERS:
             return await self._chat_once_openai(messages, specs, cfg)
         if cfg.provider_type == ProviderType.GEMINI:
             return await self._chat_once_gemini(messages, specs, cfg)
@@ -1129,14 +1188,14 @@ Reply with STRICT JSON only, exactly this shape:
                      if pt is not None or ct is not None else None)
             return data.get("message", {}).get("content", ""), usage
 
-        if cfg.provider_type in (ProviderType.OPENAI, ProviderType.OPENAI_COMPATIBLE):
+        if cfg.provider_type in OPENAI_STYLE_PROVIDERS:
             base_url = (cfg.base_url or "").rstrip("/")
             headers = {"Content-Type": "application/json"}
             if cfg.api_key:
                 headers["Authorization"] = f"Bearer {cfg.api_key}"
             payload = {"model": cfg.model, "messages": self._to_text_messages(messages),
                        "temperature": 0.7, "max_tokens": max_tokens}
-            timeout = 300.0 if cfg.provider_type == ProviderType.OPENAI_COMPATIBLE else 120.0
+            timeout = _request_timeout(cfg.provider_type)
             async with httpx.AsyncClient(timeout=timeout) as client:
                 r = await client.post(f"{base_url}/chat/completions", json=payload, headers=headers)
                 if r.status_code != 200:

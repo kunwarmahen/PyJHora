@@ -19,7 +19,7 @@ from database import get_database
 COLLECTION = "user_settings"
 
 # Providers that actually consume an API key (Ollama is local/keyless).
-KEYED_PROVIDERS = ("gemini", "openai", "openai-compatible")
+KEYED_PROVIDERS = ("gemini", "openai", "openai-compatible", "openrouter")
 
 # Non-secret UI preferences synced across a user's devices (stored under
 # `preferences` on the user_settings doc, values kept as strings to mirror the

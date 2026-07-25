@@ -12,8 +12,9 @@ Unified LLM service supporting multiple providers and models:
   - ollama            : local models served by Ollama (auto-discovered)
   - openai-compatible : any local/remote server exposing the OpenAI /v1 schema
                         (LM Studio, llama.cpp server, vLLM, text-generation-webui)
-  - gemini            : Google Gemini API
+  - gemini            : Google Gemini API (an AI Studio key is a Gemini key)
   - openai            : OpenAI ChatGPT API
+  - openrouter        : OpenRouter — one key, hundreds of hosted models
 
 Each request is described by a ModelConfig (provider_type + model + optional
 base_url + api_key). Legacy provider strings ("qwen"/"gemini"/"chatgpt") are
@@ -23,6 +24,7 @@ import asyncio
 import httpx
 import json
 import os
+import time
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List, AsyncGenerator
 from enum import Enum
@@ -111,6 +113,43 @@ class ProviderType(str, Enum):
     OPENAI_COMPATIBLE = "openai-compatible"
     GEMINI = "gemini"
     OPENAI = "openai"
+    OPENROUTER = "openrouter"
+
+
+# Providers that speak the OpenAI /v1/chat/completions schema. Dispatch sites
+# test membership here rather than listing types inline, so an added
+# OpenAI-shaped provider is wired into completion, streaming and tool mode in
+# one edit instead of five.
+OPENAI_STYLE_PROVIDERS = (
+    ProviderType.OPENAI,
+    ProviderType.OPENAI_COMPATIBLE,
+    ProviderType.OPENROUTER,
+)
+
+# Env var holding the global fallback key, per provider that needs one. Used for
+# the "no key" error text so the message names the variable the user must set.
+_KEY_ENV_VAR = {
+    ProviderType.OPENAI: "OPENAI_API_KEY",
+    ProviderType.OPENROUTER: "OPENROUTER_API_KEY",
+    ProviderType.GEMINI: "GEMINI_API_KEY",
+}
+
+# Local servers are slow to first token, and OpenRouter routes to models
+# (reasoning/large) that regularly exceed two minutes; OpenAI proper is fast.
+_SLOW_PROVIDERS = (ProviderType.OPENAI_COMPATIBLE, ProviderType.OPENROUTER)
+
+
+def _request_timeout(provider_type) -> float:
+    return 300.0 if provider_type in _SLOW_PROVIDERS else 120.0
+
+
+def _missing_key_error(provider_type) -> Optional[str]:
+    """Error text when a key-requiring provider has no key, else None."""
+    env = _KEY_ENV_VAR.get(provider_type)
+    if not env:
+        return None
+    return (f"Error: no API key for this provider. Add one in Settings → API Keys "
+            f"(or set {env} in the server environment).")
 
 
 class LLMProvider(str, Enum):
@@ -128,6 +167,7 @@ _LEGACY_MAP = {
     "chatgpt": ProviderType.OPENAI,
     "openai": ProviderType.OPENAI,
     "openai-compatible": ProviderType.OPENAI_COMPATIBLE,
+    "openrouter": ProviderType.OPENROUTER,
 }
 
 

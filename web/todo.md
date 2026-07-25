@@ -4690,3 +4690,77 @@ Files: `pages/LandingPage.js`, `styles/Landing.css`, `components/RootRoute.js`,
 `App.js` (`/` route), `.env` + `.env.example` (`REACT_APP_SHOW_PRICING`). Verified
 live in-browser (hero, features, AI card, theme toggle, pricing gate); ESLint clean,
 webpack compiled successfully.
+
+## 50. OpenRouter provider + model dropdowns that aren't frozen in time (owner ask 2026-07-25)
+
+Owner ask: "add the capability to provide openrouter or aistudio token as well as
+the llm provider", then — mid-implementation, from live use — "I had to refresh the
+AI tab to show that Gemini is available", and "why is gemini3.5 not showing in the
+drop down".
+
+**AI Studio was deliberately NOT added as a provider.** An AI Studio key *is* a
+Gemini API key: the existing `gemini` provider already calls
+`generativelanguage.googleapis.com`, which is the AI Studio API. A second entry
+would have been a duplicate that only confused the picker. Owner agreed ("if it
+there, then ignore it"). Paste an AI Studio key into the Gemini row.
+
+- **OpenRouter as a first-class `ProviderType`** (`openrouter`). It speaks the
+  OpenAI `/chat/completions` schema, so completion, streaming and agentic tool mode
+  reuse `OpenAIMixin` unchanged. The five dispatch sites that each spelled out
+  `(OPENAI, OPENAI_COMPATIBLE)` inline now test **one** shared tuple,
+  `OPENAI_STYLE_PROVIDERS` in `llm/base.py` — that was the actual risk here: miss
+  one tuple and the provider silently answers "Unsupported LLM provider" from
+  whichever path you didn't edit. A test asserts every enum member is dispatchable.
+- **Per-user key** (`Settings → API Keys`, Fernet-encrypted like the others) or
+  server-wide `OPENROUTER_API_KEY`. Model ids are `vendor/model`.
+- Gets the **300s** timeout (its reasoning models routinely exceed 120s) and
+  OpenRouter's `X-Title` / `HTTP-Referer` attribution headers (`SITE_URL`).
+
+**Why Gemini 3.5 was missing: the model lists were hardcoded arrays.** Gemini's
+stopped at `gemini-2.0-flash-lite` and OpenAI's at `o1-mini`, so *no* model released
+after that code was written could ever reach the dropdown. Every catalogue is now
+fetched live from the vendor and cached (`LLM_MODEL_CACHE_TTL`, default 900s, via
+one shared `_cached_models` helper):
+
+- Gemini → ListModels, filtered to `supportedGenerationMethods` containing
+  `generateContent` (drops the embedding-only entries).
+- OpenAI → `/v1/models`, filtered to chat-capable id prefixes (drops embeddings,
+  whisper, tts, dall-e).
+- OpenRouter → its public catalogue (no key needed to enumerate; 345 models today).
+- No key / vendor unreachable → the old static list still shows, so the picker is
+  never empty. A cold cache + outage degrades the dropdown, never the provider.
+- **`_pick_default_model`**: `default_model` is handed straight to the next request,
+  so a default the live catalogue no longer lists is a guaranteed error. If it's
+  gone, substitute the first known-good id that IS listed; if none is, keep the
+  configured one (an empty catalogue means "couldn't read it", not "it's gone").
+- `list_providers` now runs all five status probes under `asyncio.gather` —
+  sequentially they would stack five timeouts on a cold cache and stall Settings.
+
+**The refresh bug.** `SettingsPage` fetched `/api/llm/providers` **once on mount**,
+so availability was computed before the key existed; adding a key left the provider
+reading "— unavailable" until a full page reload. `loadProviders()` is now called
+after every key save *and* delete — provider-agnostic, so it fixes all five, which
+is what the owner asked for ("fix that too for all models"). The API Keys rows also
+now show each provider's real label ("OpenRouter", "OpenAI (ChatGPT)") instead of
+the raw type, which CSS `capitalize` rendered as "Openrouter" / "Openai-Compatible".
+
+**Still hardcoded, deliberately:** the Max-response-length slider caps at 8192
+(`MT_MIN`/`MT_MAX` in `SettingsPage.js`) regardless of provider, and "Auto" sends no
+cap at all so the backend's 4096 default applies. Gemini 2.5 Pro can emit far more.
+Making the cap provider-driven is a separate change and was not made here.
+
+Files: `llm/base.py` (`OPENROUTER`, `OPENAI_STYLE_PROVIDERS`, `_KEY_ENV_VAR`,
+`_request_timeout`, `_missing_key_error`), `llm/providers/openai.py` (OpenRouter
+status/catalogue, `_openai_models`, shared `_openai_style_headers`),
+`llm/providers/gemini.py` (`_gemini_models`, async status), `llm_service.py`
+(`_cached_models`, `_pick_default_model`, gather), `user_settings.py`
+(`KEYED_PROVIDERS`), `pages/SettingsPage.js`, `.env.example`, `.env.nas.example`,
+`README.md`, `docs/AI_TOOL_CALLING_DESIGN.md`.
+
+**Tests: `backend/tests/test_llm_providers.py` (16, no network/DB)** — dispatch
+coverage, key-error text, timeouts, cache hit/miss, live-catalogue-replaces-static
+(a `gemini-3.5-flash` fixture must reach the dropdown), outage degradation,
+retired-default substitution, `KEYED_PROVIDERS` completeness. 356 backend tests
+pass. Verified live in-browser on a fresh account: before saving, Gemini and
+OpenRouter both read "— unavailable"; after saving keys and switching tabs (one
+navigation entry — no reload) both read available.

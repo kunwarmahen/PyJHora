@@ -9,6 +9,19 @@ from ..base import *  # noqa: F401,F403
 
 class OpenAIMixin:
 
+    def _openai_style_headers(self, cfg: ModelConfig) -> Dict[str, str]:
+        """Request headers shared by every OpenAI-schema provider."""
+        headers = {"Content-Type": "application/json"}
+        if cfg.api_key:
+            headers["Authorization"] = f"Bearer {cfg.api_key}"
+        if cfg.provider_type == ProviderType.OPENROUTER:
+            # Optional attribution headers: OpenRouter uses them to label the
+            # traffic in its dashboards/leaderboard. Ignored when absent.
+            headers["X-Title"] = SITE_NAME
+            if self.openrouter_site_url:
+                headers["HTTP-Referer"] = self.openrouter_site_url
+        return headers
+
     async def _openai_compat_status(self, user_key: Optional[str] = None) -> Dict[str, Any]:
         info = {
             "type": ProviderType.OPENAI_COMPATIBLE.value,
@@ -45,35 +58,102 @@ class OpenAIMixin:
             )
         return info
 
-    def _openai_status(self, user_key: Optional[str] = None) -> Dict[str, Any]:
-        available = bool(user_key or self.openai_api_key)
+    # Shown only when the live catalogue can't be read (no key yet, or the API is
+    # unreachable). Anything newer comes from _openai_models().
+    _OPENAI_FALLBACK_MODELS = ("gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "o1-mini")
+
+    # Chat-capable id prefixes. /v1/models also lists embeddings, TTS, whisper,
+    # image and moderation models, none of which can answer a chat completion.
+    _OPENAI_CHAT_PREFIXES = ("gpt-", "chatgpt-", "o1", "o3", "o4")
+
+    async def _openai_status(self, user_key: Optional[str] = None) -> Dict[str, Any]:
+        key = user_key or self.openai_api_key
+        available = bool(key)
+        models = await self._openai_models(key) if key else []
         return {
             "type": ProviderType.OPENAI.value,
             "label": "OpenAI (ChatGPT)",
             "base_url": "https://api.openai.com/v1",
-            "default_model": self.openai_default_model,
+            "default_model": self._pick_default_model(
+                self.openai_default_model, models, self._OPENAI_FALLBACK_MODELS),
             "requires_key": True,
             "editable_base_url": False,
             "has_user_key": bool(user_key),
-            "models": ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "o1-mini"],
+            "models": models or list(self._OPENAI_FALLBACK_MODELS),
             "available": available,
             "reason": None if available else "No OpenAI API key. Add one in API Keys (or set OPENAI_API_KEY).",
         }
+
+    async def _openai_models(self, api_key: str) -> List[str]:
+        """Live /v1/models, filtered to the chat-capable ids."""
+        async def _fetch() -> List[str]:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                resp = await client.get("https://api.openai.com/v1/models",
+                                        headers={"Authorization": f"Bearer {api_key}"})
+                if resp.status_code != 200:
+                    return []
+                ids = [m.get("id") for m in resp.json().get("data", []) if m.get("id")]
+                return sorted(i for i in ids
+                              if i.startswith(self._OPENAI_CHAT_PREFIXES))
+
+        return await self._cached_models("openai", _fetch)
+
+    # Tried in order when the configured OpenRouter default no longer exists.
+    # All are cheap, fast and support the tool calling the agentic mode needs.
+    _OPENROUTER_FALLBACK_MODELS = (
+        "google/gemini-2.5-flash",
+        "openai/gpt-4o-mini",
+        "anthropic/claude-3.5-haiku",
+    )
+
+    async def _openrouter_status(self, user_key: Optional[str] = None) -> Dict[str, Any]:
+        """OpenRouter: one key, hundreds of hosted models across vendors."""
+        key = user_key or self.openrouter_api_key
+        available = bool(key)
+        models = await self._openrouter_models()
+        info = {
+            "type": ProviderType.OPENROUTER.value,
+            "label": "OpenRouter",
+            "base_url": self.openrouter_url,
+            "default_model": self._pick_default_model(
+                self.openrouter_default_model, models, self._OPENROUTER_FALLBACK_MODELS),
+            "requires_key": True,
+            "editable_base_url": False,
+            "has_user_key": bool(user_key),
+            "models": models,
+            "available": available,
+            "reason": None if available else (
+                "No OpenRouter API key. Add one in API Keys (or set OPENROUTER_API_KEY). "
+                "Create a key at https://openrouter.ai/keys."
+            ),
+        }
+        return info
+
+    async def _openrouter_models(self) -> List[str]:
+        """OpenRouter model ids ("vendor/model"). The catalogue is public, so
+        unlike the other cloud providers this needs no key to enumerate."""
+        async def _fetch() -> List[str]:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                resp = await client.get(f"{self.openrouter_url}/models")
+                if resp.status_code != 200:
+                    return []
+                return sorted(m.get("id") for m in resp.json().get("data", [])
+                              if m.get("id"))
+
+        return await self._cached_models("openrouter", _fetch)
 
     async def _stream_openai_style(self, messages, cfg, max_tokens, usage=None) -> AsyncGenerator[str, None]:
         base_url = (cfg.base_url or "").rstrip("/")
         if not base_url:
             yield "Error: no base URL configured for this provider."
             return
-        if cfg.provider_type == ProviderType.OPENAI and not cfg.api_key:
-            yield "Error: OPENAI_API_KEY is not set. Add it to your .env file."
+        if not cfg.api_key and _missing_key_error(cfg.provider_type):
+            yield _missing_key_error(cfg.provider_type)
             return
         if not cfg.model:
             yield "Error: no model specified for this provider."
             return
-        headers = {"Content-Type": "application/json"}
-        if cfg.api_key:
-            headers["Authorization"] = f"Bearer {cfg.api_key}"
+        headers = self._openai_style_headers(cfg)
         payload = {
             "model": cfg.model,
             "messages": messages,
@@ -83,7 +163,7 @@ class OpenAIMixin:
             # Ask for a final usage chunk; servers that don't support it ignore this.
             "stream_options": {"include_usage": True},
         }
-        timeout = 300.0 if cfg.provider_type == ProviderType.OPENAI_COMPATIBLE else 120.0
+        timeout = _request_timeout(cfg.provider_type)
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 async with client.stream("POST", f"{base_url}/chat/completions",
@@ -124,17 +204,15 @@ class OpenAIMixin:
         base_url = (cfg.base_url or "").rstrip("/")
         if not base_url:
             return "Error: no base URL configured for this OpenAI-compatible provider."
-        if cfg.provider_type == ProviderType.OPENAI and not cfg.api_key:
-            return "Error: OPENAI_API_KEY is not set. Add it to your .env file."
+        if not cfg.api_key and _missing_key_error(cfg.provider_type):
+            return _missing_key_error(cfg.provider_type)
         if not cfg.model:
             return "Error: no model specified for this provider."
         # Local OpenAI-compatible servers can be slow; cloud OpenAI is fast
-        req_timeout = 300.0 if cfg.provider_type == ProviderType.OPENAI_COMPATIBLE else 120.0
+        req_timeout = _request_timeout(cfg.provider_type)
         try:
             async with httpx.AsyncClient(timeout=req_timeout) as client:
-                headers = {"Content-Type": "application/json"}
-                if cfg.api_key:
-                    headers["Authorization"] = f"Bearer {cfg.api_key}"
+                headers = self._openai_style_headers(cfg)
                 payload = {
                     "model": cfg.model,
                     "messages": [
@@ -204,11 +282,9 @@ class OpenAIMixin:
         base_url = (cfg.base_url or "").rstrip("/")
         if not base_url:
             raise RuntimeError("no base URL configured for this provider")
-        if cfg.provider_type == ProviderType.OPENAI and not cfg.api_key:
-            raise RuntimeError("OPENAI_API_KEY is not set")
-        headers = {"Content-Type": "application/json"}
-        if cfg.api_key:
-            headers["Authorization"] = f"Bearer {cfg.api_key}"
+        if not cfg.api_key and _KEY_ENV_VAR.get(cfg.provider_type):
+            raise RuntimeError(f"{_KEY_ENV_VAR[cfg.provider_type]} is not set")
+        headers = self._openai_style_headers(cfg)
         payload = {
             "model": cfg.model,
             "messages": self._to_openai_messages(messages),
@@ -217,7 +293,7 @@ class OpenAIMixin:
             "tools": self._openai_tool_payload(specs),
             "tool_choice": "auto",
         }
-        timeout = 300.0 if cfg.provider_type == ProviderType.OPENAI_COMPATIBLE else 120.0
+        timeout = _request_timeout(cfg.provider_type)
         async with httpx.AsyncClient(timeout=timeout) as client:
             r = await client.post(f"{base_url}/chat/completions", json=payload, headers=headers)
             if r.status_code != 200:

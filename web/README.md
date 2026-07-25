@@ -654,6 +654,7 @@ OLLAMA_DEFAULT_MODEL=qwen2.5:14b
 OPENAI_COMPATIBLE_URL=http://localhost:1234/v1
 GEMINI_API_KEY=         # optional global fallback
 OPENAI_API_KEY=         # optional global fallback
+OPENROUTER_API_KEY=     # optional global fallback (openrouter.ai/keys)
 
 # Per-user API-key encryption (keys users save in the UI are encrypted with this;
 # falls back to SECRET_KEY if unset — set a stable value in production)
@@ -1330,14 +1331,45 @@ OPENAI_API_KEY=your-openai-api-key-here
 
 **Advantages**: Very high quality responses, well-tested
 
+### Option 4: OpenRouter
+
+One key, hundreds of hosted models from every major vendor (Anthropic, OpenAI,
+Google, Meta, DeepSeek, …) behind the OpenAI schema:
+
+```bash
+# 1. Get API key from: https://openrouter.ai/keys
+
+# 2. Add to backend/.env
+OPENROUTER_API_KEY=sk-or-v1-...
+OPENROUTER_DEFAULT_MODEL=google/gemini-2.5-flash   # optional
+
+# 3. Restart backend
+```
+
+The model dropdown is populated live from OpenRouter's public catalogue (cached
+for 15 minutes), so new models appear without a code change. Model ids are
+`vendor/model`, e.g. `anthropic/claude-sonnet-4.5`. Agentic tool mode works —
+pick a model that supports tool calling. Users can store their own OpenRouter key
+under **Settings → API Keys** instead of using the server-wide one.
+
+**Advantages**: One key and one bill for every vendor; easy model comparison;
+free-tier models available (ids ending in `:free`)
+
 ### Switching Between AI Models
 
 Users can select their preferred provider **and model** in the frontend:
 
 - Go to **Settings → AI**
-- Pick a provider (Ollama / OpenAI-compatible / Gemini / OpenAI) and a specific model
+- Pick a provider (Ollama / OpenAI-compatible / Gemini / OpenAI / OpenRouter) and a specific model
 - Optionally raise the **Max response length** if answers get cut off
 - Each model will provide different perspectives on your chart
+
+Model dropdowns are populated live from each vendor (Ollama's installed models,
+the OpenAI-compatible server's `/models`, and — as soon as a key is present —
+Gemini's ListModels, OpenAI's `/v1/models` and OpenRouter's catalogue), cached
+for `LLM_MODEL_CACHE_TTL` seconds. A model released after this code was written
+shows up on its own; no hardcoded list to update. Without a key, Gemini and
+OpenAI fall back to a short static list so the picker is never empty.
 
 ### Per-user API keys (no shared `.env` key needed)
 

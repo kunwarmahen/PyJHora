@@ -128,8 +128,13 @@ A provider-agnostic `run_tool_loop(messages, cfg, tools, on_event)`:
    always gets an answer.
 
 Per-provider edges:
-- **OpenAI / OpenAI-compatible:** native `tools` + `tool_calls` in the delta;
-  reuse the existing `_stream_openai_style` plumbing, add tool-call assembly.
+- **OpenAI / OpenAI-compatible / OpenRouter:** native `tools` + `tool_calls` in the
+  delta; reuse the existing `_stream_openai_style` plumbing, add tool-call assembly.
+  These three share one adapter and are listed in `OPENAI_STYLE_PROVIDERS`
+  (`llm/base.py`) — every dispatch site tests that tuple, so a provider added to it
+  gets completion, streaming and tool mode at once. Tool mode is only as good as the
+  chosen model: an OpenRouter id that doesn't support tool calling falls through to
+  the JSON fallback below.
 - **Gemini:** native via `_chat_once_gemini` — `tools:[{functionDeclarations}]` +
   `toolConfig.functionCallingConfig`, parse `functionCall` parts, feed results back as
   `functionResponse` parts in a **user** turn (consecutive results merged into one turn
