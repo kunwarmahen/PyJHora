@@ -4932,14 +4932,15 @@ fetch the full table on demand).
 
 **RESOLVED — the 13.91′ ascendant gap was a wrong birth place.** JHora's data
 file for this chart is **Shahgarh, 78 E 20′ 03″, 27 N 50′ 43″** (78.334167,
-27.845278) — the app profile stores **Aligarh, 78.08 / 27.88**, ~0.25° west. With
-JHora's own coordinates the ascendant matches to **11″** and sunrise to **2 s**.
-Not an engine bug: raw Swiss Ephemeris always agreed with us, and every planet
-matched to 0.01″. **Open for the owner: which place is actually correct?** It
-does not change the rising sign, but it shifts the Lagna 13.9′ and every
-lagna-derived point with it. `conftest.CHART1` still says Aligarh;
-`test_special_points.py` deliberately uses JHora's coordinates, since its job is
-to prove agreement with JHora.
+27.845278); the app had **Aligarh, 78.08 / 27.88**, ~0.25° west. **The owner has
+confirmed Shahgarh is correct** (entered into JHora manually from Google Maps),
+so `conftest.CHART1` now holds it. With it the ascendant matches JHora to **11″**
+and sunrise to **2 s**. Never an engine bug: raw Swiss Ephemeris always agreed
+with us and every planet matched to 0.01″. Exactly **one** pinned golden value
+moved — `CHART1_LAGNA` 24.83 → 25.06 — since planets don't depend on longitude
+and no sign changed. Every golden value is now directly checkable against JHora.
+⚠ **The owner still needs to fix the stored birth profile in the running app** —
+that lives in Mongo, not in the repo.
 
 **SECOND BUG FIXED — PyJHora's kaala lagnas are ~13-16′ wrong.**
 `drik.special_ascendant` (behind `bhava_lagna` / `hora_lagna` / `ghati_lagna` /
@@ -4959,6 +4960,20 @@ upstream ever fixes it, the test tells us `_kaala_lagna` can be retired.
 Ephemeris 1.64.01 → 1.76, which for modern dates is "less than a fraction of
 arc-second". Nothing about lagna, special lagnas, upagrahas, sunrise or the place
 database. Irrelevant to a 1976 chart.
+
+**The upstream bug also hit Longevity.** `get_longevity` called
+`drik.hora_lagna` directly, and Ayu turns on the Hora Lagna's *sign* — so a 14′
+error flips the whole verdict whenever HL sits near a cusp. On the owner's own
+chart it sits at **0 Ge 14′**, i.e. 14′ past the Taurus/Gemini boundary: the bug
+is exactly the width of the margin. Now routed through `_kaala_lagna`. (For the
+record, the coordinate fix moved HL from 29 Ta 47′ to 0 Ge 15′ and flipped the
+owner's Ayu category from Alpa to Purna — a good illustration of why neither
+error was cosmetic.)
+
+**Bug report written for upstream:** `PYJHORA_BUG_REPORT.md` at the repo root —
+reproduction, root cause, the one-line diff, and a regression test that needs no
+external reference (the Sun at sunrise must never be ahead of the Sun at a later
+birth time).
 
 **Remaining known deltas, documented not swept away:** Pranapada Lagna ~84′ (a
 genuine formula difference in `drik.pranapada_lagna`; reference-only, no rule

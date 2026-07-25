@@ -3,7 +3,9 @@
 These pin the engine's output for two fixed charts so any drift — a PyJHora
 version bump, an ayanamsa/node default change, a refactor of astrology.py — is
 caught immediately. The chart-1 numbers were cross-checked against Jagannatha
-Hora (todo §26) with the app's matched defaults (True Chitra + mean nodes).
+Hora (todo §26) with the app's matched defaults (True Chitra + mean nodes), and
+re-verified in §11.3 once chart 1's coordinates were corrected: every planet now
+matches JHora to 0.01" and the ascendant to 11".
 
 Longitudes are asserted to ±0.02° (the API rounds degrees to 2 dp); signs, D9
 placements, dasha boundary dates and panchanga limbs are asserted exactly.
@@ -15,7 +17,9 @@ from astrology import AstrologyCompute as A
 DEG_TOL = 0.02
 
 # ── Chart 1 (owner, JHora-verified) ─────────────────────────────────────────
-CHART1_LAGNA = ("Taurus", 24.83)
+# 25 Ta 03' 36" — Jagannatha Hora prints 25 Ta 04' 23.79" for the same chart,
+# an 11" agreement. (This read 24.83 while conftest held the wrong coordinates.)
+CHART1_LAGNA = ("Taurus", 25.06)
 CHART1_PLANETS = {
     "Sun": ("Taurus", 20.00),
     "Moon": ("Leo", 0.75),

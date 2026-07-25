@@ -847,7 +847,12 @@ class StrengthMixin:
             lagna_lord_house = pp[lagna_lord + 1][1][0]
             eighth_lord = house.house_owner_from_planet_positions(pp, eighth_house)
             eighth_lord_house = pp[eighth_lord + 1][1][0]
-            hora_lagna = drik.hora_lagna(jd, place_obj)[0]
+            # NOT drik.hora_lagna — it carries the special_ascendant timezone bug
+            # (~14' late; see engine._kaala_lagna). Ayu here turns on which SIGN
+            # the Hora Lagna falls in, so a 14' error flips the whole verdict
+            # whenever HL sits near a cusp — and on the owner's own chart it sits
+            # at 0°14' of Gemini, i.e. squarely inside that margin.
+            hora_lagna = _kaala_lagna(jd, place_obj, KAALA_LAGNA_RATES["Hora Lagna"])[0]
 
             group = [
                 _get_aayu(lagna_lord_house, eighth_lord_house),

@@ -16,14 +16,22 @@ if BACKEND_DIR not in sys.path:
 
 
 # ── The two fixed reference charts ──────────────────────────────────────────
-# Chart 1 is the owner's chart (1976-06-04 05:45:02, Aligarh), JHora-verified to
-# the arc-minute in todo §26 with the app's matched defaults (True Chitra
-# ayanamsa + mean nodes). Chart 2 is a second, independent chart used for the
-# Ashtakoot pair and the determinism (order-independence) guard.
+# Chart 1 is the owner's chart (1976-06-04 05:45:02), with the app's matched
+# defaults (True Chitra ayanamsa + mean nodes).
+#
+# The coordinates are Shahgarh, 27 N 50' 43" / 78 E 20' 03" — the ones the owner
+# entered into Jagannatha Hora and has confirmed as correct. They were previously
+# recorded here as "Aligarh" 27.88 / 78.08, ~0.25 deg west, which is what made our
+# ascendant sit 13.9' off JHora's. With these the ascendant agrees to 11" and
+# sunrise to 2 s, so every golden value below is now directly checkable against
+# JHora's own output (see test_special_points.py).
+#
+# Chart 2 is a second, independent chart used for the Ashtakoot pair and the
+# determinism (order-independence) guard.
 CHART1 = {
     "name": "Owner",
-    "dob": "1976-06-04", "tob": "05:45:02", "place": "Aligarh",
-    "latitude": 27.88, "longitude": 78.08, "timezone": 5.5,
+    "dob": "1976-06-04", "tob": "05:45:02", "place": "Shahgarh",
+    "latitude": 27.845278, "longitude": 78.334167, "timezone": 5.5,
 }
 CHART2 = {
     "name": "Partner",
