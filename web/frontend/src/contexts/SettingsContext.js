@@ -47,6 +47,7 @@ export const SETTING_KEYS = {
   signLabel: SIGN_LABEL_STORAGE_KEY,
   panchangaSystem: "panchanga_system",
   praveshaBasis: "pravesha_basis",
+  varnadaMethod: "varnada_method",
   aiProviderType: "ai_provider_type",
   aiModel: "ai_model",
   aiBaseUrl: "ai_base_url",
@@ -104,6 +105,11 @@ const DEFAULTS = {
   // "solar" (Tajaka: Varshaphal / Maasa Pravesha) or "lunar" (tithi: Tithi
   // Pravesha / birth-tithi return). Pages may override it locally.
   praveshaBasis: "solar",
+  // Which published derivation of the Varnada lagna to use, "1".."4". Method 1
+  // (Sanjay Rath) is the default because it is the one that reproduces
+  // Jagannatha Hora's V1..V12 exactly — consistent with the app's other
+  // JHora-matching defaults (True Chitra ayanamsa, mean nodes).
+  varnadaMethod: "1",
   aiProviderType: "ollama",
   aiModel: "",
   aiBaseUrl: "",
@@ -148,6 +154,7 @@ export const SettingsProvider = ({ children }) => {
     signLabel: read("signLabel"),
     panchangaSystem: read("panchangaSystem"),
     praveshaBasis: read("praveshaBasis"),
+    varnadaMethod: read("varnadaMethod"),
     aiProviderType: read("aiProviderType"),
     aiModel: read("aiModel"),
     aiBaseUrl: read("aiBaseUrl"),

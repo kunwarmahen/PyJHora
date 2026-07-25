@@ -1092,6 +1092,34 @@ export const SettingsPage = () => {
               </div>
             </div>
             <p className="settings-hint">{t("settings.almanac.hint")}</p>
+
+            {/* Varnada lagna derivation. The four published methods genuinely
+                disagree, so this is a real choice rather than a preference.
+                Method 1 (Sanjay Rath) is the default because it is the one that
+                reproduces Jagannatha Hora's V1..V12 exactly. */}
+            <div className="settings-row">
+              <label className="settings-label">{t("settings.almanac.varnada")}</label>
+              <div className="settings-segment">
+                {[
+                  { v: "1", l: t("settings.almanac.varnadaRath") },
+                  { v: "2", l: t("settings.almanac.varnadaJha") },
+                  { v: "3", l: t("settings.almanac.varnadaRaman") },
+                  { v: "4", l: t("settings.almanac.varnadaSanthanam") },
+                ].map((o) => (
+                  <button
+                    key={o.v}
+                    type="button"
+                    className={`settings-seg-btn${
+                      String(settings.varnadaMethod) === o.v ? " is-active" : ""
+                    }`}
+                    onClick={() => set("varnadaMethod", o.v)}
+                  >
+                    {o.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="settings-hint">{t("settings.almanac.varnadaHint")}</p>
           </div>
         )}
 

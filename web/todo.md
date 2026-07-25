@@ -4871,3 +4871,85 @@ Verified in-browser end to end against a live `gemma4:12b`: generated both readi
 toggled chips (AL+A7+UL — the title records the selection), reopened both from
 `/history` into the correct panel, and confirmed the model did not hallucinate —
 Pushya's "cow's udder" and Bharani's deity Yama both trace back to `reference_data`.
+
+---
+
+### 11.3 Special lagnas, upagrahas & Varnada — matching Jagannatha Hora's table (P2) — SHIPPED 2026-07-25
+
+The owner compared JHora's full body table against ours and asked which of the
+extra rows are worth having. Four families were genuinely missing; all four
+already existed in the PyJHora engine and were just never surfaced.
+
+- [x] **Bhava / Hora / Ghati / Vighati Lagna** — the time-based *kaala lagnas*
+      (`drik.bhava_lagna` etc., all `(jd, place)`). These are the ones that carry
+      real predictive rules: **Hora Lagna = wealth and income** (judge the 2nd and
+      11th from it), **Ghati Lagna = power and authority** (the 10th from it),
+      **Bhava Lagna = the body**; the three are read as a trio.
+- [x] **Varnada Lagna V1..V12** (`charts.varnada_lagna`, `house_index=1..12`).
+- [x] **Kaala / Mrityu / Artha Prahara / Yama Ghantaka** — the four kaala-vela
+      upagrahas we had skipped, joining Gulika and Maandi (six total).
+- [x] **Sookshma Tri Sphuta + Rahu Tithi Sphuta** — completes the Sphuta table.
+
+**Varnada method is a Settings choice** (Almanac tab, `varnadaMethod` in
+`SettingsContext`, local-only like `panchangaSystem`). PyJHora ships four
+published derivations that genuinely disagree; **method 1 (Sanjay Rath) is the
+default because it is the only one that reproduces JHora's V1..V12** — all
+twelve signs, degrees within 2″. Methods 2/3/4 miss all twelve. Pinned by
+`test_other_varnada_methods_differ`, which fails if the choice ever silently
+becomes a no-op.
+
+**BUG FIXED — the five solar upagrahas were ~23.5° wrong.** `get_chart_details`
+passed `swe.calc_ut(jd, 0)[0][0]` into `drik.solar_upagraha_longitudes` — the
+**tropical** Sun (at a local-time jd, not UT), where the function wants the
+sidereal one. Dhuma, Vyatipata, Parivesha, Indrachapa and Upaketu were all out by
+a whole ayanamsa, i.e. nearly a full sign, for as long as the feature has
+existed. Now taken from the already-sidereal rasi chart; **all five match JHora
+exactly.**
+
+**What was deliberately NOT done.** Adding longitudes does not improve readings;
+adding *rules* does. Only Bhava/Hora/Ghati/Varnada Lagna + Gulika are seeded into
+the prompt and narratable (`INTERPRETED_SPECIAL_LAGNAS`, asserted narrow by
+`test_interpreted_subset_is_narrow`). The rest — Vighati, the solar upagrahas,
+V2..V12 — are computed and displayed as reference data with the prompt explicitly
+told not to invent verdicts for them. Same call as Tripataki (§2.7): draw it,
+don't make up a meaning. Vighati Lagna moves a full sign every four minutes and
+is labelled as meaningless without a second-accurate birth time.
+
+**Kaala-velas in Muhurta: caution, not exclusion.** `get_panchanga` now emits
+`kaala_velas` (the four eighth-part windows) and `get_muhurta` tags each candidate
+window with `kaala_vela` + demotes it in the ranking. They are *not* filtered out:
+they are eighth-parts of the same day as Rahu Kalam / Yamaganda / Gulika Kalam and
+frequently coincide with them (on the test Saturday, Kaala **is** Rahu Kalam), so
+barring all of them would rule out three-quarters of every day — which no muhurta
+tradition does.
+
+**Surfacing.** New "Special Points" tab on `/sensitive-points` (special lagnas /
+upagrahas / V1..V12 tables); AdvancedPage picks the new rows up for free since it
+maps the same arrays. `POST /api/astrology/special-points` (snapshot **appended
+to**, one route). AI: `get_special_points` tool + `special_points` section, seeded
+by default (`SECTION_TOOL`, so the chip can turn it off and the tool can still
+fetch the full table on demand).
+
+**⚠ OPEN — our ascendant and JHora's differ by 13.91′ on the reference chart.**
+JHora prints 25 Ta 04′ 23.79″; we compute 24 Ta 50′ 29.18″. This is *not* a
+formula bug: **raw Swiss Ephemeris agrees with us to 2″**, and every planet
+matches JHora to 0.01″ (so the JD is identical). The gap is exactly reproduced by
+moving the birth longitude ~0.24° east — at lon 78.3175 the ascendant matches to
+0.03′ **and** Sree Lagna, Bhrigu Bindu and all twelve Varnadas snap to exact.
+Conclusion: the two programs were given different coordinates for "Aligarh".
+Needs the owner to confirm what lat/lon JHora holds. Until then
+`test_special_points.py` pins ascendant-independent points to JHora's values and
+ascendant-dependent ones to ours, with JHora's in the comment — that file is the
+single place to update if the coordinates are settled.
+
+Files: `astrology/engine.py` (`SPECIAL_LAGNA_DEFS`, `KAALA_VELA_DEFS`,
+`SOLAR_UPAGRAHA_DEFS`, `KAALA_VELA_PLANETS`, `VARNADA_METHODS`,
+`INTERPRETED_SPECIAL_LAGNAS`, `_hours_from_dms`, 2 new `SPHUTA_DEFS`),
+`compute_charts.py` (`get_chart_details` + the solar-Sun fix),
+`compute_points.py` (`get_special_points`), `compute_panchanga.py`,
+`compute_muhurta.py`, `chart_context.py`, `llm/prompts.py`, `tools.py`,
+`routes/astrology.py`, `contexts/SettingsContext.js`, `pages/SensitivePointsPage.js`,
+`pages/SettingsPage.js`, `services/api.js`, the three locale files.
+
+**Tests: 26 new (`test_special_points.py`) — 407 backend tests pass**, frontend
+builds clean. (`styles/tokens.test.js` has 3 failures that pre-date this work.)

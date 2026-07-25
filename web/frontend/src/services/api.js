@@ -363,6 +363,10 @@ export const astrologyService = {
   // Sensitive points (§11.1): Sphutas + 36 Sahams + Argala, aggregated.
   getSensitivePoints: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/sensitive-points", birthDetails, { params: { ayanamsa } }),
+  getSpecialPoints: (birthDetails, ayanamsa = DEFAULT_AYANAMSA, varnadaMethod = 1) =>
+    api.post("/api/astrology/special-points", birthDetails, {
+      params: { ayanamsa, varnada_method: parseInt(varnadaMethod, 10) || 1 },
+    }),
   analyzeSensitivePointsAI: (birthDetails, opts = {}, model = {}) =>
     api.post(
       "/api/astrology/sensitive-points-analysis",

@@ -1036,5 +1036,12 @@
   "POST /api/astrology/planetary-nakshatras-analysis": {
     "params": [],
     "body": "NakshatraProfileAnalysisRequest"
+  },
+  "POST /api/astrology/special-points": {
+    "params": [
+      "query:ayanamsa",
+      "query:varnada_method"
+    ],
+    "body": "BirthDetails"
   }
 }

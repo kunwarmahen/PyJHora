@@ -451,11 +451,120 @@ SPHUTA_DEFS = [
     ("Mrityu Sphuta",  "mrityu_sphuta",  "Sensitive point of mortality (handle gently)"),
     ("Beeja Sphuta",   "beeja_sphuta",   "Male reproductive vitality (Sun+Jup+Venus)"),
     ("Kshetra Sphuta", "kshetra_sphuta", "Female reproductive vitality (Moon+Jup+Mars)"),
+    ("Sookshma Tri Sphuta", "sookshma_tri_sphuta", "Subtle refinement of Tri Sphuta"),
     ("Tithi Sphuta",   "tithi_sphuta",   "Lunar-day point (Moon−Sun)"),
     ("Yoga Sphuta",    "yoga_sphuta",    "Sun+Moon combined point"),
+    ("Rahu Tithi Sphuta", "rahu_tithi_sphuta", "Rahu-based lunar-day point"),
     ("Yogi Sphuta",    "yogi_sphuta",    "The benefic Yogi point"),
     ("Avayogi Sphuta", "avayogi_sphuta", "The malefic Avayogi point"),
 ]
+
+# ── Special lagnas ─────────────────────────────────────────────────────────
+# Two families, distinguished by how they are computed:
+#
+#   "time"  — the kaala lagnas. All four start from the Sun's longitude at
+#             sunrise and advance at a fixed rate with elapsed time, so they are
+#             extremely birth-time-sensitive. drik exposes one lambda each.
+#   "point" — derived from natal positions (Moon, Rahu, the ascendant), so they
+#             move at ordinary speeds. These are the five we already shipped.
+#
+# Every function here takes (jd, place) and returns [sign_index, degrees].
+#   (label, family, drik function name, significance, minutes-per-degree drift)
+SPECIAL_LAGNA_DEFS = [
+    ("Bhava Lagna",    "time",  "bhava_lagna",
+     "The body and physical existence; read with Hora and Ghati Lagna as a trio."),
+    ("Hora Lagna",     "time",  "hora_lagna",
+     "Wealth and the flow of income. Judge the 2nd and 11th from it."),
+    ("Ghati Lagna",    "time",  "ghati_lagna",
+     "Power, authority and rise in status. Judge the 10th from it."),
+    ("Vighati Lagna",  "time",  "vighati_lagna",
+     "Moves ~1 sign per 4 minutes — only meaningful with a second-accurate birth time."),
+    ("Sree Lagna",     "point", "sree_lagna",
+     "Prosperity and Lakshmi; the flowering of the chart's fortune."),
+    ("Indu Lagna",     "point", "indu_lagna",
+     "The wealth lagna of the Moon-based kala system."),
+    ("Bhrigu Bindu",   "point", "bhrigu_bindhu_lagna",
+     "Moon–Rahu midpoint; a karmic trigger point for major life events."),
+    ("Pranapada Lagna", "point", "pranapada_lagna",
+     "The vital breath; sensitive to birth-time error."),
+    ("Kunda Lagna",    "point", "kunda_lagna",
+     "A subtle point used in Nadi and event-timing work."),
+]
+
+# Only these carry enough classical rule-weight to drive interpretation. The
+# rest are computed and displayed, but deliberately not narrated — see the
+# Tripataki precedent (draw it, don't invent a verdict).
+INTERPRETED_SPECIAL_LAGNAS = ("Bhava Lagna", "Hora Lagna", "Ghati Lagna", "Varnada Lagna")
+
+# ── Upagrahas ──────────────────────────────────────────────────────────────
+# Kaala-velas ("sons of Saturn"): each is the ascendant rising at the middle
+# (or, for Maandi, the beginning) of a given planet's eighth-part of the day.
+# fn(dob_date, tob_tuple, place) -> [sign, degrees].
+KAALA_VELA_DEFS = [
+    ("Gulika",        "gulika_longitude",
+     "The most-used upagraha. Its house and lord mark chronic difficulty."),
+    ("Maandi",        "maandi_longitude",
+     "Gulika's begin-of-part variant, used in Kerala-tradition timing."),
+    ("Kaala",         "kaala_longitude",
+     "Upagraha of the Sun — obstruction from authority."),
+    ("Mrityu",        "mrityu_longitude",
+     "Upagraha of Mars — friction and accident-prone areas (non-literal)."),
+    ("Artha Prahara", "artha_praharaka_longitude",
+     "Upagraha of Mercury — loss through communication or contracts."),
+    ("Yama Ghantaka", "yama_ghantaka_longitude",
+     "Upagraha of Jupiter — obstruction to counsel and good fortune."),
+]
+
+# Solar upagrahas: fixed offsets from the Sun's longitude.
+# drik.solar_upagraha_longitudes(sun_longitude, key) -> [sign, degrees].
+SOLAR_UPAGRAHA_DEFS = [
+    ("Dhuma",       "dhuma",       "Sun + 133°20′ — smoke; obscuration."),
+    ("Vyatipata",   "vyatipaata",  "360° − Dhuma; calamity and reversal."),
+    ("Parivesha",   "parivesha",   "Vyatipata + 180° — halo; confinement."),
+    ("Indrachapa",  "indrachaapa", "360° − Parivesha — the rainbow; brief promise."),
+    ("Upaketu",     "upaketu",     "Indrachapa + 16°40′ — the comet; sudden endings."),
+]
+
+# ── Varnada lagna ──────────────────────────────────────────────────────────
+# PyJHora implements four published derivations that genuinely disagree. Method 1
+# (Sanjay Rath) is the app default: it reproduces Jagannatha Hora's V1..V12
+# exactly (12/12 signs, <2″ on degrees) on the owner's reference chart.
+# The kaala-vela upagrahas as *time* windows: which planet's eighth-part of the
+# day each one rises in. Same planet indices const.day_rulers uses.
+# Gulika/Maandi are omitted here — the panchanga already publishes Gulika Kalam
+# via drik.trikalam, and two entries for one window would only confuse.
+KAALA_VELA_PLANETS = [
+    ("Kaala", 0),           # Sun's part
+    ("Mrityu", 2),          # Mars' part
+    ("Artha Prahara", 3),   # Mercury's part
+    ("Yama Ghantaka", 4),   # Jupiter's part
+]
+
+
+def _hours_from_dms(value):
+    """'05:25:27' / '05:25:27 AM' → 5.4242 float hours. None when unparseable."""
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    txt = str(value).replace(" AM", "").replace(" PM", "").strip()
+    try:
+        parts = [float(p) for p in txt.split(":")]
+    except ValueError:
+        return None
+    if not parts:
+        return None
+    parts += [0.0] * (3 - len(parts))
+    return parts[0] + parts[1] / 60.0 + parts[2] / 3600.0
+
+
+VARNADA_METHODS = {
+    1: ("Sanjay Rath", "Matches Jagannatha Hora. The app default."),
+    2: ("Jha / Pandey", "Mirrors Rath's result across the Aries–Libra axis."),
+    3: ("B. V. Raman", "Raman's Muhurta-tradition derivation."),
+    4: ("Santhanam", "Santhanam's commentary derivation."),
+}
+DEFAULT_VARNADA_METHOD = 1
 
 # The 36 natal Sahams (Arabic-part-like sensitive points). Each engine fn takes
 # (planet_positions, night_time_birth); a few take positions only (handled with a

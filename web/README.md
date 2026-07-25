@@ -54,7 +54,8 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   time is unknown, re-bases the chart to the Moon (Chandra Lagna), warns that Lagna/house/varga results
   are unreliable, and tells the AI to read Moon-referenced,
   Remedies (traditional gemstone / mantra / deity suggestions per weak planet),
-  Sensitive Points (Sphutas, the 36 Sahams, and Argala — with AI reading),
+  Sensitive Points (Special lagnas & upagrahas, Sphutas, the 36 Sahams, and Argala —
+  with AI reading),
   a Vedic Clock & Retrograde page (a live ghati/vighati clock + vakra-gathi retrograde
   loops, with AI reading),
   a **KP (Krishnamurti Paddhati)** page (planet & cuspal sub-lords, four-fold house
@@ -1031,14 +1032,39 @@ Three approaches, chosen with a mode toggle:
 ### 13. Sensitive Points (`/sensitive-points`)
 
 - The chart's **supporting sensitive points**, on one page:
-- **Sphutas** — 12 sensitive longitudes derived from the natal chart (Tri/Chatur/Pancha/
-  Prana/Deha/Mrityu/Beeja/Kshetra/Tithi/Yoga/Yogi/Avayogi), each as a sign + degree + house
+- **Special Points** — the full non-planetary table, matching the one Jagannatha Hora
+  prints:
+  - **Special lagnas** — the four time-based *kaala lagnas* (**Bhava**, **Hora**,
+    **Ghati**, **Vighati**) plus **Sree**, **Indu**, **Bhrigu Bindu**, **Pranapada**,
+    **Kunda** and **Varnada**. The three that carry real predictive rules are read as a
+    trio: **Hora Lagna** for wealth and income (judge the 2nd and 11th from it),
+    **Ghati Lagna** for power and authority (the 10th from it), **Bhava Lagna** for the
+    body. Vighati Lagna moves a full sign every four minutes and is only meaningful with
+    a second-accurate birth time
+  - **Upagrahas** — the six **kaala-velas** (Gulika, Maandi, Kaala, Mrityu, Artha Prahara,
+    Yama Ghantaka) and the five **solar** upagrahas (Dhuma, Vyatipata, Parivesha,
+    Indrachapa, Upaketu)
+  - **Varnada V1..V12** — the Varnada of each house. Four published derivations disagree;
+    the method is a **Settings → Almanac** choice, defaulting to **Sanjay Rath**, the one
+    that reproduces Jagannatha Hora exactly
+  - Only the rule-bearing points (Bhava/Hora/Ghati/Varnada Lagna + Gulika) are fed to the
+    AI as interpretable. The rest are shown as reference data, with the prompt explicitly
+    told not to invent verdicts for them
+- **Sphutas** — 14 sensitive longitudes derived from the natal chart (Tri/Chatur/Pancha/
+  Prana/Deha/Mrityu/Sookshma Tri/Beeja/Kshetra/Tithi/Yoga/Rahu Tithi/Yogi/Avayogi), each
+  as a sign + degree + house
 - **Sahams** — the **36 natal Sahams** (Arabic-part-like points), each tied to a life
   theme (Punya/Vidya/Karma/Artha/Vivaha/Puthra/Rajya/Laabha…), placed by sign + house
 - **Argala & Virodhargala** — per bhava, which houses receive strong planetary
   **intervention** (argala) vs **obstruction** (virodhargala), with a net verdict
 - Optional **AI reading** (model from Ask AI Astrologer) + smart-lookup **tools**
-  (`get_sphuta`, `get_sahams`, `get_argala`)
+  (`get_special_points`, `get_sphuta`, `get_sahams`, `get_argala`). The special lagnas are
+  also **seeded into the chat context by default** (the `special_points` section chip)
+- The **kaala-velas** additionally appear as *time* windows in the panchanga
+  (`kaala_velas`) and annotate Muhurta candidates. They are a **caution, not an
+  exclusion** — they are eighth-parts of the same day as Rahu Kalam / Yamaganda / Gulika
+  Kalam and often coincide with them, so barring all of them would rule out most of every
+  day
 
 ### 14. Vedic Clock & Retrograde (`/vedic-clock`)
 

@@ -76,6 +76,39 @@ class PanchangaMixin:
                 return {"start": s[:5] if isinstance(s, str) else s,
                         "end": e[:5] if isinstance(e, str) else e}
 
+            # Kaala-vela windows: the day sunrise→sunset split into eight parts,
+            # each ruled by a planet in the weekday's own order (const.day_rulers).
+            # The upagraha of the same name is the ascendant rising at the middle
+            # of its planet's part — so these are the *time* faces of the Kaala /
+            # Mrityu / Artha Prahara / Yama Ghantaka points on the natal table.
+            #
+            # NOTE these are informational, not muhurta exclusions. Rahu Kalam,
+            # Yamaganda and Gulika Kalam (above) are the classical trio to avoid
+            # and are already three of the eight parts; treating every kaala-vela
+            # as a bar would rule out three-quarters of every day, which is not
+            # what the tradition does.
+            kaala_velas = []
+            try:
+                sr_h = _hours_from_dms(sr[1])
+                ss_h = _hours_from_dms(ss[1])
+                if sr_h is not None and ss_h is not None and ss_h > sr_h:
+                    one_part = (ss_h - sr_h) / 8.0
+                    rulers = list(const.day_rulers[weekday])
+                    for label, pidx in KAALA_VELA_PLANETS:
+                        if pidx not in rulers:
+                            continue
+                        part = rulers.index(pidx)
+                        w_start = sr_h + part * one_part
+                        kaala_velas.append({
+                            "name": label,
+                            "planet": PLANET_NAMES.get(pidx, str(pidx)),
+                            "part": part + 1,
+                            "start": _fmt_hours(w_start),
+                            "end": _fmt_hours(w_start + one_part),
+                        })
+            except Exception as e:
+                print(f"Kaala-vela windows error: {e}")
+
             durmuhurtam = drik.durmuhurtam(jd_noon, place_obj)  # flat [s,e,(s,e)]
             durm = [{"start": durmuhurtam[i][:5], "end": durmuhurtam[i + 1][:5]}
                     for i in range(0, len(durmuhurtam) - 1, 2)]
@@ -101,6 +134,7 @@ class PanchangaMixin:
                 "rahu_kalam": _period("raahu kaalam"),
                 "yamaganda": _period("yamagandam"),
                 "gulika": _period("gulikai"),
+                "kaala_velas": kaala_velas,
                 "durmuhurtam": durm,
                 "abhijit": {"start": abh[0][:5], "end": abh[1][:5]} if abh else None,
             }

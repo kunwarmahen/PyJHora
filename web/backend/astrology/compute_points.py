@@ -125,6 +125,50 @@ class PointsMixin:
             _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
+    def get_special_points(dob: str, tob: str, place: str,
+                           lat: Optional[float] = None, lon: Optional[float] = None,
+                           tz: Optional[float] = None,
+                           ayanamsa: str = DEFAULT_AYANAMSA,
+                           varnada_method: int = DEFAULT_VARNADA_METHOD) -> Dict:
+        """One consolidated table of every non-planetary sensitive longitude, in
+        the same shape Jagannatha Hora prints them: the special lagnas (four
+        time-based kaala lagnas + five point-derived + Varnada), the upagrahas
+        (six kaala-velas + five solar), Varnada V1..V12 and the Sphutas.
+
+        `interpreted` names the subset that carries enough classical rule-weight
+        to narrate — everything else is reference data and must not be given a
+        verdict it has no basis for.
+        """
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        details = AstrologyCompute.get_chart_details(
+            dob, tob, place, lat, lon, tz, ayanamsa, varnada_method)
+        if details.get("status") != "success":
+            return details
+        sphuta = AstrologyCompute.get_sphuta(dob, tob, place, lat, lon, tz, ayanamsa)
+        return {
+            "status": "success",
+            "lagna_sign": details.get("lagna_sign"),
+            "lagna_sign_name": details.get("lagna_sign_name"),
+            "special_lagnas": details.get("special_lagnas", []),
+            "upagrahas": details.get("upagrahas", []),
+            "varnadas": details.get("varnadas", []),
+            "varnada_method": details.get("varnada_method"),
+            "varnada_method_name": details.get("varnada_method_name"),
+            "sphutas": (sphuta or {}).get("sphutas", []),
+            "interpreted": list(INTERPRETED_SPECIAL_LAGNAS) + ["Gulika"],
+            "note": ("Hora Lagna governs wealth and income (judge the 2nd and 11th "
+                     "from it), Ghati Lagna governs power and authority (judge the "
+                     "10th from it), Bhava Lagna the body — these three are read as "
+                     "a trio. Varnada Lagna gives the chart's overall direction and "
+                     "Gulika marks chronic difficulty. The remaining points are "
+                     "reference data with no settled predictive rule; report their "
+                     "positions but do not invent verdicts from them. Vighati Lagna "
+                     "moves a full sign every four minutes and is meaningless unless "
+                     "the birth time is accurate to the second."),
+        }
+
+    @staticmethod
     def get_argala(dob: str, tob: str, place: str,
                    lat: Optional[float] = None, lon: Optional[float] = None,
                    tz: Optional[float] = None,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Crosshair, Sparkles, Target, ShieldAlert } from "lucide-react";
+import { Crosshair, Sparkles, Target, ShieldAlert, Compass } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
@@ -37,6 +37,7 @@ export const SensitivePointsPage = () => {
 
   const POINT_TABS = useMemo(
     () => [
+      { key: "special", label: t("sensitive.tabs.special") },
       { key: "sphuta", label: t("sensitive.tabs.sphuta") },
       { key: "sahams", label: t("sensitive.tabs.sahams") },
       { key: "argala", label: t("sensitive.tabs.argala") },
@@ -47,8 +48,10 @@ export const SensitivePointsPage = () => {
   const { selectedProfile } = useProfile();
   const { settings } = useSettings();
   const ayanamsa = settings.ayanamsa;
+  const varnadaMethod = settings.varnadaMethod;
 
   const [data, setData] = useState(null);
+  const [special, setSpecial] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -90,14 +93,21 @@ export const SensitivePointsPage = () => {
     setAiAnalysis("");
     setAiError("");
     try {
-      const res = await astrologyService.getSensitivePoints(birthDetails, ayanamsa);
-      setData(res.data);
+      // The two calls are independent; a failure of the special-points table
+      // must not blank out the sphutas/sahams the page has always shown.
+      const [res, sp] = await Promise.allSettled([
+        astrologyService.getSensitivePoints(birthDetails, ayanamsa),
+        astrologyService.getSpecialPoints(birthDetails, ayanamsa, varnadaMethod),
+      ]);
+      if (res.status === "rejected") throw res.reason;
+      setData(res.value.data);
+      setSpecial(sp.status === "fulfilled" ? sp.value.data : null);
     } catch (err) {
       setError(err.response?.data?.detail || t("sensitive.calcError"));
     } finally {
       setLoading(false);
     }
-  }, [birthDetails, ayanamsa, t]);
+  }, [birthDetails, ayanamsa, varnadaMethod, t]);
 
   useEffect(() => {
     if (!selectedProfile) {
@@ -171,6 +181,115 @@ export const SensitivePointsPage = () => {
               onChange={setTab}
               ariaLabel={t("sensitive.title")}
             />
+
+            {tab === "special" && (
+              <>
+                <Card
+                  title={t("sensitive.specialLagnaTitle")}
+                  icon={<Compass size={22} />}
+                  accent="saffron"
+                  count={special?.special_lagnas?.length || 0}
+                >
+                  <p className="card-note">{t("sensitive.specialLagnaNote")}</p>
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>{t("sensitive.colPoint")}</th>
+                          <th>{t("sensitive.colMeaning")}</th>
+                          <th>{t("sensitive.colSign")}</th>
+                          <th>{t("sensitive.colHouse")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(special?.special_lagnas || []).map((s) => (
+                          <tr key={s.name}>
+                            <td className="fw-700">{s.name}</td>
+                            <td className="text-secondary">{s.significance}</td>
+                            <td>
+                              {ln(s.sign_name, "rasi")} {s.degrees}°
+                            </td>
+                            <td>{s.house}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+
+                <div className="mt-xl">
+                  <Card
+                    title={t("sensitive.upagrahaTitle")}
+                    icon={<ShieldAlert size={22} />}
+                    accent="indigo"
+                    count={special?.upagrahas?.length || 0}
+                  >
+                    <p className="card-note">{t("sensitive.upagrahaNote")}</p>
+                    <div className="table-scroll">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>{t("sensitive.colPoint")}</th>
+                            <th>{t("sensitive.colMeaning")}</th>
+                            <th>{t("sensitive.colSign")}</th>
+                            <th>{t("sensitive.colHouse")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(special?.upagrahas || []).map((u) => (
+                            <tr key={u.name}>
+                              <td className="fw-700">{u.name}</td>
+                              <td className="text-secondary">{u.significance}</td>
+                              <td>
+                                {ln(u.sign_name, "rasi")} {u.degrees}°
+                              </td>
+                              <td>{u.house}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                </div>
+
+                <div className="mt-xl">
+                  <Card
+                    title={t("sensitive.varnadaTitle")}
+                    icon={<Crosshair size={22} />}
+                    accent="saffron"
+                    count={special?.varnadas?.length || 0}
+                  >
+                    <p className="card-note">
+                      {t("sensitive.varnadaNote", {
+                        method: special?.varnada_method_name || "",
+                      })}
+                    </p>
+                    <div className="table-scroll">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>{t("sensitive.colPoint")}</th>
+                            <th>{t("sensitive.colSign")}</th>
+                            <th>{t("sensitive.colHouse")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(special?.varnadas || []).map((v) => (
+                            <tr key={v.name}>
+                              <td className="fw-700">{v.name}</td>
+                              <td>
+                                {ln(v.sign_name, "rasi")} {v.degrees}°
+                              </td>
+                              <td>{v.house}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                </div>
+              </>
+            )}
 
             {tab === "sphuta" && (
               <>

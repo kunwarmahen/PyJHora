@@ -31,6 +31,11 @@ DEFAULT_SECTIONS = {
     "conditions": True,
     "avasthas": True,
     "friendships": True,
+    # Special lagnas + upagrahas. Seeded by default, but only the handful that
+    # carry a settled classical rule (Bhava/Hora/Ghati/Varnada lagna + Gulika)
+    # are rendered — see _render_context_block. The full table, including the
+    # reference-only points, stays behind get_special_points.
+    "special_points": True,
     # Tool-first extras: off by default so standard readings aren't bloated, but
     # available in Ask (seed on demand, or fetched via their tools in Smart-lookup).
     "nakshatra": False,
@@ -228,6 +233,21 @@ def build_chart_context(birth_details: Dict[str, Any],
                 "signs": av.get("signs", []),
                 "sarva": av.get("sarva", []),
                 "sarva_total": av.get("sarva_total"),
+            }
+
+    if sections.get("special_points"):
+        sp = AstrologyCompute.get_special_points(ayanamsa=ayanamsa, **args)
+        if sp.get("status") == "success":
+            interpreted = set(sp.get("interpreted", []))
+            # Seed only the rule-bearing points. The rest are real data but have
+            # no settled predictive rule, and a model handed 25 unexplained
+            # longitudes narrates them anyway.
+            ctx["special_points"] = {
+                "special_lagnas": [s for s in sp.get("special_lagnas", [])
+                                   if s.get("name") in interpreted],
+                "upagrahas": [u for u in sp.get("upagrahas", [])
+                              if u.get("name") in interpreted],
+                "note": sp.get("note"),
             }
 
     if sections.get("shadbala"):

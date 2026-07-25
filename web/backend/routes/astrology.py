@@ -287,6 +287,32 @@ async def get_sensitive_points(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/api/astrology/special-points")
+async def get_special_points(
+    birth_details: BirthDetails,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    varnada_method: int = 1,
+    current_user: str = Depends(get_current_user),
+):
+    """Every non-planetary sensitive longitude in one table, matching the layout
+    Jagannatha Hora prints: special lagnas (the four time-based kaala lagnas, the
+    five point-derived ones and Varnada), the eleven upagrahas, Varnada V1..V12
+    and the Sphutas."""
+    try:
+        result = AstrologyCompute.get_special_points(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, ayanamsa=ayanamsa,
+            varnada_method=varnada_method,
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/api/astrology/vedic-clock")
 async def get_vedic_clock(
     date: Optional[str] = None,

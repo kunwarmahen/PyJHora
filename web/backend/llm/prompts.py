@@ -1945,6 +1945,32 @@ Planetary Positions (All 9 Grahas):"""
                 f"arudha occupies): {items}"
             )
 
+        # Special lagnas + upagrahas. Deliberately only the rule-bearing subset
+        # (chart_context filters to `interpreted`): a model handed twenty-five
+        # unexplained longitudes will narrate all of them. The rule for each is
+        # stated inline so the reading is anchored rather than improvised.
+        special = chart_data.get("special_points", {})
+        sp_lagnas = special.get("special_lagnas", []) if isinstance(special, dict) else []
+        sp_upa = special.get("upagrahas", []) if isinstance(special, dict) else []
+        if sp_lagnas or sp_upa:
+            chart_description += (
+                "\n\nSpecial Lagnas & Upagrahas (use these ONLY where the stated "
+                "rule applies; they supplement the Lagna, they do not replace it):"
+            )
+            for s in sp_lagnas + sp_upa:
+                chart_description += (
+                    f"\n- {s.get('name', '?')}: {s.get('sign_name', '?')} "
+                    f"{s.get('degrees', '?')}°, house {s.get('house', '?')} "
+                    f"from Lagna — {s.get('significance', '')}"
+                )
+            chart_description += (
+                "\nHora Lagna is the reference for wealth and income questions "
+                "(judge the 2nd and 11th from it); Ghati Lagna for power, authority "
+                "and promotion (judge the 10th from it); Bhava Lagna for the body. "
+                "Read the three as a trio. Do not invent meanings for points whose "
+                "rule is not given above."
+            )
+
         # Planet conditions ("flags") — the classical point-states that modify how a
         # planet delivers results (combust/vargottama/gandanta/…). One line each.
         conditions = chart_data.get("conditions", {})

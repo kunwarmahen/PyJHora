@@ -428,12 +428,21 @@ class ChartsMixin:
     def get_chart_details(dob: str, tob: str, place: str,
                           lat: Optional[float] = None, lon: Optional[float] = None,
                           tz: Optional[float] = None,
-                          ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
-        """Advanced chart factors: Arudha padas, Chara karakas, Special lagnas, Upagrahas."""
+                          ayanamsa: str = DEFAULT_AYANAMSA,
+                          varnada_method: int = DEFAULT_VARNADA_METHOD) -> Dict:
+        """Advanced chart factors: Arudha padas, Chara karakas, Special lagnas
+        (incl. the four time-based kaala lagnas and Varnada V1..V12), Upagrahas
+        (six kaala-velas + five solar)."""
         if not ENGINE_AVAILABLE:
             return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa(ayanamsa)
+            try:
+                varnada_method = int(varnada_method)
+            except (TypeError, ValueError):
+                varnada_method = DEFAULT_VARNADA_METHOD
+            if varnada_method not in VARNADA_METHODS:
+                varnada_method = DEFAULT_VARNADA_METHOD
             year, month, day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
@@ -463,42 +472,95 @@ class ChartsMixin:
                 for i, idx in enumerate(ck) if i < len(karaka_names)
             ]
 
-            # Special lagnas (each [sign, deg]).
-            special_lagnas = []
-            for label, fn in [("Sree Lagna", drik.sree_lagna),
-                              ("Indu Lagna", drik.indu_lagna),
-                              ("Bhrigu Bindu", drik.bhrigu_bindhu_lagna),
-                              ("Pranapada Lagna", drik.pranapada_lagna),
-                              ("Kunda Lagna", drik.kunda_lagna)]:
-                try:
-                    special_lagnas.append({"name": label, **_sign_deg(fn(jd, place_obj))})
-                except Exception:
-                    pass
+            # Special lagnas: the four time-based kaala lagnas plus the five
+            # point-derived ones, from the shared registry in engine.py.
+            asc_sign = int(pp[0][1][0]) % 12
 
-            # Upagrahas: Gulika/Maandi (kaala-velas) + the five solar upagrahas.
-            upagrahas = []
-            for label, fn in [("Gulika", drik.gulika_longitude), ("Maandi", drik.maandi_longitude)]:
+            def _entry(label, pair, significance=None, family=None):
+                row = {"name": label, **_sign_deg(pair)}
+                sign = int(pair[0]) % 12
+                row["sign"] = sign
+                row["house"] = ((sign - asc_sign) % 12) + 1
+                if significance:
+                    row["significance"] = significance
+                if family:
+                    row["family"] = family
+                return row
+
+            special_lagnas = []
+            for label, family, fn_name, significance in SPECIAL_LAGNA_DEFS:
                 try:
-                    upagrahas.append({"name": label, **_sign_deg(fn(dob_d, tob_t, place_obj))})
-                except Exception:
-                    pass
+                    fn = getattr(drik, fn_name)
+                    special_lagnas.append(
+                        _entry(label, fn(jd, place_obj), significance, family))
+                except Exception as e:
+                    print(f"Special lagna {label} error: {e}")
+
+            # Varnada lagna V1..V12. Method 1 (Sanjay Rath) reproduces Jagannatha
+            # Hora exactly; see VARNADA_METHODS. V1 joins the special-lagna list,
+            # V2..V12 are returned separately as a completeness table.
+            varnadas = []
             try:
-                sun_long = swe.calc_ut(jd, 0)[0][0]
-                solar_names = {"dhuma": "Dhuma", "vyatipaata": "Vyatipata",
-                               "parivesha": "Parivesha", "indrachaapa": "Indrachapa",
-                               "upaketu": "Upaketu"}
-                for key, label in solar_names.items():
-                    upagrahas.append({"name": label,
-                                      **_sign_deg(drik.solar_upagraha_longitudes(sun_long, key))})
-            except Exception:
-                pass
+                for hi in range(1, 13):
+                    pair = charts.varnada_lagna(dob_d, tob_t, place_obj,
+                                                house_index=hi,
+                                                varnada_method=varnada_method)
+                    sign = int(pair[0]) % 12
+                    varnadas.append({
+                        "name": f"V{hi}", "house_index": hi,
+                        "sign": sign, "sign_name": ZODIAC_NAMES[sign],
+                        "degrees": round(float(pair[1]), 2),
+                        "house": ((sign - asc_sign) % 12) + 1,
+                    })
+                if varnadas:
+                    v1 = varnadas[0]
+                    special_lagnas.append({
+                        "name": "Varnada Lagna", "family": "point",
+                        "sign": v1["sign"], "sign_name": v1["sign_name"],
+                        "degrees": v1["degrees"], "house": v1["house"],
+                        "significance": ("Jaimini judgment of the chart's overall "
+                                         "direction and the varna it operates in."),
+                    })
+            except Exception as e:
+                print(f"Varnada lagna error: {e}")
+
+            # Upagrahas: the six kaala-velas + the five solar upagrahas.
+            upagrahas = []
+            for label, fn_name, significance in KAALA_VELA_DEFS:
+                try:
+                    fn = getattr(drik, fn_name)
+                    upagrahas.append(
+                        _entry(label, fn(dob_d, tob_t, place_obj), significance, "kaala-vela"))
+                except Exception as e:
+                    print(f"Upagraha {label} error: {e}")
+            try:
+                # The solar upagrahas are fixed offsets from the Sun and must be
+                # measured from the SIDEREAL Sun. This previously passed
+                # swe.calc_ut(jd, 0) — the tropical longitude, and at a local-time
+                # jd rather than UT — which threw all five out by a whole ayanamsa
+                # (~23.5°, almost a full sign). Take the Sun from the rasi chart,
+                # which is already sidereal and already computed above.
+                sun_sign, sun_deg = pp[1][1]
+                sun_long = (int(sun_sign) % 12) * 30 + float(sun_deg)
+                for label, key, significance in SOLAR_UPAGRAHA_DEFS:
+                    upagrahas.append(
+                        _entry(label, drik.solar_upagraha_longitudes(sun_long, key),
+                               significance, "solar"))
+            except Exception as e:
+                print(f"Solar upagraha error: {e}")
 
             return {
                 "status": "success",
                 "arudha_padas": arudha_padas,
                 "chara_karakas": chara_karakas,
                 "special_lagnas": special_lagnas,
+                "varnadas": varnadas,
+                "varnada_method": varnada_method,
+                "varnada_method_name": VARNADA_METHODS.get(
+                    varnada_method, VARNADA_METHODS[DEFAULT_VARNADA_METHOD])[0],
                 "upagrahas": upagrahas,
+                "lagna_sign": asc_sign,
+                "lagna_sign_name": ZODIAC_NAMES[asc_sign],
             }
         except Exception as e:
             print(f"Chart details error: {str(e)}")

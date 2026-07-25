@@ -137,6 +137,21 @@ class MuhurtaMixin:
                         p = panch.get(key) or {}
                         bad_periods.append((_to_min(p.get("start")), _to_min(p.get("end"))))
 
+                    # Kaala-velas annotate rather than exclude. They are eighth-parts
+                    # of the same day as Rahu Kalam / Yamaganda / Gulika and often
+                    # coincide with them; barring all of them would rule out most of
+                    # every day, which no muhurta tradition does. So a window that
+                    # falls inside one is still offered, with the caution attached.
+                    kaala_velas = [
+                        (kv.get("name"), _to_min(kv.get("start")), _to_min(kv.get("end")))
+                        for kv in (panch.get("kaala_velas") or [])
+                    ]
+
+                    def _kaala_vela_caution(w1, w2):
+                        hits = [n for n, s, e in kaala_velas
+                                if s is not None and e is not None and w1 < e and s < w2]
+                        return ", ".join(hits) if hits else None
+
                     # Abhijit muhurta (midday) — strong for most activities
                     # except marriage/travel where tradition is cautious.
                     abh = panch.get("abhijit")
@@ -148,6 +163,7 @@ class MuhurtaMixin:
                                 "label": "Abhijit Muhurta", "quality": "excellent",
                                 "reason": "Abhijit — the auspicious midday muhurta",
                                 "day_score": score,
+                                "kaala_vela": _kaala_vela_caution(a1, a2),
                             })
 
                     # Benefic daytime horas clear of the inauspicious periods.
@@ -165,6 +181,7 @@ class MuhurtaMixin:
                             "quality": rating,
                             "reason": f"{h['planet']} (benefic) planetary hour",
                             "day_score": score,
+                            "kaala_vela": _kaala_vela_caution(h1, h2),
                         })
 
                     all_windows.extend(windows)
@@ -181,15 +198,19 @@ class MuhurtaMixin:
                     "sunrise": panch.get("sunrise"),
                     "sunset": panch.get("sunset"),
                     "rahu_kalam": panch.get("rahu_kalam"),
+                    "kaala_velas": panch.get("kaala_velas", []),
                     "reasons": reasons,
                     "windows": windows,
                 })
 
-            # Rank the best windows: Abhijit first, then higher day-score, then date.
+            # Rank the best windows: Abhijit first, then clear of any kaala-vela,
+            # then higher day-score, then date. The kaala-vela is a tie-breaker
+            # rather than a filter — see _kaala_vela_caution above.
             _q = {"excellent": 0, "good": 1, "average": 2, "avoid": 3}
             all_windows.sort(key=lambda w: (
                 _q.get(w["quality"], 4),
                 0 if w["label"] == "Abhijit Muhurta" else 1,
+                1 if w.get("kaala_vela") else 0,
                 -w["day_score"], w["date"], w["start"]))
 
             return {

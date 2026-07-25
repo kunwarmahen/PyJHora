@@ -539,6 +539,22 @@ def _sphuta(bd, ayanamsa, **_):
     return {"sphutas": r.get("sphutas", [])}
 
 
+def _special_points(bd, ayanamsa, **_):
+    r = AstrologyCompute.get_special_points(ayanamsa=ayanamsa, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    return {
+        "lagna_sign_name": r.get("lagna_sign_name"),
+        "special_lagnas": r.get("special_lagnas", []),
+        "upagrahas": r.get("upagrahas", []),
+        "varnadas": r.get("varnadas", []),
+        "varnada_method_name": r.get("varnada_method_name"),
+        "sphutas": r.get("sphutas", []),
+        "interpreted": r.get("interpreted", []),
+        "note": r.get("note"),
+    }
+
+
 def _sahams(bd, ayanamsa, **_):
     r = AstrologyCompute.get_sahams(ayanamsa=ayanamsa, **_args(bd))
     if r.get("status") != "success":
@@ -983,6 +999,21 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _sphuta,
     ),
     _Tool(
+        "get_special_points",
+        "Every non-planetary sensitive longitude in one table, as Jagannatha Hora "
+        "prints them: the special lagnas (Bhava/Hora/Ghati/Vighati kaala lagnas, "
+        "Sree, Indu, Bhrigu Bindu, Pranapada, Kunda, Varnada), the eleven upagrahas "
+        "(six kaala-velas incl. Gulika/Maandi + five solar), Varnada V1..V12 and the "
+        "Sphutas. Use Hora Lagna for wealth and income questions (judge the 2nd and "
+        "11th from it), Ghati Lagna for power, authority and promotion questions "
+        "(judge the 10th from it), Varnada Lagna for the chart's overall direction, "
+        "and Gulika for chronic difficulty. The `interpreted` field lists the points "
+        "that carry a settled classical rule — report the positions of the others but "
+        "do NOT invent verdicts from them.",
+        _EMPTY_PARAMS,
+        _special_points,
+    ),
+    _Tool(
         "get_sahams",
         "The 36 natal Sahams (Arabic-part-like sensitive points) for life themes — "
         "Punya (fortune), Vidya (education), Karma (career), Artha (wealth), Vivaha "
@@ -1220,6 +1251,10 @@ SECTION_TOOL: Dict[str, str] = {
     "kota": "get_kota_chakra",
     "kaala": "get_kaala_chakra",
     "tripataki": "get_tripataki_chakra",
+    # Seeded by default (chart_context renders only the rule-bearing subset), but
+    # section-toggled so the tool can still fetch the FULL table — every special
+    # lagna, all eleven upagrahas, V1..V12 and the sphutas — on demand.
+    "special_points": "get_special_points",
 }
 
 # Tools with no section toggle — always available in tool mode so the model can
@@ -1313,6 +1348,8 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_longevity":        {"label": "Ayu (longevity)",        "category": "Strengths & afflictions"},
     "get_nadi":             {"label": "Nadi karaka reading (significators + timing)", "category": "Systems"},
     "get_sphuta":           {"label": "Sphutas (sensitive points)", "category": "Sensitive points"},
+    "get_special_points":   {"label": "Special lagnas & upagrahas (Hora/Ghati/Varnada, Gulika…)",
+                             "category": "Sensitive points"},
     "get_sahams":           {"label": "Sahams (36 points)",     "category": "Sensitive points"},
     "get_argala":           {"label": "Argala (intervention)",  "category": "Sensitive points"},
     "get_dasha_periods":    {"label": "Other dasha systems (Chara, Yogini, Sudarshana Chakra…)", "category": "Timing"},
