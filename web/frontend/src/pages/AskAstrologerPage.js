@@ -55,6 +55,7 @@ const CONTEXT_SECTIONS = [
   { key: "conditions", labelKey: "ask.sectionConditions" },
   { key: "avasthas", labelKey: "ask.sectionAvasthas" },
   { key: "friendships", labelKey: "ask.sectionFriendships" },
+  { key: "special_points", labelKey: "ask.sectionSpecialPoints" },
   { key: "nakshatra", labelKey: "ask.sectionNakshatra" },
   { key: "gochara_phala", labelKey: "ask.sectionGochara" },
   { key: "sarvatobhadra", labelKey: "ask.sectionSarvatobhadra" },
@@ -77,6 +78,10 @@ const DEFAULT_SECTION_STATE = {
   conditions: "tool",
   avasthas: "tool",
   friendships: "tool",
+  // Seeded by default: chart_context renders only the rule-bearing subset
+  // (Bhava/Hora/Ghati/Varnada Lagna + Gulika), which is cheap and load-bearing
+  // for wealth and career questions. The tool still fetches the full table.
+  special_points: "seed",
   nakshatra: "tool",
   gochara_phala: "tool",
   // Chakras (§2.7): fetched on demand — only some questions need them.

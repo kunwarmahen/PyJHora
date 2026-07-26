@@ -38,6 +38,7 @@ export const HELP_SECTIONS = [
       { id: "whatIsNakshatra", to: "/nakshatra" },
       { id: "yogaAndDosha" },
       { id: "retrograde" },
+      { id: "whatIsKaalaVela", to: "/muhurta" },
     ],
   },
   {
@@ -55,6 +56,7 @@ export const HELP_SECTIONS = [
       { id: "featMuhurta", to: "/muhurta" },
       { id: "featPrashna", to: "/prashna" },
       { id: "featSensitivePoints", to: "/sensitive-points" },
+      { id: "featSpecialPoints", to: "/sensitive-points?tab=special" },
       { id: "featVedicClock", to: "/vedic-clock" },
       { id: "featRectify", to: "/rectify" },
       { id: "featLearn", to: "/learn" },

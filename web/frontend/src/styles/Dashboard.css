@@ -2065,6 +2065,38 @@
 .muh-window__date { font-weight: 700; }
 .muh-window__time { font-variant-numeric: tabular-nums; color: var(--saffron); font-weight: 600; }
 .muh-window__reason { font-size: 0.85rem; }
+/* Kaala-vela caution on a candidate window. Deliberately a soft warning, not an
+   error: the window is still offered (see compute_muhurta — these overlap Rahu
+   Kalam/Yamaganda/Gulika so often that barring them would rule out most of the
+   day), it is just flagged and sorted below clear windows. */
+.muh-window__kv {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--warning);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning);
+  white-space: nowrap;
+}
+.muh-day__kv {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+}
+.muh-day__kv-label { color: var(--text-secondary); font-weight: 600; }
+.muh-day__kv-item {
+  color: var(--warning);
+  background: var(--warning-bg);
+  border-radius: 6px;
+  padding: 0.05rem 0.35rem;
+  font-variant-numeric: tabular-nums;
+}
 .muh-q {
   display: inline-block;
   padding: 0.15rem 0.55rem;

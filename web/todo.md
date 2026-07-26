@@ -4976,6 +4976,30 @@ reproduction, root cause, the one-line diff, and a regression test that needs no
 external reference (the Sun at sunrise must never be ahead of the Sun at a later
 birth time).
 
+**Surfacing gaps found by driving the running app (owner report, verified in a
+real browser).** Two of the three reported problems were a **stale backend** —
+`./dev.sh` has no `--reload`, so the process predating the work never had
+`/api/astrology/special-points` registered at all, which is why the Special
+Points tab read 0 everywhere and `get_special_points` was absent from the tool
+catalogue. Restarting fixed both; the Advanced page ("Chart deep dive") was
+likewise fine once restarted — it renders all 10 special lagnas and all 11
+upagrahas, its labels are just uppercased by CSS. Genuinely missing and now
+added:
+- `special_points` was absent from `AskAstrologerPage`'s `CONTEXT_SECTIONS` /
+  `DEFAULT_SECTION_STATE`, so the chip could never be seen or toggled. Added,
+  defaulting to **seed** to match the backend.
+- **Muhurta had no UI at all** for the kaala-velas — the data was in the API and
+  the ranking, but nothing rendered. Now: an amber ⚠ chip on any flagged window
+  and a per-day kaala-vela list in the day cards, styled from `--warning*`
+  tokens so both themes and `tokens.test.js` stay happy.
+- The **type-to-search filter** (`config/features.js`) knew none of the new
+  vocabulary. Added a "Special Points" deep link to `?tab=special` plus keywords
+  for every new point, and kaala-vela terms to muhurta.
+- **Help/FAQ** updated: a new `featSpecialPoints` entry, a `whatIsKaalaVela`
+  FAQ explaining why a flag is "prefer another slot" and not "don't", and the
+  Sensitive Points blurb rewritten to mention the new tab. `help.test.js` (which
+  fails if a feature lacks an entry) and `features.test.js` both pass.
+
 **Full sweep of the upstream bug's blast radius in our code.** Direct callers of
 `drik.bhava_lagna` / `hora_lagna` / `ghati_lagna` / `vighati_lagna`: only
 `get_chart_details` (now `_kaala_lagna`) and `get_longevity` (now `_kaala_lagna`).

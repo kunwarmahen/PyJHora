@@ -977,7 +977,8 @@
     "sectionKota": "Kota Chakra (protection)",
     "sectionKaala": "Kaala Chakra (directions)",
     "sectionTripataki": "Tripataki Chakra (vedha)",
-    "advancedControls": "Answer mode, context & charts to consult"
+    "advancedControls": "Answer mode, context & charts to consult",
+    "sectionSpecialPoints": "Special lagnas"
   },
   "settings": {
     "title": "Settings",
@@ -1736,7 +1737,9 @@
       "night": "Night Choghadiya",
       "now": "Now",
       "note": "Choghadiya: Amrit/Shubh/Labh are good, Char is neutral, Rog/Kaal/Udveg are best avoided."
-    }
+    },
+    "kaalaVelas": "Kaala-velas:",
+    "kaalaVelaHint": "This window overlaps a kaala-vela (a shadow period of the day). It is still usable — kaala-velas often coincide with Rahu Kalam and Gulika Kalam — but a clear window is preferable."
   },
   "prashna": {
     "title": "Prashna",
@@ -2563,7 +2566,9 @@
       "whatIsThis": "What is this app, in one sentence?",
       "whereToStart": "I've added my details. Where do I start?",
       "whyBirthTime": "Why does it keep asking for my exact birth time?",
-      "yogaAndDosha": "What are yogas and doshas?"
+      "yogaAndDosha": "What are yogas and doshas?",
+      "featSpecialPoints": "Special Lagnas & Upagrahas",
+      "whatIsKaalaVela": "What is a “kaala-vela” on the Muhurta page?"
     },
     "a": {
       "aiAccurate": "It faithfully reports what the calculations say and interprets them in the tradition's own terms — the maths is real astronomy. Whether astrology itself predicts anything is a question this app can't settle for you. Please treat every reading as reflection, not instruction, and never as medical, legal or financial advice. AI models can also simply be wrong, and this one occasionally will be.",
@@ -2601,7 +2606,7 @@
       "featRemedies": "The traditional remedial suggestions — gemstones, mantras, charity — for the planets that look strained in your chart. Offered as tradition, not prescription.",
       "featReport": "Everything the app can compute about your chart, laid out as one print-ready document you can save as a PDF or hand to someone.",
       "featSadeSati": "Saturn's roughly seven-and-a-half-year passage over and around your Moon — the cycle most people have heard of and worry about. This shows when yours run and which phase you are in. It is traditionally read as demanding rather than doomed.",
-      "featSensitivePoints": "Specific calculated points in the chart — sphutas, the 36 Sahams, and argala — that experienced readers use for fine detail. Comfortably skippable at first.",
+      "featSensitivePoints": "Specific calculated points in the chart — the special lagnas and upagrahas, the sphutas, the 36 Sahams, and argala — that experienced readers use for fine detail. Comfortably skippable at first.",
       "featStrength": "How strong each planet is, by the traditional measures. Shadbala scores each one against the minimum it is meant to reach, and Bhava Bala does the same for the houses. Useful for judging which parts of a chart actually carry weight.",
       "featTimeline": "Your planetary periods, Sade Sati, and major planetary movements laid out on one scrollable timeline, so you can see how the phases of your life line up.",
       "featTithiPravesha": "Another way to cast a year-ahead chart. Instead of the Sun returning to its birth position (that is Varshaphal), it uses the return of your birth lunar day.",
@@ -2626,7 +2631,9 @@
       "whatIsThis": "It takes your birth date, time and place, works out where the planets were at that moment, and helps you read what Vedic astrology (Jyotish) traditionally makes of it — with an AI that can explain any of it in plain English.",
       "whereToStart": "Open your Birth Chart and read the plain-English panels rather than the diagram. Then try Today for what's happening right now, and ask the AI astrologer anything you're curious about — it can see your chart, so \"what does my chart say about my work?\" is a perfectly good question.",
       "whyBirthTime": "Because the sky changes fast. The \"ascendant\" — the sign coming up over the horizon — moves to a new sign roughly every two hours, and it decides how the whole chart is laid out. A few minutes usually doesn't matter; a few hours changes almost everything. Date and place matter too, but time is the sensitive one.",
-      "yogaAndDosha": "A yoga is a specific planetary combination said to produce a particular result — many are simply favourable patterns worth knowing about. A dosha is an affliction or rough patch in the chart. Both get named dramatically in traditional texts. Read them as emphasis rather than fate: a chart with a dosha is extremely common, and it isn't a diagnosis."
+      "yogaAndDosha": "A yoga is a specific planetary combination said to produce a particular result — many are simply favourable patterns worth knowing about. A dosha is an affliction or rough patch in the chart. Both get named dramatically in traditional texts. Read them as emphasis rather than fate: a chart with a dosha is extremely common, and it isn't a diagnosis.",
+      "featSpecialPoints": "Alternative reference points to your rising sign, plus the “shadow planets”. Three of them do real work: the Hora Lagna is read for money and income, the Ghati Lagna for authority and promotion, and the Bhava Lagna for the body — they are read together as a trio, alongside (never instead of) your normal rising sign. The rest, including Gulika and the solar upagrahas, are shown because a traditional chart lists them; the app does not invent meanings for the ones without a settled rule.",
+      "whatIsKaalaVela": "The daylight is split into eight parts, each ruled by a planet; four of those parts are traditionally treated as shadowed — Kaala, Mrityu, Artha Prahara and Yama Ghantaka. When a suggested time falls inside one, it is flagged rather than removed, because these parts often coincide with Rahu Kalam and Gulika Kalam and excluding them all would rule out most of the day. Treat a flag as “prefer another slot if you have one”, not “do not do it”."
     }
   },
   "arudhaAi": {

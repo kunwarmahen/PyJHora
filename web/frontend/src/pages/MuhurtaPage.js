@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CalendarCheck, Sparkles, MapPin, Clock, Star, Compass, Moon } from "lucide-react";
+import { CalendarCheck, Sparkles, MapPin, Clock, Star, Compass, Moon, AlertTriangle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useRestoreReading } from "../hooks/useRestoreReading";
@@ -404,6 +404,15 @@ export const MuhurtaPage = () => {
                       </span>
                       <span className={`muh-q ${QUALITY_CLASS[w.quality] || ""}`}>{w.label}</span>
                       <span className="muh-window__reason text-secondary">{w.reason}</span>
+                      {/* Kaala-vela overlap is a CAUTION, not a bar — these are
+                          eighth-parts of the same day as Rahu Kalam/Yamaganda/
+                          Gulika and often coincide with them, so the window is
+                          still offered, just flagged and ranked lower. */}
+                      {w.kaala_vela && (
+                        <span className="muh-window__kv" title={t("muhurta.kaalaVelaHint")}>
+                          <AlertTriangle size={13} /> {w.kaala_vela}
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -423,6 +432,16 @@ export const MuhurtaPage = () => {
                     <div className="muh-day__limbs text-secondary">
                       {ln(d.nakshatra?.name, "nakshatra")} · {d.tithi?.name}
                     </div>
+                    {(d.kaala_velas || []).length > 0 && (
+                      <div className="muh-day__kv">
+                        <span className="muh-day__kv-label">{t("muhurta.kaalaVelas")}</span>
+                        {d.kaala_velas.map((kv) => (
+                          <span key={kv.name} className="muh-day__kv-item">
+                            {kv.name} {kv.start}–{kv.end}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
