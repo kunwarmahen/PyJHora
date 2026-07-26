@@ -4970,10 +4970,31 @@ record, the coordinate fix moved HL from 29 Ta 47′ to 0 Ge 15′ and flipped t
 owner's Ayu category from Alpa to Purna — a good illustration of why neither
 error was cosmetic.)
 
-**Bug report written for upstream:** `PYJHORA_BUG_REPORT.md` at the repo root —
+**Bug report written for upstream** (kept out of the repo, gitignored — it is a
+write-up for PyJHora's own tracker, not part of this project):
 reproduction, root cause, the one-line diff, and a regression test that needs no
 external reference (the Sun at sunrise must never be ahead of the Sun at a later
 birth time).
+
+**Full sweep of the upstream bug's blast radius in our code.** Direct callers of
+`drik.bhava_lagna` / `hora_lagna` / `ghati_lagna` / `vighati_lagna`: only
+`get_chart_details` (now `_kaala_lagna`) and `get_longevity` (now `_kaala_lagna`).
+Indirect, via PyJHora modules we import — `house.longevity` / `house.maheshwara`
+and the Varnada *dhasa* both use it, but **we call neither**. The one place it
+still reaches us is `charts._varnada_lagna_sanjay_rath`, which we cannot patch
+without reimplementing the derivation: it calls `drik.hora_lagna` internally, but
+consumes only whether that sign is ODD or EVEN, so a 14′ error only matters when
+the Hora Lagna is within 14′ of a cusp. On this chart it is (0 Ge 15′) and the
+parity still agrees, so V1..V12 match JHora 12/12 — but that is luck, not
+immunity. `test_varnada_is_not_silently_corrupted_by_the_same_bug` asserts the
+parity and says what to do if it ever breaks.
+
+**Phase 2 — the rules are now *directed*, not merely available.** Seeding
+Hora/Ghati Lagna into the context made them visible; the Life Report's **Career**
+chapter now explicitly judges the 10th *from the Ghati Lagna* and the **Wealth**
+chapter the 2nd and 11th *from the Hora Lagna*, each framed as a second opinion
+on the natal house rather than a replacement, and asked to name the tension when
+the two disagree.
 
 **Remaining known deltas, documented not swept away:** Pranapada Lagna ~84′ (a
 genuine formula difference in `drik.pranapada_lagna`; reference-only, no rule
@@ -4991,5 +5012,5 @@ Files: `astrology/engine.py` (`SPECIAL_LAGNA_DEFS`, `KAALA_VELA_DEFS`,
 `routes/astrology.py`, `contexts/SettingsContext.js`, `pages/SensitivePointsPage.js`,
 `pages/SettingsPage.js`, `services/api.js`, the three locale files.
 
-**Tests: 29 new (`test_special_points.py`) — 410 backend tests pass**, frontend
+**Tests: 30 new (`test_special_points.py`) — 411 backend tests pass**, frontend
 builds clean. (`styles/tokens.test.js` has 3 failures that pre-date this work.)

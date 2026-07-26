@@ -95,11 +95,17 @@ class PromptsMixin:
         ("career", "Career & Vocation",
          "the 10th house, its lord and occupants, the D10 (Dasamsa) if present, the "
          "Sun/Saturn/Mercury condition, and Amatyakaraka themes; likely fields, work "
-         "style and the arc of professional life."),
+         "style and the arc of professional life. ALSO judge the 10th house counted "
+         "from the GHATI LAGNA, the classical reference for rise in authority and "
+         "status — where it agrees with the natal 10th, say so plainly; where it "
+         "disagrees, that tension is worth naming."),
         ("wealth", "Wealth & Resources",
          "the 2nd (accumulated wealth) and 11th (gains) houses and their lords, the "
          "role of Jupiter and Venus, and any Dhana yogas; earning capacity, savings "
-         "habits and financial ups and downs — no specific figures or guarantees."),
+         "habits and financial ups and downs — no specific figures or guarantees. "
+         "ALSO judge the 2nd and 11th counted from the HORA LAGNA, the classical "
+         "reference for wealth and the flow of income; treat it as a second opinion "
+         "on the natal 2nd/11th rather than a replacement."),
         ("relationships", "Relationships & Marriage",
          "the 7th house and its lord, Venus (and Jupiter for a woman's chart), the D9 "
          "(Navamsa) and the Upapada (UL); partnership temperament, what one seeks in a "

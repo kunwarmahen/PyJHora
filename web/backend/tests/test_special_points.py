@@ -123,6 +123,37 @@ def test_kaala_lagnas_beat_the_pyjhora_bug(points):
         "in which case _kaala_lagna can be retired"
 
 
+def test_varnada_is_not_silently_corrupted_by_the_same_bug():
+    """The one place the upstream bug still reaches us that we cannot patch.
+
+    `charts._varnada_lagna_sanjay_rath` — the Varnada derivation we default to —
+    calls `drik.hora_lagna` internally, so it inherits the ~14' error. It is
+    mostly immune because it consumes only whether the Hora Lagna's sign is ODD
+    or EVEN, and 14' rarely crosses a sign boundary. "Mostly" is the problem: on
+    this very chart the Hora Lagna sits at 0 Ge 15', i.e. 15' past the cusp, so
+    the margin and the error are the same size.
+
+    This asserts the parity currently agrees. If it ever stops agreeing for a
+    chart we care about, Varnada V1..V12 is wrong and the only fix is to
+    reimplement the derivation locally (as `_kaala_lagna` did for the lagnas).
+    """
+    from jhora.panchanga import drik
+    import swisseph as swe
+    from astrology.engine import _kaala_lagna, KAALA_LAGNA_RATES
+
+    place = drik.Place("Shahgarh", ARGS["lat"], ARGS["lon"], ARGS["tz"])
+    jd = swe.julday(1976, 6, 4, 5 + 45/60 + 2/3600)
+    buggy_sign = int(drik.hora_lagna(jd, place)[0]) % 12
+    fixed_sign = _kaala_lagna(jd, place, KAALA_LAGNA_RATES["Hora Lagna"])[0]
+
+    # 0-based index: 0=Aries is the 1st sign, i.e. odd. Parity is all Varnada uses.
+    assert (buggy_sign % 2) == (fixed_sign % 2), (
+        f"drik's Hora Lagna (sign {buggy_sign}) and the corrected one "
+        f"(sign {fixed_sign}) now differ in odd/even parity — Varnada V1..V12 "
+        "is silently wrong and the derivation must be reimplemented locally"
+    )
+
+
 @pytest.mark.parametrize("name,expected", sorted(JHORA_KAALA_VELAS.items()))
 def test_kaala_vela_matches_jhora(points, name, expected):
     row = _by_name(points["upagrahas"]).get(name)
