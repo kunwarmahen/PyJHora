@@ -447,7 +447,21 @@
     "gochara": "Gochara-phala",
     "journal": "Astro-Journal",
     "lifeReport": "Life Report",
-    "help": "Help & FAQ"
+    "help": "Help & FAQ",
+    "groups": {
+      "start": "Start here",
+      "startHint": "The chart itself, your assistant, and what today holds",
+      "chart": "Read the chart",
+      "chartHint": "Houses, planetary strength, yogas, and the special systems",
+      "timing": "Timing",
+      "timingHint": "Dashas first, then the transits running over them",
+      "calendar": "Calendar & muhurta",
+      "calendarHint": "The sky's own clock, and choosing a moment to act",
+      "relationships": "Relationships",
+      "relationshipsHint": "Matching two charts, side by side",
+      "practice": "Remedies & practice",
+      "practiceHint": "What to do about it — and your own record of the work"
+    }
   },
   "aiTools": {
     "title": "AI Capabilities",
@@ -2565,6 +2579,7 @@
       "whatIsSign": "What does it mean that a planet is \"in\" a sign?",
       "whatIsThis": "What is this app, in one sentence?",
       "whereToStart": "I've added my details. Where do I start?",
+      "dashboardLayout": "The dashboard has a lot of tiles. How is it organised?",
       "whyBirthTime": "Why does it keep asking for my exact birth time?",
       "yogaAndDosha": "What are yogas and doshas?",
       "featSpecialPoints": "Special Lagnas & Upagrahas",
@@ -2631,6 +2646,7 @@
       "whatIsSign": "The zodiac is a circle split into twelve 30° signs, and at any moment each planet sits in one of them. The sign describes the *manner* of a planet — Mars in a cautious sign behaves differently from Mars in a bold one. Note that Vedic astrology uses the sidereal zodiac, measured against the actual stars, so your Sun sign here is often one back from the one in a newspaper horoscope. That's expected, not a bug.",
       "whatIsThis": "It takes your birth date, time and place, works out where the planets were at that moment, and helps you read what Vedic astrology (Jyotish) traditionally makes of it — with an AI that can explain any of it in plain English.",
       "whereToStart": "Open your Birth Chart and read the plain-English panels rather than the diagram. Then try Today for what's happening right now, and ask the AI astrologer anything you're curious about — it can see your chart, so \"what does my chart say about my work?\" is a perfectly good question.",
+      "dashboardLayout": "In the order a reading actually goes. Start here is your chart, the AI and today. Read the chart is everything that describes the chart as it stands. Timing is when things happen — dashas first, then the transits running over them. Calendar & muhurta is the sky's own clock and picking a moment to act. Then Relationships, and Remedies & practice for what to do about it. The nav menu uses the same six sections, and if you know what you want, just start typing on the dashboard to filter.",
       "whyBirthTime": "Because the sky changes fast. The \"ascendant\" — the sign coming up over the horizon — moves to a new sign roughly every two hours, and it decides how the whole chart is laid out. A few minutes usually doesn't matter; a few hours changes almost everything. Date and place matter too, but time is the sensitive one.",
       "yogaAndDosha": "A yoga is a specific planetary combination said to produce a particular result — many are simply favourable patterns worth knowing about. A dosha is an affliction or rough patch in the chart. Both get named dramatically in traditional texts. Read them as emphasis rather than fate: a chart with a dosha is extremely common, and it isn't a diagnosis.",
       "featSpecialPoints": "Alternative reference points to your rising sign, plus the “shadow planets”. Three of them do real work: the Hora Lagna is read for money and income, the Ghati Lagna for authority and promotion, and the Bhava Lagna for the body — they are read together as a trio, alongside (never instead of) your normal rising sign. The rest, including Gulika and the solar upagrahas, are shown because a traditional chart lists them; the app does not invent meanings for the ones without a settled rule.",

@@ -1,4 +1,11 @@
-import { FEATURES, visibleFeatures, featureForPath, isFeatureVisible } from "./features";
+import {
+  FEATURES,
+  FEATURE_GROUPS,
+  visibleFeatures,
+  groupedFeatures,
+  featureForPath,
+  isFeatureVisible,
+} from "./features";
 
 describe("feature registry", () => {
   it("has a unique path and key per feature", () => {
@@ -16,6 +23,34 @@ describe("feature registry", () => {
       // Everything that becomes a dashboard tile needs a gradient; navOnly
       // entries (Dashboard, Settings) are drawer-only and don't.
       if (!f.navOnly) expect(f.gradient).toMatch(/^linear-gradient/);
+    });
+  });
+
+  // A typo'd or invented group would silently vanish from both the dashboard
+  // and the drawer: groupedFeatures only emits sections it knows about.
+  it("puts every feature in a declared group", () => {
+    const known = new Set(FEATURE_GROUPS.map((g) => g.key));
+    FEATURES.forEach((f) => expect(known).toContain(f.group));
+  });
+
+  describe("groupedFeatures", () => {
+    it("keeps every feature, in registry order, section by section", () => {
+      const flat = groupedFeatures(FEATURES).flatMap((s) => s.features);
+      expect(flat).toEqual(FEATURES);
+    });
+
+    it("emits sections in FEATURE_GROUPS order", () => {
+      const keys = groupedFeatures(FEATURES).map((s) => s.key);
+      expect(keys).toEqual(FEATURE_GROUPS.map((g) => g.key));
+    });
+
+    // Essentials advertises nothing from Calendar & Muhurta, and a search for
+    // "dasha" empties most sections — a bare heading over no tiles is a bug.
+    it("drops sections with nothing left in them", () => {
+      const sections = groupedFeatures(visibleFeatures("simple"));
+      sections.forEach((s) => expect(s.features.length).toBeGreaterThan(0));
+      expect(sections.map((s) => s.key)).not.toContain("calendar");
+      expect(groupedFeatures([])).toEqual([]);
     });
   });
 

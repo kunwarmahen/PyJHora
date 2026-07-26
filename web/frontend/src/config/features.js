@@ -54,21 +54,46 @@ import {
  *             "advanced" → only in Everything mode. Never *gated*: an advanced
  *                          path still renders in Essentials mode if you deep-link
  *                          to it, it just isn't advertised. See <AdvancedNotice>.
- *   group     coarse grouping, for the drawer's section headings.
+ *   group     section this feature belongs to — a key from FEATURE_GROUPS below.
+ *             The dashboard and the drawer both render section headings from it.
  *   navOnly   in the drawer but not a dashboard tile (Dashboard, Settings).
  *   footer    drawer renders it in the footer with the other account-level
  *             actions (Help, Logout) instead of in the feature list.
  *   gradient  dashboard tile icon wash.
  *
- * Ordering here is the render order everywhere.
+ * Ordering here is the render order everywhere: features are listed section by
+ * section in FEATURE_GROUPS order, and within a section in the order an
+ * astrologer would actually reach for them.
  */
+/**
+ * The sections features are clustered into, in render order.
+ *
+ * The order is the order of a reading, not an alphabet and not the order these
+ * pages happened to get built: you cast the chart, you read the chart, you time
+ * it with dashas and transits, you consult the calendar for a moment to act,
+ * and only then do you talk about partners and remedies. Tiles that an
+ * astrologer reaches for in the same breath now sit next to each other.
+ *
+ *   key    matches `group` on a feature; labels come from `nav.groups.<key>`
+ *          (heading) and `nav.groups.<key>Hint` (the dashboard's one-liner).
+ */
+export const FEATURE_GROUPS = [
+  { key: "start" },
+  { key: "chart" },
+  { key: "timing" },
+  { key: "calendar" },
+  { key: "relationships" },
+  { key: "practice" },
+];
+
 export const FEATURES = [
+  // ═══ Start here — the chart itself, the assistant, and today ════════════════
   {
     key: "dashboard",
     path: "/dashboard",
     Icon: LayoutDashboard,
     tier: "simple",
-    group: "core",
+    group: "start",
     navOnly: true,
   },
   {
@@ -76,7 +101,7 @@ export const FEATURES = [
     path: "/birth-chart",
     Icon: Calendar,
     tier: "simple",
-    group: "core",
+    group: "start",
     gradient: "linear-gradient(135deg, #FF9933 0%, #FFB347 100%)",
   },
   {
@@ -84,7 +109,7 @@ export const FEATURES = [
     path: "/ask-astrologer",
     Icon: MessageCircle,
     tier: "simple",
-    group: "core",
+    group: "start",
     gradient: "linear-gradient(135deg, #E27B5A 0%, #E34234 100%)",
   },
   {
@@ -92,17 +117,99 @@ export const FEATURES = [
     path: "/daily-digest",
     Icon: Sun,
     tier: "simple",
-    group: "core",
+    group: "start",
     gradient: "linear-gradient(135deg, #FF9933 0%, #E27B5A 100%)",
   },
+  // ═══ Read the chart — houses, then grahas, then the special systems ═════════
   {
-    key: "compatibility",
-    path: "/compatibility",
-    Icon: Heart,
-    tier: "simple",
-    group: "core",
-    gradient: "linear-gradient(135deg, #D4AF37 0%, #FFB347 100%)",
+    key: "bhava",
+    path: "/bhava",
+    Icon: Home,
+    tier: "advanced",
+    group: "chart",
+    gradient: "linear-gradient(135deg, #E27B5A 0%, #D4AF37 100%)",
   },
+  {
+    key: "nakshatra",
+    path: "/nakshatra",
+    Icon: Star,
+    tier: "advanced",
+    group: "chart",
+    gradient: "linear-gradient(135deg, #D4AF37 0%, #FF9933 100%)",
+  },
+  {
+    key: "strength",
+    path: "/strength",
+    Icon: Gauge,
+    tier: "advanced",
+    group: "chart",
+    gradient: "linear-gradient(135deg, #D4AF37 0%, #2E9E5B 100%)",
+  },
+  {
+    key: "advanced",
+    path: "/advanced",
+    Icon: Sparkles,
+    tier: "advanced",
+    group: "chart",
+    gradient: "linear-gradient(135deg, #D4AF37 0%, #E27B5A 100%)",
+  },
+  {
+    key: "sensitivePoints",
+    path: "/sensitive-points",
+    Icon: Crosshair,
+    tier: "advanced",
+    group: "chart",
+    gradient: "linear-gradient(135deg, #2D3561 0%, #D4AF37 100%)",
+  },
+  {
+    key: "jaimini",
+    path: "/jaimini",
+    Icon: Layers,
+    tier: "advanced",
+    group: "chart",
+    gradient: "linear-gradient(135deg, #E27B5A 0%, #E34234 100%)",
+  },
+  {
+    key: "kp",
+    path: "/kp",
+    Icon: Compass,
+    tier: "advanced",
+    group: "chart",
+    gradient: "linear-gradient(135deg, #2D3561 0%, #5A5F7A 100%)",
+  },
+  {
+    key: "nadi",
+    path: "/nadi",
+    Icon: ScrollText,
+    tier: "advanced",
+    group: "chart",
+    gradient: "linear-gradient(135deg, #3A3F5A 0%, #C97B4A 100%)",
+  },
+  {
+    key: "bhrigu",
+    path: "/bhrigu-markers",
+    Icon: Waypoints,
+    tier: "advanced",
+    group: "chart",
+    gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
+  },
+  {
+    key: "lifeReport",
+    path: "/life-report",
+    Icon: ScrollText,
+    tier: "simple",
+    group: "chart",
+    gradient: "linear-gradient(135deg, #D4AF37 0%, #2D3561 100%)",
+  },
+  {
+    key: "report",
+    path: "/report",
+    Icon: FileText,
+    tier: "advanced",
+    group: "chart",
+    gradient: "linear-gradient(135deg, #D4AF37 0%, #FF9933 100%)",
+  },
+  // ═══ Timing — dashas first, then transits over them ═════════════════════════
   {
     key: "dhasa",
     path: "/dhasa",
@@ -110,6 +217,14 @@ export const FEATURES = [
     tier: "simple",
     group: "timing",
     gradient: "linear-gradient(135deg, #2D3561 0%, #5A5F7A 100%)",
+  },
+  {
+    key: "timeline",
+    path: "/timeline",
+    Icon: GanttChartSquare,
+    tier: "advanced",
+    group: "timing",
+    gradient: "linear-gradient(135deg, #2D3561 0%, #E27B5A 100%)",
   },
   {
     key: "transit",
@@ -120,41 +235,6 @@ export const FEATURES = [
     gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
   },
   {
-    key: "remedies",
-    path: "/remedies",
-    Icon: Gem,
-    tier: "simple",
-    group: "core",
-    gradient: "linear-gradient(135deg, #E27B5A 0%, #D4AF37 100%)",
-  },
-  {
-    key: "lifeReport",
-    path: "/life-report",
-    Icon: ScrollText,
-    tier: "simple",
-    group: "core",
-    gradient: "linear-gradient(135deg, #D4AF37 0%, #2D3561 100%)",
-  },
-  {
-    key: "history",
-    path: "/history",
-    Icon: History,
-    tier: "simple",
-    group: "core",
-    gradient: "linear-gradient(135deg, #FF9933 0%, #2D3561 100%)",
-  },
-  {
-    key: "settings",
-    path: "/settings",
-    Icon: Settings,
-    tier: "simple",
-    group: "core",
-    navOnly: true,
-    footer: true,
-  },
-
-  // ── Everything-only from here down ────────────────────────────────────────
-  {
     key: "gochara",
     path: "/gochara",
     Icon: Orbit,
@@ -163,36 +243,12 @@ export const FEATURES = [
     gradient: "linear-gradient(135deg, #2D3561 0%, #C97B54 100%)",
   },
   {
-    key: "nakshatra",
-    path: "/nakshatra",
-    Icon: Star,
+    key: "sadeSati",
+    path: "/sade-sati",
+    Icon: Aperture,
     tier: "advanced",
-    group: "analysis",
-    gradient: "linear-gradient(135deg, #D4AF37 0%, #FF9933 100%)",
-  },
-  {
-    key: "ephemeris",
-    path: "/ephemeris",
-    Icon: CalendarRange,
-    tier: "advanced",
-    group: "reference",
-    gradient: "linear-gradient(135deg, #2D3561 0%, #D4AF37 100%)",
-  },
-  {
-    key: "bhava",
-    path: "/bhava",
-    Icon: Home,
-    tier: "advanced",
-    group: "analysis",
-    gradient: "linear-gradient(135deg, #E27B5A 0%, #D4AF37 100%)",
-  },
-  {
-    key: "report",
-    path: "/report",
-    Icon: FileText,
-    tier: "advanced",
-    group: "analysis",
-    gradient: "linear-gradient(135deg, #D4AF37 0%, #FF9933 100%)",
+    group: "timing",
+    gradient: "linear-gradient(135deg, #5A5F7A 0%, #B23A48 100%)",
   },
   {
     key: "varshaphal",
@@ -210,20 +266,13 @@ export const FEATURES = [
     group: "timing",
     gradient: "linear-gradient(135deg, #2D3561 0%, #FF9933 100%)",
   },
-  {
-    key: "almanac",
-    path: "/almanac",
-    Icon: CalendarDays,
-    tier: "advanced",
-    group: "reference",
-    gradient: "linear-gradient(135deg, #FFB347 0%, #D4AF37 100%)",
-  },
+  // ═══ Calendar & muhurta — the sky's own clock, and picking a moment ═════════
   {
     key: "fortnightlyDigest",
     path: "/fortnightly-digest",
     Icon: CalendarDays,
     tier: "advanced",
-    group: "timing",
+    group: "calendar",
     gradient: "linear-gradient(135deg, #F0883E 0%, #D4AF37 100%)",
   },
   {
@@ -231,71 +280,31 @@ export const FEATURES = [
     path: "/monthly-digest",
     Icon: CalendarRange,
     tier: "advanced",
-    group: "timing",
+    group: "calendar",
     gradient: "linear-gradient(135deg, #E27B5A 0%, #B5651D 100%)",
+  },
+  {
+    key: "almanac",
+    path: "/almanac",
+    Icon: CalendarDays,
+    tier: "advanced",
+    group: "calendar",
+    gradient: "linear-gradient(135deg, #FFB347 0%, #D4AF37 100%)",
   },
   {
     key: "muhurta",
     path: "/muhurta",
     Icon: CalendarCheck,
     tier: "advanced",
-    group: "timing",
+    group: "calendar",
     gradient: "linear-gradient(135deg, #D4AF37 0%, #FFB347 100%)",
-  },
-  {
-    key: "prashna",
-    path: "/prashna",
-    Icon: HelpCircle,
-    tier: "advanced",
-    group: "tools",
-    gradient: "linear-gradient(135deg, #2D3561 0%, #5A5F7A 100%)",
-  },
-  {
-    key: "timeline",
-    path: "/timeline",
-    Icon: GanttChartSquare,
-    tier: "advanced",
-    group: "timing",
-    gradient: "linear-gradient(135deg, #2D3561 0%, #E27B5A 100%)",
-  },
-  {
-    key: "strength",
-    path: "/strength",
-    Icon: Gauge,
-    tier: "advanced",
-    group: "analysis",
-    gradient: "linear-gradient(135deg, #D4AF37 0%, #2E9E5B 100%)",
-  },
-  {
-    key: "sadeSati",
-    path: "/sade-sati",
-    Icon: Aperture,
-    tier: "advanced",
-    group: "timing",
-    gradient: "linear-gradient(135deg, #5A5F7A 0%, #B23A48 100%)",
-  },
-  {
-    key: "bhrigu",
-    path: "/bhrigu-markers",
-    Icon: Waypoints,
-    tier: "advanced",
-    group: "analysis",
-    gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
-  },
-  {
-    key: "nadi",
-    path: "/nadi",
-    Icon: ScrollText,
-    tier: "advanced",
-    group: "analysis",
-    gradient: "linear-gradient(135deg, #3A3F5A 0%, #C97B4A 100%)",
   },
   {
     key: "panchaPakshi",
     path: "/pancha-pakshi",
     Icon: Bird,
     tier: "advanced",
-    group: "tools",
+    group: "calendar",
     gradient: "linear-gradient(135deg, #E27B5A 0%, #FFB347 100%)",
   },
   {
@@ -303,88 +312,107 @@ export const FEATURES = [
     path: "/chakras",
     Icon: Grid3x3,
     tier: "advanced",
-    group: "tools",
+    group: "calendar",
     gradient: "linear-gradient(135deg, #FF9933 0%, #2D3561 100%)",
-  },
-  {
-    key: "sensitivePoints",
-    path: "/sensitive-points",
-    Icon: Crosshair,
-    tier: "advanced",
-    group: "analysis",
-    gradient: "linear-gradient(135deg, #2D3561 0%, #D4AF37 100%)",
   },
   {
     key: "vedicClock",
     path: "/vedic-clock",
     Icon: Timer,
     tier: "advanced",
-    group: "reference",
+    group: "calendar",
     gradient: "linear-gradient(135deg, #5A5F7A 0%, #FF9933 100%)",
-  },
-  {
-    key: "kp",
-    path: "/kp",
-    Icon: Compass,
-    tier: "advanced",
-    group: "analysis",
-    gradient: "linear-gradient(135deg, #2D3561 0%, #5A5F7A 100%)",
-  },
-  {
-    key: "jaimini",
-    path: "/jaimini",
-    Icon: Layers,
-    tier: "advanced",
-    group: "analysis",
-    gradient: "linear-gradient(135deg, #E27B5A 0%, #E34234 100%)",
   },
   {
     key: "now",
     path: "/now",
     Icon: Globe,
     tier: "advanced",
-    group: "reference",
+    group: "calendar",
     gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
   },
   {
-    key: "advanced",
-    path: "/advanced",
-    Icon: Sparkles,
+    key: "ephemeris",
+    path: "/ephemeris",
+    Icon: CalendarRange,
     tier: "advanced",
-    group: "analysis",
-    gradient: "linear-gradient(135deg, #D4AF37 0%, #E27B5A 100%)",
+    group: "calendar",
+    gradient: "linear-gradient(135deg, #2D3561 0%, #D4AF37 100%)",
+  },
+  // ═══ Relationships ══════════════════════════════════════════════════════════
+  {
+    key: "compatibility",
+    path: "/compatibility",
+    Icon: Heart,
+    tier: "simple",
+    group: "relationships",
+    gradient: "linear-gradient(135deg, #D4AF37 0%, #FFB347 100%)",
   },
   {
     key: "compare",
     path: "/compare",
     Icon: GitCompareArrows,
     tier: "advanced",
-    group: "tools",
+    group: "relationships",
     gradient: "linear-gradient(135deg, #2D3561 0%, #E27B5A 100%)",
   },
+  // ═══ Remedies & your own practice ═══════════════════════════════════════════
   {
-    key: "rectify",
-    path: "/rectify",
-    Icon: Clock4,
-    tier: "advanced",
-    group: "tools",
-    gradient: "linear-gradient(135deg, #E27B5A 0%, #2D3561 100%)",
+    key: "remedies",
+    path: "/remedies",
+    Icon: Gem,
+    tier: "simple",
+    group: "practice",
+    gradient: "linear-gradient(135deg, #E27B5A 0%, #D4AF37 100%)",
   },
   {
-    key: "learn",
-    path: "/learn",
-    Icon: GraduationCap,
+    key: "prashna",
+    path: "/prashna",
+    Icon: HelpCircle,
     tier: "advanced",
-    group: "tools",
-    gradient: "linear-gradient(135deg, #E27B5A 0%, #D4AF37 100%)",
+    group: "practice",
+    gradient: "linear-gradient(135deg, #2D3561 0%, #5A5F7A 100%)",
   },
   {
     key: "journal",
     path: "/journal",
     Icon: BookText,
     tier: "advanced",
-    group: "tools",
+    group: "practice",
     gradient: "linear-gradient(135deg, #C97B54 0%, #2D3561 100%)",
+  },
+  {
+    key: "history",
+    path: "/history",
+    Icon: History,
+    tier: "simple",
+    group: "practice",
+    gradient: "linear-gradient(135deg, #FF9933 0%, #2D3561 100%)",
+  },
+  {
+    key: "learn",
+    path: "/learn",
+    Icon: GraduationCap,
+    tier: "advanced",
+    group: "practice",
+    gradient: "linear-gradient(135deg, #E27B5A 0%, #D4AF37 100%)",
+  },
+  {
+    key: "rectify",
+    path: "/rectify",
+    Icon: Clock4,
+    tier: "advanced",
+    group: "practice",
+    gradient: "linear-gradient(135deg, #E27B5A 0%, #2D3561 100%)",
+  },
+  {
+    key: "settings",
+    path: "/settings",
+    Icon: Settings,
+    tier: "simple",
+    group: "practice",
+    navOnly: true,
+    footer: true,
   },
 ];
 
@@ -487,6 +515,19 @@ export const FEATURE_SUBITEMS = [
 /** Features to advertise for a ui mode. "advanced" mode shows everything. */
 export const visibleFeatures = (uiMode) =>
   uiMode === "advanced" ? FEATURES : FEATURES.filter((f) => f.tier === "simple");
+
+/**
+ * Split an already-filtered feature list into its sections, in FEATURE_GROUPS
+ * order. Sections with nothing left in them are dropped — Essentials mode empties
+ * Calendar & Muhurta entirely, and a search for "dasha" empties most of them.
+ * Callers pass whatever list they're rendering (mode-filtered, search-filtered,
+ * drawer minus its footer links) so the grouping never contradicts the filter.
+ */
+export const groupedFeatures = (features) =>
+  FEATURE_GROUPS.map((group) => ({
+    ...group,
+    features: features.filter((f) => f.group === group.key),
+  })).filter((section) => section.features.length > 0);
 
 /** The registry entry owning a route, or undefined. */
 export const featureForPath = (path) => FEATURES.find((f) => f.path === path);

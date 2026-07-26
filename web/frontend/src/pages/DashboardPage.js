@@ -12,7 +12,13 @@ import { NowChartWidget } from "../components/NowChartWidget";
 import { UiModeToggle } from "../components/UiModeToggle";
 import { BrandLogo } from "../components/BrandLogo";
 import { SITE_TITLE } from "../config/branding";
-import { visibleFeatures, FEATURE_ALIASES, FEATURE_SUBITEMS, featureForKey } from "../config/features";
+import {
+  visibleFeatures,
+  groupedFeatures,
+  FEATURE_ALIASES,
+  FEATURE_SUBITEMS,
+  featureForKey,
+} from "../config/features";
 import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 
@@ -94,6 +100,12 @@ export const DashboardPage = () => {
       return tokens.every((tok) => hay.includes(tok));
     });
   }, [q, tokens, t]);
+
+  // Tiles are laid out section by section in reading order (cast → read → time
+  // → calendar → relationships → remedies), not as one undifferentiated grid,
+  // so features an astrologer uses together sit together. Grouping the SEARCH
+  // results too keeps a match in the same place it lives when you're browsing.
+  const sections = useMemo(() => groupedFeatures(filtered), [filtered]);
 
   const closeSearch = () => {
     setQuery("");
@@ -240,35 +252,41 @@ export const DashboardPage = () => {
           </p>
         ) : (
           <>
-            {filtered.length > 0 && (
-              <div className="features-grid">
-                {filtered.map((feature, index) => (
-                  <Link
-                    key={feature.key}
-                    to={feature.path}
-                    className={`feature-card fade-in stagger-${index + 1}`}
-                  >
-                    <div className="feature-icon" style={{ background: feature.gradient }}>
-                      <feature.Icon size={32} />
-                    </div>
-                    <h3>{t(`dashboard.features.${feature.key}.title`)}</h3>
-                    <p>{t(`dashboard.features.${feature.key}.description`)}</p>
-                    <div className="feature-arrow">
-                      <span>{t("dashboard.explore")}</span>
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path
-                          d="M6 3L11 8L6 13"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
+            {sections.map((section) => (
+              <section key={section.key} className="feature-section">
+                <div className="feature-section__head fade-in">
+                  <h4 className="feature-section__title">{t(`nav.groups.${section.key}`)}</h4>
+                  <p className="feature-section__hint">{t(`nav.groups.${section.key}Hint`)}</p>
+                </div>
+                <div className="features-grid">
+                  {section.features.map((feature, index) => (
+                    <Link
+                      key={feature.key}
+                      to={feature.path}
+                      className={`feature-card fade-in stagger-${index + 1}`}
+                    >
+                      <div className="feature-icon" style={{ background: feature.gradient }}>
+                        <feature.Icon size={32} />
+                      </div>
+                      <h3>{t(`dashboard.features.${feature.key}.title`)}</h3>
+                      <p>{t(`dashboard.features.${feature.key}.description`)}</p>
+                      <div className="feature-arrow">
+                        <span>{t("dashboard.explore")}</span>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path
+                            d="M6 3L11 8L6 13"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ))}
 
             {subMatches.length > 0 && (
               <div className="dashboard-subresults fade-in">

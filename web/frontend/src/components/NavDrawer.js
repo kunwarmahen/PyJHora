@@ -5,7 +5,7 @@ import { Menu, X, Sparkles, LogOut, ShieldAlert, HelpCircle } from "lucide-react
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
-import { visibleFeatures } from "../config/features";
+import { visibleFeatures, groupedFeatures } from "../config/features";
 import { UiModeToggle } from "./UiModeToggle";
 import { BrandLogo } from "./BrandLogo";
 import { SITE_TITLE } from "../config/branding";
@@ -25,7 +25,7 @@ export const NavDrawer = () => {
   const visible = visibleFeatures(settings.uiMode);
   // Features flagged `footer` (Settings) live down with Help/Logout — they're
   // account-level actions, not places to explore.
-  const links = visible.filter((f) => !f.footer);
+  const sections = groupedFeatures(visible.filter((f) => !f.footer));
   const footerLinks = visible.filter((f) => f.footer);
 
   const go = (to) => {
@@ -76,15 +76,22 @@ export const NavDrawer = () => {
         <UiModeToggle />
 
         <nav className="nav-drawer-links">
-          {links.map(({ key, path, Icon }) => (
-            <button
-              key={path}
-              className={`nav-drawer-link ${location.pathname === path ? "active" : ""}`}
-              onClick={() => go(path)}
-            >
-              <Icon size={20} />
-              <span>{t(`nav.${key}`)}</span>
-            </button>
+          {/* Same sections, same order as the dashboard tiles — a 38-item flat
+              list gave no hint which entries belong to the same reading. */}
+          {sections.map((section) => (
+            <div key={section.key} className="nav-drawer-section">
+              <div className="nav-drawer-section-title">{t(`nav.groups.${section.key}`)}</div>
+              {section.features.map(({ key, path, Icon }) => (
+                <button
+                  key={path}
+                  className={`nav-drawer-link ${location.pathname === path ? "active" : ""}`}
+                  onClick={() => go(path)}
+                >
+                  <Icon size={20} />
+                  <span>{t(`nav.${key}`)}</span>
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
 

@@ -331,10 +331,46 @@
   color: var(--text-secondary);
 }
 
-/* Features Grid */
+/* Feature sections — tiles clustered in reading order (see FEATURE_GROUPS).
+   The heading is deliberately quieter than .section-header above it: it labels a
+   band of tiles, it doesn't compete with the page title. */
+.feature-section + .feature-section {
+  margin-top: var(--space-2xl);
+}
+
+.feature-section__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--sandalwood);
+}
+
+.feature-section__title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--saffron);
+  white-space: nowrap;
+}
+
+.feature-section__hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Features Grid.
+   auto-FILL, not auto-fit: now that tiles are split into sections, a section
+   with one or two tiles would have them stretched across the whole row (a
+   full-width "Life Report" slab in Essentials mode). auto-fill keeps the empty
+   tracks, so a tile is the same size in every section. */
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(var(--tile-min), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr));
   gap: var(--card-gap);
 }
 
@@ -434,7 +470,7 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
   .features-grid {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 }
 
@@ -472,6 +508,13 @@
 
   .features-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* The hint no longer fits beside the label at this width. */
+  .feature-section__head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
   }
 }
 

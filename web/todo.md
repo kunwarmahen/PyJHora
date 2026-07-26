@@ -5213,3 +5213,78 @@ Tests: `test_shashtihayani_matches_jhora` (JHora's eight dates, ±1 day) and
 Files: `astrology/compute_dashas.py`, `routes/astrology.py`, `tools.py`,
 `tests/test_golden.py`, `tests/routes_snapshot.json`, `services/api.js`,
 `pages/DhasaPage.js`.
+
+---
+
+## 53. Dashboard tiles grouped the way a reading actually goes (owner ask 2026-07-26)
+
+> "Can we club / keep tiles together which should be close to each other as per
+> how the experts read it."
+
+### What was wrong
+
+`config/features.js` already carried a `group` field on every feature — and
+**nothing consumed it.** The doc-comment claimed it was "for the drawer's section
+headings", but the drawer rendered a flat 38-item list and the dashboard rendered
+one undifferentiated grid. The actual tile order was an accident of history: the
+9 Essentials tiles, then the ~29 advanced ones in the order they happened to get
+built. Ephemeris sat next to Bhava; Muhurta was nowhere near the Almanac.
+
+### The grouping
+
+Six sections, ordered as a reading proceeds — cast it, read it, time it, find a
+moment to act, then partners and remedies. `FEATURE_GROUPS` in `features.js`; each
+feature names one via `group`; labels from `nav.groups.<key>` / `<key>Hint`.
+
+| Section | Tiles |
+| --- | --- |
+| **Start here** | Birth Chart · Ask · Today |
+| **Read the chart** | Bhava · Nakshatra · Strength · Deep-Dive · Sensitive Points · Jaimini · KP · Nadi · Bhrigu · Life Report · Full Report |
+| **Timing** | Dhasa · Timeline · Transits · Gochara-phala · Sade Sati · Varshaphal · Tithi Pravesha |
+| **Calendar & muhurta** | Fortnight · Month · Almanac · Muhurta · Pancha Pakshi · Chakras · Vedic Clock · Now · Ephemeris |
+| **Relationships** | Compatibility · Compare |
+| **Remedies & practice** | Remedies · Prashna · Journal · AI History · Learn · Rectify |
+
+Within a section the order is the order you'd reach for them, not alphabetical:
+houses before grahas before the special systems; dashas before the transits that
+run over them.
+
+### Where it renders
+
+- `groupedFeatures(list)` splits **any already-filtered list** into sections and
+  **drops the empty ones** — the caller passes whatever it is rendering, so the
+  grouping can never contradict the filter.
+- **Dashboard** (`DashboardPage.js`): heading + one-line hint per section.
+  Search results stay grouped, so a match appears where it lives when browsing
+  rather than in a flat result list.
+- **NavDrawer**: the same six sections in the same order, quieter styling. Two
+  surfaces now teach one layout.
+- **Essentials mode is grouped too** (owner's call). Calendar & Muhurta is empty
+  there, so that heading simply isn't drawn.
+
+### The bug the grouping exposed
+
+`.features-grid` used `grid-template-columns: repeat(auto-**fit**, …)`, which
+*collapses empty tracks and stretches the survivors*. Invisible while one grid
+held 38 tiles; the moment tiles were sectioned, Essentials rendered "Life Report"
+as a single full-width slab and Compatibility as a half-width one. Switched to
+**`auto-fill`** (both the base rule and the 1024px one) so a tile is the same size
+in every section. Trade-off accepted: whitespace to the right of short sections.
+
+### Docs
+
+New FAQ entry `dashboardLayout` (Getting started, en/hi/sa) explaining the six
+sections — because a layout that encodes reading order is only useful if someone
+says so. README gains a "How the Dashboard is laid out" section.
+
+Tests: 4 new in `features.test.js` — every feature in a declared group,
+`groupedFeatures` is order- and content-preserving, empty sections dropped.
+**169 frontend tests pass** (the 3 `tokens.test.js` failures are pre-existing:
+`styles/Landing.css` from `0085218` uses raw hex instead of tokens).
+
+Verified in the browser at 1400px, 420px and in dark theme, Essentials and
+Everything, dashboard and drawer.
+
+Files: `config/features.js`, `config/features.test.js`, `config/help.js`,
+`pages/DashboardPage.js`, `components/NavDrawer.js`, `styles/Dashboard.css`,
+`styles/NavDrawer.css`, `i18n/locales/{en,hi,sa}.json`, `web/README.md`.

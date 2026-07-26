@@ -155,8 +155,30 @@ A **view mode** decides how much of it is advertised:
   or by an account that already has server-side preferences) — the split never silently takes pages
   away from someone already using them.
 - **Adding a feature**: `frontend/src/config/features.js` is the single registry the nav drawer, the
-  Dashboard tiles and the mode filter all render from. Add the route there (with a `tier`) and it
-  appears everywhere; there is no second list to update.
+  Dashboard tiles and the mode filter all render from. Add the route there (with a `tier` and a
+  `group`) and it appears everywhere; there is no second list to update.
+
+### How the Dashboard is laid out
+
+The tiles are not one flat grid — they are clustered into six sections, in the order a reading
+actually proceeds, so features an astrologer reaches for in the same breath sit next to each other:
+
+| Section | What's in it |
+| --- | --- |
+| **Start here** | Birth Chart · Ask AI Astrologer · Today |
+| **Read the chart** | Bhava · Nakshatra · Planetary Strength · Chart Deep-Dive · Sensitive Points · Jaimini · KP · Nadi Karakas · Bhrigu Markers · Life Report · Full Report |
+| **Timing** | Dhasa · Life Timeline · Transits · Gochara-phala · Sade Sati · Varshaphal · Tithi Pravesha |
+| **Calendar & muhurta** | This Fortnight · This Month · Almanac · Muhurta · Pancha Pakshi · Chakras · Vedic Clock · Chart of the Moment · Ephemeris |
+| **Relationships** | Compatibility · Compare Charts |
+| **Remedies & practice** | Remedies · Prashna · Astro-Journal · AI History · Learn the Chart · Birth-Time Rectification |
+
+- The sections are `FEATURE_GROUPS` in `config/features.js`; each feature names one via `group`.
+  Headings and their one-line hints come from `nav.groups.<key>` / `nav.groups.<key>Hint`.
+- The **nav drawer uses the same sections in the same order**, so the two surfaces teach one layout.
+- **Empty sections disappear.** Essentials advertises nothing from Calendar & Muhurta, so that
+  heading simply isn't drawn; the same happens per-section while filtering.
+- **Search results stay grouped** — a match appears in the section it lives in when browsing, rather
+  than being relocated to a flat result list.
 
 ### Settings (single source of truth)
 

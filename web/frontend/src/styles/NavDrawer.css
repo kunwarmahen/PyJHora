@@ -86,6 +86,24 @@
   gap: 4px;
 }
 
+/* Section bands, matching the dashboard's FEATURE_GROUPS order. */
+.nav-drawer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.nav-drawer-section + .nav-drawer-section {
+  margin-top: var(--space-md);
+}
+.nav-drawer-section-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  padding: var(--space-xs) var(--space-md) 2px;
+}
+
 .nav-drawer-footer {
   padding: var(--space-md);
   border-top: 1px solid var(--sandalwood);

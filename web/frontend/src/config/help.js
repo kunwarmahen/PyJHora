@@ -23,6 +23,7 @@ export const HELP_SECTIONS = [
       { id: "whyBirthTime" },
       { id: "noBirthTime", to: "/rectify" },
       { id: "whereToStart", to: "/birth-chart" },
+      { id: "dashboardLayout", to: "/dashboard" },
       { id: "essentialsVsEverything", to: "/settings" },
       { id: "believe" },
     ],
