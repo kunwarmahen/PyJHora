@@ -378,7 +378,19 @@ export const SettingsPage = () => {
   };
 
   const activeProvider = providers.find((p) => p.type === settings.aiProviderType) || null;
-  const models = activeProvider?.models || [];
+  // Memoised so the repair effect below runs on a real catalogue change, not on
+  // every render of this page.
+  const models = useMemo(() => activeProvider?.models || [], [activeProvider]);
+
+  // Repair a model id the active provider doesn't offer. The picker would show
+  // it as an unmatched (blank-looking) selection while every AI call kept
+  // sending it, so the user sees no problem and gets "model not found" from a
+  // provider that never had it. Only acts on a non-empty catalogue — an empty
+  // list means we couldn't read it, not that the model is gone.
+  useEffect(() => {
+    if (!settings.aiModel || !models.length) return;
+    if (!models.includes(settings.aiModel)) updateSetting("aiModel", "");
+  }, [models, settings.aiModel, updateSetting]);
   const isLocalProvider =
     settings.aiProviderType === "ollama" || settings.aiProviderType === "openai-compatible";
 

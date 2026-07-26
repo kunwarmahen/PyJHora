@@ -190,3 +190,68 @@ def test_keyed_providers_covers_every_provider_that_needs_a_key():
 ])
 def test_legacy_and_new_provider_strings_resolve(alias, expected):
     assert llm_service.resolve_config(alias).provider_type is expected
+
+
+# --------------------------------------------------------------------------- #
+# Stale model guard (ensure_model_installed)
+# --------------------------------------------------------------------------- #
+def _warm_ollama_cache(monkeypatch, installed):
+    """Pre-fill the model cache for the configured Ollama host, and make any
+    HTTP call a failure so the test proves the cache is what's read."""
+    url = llm_service.ollama_url.rstrip("/")
+    monkeypatch.setattr(llm_service, "_model_cache",
+                        {f"ollama@{url}": (installed, time.monotonic())},
+                        raising=False)
+
+    async def _boom(*a, **k):
+        raise AssertionError("catalogue was re-fetched despite a warm cache")
+
+    monkeypatch.setattr("httpx.AsyncClient.get", _boom)
+
+
+def test_model_from_another_provider_falls_back_to_the_default(monkeypatch):
+    """The reported bug: a Gemini model id left over from a provider switch was
+    sent to Ollama, and every reading answered "model not found"."""
+    _warm_ollama_cache(monkeypatch, ["gemma4:12b", "llama3:8b"])
+    monkeypatch.setattr(llm_service, "ollama_default_model", "gemma4:12b",
+                        raising=False)
+
+    cfg = llm_service.resolve_config("ollama", model="gemini-3.5-flash")
+    assert asyncio.run(llm_service.ensure_model_installed(cfg)).model == "gemma4:12b"
+
+
+def test_a_bare_model_name_matches_its_latest_tag(monkeypatch):
+    """Ollama resolves "llama3" to "llama3:latest" — it is not a missing model."""
+    _warm_ollama_cache(monkeypatch, ["llama3:latest"])
+    cfg = llm_service.resolve_config("ollama", model="llama3")
+    assert asyncio.run(llm_service.ensure_model_installed(cfg)).model == "llama3"
+
+
+def test_an_unreadable_catalogue_changes_nothing(monkeypatch):
+    """Ollama down ⇒ an empty list. Nothing is judged missing; the call fails on
+    its own terms rather than being silently re-pointed."""
+    _warm_ollama_cache(monkeypatch, [])
+    cfg = llm_service.resolve_config("ollama", model="gemma4:12b")
+    assert asyncio.run(llm_service.ensure_model_installed(cfg)).model == "gemma4:12b"
+
+
+def test_fallback_uses_an_installed_model_when_the_default_is_gone(monkeypatch):
+    """`ollama rm` of the configured default must not leave us substituting
+    another model that isn't there either."""
+    _warm_ollama_cache(monkeypatch, ["llama3:8b"])
+    monkeypatch.setattr(llm_service, "ollama_default_model", "gemma4:12b",
+                        raising=False)
+    cfg = llm_service.resolve_config("ollama", model="mistral:7b")
+    assert asyncio.run(llm_service.ensure_model_installed(cfg)).model == "llama3:8b"
+
+
+def test_hosted_providers_are_left_alone(monkeypatch):
+    """Only Ollama's catalogue is local, keyless and authoritative — a hosted
+    provider's model id is never second-guessed (and never fetched here)."""
+    async def _boom(*a, **k):
+        raise AssertionError("a hosted provider's catalogue was fetched")
+
+    monkeypatch.setattr("httpx.AsyncClient.get", _boom)
+    cfg = llm_service.resolve_config("gemini", model="gemini-3.5-flash",
+                                     api_key="k")
+    assert asyncio.run(llm_service.ensure_model_installed(cfg)).model == "gemini-3.5-flash"

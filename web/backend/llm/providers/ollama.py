@@ -39,6 +39,36 @@ class OllamaMixin:
             info["reason"] = "Cannot reach Ollama. Start it with 'ollama serve'."
         return info
 
+    async def _ollama_installed_models(self, base_url: Optional[str] = None) -> List[str]:
+        """Tags actually installed on the Ollama host, cached per host.
+
+        Separate from `_ollama_status` because it is called on the request path
+        (see `ensure_model_installed`), where the shared model cache matters and
+        the status payload does not.
+        """
+        url = (base_url or self.ollama_url).rstrip("/")
+
+        async def _fetch() -> List[str]:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"{url}/api/tags")
+                resp.raise_for_status()
+                return sorted(m.get("name") for m in resp.json().get("models", [])
+                              if m.get("name"))
+
+        return await self._cached_models(f"ollama@{url}", _fetch)
+
+    @staticmethod
+    def _ollama_has_model(model: str, installed: List[str]) -> bool:
+        """Is `model` one of the installed tags?
+
+        Ollama resolves a bare name to its ":latest" tag, so "gemma4" is a real
+        way to ask for "gemma4:latest" — matching on the exact string alone would
+        report perfectly good models as missing.
+        """
+        if model in installed:
+            return True
+        return any(tag.split(":", 1)[0] == model for tag in installed)
+
     async def _stream_ollama(self, messages, cfg, max_tokens, usage=None) -> AsyncGenerator[str, None]:
         url = (cfg.base_url or self.ollama_url).rstrip("/")
         model = cfg.model or self.ollama_default_model

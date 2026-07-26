@@ -126,6 +126,34 @@ class LLMService(PromptsMixin, OllamaMixin, OpenAIMixin, GeminiMixin):
             return configured
         return next((m for m in preferred if m in models), configured)
 
+    async def ensure_model_installed(self, cfg: ModelConfig) -> ModelConfig:
+        """Drop an Ollama model the host doesn't have, so the call uses the default.
+
+        A stored model choice outlives its provider: switch back to local after
+        trying a hosted one, or `ollama rm` a model, and every reading fails with
+        a raw "model 'x' not found" that names something the user may not even
+        remember choosing. Falling back to the configured default answers the
+        question instead — the alternative is not a better model, it's no answer.
+
+        Ollama only: its catalogue is the local, keyless, cached /api/tags list,
+        and an unlisted tag is a guaranteed 404. An empty list means we couldn't
+        read it (Ollama down) — then nothing is judged missing, and the call
+        fails on its own terms.
+        """
+        if cfg.provider_type != ProviderType.OLLAMA or not cfg.model:
+            return cfg
+        installed = await self._ollama_installed_models(cfg.base_url)
+        if not installed or self._ollama_has_model(cfg.model, installed):
+            return cfg
+        fallback = (self.ollama_default_model
+                    if self._ollama_has_model(self.ollama_default_model, installed)
+                    else installed[0])
+        print(f"[llm] Ollama model {cfg.model!r} is not installed on "
+              f"{(cfg.base_url or self.ollama_url).rstrip('/')}; "
+              f"falling back to {fallback!r}")
+        cfg.model = fallback
+        return cfg
+
     async def list_providers(self, user_keys: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
         """Return configured providers, their availability, and model lists.
 

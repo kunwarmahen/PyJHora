@@ -17,6 +17,7 @@ import {
   DENSITY_DEFAULT,
   DENSITY_STORAGE_KEY,
 } from "../config/density";
+import { claimPrefsOwner } from "../config/prefsOwner";
 import { astrologyService } from "../services/api";
 import { useAuth } from "./AuthContext";
 
@@ -77,6 +78,13 @@ const SYNCED_KEYS = [
 // reasserts it over the correct local one — so the user's click silently
 // reverts on the next page load. Visible immediately with the theme toggle.
 const IMMEDIATE_KEYS = ["theme", "density", "uiMode", "startupProfile"];
+// Settings that only mean anything under the provider they were chosen for: a
+// model id belongs to one vendor's catalogue, an endpoint to one server. Left
+// standing across a provider switch they are sent to the NEW provider, which is
+// how a Gemini model id reached Ollama ("model 'gemini-…' not found") after the
+// user removed their Gemini key and went back to local. Cleared on the switch;
+// blank means "the server's default for whichever provider is selected now".
+const PROVIDER_SCOPED_KEYS = ["aiModel", "aiBaseUrl"];
 // storageKey -> settingKey, to apply a server payload (keyed by storage key).
 const STORAGE_TO_SETTING = Object.fromEntries(
   Object.entries(SETTING_KEYS).map(([settingKey, storageKey]) => [storageKey, settingKey])
@@ -162,6 +170,11 @@ export const SettingsProvider = ({ children }) => {
     aiMaxTokens: readNumber("aiMaxTokens"),
   }));
 
+  // Mirror of `settings` so callbacks can read the current values without being
+  // rebuilt (and re-subscribed) on every change.
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+
   // Debounced server push of synced preferences.
   const pendingPush = useRef({});
   const pushTimer = useRef(null);
@@ -186,7 +199,10 @@ export const SettingsProvider = ({ children }) => {
     [flushPush]
   );
 
-  const updateSetting = useCallback(
+  // Persist ONE key: localStorage, the immediate side effects, and the server
+  // mirror. The React state update is the caller's, so a cascade of keys lands
+  // in a single render.
+  const persistSetting = useCallback(
     (key, value) => {
       const storageKey = SETTING_KEYS[key];
       if (!storageKey) return;
@@ -210,7 +226,6 @@ export const SettingsProvider = ({ children }) => {
           // ignore
         }
       }
-      setSettings((prev) => ({ ...prev, [key]: value }));
       // Mirror synced prefs up to the server so they follow the user's devices.
       if (loggedIn.current && SYNCED_KEYS.includes(key)) {
         pendingPush.current[SETTING_KEYS[key]] = String(value);
@@ -225,6 +240,23 @@ export const SettingsProvider = ({ children }) => {
     [schedulePush, flushPush]
   );
 
+  const updateSetting = useCallback(
+    (key, value) => {
+      if (!SETTING_KEYS[key]) return;
+      const patch = { [key]: value };
+      // Changing provider drops the model/endpoint picked for the old one —
+      // see PROVIDER_SCOPED_KEYS.
+      if (key === "aiProviderType" && value !== settingsRef.current.aiProviderType) {
+        PROVIDER_SCOPED_KEYS.forEach((k) => {
+          patch[k] = DEFAULTS[k];
+        });
+      }
+      Object.entries(patch).forEach(([k, v]) => persistSetting(k, v));
+      setSettings((prev) => ({ ...prev, ...patch }));
+    },
+    [persistSetting]
+  );
+
   // On login, pull the server copy of the synced prefs (server is source of
   // truth). If the server has nothing yet, seed it from this device so an
   // existing user's current choice starts syncing.
@@ -233,6 +265,25 @@ export const SettingsProvider = ({ children }) => {
     let cancelled = false;
     (async () => {
       try {
+        // Whose cache is this? Logout leaves the preferences behind, so the next
+        // person to sign in on this browser would otherwise inherit the previous
+        // user's account settings — and the seed below would write them onto
+        // their account for good. See config/prefsOwner.js. A foreign cache is
+        // dropped and NOT seeded: this user falls back to the server defaults
+        // until they choose for themselves.
+        const foreignCache = claimPrefsOwner(user?.username);
+        if (foreignCache) {
+          const cleared = {};
+          SYNCED_KEYS.forEach((k) => {
+            try {
+              localStorage.removeItem(SETTING_KEYS[k]);
+            } catch {
+              // ignore
+            }
+            cleared[k] = DEFAULTS[k];
+          });
+          if (!cancelled) setSettings((prev) => ({ ...prev, ...cleared }));
+        }
         const res = await astrologyService.getPreferences();
         if (cancelled) return;
         const serverPrefs = res.data?.preferences || {};
@@ -265,7 +316,7 @@ export const SettingsProvider = ({ children }) => {
         if (Object.keys(applied).length) {
           setSettings((prev) => ({ ...prev, ...applied }));
         }
-        if (!anyServer) {
+        if (!anyServer && !foreignCache) {
           const seed = {};
           SYNCED_KEYS.forEach((k) => {
             // uiMode via resolveUiMode, not read() — the seed must carry the

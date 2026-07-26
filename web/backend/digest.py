@@ -113,6 +113,12 @@ async def _digest_cfg(user_id: str):
                 cfg.api_key = stored
     except Exception:
         pass
+    # Same stale-model guard the request path applies (deps._resolve_cfg) — it
+    # matters more here, where nobody is watching the 3am run fail.
+    try:
+        await llm_service.ensure_model_installed(cfg)
+    except Exception:
+        pass
     return cfg
 
 

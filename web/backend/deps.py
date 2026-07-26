@@ -178,6 +178,9 @@ async def _resolve_cfg(current_user: str, request: "AskQuestionRequest"):
         stored = await user_settings.get_api_key(current_user, cfg.provider_type.value)
         if stored:
             cfg.api_key = stored
+    # A model id can outlive the provider it was chosen for (or be uninstalled
+    # from the Ollama host). Answer with the default rather than 404-ing.
+    await llm_service.ensure_model_installed(cfg)
     # Optional per-user output cap from Settings (lets a user raise the limit if
     # answers get cut off). Clamped to a sane range; None → provider defaults.
     mt = getattr(request, "max_tokens", None)
