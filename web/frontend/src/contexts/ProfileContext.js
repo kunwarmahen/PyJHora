@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { API_URL } from "../services/api";
+import { claimPrefsOwner } from "../config/prefsOwner";
 import {
   readLastProfileId,
   readStartupProfileMode,
   resolveStartupProfile,
 } from "../config/startupProfile";
+import { useAuth } from "./AuthContext";
 
 const ProfileContext = createContext();
 
@@ -17,6 +19,7 @@ export const useProfile = () => {
 };
 
 export const ProfileProvider = ({ children }) => {
+  const { user } = useAuth();
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -271,7 +274,13 @@ export const ProfileProvider = ({ children }) => {
       mode: readStartupProfileMode(),
       lastId: readLastProfileId(),
     });
-    if (!target) return "/profile-selection";
+    // Nothing to resume — and nothing may stay selected either. Without this a
+    // stale selection (an account with no profiles left, or one restored below
+    // before the sign-in) survived all the way to the picker.
+    if (!target) {
+      clearProfile();
+      return "/profile-selection";
+    }
     selectProfile(target);
     return "/dashboard";
   };
@@ -287,6 +296,16 @@ export const ProfileProvider = ({ children }) => {
       }
     }
   }, []);
+
+  // The cached selection carries a person's name, birth date, time and place.
+  // On a shared machine it was restored above before anyone signed in, so when
+  // the account that signs in isn't the one this browser was serving, drop it:
+  // whoever just arrived must not open the app looking at someone else's chart.
+  // AuthContext has already cleared the stored copy — this is the live state.
+  useEffect(() => {
+    if (user?.username && claimPrefsOwner(user.username)) clearProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // Deep-link: any page opened with ?profile=<id> selects that profile. This is
   // what the per-person buttons in the digest emails point at, so "Open Naina's

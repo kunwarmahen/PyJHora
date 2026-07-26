@@ -265,24 +265,20 @@ export const SettingsProvider = ({ children }) => {
     let cancelled = false;
     (async () => {
       try {
-        // Whose cache is this? Logout leaves the preferences behind, so the next
-        // person to sign in on this browser would otherwise inherit the previous
-        // user's account settings — and the seed below would write them onto
-        // their account for good. See config/prefsOwner.js. A foreign cache is
-        // dropped and NOT seeded: this user falls back to the server defaults
-        // until they choose for themselves.
+        // Is this browser holding someone else's settings? AuthContext has
+        // already emptied the storage by now (config/prefsOwner.js); what is
+        // left is this provider's state, read at mount from the cache that has
+        // just been thrown away. Back to the defaults, and NOT seeded to the
+        // server below — this user's own choices arrive from their account, or
+        // they get what the server's .env configures.
         const foreignCache = claimPrefsOwner(user?.username);
-        if (foreignCache) {
-          const cleared = {};
-          SYNCED_KEYS.forEach((k) => {
-            try {
-              localStorage.removeItem(SETTING_KEYS[k]);
-            } catch {
-              // ignore
-            }
-            cleared[k] = DEFAULTS[k];
-          });
-          if (!cancelled) setSettings((prev) => ({ ...prev, ...cleared }));
+        if (foreignCache && !cancelled) {
+          setSettings({ ...DEFAULTS });
+          try {
+            i18n.changeLanguage(DEFAULTS.language);
+          } catch {
+            // ignore
+          }
         }
         const res = await astrologyService.getPreferences();
         if (cancelled) return;

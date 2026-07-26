@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { authService, setTokens, clearTokens, getRefreshToken } from "../services/api";
+import { claimPrefsOwner, purgeCachedUserState } from "../config/prefsOwner";
 
 const AuthContext = createContext(null);
 
@@ -20,6 +21,12 @@ export const AuthProvider = ({ children }) => {
   const loadUserProfile = async () => {
     try {
       const response = await authService.getProfile();
+      // Identity is settled here first, so this is where a browser that was
+      // holding somebody else's cached settings and selected chart is emptied —
+      // before any context reads it. Keyed on signing IN, not on the previous
+      // person signing out: nobody should have to log out to keep their settings
+      // to themselves. See config/prefsOwner.js.
+      if (claimPrefsOwner(response.data?.username)) purgeCachedUserState();
       setUser(response.data);
       setError(null);
     } catch (err) {
