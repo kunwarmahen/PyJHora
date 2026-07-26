@@ -5136,3 +5136,80 @@ Files: `astrology/engine.py`, `astrology/compute_dashas.py`, `tools.py`,
 `tests/test_tools_catalog.py`, `config/features.js`, `config/help.js`,
 `pages/DhasaPage.js`, `i18n/locales/en.json`, `web/README.md`,
 `web/improvements-2026-07.md`, `.claude/skills/wire-a-feature/SKILL.md` (new).
+
+---
+
+## 52.1 Shashtihayani was 6.3 years out — PyJHora's balance-at-birth bug (owner check against JHora, 2026-07-25)
+
+The owner ran the newly-exposed system in Jagannatha Hora and pasted the maha
+dasas. Lord order and durations matched us exactly (Mars 10, Moon 6, Merc 6, Ven
+6, Sat 6, Rah 6, Jup 10, Sun 10 — 60 years). **Every date was 6.3 years off.**
+
+### The bug
+
+`shastihayani._dhasa_start` computes the balance at birth as
+
+```python
+nak = int(planet_long / one_star)      # one_star = 360/27
+rem = planet_long - nak * one_star
+period_elapsed = rem / one_star * period
+```
+
+— the fraction through a **single nakshatra**. That is the *Vimsottari* rule, and
+it is correct there because a Vimsottari lord's three stars are spread every 9th
+and **each one re-runs the lord's full period**.
+
+Shashtihayani doesn't work that way. Its lords own **contiguous blocks**:
+Jupiter 1-3, Sun 4-7, Mars 8-10, Moon 11-14, Mercury 15-17, Venus 18-21,
+Saturn 22-24, Rahu 25-27. The balance is the fraction through the *whole block*.
+
+Chart 1's Moon is in Magha — the **third** of Mars's three stars, 5.6% into it.
+True balance `(2 + 0.056)/3 = 68.6%` of Mars's ten years; the engine said 5.6%.
+Hence 6.3 years, and it propagates to all 16 rows since they tile off the first.
+
+**`ashtottari.py` (~line 190) already has the right formula** for exactly this
+shape — `start_deg` / `total_span` over the lord's star span. Shashtihayani is the
+only other contiguous-block system in the engine and it borrowed the wrong
+`_dhasa_start`. The interleaved systems (Chaturaaseeti Sama, Dwisatpathi,
+Shodasottari, Dwadasottari, Panchottari, Shatabdika) share that `_dhasa_start`
+too but are **correct** — their groups are every-7th/8th/9th, Vimsottari-shaped.
+Checked all seven group tables before concluding this; only Shashtihayani is
+contiguous.
+
+### Fix
+
+`_shashtihayani_rows()` in `compute_dashas.py` reimplements Ashtottari's span
+formula, then shifts the engine's rows onto the corrected phase — the engine's
+lord order, durations and tiling are all fine, only the phase was wrong, so a
+uniform JD shift is the whole correction. Reuses `shastihayani.year_duration`
+(the module caches the resolved year length during the call) so the shift is
+measured in the same days the engine tiled with.
+
+### The second bug the comparison exposed
+
+Residual after the phase fix was still ~2 days. It is **the ayanamsa**:
+`get_dasha_periods` was the one compute in the app that **took no `ayanamsa`
+argument at all** and silently answered in True Chitra whatever the user had
+selected. A nakshatra dasha's balance is read straight off the Moon's sidereal
+longitude, so the ~1' between Lahiri and True Chitra is ~2 days over a 60-year
+cycle. Threaded through compute → route (`query:ayanamsa`, snapshot updated) →
+`api.js` → DhasaPage (which now re-reads the open table when the setting
+changes, rather than leaving a stale one contradicting it) → `tools.py`.
+
+The owner's JHora run was **Lahiri**, not True Chitra: under Lahiri our Moon is
+0.21' from JHora's implied longitude, under True Chitra 1.14'. Worth knowing —
+the app defaults to True Chitra on the basis that it matches JHora's default, and
+that assumption does not hold for this install.
+
+### Result
+
+Under Lahiri, 6 of 8 maha starts match JHora **to the day** and the other two are
+one day early — an ~8-hour residual from the two Lahiri implementations differing
+by ~0.2'. Against 2,300 days before the fix.
+
+Tests: `test_shashtihayani_matches_jhora` (JHora's eight dates, ±1 day) and
+`test_dasha_periods_honour_the_ayanamsa`. **439 backend tests pass.**
+
+Files: `astrology/compute_dashas.py`, `routes/astrology.py`, `tools.py`,
+`tests/test_golden.py`, `tests/routes_snapshot.json`, `services/api.js`,
+`pages/DhasaPage.js`.

@@ -361,6 +361,7 @@
   },
   "POST /api/astrology/dasha-periods": {
     "params": [
+      "query:ayanamsa",
       "query:dhasa_type*"
     ],
     "body": "BirthDetails"

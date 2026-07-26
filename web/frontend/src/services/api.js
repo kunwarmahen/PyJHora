@@ -338,9 +338,11 @@ export const astrologyService = {
     }),
   // Other (non-Vimsottari) dasha systems.
   getDashaSystems: () => api.get("/api/astrology/dasha-systems"),
-  getDashaPeriods: (birthDetails, dhasaType) =>
+  // The ayanamsa matters here: a nakshatra dasha's balance at birth comes
+  // straight off the Moon's sidereal longitude.
+  getDashaPeriods: (birthDetails, dhasaType, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/dasha-periods", birthDetails, {
-      params: { dhasa_type: dhasaType },
+      params: { dhasa_type: dhasaType, ayanamsa },
     }),
   // Ashtakavarga (Bhinna + Sarva).
   getAshtakavarga: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>

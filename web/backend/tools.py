@@ -421,7 +421,7 @@ def _dasha_periods(bd, ayanamsa, dhasa_type: str = "", **_):
         raise ToolError(
             "get_dasha_periods requires a 'dhasa_type' from: "
             + ", ".join(SUPPORTED_DASHAS) + ". For Vimsottari use get_dasha_chain.")
-    r = AstrologyCompute.get_dasha_periods(dhasa_type, **_args(bd))
+    r = AstrologyCompute.get_dasha_periods(dhasa_type, ayanamsa=ayanamsa, **_args(bd))
     if r.get("status") != "success":
         return r
     from datetime import date as _date

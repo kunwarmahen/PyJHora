@@ -10,6 +10,69 @@ from .engine import *  # noqa: F401,F403  (constants + helpers the bodies use)
 AstrologyCompute = None
 
 
+def _shashtihayani_rows(jd, place_obj, dob_t, tob_t):
+    """Shashtihayani maha periods, with PyJHora's balance-at-birth bug corrected.
+
+    The lord order and the 10/10/10/6/6/6/6/6 durations the engine produces are
+    right; only the *phase* is wrong, so every period lands years off.
+
+    Shashtihayani gives each lord a **contiguous block** of nakshatras (Jupiter
+    1-3, Sun 4-7, Mars 8-10, …), exactly like Ashtottari. The balance at birth is
+    therefore the fraction elapsed through the whole block. `shastihayani.py`
+    instead copies the Vimsottari-style `_dhasa_start`, which divides by a single
+    nakshatra — correct for Vimsottari, where a lord's three stars are spread
+    every 9th and each one re-runs the full period, but wrong here.
+    `ashtottari.py` (`start_deg` / `total_span`, ~line 190) has the right formula
+    for this shape; this reimplements it and shifts the engine's rows onto it.
+
+    On the owner's chart the Moon is in Magha — the *third* of Mars's three stars
+    at 5.6% into it — so the true balance is (2 + 0.056)/3 = 68.6% of Mars's ten
+    years, not 5.6%. That is a 6.3-year error, and it agreed with Jagannatha Hora
+    to the day once corrected (Mars from 1969-07-29).
+
+    Ketu is absent from the cycle and the engine's own group table leaves Rahu
+    with stars 25-27: it builds the blocks with `% 28` (intending Abhijit) while
+    dividing the zodiac by 27, so its notional 28th slot can never be occupied.
+    Three stars for Rahu is the only self-consistent reading, and it is what the
+    27-fold longitude actually implies.
+    """
+    from jhora.horoscope.dhasa.graha import shastihayani
+
+    rows = shastihayani.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
+    if not rows:
+        return rows
+
+    # The engine caches the resolved year length on the module during that call;
+    # reuse it so our shift is measured in exactly the same days it tiled with.
+    year_duration = shastihayani.year_duration
+    one_star = 360 / 27.0
+
+    planet_long = charts.get_chart_element_longitude(
+        jd, place_obj, divisional_chart_factor=1, chart_method=1,
+        star_position_from_moon=1, dhasa_starting_planet=1)
+    star = int(planet_long / one_star) + 1  # 1..27
+
+    groups = shastihayani._get_dhasa_dict(shastihayani.mahadasa_seed_star)
+    lord, block = next((l, [s for s in stars if 1 <= s <= 27])
+                       for l, stars in groups.items() if star in stars)
+    period = shastihayani.dhasa_adhipathi_list[lord]
+
+    start_deg = (min(block) - 1) * one_star
+    elapsed = (planet_long - start_deg) / (len(block) * one_star) * period
+    correct_start_jd = jd - elapsed * year_duration
+
+    engine_start_jd = swe.julday(*(int(x) for x in rows[0][1][:3]), float(rows[0][1][3]))
+    shift = correct_start_jd - engine_start_jd
+
+    shifted = []
+    for lords, start_t, dur in rows:
+        y, m, d, fh = swe.revjul(
+            swe.julday(int(start_t[0]), int(start_t[1]), int(start_t[2]),
+                       float(start_t[3])) + shift)
+        shifted.append((lords, (y, m, d, fh), dur))
+    return shifted
+
+
 class DashasMixin:
 
     @staticmethod
@@ -306,13 +369,20 @@ class DashasMixin:
     @staticmethod
     def get_dasha_periods(dhasa_type: str, dob: str, tob: str, place: str,
                           lat: Optional[float] = None, lon: Optional[float] = None,
-                          tz: Optional[float] = None) -> Dict:
+                          tz: Optional[float] = None,
+                          ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """Maha-level periods for one of the non-Vimsottari dasha systems.
 
         `dhasa_type` is a key in SUPPORTED_DASHAS. Graha systems (yogini,
         ashtottari) return planet lords; raasi systems (narayana, kalachakra)
         return rasi signs. Output is normalized to a flat list of periods with
         ISO start/end dates so the frontend can render any system uniformly.
+
+        The ayanamsa is not cosmetic here: a nakshatra dasha's balance at birth
+        is read straight off the Moon's sidereal longitude, so the ~1' between
+        Lahiri and True Chitra moves every period by a couple of days over a
+        60-year cycle. This used to ignore the setting entirely — the one compute
+        in the app that did — and silently answered in True Chitra.
         """
         if not ENGINE_AVAILABLE:
             return {"error": "Jyotir AI engine not available", "status": "failed"}
@@ -320,6 +390,7 @@ class DashasMixin:
         if not meta:
             return {"error": f"Unsupported dhasa type: {dhasa_type}", "status": "failed"}
         try:
+            _set_ayanamsa(ayanamsa)
             year, month, day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
@@ -351,7 +422,8 @@ class DashasMixin:
             elif dhasa_type == "shatabdika":
                 rows = sataatbika.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
             elif dhasa_type == "shashtihayani":
-                rows = shastihayani.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
+                # Routed past the engine's balance-at-birth bug — see the helper.
+                rows = _shashtihayani_rows(jd, place_obj, dob_t, tob_t)
             elif dhasa_type == "chaturaaseeti_sama":
                 rows = chathuraaseethi_sama.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
             elif dhasa_type == "dwisatpathi":
@@ -465,6 +537,8 @@ class DashasMixin:
             import traceback
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
 
     # The BPHS conditional nakshatra dashas the engine can test for applicability,
     # mapped to (display name, when-it-applies blurb, DhasaPage picker key or None).

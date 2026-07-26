@@ -499,3 +499,51 @@ def test_nadi_themes_and_triggers(args1):
         assert len(tr["date"]) == 10 and tr["date"][4] == "-"
     dates = [tr["date"] for tr in r["triggers"]]
     assert dates == sorted(dates)
+
+
+# JHora's Shashtihayani maha dasas for chart 1, run under Lahiri (todo §52.1).
+# Times dropped — we compare dates, and the residual is a few hours.
+CHART1_SHASHTIHAYANI = [
+    ("Mars",    "1969-07-29"),
+    ("Moon",    "1979-07-29"),
+    ("Mercury", "1985-07-29"),
+    ("Venus",   "1991-07-29"),
+    ("Saturn",  "1997-07-29"),
+    ("Rahu",    "2003-07-29"),
+    ("Jupiter", "2009-07-29"),
+    ("Sun",     "2019-07-29"),
+]
+
+
+def test_shashtihayani_matches_jhora(args1):
+    """Shashtihayani's balance at birth, against Jagannatha Hora (todo §52.1).
+
+    PyJHora's `shastihayani._dhasa_start` divides the elapsed arc by ONE nakshatra,
+    the Vimsottari rule. But Shashtihayani gives each lord a *contiguous block* of
+    stars, so the balance is the fraction through the whole block — what
+    `ashtottari.py` already does. On this chart the Moon is in the third of Mars's
+    three stars, so the engine reported 5.6% elapsed where the truth is 68.6%:
+    every period landed 6.3 years late. This pins the corrected phase.
+    """
+    r = A.get_dasha_periods("shashtihayani", ayanamsa="LAHIRI", **args1)
+    assert r.get("status") == "success", r
+    got = [(p["lord"], p["start_date"]) for p in r["periods"][:8]]
+    assert [g[0] for g in got] == [e[0] for e in CHART1_SHASHTIHAYANI]
+
+    from datetime import date
+    for (lord, ours), (_, theirs) in zip(got, CHART1_SHASHTIHAYANI):
+        delta = abs((date.fromisoformat(ours) - date.fromisoformat(theirs)).days)
+        # Sub-day: what is left is the ayanamsa implementations differing by ~0.2',
+        # i.e. ~8 hours over a ten-year period. The old bug was 2,300 days.
+        assert delta <= 1, f"{lord}: ours {ours} vs JHora {theirs}"
+
+    assert [p["duration_years"] for p in r["periods"][:8]] == [10, 6, 6, 6, 6, 6, 10, 10]
+
+
+def test_dasha_periods_honour_the_ayanamsa(args1):
+    """The setting must reach the computation — nakshatra dashas are read off the
+    Moon's sidereal longitude, and this compute used to ignore `ayanamsa` entirely
+    and always answer in True Chitra."""
+    lahiri = A.get_dasha_periods("shashtihayani", ayanamsa="LAHIRI", **args1)
+    citra = A.get_dasha_periods("shashtihayani", ayanamsa="TRUE_CITRA", **args1)
+    assert lahiri["periods"][0]["start_date"] != citra["periods"][0]["start_date"]

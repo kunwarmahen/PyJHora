@@ -531,6 +531,7 @@ async def get_applicable_dashas(
 async def get_dasha_periods(
     birth_details: BirthDetails,
     dhasa_type: str,
+    ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user)
 ):
     """Maha-level periods for one of the non-Vimsottari dasha systems
@@ -544,6 +545,7 @@ async def get_dasha_periods(
             lat=birth_details.latitude,
             lon=birth_details.longitude,
             tz=birth_details.timezone,
+            ayanamsa=ayanamsa,
         )
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))

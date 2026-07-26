@@ -230,13 +230,22 @@ function OtherDashaSystems({ birthDetails }) {
       setError("");
       setData(null);
       astrologyService
-        .getDashaPeriods(birthDetails, key)
+        .getDashaPeriods(birthDetails, key, settings.ayanamsa)
         .then((r) => setData(r.data))
         .catch((e) => setError(e.response?.data?.detail || t("dhasa.loadDashaError")))
         .finally(() => setLoading(false));
     },
-    [birthDetails, t]
+    [birthDetails, settings.ayanamsa, t]
   );
+
+  // Re-read the open system when the ayanamsa changes — the periods shift with
+  // it, so leaving a stale table on screen would quietly contradict the setting.
+  const reload = useRef(null);
+  reload.current = load;
+  useEffect(() => {
+    if (selected) reload.current(selected);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.ayanamsa]);
 
   const onChange = (key) => {
     setSelected(key);

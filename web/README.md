@@ -874,6 +874,12 @@ DB name), which is deliberate.
   Shashtihayani, 10th lord in the 10th → Chaturaaseeti Sama, …) and every system it
   can recommend is also one the picker can open — clicking a chip loads its periods.
   The AI has the same view via the `get_applicable_dashas` tool.
+- All of these honour the **selected ayanamsa** — a nakshatra dasha's balance at
+  birth is read off the Moon's sidereal longitude, so the ~1' between Lahiri and
+  True Chitra moves every period by a couple of days over a 60-year cycle.
+  Shashtihayani additionally routes past a PyJHora balance-at-birth bug (it
+  divides by one nakshatra where its contiguous star-blocks require the whole
+  block); corrected, it matches Jagannatha Hora to the day. See todo.md §52.1.
 - **Sudarsana Chakra**: a collapsible section showing the three wheels read from the
   Lagna, Moon and Sun as ascendants for a chosen solar-return year (± year stepper),
   rendered as three Kundalis in the selected chart style.
