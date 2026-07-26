@@ -159,10 +159,32 @@ class PromptsMixin:
         }
         focus = type_specific.get(prediction_type, type_specific["general"])
 
+        # Directed use of the special lagnas. The context block already carries
+        # Bhava/Hora/Ghati/Varnada Lagna with their rules, but "available" is not
+        # "applied" — without an instruction the model reads the natal houses and
+        # leaves them on the table. Only types with a settled classical rule get
+        # an entry here; health and relationships deliberately get none.
+        extra_technique = {
+            "career": (
+                "\nBeyond the natal 10th house, ALSO judge the 10th counted from the "
+                "GHATI LAGNA — the classical reference for rise in authority and "
+                "status. Treat it as a second opinion, not a replacement: where it "
+                "agrees with the natal 10th, say so plainly; where it disagrees, name "
+                "that tension rather than smoothing it over.\n"
+            ),
+            "general": (
+                "\nRead BHAVA, HORA and GHATI LAGNA as a trio alongside the natal "
+                "Lagna — body, wealth and authority respectively. They supplement the "
+                "Lagna; they never replace it.\n"
+            ),
+        }
+
         return (
             self._render_context_block(chart_data)
             + f"\n\nBased on THIS SPECIFIC BIRTH CHART above, provide detailed "
-            + f"{prediction_type} predictions focusing on {focus}.\n\n"
+            + f"{prediction_type} predictions focusing on {focus}.\n"
+            + extra_technique.get(prediction_type, "")
+            + "\n"
             + "Your prediction should cover:\n"
             + "1. Key strengths and characteristics from their specific placements (cite the houses/lords/karakas).\n"
             + "2. Challenges and areas for growth indicated by their chart.\n"

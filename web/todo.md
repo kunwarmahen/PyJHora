@@ -4990,11 +4990,17 @@ immunity. `test_varnada_is_not_silently_corrupted_by_the_same_bug` asserts the
 parity and says what to do if it ever breaks.
 
 **Phase 2 — the rules are now *directed*, not merely available.** Seeding
-Hora/Ghati Lagna into the context made them visible; the Life Report's **Career**
-chapter now explicitly judges the 10th *from the Ghati Lagna* and the **Wealth**
-chapter the 2nd and 11th *from the Hora Lagna*, each framed as a second opinion
-on the natal house rather than a replacement, and asked to name the tension when
-the two disagree.
+Hora/Ghati Lagna into the context made them visible, but available is not
+applied: without an instruction the model reads the natal houses and leaves them
+on the table. So —
+- Life Report **Career** chapter judges the 10th *from the Ghati Lagna*; **Wealth**
+  chapter the 2nd and 11th *from the Hora Lagna*.
+- `_build_prediction_prompt` gains a per-type `extra_technique` block: **career**
+  gets the Ghati Lagna 10th, **general** gets the Bhava/Hora/Ghati trio.
+  **health** and **relationships** deliberately get nothing — no settled rule, and
+  inventing one is the failure mode this whole section exists to avoid.
+Each is framed as a second opinion on the natal house, never a replacement, and
+asked to name the tension when the two disagree (the informative case).
 
 **Remaining known deltas, documented not swept away:** Pranapada Lagna ~84′ (a
 genuine formula difference in `drik.pranapada_lagna`; reference-only, no rule
