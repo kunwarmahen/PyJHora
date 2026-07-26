@@ -531,6 +531,49 @@ def _kaala_lagna(jd, place, rate):
     return [int(spl_long // 30) % 12, spl_long % 30]
 
 
+def _pranapada_lagna(jd, place):
+    """Pranapada lagna, recomputed to work around a second PyJHora bug.
+
+    `utils.udhayadhi_nazhikai` converts the time since sunrise into *tharparai*:
+
+        tharparai1 = int(hours)*9000 + int(minutes)*150 + int(seconds)
+
+    The unit scale is 9000 per hour and 150 per minute — i.e. 2.5 per second —
+    but seconds are added raw, at 1. Pranapada advances 4 signs per ghati (5° per
+    minute), so that 60% shortfall on the seconds term is heavily amplified: on
+    the owner's reference chart it puts Pranapada **84' off** Jagannatha Hora,
+    more than a quarter of a sign. Scaling seconds correctly brings it to ~12',
+    the rest being the ~2 s sunrise-algorithm difference — irreducible here,
+    because at 5°/minute two seconds is already 10'.
+
+    Mirrors `drik.pranapada_lagna` otherwise: the elapsed-time term, the Sun at
+    *birth* (not sunrise), and the movable/fixed/dual offset off the Sun's sign.
+
+    Returns [sign_index, degrees_in_sign].
+    """
+    _, _, _, birth_hours = drik.jd_to_gregorian(jd)
+    sunrise_hours = drik.sunrise(jd, place)[0]
+    elapsed = birth_hours - sunrise_hours
+    if elapsed < 0:
+        elapsed += 24.0
+    hours, minutes, seconds = utils.to_dms(elapsed, as_string=False)
+    tharparai = int(hours) * 9000 + int(minutes) * 150 + seconds * 2.5
+    birth_long = ((tharparai / 3600.0) * 4) % 12
+
+    sun_sign, sun_deg = charts.rasi_chart(jd, place)[1][1]
+    sun_sign = int(sun_sign) % 12
+    sun_long = sun_sign * 30 + float(sun_deg)
+    if sun_sign in const.fixed_signs:
+        offset = 240
+    elif sun_sign in const.dual_signs:
+        offset = 120
+    else:
+        offset = 0
+
+    spl_long = (birth_long * 30 + sun_long + offset) % 360
+    return [int(spl_long // 30) % 12, spl_long % 30]
+
+
 # Only these carry enough classical rule-weight to drive interpretation. The
 # rest are computed and displayed, but deliberately not narrated — see the
 # Tripataki precedent (draw it, don't invent a verdict).

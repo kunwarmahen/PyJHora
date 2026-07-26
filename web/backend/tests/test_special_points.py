@@ -123,6 +123,31 @@ def test_kaala_lagnas_beat_the_pyjhora_bug(points):
         "in which case _kaala_lagna can be retired"
 
 
+def test_pranapada_beats_the_tharparai_unit_bug(points):
+    """`utils.udhayadhi_nazhikai` scales tharparai at 9000/hour and 150/minute —
+    2.5 per second — but adds seconds raw, at 1. Pranapada advances 5°/minute, so
+    that 60% shortfall lands 84' off JHora, more than a quarter of a sign.
+    `_pranapada_lagna` fixes the scale; the ~12' residual is the 2 s sunrise
+    difference, which at 5°/minute is already 10' and cannot be reduced here."""
+    row = _by_name(points["special_lagnas"])["Pranapada Lagna"]
+    jhora = 2 + 28/60 + 26.58/3600          # 2 Ta 28' 26.58"
+    assert row["sign_name"] == "Taurus"
+    err_arcmin = abs(row["degrees"] - jhora) * 60
+    assert err_arcmin < 15, f"Pranapada drifted to {err_arcmin:.1f}' from JHora"
+    # And prove the raw engine call is still the bad one, so the workaround is
+    # not quietly redundant.
+    from jhora.panchanga import drik
+    import swisseph as swe
+    place = drik.Place("Shahgarh", ARGS["lat"], ARGS["lon"], ARGS["tz"])
+    jd = swe.julday(1976, 6, 4, 5 + 45/60 + 2/3600)
+    raw = drik.pranapada_lagna(jd, place)
+    raw_err = abs(((int(raw[0]) % 12) * 30 + float(raw[1])) - (30 + jhora)) * 60
+    assert raw_err > 60, (
+        "drik.pranapada_lagna now agrees with JHora — the upstream unit bug may "
+        "be fixed, in which case _pranapada_lagna can be retired"
+    )
+
+
 def test_varnada_is_not_silently_corrupted_by_the_same_bug():
     """The one place the upstream bug still reaches us that we cannot patch.
 

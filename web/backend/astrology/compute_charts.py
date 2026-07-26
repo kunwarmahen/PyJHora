@@ -493,6 +493,9 @@ class ChartsMixin:
                     if family == "time":
                         # Recomputed locally — drik's lambdas carry a timezone bug.
                         pair = _kaala_lagna(jd, place_obj, KAALA_LAGNA_RATES[label])
+                    elif label == "Pranapada Lagna":
+                        # Also recomputed — see _pranapada_lagna for the unit bug.
+                        pair = _pranapada_lagna(jd, place_obj)
                     else:
                         pair = getattr(drik, fn_name)(jd, place_obj)
                     special_lagnas.append(_entry(label, pair, significance, family))

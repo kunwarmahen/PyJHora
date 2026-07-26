@@ -5002,9 +5002,17 @@ on the table. So —
 Each is framed as a second opinion on the natal house, never a replacement, and
 asked to name the tension when the two disagree (the informative case).
 
-**Remaining known deltas, documented not swept away:** Pranapada Lagna ~84′ (a
-genuine formula difference in `drik.pranapada_lagna`; reference-only, no rule
-attached), Kunda Lagna ~15′ (*correct* — Kunda is ascendant × 81, so the 11″
+**THIRD BUG FIXED — `udhayadhi_nazhikai`'s tharparai units.** It scales at
+9000/hour and 150/minute — i.e. **2.5 per second** — but adds seconds raw, at 1:
+`int(hours)*9000 + int(minutes)*150 + int(seconds)`. Pranapada advances 4 signs
+per ghati (5°/minute), so that 60% shortfall on the seconds term is heavily
+amplified: **84′ off JHora, more than a quarter of a sign.** Recomputed in
+`engine._pranapada_lagna` → **12′**, and the residual is the ~2 s sunrise
+difference, which at 5°/minute is already 10′ and cannot be reduced here.
+`test_pranapada_beats_the_tharparai_unit_bug` also asserts the raw engine call is
+*still* wrong, so the workaround can be retired if upstream fixes it.
+
+**Remaining known deltas, documented not swept away:** Kunda Lagna ~15′ (*correct* — Kunda is ascendant × 81, so the 11″
 ascendant residual is amplified 81×), Sookshma Tri Sphuta ~9′ (a composite,
 inherits its inputs' residuals), Vighati Lagna (advances a full sign every two
 minutes; not meaningfully comparable).
@@ -5018,5 +5026,5 @@ Files: `astrology/engine.py` (`SPECIAL_LAGNA_DEFS`, `KAALA_VELA_DEFS`,
 `routes/astrology.py`, `contexts/SettingsContext.js`, `pages/SensitivePointsPage.js`,
 `pages/SettingsPage.js`, `services/api.js`, the three locale files.
 
-**Tests: 30 new (`test_special_points.py`) — 411 backend tests pass**, frontend
+**Tests: 31 new (`test_special_points.py`) — 412 backend tests pass**, frontend
 builds clean. (`styles/tokens.test.js` has 3 failures that pre-date this work.)
