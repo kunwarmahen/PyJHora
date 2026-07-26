@@ -22,7 +22,11 @@ export const NavDrawer = () => {
   const { user, logout } = useAuth();
   const { clearProfile } = useProfile();
   const { settings } = useSettings();
-  const links = visibleFeatures(settings.uiMode);
+  const visible = visibleFeatures(settings.uiMode);
+  // Features flagged `footer` (Settings) live down with Help/Logout — they're
+  // account-level actions, not places to explore.
+  const links = visible.filter((f) => !f.footer);
+  const footerLinks = visible.filter((f) => f.footer);
 
   const go = (to) => {
     setOpen(false);
@@ -97,6 +101,16 @@ export const NavDrawer = () => {
             <Sparkles size={20} />
             <span>{t("common.changeChart")}</span>
           </button>
+          {footerLinks.map(({ key, path, Icon }) => (
+            <button
+              key={path}
+              className={`nav-drawer-link ${location.pathname === path ? "active" : ""}`}
+              onClick={() => go(path)}
+            >
+              <Icon size={20} />
+              <span>{t(`nav.${key}`)}</span>
+            </button>
+          ))}
           {/* Help sits in the footer next to the other always-available actions
               rather than in the feature list — it isn't a feature, it's the way
               out when a feature doesn't make sense. */}

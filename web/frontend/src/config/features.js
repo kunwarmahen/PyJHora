@@ -56,6 +56,8 @@ import {
  *                          to it, it just isn't advertised. See <AdvancedNotice>.
  *   group     coarse grouping, for the drawer's section headings.
  *   navOnly   in the drawer but not a dashboard tile (Dashboard, Settings).
+ *   footer    drawer renders it in the footer with the other account-level
+ *             actions (Help, Logout) instead of in the feature list.
  *   gradient  dashboard tile icon wash.
  *
  * Ordering here is the render order everywhere.
@@ -148,6 +150,7 @@ export const FEATURES = [
     tier: "simple",
     group: "core",
     navOnly: true,
+    footer: true,
   },
 
   // ── Everything-only from here down ────────────────────────────────────────
