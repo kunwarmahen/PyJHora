@@ -5052,3 +5052,87 @@ Files: `astrology/engine.py` (`SPECIAL_LAGNA_DEFS`, `KAALA_VELA_DEFS`,
 
 **Tests: 31 new (`test_special_points.py`) — 412 backend tests pass**, frontend
 builds clean. (`styles/tokens.test.js` has 3 failures that pre-date this work.)
+
+---
+
+## 52. The dasha the app recommended but could not open (owner report 2026-07-25)
+
+> "I have looking at mahen's dasha and it says tradition also recommends
+> Shashtihayani (Shashti-sama) but I cannot find it in the drop down"
+
+Exactly right, and it was a wiring gap, not a UI subtlety. The Dhasa page has two
+independently-maintained lists of dasha systems:
+
+1. **the recommendation chips** — `_APPLICABLE_DASHA_INFO` (`compute_dashas.py`)
+   maps the engine's `applicability.applicability_check()` results to a display
+   name, a when-it-applies blurb, and a **picker key**;
+2. **the dropdown** — `SUPPORTED_DASHAS` (`engine.py`), served by
+   `/api/astrology/dasha-systems`.
+
+Three of the seven conditional systems the engine can test for carried
+`picker_key = None`: **Shashtihayani, Chaturaaseeti Sama and Dwisatpathi**. Their
+chips rendered greyed-out and unclickable and they had no dropdown row at all —
+the app recommended a reading it had no way to show. The engine modules
+(`graha/shastihayani.py`, `chathuraaseethi_sama.py`, `dwisatpathi.py`) had been
+there the whole time; nothing was ported, only connected.
+
+### Shipped
+
+- **All three systems added to `SUPPORTED_DASHAS`** (60 / 84 / 112-year, all
+  `lord_type: graha`) + compute branches in `get_dasha_periods`, normalizing to
+  the same flat maha-period shape as the other 15. **Now 18 systems** — the
+  dropdown, the AI tool description and `/api/v1` all read that one dict, so they
+  updated themselves.
+- **Every `picker_key` now resolves**, so all seven recommendation chips are
+  clickable and jump straight to the table.
+- **New AI tool `get_applicable_dashas`** (`ALWAYS_TOOLS`, Timing category). The
+  model could already *read* any system but had no way to know which one tradition
+  gates open for this nativity; it now gets the name, the reason, and the
+  `dhasa_type` to pass to `get_dasha_periods`. The returned note says explicitly
+  that these are read *alongside* Vimsottari, never instead of it — the same
+  framing the FAQ uses, so the AI and the docs can't drift apart.
+- **Dashboard search** (`FEATURE_SUBITEMS`): three deep-links, with the
+  `shastihayani` / `shashti sama` spelling variants as keywords, so typing either
+  romanization finds it whether or not the parent tile is visible in Essentials.
+- **Help/FAQ**: new `conditionalDashas` question in the *reading* section —
+  what a conditional dasha is, which precondition gates each of the seven, and
+  that they cross-check Vimsottari rather than replace it.
+
+### Traps
+
+- **The two lists are the trap.** `picker_key` is a *third* namespace: the
+  applicability keys are the engine's (`satabdika`, `shashtisama`), the picker
+  keys are ours (`shatabdika`, `shashtihayani`). They will never be equal, so
+  nothing but a test can tell you the mapping is complete.
+- `applicability_check` also declares `shattrimsa_sama` and `shodasottari` in
+  `_conditional_dhasas`, but **never emits them** — upstream leaves both as a TODO
+  (they need deva/pitri hora day/night reasoning). Shodasottari is in the picker
+  anyway; Shattrimsa Sama deliberately is not.
+- Chaturaaseeti Sama returns **7 rows, not 16** — 84 years in twelve-year periods
+  is a single cycle at the default `dhasa_cycles=2`. Not a truncation bug.
+- First-period start dates precede the DOB (Shashtihayani opens ~2 months before
+  birth on chart 1). That is the elapsed balance of the birth nakshatra's period,
+  same as Vimsottari.
+
+### Tests
+
+Two new guards in `test_tools_catalog.py`, both aimed at this *class* of bug
+rather than the three instances of it:
+
+- `test_every_catalogued_dasha_system_computes` — parametrized over
+  `SUPPORTED_DASHAS`, so any key added to the dropdown must actually return dated
+  periods. Would have caught a stale entry; catches the next one.
+- `test_every_recommended_dasha_is_openable` — asserts no
+  `_APPLICABLE_DASHA_INFO` entry has a missing or unresolvable `picker_key`. This
+  is the exact bug, frozen.
+
+**432 backend tests pass** (412 + 20: the registry parametrize expands to 18);
+frontend 156 passing, lint clean — `styles/tokens.test.js`'s 3 failures pre-date
+this work. Verified through the web layer on chart 1: Shashtihayani 16 × 6y,
+Chaturaaseeti Sama 7 × 12y, Dwisatpathi 16 × 9y, and the new tool reports
+Shashtihayani as this chart's one applicable system (Sun in the Lagna).
+
+Files: `astrology/engine.py`, `astrology/compute_dashas.py`, `tools.py`,
+`tests/test_tools_catalog.py`, `config/features.js`, `config/help.js`,
+`pages/DhasaPage.js`, `i18n/locales/en.json`, `web/README.md`,
+`web/improvements-2026-07.md`, `.claude/skills/wire-a-feature/SKILL.md` (new).

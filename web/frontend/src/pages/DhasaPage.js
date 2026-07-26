@@ -661,7 +661,7 @@ export const DhasaPage = () => {
         ) : null}
 
         {/* Vimsottari above is what "my dasha" means to most people. The other
-            14 systems and the three-wheel Sudarshana Chakra are a specialist's
+            17 systems and the three-wheel Sudarshana Chakra are a specialist's
             cross-check — collapsed in Essentials, plain in Everything. */}
         {!loading && result && (
           <AdvancedOnly

@@ -2568,7 +2568,8 @@
       "whyBirthTime": "Why does it keep asking for my exact birth time?",
       "yogaAndDosha": "What are yogas and doshas?",
       "featSpecialPoints": "Special Lagnas & Upagrahas",
-      "whatIsKaalaVela": "What is a “kaala-vela” on the Muhurta page?"
+      "whatIsKaalaVela": "What is a “kaala-vela” on the Muhurta page?",
+      "conditionalDashas": "The Dasha page recommends other systems like Shashtihayani. What are they?"
     },
     "a": {
       "aiAccurate": "It faithfully reports what the calculations say and interprets them in the tradition's own terms — the maths is real astronomy. Whether astrology itself predicts anything is a question this app can't settle for you. Please treat every reading as reflection, not instruction, and never as medical, legal or financial advice. AI models can also simply be wrong, and this one occasionally will be.",
@@ -2633,7 +2634,8 @@
       "whyBirthTime": "Because the sky changes fast. The \"ascendant\" — the sign coming up over the horizon — moves to a new sign roughly every two hours, and it decides how the whole chart is laid out. A few minutes usually doesn't matter; a few hours changes almost everything. Date and place matter too, but time is the sensitive one.",
       "yogaAndDosha": "A yoga is a specific planetary combination said to produce a particular result — many are simply favourable patterns worth knowing about. A dosha is an affliction or rough patch in the chart. Both get named dramatically in traditional texts. Read them as emphasis rather than fate: a chart with a dosha is extremely common, and it isn't a diagnosis.",
       "featSpecialPoints": "Alternative reference points to your rising sign, plus the “shadow planets”. Three of them do real work: the Hora Lagna is read for money and income, the Ghati Lagna for authority and promotion, and the Bhava Lagna for the body — they are read together as a trio, alongside (never instead of) your normal rising sign. The rest, including Gulika and the solar upagrahas, are shown because a traditional chart lists them; the app does not invent meanings for the ones without a settled rule.",
-      "whatIsKaalaVela": "The daylight is split into eight parts, each ruled by a planet; four of those parts are traditionally treated as shadowed — Kaala, Mrityu, Artha Prahara and Yama Ghantaka. When a suggested time falls inside one, it is flagged rather than removed, because these parts often coincide with Rahu Kalam and Gulika Kalam and excluding them all would rule out most of the day. Treat a flag as “prefer another slot if you have one”, not “do not do it”."
+      "whatIsKaalaVela": "The daylight is split into eight parts, each ruled by a planet; four of those parts are traditionally treated as shadowed — Kaala, Mrityu, Artha Prahara and Yama Ghantaka. When a suggested time falls inside one, it is flagged rather than removed, because these parts often coincide with Rahu Kalam and Gulika Kalam and excluding them all would rule out most of the day. Treat a flag as “prefer another slot if you have one”, not “do not do it”.",
+      "conditionalDashas": "Vimsottari, the 120-year cycle, is the default and applies to everyone. The classics also describe *conditional* dasha systems, each with its own total length, that are meant to be read only when the chart meets a stated condition — Shashtihayani (60 years) when the Sun is in the rising sign, Chaturaaseeti Sama (84) when the 10th lord sits in the 10th house, Dwisatpathi (112), Ashtottari (108), Dwadasottari (112), Panchottari (105) and Shatabdika (100) on their own tests. The Dasha page checks your chart against those rules and shows the ones that pass as recommended chips; clicking one opens its periods. They are a cross-check on Vimsottari's timing, not a replacement for it — and where two systems disagree, tradition reads the one whose condition your chart actually meets more heavily."
     }
   },
   "arudhaAi": {

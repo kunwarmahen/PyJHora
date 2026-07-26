@@ -350,6 +350,12 @@ class DashasMixin:
                 rows = panchottari.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
             elif dhasa_type == "shatabdika":
                 rows = sataatbika.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            elif dhasa_type == "shashtihayani":
+                rows = shastihayani.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            elif dhasa_type == "chaturaaseeti_sama":
+                rows = chathuraaseethi_sama.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
+            elif dhasa_type == "dwisatpathi":
+                rows = dwisatpathi.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
             # ── Additional raasi (sign) dashas ─────────────────────────────
             elif dhasa_type == "kendradhi_rasi":
                 rows = kendradhi_rasi.kendradhi_rasi_dhasa(dob_t, tob_t, place_obj, dhasa_level_index=1)
@@ -469,13 +475,13 @@ class DashasMixin:
                        "ashtottari"),
         "chaturaaseeti_sama": ("Chaturaaseeti Sama",
                                "84-year cycle; applies when the 10th lord is in the 10th house.",
-                               None),
+                               "chaturaaseeti_sama"),
         "dwadasottari": ("Dwadasottari",
                          "112-year cycle; applies from a Lagna in Venus's hora (D9-based).",
                          "dwadasottari"),
         "dwisatpathi": ("Dwisatpathi",
                         "112-year cycle; applies when the Lagna is in its own or the 7th nakshatra pada.",
-                        None),
+                        "dwisatpathi"),
         "panchottari": ("Panchottari",
                         "105-year cycle; applies from a Cancer Lagna condition (D12-based).",
                         "panchottari"),
@@ -484,7 +490,7 @@ class DashasMixin:
                       "shatabdika"),
         "shashtisama": ("Shashtihayani (Shashti-sama)",
                         "60-year cycle; applies when the Sun is in the Lagna.",
-                        None),
+                        "shashtihayani"),
     }
 
     @staticmethod

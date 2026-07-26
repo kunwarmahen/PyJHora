@@ -27,7 +27,9 @@ try:
     from jhora.horoscope.match import compatibility as compat_module
     from jhora.horoscope.dhasa.graha import (vimsottari, ashtottari, yogini,
                                              shodasottari, dwadasottari,
-                                             panchottari, sataatbika)
+                                             panchottari, sataatbika,
+                                             shastihayani, chathuraaseethi_sama,
+                                             dwisatpathi)
     from jhora.horoscope.dhasa.raasi import (narayana, kalachakra, kendradhi_rasi,
                                              sudasa, drig, chara, sthira, trikona)
     # Sudarshana Chakra dasha (§2.7) — lives directly under dhasa/, not graha/raasi,
@@ -389,6 +391,24 @@ SUPPORTED_DASHAS = {
     "shatabdika": {
         "name": "Shatabdika Dasha", "lord_type": "graha",
         "description": "100-year conditional nakshatra dasha (graha periods).",
+    },
+    "shashtihayani": {
+        "name": "Shashtihayani Dasha", "lord_type": "graha",
+        "description": "60-year conditional nakshatra dasha, also called "
+                       "Shashti-sama; classically read when the Sun is in the "
+                       "Lagna (graha periods).",
+    },
+    "chaturaaseeti_sama": {
+        "name": "Chaturaaseeti Sama Dasha", "lord_type": "graha",
+        "description": "84-year conditional nakshatra dasha of twelve equal "
+                       "periods; classically read when the 10th lord is in the "
+                       "10th house (graha periods).",
+    },
+    "dwisatpathi": {
+        "name": "Dwisatpathi Dasha", "lord_type": "graha",
+        "description": "112-year conditional nakshatra dasha of eight equal "
+                       "periods; classically read when the Lagna is in its own "
+                       "or the 7th nakshatra pada (graha periods).",
     },
     # ── Additional raasi (sign) dashas ─────────────────────────────────────
     "kendradhi_rasi": {

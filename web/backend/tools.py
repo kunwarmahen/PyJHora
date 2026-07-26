@@ -444,6 +444,22 @@ def _dasha_periods(bd, ayanamsa, dhasa_type: str = "", **_):
     }
 
 
+def _applicable_dashas(bd, ayanamsa, **_):
+    r = AstrologyCompute.get_applicable_dashas(ayanamsa=ayanamsa, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    # `picker_key` is the get_dasha_periods `dhasa_type`, so the model can go
+    # straight from "this one applies" to actually reading its periods.
+    return {
+        "applicable": [{"name": a["name"], "why": a["description"],
+                        "dhasa_type": a["picker_key"]}
+                       for a in r.get("applicable", [])],
+        "note": "Vimsottari always applies and is not listed here. These are the "
+                "conditional nakshatra dashas whose classical precondition THIS "
+                "chart meets; read them alongside Vimsottari, not instead of it.",
+    }
+
+
 def _strength(bd, ayanamsa, **_):
     r = AstrologyCompute.get_strength(ayanamsa=ayanamsa, **_args(bd))
     if r.get("status") != "success":
@@ -1210,6 +1226,18 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _dasha_periods,
     ),
     _Tool(
+        "get_applicable_dashas",
+        "Which CONDITIONAL nakshatra dashas classically apply to this chart. The "
+        "texts gate systems like Shashtihayani (Sun in the Lagna), Chaturaaseeti "
+        "Sama (10th lord in the 10th) or Ashtottari behind a precondition; this "
+        "tests the chart against those rules and returns the ones that pass, each "
+        "with the `dhasa_type` to pass to get_dasha_periods. Call it before "
+        "offering a second opinion on timing, so the cross-check uses a system "
+        "tradition would actually read for this nativity.",
+        _EMPTY_PARAMS,
+        _applicable_dashas,
+    ),
+    _Tool(
         "search_classical_texts",
         "Search the local corpus of classical Jyotish texts (BPHS, Saravali, "
         "Phaladeepika, …) for passages relevant to a topic, so you can GROUND and "
@@ -1267,7 +1295,8 @@ ALWAYS_TOOLS: List[str] = [
     "get_sphuta", "get_sahams", "get_argala",
     "get_vedic_clock", "get_retrograde", "get_muhurta",
     "get_kp", "get_jaimini", "get_life_timeline", "get_strength",
-    "get_dasha_periods", "get_sarvatobhadra_chakra", "get_kota_chakra",
+    "get_dasha_periods", "get_applicable_dashas",
+    "get_sarvatobhadra_chakra", "get_kota_chakra",
     "get_kaala_chakra", "get_tripataki_chakra",
     "get_saturn_transits",
     # get_nakshatra_profile / get_gochara_phala are section-toggled (SECTION_TOOL),
@@ -1353,6 +1382,7 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_sahams":           {"label": "Sahams (36 points)",     "category": "Sensitive points"},
     "get_argala":           {"label": "Argala (intervention)",  "category": "Sensitive points"},
     "get_dasha_periods":    {"label": "Other dasha systems (Chara, Yogini, Sudarshana Chakra…)", "category": "Timing"},
+    "get_applicable_dashas": {"label": "Which conditional dashas apply to this chart", "category": "Timing"},
     "get_sarvatobhadra_chakra": {"label": "Sarvatobhadra Chakra (transits + vedha)", "category": "Chakras"},
     "get_kota_chakra":      {"label": "Kota Chakra (the fort — protection)", "category": "Chakras"},
     "get_kaala_chakra":     {"label": "Kaala Chakra (wheel of directions)", "category": "Chakras"},

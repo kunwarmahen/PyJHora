@@ -467,6 +467,9 @@ export const FEATURE_SUBITEMS = [
   { label: "Dwadasottari Dasha", parent: "dhasa", to: "/dhasa?system=dwadasottari", keywords: "dwadasottari 112" },
   { label: "Panchottari Dasha", parent: "dhasa", to: "/dhasa?system=panchottari", keywords: "panchottari 105" },
   { label: "Shatabdika Dasha", parent: "dhasa", to: "/dhasa?system=shatabdika", keywords: "shatabdika 100" },
+  { label: "Shashtihayani Dasha", parent: "dhasa", to: "/dhasa?system=shashtihayani", keywords: "shashtihayani shastihayani shashti sama shasti 60 sun in lagna" },
+  { label: "Chaturaaseeti Sama Dasha", parent: "dhasa", to: "/dhasa?system=chaturaaseeti_sama", keywords: "chaturaaseeti chathuraaseethi sama 84" },
+  { label: "Dwisatpathi Dasha", parent: "dhasa", to: "/dhasa?system=dwisatpathi", keywords: "dwisatpathi dvisaptati sama 112" },
   // ── Chakras page: the individual chakras (tab deep-links via useTabs) ──
   { label: "Kota Chakra", parent: "sarvatobhadra", to: "/chakras?tab=kota", keywords: "kota fort protection siege" },
   { label: "Kaala Chakra", parent: "sarvatobhadra", to: "/chakras?tab=kaala", keywords: "kaala kala directions wheel" },

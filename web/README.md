@@ -864,10 +864,16 @@ DB name), which is deliberate.
   Maha + Antardasha load up front; deeper levels lazy-load on expand (computed at full
   precision from the natal chart). The currently running period auto-expands the
   whole live chain and is highlighted.
-- **Other systems** (14 total): Ashtottari, Yogini, Shodasottari, Dwadasottari,
-  Panchottari, Shatabdika (graha) and Narayana, Kalachakra, Kendradhi-Rasi, Sudasa,
+- **Other systems** (17 total): Ashtottari, Yogini, Shodasottari, Dwadasottari,
+  Panchottari, Shatabdika, Shashtihayani (Shashti-sama), Chaturaaseeti Sama,
+  Dwisatpathi (graha) and Narayana, Kalachakra, Kendradhi-Rasi, Sudasa,
   Drig, Chara, Sthira, Trikona (raasi) — pick one from the "Other Dasha Systems" card
   for a maha-period table.
+- **Applicable-dasha chips**: the engine's `applicability_check` tests the chart
+  against each conditional system's classical precondition (Sun in the Lagna →
+  Shashtihayani, 10th lord in the 10th → Chaturaaseeti Sama, …) and every system it
+  can recommend is also one the picker can open — clicking a chip loads its periods.
+  The AI has the same view via the `get_applicable_dashas` tool.
 - **Sudarsana Chakra**: a collapsible section showing the three wheels read from the
   Lagna, Moon and Sun as ascendants for a chosen solar-return year (± year stepper),
   rendered as three Kundalis in the selected chart style.

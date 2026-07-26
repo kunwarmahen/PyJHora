@@ -43,11 +43,38 @@ def test_section_tools_all_exist():
     ("get_kaala_chakra", {"current_date": "2026-07-16"}),
     ("get_tripataki_chakra", {"basis": "annual", "year": 2026}),
     ("get_dasha_periods", {"dhasa_type": "sudharsana_chakra"}),
+    ("get_applicable_dashas", {}),
 ])
 def test_session_tools_dispatch(name, args):
     """Every tool added for the chakras + alternate dashas actually runs."""
     r = tool_registry.dispatch(name, args, dict(CHART1))
     assert "error" not in r, r
+
+
+@pytest.mark.parametrize("key", sorted(tool_registry.SUPPORTED_DASHAS))
+def test_every_catalogued_dasha_system_computes(key):
+    """A system in SUPPORTED_DASHAS is offered in the Dhasa dropdown, named in the
+    AI tool description and listed by the public API — so every key must actually
+    produce dated periods, not just exist in the dict."""
+    r = tool_registry.dispatch("get_dasha_periods", {"dhasa_type": key}, dict(CHART1))
+    assert "error" not in r, r
+    assert r["periods"], f"{key} returned no periods"
+    assert r["periods"][0]["start_date"] < r["periods"][0]["end_date"]
+
+
+def test_every_recommended_dasha_is_openable():
+    """Regression: the Dhasa page recommended Shashtihayani, Chaturaaseeti Sama and
+    Dwisatpathi from the engine's applicability check, but none of the three was in
+    SUPPORTED_DASHAS — so the chip was dead and the dropdown had no such entry.
+
+    Any conditional dasha we can *recommend* must also be one we can *show*."""
+    from astrology import AstrologyCompute, SUPPORTED_DASHAS
+    unopenable = {
+        key: info[2]
+        for key, info in AstrologyCompute._APPLICABLE_DASHA_INFO.items()
+        if not info[2] or info[2] not in SUPPORTED_DASHAS
+    }
+    assert not unopenable, f"recommended but not in the picker: {unopenable}"
 
 
 def test_kaala_tool_reports_directions():
