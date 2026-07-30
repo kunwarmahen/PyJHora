@@ -159,6 +159,10 @@ async def health_check():
             "base_url": local.get("base_url"),
             "model": local.get("default_model"),
             "reason": local.get("reason"),
+            # Up but out of capacity — the GPU is busy with another workload.
+            # Distinct from unavailable: nothing is broken, it just can't answer yet.
+            "busy": bool(local.get("busy")),
+            "retry_after": local.get("retry_after"),
         },
         "map_picker_enabled": settings.MAP_PICKER_ENABLED
     }

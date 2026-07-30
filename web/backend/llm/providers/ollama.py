@@ -5,6 +5,7 @@ single LLMService class. These are instance methods, so the mixin
 composes over `self` with no other changes.
 """
 from ..base import *  # noqa: F401,F403
+from ..gate import gate
 
 
 class OllamaMixin:
@@ -20,6 +21,8 @@ class OllamaMixin:
             "models": [],
             "available": False,
             "reason": None,
+            "busy": False,
+            "retry_after": None,
         }
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
@@ -37,6 +40,20 @@ class OllamaMixin:
                     info["reason"] = f"Ollama responded with status {resp.status_code}."
         except Exception:
             info["reason"] = "Cannot reach Ollama. Start it with 'ollama serve'."
+
+        # Reachable is not the same as able to answer: when another workload holds
+        # the GPU, Ollama accepts the connection and lists its models perfectly
+        # while having nowhere to put the weights. Report that distinctly, so the
+        # UI can say "busy, back in a moment" instead of a bare green tick
+        # followed by a failed reading.
+        busy = gate.status(self.ollama_url)
+        if busy["busy"]:
+            info["busy"] = True
+            info["retry_after"] = busy["retry_after"]
+            info["reason"] = (
+                f"The model host has no spare capacity right now — the GPU is in "
+                f"use by another workload. Trying again in about "
+                f"{busy['retry_after']}s.")
         return info
 
     async def _ollama_installed_models(self, base_url: Optional[str] = None) -> List[str]:

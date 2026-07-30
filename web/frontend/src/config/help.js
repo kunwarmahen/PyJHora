@@ -94,6 +94,7 @@ export const HELP_SECTIONS = [
       { id: "aiWhatItSees" },
       { id: "aiModes" },
       { id: "aiWhichModel", to: "/settings" },
+      { id: "aiUnavailable", to: "/settings" },
       { id: "aiAccurate" },
       { id: "aiHistory", to: "/history" },
     ],

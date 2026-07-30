@@ -5288,3 +5288,121 @@ Everything, dashboard and drawer.
 Files: `config/features.js`, `config/features.test.js`, `config/help.js`,
 `pages/DashboardPage.js`, `components/NavDrawer.js`, `styles/Dashboard.css`,
 `styles/NavDrawer.css`, `i18n/locales/{en,hi,sa}.json`, `web/README.md`.
+
+## 54. When the GPU is busy training, every AI reading failed — badly (owner report 2026-07-30)
+
+> "I am using my own GPU for training and when our digest generation or any other
+> AI reading is triggered it fails as it does not get the GPU."
+
+### What was actually wrong
+
+Two problems, and the second one hid the first.
+
+**Failure was a return value, not an exception.** Every provider adapter reports
+trouble by *returning* a string that starts with `"Error"` —
+`llm/providers/ollama.py` returns `"Error from Ollama (gemma4): 500 - ..."`,
+Gemini and the OpenAI-shaped ones do the same. Nothing in the backend ever
+checked for it (there was not one `startswith("Error")` anywhere). So that string
+was the answer:
+
+* `digest.py` had a perfectly good `except Exception → fall back to highlights`
+  that **could never fire**, because nothing raised. The error text was emailed
+  as the day's narrative.
+* every `*-analysis` route returned it as `ai_analysis` **and `_save_reading`
+  persisted it into AI history as a reading** you could reopen forever.
+
+**And it never failed fast.** When another process holds the VRAM, Ollama does
+not refuse the request — it accepts the connection, lists its models perfectly,
+and falls back to CPU or blocks. So the 300s client timeout was the thing that
+eventually tripped, once per profile, serially, at 3am. Only the *streaming* path
+had any retry (`MAX_STREAM_RETRIES`); the non-streaming `_complete` used by every
+reading and every digest had none.
+
+### What shipped
+
+**1. `LLMUnavailable` (`llm/base.py`).** `classify_error_text` sorts a provider's
+error string into `capacity` (OOM/VRAM/"requires more system memory" — the GPU is
+taken) / `transient` (unreachable, 5xx, 429) / `config` (no API key) / `fatal`,
+and `None` for text that is simply not an error. `_complete` raises instead of
+returning; so does the streaming path, internally.
+
+> **Trap:** it subclasses `HTTPException`. ~50 route handlers already end with
+> `except HTTPException: raise` before their catch-all 500, so the right status
+> (503 / 400 / 502) and message reach the client **without editing one handler**.
+> A plain `Exception` subclass would have been swallowed and re-raised as
+> `500 Internal Server Error` by every single one of them.
+
+> **Trap:** `classify_error_text` requires the `"Error"` *prefix* the adapters
+> emit. A reading that merely says "an error of judgement" must not become a 503;
+> `classify_failure` is the prefix-less variant, used only on exception messages.
+
+**2. The gate (`llm/gate.py`).** Per-host, for local providers only
+(`LOCAL_PROVIDERS` = Ollama + OpenAI-compatible; a hosted API's capacity is not
+ours to protect):
+
+* a semaphore, `LOCAL_LLM_CONCURRENCY=1` by default — two readings sharing a
+  contended GPU are slower than the same two run back to back;
+* a circuit breaker: one capacity failure marks that host out-of-capacity for
+  `LOCAL_LLM_COOLDOWN=300s`, so the other 19 profiles of a digest run fail in
+  microseconds instead of each discovering the same exhausted GPU over 300s.
+
+> **Trap (reentrancy):** with a semaphore of 1, a guarded method that calls
+> another guarded method self-deadlocks. Hence the `_once` split —
+> `_chat_once`/`_complete_chat` take the slot, `_chat_once_on`/
+> `_complete_chat_once` are the ungated bodies. Don't collapse them.
+
+> **Trap:** the failure→`LLMUnavailable` conversion happens *inside* the
+> `gate.slot()` block, so the breaker sees a capacity failure however the
+> provider chose to report it (returned string **or** raised exception).
+
+**3. Fallback chain.** `ModelConfig.fallbacks` + `config_chain`. A retryable
+failure walks it; a **config** failure does not — a wrong API key must surface,
+not be papered over by quietly answering from a model the user didn't pick.
+Built in `deps._resolve_cfg` and `digest._digest_cfg`, the two places that can
+read the user's stored keys (the LLM layer has no DB), and only ever containing
+providers that actually have a key. `OLLAMA_CPU_URL` is appended last for local
+primaries — a CPU-only Ollama is slow but never competes for the GPU.
+
+**4. Scheduled digests defer instead of degrading.** `digest.should_defer` →
+`{"status":"deferred"}`, and `scheduler._defer` **gives the claim back** (restoring
+the *previous* window value, not clearing the field) so a later tick retries.
+Bounded by `DIGEST_AI_MAX_DEFERRALS=6` ≈ 1½ h at the 15-minute tick, after which
+it sends with highlights only: late beats never. A manual "send test now" never
+defers — someone is waiting.
+
+> **Trap:** without the claim rollback the window counts as served and that
+> digest is never sent at all. The claim is what makes the scheduler idempotent;
+> deferring without releasing it silently drops the day.
+
+**5. It says so.** `_ollama_status` reports `busy` + `retry_after` distinctly
+from unavailable (reachable ≠ able to answer), `/health` passes it through, and
+Settings › System shows an amber **Busy** pill with a countdown instead of a red
+Down that sends the owner debugging a non-problem. Help/FAQ: `aiUnavailable`.
+
+### Zero-code companion (do this too)
+
+`OLLAMA_KEEP_ALIVE=30s` and `OLLAMA_MAX_LOADED_MODELS=1` in the Ollama systemd
+drop-in. The default keep-alive is **5 minutes**, so one 3am digest pins several
+GB of VRAM for five minutes after it finishes — enough to OOM a training step
+that had nothing to do with it.
+
+### Tests
+
+`backend/tests/test_llm_availability.py` (48, DB-free, no network). Pins the
+*class* of bug rather than the sites that showed it: parametrized over every
+adapter, **no provider error string may be returned as an answer**. Plus the
+classification table (including "prose that mentions errors is not an error"),
+breaker trip/clear, serialisation, hosted-providers-are-not-gated, chain walking,
+`config` never falling back, stream fallback before the first token, no retry
+after a token has shipped, and the scheduler's claim-rollback document shape.
+
+> **Trap:** `gate` is a process-wide singleton — the autouse fixture swaps in a
+> fresh `LocalLLMGate`, or a tripped breaker leaks into the next test.
+
+Files: `backend/llm/base.py`, `backend/llm/gate.py` (new),
+`backend/llm/providers/ollama.py`, `backend/llm_service.py`, `backend/deps.py`,
+`backend/digest.py`, `backend/scheduler.py`, `backend/config.py`,
+`backend/routes/misc.py`, `backend/tests/test_llm_availability.py` (new),
+`frontend/src/pages/SettingsPage.js`, `frontend/src/styles/Settings.css`,
+`frontend/src/config/help.js`, `frontend/src/i18n/locales/{en,hi,sa}.json`,
+`web/README.md`.

@@ -75,6 +75,12 @@ class Settings(BaseSettings):
     # The wake interval must be < 60 min so it catches every target hour.
     DIGEST_SCHEDULER_ENABLED: bool = False
     DIGEST_SCHEDULER_INTERVAL_MINUTES: int = 15
+    # How many times a scheduled digest may be put off while the AI narrative is
+    # unavailable for a reason that may clear — typically the local GPU is busy
+    # with another workload. Past this many attempts the digest goes out with its
+    # rule-based highlights and no narrative: late is better than never. At the
+    # default 15-minute tick, 6 attempts ≈ an hour and a half of patience.
+    DIGEST_AI_MAX_DEFERRALS: int = 6
 
     # ── Admin console (§44) ────────────────────────────────────────────────
     # Deployer-controlled superuser access. This env var is the SOURCE OF TRUTH

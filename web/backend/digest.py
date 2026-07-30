@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from astrology import AstrologyCompute, DEFAULT_AYANAMSA
 from config import settings
 from database import get_database
+from llm.base import LLMUnavailable
 import digest_recipients
 import email_service
 import notifications
@@ -106,13 +107,18 @@ async def _digest_cfg(user_id: str):
             cfg.max_tokens = max(256, min(mt, 32768))
     except (TypeError, ValueError):
         pass
+    user_keys = {}
     try:
+        user_keys = await user_settings.get_user_keys(user_id)
         if not cfg.api_key and cfg.provider_type.value in user_settings.KEYED_PROVIDERS:
-            stored = await user_settings.get_api_key(user_id, cfg.provider_type.value)
+            stored = user_keys.get(cfg.provider_type.value)
             if stored:
                 cfg.api_key = stored
     except Exception:
         pass
+    # Nobody is watching the 3am run, so it matters more here than anywhere that
+    # a busy GPU has somewhere else to go before the narrative is given up on.
+    cfg.fallbacks = llm_service.build_fallbacks(cfg, user_keys)
     # Same stale-model guard the request path applies (deps._resolve_cfg) — it
     # matters more here, where nobody is watching the 3am run fail.
     try:
@@ -384,6 +390,7 @@ async def _profile_block(user_id: str, profile: Dict[str, Any],
         await _save_signals(user_id, pid, new_sig, digest.get("date"))
 
     narrative = None
+    ai_retryable = False
     if include_ai:
         try:
             from llm_service import llm_service
@@ -391,7 +398,11 @@ async def _profile_block(user_id: str, profile: Dict[str, Any],
             analyze = getattr(llm_service, spec["analyze"])
             text = await analyze(digest_data=digest, name=name, config=cfg)
             narrative = (text or "").strip() or None
-        except Exception as e:  # LLM down/unconfigured/slow → fall back to highlights
+        except LLMUnavailable as e:  # GPU busy / host down — may be worth waiting for
+            ai_retryable = e.retryable
+            print(f"[digest] AI narrative unavailable for {user_id}/{name} "
+                  f"({e.kind}): {e.provider_message[:200]}")
+        except Exception as e:  # LLM unconfigured/slow → fall back to highlights
             print(f"[digest] AI narrative skipped for {user_id}/{name}: {e}")
             narrative = None
 
@@ -404,6 +415,9 @@ async def _profile_block(user_id: str, profile: Dict[str, Any],
         "personal": personal,
         "changes": changes,
         "narrative": narrative,
+        # Consumed by send_digest_for_user (and stripped before rendering): the
+        # narrative is missing for a reason that may clear on its own.
+        "_ai_retryable": ai_retryable,
     }
 
 
@@ -510,12 +524,32 @@ def _render_html(blocks: List[Dict[str, Any]], date: str, noun: str,
     return "".join(out)
 
 
+def should_defer(blocks: List[Dict[str, Any]], allow_defer: bool) -> bool:
+    """Hold this digest back for a later tick?
+
+    True when any section wanted an AI narrative and lost it to something that
+    may clear — the GPU being busy with another workload. Deferring on *any*
+    section keeps one combined message coherent: half the profiles narrated and
+    half not is worse than waiting ten minutes. `allow_defer` is False for a
+    manual "send now" (the user is waiting) and once the scheduler has been
+    patient long enough (late beats never)."""
+    return bool(allow_defer and any(b.get("_ai_retryable") for b in blocks))
+
+
 async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = None,
-                               cadence: str = "daily") -> Dict[str, Any]:
+                               cadence: str = "daily",
+                               allow_defer: bool = False) -> Dict[str, Any]:
     """Build + deliver a digest for one user at the given cadence (daily/
     fortnightly/monthly), covering every profile they chose in a single combined
     message. Returns `{status, sent:{email,push}, profiles:[names], date, cadence}`
-    or `{status:"error",...}`. Never raises — the scheduler must survive one bad user."""
+    or `{status:"error",...}`. Never raises — the scheduler must survive one bad user.
+
+    With `allow_defer` (the scheduler sets it while there is still time in the
+    day), a digest whose AI narrative failed *for a reason that may clear* — the
+    GPU is busy with another workload — returns `{status:"deferred"}` and sends
+    nothing, so the scheduler can try again shortly rather than mailing out a
+    thinner digest that can never be improved. A manual "send now" never defers:
+    the user is waiting and wants what we have."""
     db = get_database()
     if prefs is None:
         prefs = await notifications.get_prefs(user_id)
@@ -555,6 +589,10 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
 
     if not blocks:
         return {"status": "error", "reason": "calc_failed"}
+
+    if should_defer(blocks, allow_defer):
+        return {"status": "deferred", "reason": "llm_unavailable", "cadence": cadence,
+                "profiles": [b["name"] for b in blocks]}
 
     date = blocks[0]["date"]
     noun = spec["noun"]

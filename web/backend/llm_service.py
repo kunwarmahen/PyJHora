@@ -9,6 +9,7 @@ distinct classes and silently break isinstance checks across the mixins.
 """
 from llm.base import *  # noqa: F401,F403  (constants, enums, ModelConfig, stdlib deps)
 from llm.base import __all__ as _base_all
+from llm.gate import gate
 from llm.prompts import PromptsMixin
 from llm.providers import OllamaMixin, OpenAIMixin, GeminiMixin
 
@@ -872,11 +873,105 @@ Reply with STRICT JSON only, exactly this shape:
     # ------------------------------------------------------------------ #
     # Provider dispatch
     # ------------------------------------------------------------------ #
-    async def _complete(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
-                        system: Optional[str] = None,
-                        usage: Optional[Dict[str, Any]] = None) -> str:
-        max_tokens = cfg.max_tokens or max_tokens
-        sys_prompt = system or SYSTEM_PROMPT
+    def build_fallbacks(self, cfg: ModelConfig,
+                        user_keys: Optional[Dict[str, str]] = None) -> List[ModelConfig]:
+        """Configs to fall back to when `cfg` cannot answer, best first.
+
+        Called from the two places that can read the user's stored keys —
+        `deps._resolve_cfg` for requests and `digest._digest_cfg` for scheduled
+        work — because the LLM layer has no database. A provider is only offered
+        if a key is actually available for it (the user's, else the server's), so
+        the chain never contains a link that is guaranteed to fail.
+
+        A local primary falls back to the cloud (the GPU is the scarce thing); a
+        cloud primary falls back to the local model (the network is). Set
+        LLM_FALLBACK=0 to disable, or LLM_FALLBACK_ORDER to reorder.
+        """
+        if not LLM_FALLBACK_ENABLED:
+            return []
+        user_keys = user_keys or {}
+        out: List[ModelConfig] = []
+
+        if cfg.provider_type in LOCAL_PROVIDERS:
+            for name in LLM_FALLBACK_ORDER:
+                try:
+                    pt = ProviderType(name)
+                except ValueError:
+                    continue
+                if pt == cfg.provider_type or pt in LOCAL_PROVIDERS:
+                    continue
+                alt = self.resolve_config(pt.value,
+                                          api_key=user_keys.get(pt.value) or None)
+                if not alt.api_key or not alt.model:
+                    continue  # no key → it would only fail; don't advertise it
+                alt.max_tokens = cfg.max_tokens
+                out.append(alt)
+        else:
+            local = self.resolve_config(ProviderType.OLLAMA.value)
+            local.max_tokens = cfg.max_tokens
+            out.append(local)
+        return out
+
+    def config_chain(self, cfg: ModelConfig) -> List[ModelConfig]:
+        """`cfg` followed by the configs to try if it fails retryably.
+
+        The explicit `cfg.fallbacks` (built where the user's stored keys are
+        readable) come first; a CPU-only Ollama endpoint, if one is configured,
+        is appended last for any local primary — it is slow, but it never
+        competes for the GPU, so it answers when nothing else can."""
+        chain = [cfg] + list(cfg.fallbacks or [])
+        if OLLAMA_CPU_URL and cfg.provider_type in LOCAL_PROVIDERS:
+            already = any((c.base_url or "").rstrip("/") == OLLAMA_CPU_URL for c in chain)
+            if not already:
+                chain.append(ModelConfig(
+                    ProviderType.OLLAMA,
+                    cfg.model if cfg.provider_type == ProviderType.OLLAMA
+                    else self.ollama_default_model,
+                    OLLAMA_CPU_URL, None, cfg.max_tokens))
+        return chain
+
+    async def _guarded_call(self, cfg: ModelConfig, run,
+                            usage: Optional[Dict[str, Any]] = None):
+        """Run `run(active_cfg)` under the local-model gate, walking the fallback
+        chain on a retryable failure and normalising every failure mode to
+        LLMUnavailable.
+
+        REENTRANCY: the gate holds a per-host semaphore of size 1 by default, so a
+        guarded method must never call another guarded method — that self-
+        deadlocks. Guarded entry points call the `*_once` variants internally.
+        """
+        last: Optional[LLMUnavailable] = None
+        chain = self.config_chain(cfg)
+        for i, active in enumerate(chain):
+            try:
+                # Normalise inside the gate block so the breaker sees a capacity
+                # failure however the provider chose to report it (returned
+                # string or raised exception).
+                async with gate.slot(active):
+                    try:
+                        return await run(active)
+                    except LLMUnavailable:
+                        raise
+                    except Exception as e:
+                        raise LLMUnavailable.from_exception(e, active)
+            except LLMUnavailable as e:
+                last = e
+                # The user gets a readable sentence; the log keeps what the
+                # provider actually said, which is the only place to see it.
+                print(f"[llm] {active.provider_type.value}/{active.model} "
+                      f"unavailable ({e.kind}): {e.provider_message[:300]}")
+                if not e.retryable or i == len(chain) - 1:
+                    raise
+                if usage is not None:
+                    usage.clear()  # nothing was produced on this config
+                nxt = chain[i + 1]
+                print(f"[llm] falling back to "
+                      f"{nxt.provider_type.value}/{nxt.model}")
+        raise last or LLMUnavailable("Error: no model configuration to try.")
+
+    async def _complete_once(self, prompt: str, cfg: ModelConfig, max_tokens: int,
+                             sys_prompt: str,
+                             usage: Optional[Dict[str, Any]]) -> str:
         if cfg.provider_type == ProviderType.OLLAMA:
             return await self._call_ollama(prompt, cfg, max_tokens, sys_prompt, usage)
         if cfg.provider_type in OPENAI_STYLE_PROVIDERS:
@@ -884,6 +979,35 @@ Reply with STRICT JSON only, exactly this shape:
         if cfg.provider_type == ProviderType.GEMINI:
             return await self._call_gemini(prompt, cfg, max_tokens, sys_prompt, usage)
         return "Unsupported LLM provider"
+
+    async def _complete(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
+                        system: Optional[str] = None,
+                        usage: Optional[Dict[str, Any]] = None) -> str:
+        """One completion, or an LLMUnavailable — never an error string.
+
+        Every single-shot reading and every digest narrative funnels through here,
+        which makes it the one place worth getting right:
+
+        * provider adapters signal failure by *returning* text beginning with
+          "Error"; that text used to be handed onward as the answer, so it got
+          emailed as a digest and saved into AI history as a reading. It is now
+          classified and raised.
+        * a retryable failure (the local GPU is busy, the box is down) walks
+          `config_chain` before giving up. A *config* failure does not: a wrong
+          API key should be reported, not silently papered over by another model.
+        """
+        max_tokens = cfg.max_tokens or max_tokens
+        sys_prompt = system or SYSTEM_PROMPT
+
+        async def _run(active: ModelConfig) -> str:
+            text = await self._complete_once(prompt, active,
+                                             active.max_tokens or max_tokens,
+                                             sys_prompt, usage)
+            if classify_error_text(text):
+                raise LLMUnavailable.from_error_text(text, active)
+            return text
+
+        return await self._guarded_call(cfg, _run, usage=usage)
 
     @staticmethod
     def _fill_usage(usage: Optional[Dict[str, Any]],
@@ -911,48 +1035,70 @@ Reply with STRICT JSON only, exactly this shape:
         provider's reported token counts (prompt_tokens/completion_tokens/
         total_tokens) once the stream completes, so the caller can persist/show it.
 
-        Transient failures that occur *before any content is emitted* (provider
-        unreachable, 5xx/429, timeout) are retried up to MAX_STREAM_RETRIES with a
-        short backoff; once real tokens have streamed to the client we can't retry
-        without duplicating text, so a mid-stream failure is surfaced as-is."""
+        Failures that occur *before any content is emitted* are recovered from:
+        a transient one (provider unreachable, 5xx/429, timeout) is retried on the
+        same model up to MAX_STREAM_RETRIES with a short backoff, while a capacity
+        failure — the local GPU is busy with another workload — skips straight to
+        the next config in `config_chain`, since retrying an exhausted GPU only
+        makes the user wait. Once real tokens have streamed to the client we can't
+        retry without duplicating text, so a mid-stream failure is surfaced as-is."""
         max_tokens = cfg.max_tokens or max_tokens
         messages = self.build_chat_messages(chart_data, question, history)
 
-        def _new_gen():
-            if cfg.provider_type == ProviderType.OLLAMA:
-                return self._stream_ollama(messages, cfg, max_tokens, usage)
-            if cfg.provider_type in OPENAI_STYLE_PROVIDERS:
-                return self._stream_openai_style(messages, cfg, max_tokens, usage)
-            if cfg.provider_type == ProviderType.GEMINI:
-                return self._stream_gemini(messages, cfg, max_tokens, usage)
+        def _new_gen(active: ModelConfig):
+            cap = active.max_tokens or max_tokens
+            if active.provider_type == ProviderType.OLLAMA:
+                return self._stream_ollama(messages, active, cap, usage)
+            if active.provider_type in OPENAI_STYLE_PROVIDERS:
+                return self._stream_openai_style(messages, active, cap, usage)
+            if active.provider_type == ProviderType.GEMINI:
+                return self._stream_gemini(messages, active, cap, usage)
 
             async def _unsupported():
                 yield "Unsupported LLM provider"
             return _unsupported()
 
-        attempt = 0
-        while True:
-            gen = _new_gen()
-            emitted = False          # any real content yielded yet?
-            pending_error = None     # a transient error seen before any content
-            async for chunk in gen:
-                if not emitted and pending_error is None and _is_transient_stream_error(chunk):
-                    # Provider failed at connect time (no content yet) — hold the
-                    # error; we may retry instead of surfacing it.
-                    pending_error = chunk
+        async def _attempt(active: ModelConfig):
+            """Stream one config. Raises LLMUnavailable if it failed before
+            emitting anything — raised *inside* the gate so a capacity failure
+            trips the breaker for everyone else queued behind it."""
+            async with gate.slot(active):
+                emitted = False          # any real content yielded yet?
+                pending_error = None     # an error seen before any content
+                async for chunk in _new_gen(active):
+                    if not emitted and pending_error is None and classify_error_text(chunk):
+                        # Provider failed at connect time (no content yet) — hold
+                        # the error; we may recover instead of surfacing it.
+                        pending_error = chunk
+                        continue
+                    emitted = True
+                    yield chunk
+                if pending_error is not None and not emitted:
+                    raise LLMUnavailable.from_error_text(pending_error, active)
+
+        chain = self.config_chain(cfg)
+        idx = 0
+        retries = 0
+        while idx < len(chain):
+            try:
+                async for chunk in _attempt(chain[idx]):
+                    yield chunk
+                return
+            except LLMUnavailable as e:
+                if usage is not None:
+                    usage.clear()  # nothing was produced; reset before recovering
+                if e.kind == "transient" and retries < MAX_STREAM_RETRIES:
+                    retries += 1
+                    await asyncio.sleep(STREAM_RETRY_BACKOFF * retries)
                     continue
-                emitted = True
-                yield chunk
-            if pending_error is not None and not emitted:
-                if attempt < MAX_STREAM_RETRIES:
-                    attempt += 1
-                    if usage is not None:
-                        usage.clear()  # nothing was produced; reset before retry
-                    await asyncio.sleep(STREAM_RETRY_BACKOFF * attempt)
+                if e.retryable and idx + 1 < len(chain):
+                    idx += 1
+                    retries = 0
                     continue
-                # Out of retries — surface the transient error to the client.
-                yield pending_error
-            return
+                # Nothing left to try — surface the error as the answer text, which
+                # is the contract this generator has with the SSE route.
+                yield e.raw_message
+                return
 
     async def generate_life_report_chapter(self, chart_data: Dict[str, Any],
                                            title: str, focus: str, name: str,
@@ -1105,6 +1251,15 @@ Reply with STRICT JSON only, exactly this shape:
             rounds += 1
             try:
                 res = await self._chat_once(messages, specs, cfg, use_json)
+            except LLMUnavailable as e:
+                # The model never answered at all (host down, or the GPU is busy
+                # with another workload). That says nothing about whether it
+                # supports native tool calls, so don't switch protocols and try
+                # again — report it and stop.
+                yield {"type": "token", "text": last_content or f"\n\n[{e.raw_message}]"}
+                if usage is not None and have_usage:
+                    usage.update(agg)
+                return
             except Exception as e:
                 if not use_json:
                     # Native tools unsupported/failed → switch to JSON protocol.
@@ -1201,10 +1356,18 @@ Reply with STRICT JSON only, exactly this shape:
             usage.update(agg)
 
     async def _chat_once(self, messages, specs, cfg, use_json) -> Dict[str, Any]:
-        """One non-streaming round. Returns
+        """One non-streaming round, gated and with fallback. Returns
         {"content": str|None, "tool_calls": [...], "usage": {...}|None}."""
+        async def _run(active):
+            return await self._chat_once_on(messages, specs, active, use_json)
+
+        return await self._guarded_call(cfg, _run)
+
+    async def _chat_once_on(self, messages, specs, cfg, use_json) -> Dict[str, Any]:
+        """The provider dispatch for one round. Ungated — `_chat_once` holds the
+        slot, so this must only ever call the ungated `_complete_chat_once`."""
         if use_json:
-            content, u = await self._complete_chat(messages, cfg)
+            content, u = await self._complete_chat_once(messages, cfg)
             return {"content": content, "tool_calls": [], "usage": u}
         if cfg.provider_type == ProviderType.OLLAMA:
             return await self._chat_once_ollama(messages, specs, cfg)
@@ -1213,12 +1376,22 @@ Reply with STRICT JSON only, exactly this shape:
         if cfg.provider_type == ProviderType.GEMINI:
             return await self._chat_once_gemini(messages, specs, cfg)
         # Unknown provider — fall back to plain chat.
-        content, u = await self._complete_chat(messages, cfg)
+        content, u = await self._complete_chat_once(messages, cfg)
         return {"content": content, "tool_calls": [], "usage": u}
 
     async def _complete_chat(self, messages, cfg: ModelConfig, max_tokens: int = 4096):
+        """Gated, fallback-walking plain chat. Used by run_tool_loop's forced final
+        answer, which is a top-level call and so takes its own slot."""
+        async def _run(active):
+            return await self._complete_chat_once(messages, active, max_tokens)
+
+        return await self._guarded_call(cfg, _run)
+
+    async def _complete_chat_once(self, messages, cfg: ModelConfig, max_tokens: int = 4096):
         """Non-streaming plain chat (no tools) over neutral messages. Returns
-        (content, usage). Used by the JSON-protocol path and the forced final answer."""
+        (content, usage). Used by the JSON-protocol path and the forced final answer.
+
+        Ungated on purpose — every caller is already inside a gate slot."""
         max_tokens = cfg.max_tokens or max_tokens
         if cfg.provider_type == ProviderType.OLLAMA:
             url = (cfg.base_url or self.ollama_url).rstrip("/")

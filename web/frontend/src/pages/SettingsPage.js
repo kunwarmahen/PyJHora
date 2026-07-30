@@ -541,8 +541,17 @@ export const SettingsPage = () => {
         {
           key: "localAi",
           label: t("settings.system.localAi"),
-          ok: !!health.local_ai?.available,
+          ok: !!health.local_ai?.available && !health.local_ai?.busy,
           optional: true,
+          // Reachable but out of capacity is its own state: the model host is up
+          // and nothing is misconfigured, another workload simply has the GPU.
+          // Showing that as "down" would send the owner debugging a non-problem.
+          busy: !!health.local_ai?.busy,
+          hint: health.local_ai?.busy
+            ? t("settings.system.localAiBusyHint", {
+                seconds: health.local_ai?.retry_after ?? 0,
+              })
+            : "",
           // Show the actual configured local model + endpoint (from OLLAMA_URL /
           // OLLAMA_DEFAULT_MODEL) so the value is visible even when unreachable.
           value: health.local_ai?.model
@@ -1520,15 +1529,20 @@ export const SettingsPage = () => {
                   <span className="settings-health-name">
                     {c.label}
                     {c.value && <span className="settings-health-value">{c.value}</span>}
+                    {c.hint && <span className="settings-health-value">{c.hint}</span>}
                   </span>
                   <span
-                    className={`settings-health-badge${c.ok ? " is-ok" : c.optional ? " is-off" : " is-bad"}`}
+                    className={`settings-health-badge${
+                      c.busy ? " is-busy" : c.ok ? " is-ok" : c.optional ? " is-off" : " is-bad"
+                    }`}
                   >
-                    {c.ok
-                      ? t("settings.system.ok")
-                      : c.optional
-                        ? t("settings.system.disabled")
-                        : t("settings.system.down")}
+                    {c.busy
+                      ? t("settings.system.busy")
+                      : c.ok
+                        ? t("settings.system.ok")
+                        : c.optional
+                          ? t("settings.system.disabled")
+                          : t("settings.system.down")}
                   </span>
                 </div>
               ))}

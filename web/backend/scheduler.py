@@ -140,6 +140,43 @@ async def _paksha_claim_key(user_id: str, prefs: dict, local) -> Optional[str]:
         return None
 
 
+def _defer_field(claim_field: str) -> str:
+    return f"{claim_field}_defer"
+
+
+def _deferrals_so_far(settings_doc: dict, claim_field: str, claim_key: str) -> int:
+    """How many times this *same* window has already been put off. Keyed by the
+    claim key so yesterday's deferrals never count against today."""
+    rec = ((settings_doc.get("notifications") or {}).get(_defer_field(claim_field))
+           or {})
+    return int(rec.get("count") or 0) if rec.get("key") == claim_key else 0
+
+
+async def _defer(db, user_id: str, claim_field: str, claim_key: str,
+                 settings_doc: dict, deferrals: int) -> None:
+    """Give the claim back so a later tick retries this window.
+
+    Releasing the claim is the whole mechanism: the tick already won it, and
+    without a rollback the "at or after the preferred hour" rule would treat the
+    window as served and the user would simply never get this digest. Restoring
+    the *previous* value (rather than clearing the field) keeps the older windows
+    it stands for still-claimed."""
+    prev = (settings_doc.get("notifications") or {}).get(claim_field)
+    update = {"$set": {f"notifications.{_defer_field(claim_field)}":
+                       {"key": claim_key, "count": deferrals + 1}}}
+    if prev is None:
+        update["$unset"] = {f"notifications.{claim_field}": ""}
+    else:
+        update["$set"][f"notifications.{claim_field}"] = prev
+    await db[notifications.SETTINGS_COLLECTION].update_one({"user_id": user_id}, update)
+
+
+async def _clear_deferrals(db, user_id: str, claim_field: str) -> None:
+    await db[notifications.SETTINGS_COLLECTION].update_one(
+        {"user_id": user_id},
+        {"$unset": {f"notifications.{_defer_field(claim_field)}": ""}})
+
+
 async def _run_cadence(db, spec: dict) -> int:
     """One pass over users who enabled `spec`'s cadence. Returns how many sent.
 
@@ -176,10 +213,20 @@ async def _run_cadence(db, spec: dict) -> int:
             if not claimed:
                 continue  # already sent this window (this worker or another)
 
-            result = await digest.send_digest_for_user(user_id, prefs, spec["cadence"])
-            if result.get("status") == "ok":
+            deferrals = _deferrals_so_far(claimed, claim_field, claim_key)
+            result = await digest.send_digest_for_user(
+                user_id, prefs, spec["cadence"],
+                allow_defer=deferrals < settings.DIGEST_AI_MAX_DEFERRALS)
+            if result.get("status") == "deferred":
+                await _defer(db, user_id, claim_field, claim_key, claimed, deferrals)
+                print(f"[scheduler] {spec['cadence']} digest for {user_id} deferred "
+                      f"({result.get('reason')}); attempt {deferrals + 1} of "
+                      f"{settings.DIGEST_AI_MAX_DEFERRALS}")
+            elif result.get("status") == "ok":
+                await _clear_deferrals(db, user_id, claim_field)
                 sent_count += 1
             else:
+                await _clear_deferrals(db, user_id, claim_field)
                 print(f"[scheduler] {spec['cadence']} digest for {user_id} "
                       f"not sent: {result.get('reason')}")
         except Exception as e:  # never let one user break the loop

@@ -679,6 +679,27 @@ GEMINI_API_KEY=         # optional global fallback
 OPENAI_API_KEY=         # optional global fallback
 OPENROUTER_API_KEY=     # optional global fallback (openrouter.ai/keys)
 
+# Sharing the GPU with other workloads (§54). If the machine serving Ollama also
+# runs training jobs, inference will periodically have nowhere to load the model.
+# LOCAL_LLM_CONCURRENCY  in-flight requests per local host (1 = serialise; two
+#                        readings on a contended GPU are slower than one after
+#                        the other, and likelier to OOM)
+# LOCAL_LLM_QUEUE_WAIT   seconds to wait for a slot before saying "busy"
+# LOCAL_LLM_COOLDOWN     seconds a host is treated as out-of-capacity after an
+#                        OOM, so 20 queued digests fail fast instead of each
+#                        waiting out its own 300s timeout
+# LOCAL_LLM_GATE=0       disables both of the above
+# LLM_FALLBACK_ORDER     cloud providers to try when the local model can't answer
+#                        (only ones that actually have a key are used)
+# OLLAMA_CPU_URL         a second, CPU-only Ollama (`CUDA_VISIBLE_DEVICES= ollama
+#                        serve` on another port) as the last resort: slow, but it
+#                        never competes for the GPU
+LOCAL_LLM_CONCURRENCY=1
+LOCAL_LLM_QUEUE_WAIT=120
+LOCAL_LLM_COOLDOWN=300
+LLM_FALLBACK_ORDER=gemini,openrouter,openai
+OLLAMA_CPU_URL=
+
 # Per-user API-key encryption (keys users save in the UI are encrypted with this;
 # falls back to SECRET_KEY if unset — set a stable value in production)
 API_KEY_ENCRYPTION_KEY=change-this-to-a-long-random-string
@@ -722,6 +743,10 @@ VAPID_SUBJECT=mailto:admin@example.com
 # Set it true unless you are driving that endpoint from your own cron.
 DIGEST_SCHEDULER_ENABLED=false
 DIGEST_SCHEDULER_INTERVAL_MINUTES=15
+# How many ticks a scheduled digest may be held back while the AI narrative is
+# unavailable for a reason that may clear (the GPU is busy). Past this it sends
+# with rule-based highlights and no narrative — late beats never. 6 × 15 min ≈ 1½ h.
+DIGEST_AI_MAX_DEFERRALS=6
 
 # Admin console (deployer-only /admin page: all accounts, usage, moderation).
 # ADMIN_USERNAMES is the source of truth — comma-separated usernames/emails; the

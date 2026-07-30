@@ -174,8 +174,13 @@ async def _resolve_cfg(current_user: str, request: "AskQuestionRequest"):
         api_key=request.api_key,
         legacy_provider=request.llm_provider,
     )
+    user_keys = {}
+    try:
+        user_keys = await user_settings.get_user_keys(current_user)
+    except Exception:
+        user_keys = {}
     if not cfg.api_key and cfg.provider_type.value in user_settings.KEYED_PROVIDERS:
-        stored = await user_settings.get_api_key(current_user, cfg.provider_type.value)
+        stored = user_keys.get(cfg.provider_type.value)
         if stored:
             cfg.api_key = stored
     # A model id can outlive the provider it was chosen for (or be uninstalled
@@ -186,6 +191,11 @@ async def _resolve_cfg(current_user: str, request: "AskQuestionRequest"):
     mt = getattr(request, "max_tokens", None)
     if mt:
         cfg.max_tokens = max(256, min(int(mt), 32768))
+    # Where to go if the chosen model can't answer — typically the local GPU is
+    # busy with another workload. Built here because this is where the user's
+    # stored keys are readable; the LLM layer has no database. After max_tokens,
+    # so the fallbacks inherit the same output cap.
+    cfg.fallbacks = llm_service.build_fallbacks(cfg, user_keys)
     return cfg
 
 

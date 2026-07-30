@@ -267,6 +267,13 @@
   color: var(--text-secondary);
 }
 
+/* Up, but with no spare capacity — another workload holds the GPU. Deliberately
+   not the danger colour: nothing is broken and there is nothing to fix. */
+.settings-health-badge.is-busy {
+  background: color-mix(in srgb, var(--saffron) 16%, transparent);
+  color: var(--saffron);
+}
+
 .settings-health-badge.is-bad {
   background: rgba(var(--danger-rgb), 0.14);
   color: var(--vermillion);
