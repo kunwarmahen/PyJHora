@@ -10,6 +10,126 @@ from .engine import *  # noqa: F401,F403  (constants + helpers the bodies use)
 AstrologyCompute = None
 
 
+# ── The difficult side of a day ──────────────────────────────────────────────
+# A digest that can only ever report neutral facts and favourable windows reads
+# the same every morning and quietly misrepresents the tradition, which is not
+# shy about a hard transit. These tables name the classical difficulties so the
+# card can carry them in the language a reader would meet in a panchang.
+
+# Saturn's house from the natal Moon, in the names the tradition uses for it.
+# 12/1/2 are the three phases of Sade-Sati (already reported as a highlight);
+# 4 and 8 are the two shorter, sharper transits that had no representation at all.
+_SANI_FROM_MOON = {
+    4: ("Ardhashtama Sani", "Saturn transiting the 4th from your Moon — "
+        "the classical 'half-eighth', felt in home, property and peace of mind"),
+    8: ("Ashtama Sani", "Saturn transiting the 8th from your Moon — "
+        "classically the most testing of Saturn's transits, asking for caution "
+        "with health, obligations and anything irreversible"),
+}
+
+# Grahas whose gochara verdict is worth a caution line, most significant first,
+# each tagged with how fast the verdict actually moves.
+#
+# This split is the anti-monotony mechanism. Saturn's verdict holds for two and a
+# half years; report it every morning as though it were today's news and every
+# morning reads the same, which is precisely the complaint. A "standing" caution
+# is the season a reader is living through and should be named as backdrop; a
+# "today" caution is what is different about this particular day. Both are
+# carried, tagged, and rationed separately — see `_pick_cautions`.
+_GOCHARA_CAUTION_PLANETS = {
+    "Saturn": (0, "standing"),
+    "Jupiter": (1, "standing"),
+    "Rahu": (2, "standing"),
+    "Ketu": (3, "standing"),
+    "Sun": (4, "today"),
+    "Mars": (5, "today"),
+    "Moon": (6, "today"),
+}
+
+# At most this many caution lines. A digest listing every unfavourable graha is
+# as monotonous as one listing none, and reads as doom rather than guidance.
+_MAX_CAUTIONS = 4
+# ...of which at most this many may be the slow-moving backdrop, so a months-long
+# Saturn transit can never crowd out what is actually different about today.
+_MAX_STANDING_CAUTIONS = 2
+
+
+def _caution(text, scope):
+    return {"text": text, "scope": scope}
+
+
+def _gochara_cautions(gochara, skip_planets=()):
+    """Caution entries from the Moon-referenced gochara verdicts, most significant
+    first.
+
+    Two tones, both classical and both worth saying out loud: an outright
+    ``Unfavourable`` transit, and a favourable one cancelled by a *vedha* — an
+    obstructing graha in the paired house. The verdict is quoted in the
+    tradition's own words and then said plainly, because "Favourable but
+    obstructed (vedha)" means nothing to a reader on its own.
+
+    `skip_planets` drops grahas already reported under a more specific classical
+    name — there is no point telling someone Saturn is unfavourable in the 4th
+    directly under a line calling that same transit Ardhashtama Sani."""
+    scored = []
+    for row in (gochara or {}).get("results", []):
+        planet = row.get("planet")
+        if planet not in _GOCHARA_CAUTION_PLANETS or planet in skip_planets:
+            continue
+        house = row.get("house_from_moon")
+        rank, scope = _GOCHARA_CAUTION_PLANETS[planet]
+        if row.get("tone") == "bad":
+            scored.append((0, rank, _caution(
+                f"{planet} transits the {_ordinal(house)} from your natal Moon — "
+                f"gochara: Unfavourable", scope)))
+        elif row.get("tone") == "caution":
+            blockers = ", ".join(row.get("obstructed_by") or []) or "another graha"
+            scored.append((1, rank, _caution(
+                f"{planet} is well placed in the {_ordinal(house)} from your natal "
+                f"Moon but obstructed by vedha ({blockers}) — the good result is "
+                f"checked, not delivered", scope)))
+    scored.sort(key=lambda t: (t[0], t[1]))
+    return [c for _, _, c in scored]
+
+
+def _pick_cautions(cautions):
+    """Ration the caution list so today's signal always gets through.
+
+    Today-scoped entries take the first two slots, the standing backdrop takes at
+    most two, and anything left over fills what remains. Without this the slow
+    grahas — which are also the most 'significant' — would take every slot every
+    day for months on end."""
+    today = [c for c in cautions if c.get("scope") == "today"]
+    standing = [c for c in cautions if c.get("scope") != "today"]
+    picked = today[:2] + standing[:_MAX_STANDING_CAUTIONS] + today[2:]
+    return picked[:_MAX_CAUTIONS]
+
+
+def _ordinal(n):
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return str(n)
+    if 10 <= n % 100 <= 20:
+        return f"{n}th"
+    return f"{n}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th') }"
+
+
+def _avoid_windows(panch):
+    """The classical trio to keep clear of for anything new — Rahu Kalam,
+    Yamaganda and Gulika Kalam. These were already computed for the panchanga
+    card and simply never reached the digest, which is why a digest could name
+    the day's good hour but never its bad ones."""
+    out = []
+    for key, label in (("rahu_kalam", "Rahu Kalam"),
+                       ("yamaganda", "Yamaganda"),
+                       ("gulika", "Gulika Kalam")):
+        w = (panch or {}).get(key) or {}
+        if w.get("start") and w.get("end"):
+            out.append({"name": label, "start": w["start"], "end": w["end"]})
+    return out
+
+
 def _next_good_window(choghadiya, now_h):
     """The next auspicious Choghadiya window at/after ``now_h`` (local hours).
 
@@ -80,7 +200,22 @@ class DigestsMixin:
             dashas = AstrologyCompute.get_dashas(
                 dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz)
 
+            # The classical gochara verdicts for today — the digest's only source
+            # of an honestly *unfavourable* reading. Best-effort: a day without it
+            # is a thinner day, not a failed one.
+            try:
+                gochara = AstrologyCompute.get_gochara_phala(
+                    dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz,
+                    current_date=date_str, current_tz=current_tz, ayanamsa=ayanamsa)
+                if gochara.get("status") != "success":
+                    gochara = None
+            except Exception as e:
+                print(f"Daily digest gochara skipped: {e}")
+                gochara = None
+
             highlights = []
+            cautions = []
+            named_planets = set()
 
             # Panchanga headline.
             if panch.get("status") == "success":
@@ -139,12 +274,23 @@ class DigestsMixin:
                         return ""
                     return (f" — {b}-bindu sign in its own Ashtakavarga "
                             f"({p.get('bindu_label', '').lower()})")
-                if sat.get("house_from_moon") in (12, 1, 2):
+                sat_house = sat.get("house_from_moon")
+                if sat_house in (12, 1, 2):
                     phase = {12: "first (rising)", 1: "peak (janma)",
-                             2: "final (setting)"}[sat["house_from_moon"]]
-                    highlights.append(f"Saturn is in your {sat['house_from_moon']}th from "
+                             2: "final (setting)"}[sat_house]
+                    highlights.append(f"Saturn is in your {sat_house}th from "
                                       f"the Moon — Sade-Sati {phase} phase"
                                       + _bindu_note(sat))
+                elif sat_house in _SANI_FROM_MOON:
+                    # The two hard Saturn transits outside Sade-Sati. Named, because
+                    # a reader who knows the term deserves to see it, and explained,
+                    # because one who doesn't deserves to know what it means.
+                    label, meaning = _SANI_FROM_MOON[sat_house]
+                    highlights.append(f"{label}: Saturn in your {sat_house}th from the "
+                                      f"Moon" + _bindu_note(sat))
+                    cautions.append(_caution(f"{label} — {meaning}", "standing"))
+                    # Named here, so don't repeat it as a bare gochara verdict below.
+                    named_planets.add("Saturn")
                 if jup:
                     highlights.append(
                         f"Jupiter transits your {jup.get('house_from_moon')}th from the Moon "
@@ -206,6 +352,30 @@ class DigestsMixin:
             except Exception:
                 action_window = None
 
+            # ── The other half of the day ────────────────────────────────────
+            # The windows to keep clear of, and the transits the tradition calls
+            # difficult. Both are shared-sky or chart-specific in the same way the
+            # favourable material is, so they ride alongside it rather than in a
+            # separate card.
+            avoid = []
+            if panch.get("status") == "success":
+                avoid = _avoid_windows(panch)
+                if avoid:
+                    first = avoid[0]
+                    highlights.append(
+                        f"Avoid for anything new: {first['name']} "
+                        f"{first['start']}–{first['end']}")
+                # Vishti (Bhadra) is the one karana classically shunned for
+                # auspicious work — the panchanga has always known it, the digest
+                # never asked.
+                if (panch.get("karana") or {}).get("name") == "Vishti":
+                    cautions.append(_caution(
+                        "Vishti (Bhadra) karana runs today — classically avoided for "
+                        "beginnings, journeys and anything auspicious", "today"))
+
+            cautions.extend(_gochara_cautions(gochara, skip_planets=named_planets))
+            cautions = _pick_cautions(cautions)
+
             return {
                 "status": "success",
                 "date": date_str,
@@ -216,7 +386,12 @@ class DigestsMixin:
                 "transits": transit_block,
                 "pravesh": pravesh,
                 "action_window": action_window,
+                "avoid_windows": avoid,
+                "gochara": gochara,
                 "highlights": highlights,
+                # Kept apart from `highlights` deliberately: a hard transit listed
+                # among neutral facts reads as another neutral fact.
+                "cautions": cautions,
             }
         except Exception as e:
             import traceback
@@ -314,6 +489,21 @@ class DigestsMixin:
                 when = "solar month (Maasa Pravesha)"
             highlights: List[str] = [
                 f"Your {when}: {start_str} → {end_str} ({span_days} days)"]
+            cautions: List[Dict] = []
+            named_planets = set()
+
+            # Gochara verdicts as of today, for the same reason the daily card
+            # carries them: without an honestly unfavourable signal available, every
+            # window reads like every other window.
+            try:
+                gochara = AstrologyCompute.get_gochara_phala(
+                    dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz,
+                    current_date=today_str, ayanamsa=ayanamsa)
+                if gochara.get("status") != "success":
+                    gochara = None
+            except Exception as e:
+                print(f"Period digest gochara skipped: {e}")
+                gochara = None
 
             # Panchanga headline at the window's opening.
             if panch.get("status") == "success":
@@ -366,11 +556,17 @@ class DigestsMixin:
                 planets = transits.get("planets", {})
                 sat = planets.get("Saturn", {})
                 jup = planets.get("Jupiter", {})
-                if sat.get("house_from_moon") in (12, 1, 2):
+                sat_house = sat.get("house_from_moon")
+                if sat_house in (12, 1, 2):
                     phase = {12: "first (rising)", 1: "peak (janma)",
-                             2: "final (setting)"}[sat["house_from_moon"]]
-                    highlights.append(f"Saturn in your {sat['house_from_moon']}th from the "
+                             2: "final (setting)"}[sat_house]
+                    highlights.append(f"Saturn in your {sat_house}th from the "
                                       f"Moon — Sade-Sati {phase} phase")
+                elif sat_house in _SANI_FROM_MOON:
+                    label, meaning = _SANI_FROM_MOON[sat_house]
+                    highlights.append(f"{label}: Saturn in your {sat_house}th from the Moon")
+                    cautions.append(_caution(f"{label} — {meaning}", "standing"))
+                    named_planets.add("Saturn")
                 if jup:
                     highlights.append(
                         f"Jupiter transits your {jup.get('house_from_moon')}th from the Moon "
@@ -405,6 +601,8 @@ class DigestsMixin:
                     pair = f" ({'/'.join(yg['pair'])})" if yg.get("pair") else ""
                     highlights.append(f"Tajaka yoga — {yg['name']}{pair}")
 
+            cautions.extend(_gochara_cautions(gochara, skip_planets=named_planets))
+
             return {
                 "status": "success",
                 "period": period,
@@ -419,7 +617,9 @@ class DigestsMixin:
                 "transits": transit_block,
                 "events": events,
                 "pravesh": pravesh,
+                "gochara": gochara,
                 "highlights": highlights,
+                "cautions": _pick_cautions(cautions),
             }
         except Exception as e:
             import traceback

@@ -16,11 +16,25 @@ registered account, aggregate usage, drill into (gated) content, and moderate
     always available; private content is "break glass" only. Every content view
     and every moderation action is written to the `admin_audit` collection.
 
+  • `admin_audit` holds two *categories* of row. "moderation" is what an admin
+    did (suspend, delete, break-glass content view). "security" is what the
+    deployment did on its own — registrations, logins, failed logins, password
+    resets, API tokens. They share one collection (and one retention policy) but
+    the console filters them apart, because "who did what to whom" and "what has
+    been happening" are different questions. Rows written before this split
+    carry no category and are read as moderation, which is what they were.
+
+  • The **activity feed** is deliberately NOT a log: it is derived on read from
+    the collections that already exist (users, conversations, journal, quiz,
+    shares, digests). That means it works retroactively over data recorded long
+    before any of this was written, and costs nothing to keep.
+
   • This module owns the map of which collections hold per-user data and which
     field keys them, so counts and cascade-delete stay correct as collections
     are added.
 """
-from datetime import datetime, timezone
+import time
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any
 
 from config import settings
@@ -32,6 +46,7 @@ from config import settings
 # per-user counts both read from here.
 USER_COLLECTIONS: Dict[str, str] = {
     "saved_profiles": "user_id",
+    "charts": "user_id",
     "ai_conversations": "user_id",
     "journal_entries": "user_id",
     "ai_tool_traces": "user_id",
@@ -41,6 +56,7 @@ USER_COLLECTIONS: Dict[str, str] = {
     "shared_charts": "user_id",
     "digest_recipients": "user_id",
     "digest_signals": "user_id",
+    "digest_readings": "user_id",
     "api_tokens": "username",
     "refresh_tokens": "username",
     "password_reset_tokens": "username",
@@ -55,6 +71,7 @@ COUNT_COLLECTIONS = [
     "ai_tool_traces",
     "quiz_sessions",
     "shared_charts",
+    "digest_readings",
 ]
 
 AUDIT_COLLECTION = "admin_audit"
@@ -265,24 +282,239 @@ async def delete_user(username: str) -> Dict[str, int]:
 
 # ── Audit log ────────────────────────────────────────────────────────────────
 
-async def audit(admin: str, action: str, target: Optional[str] = None,
-                detail: Optional[str] = None, ip: Optional[str] = None) -> None:
+MODERATION = "moderation"
+SECURITY = "security"
+
+# Security actions the deployment records about itself. Listed here (rather than
+# accepted as free text) so the console can offer a real filter dropdown and so a
+# typo at a call site shows up as an unknown action instead of a silent new
+# category. Keep the vocabulary small — one entry per thing worth answering
+# "when did this last happen?" about.
+SECURITY_ACTIONS = [
+    "register",
+    "login",
+    "login_failed",
+    "login_blocked",       # rate-limited before the password was even checked
+    "login_suspended",     # correct password, but the account is suspended
+    "google_signin",
+    "logout_all",
+    "password_changed",
+    "password_reset_requested",
+    "password_reset_completed",
+    "email_changed",
+    "api_token_created",
+    "api_token_revoked",
+    "account_self_deleted",
+    "admin_console_opened",
+]
+
+# Never let the audit collection grow without bound — logins alone would do it.
+_last_prune_at = 0.0
+_PRUNE_EVERY_SECONDS = 3600
+
+
+def _retention_days() -> int:
+    try:
+        return max(1, int(settings.ADMIN_AUDIT_RETENTION_DAYS))
+    except (TypeError, ValueError):
+        return 90
+
+
+async def _prune_audit() -> int:
+    """Drop audit rows past the retention horizon. `at` is an ISO-8601 UTC string,
+    so a plain string range compare is a correct (and index-friendly) date compare.
+    Rate-limited to once an hour — this is called from the write path."""
+    global _last_prune_at
+    now = time.monotonic()
+    if now - _last_prune_at < _PRUNE_EVERY_SECONDS:
+        return 0
+    _last_prune_at = now
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=_retention_days())).isoformat()
+    try:
+        res = await _db()[AUDIT_COLLECTION].delete_many({"at": {"$lt": cutoff}})
+        return res.deleted_count
+    except Exception as e:
+        print(f"[admin.audit] prune failed: {e}")
+        return 0
+
+
+async def _write_audit(category: str, actor: Optional[str], action: str,
+                       target: Optional[str], detail: Optional[str],
+                       ip: Optional[str]) -> None:
     try:
         await _db()[AUDIT_COLLECTION].insert_one({
-            "admin": admin,
+            "category": category,
+            # Historically named `admin`; for a security row it is the account the
+            # event is about (or None for an anonymous attempt). Kept under the old
+            # key so rows written before the split still read back the same way.
+            "admin": actor,
             "action": action,
             "target": target,
             "detail": detail,
             "ip": ip,
             "at": datetime.now(timezone.utc).isoformat(),
         })
+        await _prune_audit()
     except Exception as e:  # auditing must never break the operation it records
         print(f"[admin.audit] failed to record {action}: {e}")
 
 
-async def list_audit(limit: int = 200) -> List[Dict[str, Any]]:
+async def audit(admin: str, action: str, target: Optional[str] = None,
+                detail: Optional[str] = None, ip: Optional[str] = None) -> None:
+    """Record a moderation action — something an admin did through the console."""
+    await _write_audit(MODERATION, admin, action, target, detail, ip)
+
+
+async def security_event(action: str, actor: Optional[str] = None,
+                         target: Optional[str] = None,
+                         detail: Optional[str] = None,
+                         ip: Optional[str] = None) -> None:
+    """Record a security event the deployment generated about itself (a login, a
+    reset, a token). Best-effort and never raises: an audit write must not be able
+    to fail a login. Call sites pass no request body or content — only who, what,
+    and from where."""
+    await _write_audit(SECURITY, actor, action, target, detail, ip)
+
+
+async def list_audit(limit: int = 200, category: Optional[str] = None,
+                     action: Optional[str] = None, actor: Optional[str] = None,
+                     target: Optional[str] = None,
+                     since_days: Optional[int] = None) -> List[Dict[str, Any]]:
+    """Audit rows newest-first, with optional filters. `category=moderation` also
+    matches the pre-split rows that carry no category field at all."""
+    q: Dict[str, Any] = {}
+    if category == MODERATION:
+        q["$or"] = [{"category": MODERATION}, {"category": {"$exists": False}}]
+    elif category:
+        q["category"] = category
+    if action:
+        q["action"] = action
+    if actor:
+        q["admin"] = actor
+    if target:
+        import re
+        q["target"] = {"$regex": re.escape(target), "$options": "i"}
+    if since_days:
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=int(since_days))).isoformat()
+        q["at"] = {"$gte": cutoff}
     rows = []
-    async for doc in _db()[AUDIT_COLLECTION].find({}).sort("at", -1).limit(limit):
+    async for doc in _db()[AUDIT_COLLECTION].find(q).sort("at", -1).limit(limit):
         doc["_id"] = str(doc.get("_id", ""))
+        doc.setdefault("category", MODERATION)
         rows.append(doc)
     return rows
+
+
+async def audit_summary() -> Dict[str, Any]:
+    """What the audit log actually holds, so the console can explain an empty or
+    quiet log instead of leaving the operator to guess it's broken."""
+    db = _db()
+    out: Dict[str, Any] = {"retention_days": _retention_days()}
+    try:
+        out["total"] = await db[AUDIT_COLLECTION].count_documents({})
+        out["security"] = await db[AUDIT_COLLECTION].count_documents({"category": SECURITY})
+        out["moderation"] = out["total"] - out["security"]
+        newest = await db[AUDIT_COLLECTION].find_one({}, sort=[("at", -1)])
+        out["newest_at"] = (newest or {}).get("at")
+    except Exception:
+        out.update({"total": 0, "security": 0, "moderation": 0, "newest_at": None})
+    return out
+
+
+# ── Activity feed (derived, not logged) ──────────────────────────────────────
+# One reverse-chronological stream of what the deployment has actually been
+# doing, assembled on read from the collections that already hold the data. It
+# therefore covers everything that ever happened, including the long stretch
+# before any event logging existed — which is the whole point of building it this
+# way rather than starting a new log and waiting.
+
+def _iso(value: Any) -> Optional[str]:
+    """Normalise a stored timestamp to an ISO string. Collections are inconsistent
+    here by history: most store ISO strings, journal_entries stores datetimes."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.astimezone(timezone.utc).isoformat() if value.tzinfo else \
+            value.replace(tzinfo=timezone.utc).isoformat()
+    return str(value)
+
+
+def _clip(text: Any, n: int = 90) -> str:
+    s = str(text or "").strip().replace("\n", " ")
+    return s[:n] + ("…" if len(s) > n else "")
+
+
+# Each activity kind: the collection, the field that dates it, the user field, and
+# how to summarise a row. Summaries are metadata only — a title, a label, a count.
+# Never the body of a reading, a journal entry, or any birth data: this feed is
+# visible to an admin *without* ADMIN_CONTENT_ACCESS.
+_ACTIVITY_SOURCES = [
+    {"kind": "signup", "collection": "users", "ts": "created_at", "user": "username",
+     "summary": lambda d: f"{d.get('auth_provider') or 'password'} account registered"},
+    {"kind": "ai", "collection": "ai_conversations", "ts": "updated_at", "user": "user_id",
+     "summary": lambda d: f"{d.get('kind') or 'reading'} · {_clip(d.get('title'), 60)}"},
+    {"kind": "digest", "collection": "digest_readings", "ts": "created_at", "user": "user_id",
+     "summary": lambda d: f"{d.get('cadence') or 'daily'} digest for {_clip(d.get('subject'), 40)}"},
+    {"kind": "journal", "collection": "journal_entries", "ts": "created_at", "user": "user_id",
+     "summary": lambda d: "journal entry saved"},
+    {"kind": "quiz", "collection": "quiz_sessions", "ts": "created_at", "user": "user_id",
+     "summary": lambda d: "quiz · " + (_clip(", ".join(d.get("topics") or []), 40)
+                                       or str(d.get("level") or "session"))},
+    {"kind": "share", "collection": "shared_charts", "ts": "created_at", "user": "user_id",
+     "summary": lambda d: "chart shared by link"},
+    {"kind": "profile", "collection": "saved_profiles", "ts": "created_at", "user": "user_id",
+     "summary": lambda d: "birth profile saved"},
+]
+
+ACTIVITY_KINDS = [s["kind"] for s in _ACTIVITY_SOURCES] + ["audit"]
+
+
+async def activity_feed(limit: int = 200, kinds: Optional[List[str]] = None,
+                        username: Optional[str] = None) -> List[Dict[str, Any]]:
+    """The merged newest-first activity stream. Each source is queried for its own
+    newest `limit` rows and the merge is trimmed back to `limit`, so one very busy
+    source can't starve the others out of the window."""
+    db = _db()
+    wanted = set(kinds) if kinds else None
+    rows: List[Dict[str, Any]] = []
+
+    for src in _ACTIVITY_SOURCES:
+        if wanted is not None and src["kind"] not in wanted:
+            continue
+        q = {src["user"]: username} if username else {}
+        try:
+            cursor = db[src["collection"]].find(q).sort(src["ts"], -1).limit(limit)
+            async for doc in cursor:
+                at = _iso(doc.get(src["ts"]))
+                if not at:
+                    # Undatable row — accounts predating `created_at`, mostly. Left
+                    # out rather than given a made-up timestamp, so the signup count
+                    # here can legitimately read lower than the Overview total.
+                    continue
+                rows.append({
+                    "at": at,
+                    "kind": src["kind"],
+                    "user": doc.get(src["user"]),
+                    "summary": src["summary"](doc),
+                })
+        except Exception as e:
+            print(f"[admin.activity] {src['collection']} skipped: {e}")
+
+    # The audit log joins the same stream — a suspension or a failed login belongs
+    # in "what has been happening" as much as a saved reading does.
+    if wanted is None or "audit" in wanted:
+        try:
+            q = {"admin": username} if username else {}
+            async for doc in db[AUDIT_COLLECTION].find(q).sort("at", -1).limit(limit):
+                rows.append({
+                    "at": doc.get("at"),
+                    "kind": "audit",
+                    "user": doc.get("admin"),
+                    "summary": (f"{doc.get('category') or MODERATION} · {doc.get('action')}"
+                                + (f" → {doc['target']}" if doc.get("target") else "")),
+                })
+        except Exception as e:
+            print(f"[admin.activity] audit skipped: {e}")
+
+    rows.sort(key=lambda r: r["at"] or "", reverse=True)
+    return rows[:limit]

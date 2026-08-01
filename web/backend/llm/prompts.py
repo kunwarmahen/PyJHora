@@ -794,6 +794,21 @@ Reason from the placements given; cite the factors behind your read. Do NOT make
         changes = d.get("changes") or []
         changes_block = ("\n".join(f"- {c}" for c in changes)
                          if changes else "- (nothing new since last time)")
+        # The day's difficulties, split by how fast they move. "today" is what is
+        # different about this morning; "standing" is the months-long backdrop, and
+        # is labelled as such so the model stops announcing a two-year Saturn
+        # transit as fresh news every single day — the single biggest reason these
+        # readings came out sounding identical.
+        cautions = d.get("cautions") or []
+        today_cautions = [c["text"] for c in cautions if c.get("scope") == "today"]
+        standing_cautions = [c["text"] for c in cautions if c.get("scope") != "today"]
+        cautions_block = ("\n".join(f"- {c}" for c in today_cautions)
+                          if today_cautions else "- (nothing difficult flagged for today)")
+        standing_block = ("\n".join(f"- {c}" for c in standing_cautions)
+                          if standing_cautions else "- (none)")
+        avoid = d.get("avoid_windows") or []
+        avoid_line = ("; ".join(f"{w['name']} {w['start']}–{w['end']}" for w in avoid)
+                      or "none computed")
         bhukti = (dasha.get("bhukti") or {})
         upcoming = "\n".join(
             f"- {u['planet']} enters {u['to_sign']} on {u['date']}"
@@ -801,10 +816,16 @@ Reason from the placements given; cite the factors behind your read. Do NOT make
         ) or "- (none imminent)"
         retro = transits.get("retrograde", [])
 
-        return f"""You are a warm, grounded personal Vedic astrologer writing {name}'s DAILY note for {d.get('date')}. Speak TO them ("you"), plainly.
+        return f"""You are an experienced personal Vedic astrologer writing {name}'s DAILY note for {d.get('date')}. Speak TO them ("you"), plainly and honestly. You are their astrologer, not their cheerleader: a day the classics call difficult should be reported as difficult.
 
 NEW SINCE {name}'S LAST DIGEST (if anything here, LEAD with it — it's the freshest, most relevant news):
 {changes_block}
+
+DIFFICULT TODAY — the tradition's own verdicts for this day (this is news; give it real weight):
+{cautions_block}
+
+STANDING BACKDROP (already true for weeks or months — {name} has been living with it. Mention it only as context for what is happening today, in a clause, and NEVER as though it were new. If you wrote about it in yesterday's note you have already said it):
+{standing_block}
 
 SPECIFIC TO {name} (build the reading around these — this is what makes today theirs):
 - Current dasha: {dasha.get('maha_lord', 'n/a')} Mahadasha{', ' + bhukti.get('lord') + ' Bhukti' if bhukti.get('lord') else ''} (Mahadasha runs to {dasha.get('maha_end', 'n/a')}).
@@ -816,15 +837,18 @@ SHARED SKY (context only — nearly everyone reading a digest today sees the sam
 - Panchanga: {vaara.get('name')}, {tithi.get('paksha')} {tithi.get('name')}, {nak.get('name')} nakshatra.
 - Retrograde now: {', '.join(retro) if retro else 'none'}.
 - Next auspicious window today (Choghadiya): {action_line}.
+- Periods to keep clear of for anything new: {avoid_line}.
 - Upcoming ingresses:
 {upcoming}
 
-Write ~150 words as 2–3 short flowing paragraphs (no headings, no bullet labels):
-- Center it on the SPECIFIC signals above. If a dasha change is near, that is the story; otherwise lead with their dasha/bhukti mood or their Jupiter/Saturn-from-Moon transit.
+Write ~170 words as 2–3 short flowing paragraphs (no headings, no bullet labels):
+- Center it on the SPECIFIC and DIFFICULT-TODAY signals above. If a dasha change is near, that is the story; otherwise lead with whatever moved today — a fresh caution, their dasha/bhukti mood, or their Jupiter/Saturn-from-Moon transit.
+- Say what is hard as well as what supports them. If something above is flagged difficult, name it and say what it asks for — do not soften it into a vague "be mindful". If nothing is flagged, say so plainly rather than manufacturing a worry; an easy day is a real result.
+- You may use the tradition's own vocabulary where the data gives it — Ashtama Sani, Ardhashtama Sani, vedha, Vishti (Bhadra) karana, "gochara: Unfavourable" — but always follow the term with what it means in ordinary words, in the same sentence.
 - The tithi/nakshatra/weekday can colour the opening in a line, but must not be the whole note. A retrograde only earns a mention if it genuinely bears on their situation — and then only once, woven in naturally.
-- Close with ONE concrete, specific suggestion tied to their strongest signal today. If an auspicious window is given above, you may anchor a time-sensitive suggestion to it (name the window and its hours once), but never invent a time.
+- Close with ONE concrete, specific suggestion tied to their strongest signal today. If an auspicious window is given above, you may anchor a time-sensitive suggestion to it (name the window and its hours once); you may likewise name ONE period to avoid if it matters for what you are suggesting. Never invent a time.
 
-Hard rules: Do NOT restate the mechanical facts verbatim (never write "Retrograde now: …", "Jupiter enters …", or "Tajaka yoga — …"). Do NOT open with "Today's alignment of…" or any fixed template. Avoid scare-quotes and stock phrases — no "slow down", "trust the timing", "audit your projects", "bridge period", "electric", "big thing", "inner compass". Do NOT make fated, medical, legal or financial claims. Vary your opening from other people's readings. Keep it a supportive daily reflection."""
+Hard rules: The data above is authoritative — reason only from it, never contradict it, and never invent a placement, verdict or time. Do NOT restate the mechanical facts verbatim (never write "Retrograde now: …", "Jupiter enters …", "gochara: Unfavourable" as a bare line, or "Tajaka yoga — …"). Do NOT open with "Today's alignment of…" or any fixed template. Avoid scare-quotes and stock phrases — no "slow down", "trust the timing", "audit your projects", "bridge period", "electric", "big thing", "inner compass", "navigate", "lean into". Being honest about a hard day does NOT mean predicting disaster: no fated outcomes, no medical, legal or financial claims, nothing about death, illness or catastrophe. Frame difficulty as what to handle carefully, and always leave them with something they can actually do. Vary your opening from other people's readings."""
 
     def _build_period_digest_prompt(self, d: Dict[str, Any], name: str, period: str) -> str:
         """A warm fortnight / month reading tying the running dasha to the window's
@@ -847,6 +871,9 @@ Hard rules: Do NOT restate the mechanical facts verbatim (never write "Retrograd
         event_lines = "\n".join(
             f"- {e['date']}: {e['text']}" for e in events
         ) or "- (no sign-changes or stations this window)"
+        cautions = d.get("cautions") or []
+        caution_lines = "\n".join(f"- {c['text']}" for c in cautions) \
+            or "- (nothing the classics flag as difficult in this window)"
 
         # Name the rung honestly — the reader should know which chart they're being read.
         noun = "fortnight" if is_fortnight else "month"
@@ -886,7 +913,10 @@ Progressed chart for this {noun} — the {chart_name}, cast at the moment the wi
 
         window = f"{d.get('start_date')} → {d.get('end_date')} ({d.get('span_days')} days)"
 
-        return f"""You are a warm, encouraging personal Vedic astrologer writing {name}'s briefing for {horizon}: {window}. Weave their current dasha period together with the progressed chart for this {noun} and the sky's movements across the window into one grounded, supportive note. Speak TO them ("you"), plainly.
+        return f"""You are an experienced personal Vedic astrologer writing {name}'s briefing for {horizon}: {window}. Weave their current dasha period together with the progressed chart for this {noun} and the sky's movements across the window into one grounded, honest note. Speak TO them ("you"), plainly. Encouraging where the chart supports it and candid where it doesn't — a window the classics call testing should be reported as testing.
+
+WHAT THE TRADITION FLAGS AS DIFFICULT IN THIS WINDOW (give this real weight — a briefing that only reports favourable factors is not a reading):
+{caution_lines}
 
 Window opened on: {vaara.get('name')}, {tithi.get('name')}, {nak.get('name')} nakshatra.
 Current dasha: {dasha.get('maha_lord', 'n/a')} Mahadasha{', ' + bhukti.get('lord') + ' Bhukti' if bhukti.get('lord') else ''} (Mahadasha runs to {dasha.get('maha_end', 'n/a')}).
@@ -898,10 +928,11 @@ Key highlights the engine flagged:
 {chr(10).join(f'- {h}' for h in d.get('highlights', [])) or '- (a steady window)'}
 
 Write a friendly ~{'230' if is_fortnight else '260'}-word note on this {noun} as flowing prose (you may use the three beats below as a spine, but do NOT print them as headings):
-1. The theme of this {noun} — what the dasha/bhukti and the progressed Lagna set as the backdrop, framed constructively.
+1. The theme of this {noun} — what the dasha/bhukti and the progressed Lagna set as the backdrop, said straight: supportive, mixed or demanding, whichever the data actually shows.
 2. What shifts and when — walk through the 2–3 most meaningful transit events above (an ingress, a retrograde station, a Tajaka yoga), naming their dates so they can plan around them.
-3. A gentle plan — one or two practical, specific suggestions for making the most of this {noun}.
-Reason only from the data above; do not invent placements. Do NOT restate the mechanical facts verbatim (no "Retrograde now: …" or "Tajaka yoga — …" lines) — weave what matters into sentences. Avoid scare-quotes and stock phrases ("slow down", "trust the timing", "audit your projects", "bridge period", "electric"). Do NOT open with a fixed template. End on an encouraging line. Do NOT make fated, medical, legal or financial claims; keep it a supportive forward-looking reflection."""
+3. What to handle carefully — take the flagged difficulties seriously, name what each one asks for, and where the tradition gives a term (Ashtama Sani, Ardhashtama Sani, vedha) you may use it, immediately explained in ordinary words. If nothing is flagged, say the window looks clear rather than inventing a worry.
+4. A gentle plan — one or two practical, specific suggestions for making the most of this {noun}.
+Reason only from the data above; it is authoritative — do not contradict it and do not invent placements. Do NOT restate the mechanical facts verbatim (no "Retrograde now: …" or "Tajaka yoga — …" lines) — weave what matters into sentences. Avoid scare-quotes and stock phrases ("slow down", "trust the timing", "audit your projects", "bridge period", "electric", "navigate", "lean into"). Do NOT open with a fixed template. End on a line that leaves them with something to do. Candour is not doom: no fated outcomes, no medical, legal or financial claims, nothing about death, illness or catastrophe."""
 
     # Each rung of the lunar pravesha ladder, as the reading should frame it:
     # (what the window is, the horizon word, the target length).

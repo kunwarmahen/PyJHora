@@ -921,13 +921,41 @@
     "q": {
       "featSpecialPoints": "विशेष लग्न और उपग्रह",
       "whatIsKaalaVela": "मुहूर्त पृष्ठ पर “काल-वेला” क्या है?",
-      "dashboardLayout": "डैशबोर्डे बहवः फलकाः सन्ति। तेषां क्रमः कः?"
+      "dashboardLayout": "डैशबोर्डे बहवः फलकाः सन्ति। तेषां क्रमः कः?",
+      "aiDigestHistory": "Can I look back at the digest that was emailed to me?",
+      "digestCautions": "Why does my digest now mention difficult things?"
     },
     "a": {
       "featSpecialPoints": "आपके लग्न के विकल्प संदर्भ-बिंदु और छाया-ग्रह। इनमें तीन वास्तव में उपयोगी हैं: होरा लग्न धन और आय के लिए, घटी लग्न अधिकार और पदोन्नति के लिए, तथा भाव लग्न शरीर के लिए — तीनों साथ पढ़े जाते हैं, आपके सामान्य लग्न के साथ, उसके स्थान पर नहीं। शेष केवल इसलिए दिखाए जाते हैं कि पारंपरिक कुंडली उन्हें सूचीबद्ध करती है।",
       "featSensitivePoints": "कुंडली के विशिष्ट गणित बिंदु — विशेष लग्न व उपग्रह, स्फुट, 36 सहम और अर्गला — जिनका उपयोग अनुभवी पाठक बारीकियों के लिए करते हैं। आरंभ में इन्हें छोड़ा जा सकता है।",
       "whatIsKaalaVela": "दिन आठ भागों में बँटा है, हर भाग का एक ग्रह स्वामी; इनमें चार पारंपरिक रूप से छायांकित माने जाते हैं — काल, मृत्यु, अर्थ प्रहर और यम घंटक। कोई सुझाया समय इनमें पड़े तो उसे हटाया नहीं, केवल चिह्नित किया जाता है, क्योंकि ये प्रायः राहु काल और गुलिक काल से मेल खाते हैं और सबको हटाने पर दिन का अधिकांश भाग शेष नहीं बचता।",
-      "dashboardLayout": "यः क्रमेण कुण्डली पठ्यते स एव क्रमः। “अत्र आरभताम्” इत्यत्र कुण्डली, AI, अद्यतनं च। “कुण्डलीपठनम्” इत्यत्र यत् किमपि कुण्डलीं वर्णयति। “कालनिर्णयः” इत्यत्र कदा किं भवति — प्रथमं दशा, ततः तस्योपरि गोचरः। “पञ्चाङ्गं मुहूर्तश्च” इत्यत्र गगनस्य कालमानं कर्मक्षणश्च। ततः “सम्बन्धाः”, अन्ते च “उपायाः अभ्यासश्च”। नेविगेशन-सूच्यामपि एते षट् विभागाः सन्ति।"
+      "dashboardLayout": "यः क्रमेण कुण्डली पठ्यते स एव क्रमः। “अत्र आरभताम्” इत्यत्र कुण्डली, AI, अद्यतनं च। “कुण्डलीपठनम्” इत्यत्र यत् किमपि कुण्डलीं वर्णयति। “कालनिर्णयः” इत्यत्र कदा किं भवति — प्रथमं दशा, ततः तस्योपरि गोचरः। “पञ्चाङ्गं मुहूर्तश्च” इत्यत्र गगनस्य कालमानं कर्मक्षणश्च। ततः “सम्बन्धाः”, अन्ते च “उपायाः अभ्यासश्च”। नेविगेशन-सूच्यामपि एते षट् विभागाः सन्ति।",
+      "aiDigestHistory": "Yes. Every digest that is actually delivered — by email or as a browser notification, for each person it covered — is now saved to AI History under the “Digests” filter, and opens back up on its own page exactly as it was sent. Digests are kept separately from your chats and readings, so a daily email can never push your conversations out of your history.",
+      "digestCautions": "Because a reading that only ever reports good news is not a reading. The digest now also carries what the classical texts call difficult for you: an unfavourable gochara (transit measured from your birth Moon), a favourable one cancelled by vedha (another planet obstructing it), Ashtama or Ardhashtama Sani, the Vishti karana, and the periods traditionally kept clear for anything newly begun — Rahu Kalam and its companions. Each one is marked either “today”, meaning it is what is different about this day, or “ongoing”, meaning it is a backdrop you have been living with for weeks or months. None of it is a prediction of misfortune: it is a note about what to handle with care, and the digest always leaves you something you can do."
     }
+  },
+  "history": {
+    "filter": {
+      "digest": "Digests"
+    },
+    "deliveredEmail": "Emailed",
+    "deliveredPush": "Pushed"
+  },
+  "dailyDigest": {},
+  "digest": {
+    "cautions": "Take care with",
+    "cautionsHint": "What the classical texts flag as difficult — an ongoing transit is marked as such.",
+    "scopeToday": "today",
+    "scopeStanding": "ongoing",
+    "avoidWindows": "Periods to avoid",
+    "avoidHint": "Classically kept clear for anything newly begun."
+  },
+  "periodDigest": {
+    "cautions": "Take care with",
+    "cautionsHint": "What the classical texts flag as difficult — an ongoing transit is marked as such.",
+    "scopeToday": "today",
+    "scopeStanding": "ongoing",
+    "avoidWindows": "Periods to avoid",
+    "avoidHint": "Classically kept clear for anything newly begun."
   }
 }

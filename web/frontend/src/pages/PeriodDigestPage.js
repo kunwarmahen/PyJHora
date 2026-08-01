@@ -11,6 +11,7 @@ import {
   Star,
   Moon,
   Sun,
+  ShieldAlert,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
@@ -187,6 +188,9 @@ const PeriodDigestPage = ({ period }) => {
   const transits = digest?.transits;
   const events = digest?.events || [];
   const highlights = digest?.highlights || [];
+  // Each entry is {text, scope} — see the daily page. Only the daily card has
+  // avoid-windows (a window is not a clock time).
+  const cautions = digest?.cautions || [];
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -317,6 +321,31 @@ const PeriodDigestPage = ({ period }) => {
                 ))}
               </ul>
             </div>
+
+            {/* What this window asks care with — kept out of Highlights so a
+                testing transit isn't read as one more neutral fact. */}
+            {cautions.length > 0 && (
+              <div className="ui-card ui-card--pad-lg ui-card--flush digest-cautions mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <ShieldAlert size={18} /> {t("periodDigest.cautions")}
+                </h3>
+                <p className="text-muted digest-cautions__hint">
+                  {t("periodDigest.cautionsHint")}
+                </p>
+                <ul className="digest-highlights">
+                  {cautions.map((c, i) => (
+                    <li key={i} className="digest-hl digest-hl--caution">
+                      <span className={`digest-scope digest-scope--${c.scope || "standing"}`}>
+                        {c.scope === "today"
+                          ? t("periodDigest.scopeToday")
+                          : t("periodDigest.scopeStanding")}
+                      </span>
+                      {c.text}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="chart-grid mt-xl">
               {/* Opening panchanga */}

@@ -9,6 +9,10 @@ import {
   Ban,
   Eye,
   RefreshCw,
+  Waves,
+  SlidersHorizontal,
+  Save,
+  RotateCcw,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { adminService } from "../services/api";
@@ -35,6 +39,15 @@ const fmtDate = (v) => {
   }
 };
 
+const fmtDateTime = (v) => {
+  if (!v) return "—";
+  try {
+    return new Date(v).toLocaleString();
+  } catch {
+    return String(v);
+  }
+};
+
 const StatCard = ({ label, value }) => (
   <div className="admin-stat">
     <div className="admin-stat-label">{label}</div>
@@ -56,7 +69,9 @@ export const AdminPage = () => {
     () => [
       { key: "overview", label: "Overview", icon: <Activity size={15} /> },
       { key: "users", label: "Users", icon: <Users size={15} /> },
+      { key: "activity", label: "Activity", icon: <Waves size={15} /> },
       { key: "audit", label: "Audit log", icon: <ScrollText size={15} /> },
+      { key: "settings", label: "Settings", icon: <SlidersHorizontal size={15} /> },
     ],
     []
   );
@@ -83,7 +98,9 @@ export const AdminPage = () => {
 
         {tab === "overview" && <OverviewTab />}
         {tab === "users" && <UsersTab />}
+        {tab === "activity" && <ActivityTab />}
         {tab === "audit" && <AuditTab />}
+        {tab === "settings" && <SettingsTab />}
       </div>
     </div>
   );
@@ -417,82 +434,431 @@ function DeleteConfirmModal({ username, onCancel, onConfirm }) {
   );
 }
 
-function AuditTab() {
+// How each activity kind is labelled and coloured. The feed is derived from the
+// collections themselves, so this list mirrors admin.py's _ACTIVITY_SOURCES.
+const ACTIVITY_KINDS = [
+  { key: "signup", label: "Signups" },
+  { key: "ai", label: "AI readings & chats" },
+  { key: "digest", label: "Digests" },
+  { key: "journal", label: "Journal" },
+  { key: "quiz", label: "Quiz" },
+  { key: "share", label: "Shares" },
+  { key: "profile", label: "Profiles" },
+  { key: "audit", label: "Audit events" },
+];
+
+/**
+ * What the deployment has actually been doing. Distinct from the audit log: this
+ * is derived on read from the data itself, so it shows every signup and every
+ * reading ever made — including the long stretch before event logging existed.
+ */
+function ActivityTab() {
   const [entries, setEntries] = useState([]);
+  const [kinds, setKinds] = useState([]);
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const load = useCallback(() => {
     setLoading(true);
+    setError("");
     adminService
-      .audit()
+      .activity({ kinds: kinds.join(","), username })
       .then((r) => setEntries(r.data.entries || []))
       .catch((e) => setError(errMsg(e)))
       .finally(() => setLoading(false));
-  }, []);
+  }, [kinds, username]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  if (loading) return <LoadingState />;
+  const toggleKind = (key) =>
+    setKinds((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+
   return (
     <>
       <ErrorBanner message={error} />
-      <button className="admin-btn" onClick={load} style={{ marginBottom: "var(--space-md)" }}>
-        <RefreshCw size={13} style={{ verticalAlign: "-2px" }} /> Refresh
-      </button>
-      <Card accent="indigo">
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>When</th>
-                <th>Admin</th>
-                <th>Action</th>
-                <th>Target</th>
-                <th>Detail</th>
-                <th>IP</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((e) => (
-                <tr key={e._id}>
-                  <td>{new Date(e.at).toLocaleString()}</td>
-                  <td>{e.admin}</td>
-                  <td>
-                    <span className="admin-badge">{e.action}</span>
-                  </td>
-                  <td>{e.target || "—"}</td>
-                  <td
-                    style={{
-                      maxWidth: 240,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {e.detail || "—"}
-                  </td>
-                  <td>{e.ip || "—"}</td>
-                </tr>
-              ))}
-              {entries.length === 0 && (
+      <div className="admin-filters">
+        <input
+          className="admin-input"
+          placeholder="Filter by username…"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+        <button className="admin-btn" onClick={load}>
+          <RefreshCw size={13} style={{ verticalAlign: "-2px" }} /> Refresh
+        </button>
+      </div>
+      <div className="admin-chips">
+        {ACTIVITY_KINDS.map((k) => (
+          <button
+            key={k.key}
+            className={`admin-chip${kinds.includes(k.key) ? " is-active" : ""}`}
+            onClick={() => toggleKind(k.key)}
+          >
+            {k.label}
+          </button>
+        ))}
+        {kinds.length > 0 && (
+          <button className="admin-chip" onClick={() => setKinds([])}>
+            Clear
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <LoadingState />
+      ) : (
+        <Card accent="indigo">
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
                 <tr>
-                  <td
-                    colSpan={6}
-                    style={{
-                      color: "var(--text-muted)",
-                      textAlign: "center",
-                      padding: "var(--space-lg)",
-                    }}
-                  >
-                    No admin activity recorded yet.
-                  </td>
+                  <th>When</th>
+                  <th>Kind</th>
+                  <th>User</th>
+                  <th>What</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {entries.map((e, i) => (
+                  <tr key={`${e.at}-${i}`}>
+                    <td>{fmtDateTime(e.at)}</td>
+                    <td>
+                      <span className="admin-badge">{e.kind}</span>
+                    </td>
+                    <td>{e.user || "—"}</td>
+                    <td className="admin-cell-wrap">{e.summary || "—"}</td>
+                  </tr>
+                ))}
+                {entries.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="admin-empty">
+                      Nothing recorded for this filter.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+    </>
+  );
+}
+
+/**
+ * The audit log — moderation actions and security events. Deliberately NOT an
+ * activity feed: a quiet log here means nobody suspended anyone and nobody failed
+ * a login, which is the good outcome. The empty state says so, because a blank
+ * table reads as a broken feature.
+ */
+function AuditTab() {
+  const [entries, setEntries] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [actions, setActions] = useState([]);
+  const [filters, setFilters] = useState({ category: "", action: "", actor: "", target: "" });
+  const [sinceDays, setSinceDays] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setError("");
+    adminService
+      .audit({ ...filters, since_days: sinceDays })
+      .then((r) => {
+        setEntries(r.data.entries || []);
+        setSummary(r.data.summary || null);
+        setActions(r.data.actions || []);
+      })
+      .catch((e) => setError(errMsg(e)))
+      .finally(() => setLoading(false));
+  }, [filters, sinceDays]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const set = (key) => (e) => setFilters((f) => ({ ...f, [key]: e.target.value }));
+  const filtered = Object.values(filters).some(Boolean) || sinceDays > 0;
+
+  return (
+    <>
+      <ErrorBanner message={error} />
+
+      <div className="admin-content-note">
+        This log records <strong>events</strong>: moderation actions taken in this console, and
+        security events (sign-ins, failed sign-ins, password resets, API tokens). It is not a
+        record of ordinary use — for signups, readings and digests see the{" "}
+        <strong>Activity</strong> tab, which is derived from the data itself and covers everything
+        that ever happened.
+        {summary ? (
+          <>
+            {" "}
+            Holding <strong>{summary.total}</strong> rows ({summary.security} security,{" "}
+            {summary.moderation} moderation); kept for {summary.retention_days} days
+            {summary.newest_at ? `, newest ${fmtDateTime(summary.newest_at)}` : ""}.
+          </>
+        ) : null}
+      </div>
+
+      <div className="admin-filters">
+        <select className="admin-input" value={filters.category} onChange={set("category")}>
+          <option value="">All categories</option>
+          <option value="security">Security</option>
+          <option value="moderation">Moderation</option>
+        </select>
+        <select className="admin-input" value={filters.action} onChange={set("action")}>
+          <option value="">All actions</option>
+          {[
+            ...actions,
+            "view_content",
+            "suspend",
+            "unsuspend",
+            "delete_user",
+            "update_config",
+          ].map((a) => (
+            <option key={a} value={a}>
+              {a}
+            </option>
+          ))}
+        </select>
+        <input
+          className="admin-input"
+          placeholder="Actor…"
+          value={filters.actor}
+          onChange={set("actor")}
+        />
+        <input
+          className="admin-input"
+          placeholder="Target…"
+          value={filters.target}
+          onChange={set("target")}
+        />
+        <select
+          className="admin-input"
+          value={sinceDays}
+          onChange={(e) => setSinceDays(Number(e.target.value))}
+        >
+          <option value={0}>Any time</option>
+          <option value={1}>Last 24 hours</option>
+          <option value={7}>Last 7 days</option>
+          <option value={30}>Last 30 days</option>
+        </select>
+        <button className="admin-btn" onClick={load}>
+          <RefreshCw size={13} style={{ verticalAlign: "-2px" }} /> Refresh
+        </button>
+      </div>
+
+      {loading ? (
+        <LoadingState />
+      ) : (
+        <Card accent="indigo">
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Category</th>
+                  <th>Actor</th>
+                  <th>Action</th>
+                  <th>Target</th>
+                  <th>Detail</th>
+                  <th>IP</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((e) => (
+                  <tr key={e._id}>
+                    <td>{fmtDateTime(e.at)}</td>
+                    <td>
+                      <span
+                        className={`admin-badge${
+                          e.category === "security" ? " admin-badge--security" : ""
+                        }`}
+                      >
+                        {e.category || "moderation"}
+                      </span>
+                    </td>
+                    <td>{e.admin || "—"}</td>
+                    <td>{e.action}</td>
+                    <td>{e.target || "—"}</td>
+                    <td className="admin-cell-clip">{e.detail || "—"}</td>
+                    <td>{e.ip || "—"}</td>
+                  </tr>
+                ))}
+                {entries.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="admin-empty">
+                      {filtered
+                        ? "No events match these filters."
+                        : "No events recorded yet — nothing has been moderated and no sign-in events have been logged since this deployment started recording them."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+    </>
+  );
+}
+
+// The runtime knobs, in the units an operator actually thinks in. Each carries
+// the "why you'd change this" so the console explains itself.
+const CONFIG_FIELDS = [
+  {
+    key: "digest_scheduler_enabled",
+    label: "Digest scheduler",
+    type: "bool",
+    help: "When off, no scheduled digest is delivered — the manual 'send now' still works.",
+  },
+  {
+    key: "digest_scheduler_interval_minutes",
+    label: "Check every (minutes)",
+    type: "int",
+    min: 1,
+    max: 59,
+    help: "How often the scheduler wakes and looks for due digests. Must stay under 60 so every target hour is caught. A digest set for 07:00 can therefore arrive up to this many minutes late.",
+  },
+  {
+    key: "digest_ai_max_delay_minutes",
+    label: "Wait up to (minutes) for the AI",
+    type: "int",
+    min: 0,
+    max: 720,
+    help: "How late a digest may be while the model is busy with another workload. Past this, it goes out with its rule-based highlights and no narrative — late beats never. 0 sends immediately without waiting.",
+  },
+];
+
+/**
+ * Runtime settings. These are stored in Mongo and re-read by the scheduler each
+ * tick, so a change takes effect within one cycle — no redeploy, no pod shell.
+ * Env vars remain the defaults, and "Reset" genuinely returns a field to its
+ * deployed value rather than writing the default back as an override.
+ */
+function SettingsTab() {
+  const [cfg, setCfg] = useState(null);
+  const [draft, setDraft] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState("");
+
+  const apply = useCallback((data) => {
+    setCfg(data);
+    setDraft(data.values || {});
+  }, []);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    adminService
+      .getConfig()
+      .then((r) => apply(r.data))
+      .catch((e) => setError(errMsg(e)))
+      .finally(() => setLoading(false));
+  }, [apply]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const save = async (updates) => {
+    setSaving(true);
+    setError("");
+    setSaved("");
+    try {
+      const { data } = await adminService.setConfig(updates);
+      apply(data);
+      setSaved("Saved — the scheduler picks this up on its next tick.");
+    } catch (e) {
+      setError(errMsg(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <LoadingState />;
+  if (!cfg) return <ErrorBanner message={error} />;
+
+  const dirty = CONFIG_FIELDS.some((f) => draft[f.key] !== cfg.values[f.key]);
+
+  return (
+    <>
+      <ErrorBanner message={error} />
+      {saved && <div className="admin-content-note admin-note--ok">{saved}</div>}
+
+      <div className="admin-content-note">
+        Stored in the database and re-read by the scheduler every tick, so changes take effect
+        without a redeploy. The environment variables remain the defaults — <strong>Reset</strong>{" "}
+        clears an override and returns a setting to its deployed value.
+      </div>
+
+      <Card title="Digest delivery" accent="indigo">
+        {CONFIG_FIELDS.map((f) => {
+          const overridden = (cfg.overridden || []).includes(f.key);
+          return (
+            <div key={f.key} className="admin-setting">
+              <div className="admin-setting__main">
+                <label className="admin-setting__label" htmlFor={`cfg-${f.key}`}>
+                  {f.label}
+                  {overridden && <span className="admin-badge">overridden</span>}
+                </label>
+                <p className="admin-setting__help">{f.help}</p>
+                <p className="admin-setting__help">
+                  Deployed default: <code>{String(cfg.defaults[f.key])}</code>
+                </p>
+              </div>
+              <div className="admin-setting__control">
+                {f.type === "bool" ? (
+                  <input
+                    id={`cfg-${f.key}`}
+                    type="checkbox"
+                    checked={!!draft[f.key]}
+                    onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.checked }))}
+                  />
+                ) : (
+                  <input
+                    id={`cfg-${f.key}`}
+                    className="admin-input admin-input--num"
+                    type="number"
+                    min={f.min}
+                    max={f.max}
+                    value={draft[f.key] ?? ""}
+                    onChange={(e) => setDraft((d) => ({ ...d, [f.key]: Number(e.target.value) }))}
+                  />
+                )}
+                {overridden && (
+                  <button
+                    className="admin-btn"
+                    disabled={saving}
+                    onClick={() => save({ clear: [f.key] })}
+                    title="Clear the override and use the deployed default"
+                  >
+                    <RotateCcw size={13} style={{ verticalAlign: "-2px" }} /> Reset
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        <div className="admin-setting__footer">
+          <span className="admin-setting__help">
+            At the current interval, waiting {draft.digest_ai_max_delay_minutes ?? 0} minutes means
+            up to <strong>{cfg.max_deferrals}</strong> retries before a digest is sent without its
+            narrative.
+          </span>
+          <button
+            className="admin-btn admin-btn--primary"
+            disabled={saving || !dirty}
+            onClick={() => save(draft)}
+          >
+            <Save size={13} style={{ verticalAlign: "-2px" }} /> Save changes
+          </button>
         </div>
       </Card>
     </>

@@ -47,8 +47,16 @@ router = APIRouter()
 
 
 
+def _ip(request) -> str:
+    """Caller IP for the security audit trail (never used for authorisation)."""
+    try:
+        return request.client.host if request and request.client else "unknown"
+    except Exception:
+        return "unknown"
+
+
 @router.post("/api/auth/register", response_model=Token)
-async def register(req: RegisterRequest):
+async def register(req: RegisterRequest, request: Request):
     """Register a new user"""
     try:
         from database import database
@@ -77,6 +85,9 @@ async def register(req: RegisterRequest):
         }
         await users_collection.insert_one(user_doc)
 
+        import admin as admin_service
+        await admin_service.security_event("register", actor=req.username,
+                                           detail="password", ip=_ip(request))
         return await _issue_token_pair(req.username, req.remember_me)
     except HTTPException:
         raise
@@ -94,8 +105,12 @@ async def login(req: LoginRequest, request: Request):
 
         # Brute-force guard: throttle by client IP after repeated failures.
         client_ip = request.client.host if request.client else "unknown"
+        import admin as admin_service
         allowed, retry_after = ratelimit.login_allowed(client_ip)
         if not allowed:
+            await admin_service.security_event(
+                "login_blocked", actor=req.username, ip=client_ip,
+                detail=f"rate limited, retry after {retry_after}s")
             raise HTTPException(
                 status_code=429,
                 detail=f"Too many failed login attempts. Try again in {retry_after}s.",
@@ -107,11 +122,21 @@ async def login(req: LoginRequest, request: Request):
 
         if not user or not verify_password(req.password, user.get("hashed_password") or ""):
             ratelimit.login_failed(client_ip)
+            # Recorded without distinguishing "no such user" from "wrong password" —
+            # the log should not become an account-existence oracle for anyone who
+            # later gets to read it.
+            await admin_service.security_event("login_failed", actor=req.username,
+                                               ip=client_ip)
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
         ratelimit.login_succeeded(client_ip)
-        import admin as admin_service
-        await admin_service.assert_not_suspended(req.username)  # §44
+        try:
+            await admin_service.assert_not_suspended(req.username)  # §44
+        except HTTPException:
+            await admin_service.security_event("login_suspended", actor=req.username,
+                                               ip=client_ip)
+            raise
+        await admin_service.security_event("login", actor=req.username, ip=client_ip)
         return await _issue_token_pair(req.username, req.remember_me)
     except HTTPException:
         raise
@@ -121,7 +146,7 @@ async def login(req: LoginRequest, request: Request):
 
 
 @router.post("/api/auth/google", response_model=Token)
-async def google_auth(req: GoogleAuthRequest):
+async def google_auth(req: GoogleAuthRequest, request: Request):
     """Sign in (or register) with Google. The frontend obtains a Google Identity
     Services ID token; here we verify it against our OAuth client, then find-or-
     create the user keyed on their verified email and issue our normal JWT pair.
@@ -181,6 +206,7 @@ async def google_auth(req: GoogleAuthRequest):
             updates["name"] = idinfo.get("name")
         if updates:
             await users_collection.update_one({"username": username}, {"$set": updates})
+        is_new = False
     else:
         username = email
         await users_collection.insert_one({
@@ -191,9 +217,19 @@ async def google_auth(req: GoogleAuthRequest):
             "name": idinfo.get("name"),
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
+        is_new = True
 
     import admin as admin_service
-    await admin_service.assert_not_suspended(username)  # §44
+    try:
+        await admin_service.assert_not_suspended(username)  # §44
+    except HTTPException:
+        await admin_service.security_event("login_suspended", actor=username,
+                                           detail="google", ip=_ip(request))
+        raise
+    if is_new:
+        await admin_service.security_event("register", actor=username,
+                                           detail="google", ip=_ip(request))
+    await admin_service.security_event("google_signin", actor=username, ip=_ip(request))
     return await _issue_token_pair(username, req.remember_me)
 
 
@@ -230,7 +266,8 @@ async def list_api_tokens(current_user: str = Depends(get_current_user)):
 
 
 @router.post("/api/auth/api-tokens")
-async def create_api_token(req: ApiTokenCreateRequest, current_user: str = Depends(get_current_user)):
+async def create_api_token(req: ApiTokenCreateRequest, request: Request,
+                           current_user: str = Depends(get_current_user)):
     """Create a new API token. The raw token is returned **once** here and never
     again — the caller must copy it now."""
     token = await api_tokens.issue(current_user, label=req.label or "")
@@ -239,19 +276,28 @@ async def create_api_token(req: ApiTokenCreateRequest, current_user: str = Depen
             status_code=400,
             detail=f"Token limit reached ({api_tokens.MAX_TOKENS_PER_USER}). Revoke an old one first.",
         )
-    return {"token": token, "label": (req.label or "API token").strip()[:80] or "API token"}
+    label = (req.label or "API token").strip()[:80] or "API token"
+    import admin as admin_service
+    await admin_service.security_event("api_token_created", actor=current_user,
+                                       detail=label, ip=_ip(request))
+    return {"token": token, "label": label}
 
 
 @router.delete("/api/auth/api-tokens/{token_id}")
-async def revoke_api_token(token_id: str, current_user: str = Depends(get_current_user)):
+async def revoke_api_token(token_id: str, request: Request,
+                           current_user: str = Depends(get_current_user)):
     """Revoke one of the caller's API tokens by id."""
     if not await api_tokens.revoke(current_user, token_id):
         raise HTTPException(status_code=404, detail="Token not found")
+    import admin as admin_service
+    await admin_service.security_event("api_token_revoked", actor=current_user,
+                                       detail=token_id, ip=_ip(request))
     return {"status": "revoked"}
 
 
 @router.post("/api/auth/change-password", response_model=Token)
-async def change_password(req: ChangePasswordRequest, current_user: str = Depends(get_current_user)):
+async def change_password(req: ChangePasswordRequest, request: Request,
+                          current_user: str = Depends(get_current_user)):
     """Change the logged-in user's password. Verifies the current password
     (unless the account is Google-only and has none yet — then this sets the
     first password), revokes all existing refresh tokens (logging out other
@@ -278,11 +324,16 @@ async def change_password(req: ChangePasswordRequest, current_user: str = Depend
     )
     # Invalidate every existing session, then hand this one a fresh pair.
     await refresh_tokens.revoke_all(current_user)
+    import admin as admin_service
+    await admin_service.security_event(
+        "password_changed", actor=current_user, ip=_ip(request),
+        detail="first password set" if not existing_hash else None)
     return await _issue_token_pair(current_user, remember_me=True)
 
 
 @router.put("/api/auth/email")
-async def update_email(req: UpdateEmailRequest, current_user: str = Depends(get_current_user)):
+async def update_email(req: UpdateEmailRequest, request: Request,
+                       current_user: str = Depends(get_current_user)):
     """Update the logged-in user's email address."""
     from database import database
     if database is None:
@@ -305,6 +356,11 @@ async def update_email(req: UpdateEmailRequest, current_user: str = Depends(get_
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
+    import admin as admin_service
+    # The address itself is not recorded — that a sign-in address changed is the
+    # security-relevant fact, and the current one is a lookup away.
+    await admin_service.security_event("email_changed", actor=current_user,
+                                       ip=_ip(request))
     return {"success": True, "email": email}
 
 
@@ -330,15 +386,18 @@ async def update_name(req: UpdateNameRequest, current_user: str = Depends(get_cu
 
 
 @router.post("/api/auth/logout-all", response_model=Token)
-async def logout_all(current_user: str = Depends(get_current_user)):
+async def logout_all(request: Request, current_user: str = Depends(get_current_user)):
     """Revoke every refresh token for this user (signing out all other devices),
     then hand the current session a fresh pair so it stays signed in."""
     await refresh_tokens.revoke_all(current_user)
+    import admin as admin_service
+    await admin_service.security_event("logout_all", actor=current_user, ip=_ip(request))
     return await _issue_token_pair(current_user, remember_me=True)
 
 
 @router.delete("/api/auth/account")
-async def delete_account(req: DeleteAccountRequest, current_user: str = Depends(get_current_user)):
+async def delete_account(req: DeleteAccountRequest, request: Request,
+                         current_user: str = Depends(get_current_user)):
     """Permanently delete the logged-in user's account and cascade-delete all of
     their data (birth profiles, saved charts, AI conversations + tool traces,
     shared-chart links, quiz sessions, settings and refresh tokens). Requires the
@@ -366,6 +425,9 @@ async def delete_account(req: DeleteAccountRequest, current_user: str = Depends(
             # Don't abort the whole deletion if one collection is missing/errors.
             print(f"delete_account: failed clearing {name}: {e}")
     await users_collection.delete_one({"username": current_user})
+    import admin as admin_service
+    await admin_service.security_event("account_self_deleted", actor=current_user,
+                                       ip=_ip(request))
     return {"success": True, "message": "Account deleted"}
 
 
@@ -398,6 +460,9 @@ async def forgot_password(req: ForgotPasswordRequest, request: Request):
         )
         if user and user.get("email"):
             token = await password_reset.issue(user["username"])
+            import admin as admin_service
+            await admin_service.security_event(
+                "password_reset_requested", actor=user["username"], ip=client_ip)
             reset_url = f"{settings.APP_BASE_URL.rstrip('/')}/reset-password?token={token}"
             await email_service.send_password_reset(
                 user["email"], reset_url, settings.PASSWORD_RESET_TTL_MINUTES)
@@ -407,7 +472,7 @@ async def forgot_password(req: ForgotPasswordRequest, request: Request):
 
 
 @router.post("/api/auth/reset-password", response_model=Token)
-async def reset_password(req: ResetPasswordRequest):
+async def reset_password(req: ResetPasswordRequest, request: Request):
     """Complete a password reset with the emailed token. Consumes the token
     (single-use), sets the new password, revokes all existing sessions, and
     returns a fresh token pair so the user is signed straight in."""
@@ -426,4 +491,7 @@ async def reset_password(req: ResetPasswordRequest):
         {"$set": {"hashed_password": get_password_hash(req.new_password)}},
     )
     await refresh_tokens.revoke_all(username)
+    import admin as admin_service
+    await admin_service.security_event("password_reset_completed", actor=username,
+                                       ip=_ip(request))
     return await _issue_token_pair(username, remember_me=True)

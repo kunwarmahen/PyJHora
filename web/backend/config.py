@@ -80,6 +80,10 @@ class Settings(BaseSettings):
     # with another workload. Past this many attempts the digest goes out with its
     # rule-based highlights and no narrative: late is better than never. At the
     # default 15-minute tick, 6 attempts ≈ an hour and a half of patience.
+    #
+    # This (× the interval above) is now only the *default* for the runtime knob
+    # `digest_ai_max_delay_minutes`, which the admin console edits directly in
+    # minutes — see runtime_config.py. The scheduler reads the runtime value.
     DIGEST_AI_MAX_DEFERRALS: int = 6
 
     # ── Admin console (§44) ────────────────────────────────────────────────
@@ -96,6 +100,15 @@ class Settings(BaseSettings):
     # redeploy when something is genuinely wrong and you must inspect content;
     # every such access is audit-logged regardless.
     ADMIN_CONTENT_ACCESS: bool = False
+    # How long rows stay in `admin_audit`. The log now also records security
+    # events (logins, resets, tokens), which arrive far faster than moderation
+    # actions, so it is pruned on write past this horizon.
+    ADMIN_AUDIT_RETENTION_DAYS: int = 90
+
+    # How many delivered digests are kept per user in their reading history.
+    # Digests live in their own collection with their own cap precisely so a
+    # daily send across several profiles can never evict chat history.
+    DIGEST_HISTORY_MAX: int = 120
 
     class Config:
         env_file = ".env"

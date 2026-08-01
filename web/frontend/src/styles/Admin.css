@@ -127,6 +127,108 @@
   font-size: 0.85rem;
   margin: var(--space-md) 0;
 }
+.admin-note--ok {
+  background: var(--success-bg);
+  color: var(--text-primary);
+}
+
+/* Filter rows: the audit log and activity feed both need a compact bar of
+   selects/inputs that wraps rather than overflowing on a phone. */
+.admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+.admin-input {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.85rem;
+  min-width: 140px;
+}
+.admin-input--num { min-width: 90px; max-width: 110px; }
+
+.admin-chips { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin-bottom: var(--space-md); }
+.admin-chip {
+  appearance: none;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 4px 11px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.admin-chip:hover { background: var(--surface-sunken); }
+.admin-chip.is-active {
+  border-color: var(--accent);
+  color: var(--accent-deep);
+  background: rgba(var(--accent-rgb), 0.10);
+  font-weight: 600;
+}
+
+.admin-badge--security { color: var(--accent-deep); border-color: var(--accent); }
+
+.admin-empty {
+  color: var(--text-muted);
+  text-align: center;
+  padding: var(--space-lg);
+}
+/* Long free text: wrap in the activity feed (the summary is the content), clip
+   in the audit log (the detail column is a dump and would wreck the row rhythm). */
+.admin-cell-wrap { white-space: normal; min-width: 220px; }
+.admin-cell-clip {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* One runtime setting: explanation on the left, control on the right. */
+.admin-setting {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+.admin-setting__main { flex: 1 1 320px; min-width: 0; }
+.admin-setting__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.admin-setting__help {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.admin-setting__control { display: flex; align-items: center; gap: var(--space-sm); }
+.admin-setting__footer {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding-top: var(--space-md);
+}
+.admin-btn--primary {
+  border-color: var(--accent);
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+.admin-btn--primary:hover { background: rgba(var(--accent-rgb), 0.10); }
+
 .admin-content-pre {
   background: var(--surface-sunken);
   border: 1px solid var(--border-subtle);

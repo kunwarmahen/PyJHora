@@ -736,17 +736,28 @@ VAPID_SUBJECT=mailto:admin@example.com
 # prevents double-sends).
 #
 # LEAVING THIS FALSE MEANS NOTHING IS EVER DELIVERED ON A SCHEDULE — no digest
-# emails, no push. It fails *silently*: scheduler.start() returns immediately and
-# no error is logged, so the backend looks healthy. Worse, Settings › "Send test
-# now" keeps working (it calls POST /api/notifications/digest/send directly and
-# bypasses the scheduler), which makes the feature look correctly configured.
+# emails, no push. It fails *quietly*: the scheduler loop runs but does nothing,
+# and Settings › "Send test now" keeps working (it calls
+# POST /api/notifications/digest/send directly and bypasses the scheduler), which
+# makes the feature look correctly configured.
 # Set it true unless you are driving that endpoint from your own cron.
+#
+# NOTE these three are the *defaults* for the runtime settings an admin can edit
+# live in Admin › Settings (stored in Mongo, re-read every tick — no redeploy).
+# Changing them here changes what a deployment starts from and what "Reset"
+# returns to; an existing override in the database wins until it is cleared.
 DIGEST_SCHEDULER_ENABLED=false
 DIGEST_SCHEDULER_INTERVAL_MINUTES=15
 # How many ticks a scheduled digest may be held back while the AI narrative is
 # unavailable for a reason that may clear (the GPU is busy). Past this it sends
 # with rule-based highlights and no narrative — late beats never. 6 × 15 min ≈ 1½ h.
+# The console edits this as a *duration* (digest_ai_max_delay_minutes, default
+# 6 × 15 = 90) because a retry count silently changes meaning with the interval.
 DIGEST_AI_MAX_DEFERRALS=6
+# How many delivered digests are kept per user in their reading history. Digests
+# are stored separately from chats/readings under their own cap, precisely so a
+# daily send across several profiles can never evict AI_HISTORY_MAX conversations.
+DIGEST_HISTORY_MAX=120
 
 # Admin console (deployer-only /admin page: all accounts, usage, moderation).
 # ADMIN_USERNAMES is the source of truth — comma-separated usernames/emails; the
@@ -756,6 +767,10 @@ DIGEST_AI_MAX_DEFERRALS=6
 # counts only; true also lets an admin open a user's private content (audit-logged).
 ADMIN_USERNAMES=
 ADMIN_CONTENT_ACCESS=false
+# How long the audit log keeps rows (pruned on write). It records moderation
+# actions AND security events (sign-ins, failed sign-ins, resets, API tokens),
+# and logins arrive far faster than moderation does — hence a horizon.
+ADMIN_AUDIT_RETENTION_DAYS=90
 
 # CORS
 CORS_ORIGINS=["http://localhost:3000","http://localhost:8000"]
@@ -1166,7 +1181,15 @@ Three approaches, chosen with a mode toggle:
 
 - A personalized **daily card**: today's Panchanga + your running Vimsottari dasha (flagging a
   Bhukti change within 30 days) + headline transits (Sade-Sati, Jupiter-from-Moon, retrogrades,
-  next Jupiter/Saturn ingress), plus a warm **AI reading**
+  next Jupiter/Saturn ingress), plus an **AI reading**
+- **"Take care with"** — the difficult side of the day, in its own card and its own section of the
+  email. Classical gochara verdicts measured from your birth Moon (an `Unfavourable` transit, or a
+  favourable one cancelled by **vedha**), **Ashtama** / **Ardhashtama Sani**, the **Vishti (Bhadra)**
+  karana, and the periods traditionally kept clear for anything newly begun (Rahu Kalam, Yamaganda,
+  Gulika). Each caution is tagged **today** (what is different about this morning) or **ongoing**
+  (a backdrop lasting weeks or months). That tag is what stops a 2½-year Saturn transit being
+  announced as fresh news every single day — at most four cautions show, of which at most two may
+  be the backdrop, so the day-variable signal always gets through
 - **± day stepper** — look ahead or back a day at a time, like the Varshaphal year stepper. The whole
   card recomputes for the day you land on; **Refresh** becomes **Today** while you are off the present day
 - **Solar / Lunar basis toggle** (defaults to Settings → pravesha basis). On **Lunar**, the day also
@@ -1187,7 +1210,8 @@ Three approaches, chosen with a mode toggle:
     this is a browser rule, not a server problem (email + in-app digest still work). Serve the app
     over HTTPS, or use `localhost`, to enable push. The badge distinguishes three cases: server not
     configured (no VAPID keys), insecure page (needs HTTPS/localhost), or an unsupported browser.
-- **Scheduler**: an opt-in in-process scheduler (`DIGEST_SCHEDULER_ENABLED`) delivers each user's
+- **Scheduler**: an opt-in in-process scheduler (`DIGEST_SCHEDULER_ENABLED`, or the runtime
+  switch in **Admin › Settings**) delivers each user's
   digest once a day at **or after** their preferred local hour — using "at or after" (not only the
   exact hour) means a target hour missed because the process was down/restarting still delivers
   later the same day instead of skipping it. Multi-worker-safe via an atomic DB claim
@@ -1362,13 +1386,49 @@ the Daily / Period digests). Exposed to Ask-Astrologer as the `get_tithi_pravesh
 - **Every AI output is saved automatically** — the Ask/Transit chats _and_ every one-shot reading
   (Varshaphal, Muhurta, Prashna, Remedies, Bhrigu, Daily digest, Sensitive points, Vedic clock,
   Almanac, Pancha Pakshi, Sarvatobhadra, Compatibility, Compare, Rectification, Predictions)
+- **Delivered digests too** — every digest actually sent (email/push), for each profile it
+  covered, is filed and reopens on its own page exactly as it was sent. They live in their own
+  `digest_readings` collection under `DIGEST_HISTORY_MAX`, *not* the shared `AI_HISTORY_MAX` pile:
+  a daily send across several profiles would otherwise evict a user's chat threads within weeks
 - **Global History page** grouped by profile (+ a **"No profile"** bucket for location-driven tools),
-  filterable by chat vs. reading; each item has a source badge, preview, and individual delete
+  filterable by chat vs. reading vs. digest; each item has a source badge, preview, and individual
+  delete
 - **Reopen = exact snapshot**: clicking an item returns to the tool that produced it, restores the
   inputs, and re-shows the saved reading verbatim (no re-computation)
 - **Per-page "Recent readings"** control on each tool page for reopening a past reading in place
 - Readings pile up (each generation is its own item); retention capped by `AI_HISTORY_MAX`
   (default 100, pruned on write). The Learn-the-Chart quiz keeps its own separate history
+
+### 23. Admin console (`/admin`) — deployer only
+
+Not a user feature: a superuser surface for operating the deployment. Access is the
+`ADMIN_USERNAMES` env allowlist (matching username **or** email), reconciled onto each account's
+`is_admin` flag at startup — so you grant and revoke admin by editing the deploy secret, never by
+opening Mongo. A logged-in non-admin probing any console route gets **404, not 403**, so the
+console's existence is not confirmed to them.
+
+- **Overview** — deployment totals, new users over 7/30 days, per-collection record counts
+- **Users** — every account with headline counts; suspend (blocks login, Google sign-in and token
+  refresh) and cascade-delete. You cannot touch yourself or another admin
+- **Activity** — what the deployment has been doing: signups, AI readings and chats, delivered
+  digests, journal entries, quizzes, shares. **Derived on read** from the collections themselves
+  rather than logged, which is why it covers everything that ever happened, including data written
+  long before any of this existed. Metadata only (titles, kinds, counts — never what someone wrote),
+  so it stays readable without `ADMIN_CONTENT_ACCESS`. Filter by kind and by username
+- **Audit log** — *events*, in two categories. **Moderation**: what an admin did here (suspend,
+  delete, break-glass content view, config change). **Security**: what the deployment did on its own
+  (register, login, failed/blocked/suspended login, Google sign-in, logout-all, password change,
+  reset requested/completed, email change, API token issued/revoked, self-delete, console opened).
+  Filter by category, action, actor, target and age; pruned past `ADMIN_AUDIT_RETENTION_DAYS`.
+  A quiet log here is the *good* outcome — for ordinary use, read Activity instead
+- **Settings** — the runtime knobs, stored in the database and re-read by the scheduler every tick,
+  so a change takes effect within one cycle with **no redeploy and no pod shell**: the digest
+  scheduler switch, its tick interval, and how many **minutes** a digest may be held back waiting
+  for a busy model. Env vars remain the defaults; **Reset** clears an override and returns a field
+  to its deployed value
+- **Content drill-down** into a user's actual readings/chats/journal/birth data is gated behind
+  `ADMIN_CONTENT_ACCESS` (default **false** — metadata and counts only). It is a deliberate
+  "break glass" step, and every such view is audit-logged regardless
 
 ## AI Models Setup (Optional but Recommended)
 
@@ -1531,9 +1591,9 @@ masked, and used ahead of any global env key for that user's requests.
 - `GET /api/llm/providers` - List AI providers, reachability, and available models (reflects per-user keys)
 - `POST /api/astrology/ask` - Ask a question about the birth chart (multi-turn, rich context)
 - `POST /api/astrology/ask/stream` - Same, streamed token-by-token over SSE
-- `GET /api/ai/conversations?profile_id=` - List saved conversations for a profile
-- `GET /api/ai/conversations/{id}` - Fetch a full conversation thread
-- `DELETE /api/ai/conversations/{id}` - Delete a conversation
+- `GET /api/ai/conversations?profile_id=&digests=` - List saved conversations for a profile; `digests=true` also folds in delivered digests
+- `GET /api/ai/conversations/{id}` - Fetch a full conversation thread (a `dg_`-prefixed id returns a delivered digest in the same one-turn shape)
+- `DELETE /api/ai/conversations/{id}` - Delete a conversation (or a delivered digest)
 - `POST /api/ai/conversations/{id}/feedback` - Thumbs up/down on an answer
 - `POST /api/astrology/predict` - Generate AI-powered predictions (general, health, career, relationships)
 - `POST /api/astrology/compatibility-analysis` - Get detailed AI compatibility analysis
@@ -1559,6 +1619,20 @@ masked, and used ahead of any global env key for that user's requests.
 - `GET /api/user/api-keys` - Per-provider key status (masked; never the raw key)
 - `PUT /api/user/api-keys/{provider}` - Store (encrypted) your API key for a provider
 - `DELETE /api/user/api-keys/{provider}` - Remove a stored API key
+
+### Admin (deployer only — 404 for non-admins)
+
+- `GET /api/admin/me` - "Am I an admin?" — the one route every logged-in user may call
+- `GET /api/admin/stats` - Deployment totals and per-collection record counts
+- `GET /api/admin/users?q=&limit=` - All accounts with headline counts
+- `GET /api/admin/users/{username}` - One account's detail
+- `GET /api/admin/users/{username}/content/{kind}` - Break-glass content drill-down (needs `ADMIN_CONTENT_ACCESS`; audit-logged)
+- `POST /api/admin/users/{username}/suspend` - Suspend / unsuspend an account
+- `DELETE /api/admin/users/{username}` - Cascade-delete an account and all its data
+- `GET /api/admin/activity?kinds=&username=&limit=` - The derived activity feed
+- `GET /api/admin/audit?category=&action=&actor=&target=&since_days=&limit=` - Audit events + summary
+- `GET /api/admin/config` - Runtime settings: effective values, deployed defaults, which are overridden
+- `PUT /api/admin/config` - Update runtime settings (`clear: [...]` returns a field to its default)
 
 ### Health
 
@@ -1763,9 +1837,17 @@ cat frontend/.env
 
 Almost always **`DIGEST_SCHEDULER_ENABLED` is unset or `false`**. It defaults to `false`
 (`config.py`), so a deployment that never sets it has *never* delivered a scheduled digest —
-on any cadence, on either channel. The failure is completely silent: `main.py`'s lifespan
-calls `scheduler.start()`, which returns at the first line without starting the loop and
-without logging anything. Nothing errors, so the logs look clean.
+on any cadence, on either channel. Nothing errors, so the logs look clean.
+
+Since the scheduler's pacing became runtime-editable, the loop **always starts** and checks
+the switch on each tick — so it now announces its own state at boot and whenever it changes:
+
+```
+[scheduler] digest scheduler idle (every 15 min, patience 90 min)
+```
+
+`idle` is the tell. A deployer can flip it without a redeploy in **Admin › Settings**, which
+writes a database override that wins over the env var until it is cleared.
 
 Two things make this easy to misdiagnose as a regression:
 
@@ -1776,13 +1858,14 @@ Two things make this easy to misdiagnose as a regression:
   **every** deploy, so a value hand-edited on the NAS does not survive. Set it in your local
   `web/.env` (template: `.env.nas.example`).
 
-Confirm by the boot log line — its **absence** is the tell. It prints **once, at startup**,
-so you must replay the whole log; the default 100-line tail will have scrolled past it on a
-container that has been up any length of time, and the grep comes back empty either way:
+Confirm from the log. The state line prints at startup **and again whenever the state
+changes**, so you must replay the whole log — the default 100-line tail will have scrolled
+past it on a container that has been up any length of time:
 
 ```bash
 ./dev.sh nas logs backend all | grep '\[scheduler\]'
-# expect: [scheduler] daily-digest scheduler started (every 15 min)
+# want:    [scheduler] digest scheduler running (every 15 min, patience 90 min)
+# problem: [scheduler] digest scheduler idle (every 15 min, patience 90 min)
 ```
 
 If it *is* running but nothing arrives, the quiet log prefixes carry the reason — they read

@@ -217,7 +217,16 @@ export const adminService = {
     api.post(`/api/admin/users/${encodeURIComponent(username)}/suspend`, { suspended }),
   deleteUser: (username) =>
     api.delete(`/api/admin/users/${encodeURIComponent(username)}`),
-  audit: (limit = 200) => api.get("/api/admin/audit", { params: { limit } }),
+  // The audit log records *events* (moderation + security). Filters are all
+  // optional; empty strings are dropped server-side.
+  audit: (params = {}) => api.get("/api/admin/audit", { params: { limit: 200, ...params } }),
+  // The activity feed is derived on read from existing collections, so it covers
+  // everything that ever happened — not only what has been logged since logging
+  // was added. That distinction is why these are two separate views.
+  activity: (params = {}) =>
+    api.get("/api/admin/activity", { params: { limit: 200, ...params } }),
+  getConfig: () => api.get("/api/admin/config"),
+  setConfig: (updates) => api.put("/api/admin/config", updates),
 };
 
 // Daily-digest notification preferences + Web Push (§16).
@@ -1146,7 +1155,11 @@ export const astrologyService = {
     api.get("/api/ai/conversations", { params: { profile_id: profileId } }),
   // Unified AI history: every chat + saved reading across all tools (no profile
   // filter → the global History page). Each item carries source/kind/route/context.
-  listHistory: () => api.get("/api/ai/conversations"),
+  // `digests: true` also folds in the digests that were actually delivered (email
+  // / push). They're stored separately under their own retention, so they're
+  // opt-in here — only the History page asks for them.
+  listHistory: (digests = true) =>
+    api.get("/api/ai/conversations", { params: { digests } }),
   getConversation: (id) => api.get(`/api/ai/conversations/${id}`),
   // Lazy-load the full "Behind the scenes" tool results for one saved answer.
   getConversationTrace: (conversationId, traceId) =>

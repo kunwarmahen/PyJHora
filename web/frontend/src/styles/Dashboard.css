@@ -2443,6 +2443,48 @@
   color: var(--warning);
   font-weight: 600;
 }
+
+/* ── Cautions: the difficult side of a digest ───────────────────────────── */
+/* Its own card, with a warning-tinted left edge rather than a full alarm colour —
+   these are things to handle carefully, not emergencies, and a card that shouts
+   would be as misleading as the old one that never mentioned them at all. */
+.digest-cautions {
+  border-left: 3px solid var(--warning);
+}
+.digest-cautions__hint {
+  margin: 0 0 0.7rem;
+  font-size: 0.83rem;
+}
+.digest-cautions__sub {
+  margin: 1.1rem 0 0.2rem;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+}
+.digest-hl--caution {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+/* "today" vs "ongoing": whether this is news or the season they're living in.
+   Without the distinction a two-year Saturn transit reads as a fresh alarm every
+   single morning. */
+.digest-scope {
+  flex: none;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+}
+.digest-scope--today {
+  color: var(--warning);
+  border-color: var(--warning);
+}
 /* Label/value rows: label left, value right (the shared .kv-* spans are inline
    with no separator, so lay them out as a spaced row). */
 .digest-details > div,

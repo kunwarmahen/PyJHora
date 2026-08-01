@@ -148,20 +148,21 @@ _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 # Every Mongo collection that stores rows scoped to a user, and the field its
 # owner is keyed on. Used to fully purge an account on deletion.
-_USER_SCOPED_COLLECTIONS = [
-    ("saved_profiles", "user_id"),
-    ("charts", "user_id"),
-    ("user_settings", "user_id"),
-    ("ai_conversations", "user_id"),
-    ("ai_tool_traces", "user_id"),
-    ("shared_charts", "user_id"),
-    ("quiz_sessions", "user_id"),
-    ("journal_entries", "user_id"),
-    ("push_subscriptions", "user_id"),
-    ("refresh_tokens", "username"),
-    ("password_reset_tokens", "username"),
-    ("api_tokens", "username"),
-]
+def _user_scoped_collections():
+    """Every per-user collection to wipe on a self-service account deletion.
+
+    Derived from `admin.USER_COLLECTIONS` rather than listed again here. There
+    used to be two hand-maintained copies of this map — one for the admin cascade
+    and one for self-delete — and they had already drifted: the digest
+    collections were only ever added to the admin one, so a user who deleted
+    their own account left their digest recipients and per-profile signals behind.
+    One map, added to once."""
+    import admin as admin_service
+    return list(admin_service.USER_COLLECTIONS.items())
+
+
+# Kept as a module-level name for the call sites (and the tests) that read it.
+_USER_SCOPED_COLLECTIONS = _user_scoped_collections()
 
 
 async def _resolve_cfg(current_user: str, request: "AskQuestionRequest"):

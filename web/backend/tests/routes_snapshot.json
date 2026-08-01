@@ -45,6 +45,7 @@
   },
   "GET /api/ai/conversations": {
     "params": [
+      "query:digests",
       "query:profile_id"
     ],
     "body": ""
@@ -1010,7 +1011,12 @@
   },
   "GET /api/admin/audit": {
     "params": [
-      "query:limit"
+      "query:action",
+      "query:actor",
+      "query:category",
+      "query:limit",
+      "query:since_days",
+      "query:target"
     ],
     "body": ""
   },
@@ -1044,5 +1050,21 @@
       "query:varnada_method"
     ],
     "body": "BirthDetails"
+  },
+  "GET /api/admin/activity": {
+    "params": [
+      "query:kinds",
+      "query:limit",
+      "query:username"
+    ],
+    "body": ""
+  },
+  "GET /api/admin/config": {
+    "params": [],
+    "body": ""
+  },
+  "PUT /api/admin/config": {
+    "params": [],
+    "body": "RuntimeConfigRequest"
   }
 }

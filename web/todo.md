@@ -5406,3 +5406,169 @@ Files: `backend/llm/base.py`, `backend/llm/gate.py` (new),
 `frontend/src/pages/SettingsPage.js`, `frontend/src/styles/Settings.css`,
 `frontend/src/config/help.js`, `frontend/src/i18n/locales/{en,hi,sa}.json`,
 `web/README.md`.
+
+---
+
+## 55. Four reports in one sitting: an audit log that showed nothing, digests that vanished after delivery, delivery timing you couldn't touch, and readings that only ever said nice things (owner report 2026-08-01)
+
+> "I was looking at audit log as admin on my portal and it does not show anything
+> since 18th july, even though now 6 users are there and some 39 conversations.
+> secondly, should the digest [be] visible in the reading history as well for that
+> profile[?] and third the delay in delivering any digest should be configurable
+> from config file or settings page. and finally the digests are still monotonous,
+> does not cover bad things or others."
+
+### 55.1 The audit log was never an activity log
+
+Not a bug. `admin.audit()` was only ever called from four places — `view_content`,
+`suspend`, `unsuspend`, `delete_user` — so a console where nobody had moderated
+anybody showed the day §44 shipped and nothing after. Signups, conversations and
+digests never touched it. The tab was answering "who did what to whom", and the
+question being asked was "what has been happening".
+
+Both now exist, deliberately as two things:
+
+* **Activity** (`/api/admin/activity`, `admin.activity_feed`) is **derived on
+  read** from the collections that already hold the data — users, conversations,
+  digests, journal, quiz, shares, profiles, plus the audit log itself. Nothing is
+  written for it. That is the whole point: it answers for the six users and
+  thirty-nine conversations that existed *before* any of this was built, which a
+  new log could never have done. Metadata only (titles, kinds, counts) so it stays
+  readable without `ADMIN_CONTENT_ACCESS`.
+* **Audit** now carries a `category`: `moderation` (unchanged) and a new
+  `security` — register, login, login_failed, login_blocked, login_suspended,
+  google_signin, logout_all, password_changed, password_reset_requested/completed,
+  email_changed, api_token_created/revoked, account_self_deleted,
+  admin_console_opened. Filterable by category/action/actor/target/age, with a
+  summary line and an empty state that *explains* a quiet log instead of leaving it
+  looking broken.
+
+> **Trap:** rows written before the split carry no `category` field at all.
+> `category=moderation` matches `{$exists: false}` too, or every pre-split row
+> would disappear from the filtered view — which is the exact bug this section is
+> about, reintroduced one level down.
+
+Logins arrive far faster than moderation actions, so `admin_audit` is now pruned
+on write past `ADMIN_AUDIT_RETENTION_DAYS` (90). `at` is an ISO-8601 string, so
+the range compare *is* a date compare; a TTL index would not work on it. The prune
+is rate-limited to once an hour because it hangs off the write path.
+
+`login_failed` deliberately does **not** distinguish "no such user" from "wrong
+password" — the log must not become an account-existence oracle for whoever ends
+up reading it.
+
+### 55.2 The digest you were emailed existed nowhere in the app
+
+An in-app digest was saved (`routes/astrology_ai.py`, `source="daily_digest"`).
+The *scheduled* one was computed, mailed and dropped. So the one reading a user
+actually reads every morning was the one they could never look back at.
+
+`digest_history.py` — new `digest_readings` collection. Every delivered section,
+for every profile the message covered, with its narrative, highlights, cautions,
+changes and what it was delivered on.
+
+**Why not `ai_conversations`.** Three profiles on a daily send is ~90 items a
+month; in the shared pile they would evict every chat past `AI_HISTORY_MAX` within
+weeks. Someone would lose their Ask-Astrologer threads because they subscribed to
+a digest. Separate collection ⇒ separate retention (`DIGEST_HISTORY_MAX`, 120), and
+nothing a digest does can push out anything a user wrote.
+
+They still read as one list: ids are prefixed `dg_`, and
+`GET/DELETE /api/ai/conversations/{id}` fall through to `digest_history` for a
+prefixed id, serialising to the same one-turn shape. `useRestoreReading` reopens a
+delivered digest on its page with **zero** client-side branching.
+`GET /api/ai/conversations?digests=true` merges them in — opt-in, so every
+existing caller (dashboard recent-readings, per-profile lists) keeps its exact list
+and only the History page asks for the full picture.
+
+Saving happens **after** delivery and can never raise: the message has already
+gone out, and failing to file a copy must not turn a successful send into an error
+the scheduler retries.
+
+### 55.3 "The delay" was three knobs, none reachable at runtime
+
+`DIGEST_SCHEDULER_INTERVAL_MINUTES` (env, restart), `DIGEST_AI_MAX_DEFERRALS`
+(env, restart, and expressed as a *retry count* whose real meaning was 6 × 15 =
+**90 minutes** of a digest not arriving), and a per-user `hour` with no minutes.
+
+`runtime_config.py` — env is the default, Mongo is the override, re-read every
+tick, editable from **Admin → Settings**. The patience knob is now
+`digest_ai_max_delay_minutes`: what an operator sets is the thing they care about,
+and the retry count is derived (`max_deferrals`, rounded **up** so a configured
+delay is honoured in full). Its default is `DIGEST_AI_MAX_DEFERRALS × interval`,
+so an existing deployment keeps exactly the behaviour it had without setting
+anything.
+
+The scheduler task now starts **unconditionally** and checks the enable switch
+each pass — a runtime-editable switch is useless if the loop that reads it was
+never spawned. An idle loop costs one sleeping coroutine.
+
+Per-user minute precision (07:30 rather than 07:00) was offered and not taken;
+it remains the obvious next step if "up to one interval late" ever grates.
+
+### 55.4 The digests could not say a day was hard
+
+Two causes, and the prompt was the smaller one.
+
+**Data.** `get_daily_digest` produced structurally the same six lines every day —
+panchanga, dasha, Jupiter-from-Moon, retrogrades, ingresses, favourable window.
+Nothing in the payload was *capable* of reporting difficulty. `_next_good_window`
+filtered to `nature == "good"` only; Rahu Kalam, Yamaganda and Gulika were computed
+by `get_panchanga` and never asked for.
+
+Now wired in:
+
+* **`get_gochara_phala`** — it already returned per-graha `tone: good | caution |
+  bad` with classical vedha cancellation, and had simply never been given to the
+  digest. This is the honest bad news, and it moves day to day.
+* **Ashtama Sani** (Saturn 8th from Moon) and **Ardhashtama Sani** (4th) — named,
+  where before they were reported in the same neutral tone as any other transit.
+  Sade-Sati's own houses (12/1/2) keep their existing line.
+* **Vishti (Bhadra) karana**, and the classical trio of periods to keep clear.
+
+**The anti-monotony mechanism is the `scope` tag, not the extra data.** Saturn's
+verdict holds for two and a half years; report it every morning as news and every
+morning reads identically — which is what "monotonous" actually meant. Each caution
+is `{text, scope}`: `standing` (slow grahas — the season you are living in) or
+`today` (Sun/Mars/Moon, karana — what is different about this morning). At most
+four cautions, of which at most two may be `standing`, so the slow movers can never
+crowd out the day-variable signal. The prompt is handed the two groups separately
+and told, in as many words, not to announce the backdrop as fresh news.
+
+**Prompt.** Rewritten from "warm, supportive, framed constructively" to honest:
+say what is hard as well as what supports them, name the difficulty rather than
+softening it to "be mindful", say plainly when nothing is flagged rather than
+manufacturing a worry. Classical vocabulary is allowed — Ashtama Sani, vedha,
+"gochara: Unfavourable" — but every term must be unpacked in the same sentence.
+Guardrails tightened in step: no fated outcomes, nothing about death, illness or
+catastrophe, and always something they can actually do.
+
+> Owner's call on tone: *"Honest + practical with the touch of Classical verdicts
+> verbatim."*
+
+Rendered in the email (text + HTML) and on both digest pages as their own card
+with a warning-tinted left edge — not more bullets under Highlights, because a
+hard transit listed among neutral facts reads as another neutral fact.
+
+### Also fixed on the way past
+
+`deps._USER_SCOPED_COLLECTIONS` and `admin.USER_COLLECTIONS` were two
+hand-maintained copies of the same map and **had already drifted**: the digest
+collections were only ever added to the admin one, so a user who deleted their own
+account left their digest recipients and per-profile signals behind. Now one map,
+derived.
+
+### Tests
+
+`backend/tests/test_admin_activity.py` (23) and
+`backend/tests/test_digest_history.py` (32), both DB-free. The two properties worth
+pinning: **pre-split audit rows still appear under the moderation filter**, and
+**today's caution always survives the cap** — the second is the entire anti-
+monotony fix, and it would regress silently under any change to caution ranking.
+Also the route-surface snapshot (3 new routes, 2 changed signatures) and Help/FAQ
+`aiDigestHistory` + `digestCautions`.
+
+> **Trap:** `aiDigestHistory` carries no `to:` link. `aiHistory` already resolves
+> `/history`, and a second entry claiming the same path makes the match ambiguous —
+> `helpAnchorForPath("/history")` returns null and the History page's "?" lands
+> nowhere. `help.test.js` catches it.

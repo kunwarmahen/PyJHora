@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { History, Trash2, MessageCircle, Sparkles, User } from "lucide-react";
+import { History, Trash2, MessageCircle, Sparkles, User, Mail } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { PageHeader } from "../components/PageHeader";
@@ -12,8 +12,18 @@ import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Chat.css";
 
-// The unified AI history: every chat + saved reading across all tools. Clicking an
-// item deep-links back to the tool that produced it and re-shows the exact reading.
+// A digest that was delivered by email or push is a third kind alongside chats and
+// one-shot readings — it wasn't asked for, it arrived. It gets its own icon and
+// filter so "the reading I was sent this morning" is findable as such.
+const kindIcon = (kind) => {
+  if (kind === "chat") return <MessageCircle size={12} style={{ verticalAlign: "-1px" }} />;
+  if (kind === "digest") return <Mail size={12} style={{ verticalAlign: "-1px" }} />;
+  return <Sparkles size={12} style={{ verticalAlign: "-1px" }} />;
+};
+
+// The unified AI history: every chat + saved reading across all tools, plus the
+// digests actually delivered. Clicking an item deep-links back to the tool that
+// produced it and re-shows the exact reading.
 export const HistoryPage = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -23,7 +33,7 @@ export const HistoryPage = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState("all"); // all | chat | reading
+  const [filter, setFilter] = useState("all"); // all | chat | reading | digest
 
   const fmt = (iso) => {
     if (!iso) return "";
@@ -126,7 +136,7 @@ export const HistoryPage = () => {
         <ErrorBanner message={error} />
 
         <div className="history-filters" style={{ marginBottom: "1rem" }}>
-          {["all", "chat", "reading"].map((f) => (
+          {["all", "chat", "reading", "digest"].map((f) => (
             <button
               key={f}
               className={`history-filter${filter === f ? " is-active" : ""}`}
@@ -163,17 +173,18 @@ export const HistoryPage = () => {
                     <div className="history-item__main">
                       <div className="history-item__title">
                         <span className="history-source-badge">
-                          {(c.kind || "reading") === "chat" ? (
-                            <MessageCircle size={12} style={{ verticalAlign: "-1px" }} />
-                          ) : (
-                            <Sparkles size={12} style={{ verticalAlign: "-1px" }} />
-                          )}{" "}
-                          {c.label || c.source}
+                          {kindIcon(c.kind)} {c.label || c.source}
                         </span>
                         {c.title}
                       </div>
                       {c.preview && <div className="history-item__preview">{c.preview}…</div>}
                       <div className="history-item__meta">
+                        {c.kind === "digest" && c.delivered?.email ? (
+                          <>
+                            <Mail size={11} style={{ verticalAlign: "-1px" }} />{" "}
+                            {t("history.deliveredEmail")} ·{" "}
+                          </>
+                        ) : null}
                         {c.last_model ? `${c.last_model} · ` : ""}
                         {fmt(c.updated_at)}
                       </div>

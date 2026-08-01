@@ -1,7 +1,8 @@
 """In-process daily-digest scheduler.
 
-An opt-in asyncio background task (enabled with `DIGEST_SCHEDULER_ENABLED=true`)
-that wakes every `DIGEST_SCHEDULER_INTERVAL_MINUTES` and, for each user who has
+An opt-in asyncio background task (enabled with `DIGEST_SCHEDULER_ENABLED=true`,
+or from the admin console at runtime) that wakes every tick interval and, for
+each user who has
 the daily digest enabled, delivers it once per day at *or after* their preferred
 local hour — local meaning **where the user is now** (their current location's
 zone, DST-aware), falling back to the target birth profile's fixed offset when
@@ -22,6 +23,13 @@ This needs no external cron; a deployer can instead leave it disabled and point
 their own scheduler at `POST /api/notifications/digest/send` per user. In a
 multi-worker deployment either is fine — the DB claim makes the in-process
 scheduler idempotent across workers.
+
+**Pacing is runtime-editable.** The enable switch, the tick interval and how late
+a digest may be while waiting for a busy LLM all come from `runtime_config` (env
+defaults, Mongo overrides) and are re-read on every tick — so an admin can retune
+delivery from the console without a redeploy. That is also why the loop task runs
+unconditionally and checks the switch each pass, rather than being spawned only
+when the env var is set.
 """
 import asyncio
 from datetime import datetime, timedelta, timezone
@@ -31,6 +39,7 @@ from config import settings
 from database import get_database
 import digest
 import notifications
+import runtime_config
 import timezones
 import user_settings
 
@@ -177,13 +186,17 @@ async def _clear_deferrals(db, user_id: str, claim_field: str) -> None:
         {"$unset": {f"notifications.{_defer_field(claim_field)}": ""}})
 
 
-async def _run_cadence(db, spec: dict) -> int:
+async def _run_cadence(db, spec: dict, max_deferrals: int) -> int:
     """One pass over users who enabled `spec`'s cadence. Returns how many sent.
 
     "At or after" the preferred hour (rather than only during the exact hour)
     means a missed window — the process was down during that hour — still gets
     the user their reading later that day. The atomic per-window claim keeps this
-    idempotent across ticks and across workers."""
+    idempotent across ticks and across workers.
+
+    `max_deferrals` is the tick-budget derived from the configured maximum
+    delivery delay; it is passed in so every cadence in a tick uses one
+    consistent reading of the runtime config."""
     sent_count = 0
     cursor = db[notifications.SETTINGS_COLLECTION].find(
         {f"notifications.{spec['switch']}": True})
@@ -216,12 +229,12 @@ async def _run_cadence(db, spec: dict) -> int:
             deferrals = _deferrals_so_far(claimed, claim_field, claim_key)
             result = await digest.send_digest_for_user(
                 user_id, prefs, spec["cadence"],
-                allow_defer=deferrals < settings.DIGEST_AI_MAX_DEFERRALS)
+                allow_defer=deferrals < max_deferrals)
             if result.get("status") == "deferred":
                 await _defer(db, user_id, claim_field, claim_key, claimed, deferrals)
                 print(f"[scheduler] {spec['cadence']} digest for {user_id} deferred "
                       f"({result.get('reason')}); attempt {deferrals + 1} of "
-                      f"{settings.DIGEST_AI_MAX_DEFERRALS}")
+                      f"{max_deferrals}")
             elif result.get("status") == "ok":
                 await _clear_deferrals(db, user_id, claim_field)
                 sent_count += 1
@@ -234,41 +247,63 @@ async def _run_cadence(db, spec: dict) -> int:
     return sent_count
 
 
-async def _tick() -> int:
+async def _tick(max_deferrals: Optional[int] = None) -> int:
     """One pass over all digest-enabled users, across every cadence
     (daily/weekly/monthly). Returns how many digests were sent."""
     db = get_database()
+    if max_deferrals is None:
+        max_deferrals = runtime_config.max_deferrals(await runtime_config.get())
     sent_count = 0
     for spec in _CADENCES:
         try:
-            sent_count += await _run_cadence(db, spec)
+            sent_count += await _run_cadence(db, spec, max_deferrals)
         except Exception as e:
             print(f"[scheduler] {spec['cadence']} pass failed: {e}")
     return sent_count
 
 
 async def _loop() -> None:
-    interval = max(1, int(settings.DIGEST_SCHEDULER_INTERVAL_MINUTES)) * 60
-    print(f"[scheduler] daily-digest scheduler started (every "
-          f"{settings.DIGEST_SCHEDULER_INTERVAL_MINUTES} min)")
+    """Tick forever, re-reading the runtime config each pass.
+
+    Both the switch and the interval are read per-iteration on purpose: an admin
+    who turns the scheduler on, or shortens the tick, should see it take effect
+    within one cycle rather than at the next deploy. When the scheduler is off the
+    loop idles at the configured interval and touches nothing."""
+    announced = None
     while True:
         try:
-            await _tick()
-        except asyncio.CancelledError:
-            raise
+            cfg = await runtime_config.get()
         except Exception as e:
-            print(f"[scheduler] tick failed: {e}")
+            print(f"[scheduler] config read failed, using defaults: {e}")
+            cfg = runtime_config.defaults()
+        enabled = bool(cfg.get("digest_scheduler_enabled"))
+        interval_min = max(1, int(cfg.get("digest_scheduler_interval_minutes") or 15))
+        state = (enabled, interval_min)
+        if state != announced:
+            announced = state
+            print(f"[scheduler] digest scheduler {'running' if enabled else 'idle'} "
+                  f"(every {interval_min} min, patience "
+                  f"{cfg.get('digest_ai_max_delay_minutes')} min)")
+        if enabled:
+            try:
+                await _tick(runtime_config.max_deferrals(cfg))
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                print(f"[scheduler] tick failed: {e}")
         try:
-            await asyncio.sleep(interval)
+            await asyncio.sleep(interval_min * 60)
         except asyncio.CancelledError:
             raise
 
 
 def start() -> None:
-    """Start the background scheduler if enabled. Safe to call once at startup."""
+    """Start the background scheduler task. Safe to call once at startup.
+
+    The task starts regardless of the enable switch — the switch is runtime-
+    editable, so the loop has to be alive to notice it being turned on. An idle
+    loop costs one sleeping coroutine."""
     global _task
-    if not settings.DIGEST_SCHEDULER_ENABLED:
-        return
     if _task and not _task.done():
         return
     _task = asyncio.create_task(_loop())

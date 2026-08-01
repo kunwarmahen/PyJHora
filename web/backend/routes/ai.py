@@ -23,6 +23,7 @@ from chart_context import build_chart_context
 from llm_service import llm_service, LLMProvider
 import tools as tool_registry
 import conversations as convo
+import digest_history
 import journal
 import ical
 import tool_traces
@@ -83,11 +84,22 @@ async def ai_sources_status():
 @router.get("/api/ai/conversations")
 async def list_ai_conversations(
     profile_id: Optional[str] = None,
+    digests: bool = False,
     current_user: str = Depends(get_current_user)
 ):
-    """List the current user's saved AI conversations (optionally for one profile)."""
+    """List the current user's saved AI conversations (optionally for one profile).
+
+    With `digests=true` the delivered digests are merged in — they live in their
+    own collection under their own retention (see digest_history), so they are
+    opt-in here rather than always present: every existing caller (the dashboard's
+    recent-readings strip, the per-profile lists) keeps exactly the list it had,
+    and only the History page asks for the full picture."""
     try:
-        return {"conversations": await convo.list_conversations(current_user, profile_id)}
+        items = await convo.list_conversations(current_user, profile_id)
+        if digests:
+            items += await digest_history.list_for_user(current_user, profile_id)
+            items.sort(key=lambda c: c.get("updated_at") or "", reverse=True)
+        return {"conversations": items}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -97,7 +109,13 @@ async def get_ai_conversation(
     conversation_id: str,
     current_user: str = Depends(get_current_user)
 ):
-    """Fetch a full conversation thread."""
+    """Fetch a full conversation thread — or a delivered digest, which serialises
+    to the same one-turn shape so the reading-restore path needs no special case."""
+    if digest_history.is_digest_id(conversation_id):
+        d = await digest_history.get(current_user, conversation_id)
+        if not d:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        return digest_history.serialize(d)
     c = await convo.get_conversation(current_user, conversation_id)
     if not c:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -123,7 +141,11 @@ async def delete_ai_conversation(
     conversation_id: str,
     current_user: str = Depends(get_current_user)
 ):
-    """Delete a conversation (and any stored tool traces)."""
+    """Delete a conversation (and any stored tool traces), or a delivered digest."""
+    if digest_history.is_digest_id(conversation_id):
+        if not await digest_history.delete(current_user, conversation_id):
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        return {"success": True}
     ok = await convo.delete_conversation(current_user, conversation_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Conversation not found")

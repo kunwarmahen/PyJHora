@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Sun, Moon, Sparkles, Bell, Clock, Orbit, Star } from "lucide-react";
+import { Sun, Moon, Sparkles, Bell, Clock, Orbit, Star, ShieldAlert } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -174,6 +174,10 @@ export const DailyDigestPage = () => {
   const dasha = digest?.dasha;
   const transits = digest?.transits;
   const highlights = digest?.highlights || [];
+  // The difficult side of the day: each entry is {text, scope} — "today" is what
+  // changed, "standing" is the months-long backdrop it sits in.
+  const cautions = digest?.cautions || [];
+  const avoidWindows = digest?.avoid_windows || [];
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -260,6 +264,48 @@ export const DailyDigestPage = () => {
                 ))}
               </ul>
             </div>
+
+            {/* What the day asks care with. Its own card rather than more bullets
+                in Highlights: a hard transit listed among neutral facts reads as
+                another neutral fact. */}
+            {cautions.length > 0 && (
+              <div className="ui-card ui-card--pad-lg ui-card--flush digest-cautions mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <ShieldAlert size={18} /> {t("digest.cautions")}
+                </h3>
+                <p className="text-muted digest-cautions__hint">{t("digest.cautionsHint")}</p>
+                <ul className="digest-highlights">
+                  {cautions.map((c, i) => (
+                    <li key={i} className="digest-hl digest-hl--caution">
+                      <span
+                        className={`digest-scope digest-scope--${c.scope || "standing"}`}
+                        title={
+                          c.scope === "today"
+                            ? t("digest.cautionsHint")
+                            : t("digest.cautionsHint")
+                        }
+                      >
+                        {c.scope === "today" ? t("digest.scopeToday") : t("digest.scopeStanding")}
+                      </span>
+                      {c.text}
+                    </li>
+                  ))}
+                </ul>
+                {avoidWindows.length > 0 && (
+                  <>
+                    <h4 className="digest-cautions__sub">{t("digest.avoidWindows")}</h4>
+                    <p className="text-muted digest-cautions__hint">{t("digest.avoidHint")}</p>
+                    <ul className="digest-highlights">
+                      {avoidWindows.map((w, i) => (
+                        <li key={i} className="digest-hl">
+                          {w.name} · {w.start}–{w.end}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="chart-grid mt-xl">
               {/* Panchanga snapshot */}
