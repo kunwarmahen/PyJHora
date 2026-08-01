@@ -293,6 +293,15 @@
   max-width: 360px;
 }
 
+/* The submit in an account form is an action, not another field: shrink-wrap it
+   so the column's stretch doesn't give it the exact width — and, with a bordered
+   surface background, the exact look — of the .control-input above it. */
+.settings-form-btn {
+  align-self: flex-start;
+  padding: var(--space-sm) var(--space-lg);
+  margin-top: 2px;
+}
+
 .settings-pw-msg {
   padding: 8px 12px;
   border-radius: var(--radius-sm, 8px);
@@ -316,20 +325,6 @@
   border: none;
   border-top: 1px solid var(--border-color);
   margin: var(--space-lg, 18px) 0;
-}
-
-.control-btn--danger {
-  background: var(--vermillion);
-  border: 1px solid var(--vermillion);
-  color: var(--surface);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.control-btn--danger:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* Account overview */

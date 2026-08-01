@@ -241,6 +241,17 @@
   box-shadow: var(--shadow-lg);
 }
 
+/* Destructive action (delete account, …) */
+.ui-btn--danger {
+  background: var(--vermillion);
+  color: var(--text-on-accent);
+  box-shadow: var(--shadow-sm);
+}
+.ui-btn--danger:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: var(--shadow-md);
+}
+
 .ui-btn--ghost {
   background: none;
   color: var(--text-primary);

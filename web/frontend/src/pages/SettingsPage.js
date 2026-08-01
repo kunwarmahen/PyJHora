@@ -1591,7 +1591,7 @@ export const SettingsPage = () => {
               />
               <button
                 type="submit"
-                className="control-btn"
+                className="ui-btn ui-btn--primary settings-form-btn"
                 disabled={
                   busy === "name" || !nameInput.trim() || nameInput.trim() === (user?.name || "")
                 }
@@ -1620,7 +1620,7 @@ export const SettingsPage = () => {
               />
               <button
                 type="submit"
-                className="control-btn"
+                className="ui-btn ui-btn--primary settings-form-btn"
                 disabled={
                   busy === "email" || !emailInput.trim() || emailInput.trim() === user?.email
                 }
@@ -1667,7 +1667,8 @@ export const SettingsPage = () => {
                 onChange={(e) => setPw((p) => ({ ...p, confirm: e.target.value }))}
                 required
               />
-              <button type="submit" className="control-btn">
+              <button type="submit" className="ui-btn ui-btn--primary settings-form-btn">
+                <Key size={14} />{" "}
                 {t(hasPassword ? "settings.account.changeBtn" : "settings.account.setBtn")}
               </button>
             </form>
@@ -1686,7 +1687,7 @@ export const SettingsPage = () => {
             <div className="settings-account-actions">
               <button
                 type="button"
-                className="control-btn control-btn--ghost"
+                className="ui-btn ui-btn--secondary"
                 onClick={handleLogoutOthers}
                 disabled={busy === "logoutOthers"}
               >
@@ -1694,7 +1695,7 @@ export const SettingsPage = () => {
               </button>
               <button
                 type="button"
-                className="control-btn control-btn--ghost"
+                className="ui-btn ui-btn--secondary"
                 onClick={async () => {
                   await logout();
                   navigate("/login");
@@ -1717,7 +1718,7 @@ export const SettingsPage = () => {
               {!delConfirm.open ? (
                 <button
                   type="button"
-                  className="control-btn control-btn--danger"
+                  className="ui-btn ui-btn--danger"
                   onClick={() => {
                     setAcctMsg({ type: "", text: "" });
                     setDelConfirm({ open: true, password: "" });
@@ -1739,14 +1740,14 @@ export const SettingsPage = () => {
                   <div className="settings-account-actions">
                     <button
                       type="submit"
-                      className="control-btn control-btn--danger"
+                      className="ui-btn ui-btn--danger"
                       disabled={!delConfirm.password || busy === "delete"}
                     >
                       <Trash2 size={14} /> {t("settings.account.deleteConfirmBtn")}
                     </button>
                     <button
                       type="button"
-                      className="control-btn control-btn--ghost"
+                      className="ui-btn ui-btn--ghost"
                       onClick={() => setDelConfirm({ open: false, password: "" })}
                     >
                       {t("settings.account.deleteCancel")}
