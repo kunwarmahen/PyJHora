@@ -1007,10 +1007,44 @@ TARABALA_NAMES = [
     ("Vadha", "bad"),                # 7 (Naidhana)
     ("Mitra", "good"),               # 8
 ]
+# What each Tara *means*, for a reader who has never seen the word. The digest
+# quotes the classical name and then says this, in the same breath — the name
+# alone is decoration.
+TARABALA_MEANING = {
+    "Parama Mitra": "the best of the nine — help arrives easily",
+    "Janma": "your own birth star returns; steady, but not a day to force anything",
+    "Sampat": "wealth and gain — the classic day to begin something",
+    "Vipat": "the danger star; setbacks and mishaps are classically expected",
+    "Kshema": "well-being and safety — quietly favourable",
+    "Pratyak": "the obstacle star; effort meets resistance",
+    "Sadhaka": "the accomplishing star — things carried to completion",
+    "Vadha": "the harming star, weakest of the nine; avoid anything irreversible",
+    "Mitra": "friendly ground — people are on your side",
+}
+
 # Chandrabala: the Moon's transit sign counted from the natal Moon. 1/3/6/7/10/11
 # are favourable, 4/8/12 are to be avoided, the rest are neutral.
 CHANDRABALA_GOOD = {1, 3, 6, 7, 10, 11}
 CHANDRABALA_BAD = {4, 8, 12}
+
+
+def _janma_nakshatra(moon_longitude):
+    """The 1-27 nakshatra a longitude falls in. Named for its main use: the janma
+    (birth) star, from which Tara Bala and every other Moon-referenced count runs."""
+    return int(moon_longitude / (360.0 / 27.0)) + 1
+
+
+def _tarabala(janma_nak, day_nak):
+    """The Tara for a day: count from the birth star to the day's star, mod 9.
+
+    Both arguments are 1-based star numbers. Returns `(name, tone)` — the tone is
+    one of very_good / good / caution / bad, straight off `TARABALA_NAMES`.
+
+    This is the tradition's own answer to "is today a good day *for me*", it is
+    keyed to the individual's birth star, and — unlike almost everything else a
+    digest can say — it changes every single day.
+    """
+    return TARABALA_NAMES[utils.count_stars(janma_nak, day_nak) % 9]
 
 # Panchaka: the five "sticks" that fall when the Moon is in the last five
 # nakshatras (Dhanishta 3rd pada → Revati). The dosha type is read from

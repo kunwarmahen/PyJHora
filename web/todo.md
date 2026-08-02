@@ -5572,3 +5572,101 @@ Also the route-surface snapshot (3 new routes, 2 changed signatures) and Help/FA
 > `/history`, and a second entry claiming the same path makes the match ambiguous —
 > `helpAnchorForPath("/history")` returns null and the History page's "?" lands
 > nowhere. `help.test.js` catches it.
+
+---
+
+## 56. Tara Bala, Chandra Bala and the Sarvatobhadra chakra in the digests (owner ask 2026-08-02)
+
+> "hey can we used nakshtra and sarvotobhra for our digests. as well, thoughts"
+
+### Why this was the real fix for monotony
+
+§55 tagged each caution `today` or `standing` so a two-and-a-half-year Saturn
+transit would stop being announced as fresh news every morning. That stopped the
+*backdrop* dominating — but it could not conjure a foreground. Everything personal
+a daily card knew still moved slowly: the dasha turns over in months,
+Jupiter-from-Moon in a year, Sade-Sati in two and a half. The only day-variable
+personal signal was Sun/Mars/Moon gochara.
+
+Measured over fourteen consecutive days, the digest's own `today` cautions barely
+moved (one or two, largely the same grahas). Over the same fortnight **Tara Bala
+cycled through all nine taras** — Vadha, Mitra, Parama Mitra, Janma, Sampat,
+Vipat… a different personal verdict every single day, counted from the reader's
+own birth star. It was sitting in `get_nakshatra_profile` already, and the digest
+had never asked for it.
+
+### What shipped
+
+* **Tara Bala** — `_tarabala()` / `TARABALA_MEANING` in `engine.py`. In the daily
+  card it costs nothing: the day's nakshatra is already in the panchanga block and
+  the janma star is now on `get_transits`' `natal.moon` (added there because every
+  Moon-referenced count in the tradition starts from it, and callers were rebuilding
+  a whole rasi chart to recover one integer). The classical name is **always**
+  printed with its meaning — "Vipat" alone is decoration.
+* **Tara Bala across a window** — `_tarabala_window()` dates every day of a
+  fortnight or month and shortlists the well-starred and the ones to keep light.
+  This is the fortnightly/monthly digests' answer to the same problem: those
+  readings are built almost entirely from slow material, so consecutive windows
+  read alike. A dated list of *this* person's good days is the only genuinely
+  day-by-day thing they can offer, and it is inserted at the **front** of the
+  support/caution lists so the rationing can't drop it for a transit verdict.
+* **Chandra Bala** — the Moon's sign from the natal Moon, changing every ~2¼ days.
+  `CHANDRABALA_GOOD/BAD` had been sitting in `engine.py` used by nothing but muhurta.
+* **Sarvatobhadra** — `findings` were already toned supportive/stressful per anchor.
+  Narrowed to the `janma_nakshatra` and `moon_sign` anchors (birth-weekday and
+  tithi-group findings say far less and would eat the four available slots).
+* **`supports`** — the structural gap this exposed. `cautions` had no counterpart,
+  so a genuinely well-starred day had nowhere to be *stated*; the model had to infer
+  good news or invent it. Same `{text, scope}` shape, same rationing, its own card
+  above the cautions card and its own email section.
+
+### Traps
+
+> **A Sarvatobhadra occupation is not a daily event.** Ketu sits on a nakshatra
+> cell for about six weeks and Saturn far longer. Tagged `today` — as they were in
+> the first cut — they take a scarce daily slot every morning for a month and a
+> half, recreating the exact monotony the scope tag exists to prevent. `_SBC_SLOW`
+> applies the same speed split the gochara layer uses.
+
+> **Two different things in one digest are called *vedha*.** Gochara vedha is a
+> graha obstructing another's good result, counted in houses from the Moon. A
+> Sarvatobhadra *saamne vedha* is a graha on the cell facing a sensitive point
+> across the 9×9 chakra. Left alone the message says "vedha" twice about unrelated
+> things and reads as though it repeated itself. `_sbc_entries` names the chakra
+> explicitly, and the prompt is told they are not the same.
+
+> **A Maasa Pravesha month opens on the solar ingress**, which can be three weeks
+> before the reader opens the digest. `from_date` trims the recommendations to days
+> that have not already gone — advice about last Tuesday is noise. Every day is
+> still charted; only the shortlists are trimmed.
+
+### The systems disagree, and the prompt has to let them
+
+2026-08-04 on the owner's chart: Tara Bala **Parama Mitra** (best of the nine)
+alongside Chandra Bala **8th from the natal Moon** (classically weak). That is
+normal — Tara Bala, Chandra Bala, gochara and the chakra are four independent
+measures answering slightly different questions. Handed both, a model will either
+average them into "a mixed day" (the one reading guaranteed to be useless) or
+silently pick one. The prompt now says so explicitly: name what is strong, name
+what is not, let them stand together, and say which to act on.
+
+### Cost
+
+Daily digest 20ms → **24ms** (SBC is 2ms; Tara/Chandra Bala are lookups on numbers
+already computed). Monthly 40ms → **61ms** for the dated window.
+
+### Not done, deliberately
+
+The **static** half of the nakshatra profile — deity, symbol, theme, naming
+syllable. It never changes, so putting it in a daily digest would re-monotonise
+precisely what this section de-monotonised: every morning opening with the same
+characterisation. It belongs on `/nakshatra`, where it already is.
+
+### Tests
+
+21 added to `test_digest_history.py`. The one that matters:
+`test_daily_digest_actually_differs_from_one_day_to_the_next` — ten consecutive
+days must produce at least seven distinct taras. That is the acceptance test for
+this whole section, and it would fail the moment the day-variable layer regressed.
+Plus `test_tarabala_agrees_with_the_nakshatra_page`: two code paths compute this
+now, and the digest must not tell someone something different from `/nakshatra`.

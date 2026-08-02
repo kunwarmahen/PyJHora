@@ -1182,14 +1182,21 @@ Three approaches, chosen with a mode toggle:
 - A personalized **daily card**: today's Panchanga + your running Vimsottari dasha (flagging a
   Bhukti change within 30 days) + headline transits (Sade-Sati, Jupiter-from-Moon, retrogrades,
   next Jupiter/Saturn ingress), plus an **AI reading**
-- **"Take care with"** — the difficult side of the day, in its own card and its own section of the
-  email. Classical gochara verdicts measured from your birth Moon (an `Unfavourable` transit, or a
+- **"Working in your favour" and "Take care with"** — the two sides of the day, each in its own
+  card and its own section of the email. Sources: **Tara Bala** (the count from your birth star to
+  today's star — the tradition's own "is today good *for me*", and the one signal that differs every
+  single day), **Chandra Bala** (the Moon's sign from your natal Moon, turning every ~2¼ days),
+  the **Sarvatobhadra chakra** (a graha sitting on or facing your birth star / Moon sign),
+  classical gochara verdicts measured from your birth Moon (`Favourable` / `Unfavourable`, or a
   favourable one cancelled by **vedha**), **Ashtama** / **Ardhashtama Sani**, the **Vishti (Bhadra)**
   karana, and the periods traditionally kept clear for anything newly begun (Rahu Kalam, Yamaganda,
-  Gulika). Each caution is tagged **today** (what is different about this morning) or **ongoing**
+  Gulika). Every entry is tagged **today** (what is different about this morning) or **ongoing**
   (a backdrop lasting weeks or months). That tag is what stops a 2½-year Saturn transit being
-  announced as fresh news every single day — at most four cautions show, of which at most two may
-  be the backdrop, so the day-variable signal always gets through
+  announced as fresh news every day — at most four entries per side, of which at most two may be
+  backdrop, so the day-variable signal always gets through.
+  These are independent measures and **may disagree** — a day can be excellently starred and still
+  carry a hard transit. The AI is explicitly told not to average them into "a mixed day" but to name
+  each and say which to act on
 - **± day stepper** — look ahead or back a day at a time, like the Varshaphal year stepper. The whole
   card recomputes for the day you land on; **Refresh** becomes **Today** while you are off the present day
 - **Solar / Lunar basis toggle** (defaults to Settings → pravesha basis). On **Lunar**, the day also
@@ -1221,6 +1228,12 @@ Three approaches, chosen with a mode toggle:
   [Troubleshooting → No digest emails or notifications](#no-digest-emails-or-notifications-arrive)
 
 #### Fortnightly & Monthly readings (`/fortnightly-digest`, `/monthly-digest`)
+
+Both carry the same two-sided treatment as the daily card, plus the one thing a long-window
+reading can offer that a transit list cannot: **dated Tara Bala days**. Every day of the window is
+charted from your birth star, and the well-starred days and the ones to keep light are named with
+their dates ("Tue 4 Aug, Thu 6 Aug"). Days already past are dropped — a Maasa Pravesha month opens
+on the solar ingress, which can be weeks before you read the digest.
 
 The same idea over longer horizons, on **independent per-cadence opt-ins**. Every period reading is
 anchored to a real **progressed (pravesha) chart** — not an invented window.

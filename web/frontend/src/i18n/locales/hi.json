@@ -923,7 +923,8 @@
       "whatIsKaalaVela": "मुहूर्त पृष्ठ पर “काल-वेला” क्या है?",
       "dashboardLayout": "डैशबोर्ड पर बहुत सारे टाइल हैं। इनका क्रम क्या है?",
       "aiDigestHistory": "Can I look back at the digest that was emailed to me?",
-      "digestCautions": "Why does my digest now mention difficult things?"
+      "digestCautions": "Why does my digest now mention difficult things?",
+      "digestTaraBala": "What is Tara Bala, and why does my digest lead with it?"
     },
     "a": {
       "featSpecialPoints": "आपके लग्न के विकल्प संदर्भ-बिंदु और छाया-ग्रह। इनमें तीन वास्तव में उपयोगी हैं: होरा लग्न धन और आय के लिए, घटी लग्न अधिकार और पदोन्नति के लिए, तथा भाव लग्न शरीर के लिए — तीनों साथ पढ़े जाते हैं, आपके सामान्य लग्न के साथ, उसके स्थान पर नहीं। शेष केवल इसलिए दिखाए जाते हैं कि पारंपरिक कुंडली उन्हें सूचीबद्ध करती है।",
@@ -931,7 +932,8 @@
       "whatIsKaalaVela": "दिन आठ भागों में बँटा है, हर भाग का एक ग्रह स्वामी; इनमें चार पारंपरिक रूप से छायांकित माने जाते हैं — काल, मृत्यु, अर्थ प्रहर और यम घंटक। कोई सुझाया समय इनमें पड़े तो उसे हटाया नहीं, केवल चिह्नित किया जाता है, क्योंकि ये प्रायः राहु काल और गुलिक काल से मेल खाते हैं और सबको हटाने पर दिन का अधिकांश भाग शेष नहीं बचता।",
       "dashboardLayout": "वही क्रम जिससे कुंडली पढ़ी जाती है। “यहाँ से शुरू करें” में आपकी कुंडली, AI और आज का हाल। “कुंडली पढ़ें” में वह सब जो कुंडली का वर्णन करता है। “काल-निर्णय” में कब क्या होगा — पहले दशा, फिर उस पर चलता गोचर। “पंचांग और मुहूर्त” में आकाश की घड़ी और कर्म का शुभ क्षण। फिर “संबंध”, और अंत में “उपाय और अभ्यास”। नेविगेशन मेन्यू में भी यही छह खंड हैं; और यदि आप जानते हैं कि क्या चाहिए, तो डैशबोर्ड पर टाइप करना शुरू कर दें।",
       "aiDigestHistory": "Yes. Every digest that is actually delivered — by email or as a browser notification, for each person it covered — is now saved to AI History under the “Digests” filter, and opens back up on its own page exactly as it was sent. Digests are kept separately from your chats and readings, so a daily email can never push your conversations out of your history.",
-      "digestCautions": "Because a reading that only ever reports good news is not a reading. The digest now also carries what the classical texts call difficult for you: an unfavourable gochara (transit measured from your birth Moon), a favourable one cancelled by vedha (another planet obstructing it), Ashtama or Ardhashtama Sani, the Vishti karana, and the periods traditionally kept clear for anything newly begun — Rahu Kalam and its companions. Each one is marked either “today”, meaning it is what is different about this day, or “ongoing”, meaning it is a backdrop you have been living with for weeks or months. None of it is a prediction of misfortune: it is a note about what to handle with care, and the digest always leaves you something you can do."
+      "digestCautions": "Because a reading that only ever reports good news is not a reading. The digest now also carries what the classical texts call difficult for you: an unfavourable gochara (transit measured from your birth Moon), a favourable one cancelled by vedha (another planet obstructing it), Ashtama or Ardhashtama Sani, the Vishti karana, and the periods traditionally kept clear for anything newly begun — Rahu Kalam and its companions. Each one is marked either “today”, meaning it is what is different about this day, or “ongoing”, meaning it is a backdrop you have been living with for weeks or months. None of it is a prediction of misfortune: it is a note about what to handle with care, and the digest always leaves you something you can do.",
+      "digestTaraBala": "Tara Bala is the tradition's own answer to “is today a good day *for me*”. You count from your birth star (the nakshatra the Moon was in when you were born) to the star running today; the count lands on one of nine Taras, each with a name and a verdict — Sampat (gain), Kshema (safety) and Sadhaka (accomplishment) are the strong ones; Vipat, Pratyak and Vadha are the ones to move gently through. It leads the digest because it is the one thing in your reading that genuinely changes every single day: your dasha turns over in months, a Saturn transit in years, but the Moon moves to a new star every day or so. On the fortnight and month pages the same count is applied to every day of the window, so you get the actual dates worth acting on. It sits alongside Chandra Bala, the gochara verdicts and the Sarvatobhadra chakra — four independent measures that sometimes disagree. That is normal, and the reading will tell you so rather than splitting the difference."
     }
   },
   "history": {
@@ -948,7 +950,9 @@
     "scopeToday": "today",
     "scopeStanding": "ongoing",
     "avoidWindows": "Periods to avoid",
-    "avoidHint": "Classically kept clear for anything newly begun."
+    "avoidHint": "Classically kept clear for anything newly begun.",
+    "supports": "Working in your favour",
+    "supportsHint": "What the classical texts count as favourable — an ongoing transit is marked as such."
   },
   "periodDigest": {
     "cautions": "Take care with",
@@ -956,6 +960,8 @@
     "scopeToday": "today",
     "scopeStanding": "ongoing",
     "avoidWindows": "Periods to avoid",
-    "avoidHint": "Classically kept clear for anything newly begun."
+    "avoidHint": "Classically kept clear for anything newly begun.",
+    "supports": "Working in your favour",
+    "supportsHint": "What the classical texts count as favourable — an ongoing transit is marked as such."
   }
 }

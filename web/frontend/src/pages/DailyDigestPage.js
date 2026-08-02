@@ -1,7 +1,17 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Sun, Moon, Sparkles, Bell, Clock, Orbit, Star, ShieldAlert } from "lucide-react";
+import {
+  Sun,
+  Moon,
+  Sparkles,
+  Bell,
+  Clock,
+  Orbit,
+  Star,
+  ShieldAlert,
+  Sprout,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -177,6 +187,9 @@ export const DailyDigestPage = () => {
   // The difficult side of the day: each entry is {text, scope} — "today" is what
   // changed, "standing" is the months-long backdrop it sits in.
   const cautions = digest?.cautions || [];
+  // The favourable counterpart. Tara Bala, Chandra Bala and the Sarvatobhadra
+  // findings mostly land here, and they change day to day — which is the point.
+  const supports = digest?.supports || [];
   const avoidWindows = digest?.avoid_windows || [];
 
   return (
@@ -264,6 +277,25 @@ export const DailyDigestPage = () => {
                 ))}
               </ul>
             </div>
+
+            {supports.length > 0 && (
+              <div className="ui-card ui-card--pad-lg ui-card--flush digest-supports mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <Sprout size={18} /> {t("digest.supports")}
+                </h3>
+                <p className="text-muted digest-cautions__hint">{t("digest.supportsHint")}</p>
+                <ul className="digest-highlights">
+                  {supports.map((c, i) => (
+                    <li key={i} className="digest-hl digest-hl--support">
+                      <span className={`digest-scope digest-scope--${c.scope || "standing"}`}>
+                        {c.scope === "today" ? t("digest.scopeToday") : t("digest.scopeStanding")}
+                      </span>
+                      {c.text}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* What the day asks care with. Its own card rather than more bullets
                 in Highlights: a hard transit listed among neutral facts reads as

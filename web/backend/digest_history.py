@@ -83,6 +83,9 @@ def render_text(block: Dict[str, Any]) -> str:
     if block.get("changes"):
         parts.append("**Since your last digest**\n"
                      + "\n".join(f"- {c}" for c in block["changes"]))
+    if block.get("supports"):
+        parts.append("**Working in your favour**\n"
+                     + "\n".join(f"- {c['text']}" for c in block["supports"]))
     if block.get("cautions"):
         parts.append("**Take care with**\n"
                      + "\n".join(f"- {c['text']}" for c in block["cautions"]))
@@ -119,6 +122,7 @@ async def save(user_id: str, *, cadence: str, block: Dict[str, Any],
             "text": body,
             "highlights": block.get("highlights") or [],
             "cautions": block.get("cautions") or [],
+            "supports": block.get("supports") or [],
             "changes": block.get("changes") or [],
             "sky": block.get("sky") or [],
             "personal": block.get("personal") or [],

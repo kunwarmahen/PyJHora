@@ -159,6 +159,14 @@ class TransitsMixin:
                         "house": natal_moon_rasi + 1,
                         "degrees": round(natal_moon_deg, 2),
                         "sign_name": ZODIAC_NAMES[natal_moon_rasi],
+                        # The janma nakshatra (1-27). Everything Moon-referenced in
+                        # the tradition counts from here — Tara Bala above all — and
+                        # callers were otherwise re-deriving it from their own rasi
+                        # chart just to get one integer this function already knew.
+                        "nakshatra_index": _janma_nakshatra(
+                            natal_moon_rasi * 30.0 + natal_moon_deg),
+                        "nakshatra": NAKSHATRA_NAMES[_janma_nakshatra(
+                            natal_moon_rasi * 30.0 + natal_moon_deg) - 1],
                     },
                 },
                 # Natal lagna drives the Kundali houses; planets are the transits.

@@ -2451,6 +2451,11 @@
 .digest-cautions {
   border-left: 3px solid var(--warning);
 }
+/* The favourable counterpart, deliberately the same shape as the cautions card
+   and placed above it — the day's good news should not read as an afterthought. */
+.digest-supports {
+  border-left: 3px solid var(--success);
+}
 .digest-cautions__hint {
   margin: 0 0 0.7rem;
   font-size: 0.83rem;
@@ -2460,7 +2465,8 @@
   font-size: 0.92rem;
   color: var(--text-primary);
 }
-.digest-hl--caution {
+.digest-hl--caution,
+.digest-hl--support {
   display: flex;
   align-items: baseline;
   gap: 0.55rem;

@@ -58,6 +58,163 @@ def _caution(text, scope):
     return {"text": text, "scope": scope}
 
 
+# ── Tara Bala, Chandra Bala, Sarvatobhadra ──────────────────────────────────
+# The three day-variable, chart-specific measures the digest was missing.
+#
+# Everything else personal in a daily card moves slowly: the dasha turns over in
+# months, Jupiter-from-Moon in a year, Sade-Sati in two and a half. So consecutive
+# days looked alike no matter how the prose was tuned. **Tara Bala changes every
+# single day** — it is the count from the reader's birth star to today's star, it
+# is the measure a panchang reader already knows, and it is the strongest single
+# answer to "why does every digest read the same".
+#
+# All three are `today`-scoped by construction; none of them can become backdrop.
+
+def _tarabala_entry(janma_nak, day_nak):
+    """Today's Tara as a `(entry, tone)` pair, or `(None, None)` if either star is
+    unknown. The classical name is always given with its meaning attached — the
+    name on its own is decoration to anyone who hasn't met it."""
+    if not janma_nak or not day_nak:
+        return None, None
+    name, tone = _tarabala(janma_nak, day_nak)
+    meaning = TARABALA_MEANING.get(name, "")
+    text = f"Tara Bala: {name} — {meaning}" if meaning else f"Tara Bala: {name}"
+    return _caution(text, "today"), tone
+
+
+def _chandrabala_entry(house_from_moon):
+    """The Moon's sign counted from the natal Moon. Changes every ~2¼ days, and the
+    table has been sitting in engine.py used by nothing but muhurta."""
+    if not house_from_moon:
+        return None, None
+    if house_from_moon in CHANDRABALA_GOOD:
+        return _caution(
+            f"Chandra Bala: the Moon rides your {_ordinal(house_from_moon)} from "
+            f"the natal Moon — a supportive placement", "today"), "good"
+    if house_from_moon in CHANDRABALA_BAD:
+        return _caution(
+            f"Chandra Bala: the Moon rides your {_ordinal(house_from_moon)} from "
+            f"the natal Moon — classically weak; keep the day's demands modest",
+            "today"), "bad"
+    return None, "neutral"
+
+
+# Which Sarvatobhadra anchors are worth a line in a daily note, and how to name
+# each one in prose. The chakra also tracks the birth weekday and tithi group, but
+# a graha facing those says far less than one landing on the birth star — and every
+# extra finding eats one of only four slots. Ordered by weight.
+_SBC_DIGEST_ANCHORS = {
+    "janma_nakshatra": "birth star",
+    "moon_sign": "Moon sign",
+}
+
+# A graha on a chakra cell stays there as long as it stays in that nakshatra or
+# sign — which for Rahu and Ketu is about six weeks and for Saturn far longer. So
+# the same speed split the gochara layer uses applies here: a slow graha parked on
+# the birth star is the season, not the morning, and must not be allowed to occupy
+# a `today` slot every day for a month and a half.
+_SBC_SLOW = {"Saturn", "Jupiter", "Rahu", "Ketu"}
+
+
+def _sbc_entries(sbc):
+    """Support/caution entries from the Sarvatobhadra findings.
+
+    Returns `(supports, cautions)`. A graha *occupying* the birth-star cell acts on
+    it directly; one on the mirrored cell is the chakra's **facing (saamne) vedha**.
+
+    NOTE this vedha is not the gochara vedha reported elsewhere in the same digest:
+    gochara vedha is house-based obstruction counted from the Moon, this one is the
+    cell opposite across the 9×9 chakra. Same word, different system — so the
+    wording here names the chakra explicitly, or a reader meets "vedha" twice in
+    one message and assumes the digest is repeating itself."""
+    supports, cautions = [], []
+    for key, label in _SBC_DIGEST_ANCHORS.items():
+        for f in (sbc or {}).get("findings", []):
+            if f.get("anchor") != key:
+                continue
+            planet = f.get("planet")
+            anchor = f.get("anchor_name") or f.get("anchor_label")
+            if f.get("kind") == "occupation":
+                text = f"{planet} sits on your {label} {anchor} in the Sarvatobhadra chakra"
+            else:
+                text = (f"{planet} faces your {label} {anchor} across the "
+                        f"Sarvatobhadra chakra (saamne vedha)")
+            scope = "standing" if planet in _SBC_SLOW else "today"
+            (supports if f.get("tone") == "supportive" else cautions).append(
+                _caution(text, scope))
+    return supports, cautions
+
+
+def _pick_supports(supports):
+    """Same rationing as `_pick_cautions`, and for the same reason: a standing
+    benefic would otherwise be reported as good news every morning for a year."""
+    return _pick_cautions(supports)
+
+
+def _fmt_day(date_str):
+    """'2026-08-06' → 'Thu 6 Aug'. Dated advice is only useful if the date is
+    readable at a glance in an email; an ISO string is not."""
+    from datetime import datetime
+    try:
+        d = datetime.strptime(date_str, "%Y-%m-%d")
+    except (TypeError, ValueError):
+        return date_str
+    return f"{d.strftime('%a')} {d.day} {d.strftime('%b')}"
+
+
+def _tarabala_window(janma_nak, place, lat, lon, tz, start_str, span_days,
+                     from_date=None, max_days=40):
+    """Day-by-day Tara Bala across a fortnight or month.
+
+    Returns `{"days": [...], "best": [dates], "worst": [dates]}` — every day tagged,
+    plus the two shortlists a reader actually wants: which dates in this window are
+    well-starred for them, and which to keep light.
+
+    `from_date` trims those shortlists to days that have not already gone. A
+    Maasa Pravesha month opens on the solar ingress, which can be three weeks
+    before the reader opens the digest — advice about last Tuesday is noise.
+
+    This is the fortnightly/monthly digests' answer to the same monotony problem
+    the daily card had. Those readings are built almost entirely from slow material
+    — the dasha, the progressed lagna, a couple of ingresses — so consecutive
+    windows read alike. A dated list of *this* person's good and bad days is
+    specific, actionable, and different every window.
+    """
+    if not janma_nak:
+        return None
+    from datetime import datetime, timedelta
+    try:
+        y, m, d = map(int, start_str.split("-"))
+    except (TypeError, ValueError, AttributeError):
+        return None
+    # The nakshatra running at noon is a sky fact; the place only fixes which
+    # noon. Any of the caller's own coordinates give the same star for the day.
+    place_obj = drik.Place(place or "", lat or 13.0827, lon or 80.2707,
+                           tz if tz is not None else 5.5)
+    start = datetime(y, m, d)
+    days, best, worst = [], [], []
+    for offset in range(max(1, min(int(span_days or 0) + 1, max_days))):
+        day = start + timedelta(days=offset)
+        date_str = f"{day.year:04d}-{day.month:02d}-{day.day:02d}"
+        try:
+            jd = swe.julday(day.year, day.month, day.day, 12)
+            day_nak = drik.nakshatra(jd, place_obj)[0]
+        except Exception:
+            continue
+        name, tone = _tarabala(janma_nak, day_nak)
+        days.append({"date": date_str, "nakshatra": NAKSHATRA_NAMES[day_nak - 1],
+                     "tarabala": name, "tone": tone})
+        if from_date and date_str < from_date:
+            continue  # already past — still charted, just not recommended
+        if tone == "very_good":
+            best.append(date_str)
+        elif tone == "bad":
+            worst.append(date_str)
+    if not days:
+        return None
+    return {"days": days, "best": best, "worst": worst}
+
+
 def _gochara_cautions(gochara, skip_planets=()):
     """Caution entries from the Moon-referenced gochara verdicts, most significant
     first.
@@ -213,8 +370,22 @@ class DigestsMixin:
                 print(f"Daily digest gochara skipped: {e}")
                 gochara = None
 
+            # The chakra's read of today against this chart's sensitive points.
+            # Cheap (~2ms) and, unlike the slow gochara layer, it moves daily.
+            try:
+                sbc = AstrologyCompute.get_sarvatobhadra_chakra(
+                    dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz,
+                    current_date=date_str, current_time=current_time,
+                    current_tz=current_tz, ayanamsa=ayanamsa)
+                if sbc.get("status") != "success":
+                    sbc = None
+            except Exception as e:
+                print(f"Daily digest sarvatobhadra skipped: {e}")
+                sbc = None
+
             highlights = []
             cautions = []
+            supports = []
             named_planets = set()
 
             # Panchanga headline.
@@ -373,8 +544,57 @@ class DigestsMixin:
                         "Vishti (Bhadra) karana runs today — classically avoided for "
                         "beginnings, journeys and anything auspicious", "today"))
 
+            # ── Tara Bala / Chandra Bala: today, for this chart ───────────────
+            # Both read off numbers already computed above — the day's nakshatra
+            # from the panchanga, the janma star and the Moon's house from the
+            # transit block — so they cost nothing beyond the lookup.
+            tarabala = None
+            janma_nak = ((transit_block or {}).get("natal", {})
+                         .get("moon", {}).get("nakshatra_index"))
+            day_nak = ((panch.get("nakshatra") or {}).get("index")
+                       if panch.get("status") == "success" else None)
+            entry, tone = _tarabala_entry(janma_nak, day_nak)
+            if entry:
+                name = entry["text"].split(":", 1)[1].split("—")[0].strip()
+                tarabala = {"name": name, "tone": tone,
+                            "day_nakshatra": (panch.get("nakshatra") or {}).get("name"),
+                            "janma_nakshatra": (transit_block or {}).get("natal", {})
+                            .get("moon", {}).get("nakshatra")}
+                (supports if tone in ("very_good", "good") else cautions).append(entry)
+
+            chandrabala = None
+            if transit_block:
+                moon_house = (transit_block.get("planets", {})
+                              .get("Moon", {}).get("house_from_moon"))
+                entry, tone = _chandrabala_entry(moon_house)
+                chandrabala = {"house_from_moon": moon_house, "tone": tone}
+                if entry:
+                    (supports if tone == "good" else cautions).append(entry)
+
+            sbc_supports, sbc_cautions = _sbc_entries(sbc)
+            supports.extend(sbc_supports)
+            cautions.extend(sbc_cautions)
+
+            # The day's one clearly good hour belongs with the other supports, not
+            # only buried in the highlights list.
+            if action_window:
+                supports.append(_caution(
+                    f"Favourable window: {action_window['name']} "
+                    f"{action_window['start']}–{action_window['end']}", "today"))
+
             cautions.extend(_gochara_cautions(gochara, skip_planets=named_planets))
+            for row in (gochara or {}).get("results", []):
+                # The favourable half of the same classical verdict. Slow grahas are
+                # backdrop here exactly as they are on the caution side.
+                if row.get("tone") == "good" and row.get("planet") in _GOCHARA_CAUTION_PLANETS:
+                    _, scope = _GOCHARA_CAUTION_PLANETS[row["planet"]]
+                    supports.append(_caution(
+                        f"{row['planet']} transits the "
+                        f"{_ordinal(row.get('house_from_moon'))} from your natal Moon "
+                        f"— gochara: Favourable", scope))
+
             cautions = _pick_cautions(cautions)
+            supports = _pick_supports(supports)
 
             return {
                 "status": "success",
@@ -388,10 +608,15 @@ class DigestsMixin:
                 "action_window": action_window,
                 "avoid_windows": avoid,
                 "gochara": gochara,
+                "tarabala": tarabala,
+                "chandrabala": chandrabala,
+                "sarvatobhadra": sbc,
                 "highlights": highlights,
                 # Kept apart from `highlights` deliberately: a hard transit listed
-                # among neutral facts reads as another neutral fact.
+                # among neutral facts reads as another neutral fact — and a day that
+                # is genuinely well-starred deserves somewhere concrete to say so.
                 "cautions": cautions,
+                "supports": supports,
             }
         except Exception as e:
             import traceback
@@ -490,6 +715,7 @@ class DigestsMixin:
             highlights: List[str] = [
                 f"Your {when}: {start_str} → {end_str} ({span_days} days)"]
             cautions: List[Dict] = []
+            supports: List[Dict] = []
             named_planets = set()
 
             # Gochara verdicts as of today, for the same reason the daily card
@@ -602,6 +828,35 @@ class DigestsMixin:
                     highlights.append(f"Tajaka yoga — {yg['name']}{pair}")
 
             cautions.extend(_gochara_cautions(gochara, skip_planets=named_planets))
+            for row in (gochara or {}).get("results", []):
+                if row.get("tone") == "good" and row.get("planet") in _GOCHARA_CAUTION_PLANETS:
+                    _, scope = _GOCHARA_CAUTION_PLANETS[row["planet"]]
+                    supports.append(_caution(
+                        f"{row['planet']} transits the "
+                        f"{_ordinal(row.get('house_from_moon'))} from your natal Moon "
+                        f"— gochara: Favourable", scope))
+
+            # Which days in this window are well-starred for this chart. The one
+            # genuinely day-by-day thing a fortnight or month reading can offer.
+            janma_nak = ((transit_block or {}).get("natal", {})
+                         .get("moon", {}).get("nakshatra_index"))
+            tarabala = _tarabala_window(janma_nak, place, lat, lon, tz_offset,
+                                        start_str, span_days, from_date=today_str)
+            if tarabala:
+                # Into supports/cautions rather than highlights: these are advice,
+                # not facts about the sky, and they are the one thing in a month
+                # reading that is genuinely different for this person on these days.
+                # Inserted at the front, not appended: over a fortnight or a month
+                # a dated list of *this* person's good and bad days outranks any
+                # single transit verdict, and the rationing keeps only the first few.
+                if tarabala["best"]:
+                    supports.insert(0, _caution(
+                        "Well-starred days ahead (Tara Bala): "
+                        + ", ".join(_fmt_day(d) for d in tarabala["best"][:6]), "today"))
+                if tarabala["worst"]:
+                    cautions.insert(0, _caution(
+                        "Days to keep light (Tara Bala): "
+                        + ", ".join(_fmt_day(d) for d in tarabala["worst"][:6]), "today"))
 
             return {
                 "status": "success",
@@ -618,8 +873,10 @@ class DigestsMixin:
                 "events": events,
                 "pravesh": pravesh,
                 "gochara": gochara,
+                "tarabala": tarabala,
                 "highlights": highlights,
                 "cautions": _pick_cautions(cautions),
+                "supports": _pick_supports(supports),
             }
         except Exception as e:
             import traceback

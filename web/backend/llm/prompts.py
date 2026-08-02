@@ -804,8 +804,16 @@ Reason from the placements given; cite the factors behind your read. Do NOT make
         standing_cautions = [c["text"] for c in cautions if c.get("scope") != "today"]
         cautions_block = ("\n".join(f"- {c}" for c in today_cautions)
                           if today_cautions else "- (nothing difficult flagged for today)")
-        standing_block = ("\n".join(f"- {c}" for c in standing_cautions)
-                          if standing_cautions else "- (none)")
+        # The same treatment for the favourable side. Without it the reading could
+        # only ever be neutral-or-worse: a genuinely well-starred day had nowhere
+        # to be stated, and the model had to infer good news or invent it.
+        supports = d.get("supports") or []
+        today_supports = [c["text"] for c in supports if c.get("scope") == "today"]
+        standing_supports = [c["text"] for c in supports if c.get("scope") != "today"]
+        supports_block = ("\n".join(f"- {c}" for c in today_supports)
+                          if today_supports else "- (nothing especially favourable flagged)")
+        standing_block = ("\n".join(f"- {c}" for c in standing_cautions + standing_supports)
+                          if (standing_cautions or standing_supports) else "- (none)")
         avoid = d.get("avoid_windows") or []
         avoid_line = ("; ".join(f"{w['name']} {w['start']}–{w['end']}" for w in avoid)
                       or "none computed")
@@ -821,11 +829,18 @@ Reason from the placements given; cite the factors behind your read. Do NOT make
 NEW SINCE {name}'S LAST DIGEST (if anything here, LEAD with it — it's the freshest, most relevant news):
 {changes_block}
 
-DIFFICULT TODAY — the tradition's own verdicts for this day (this is news; give it real weight):
+IN {name}'S FAVOUR TODAY — the tradition's own verdicts, and they change day to day (this is news; give it real weight):
+{supports_block}
+
+DIFFICULT TODAY — likewise the tradition's own verdicts for this day (news too; give it equal weight):
 {cautions_block}
 
 STANDING BACKDROP (already true for weeks or months — {name} has been living with it. Mention it only as context for what is happening today, in a clause, and NEVER as though it were new. If you wrote about it in yesterday's note you have already said it):
 {standing_block}
+
+THE TWO LISTS ABOVE MAY CONTRADICT EACH OTHER, AND THAT IS NORMAL. Tara Bala (counted from {name}'s birth star to today's star), Chandra Bala (the Moon's sign from their natal Moon), the gochara verdicts and the Sarvatobhadra chakra are four independent measures answering slightly different questions. A day can be excellently starred AND carry a hard transit. Do NOT average them into "a mixed day" — that is the one reading guaranteed to be useless. Say which is which and let them stand together, the way an astrologer would: name what is strong, name what is not, and tell them which one to act on today.
+
+Two different things are called *vedha* in the data above and they are NOT the same: gochara vedha is a graha obstructing another's good result counted in houses from the Moon; a Sarvatobhadra *saamne vedha* is a graha on the cell facing one of {name}'s sensitive points on the chakra. If both appear, do not merge them or imply one is the other.
 
 SPECIFIC TO {name} (build the reading around these — this is what makes today theirs):
 - Current dasha: {dasha.get('maha_lord', 'n/a')} Mahadasha{', ' + bhukti.get('lord') + ' Bhukti' if bhukti.get('lord') else ''} (Mahadasha runs to {dasha.get('maha_end', 'n/a')}).
@@ -842,9 +857,10 @@ SHARED SKY (context only — nearly everyone reading a digest today sees the sam
 {upcoming}
 
 Write ~170 words as 2–3 short flowing paragraphs (no headings, no bullet labels):
-- Center it on the SPECIFIC and DIFFICULT-TODAY signals above. If a dasha change is near, that is the story; otherwise lead with whatever moved today — a fresh caution, their dasha/bhukti mood, or their Jupiter/Saturn-from-Moon transit.
+- Center it on the IN-FAVOUR and DIFFICULT-TODAY signals above — those are what make today *today*. If a dasha change is near, that is the story instead; otherwise lead with whatever actually moved.
+- **Tara Bala, when it is given, is the headline personal verdict for the day** — it is the measure a panchang reader knows, and it is different every morning. Name it (Sampat, Vipat, Vadha…), say what it means in plain words, and let it set the tone of the note.
 - Say what is hard as well as what supports them. If something above is flagged difficult, name it and say what it asks for — do not soften it into a vague "be mindful". If nothing is flagged, say so plainly rather than manufacturing a worry; an easy day is a real result.
-- You may use the tradition's own vocabulary where the data gives it — Ashtama Sani, Ardhashtama Sani, vedha, Vishti (Bhadra) karana, "gochara: Unfavourable" — but always follow the term with what it means in ordinary words, in the same sentence.
+- You may use the tradition's own vocabulary where the data gives it — Tara Bala, Chandra Bala, Ashtama Sani, Ardhashtama Sani, vedha, Vishti (Bhadra) karana, "gochara: Unfavourable" — but always follow the term with what it means in ordinary words, in the same sentence.
 - The tithi/nakshatra/weekday can colour the opening in a line, but must not be the whole note. A retrograde only earns a mention if it genuinely bears on their situation — and then only once, woven in naturally.
 - Close with ONE concrete, specific suggestion tied to their strongest signal today. If an auspicious window is given above, you may anchor a time-sensitive suggestion to it (name the window and its hours once); you may likewise name ONE period to avoid if it matters for what you are suggesting. Never invent a time.
 
@@ -874,6 +890,19 @@ Hard rules: The data above is authoritative — reason only from it, never contr
         cautions = d.get("cautions") or []
         caution_lines = "\n".join(f"- {c['text']}" for c in cautions) \
             or "- (nothing the classics flag as difficult in this window)"
+        supports = d.get("supports") or []
+        support_lines = "\n".join(f"- {c['text']}" for c in supports) \
+            or "- (nothing especially favourable flagged)"
+        # The dated Tara Bala days are the one thing in a fortnight/month reading
+        # that is specific to this person on these dates — everything else in the
+        # window (dasha, progressed lagna, ingresses) moves too slowly to
+        # distinguish one window from the next.
+        tb = d.get("tarabala") or {}
+        tb_days = tb.get("days") or []
+        tb_line = (f"{len(tb_days)} days charted; "
+                   f"{len(tb.get('best') or [])} well-starred, "
+                   f"{len(tb.get('worst') or [])} to keep light"
+                   if tb_days else "not computed for this window")
 
         # Name the rung honestly — the reader should know which chart they're being read.
         noun = "fortnight" if is_fortnight else "month"
@@ -915,8 +944,13 @@ Progressed chart for this {noun} — the {chart_name}, cast at the moment the wi
 
         return f"""You are an experienced personal Vedic astrologer writing {name}'s briefing for {horizon}: {window}. Weave their current dasha period together with the progressed chart for this {noun} and the sky's movements across the window into one grounded, honest note. Speak TO them ("you"), plainly. Encouraging where the chart supports it and candid where it doesn't — a window the classics call testing should be reported as testing.
 
+WORKING IN {name}'S FAVOUR IN THIS WINDOW:
+{support_lines}
+
 WHAT THE TRADITION FLAGS AS DIFFICULT IN THIS WINDOW (give this real weight — a briefing that only reports favourable factors is not a reading):
 {caution_lines}
+
+TARA BALA ACROSS THE WINDOW: {tb_line}. Where dated days are listed above, they are counted from {name}'s own birth star to each day's star — they are personal, they are the most concrete thing in this briefing, and a reader can act on them. Name the actual dates. Do NOT contradict them, and do not average them together with the transit verdicts: these are independent measures and may disagree, which is worth saying out loud rather than smoothing over.
 
 Window opened on: {vaara.get('name')}, {tithi.get('name')}, {nak.get('name')} nakshatra.
 Current dasha: {dasha.get('maha_lord', 'n/a')} Mahadasha{', ' + bhukti.get('lord') + ' Bhukti' if bhukti.get('lord') else ''} (Mahadasha runs to {dasha.get('maha_end', 'n/a')}).
@@ -930,7 +964,7 @@ Key highlights the engine flagged:
 Write a friendly ~{'230' if is_fortnight else '260'}-word note on this {noun} as flowing prose (you may use the three beats below as a spine, but do NOT print them as headings):
 1. The theme of this {noun} — what the dasha/bhukti and the progressed Lagna set as the backdrop, said straight: supportive, mixed or demanding, whichever the data actually shows.
 2. What shifts and when — walk through the 2–3 most meaningful transit events above (an ingress, a retrograde station, a Tajaka yoga), naming their dates so they can plan around them.
-3. What to handle carefully — take the flagged difficulties seriously, name what each one asks for, and where the tradition gives a term (Ashtama Sani, Ardhashtama Sani, vedha) you may use it, immediately explained in ordinary words. If nothing is flagged, say the window looks clear rather than inventing a worry.
+3. What to handle carefully, and which days are yours — take the flagged difficulties seriously, name what each one asks for, and where the tradition gives a term (Tara Bala, Ashtama Sani, Ardhashtama Sani, vedha) you may use it, immediately explained in ordinary words. If dated well-starred days are given, name them: that is the most actionable line in the whole briefing. If nothing is flagged, say the window looks clear rather than inventing a worry.
 4. A gentle plan — one or two practical, specific suggestions for making the most of this {noun}.
 Reason only from the data above; it is authoritative — do not contradict it and do not invent placements. Do NOT restate the mechanical facts verbatim (no "Retrograde now: …" or "Tajaka yoga — …" lines) — weave what matters into sentences. Avoid scare-quotes and stock phrases ("slow down", "trust the timing", "audit your projects", "bridge period", "electric", "navigate", "lean into"). Do NOT open with a fixed template. End on a line that leaves them with something to do. Candour is not doom: no fated outcomes, no medical, legal or financial claims, nothing about death, illness or catastrophe."""
 

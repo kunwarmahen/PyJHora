@@ -102,6 +102,7 @@ export const HELP_SECTIONS = [
       // ambiguous — which would leave the History page's "?" with nowhere to go.
       { id: "aiDigestHistory" },
       { id: "digestCautions", to: "/daily-digest" },
+      { id: "digestTaraBala" },
     ],
   },
   {

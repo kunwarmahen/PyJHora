@@ -268,3 +268,205 @@ def test_avoid_line_is_shared_sky_not_personal():
          "Rahu Mahadasha, Saturn Bhukti"])
     assert sky == ["Avoid for anything new: Rahu Kalam 09:00–10:30"]
     assert personal == ["Rahu Mahadasha, Saturn Bhukti"]
+
+
+# ── Tara Bala, Chandra Bala, Sarvatobhadra ─────────────────────────────────
+# The three day-variable, chart-specific measures. Everything else personal in a
+# digest moves in months or years, which is why consecutive days read alike no
+# matter how the prose is tuned. These tests pin the properties that make them
+# worth having — above all that Tara Bala actually differs from day to day.
+
+from astrology.engine import _janma_nakshatra, _tarabala, TARABALA_MEANING
+
+
+def test_janma_nakshatra_is_one_based_and_spans_the_zodiac():
+    assert _janma_nakshatra(0.0) == 1
+    assert _janma_nakshatra(359.9) == 27
+    # 13°20' is exactly one nakshatra.
+    assert _janma_nakshatra(13.3) == 1
+    assert _janma_nakshatra(13.4) == 2
+
+
+def test_tarabala_is_the_count_from_birth_star_to_day_star():
+    # Same star = Janma (the 1st tara); 9th/18th/27th = Parama Mitra.
+    assert _tarabala(11, 11)[0] == "Janma"
+    assert _tarabala(1, 9)[0] == "Parama Mitra"
+    assert _tarabala(1, 2)[0] == "Sampat"
+    assert _tarabala(1, 3)[0] == "Vipat"
+
+
+def test_every_tara_has_a_plain_english_meaning():
+    # The classical name alone is decoration to a reader who has never met it, so
+    # the digest always prints the meaning with it.
+    from astrology.engine import TARABALA_NAMES
+
+    for name, _tone in TARABALA_NAMES:
+        assert TARABALA_MEANING.get(name), f"{name} has no meaning text"
+
+
+def test_tarabala_cycles_through_all_nine_over_nine_days():
+    # This is the whole reason Tara Bala was added: unlike every other personal
+    # signal in a digest, it is different every single day.
+    tones = {_tarabala(11, ((11 + i - 1) % 27) + 1)[0] for i in range(9)}
+    assert len(tones) == 9
+
+
+def test_tarabala_entry_is_always_today_scoped():
+    entry, tone = cd._tarabala_entry(11, 25)
+    assert entry["scope"] == "today"
+    assert tone == "very_good"
+    assert "Sadhaka" in entry["text"]
+    # Name AND meaning, in one line.
+    assert "—" in entry["text"]
+
+
+def test_tarabala_entry_absent_when_a_star_is_unknown():
+    assert cd._tarabala_entry(None, 12) == (None, None)
+    assert cd._tarabala_entry(12, None) == (None, None)
+
+
+def test_chandrabala_follows_the_classical_houses():
+    for good in (1, 3, 6, 7, 10, 11):
+        entry, tone = cd._chandrabala_entry(good)
+        assert tone == "good" and entry["scope"] == "today"
+    for bad in (4, 8, 12):
+        entry, tone = cd._chandrabala_entry(bad)
+        assert tone == "bad" and entry["scope"] == "today"
+    # Neutral houses produce no line at all rather than a filler one.
+    entry, tone = cd._chandrabala_entry(5)
+    assert entry is None and tone == "neutral"
+
+
+def _finding(anchor, planet, kind="occupation", tone="stressful"):
+    return {"anchor": anchor, "anchor_name": "Magha", "anchor_label": "Birth star",
+            "kind": kind, "planet": planet, "tone": tone}
+
+
+def test_sbc_slow_grahas_are_standing_not_today():
+    # Ketu sits on a nakshatra cell for ~6 weeks. Tagged `today` it would occupy a
+    # scarce daily slot every morning for a month and a half — re-creating the
+    # exact monotony the scope tag exists to prevent.
+    sbc = {"findings": [_finding("janma_nakshatra", "Ketu")]}
+    _, cautions = cd._sbc_entries(sbc)
+    assert cautions[0]["scope"] == "standing"
+
+    sbc = {"findings": [_finding("janma_nakshatra", "Mercury")]}
+    _, cautions = cd._sbc_entries(sbc)
+    assert cautions[0]["scope"] == "today"
+
+
+def test_sbc_names_the_chakra_so_its_vedha_is_not_confused_with_gocharas():
+    # Two different things in one digest are called vedha. The wording has to keep
+    # them apart or the message reads as if it repeated itself.
+    sbc = {"findings": [_finding("janma_nakshatra", "Mars", kind="vedha")]}
+    _, cautions = cd._sbc_entries(sbc)
+    assert "Sarvatobhadra" in cautions[0]["text"]
+    assert "saamne" in cautions[0]["text"]
+
+
+def test_sbc_supportive_findings_go_to_supports():
+    sbc = {"findings": [_finding("moon_sign", "Jupiter", tone="supportive")]}
+    supports, cautions = cd._sbc_entries(sbc)
+    assert len(supports) == 1 and cautions == []
+
+
+def test_sbc_ignores_the_weaker_anchors():
+    # The chakra also tracks birth weekday and tithi group; those say far less than
+    # a graha on the birth star and would eat the four available slots.
+    sbc = {"findings": [_finding("birth_weekday", "Mars"),
+                        _finding("birth_tithi", "Mars")]}
+    assert cd._sbc_entries(sbc) == ([], [])
+
+
+def test_sbc_handles_a_failed_or_missing_chakra():
+    assert cd._sbc_entries(None) == ([], [])
+    assert cd._sbc_entries({}) == ([], [])
+
+
+def test_supports_are_rationed_exactly_like_cautions():
+    # A standing benefic must not be reported as fresh good news every morning.
+    standing = [{"text": f"slow-{i}", "scope": "standing"} for i in range(5)]
+    today = [{"text": f"fast-{i}", "scope": "today"} for i in range(3)]
+    picked = cd._pick_supports(standing + today)
+    assert len(picked) == cd._MAX_CAUTIONS
+    assert sum(1 for c in picked if c["scope"] == "standing") <= cd._MAX_STANDING_CAUTIONS
+
+
+def test_window_dates_read_naturally():
+    # ISO strings in an email are unreadable at a glance, and these are dated advice.
+    assert cd._fmt_day("2026-08-06") == "Thu 6 Aug"
+    assert cd._fmt_day("nonsense") == "nonsense"
+    assert cd._fmt_day(None) is None
+
+
+def test_tarabala_window_skips_days_already_past():
+    # A Maasa Pravesha month opens on the solar ingress, which can be three weeks
+    # before the reader opens the digest. Advice about last Tuesday is noise.
+    from jhora.panchanga import drik
+
+    place = drik.Place("Chennai", 13.0827, 80.2707, 5.5)
+    full = cd._tarabala_window(11, "Chennai", 13.0827, 80.2707, 5.5,
+                               "2026-07-06", 30)
+    trimmed = cd._tarabala_window(11, "Chennai", 13.0827, 80.2707, 5.5,
+                                  "2026-07-06", 30, from_date="2026-08-01")
+    # Every day is still charted either way — only the recommendations are trimmed.
+    assert len(full["days"]) == len(trimmed["days"])
+    assert len(trimmed["best"]) < len(full["best"])
+    assert all(d >= "2026-08-01" for d in trimmed["best"] + trimmed["worst"])
+
+
+def test_tarabala_window_needs_a_birth_star():
+    assert cd._tarabala_window(None, "Chennai", 13.0827, 80.2707, 5.5,
+                               "2026-08-01", 14) is None
+
+
+# ── End to end ─────────────────────────────────────────────────────────────
+
+def test_transits_expose_the_janma_nakshatra(args1):
+    # Every Moon-referenced count in the tradition starts here; callers used to
+    # rebuild a whole rasi chart just to recover this one integer.
+    t = cd.AstrologyCompute.get_transits(**args1, current_date="2026-08-02")
+    moon = t["natal"]["moon"]
+    assert 1 <= moon["nakshatra_index"] <= 27
+    assert moon["nakshatra"] == "Magha"
+
+
+def test_daily_digest_carries_the_three_new_measures(args1):
+    d = cd.AstrologyCompute.get_daily_digest(**args1, date="2026-08-02")
+    assert d["tarabala"]["name"] and d["tarabala"]["tone"]
+    assert d["chandrabala"]["house_from_moon"]
+    assert d["sarvatobhadra"]["status"] == "success"
+    assert isinstance(d["supports"], list)
+    assert all({"text", "scope"} <= set(c) for c in d["supports"])
+    assert len(d["supports"]) <= cd._MAX_CAUTIONS
+
+
+def test_daily_digest_actually_differs_from_one_day_to_the_next(args1):
+    # The acceptance test for the whole exercise. Before Tara Bala, a run of
+    # consecutive days produced near-identical personal signals.
+    taras = set()
+    for day in range(2, 12):
+        d = cd.AstrologyCompute.get_daily_digest(**args1, date=f"2026-08-{day:02d}")
+        taras.add(d["tarabala"]["name"])
+    assert len(taras) >= 7, f"only {len(taras)} distinct taras across 10 days"
+
+
+def test_tarabala_agrees_with_the_nakshatra_page(args1):
+    # Two code paths compute this; they must not disagree, or the digest and the
+    # /nakshatra page would tell the same person different things about today.
+    day = "2026-08-02"
+    digest = cd.AstrologyCompute.get_daily_digest(**args1, date=day)
+    profile = cd.AstrologyCompute.get_nakshatra_profile(**args1, current_date=day)
+    assert profile["tarabala_calendar"][0]["date"] == day
+    assert profile["tarabala_calendar"][0]["tarabala"] == digest["tarabala"]["name"]
+
+
+def test_period_digest_dates_the_well_starred_days(args1):
+    d = cd.AstrologyCompute.get_fortnightly_digest(**args1, date="2026-08-02")
+    tb = d["tarabala"]
+    assert tb and tb["days"]
+    assert all(set(day) == {"date", "nakshatra", "tarabala", "tone"} for day in tb["days"])
+    # The dated advice must survive the caution/support cap — over a fortnight it
+    # outranks any single transit verdict, which is why it is inserted first.
+    joined = " ".join(c["text"] for c in d["supports"] + d["cautions"])
+    assert "Tara Bala" in joined

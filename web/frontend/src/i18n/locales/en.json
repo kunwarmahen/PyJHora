@@ -1818,7 +1818,9 @@
     "scopeToday": "today",
     "scopeStanding": "ongoing",
     "avoidWindows": "Periods to avoid",
-    "avoidHint": "Classically kept clear for anything newly begun."
+    "avoidHint": "Classically kept clear for anything newly begun.",
+    "supports": "Working in your favour",
+    "supportsHint": "What the classical texts count as favourable — an ongoing transit is marked as such."
   },
   "periodDigest": {
     "monthTitle": "This Month",
@@ -1876,7 +1878,9 @@
     "scopeToday": "today",
     "scopeStanding": "ongoing",
     "avoidWindows": "Periods to avoid",
-    "avoidHint": "Classically kept clear for anything newly begun."
+    "avoidHint": "Classically kept clear for anything newly begun.",
+    "supports": "Working in your favour",
+    "supportsHint": "What the classical texts count as favourable — an ongoing transit is marked as such."
   },
   "bhrigu": {
     "title": "Bhrigu / Nadi Markers",
@@ -2604,7 +2608,8 @@
       "whatIsKaalaVela": "What is a “kaala-vela” on the Muhurta page?",
       "conditionalDashas": "The Dasha page recommends other systems like Shashtihayani. What are they?",
       "aiDigestHistory": "Can I look back at the digest that was emailed to me?",
-      "digestCautions": "Why does my digest now mention difficult things?"
+      "digestCautions": "Why does my digest now mention difficult things?",
+      "digestTaraBala": "What is Tara Bala, and why does my digest lead with it?"
     },
     "a": {
       "aiAccurate": "It faithfully reports what the calculations say and interprets them in the tradition's own terms — the maths is real astronomy. Whether astrology itself predicts anything is a question this app can't settle for you. Please treat every reading as reflection, not instruction, and never as medical, legal or financial advice. AI models can also simply be wrong, and this one occasionally will be.",
@@ -2674,7 +2679,8 @@
       "whatIsKaalaVela": "The daylight is split into eight parts, each ruled by a planet; four of those parts are traditionally treated as shadowed — Kaala, Mrityu, Artha Prahara and Yama Ghantaka. When a suggested time falls inside one, it is flagged rather than removed, because these parts often coincide with Rahu Kalam and Gulika Kalam and excluding them all would rule out most of the day. Treat a flag as “prefer another slot if you have one”, not “do not do it”.",
       "conditionalDashas": "Vimsottari, the 120-year cycle, is the default and applies to everyone. The classics also describe *conditional* dasha systems, each with its own total length, that are meant to be read only when the chart meets a stated condition — Shashtihayani (60 years) when the Sun is in the rising sign, Chaturaaseeti Sama (84) when the 10th lord sits in the 10th house, Dwisatpathi (112), Ashtottari (108), Dwadasottari (112), Panchottari (105) and Shatabdika (100) on their own tests. The Dasha page checks your chart against those rules and shows the ones that pass as recommended chips; clicking one opens its periods. They are a cross-check on Vimsottari's timing, not a replacement for it — and where two systems disagree, tradition reads the one whose condition your chart actually meets more heavily.",
       "aiDigestHistory": "Yes. Every digest that is actually delivered — by email or as a browser notification, for each person it covered — is now saved to AI History under the “Digests” filter, and opens back up on its own page exactly as it was sent. Digests are kept separately from your chats and readings, so a daily email can never push your conversations out of your history.",
-      "digestCautions": "Because a reading that only ever reports good news is not a reading. The digest now also carries what the classical texts call difficult for you: an unfavourable gochara (transit measured from your birth Moon), a favourable one cancelled by vedha (another planet obstructing it), Ashtama or Ardhashtama Sani, the Vishti karana, and the periods traditionally kept clear for anything newly begun — Rahu Kalam and its companions. Each one is marked either “today”, meaning it is what is different about this day, or “ongoing”, meaning it is a backdrop you have been living with for weeks or months. None of it is a prediction of misfortune: it is a note about what to handle with care, and the digest always leaves you something you can do."
+      "digestCautions": "Because a reading that only ever reports good news is not a reading. The digest now also carries what the classical texts call difficult for you: an unfavourable gochara (transit measured from your birth Moon), a favourable one cancelled by vedha (another planet obstructing it), Ashtama or Ardhashtama Sani, the Vishti karana, and the periods traditionally kept clear for anything newly begun — Rahu Kalam and its companions. Each one is marked either “today”, meaning it is what is different about this day, or “ongoing”, meaning it is a backdrop you have been living with for weeks or months. None of it is a prediction of misfortune: it is a note about what to handle with care, and the digest always leaves you something you can do.",
+      "digestTaraBala": "Tara Bala is the tradition's own answer to “is today a good day *for me*”. You count from your birth star (the nakshatra the Moon was in when you were born) to the star running today; the count lands on one of nine Taras, each with a name and a verdict — Sampat (gain), Kshema (safety) and Sadhaka (accomplishment) are the strong ones; Vipat, Pratyak and Vadha are the ones to move gently through. It leads the digest because it is the one thing in your reading that genuinely changes every single day: your dasha turns over in months, a Saturn transit in years, but the Moon moves to a new star every day or so. On the fortnight and month pages the same count is applied to every day of the window, so you get the actual dates worth acting on. It sits alongside Chandra Bala, the gochara verdicts and the Sarvatobhadra chakra — four independent measures that sometimes disagree. That is normal, and the reading will tell you so rather than splitting the difference."
     }
   },
   "arudhaAi": {

@@ -12,6 +12,7 @@ import {
   Moon,
   Sun,
   ShieldAlert,
+  Sprout,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
@@ -191,6 +192,9 @@ const PeriodDigestPage = ({ period }) => {
   // Each entry is {text, scope} — see the daily page. Only the daily card has
   // avoid-windows (a window is not a clock time).
   const cautions = digest?.cautions || [];
+  // Where the window's dated Tara Bala days land — the one genuinely day-by-day
+  // thing a fortnight or month reading has to offer.
+  const supports = digest?.supports || [];
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -321,6 +325,29 @@ const PeriodDigestPage = ({ period }) => {
                 ))}
               </ul>
             </div>
+
+            {supports.length > 0 && (
+              <div className="ui-card ui-card--pad-lg ui-card--flush digest-supports mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <Sprout size={18} /> {t("periodDigest.supports")}
+                </h3>
+                <p className="text-muted digest-cautions__hint">
+                  {t("periodDigest.supportsHint")}
+                </p>
+                <ul className="digest-highlights">
+                  {supports.map((c, i) => (
+                    <li key={i} className="digest-hl digest-hl--support">
+                      <span className={`digest-scope digest-scope--${c.scope || "standing"}`}>
+                        {c.scope === "today"
+                          ? t("periodDigest.scopeToday")
+                          : t("periodDigest.scopeStanding")}
+                      </span>
+                      {c.text}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* What this window asks care with — kept out of Highlights so a
                 testing transit isn't read as one more neutral fact. */}
