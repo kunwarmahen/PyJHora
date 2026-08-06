@@ -33,6 +33,7 @@ def get_prediction_resources(language='en'):
     json_file = _lang_path + const._DEFAULT_PREDICTION_JSON_FILE_PREFIX+language+'.json'
     f = open(json_file,"r",encoding="utf-8")
     msgs = json.load(f)
+    f.close()
     return msgs
 
 def _get_general_lagna_rasi_prediction(jd,place,prediction_msgs,language=None):

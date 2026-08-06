@@ -18,19 +18,40 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+    Release History:
+        V4.8.9: Karaka Dhasa supports two options: const.CHARA_KARAKA_METHOD.EIGHT_KARAKA_PARASHARI and 
+                const.CHARA_KARAKA_METHOD.SEVEN_KARAKA_KNRAO_NOPiK.
+"""
+from jhora import const, utils
+from jhora.panchanga import drik
+from jhora.horoscope.chart import charts, house
+
 from jhora import const, utils
 from jhora.panchanga import drik
 from jhora.horoscope.chart import charts, house
 
 year_duration = const.sidereal_year
-_KARAKA_LIST = const.chara_karaka_names  # ['Ak','AmK','BK','Mk','PiK','PuK','GK','DK']
+supported_chara_karaka_methods = [const.CHARA_KARAKA_METHOD.EIGHT_KARAKA_PARASHARI,
+                                  const.CHARA_KARAKA_METHOD.SEVEN_KARAKA_KNRAO_NOPiK]
+def _validate_supported_chara_karaka_method(chara_karaka_method):
+    # Handle default assignment if None is explicitly passed
+    if chara_karaka_method is None: 
+        chara_karaka_method = const.chara_karaka_default_method
 
+    if chara_karaka_method not in supported_chara_karaka_methods:
+        print(f"chara_karaka_method argument {chara_karaka_method} is not supported.\n"
+                          "Karaka Dasha calculations require a strict 1:1 mapping of planets to karakas "
+                            "to prevent loop tracking errors.\n"
+                            "Default: EIGHT_KARAKA_PARASHARI (1) assumed to calculate the karaka dhasa.")
+        chara_karaka_method = const.CHARA_KARAKA_METHOD.EIGHT_KARAKA_PARASHARI
+    return chara_karaka_method
 def get_dhasa_antardhasa(
     dob,
     tob,
     place,
     divisional_chart_factor=1,
-    chart_method=1,
+    chart_method=1,  # Kept strictly for divisional_chart configuration
     years=1,
     months=1,
     sixty_hours=1,
@@ -39,30 +60,30 @@ def get_dhasa_antardhasa(
     show_karaka_as_pair=2,   # None=>Don't show pair, 1=>Index pair, 2=>Name pair
     dhasa_duration_type=None,
     savana_year_method=None,
+    chara_karaka_method=None,  # Dedicated explicit argument for the 2 supported methods
 ):
     """
-    Provides Karaka dhasa-bhukthi for a given date in julian day (includes birth time).
-
-    Parameters
-    ----------
-    show_karaka_as_pair :
-        None => Don't show as pair
-                return format: (dhasa_lord, start_str, duration)
-        1    => Show karaka index (NLS support)
-                return format: ((karaka_index, dhasa_lord), start_str, duration)
-        2    => Show karaka name
-                return format: ((karaka_name, dhasa_lord), start_str, duration)
-
-    Returns
-    -------
-    list
-        if dhasa_level_index == 1:
-            [ [ (l1,), start_str, dur_years ], ... ]
-        else:
-            [ [ (l1, l2, ...), start_str, leaf_dur_years ], ... ]
+        Provides Karaka dhasa-bhukthi for a given date in julian day.
+        Parameters
+        ----------
+        show_karaka_as_pair :
+            None => Don't show as pair
+                    return format: (dhasa_lord, start_str, duration)
+            1    => Show karaka index (NLS support)
+                    return format: ((karaka_index, dhasa_lord), start_str, duration)
+            2    => Show karaka name
+                    return format: ((karaka_name, dhasa_lord), start_str, duration)
+    
+        Returns
+        -------
+        list
+            if dhasa_level_index == 1:
+                [ [ (l1,), start_str, dur_years ], ... ]
+            else:
+                [ [ (l1, l2, ...), start_str, leaf_dur_years ], ... ]
     """
     global year_duration
-
+    chara_karaka_method = _validate_supported_chara_karaka_method(chara_karaka_method)
     if not (
         const.MAHA_DHASA_DEPTH.MAHA_DHASA_ONLY
         <= dhasa_level_index
@@ -89,11 +110,38 @@ def get_dhasa_antardhasa(
         sixty_hours=sixty_hours,
     )[:const._pp_count_upto_ketu]
 
-    karakas = house.chara_karakas(planet_positions)
-    karaka_name_by_planet = {pl: _KARAKA_LIST[i] for i, pl in enumerate(karakas)}
-    karaka_index_by_planet = {pl: i for i, pl in enumerate(karakas)}
+    # =========================================================================
+    # STEP 1: CONVERT THE DICTIONARY RETURN TO AN ORDERED LIST
+    # =========================================================================
+    karaka_dict = charts.chara_karakas(planet_positions, chara_karaka_method=chara_karaka_method)
+    
+    # Dynamically build the matching layout names to maintain alignment with internal labels
+    if chara_karaka_method == const.CHARA_KARAKA_METHOD.SEVEN_KARAKA_KNRAO_NOPiK:
+        local_karaka_list = [k for k in const.chara_karaka_names if 'pitri' not in k.lower()]
+    else:
+        local_karaka_list = const.chara_karaka_names
+        
+    karakas = []
+    for k_name in local_karaka_list:
+        # Scan dictionary to see which Planet ID matches this specific Karaka role
+        matched_planet = None
+        for p_id, names in karaka_dict.items():
+            if k_name in names:
+                matched_planet = p_id
+                break
+        karakas.append(matched_planet)
+
+    # Pre-build lookup values maps ignoring None entries
+    karaka_name_by_planet = {}
+    karaka_index_by_planet = {}
+    for idx, pl in enumerate(karakas):
+        if pl is not None:
+            karaka_name_by_planet[pl] = local_karaka_list[idx]
+            karaka_index_by_planet[pl] = idx
 
     def _karaka_pair(lord, show_mode):
+        if lord is None:
+            return ("None", None)
         if show_mode is None:
             return lord
         if show_mode == 2:
@@ -103,15 +151,29 @@ def get_dhasa_antardhasa(
     asc_house = planet_positions[0][1][0]
 
     def _dd(pl):
-        # Distance in signs from Lagna to the planet sign.
+        # Missing karakas (None) contribute 0 years to the timeline calculation
+        if pl is None:
+            return 0
         return (planet_positions[pl + 1][1][0] - asc_house + 12) % 12
 
+    # Calculate global lifespan denominator based on valid active planets
     human_life_span = sum(_dd(k) for k in karakas)
+    if human_life_span == 0:
+        human_life_span = 1.0  # Prevent division by zero
 
     def _bhukthis_for(parent_lord):
-        ki = karakas.index(parent_lord)
+        # Loop sub-periods safely even if the list has a None value gap
+        if parent_lord is None:
+            return [k for k in karakas if k is not None]
+        try:
+            ki = karakas.index(parent_lord)
+        except ValueError:
+            return [k for k in karakas if k is not None]
+            
         kl = len(karakas)
-        return karakas[ki + 1 : kl] + karakas[0 : ki + 1]
+        raw_cycle = karakas[ki + 1 : kl] + karakas[0 : ki + 1]
+        # Filter out the empty None placeholder gaps from sub-period timeline loops
+        return [b for b in raw_cycle if b is not None]
 
     dhasa_info = []
     start_jd = jd_at_dob
@@ -150,10 +212,18 @@ def get_dhasa_antardhasa(
 
             jd_cursor += child_years_unrounded * year_duration
 
-    # Top-level traversal (Maha)
-    for k in karakas:
+    # =========================================================================
+    # STEP 2: TOP LEVEL LOOP (Filter out None items to prevent empty Mahadashas)
+    # =========================================================================
+    active_karakas = [k for k in karakas if k is not None]
+
+    for k in active_karakas:
         lord_pair = _karaka_pair(k, show_karaka_as_pair)
         maha_years_unrounded = _dd(k)
+
+        # Skip execution entirely if a planet grants 0 years (seated directly in Lagna)
+        if maha_years_unrounded == 0:
+            continue
 
         if dhasa_level_index == const.MAHA_DHASA_DEPTH.MAHA_DHASA_ONLY:
             start_str = utils.jd_to_gregorian(start_jd)
@@ -176,7 +246,6 @@ def get_dhasa_antardhasa(
 
     return dhasa_info
 
-
 def karaka_immediate_children(
     parent_lords,
     parent_start,
@@ -193,22 +262,24 @@ def karaka_immediate_children(
     show_karaka_as_pair: int | None = 2,
     dhasa_duration_type=None,
     savana_year_method=None,
+    chara_karaka_method=None,  # Added to properly carry down calculation rule selections
     **kwargs
 ):
     """
-    Karaka Daśā — return ONLY the immediate (p -> p+1) children for the given parent span.
-
-    Matches the base logic:
-      • Karakas: house.chara_karakas(planet_positions)
-      • dd(pl) = distance (signs) from Lagna to planet sign
-      • human_life_span = sum(dd(k) for k in karakas)
-      • children order = rotation of karakas starting AFTER parent_lord and wrapping
-      • child_years = parent_years * dd(child) / human_life_span
-
-    Output rows:
-        [ [lords_tuple_with_child, child_start_tuple, child_end_tuple], ... ]
+        Karaka Daśā — return ONLY the immediate (p -> p+1) children for the given parent span.
+    
+        Matches the base logic:
+          • Karakas: house.chara_karakas(planet_positions)
+          • dd(pl) = distance (signs) from Lagna to planet sign
+          • human_life_span = sum(dd(k) for k in karakas)
+          • children order = rotation of karakas starting AFTER parent_lord and wrapping
+          • child_years = parent_years * dd(child) / human_life_span
+    
+        Output rows:
+            [ [lords_tuple_with_child, child_start_tuple, child_end_tuple], ... ]
     """
     global year_duration
+    chara_karaka_method = _validate_supported_chara_karaka_method(chara_karaka_method)
 
     year_duration = drik.dhasa_year_duration(
         jd=jd_at_dob,
@@ -270,9 +341,30 @@ def karaka_immediate_children(
         sixty_hours=sixty_hours,
     )[:const._pp_count_upto_ketu]
 
-    karakas = house.chara_karakas(planet_positions)
-    karaka_name_by_planet = {pl: _KARAKA_LIST[i] for i, pl in enumerate(karakas)}
-    karaka_index_by_planet = {pl: i for i, pl in enumerate(karakas)}
+    karaka_dict = charts.chara_karakas(planet_positions, chara_karaka_method=chara_karaka_method)
+    
+    if chara_karaka_method == const.CHARA_KARAKA_METHOD.SEVEN_KARAKA_KNRAO_NOPiK:
+        local_karaka_list = [k for k in const.chara_karaka_names if 'pitri' not in k.lower()]
+    else:
+        local_karaka_list = const.chara_karaka_names
+        
+    karakas_raw = []
+    for k_name in local_karaka_list:
+        matched_planet = None
+        for p_id, names in karaka_dict.items():
+            if k_name in names:
+                matched_planet = p_id
+                break
+        karakas_raw.append(matched_planet)
+
+    karaka_name_by_planet = {}
+    karaka_index_by_planet = {}
+    karakas = []
+    for idx, pl in enumerate(karakas_raw):
+        if pl is not None:
+            karakas.append(pl)
+            karaka_name_by_planet[pl] = local_karaka_list[idx]
+            karaka_index_by_planet[pl] = idx
 
     asc_house = planet_positions[0][1][0]
 
@@ -315,16 +407,12 @@ def karaka_immediate_children(
                 _jd_to_tuple(child_end),
             ]
         )
-
         jd_cursor = child_end
-        if jd_cursor >= end_jd:
-            break
 
     if children:
         children[-1][2] = _jd_to_tuple(end_jd)
 
     return children
-
 
 def get_running_dhasa_for_given_date(
     current_jd,
@@ -341,22 +429,24 @@ def get_running_dhasa_for_given_date(
     round_duration: bool = False,
     dhasa_duration_type=None,
     savana_year_method=None,
+    chara_karaka_method=None,
     **kwargs
 ):
     """
-    Karaka Daśā — narrow Mahā -> … -> target level and return the full running ladder.
-
-    Returns:
-      [
-        [(l1,),              start1, end1],
-        [(l1,l2),            start2, end2],
-        [(l1,l2,l3),         start3, end3],
-        [(l1,l2,l3,l4),      start4, end4],
-        [(l1,l2,l3,l4,l5),   start5, end5],
-        [(l1,l2,l3,l4,l5,l6),start6, end6],
-      ]
+        Karaka Daśā — narrow Mahā -> … -> target level and return the full running ladder.
+    
+        Returns:
+          [
+            [(l1,),              start1, end1],
+            [(l1,l2),            start2, end2],
+            [(l1,l2,l3),         start3, end3],
+            [(l1,l2,l3,l4),      start4, end4],
+            [(l1,l2,l3,l4,l5),   start5, end5],
+            [(l1,l2,l3,l4,l5,l6),start6, end6],
+          ]
     """
     global year_duration
+    chara_karaka_method = _validate_supported_chara_karaka_method(chara_karaka_method)
 
     year_duration = drik.dhasa_year_duration(
         jd=jd_at_dob,
@@ -435,6 +525,8 @@ def get_running_dhasa_for_given_date(
         show_karaka_as_pair=show_karaka_as_pair,
         dhasa_duration_type=dhasa_duration_type,
         savana_year_method=savana_year_method,
+        chara_karaka_method=chara_karaka_method,
+        **kwargs
     )
 
     maha_for_utils = []
@@ -469,6 +561,7 @@ def get_running_dhasa_for_given_date(
             show_karaka_as_pair=show_karaka_as_pair,
             dhasa_duration_type=dhasa_duration_type,
             savana_year_method=savana_year_method,
+            chara_karaka_method=chara_karaka_method,  # Safely forwarded down to recursive scopes
         )
 
         if not children:
@@ -509,7 +602,7 @@ if __name__ == "__main__":
     y, m, d = map(int, current_date_str.split(","))
     hh, mm, ss = map(int, current_time_str.split(":"))
     fh = hh + mm / 60 + ss / 3600
-
+    ckm = const.CHARA_KARAKA_METHOD.EIGHT_KARAKA_PARASHARI
     print(utils.date_time_tuple_to_date_time_string(y, m, d, fh))
 
     current_jd = utils.julian_day_number(drik.Date(y, m, d), (hh, mm, ss))
@@ -530,6 +623,7 @@ if __name__ == "__main__":
 
         start_time = time.time()
 
+        # Update method variant parameters in your running tests if testing KN-Rao specifically:
         print(
             "Deha:",
             get_running_dhasa_for_given_date(
@@ -538,6 +632,7 @@ if __name__ == "__main__":
                 place,
                 dhasa_level_index=const.MAHA_DHASA_DEPTH.DEHA,
                 dhasa_duration_type=dd,
+                chara_karaka_method=ckm,
             ),
         )
 
@@ -552,25 +647,28 @@ if __name__ == "__main__":
             dhasa_level_index=DLI,
             round_duration=False,
             dhasa_duration_type=dd,
+            chara_karaka_method=ckm,
         )
 
         if DLI <= const.MAHA_DHASA_DEPTH.ANTARA:
             for lords, ds, durn in ad:
                 print(lords, ds, durn)
         else:
-            print(
-                utils.get_running_dhasa_at_all_levels_for_given_date(
-                    current_jd,
-                    ad,
-                    DLI,
-                    extract_running_period_for_all_levels=True,
+            if ad and len(ad) >= 2:
+                print(
+                    utils.get_running_dhasa_at_all_levels_for_given_date(
+                        current_jd,
+                        ad,
+                        DLI,
+                        extract_running_period_for_all_levels=True,
+                    )
                 )
-            )
+            else:
+                print("Warning: Not enough dhasa periods returned to process.")
 
         print("old method elapsed time", time.time() - start_time)
 
     exit()
-
     from jhora.tests import pvr_tests
 
     pvr_tests._STOP_IF_ANY_TEST_FAILED = True
@@ -604,3 +702,4 @@ if __name__ == "__main__":
                 "Level",
                 dli,
             )
+                

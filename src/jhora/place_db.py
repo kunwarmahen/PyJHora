@@ -38,7 +38,218 @@ from jhora import const
     Release History:
     V4.8.6 - Moved hardcoded settings from this file to factory/user settings
 """
+# Pre-compiled regexes to shift string processing loops from Python into C
+_sub_combining = re.compile(r'[\u0300-\u036f\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]').sub
+_sub_non_alphanum = re.compile(r"[^a-z0-9]+").sub
+_normalize = unicodedata.normalize
 
+def normalize_text(text: str) -> str:
+    if not text:
+        return ""
+    # NFKD decomposes accents; the regex strips the combining marks instantly in C
+    return _sub_non_alphanum(" ", _sub_combining("", _normalize("NFKD", text)).lower()).strip()
+
+
+def _build_world_city_index_from_csv():
+    alias_map = {}
+    label_map = {}
+    records = []
+    display_list = []
+    search_list = []
+    seen_display_labels = set()
+
+    print("Opening CSV:", const._place_database_file)
+    t0 = time.time()
+
+    # Cache method lookups locally to eliminate dot-notation overhead inside the loop
+    state_map_get = _backend.state_map.get
+    country_map_get = _backend.country_map.get
+
+    with open(const._place_database_file, "r", encoding="utf-8-sig", newline="") as file:
+        # csv.reader is significantly faster than DictReader
+        reader = csv.reader(file)
+        try:
+            header = next(reader)
+        except StopIteration:
+            return alias_map, label_map, records, display_list, search_list
+
+        # Map header columns to positional integer indices once
+        idx_place_name = header.index("place_name") if "place_name" in header else -1
+        idx_state = header.index("state") if "state" in header else -1
+        idx_country = header.index("country") if "country" in header else -1
+        idx_latitude = header.index("latitude") if "latitude" in header else -1
+        idx_longitude = header.index("longitude") if "longitude" in header else -1
+        idx_tz = header.index("timezone_hours") if "timezone_hours" in header else -1
+        
+        idx_elevation = -1
+        for k in ("elevation", "altitude/elevation"):
+            if k in header:
+                idx_elevation = header.index(k)
+                break
+
+        idx_ascii_name = header.index("ascii_name") if "ascii_name" in header else -1
+        idx_alternate_names = header.index("alternate_names") if "alternate_names" in header else -1
+        idx_state_id = header.index("state_id") if "state_id" in header else -1
+        idx_country_id = header.index("country_id") if "country_id" in header else -1
+
+        row_count = 0
+        alias_link_count = 0
+
+        for row in reader:
+            if not row:
+                continue
+            row_count += 1
+
+            # 1) Extract fields quickly using positional indices
+            city = row[idx_place_name].strip() if idx_place_name != -1 else ""
+            
+            # Resolve State
+            state = row[idx_state].strip() if idx_state != -1 else ""
+            if not state and idx_state_id != -1:
+                sid = row[idx_state_id].strip()
+                if sid:
+                    state = state_map_get(sid, sid)
+
+            # Resolve Country
+            country = row[idx_country].strip() if idx_country != -1 else ""
+            if not country and idx_country_id != -1:
+                cid = row[idx_country_id].strip()
+                if cid:
+                    country = country_map_get(cid, cid)
+
+            # Fast inline numeric parsing
+            try:
+                latitude = round(float(row[idx_latitude]), 4) if idx_latitude != -1 else 0.0
+            except Exception:
+                latitude = 0.0
+
+            try:
+                longitude = round(float(row[idx_longitude]), 4) if idx_longitude != -1 else 0.0
+            except Exception:
+                longitude = 0.0
+
+            try:
+                timezone_hours = round(float(row[idx_tz]), 2) if idx_tz != -1 else 0.0
+            except Exception:
+                timezone_hours = 0.0
+
+            elevation = 0.0
+            if idx_elevation != -1:
+                ev = row[idx_elevation]
+                if ev and ev != "None":
+                    try:
+                        elevation = float(ev)
+                    except Exception:
+                        pass
+
+            # Construct display label efficiently via string joining
+            label_parts = []
+            if city: label_parts.append(city)
+            if state: label_parts.append(state)
+            if country: label_parts.append(country)
+            display_label = ", ".join(label_parts) if label_parts else city
+
+            record_id = len(records)
+            records.append({
+                "name": display_label,
+                "city_name": city,
+                "state": state,
+                "country": country,
+                "display_label": display_label,
+                "latitude": latitude,
+                "longitude": longitude,
+                "timezone": timezone_hours,
+                "elevation": elevation,
+                "source": "csv",
+            })
+
+            # 2) Build label map lookup index
+            norm_label = normalize_text(display_label)
+            if norm_label not in label_map:
+                label_map[norm_label] = record_id
+
+            if display_label not in seen_display_labels:
+                display_list.append(display_label)
+                seen_display_labels.add(display_label)
+
+            # 3) Build aliases and search lists in a single, unified pass
+            aliases_set = set()
+            
+            if city:
+                norm_city = normalize_text(city)
+                if norm_city:
+                    aliases_set.add(norm_city)
+                    if norm_city in alias_map:
+                        alias_map[norm_city].append(record_id)
+                    else:
+                        alias_map[norm_city] = [record_id]
+                    search_list.append((norm_city, display_label, record_id))
+                    alias_link_count += 1
+
+            if idx_ascii_name != -1:
+                ascii_name = row[idx_ascii_name].strip()
+                if ascii_name:
+                    norm_ascii = normalize_text(ascii_name)
+                    if norm_ascii and norm_ascii not in aliases_set:
+                        aliases_set.add(norm_ascii)
+                        if norm_ascii in alias_map:
+                            alias_map[norm_ascii].append(record_id)
+                        else:
+                            alias_map[norm_ascii] = [record_id]
+                        search_list.append((norm_ascii, display_label, record_id))
+                        alias_link_count += 1
+
+            if idx_alternate_names != -1:
+                alt_names_str = row[idx_alternate_names]
+                if alt_names_str:
+                    # Inlined loop handles split + strip + normalize directly
+                    for alt in alt_names_str.split("|"):
+                        alt = alt.strip()
+                        if alt:
+                            norm_alt = normalize_text(alt)
+                            if norm_alt and norm_alt not in aliases_set:
+                                aliases_set.add(norm_alt)
+                                if norm_alt in alias_map:
+                                    alias_map[norm_alt].append(record_id)
+                                else:
+                                    alias_map[norm_alt] = [record_id]
+                                search_list.append((norm_alt, display_label, record_id))
+                                alias_link_count += 1
+
+    elapsed = time.time() - t0
+    print(f"Finished building world city index from CSV: {row_count:,} rows in {elapsed:.2f}s")
+    return alias_map, label_map, records, display_list, search_list
+
+class CompactRecord:
+    __slots__ = ("name", "city_name", "state", "country", "display_label", "latitude", "longitude", "timezone", "elevation")
+    
+    def __init__(self, city, state, country, display_label, latitude, longitude, timezone, elevation):
+        self.name = display_label
+        self.city_name = city
+        self.state = state
+        self.country = country
+        self.display_label = display_label
+        self.latitude = latitude
+        self.longitude = longitude
+        self.timezone = timezone
+        self.elevation = elevation
+
+    def __getitem__(self, key):
+        if key == "source":
+            return "csv"
+        return getattr(self, key)
+
+    def get(self, key, default=None):
+        if key == "source":
+            return "csv"
+        try:
+            return getattr(self, key)
+        except AttributeError:
+            return default
+
+    def keys(self):
+        return ("name", "city_name", "state", "country", "display_label", "latitude", "longitude", "timezone", "elevation", "source")
+    
 _ENGINE_DISPLAY_LABELS = {
     "NONE": "NONE",
 
@@ -213,21 +424,6 @@ def set_state_country_maps(state_map=None, country_map=None):
 
 
 # ============================================================
-# TEXT NORMALIZATION
-# ============================================================
-def normalize_text(text: str) -> str:
-    if not text:
-        return ""
-
-    text = unicodedata.normalize("NFKD", text)
-    text = "".join(ch for ch in text if not unicodedata.combining(ch))
-    text = text.lower()
-    text = re.sub(r"[^a-z0-9]+", " ", text)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
-
-
-# ============================================================
 # INTERNAL HELPERS
 # ============================================================
 def _current_engine():
@@ -307,35 +503,6 @@ def _split_alt_names(value, sep=ALT_NAME_SEPARATOR):
     return [x.strip() for x in value.split(sep) if x.strip()]
 
 
-def _build_aliases_for_row(row, include_alt_names=True):
-    """
-    Build all searchable aliases for a CSV row:
-      - place_name
-      - ascii_name
-      - optional alternate_names
-    """
-    aliases = []
-
-    place_name = (row.get("place_name") or "").strip()
-    ascii_name = (row.get("ascii_name") or "").strip()
-
-    if place_name:
-        aliases.append(place_name)
-
-    if ascii_name and normalize_text(ascii_name) != normalize_text(place_name):
-        aliases.append(ascii_name)
-
-    if include_alt_names:
-        alternate_names = _split_alt_names(row.get("alternate_names"))
-        seen = {normalize_text(a) for a in aliases}
-        for alt in alternate_names:
-            norm_alt = normalize_text(alt)
-            if alt and norm_alt not in seen:
-                aliases.append(alt)
-                seen.add(norm_alt)
-
-    return aliases
-
 
 def _resolve_state_country_from_row(row):
     """
@@ -365,13 +532,6 @@ def _resolve_state_country_from_row(row):
 
 
 def _make_location_record_from_csv_row(row):
-    """
-    Parse the CSV DictReader row once and keep only needed values.
-
-    IMPORTANT:
-    rec["name"] is a display label like:
-      "Inverness, Highland, United Kingdom"
-    """
     city = (row.get("place_name") or "").strip()
     state, country = _resolve_state_country_from_row(row)
 
@@ -399,27 +559,13 @@ def _make_location_record_from_csv_row(row):
             elevation = 0.0
 
     label_parts = []
-    if city:
-        label_parts.append(city)
-    if state:
-        label_parts.append(state)
-    if country:
-        label_parts.append(country)
+    if city: label_parts.append(city)
+    if state: label_parts.append(state)
+    if country: label_parts.append(country)
 
     display_label = ", ".join(label_parts) if label_parts else city
 
-    return {
-        "name": display_label,
-        "city_name": city,
-        "state": state,
-        "country": country,
-        "display_label": display_label,
-        "latitude": latitude,
-        "longitude": longitude,
-        "timezone": timezone_hours,
-        "elevation": elevation,
-        "source": "csv",
-    }
+    return CompactRecord(city, state, country, display_label, latitude, longitude, timezone_hours, elevation)
 
 
 # ============================================================
@@ -990,95 +1136,6 @@ def _sqlite_get_location_record(place_name=None):
 # ============================================================
 # CSV / PICKLE IN-MEMORY LOADERS
 # ============================================================
-def _build_world_city_index_from_csv():
-    """
-    Build compact structures directly from the CSV file:
-      - alias_map       (normalized alias -> list of record ids)
-      - label_map       (normalized display label -> record id)
-      - records         (list of parsed records)
-      - display_list    (display labels)
-      - search_list     (normalized alias, display label, record_id)
-    """
-    alias_map = {}
-    label_map = {}
-    records = []
-    display_list = []
-    search_list = []
-
-    seen_display_labels = set()
-    seen_search_pairs = set()
-
-    print("Opening CSV:", const._place_database_file)
-    t0 = time.time()
-
-    with open(const._place_database_file, "r", encoding="utf-8-sig", newline="") as file:
-        reader = csv.DictReader(file)
-
-        row_count = 0
-        alias_link_count = 0
-
-        for row in reader:
-            row_count += 1
-
-            record = _make_location_record_from_csv_row(row)
-            record_id = len(records)
-            records.append(record)
-
-            display_label = record["display_label"]
-            norm_label = normalize_text(display_label)
-
-            # exact label lookup
-            if norm_label not in label_map:
-                label_map[norm_label] = record_id
-
-            # visible list for completer
-            if display_label not in seen_display_labels:
-                display_list.append(display_label)
-                seen_display_labels.add(display_label)
-
-            aliases = _build_aliases_for_row(row, include_alt_names=True)
-
-            for alias in aliases:
-                norm_alias = normalize_text(alias)
-                if not norm_alias:
-                    continue
-
-                alias_map.setdefault(norm_alias, [])
-
-                if record_id not in alias_map[norm_alias]:
-                    alias_map[norm_alias].append(record_id)
-                    alias_link_count += 1
-
-                pair = (norm_alias, display_label, record_id)
-                if pair not in seen_search_pairs:
-                    search_list.append(pair)
-                    seen_search_pairs.add(pair)
-
-            if row_count % DEBUG_WORLD_CITY_PROGRESS_EVERY == 0:
-                elapsed = time.time() - t0
-                debug_print(
-                    f"Processed {row_count:,} rows "
-                    f"(records: {len(records):,}, "
-                    f"alias links: {alias_link_count:,}, "
-                    f"display labels: {len(display_list):,}, "
-                    f"search entries: {len(search_list):,}) "
-                    f"in {elapsed:.2f}s"
-                )
-
-    elapsed = time.time() - t0
-    debug_print(
-        f"Finished building world city index from CSV: "
-        f"{row_count:,} rows, "
-        f"{len(records):,} records, "
-        f"{alias_link_count:,} alias links, "
-        f"{len(label_map):,} label lookups, "
-        f"{len(display_list):,} display labels, "
-        f"{len(search_list):,} search entries "
-        f"in {elapsed:.2f}s"
-    )
-
-    return alias_map, label_map, records, display_list, search_list
-
 
 def _load_pickle_file():
     """

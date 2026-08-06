@@ -22,8 +22,7 @@ from PyQt6 import QtCore
 from PyQt6.QtCore import QTimer, QStringListModel, pyqtSignal
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QCompleter
 
-from jhora import utils
-
+from jhora import const, utils
 
 class PlaceWidget(QWidget):
     """
@@ -53,11 +52,14 @@ class PlaceWidget(QWidget):
         tooltip_text="Enter place of birth, country name",
         min_chars=2,
         debounce_ms=150,
-        max_visible_items=20,
-        auto_load_database=False
+        max_visible_items=None,
+        max_search_items = None,
+        auto_load_database=False,
     ):
         super().__init__(parent)
-
+        if max_visible_items is None: max_visible_items = const.maximum_visible_search_places_in_UI
+        if max_search_items is None: max_search_items = const.maximum_queried_search_places
+        self.max_search_items = max_search_items
         self._min_chars = min_chars
         self._debounce_ms = debounce_ms
         self._selection_in_progress = False
@@ -144,7 +146,7 @@ class PlaceWidget(QWidget):
             self._completer.popup().hide()
             return
 
-        suggestions = utils.search_places_contains(text, limit=30)
+        suggestions = utils.search_places_contains(text, limit=self.max_search_items)
         self._completer_model.setStringList(suggestions)
 
         popup = self._completer.popup()

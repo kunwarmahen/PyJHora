@@ -56,7 +56,7 @@ def get_raja_yoga_resources(language='en'):
     #print('opening json file',json_file)
     f = open(json_file,"r",encoding="utf-8")
     msgs = json.load(f)
-    #print('json msgs collected')
+    f.close()
     return msgs
 def get_raja_yoga_details_for_all_charts(jd,place,language='en',divisional_chart_factor=None):
     """
@@ -432,7 +432,8 @@ def neecha_bhanga_raja_yoga_from_planet_positions(planet_positions,planet1, plan
     return ( _rule_5_check(planet1, rp1_rasi, planet2, rp2_rasi) or 
               _rule_5_check(planet2, rp2_rasi, planet1, rp1_rasi) )
 def check_other_raja_yoga_1(jd,place,divisional_chart_factor=1):
-    planet_positions = charts.divisional_chart(jd, place, divisional_chart_factor=divisional_chart_factor)
+    planet_positions = charts.divisional_chart(jd, place, 
+                                    divisional_chart_factor=divisional_chart_factor)[:const._pp_count_upto_ketu]
     h_to_p = utils.get_house_planet_list_from_planet_positions(planet_positions)
     p_to_h = utils.get_planet_house_dictionary_from_planet_positions(planet_positions)
     chara_karakas = house.chara_karakas(planet_positions)
@@ -449,7 +450,8 @@ def check_other_raja_yoga_1(jd,place,divisional_chart_factor=1):
     chk2 = p_to_h[lagna_lord] == p_to_h[fifth_lord]
     return chk1 and chk2
 def check_other_raja_yoga_2(jd,place,divisional_chart_factor=1):
-    planet_positions = charts.divisional_chart(jd, place, divisional_chart_factor=divisional_chart_factor)
+    planet_positions = charts.divisional_chart(jd, place, 
+                                        divisional_chart_factor=divisional_chart_factor)[:const._pp_count_upto_ketu]
     h_to_p = utils.get_house_planet_list_from_planet_positions(planet_positions)
     p_to_h = utils.get_planet_house_dictionary_from_planet_positions(planet_positions)
     chara_karakas = house.chara_karakas(planet_positions)
@@ -486,7 +488,8 @@ def check_other_raja_yoga_2(jd,place,divisional_chart_factor=1):
     chk4 = chk4_1 and chk4_2 and chk4_3 and chk4_4
     return chk1 and chk2 and (chk3 or chk4)
 def check_other_raja_yoga_3(jd,place,divisional_chart_factor=1):
-    planet_positions = charts.divisional_chart(jd, place, divisional_chart_factor=divisional_chart_factor)
+    planet_positions = charts.divisional_chart(jd, place, 
+                                    divisional_chart_factor=divisional_chart_factor)[:const._pp_count_upto_ketu]
     h_to_p = utils.get_house_planet_list_from_planet_positions(planet_positions)
     p_to_h = utils.get_planet_house_dictionary_from_planet_positions(planet_positions)
     chara_karakas = house.chara_karakas(planet_positions)

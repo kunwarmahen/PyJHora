@@ -21,6 +21,7 @@
 """
     Release History:
     V4.8.6 - Error in rudra(planet_positions) fixed.
+    V4.8.9 - Planet positions for house owner restricted to planets upto ketu
 """
 from jhora import const, utils
 from jhora.panchanga import drik
@@ -938,16 +939,17 @@ def _get_varga_viswa_of_planets(h_to_p):
     return vv    
 def house_owner_from_planet_positions(planet_positions,sign,check_during_dhasa=False):
     """ If house owner for Sc/Aq is forced - use that """ 
+    pp_planets = planet_positions[:const._pp_count_upto_pluto] if const._INCLUDE_URANUS_TO_PLUTO else planet_positions[:const._pp_count_upto_ketu]
     if sign==const.SCORPIO and const.scorpio_owner_for_dhasa_calculations in [const.MARS_ID,const.KETU_ID]:
         return const.scorpio_owner_for_dhasa_calculations
     elif sign==const.AQUARIUS and const.aquarius_owner_for_dhasa_calculations in [const.SATURN_ID,const.RAHU_ID]: 
         return const.aquarius_owner_for_dhasa_calculations
-    h_to_p = utils.get_house_planet_list_from_planet_positions(planet_positions)
+    h_to_p = utils.get_house_planet_list_from_planet_positions(pp_planets)
     lord_of_sign = house_owner(h_to_p, sign)
     if sign == const.SCORPIO:
-        lord_of_sign = stronger_planet_from_planet_positions(planet_positions, const.MARS_ID, const.KETU_ID, check_during_dhasa=check_during_dhasa)
+        lord_of_sign = stronger_planet_from_planet_positions(pp_planets, const.MARS_ID, const.KETU_ID, check_during_dhasa=check_during_dhasa)
     elif sign == const.AQUARIUS:
-        lord_of_sign = stronger_planet_from_planet_positions(planet_positions, const.SATURN_ID, const.RAHU_ID, check_during_dhasa=check_during_dhasa)
+        lord_of_sign = stronger_planet_from_planet_positions(pp_planets, const.SATURN_ID, const.RAHU_ID, check_during_dhasa=check_during_dhasa)
     return lord_of_sign
 def house_owner(h_to_p,sign):
     lord_of_sign = const.house_owners[sign]
@@ -1124,7 +1126,7 @@ def longevity(dob,tob,place,divisional_chart_factor=1):
     
     # Third pair Houses of Lagna and Hora Lagna
     time_of_birth_in_hours = utils.from_dms(tob[0],tob[1],tob[2])
-    hora_lagna_house = drik.hora_lagna(jd,place,divisional_chart_factor=divisional_chart_factor)[0]  # V3.1.9
+    hora_lagna_house = drik.hora_lagna(jd,place)[0] #,divisional_chart_factor=divisional_chart_factor)[0]  # V3.1.9
     #print('hora_lagna_house',hora_lagna_house)
     pair3_longevity = longevity_of_pair(rasi_type(lagna_house),rasi_type(hora_lagna_house))
     #print('pair3_longevity',pair3_longevity)

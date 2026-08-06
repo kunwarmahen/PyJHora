@@ -33,6 +33,7 @@ def get_dosha_resources(language='en'):
     json_file = _lang_path + const._DEFAULT_DOSHA_JSON_FILE_PREFIX+language+'.json'
     f = open(json_file,"r",encoding="utf-8")
     msgs = json.load(f)
+    f.close()
     return msgs
 def kala_sarpa(house_to_planet_list):
     """ Returns kala Sarpa Dosha True or False 

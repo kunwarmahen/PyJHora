@@ -313,24 +313,54 @@ class PanchaPakshiSastraWidget(QWidget):
             top_item = self.tree.topLevelItem(i)
             if top_item != item:
                 self.tree.collapseItem(top_item)
-    def show_remove_sandclock(self,row_item,column_index,remove_clock=False):
+    def show_remove_sandclock(self, row_item, column_index, remove_clock=False):
         if remove_clock: 
             self.tree.setItemWidget(row_item, column_index, None)
+            self.resize_all_columns()
             return
-        sandclock_movie = QMovie(IMAGE_PATH+"sandclock.gif")
-        sandclock_movie.setScaledSize(QSize(32, 32))  # Resize the GIF
-        sandclock_label = QLabel()
-        sandclock_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        sandclock_label.setMovie(sandclock_movie)
-        sandclock_movie.start()
+            
+        # Get the timestamp text
+        existing_text = row_item.text(column_index)
         
+        # Create a clean container layout
         widget = QWidget()
         layout = QHBoxLayout()
+        
+        # 1. Use a conservative negative margin (-3) to safely nudge the sandclock 
+        # closer to the native sun/moon icon without causing it to disappear.
+        layout.setContentsMargins(-3, 0, 0, 0) 
+        
+        # 2. Minimize spacing between sandclock and text to save horizontal space
+        layout.setSpacing(0)                  
+        
+        # Add the animated sandclock movie (scaled to 16x16)
+        sandclock_movie = QMovie(IMAGE_PATH + "sandclock.gif")
+        sandclock_movie.setScaledSize(QSize(16, 16))
+        sandclock_label = QLabel()
+        sandclock_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        sandclock_label.setMovie(sandclock_movie)
+        sandclock_movie.start()
         layout.addWidget(sandclock_label)
-        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Add back the timestamp text
+        text_label = QLabel(existing_text)
+        text_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        layout.addWidget(text_label)
+        
+        # Push everything cleanly to the left side of the cell
+        layout.addStretch()
         widget.setLayout(layout)
         
-        self.tree.setItemWidget(row_item, column_index, widget)  # Set in the 6th column (index 5)
+        # Apply the widget directly into the cell text zone
+        self.tree.setItemWidget(row_item, column_index, widget)
+        
+        # Calculate standard text widths first
+        self.resize_all_columns()
+        
+        # 3. FIX FOR TRUNCATED TEXT: Since resizeColumnToContents ignores custom widgets,
+        # we manually expand the column width to account for the sandclock's size.
+        current_width = self.tree.columnWidth(column_index)
+        self.tree.setColumnWidth(column_index, current_width + 24)
     def expand_row_with_datetime(self, search_datetime=None):
         if search_datetime is None:
             search_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

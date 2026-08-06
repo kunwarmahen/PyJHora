@@ -18,7 +18,12 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+"""
+    Release History:
+        V4.8.9 - minor argument call fixes.
+        V4.9.0 - dhasa start date calculation now uses drik._get_dhasa_star_jd() 
+                to calculate dhasa start date using how much Sun has tranversed.
+"""
 """
 Calculates Vimshottari (=120) Dasha-bhukthi-antara-sukshma-prana
 """
@@ -60,22 +65,21 @@ def vimsottari_dasha_start_date(
 ):
     """Returns the start date of the mahadasa which occurred on or before `jd`"""
     planet_long = charts.get_chart_element_longitude(
-        jd,
-        place,
-        divisional_chart_factor,
-        chart_method,
-        star_position_from_moon,
-        dhasa_starting_planet,
+        jd = jd,
+        place = place,
+        divisional_chart_factor = divisional_chart_factor,
+        chart_method = chart_method,
+        star_position_from_moon = star_position_from_moon,
+        dhasa_starting_planet = dhasa_starting_planet,
     )
     nak = int(planet_long / one_star)
     rem = planet_long - nak * one_star
     lord = vimsottari_adhipati(nak, seed_star)
     period = vimsottari_dict[lord]
-
-    period_elapsed = rem / one_star * period
-    period_elapsed *= year_duration
-    start_date = jd - period_elapsed
-    return [lord, start_date]
+    fraction_elapsed = rem / one_star
+    start_jd = drik._get_dhasa_start_jd(jd, place, fraction_elapsed=fraction_elapsed,
+                                        total_dasa_years=period)
+    return [lord, start_jd]
 
 
 def vimsottari_mahadasa(
@@ -97,76 +101,111 @@ def vimsottari_mahadasa(
         seed_star=seed_star,
         dhasa_starting_planet=dhasa_starting_planet,
     )
+
     retval = Dict()
+
     for _ in range(9):
         retval[lord] = start_date
-        start_date += vimsottari_dict[lord] * year_duration
+        start_date = drik._get_dhasa_end_jd(
+            start_jd=start_date,
+            place=place,
+            total_dasa_years=vimsottari_dict[lord],
+        )
         lord = vimsottari_next_adhipati(lord)
 
     return retval
 
 
-def _vimsottari_rasi_bhukthi(maha_lord, maha_lord_rasi, start_date):
+def _vimsottari_rasi_bhukthi(maha_lord, maha_lord_rasi, start_date, place):
     """Compute all bhuktis of given nakshatra-lord of Mahadasa using rasi bhukthi variation."""
     retval = Dict()
-    bhukthi_duration = vimsottari_dict[maha_lord] / 12
+    bhukthi_duration = vimsottari_dict[maha_lord] / 12.0
+
     for bhukthi_rasi in [(maha_lord_rasi + h) % 12 for h in range(12)]:
         retval[bhukthi_rasi] = start_date
-        start_date += bhukthi_duration * year_duration
+        start_date = drik._get_dhasa_end_jd(
+            start_jd=start_date,
+            place=place,
+            total_dasa_years=bhukthi_duration,
+        )
+
     return retval
 
 
-def _vimsottari_bhukti(maha_lord, start_date, antardhasa_option=1):
+def _vimsottari_bhukti(maha_lord, start_date, place, antardhasa_option=1):
     """Compute all bhuktis of given nakshatra-lord of Mahadasa and its start date."""
     lord = maha_lord
+
     if antardhasa_option in [3, 4]:
         lord = vimsottari_next_adhipati(lord, direction=1)
     elif antardhasa_option in [5, 6]:
         lord = vimsottari_next_adhipati(lord, direction=-1)
+
     dirn = 1 if antardhasa_option in [1, 3, 5] else -1
+
     retval = Dict()
+
     for _ in range(9):
         retval[lord] = start_date
-        factor = vimsottari_dict[lord] * vimsottari_dict[maha_lord] / human_life_span_for_vimsottari_dhasa
-        start_date += factor * year_duration
+
+        factor = (
+            vimsottari_dict[lord]
+            * vimsottari_dict[maha_lord]
+            / human_life_span_for_vimsottari_dhasa
+        )
+
+        start_date = drik._get_dhasa_end_jd(
+            start_jd=start_date,
+            place=place,
+            total_dasa_years=factor,
+        )
+
         lord = vimsottari_next_adhipati(lord, dirn)
 
     return retval
 
-
 # North Indian tradition: dasa-antardasa-pratyantardasa
 # South Indian tradition: dasa-bhukti-antara-sukshma
-def _vimsottari_antara(maha_lord, bhukti_lord, start_date):
+def _vimsottari_antara(maha_lord, bhukti_lord, start_date, place):
     """Compute all antaradasas from given bhukti's start date."""
     lord = bhukti_lord
     retval = Dict()
+
     for _ in range(9):
         retval[lord] = start_date
-        factor = vimsottari_dict[lord] * (vimsottari_dict[maha_lord] / human_life_span_for_vimsottari_dhasa)
-        factor *= (vimsottari_dict[bhukti_lord] / human_life_span_for_vimsottari_dhasa)
-        start_date += factor * year_duration
+
+        factor = vimsottari_dict[lord] * (
+            vimsottari_dict[maha_lord] / human_life_span_for_vimsottari_dhasa
+        )
+        factor *= (
+            vimsottari_dict[bhukti_lord] / human_life_span_for_vimsottari_dhasa
+        )
+
+        start_date = drik._get_dhasa_end_jd(
+            start_jd=start_date,
+            place=place,
+            total_dasa_years=factor,
+        )
+
         lord = vimsottari_next_adhipati(lord)
 
     return retval
 
-
 def _where_occurs(jd, some_dict):
-    """Returns minimum key such that some_dict[key] < jd"""
+    """Returns last key such that some_dict[key] < jd."""
     for key in reversed(list(some_dict.keys())):
         if some_dict[key] < jd:
             return key
 
-
-def compute_vimsottari_antara_from(jd, mahadashas):
+    return next(iter(some_dict.keys()))
+def compute_vimsottari_antara_from(jd, mahadashas, place):
     """Returns antaradasha within which given `jd` falls"""
     i = _where_occurs(jd, mahadashas)
-    bhuktis = _vimsottari_bhukti(i, mahadashas[i])
+    bhuktis = _vimsottari_bhukti(i,mahadashas[i],place)
     j = _where_occurs(jd, bhuktis)
-    antara = _vimsottari_antara(i, j, bhuktis[j])
-    return (i, j, antara)
-
-
-def get_vimsottari_dhasa_bhukthi(
+    antara = _vimsottari_antara(i,j,bhuktis[j],place,)
+    return i, j, antara
+def get_dhasa_bhukthi(
     jd,
     place,
     star_position_from_moon=1,
@@ -252,8 +291,12 @@ def get_vimsottari_dhasa_bhukthi(
             for _ in range(len(const.vimsottari_adhipati_list)):
                 Y = float(vimsottari_dict[lord])
                 dur_yrs = parent_years * (Y / H)
-                yield (lord, jd_cursor, dur_yrs)
-                jd_cursor += dur_yrs * year_duration
+                yield lord, jd_cursor, dur_yrs
+                jd_cursor = drik._get_dhasa_end_jd(
+                    start_jd=jd_cursor,
+                    place=place,
+                    total_dasa_years=dur_yrs,
+                )
                 lord = vimsottari_next_adhipati(lord, direction=dirn)
 
         def _emit_row(lords_tuple, start_jd, duration_years):
@@ -273,7 +316,11 @@ def get_vimsottari_dhasa_bhukthi(
                 if idx < N - 1:
                     md_end_jd = md_items[idx + 1][1]
                 else:
-                    md_end_jd = md_start_jd + float(vimsottari_dict[md_lord]) * year_duration
+                    md_end_jd = drik._get_dhasa_end_jd(
+                        start_jd=md_start_jd,
+                        place=place,
+                        total_dasa_years=float(vimsottari_dict[md_lord]),
+                    )
                 md_years = (md_end_jd - md_start_jd) / year_duration
 
                 if dhasa_level_index == const.MAHA_DHASA_DEPTH.MAHA_DHASA_ONLY:
@@ -283,9 +330,14 @@ def get_vimsottari_dhasa_bhukthi(
                     if use_rasi_bhukthi_variation:
                         planet_positions = charts.divisional_chart(jd, place, divisional_chart_factor=1)
                         maha_lord_rasi = planet_positions[md_lord + 1][1][0]
-                        bhuktis = _vimsottari_rasi_bhukthi(md_lord, maha_lord_rasi, md_start_jd)
+                        bhuktis = _vimsottari_rasi_bhukthi(
+                        md_lord,
+                        maha_lord_rasi,
+                        md_start_jd,
+                        place,
+                    )
                     else:
-                        bhuktis = _vimsottari_bhukti(md_lord, md_start_jd, antardhasa_option=antardhasa_option)
+                        bhuktis = _vimsottari_bhukti(md_lord, md_start_jd,place, antardhasa_option=antardhasa_option)
                     _emit_children_from_starts((md_lord,), list(bhuktis.items()), md_end_jd)
 
                 elif dhasa_level_index == const.MAHA_DHASA_DEPTH.PRATYANTARA:
@@ -294,14 +346,13 @@ def get_vimsottari_dhasa_bhukthi(
                             "L3+ not supported with use_rasi_bhukthi_variation=True. "
                             "Keep depth at L2 or specify a custom L3 rule."
                         )
-                    bhuktis = _vimsottari_bhukti(md_lord, md_start_jd, antardhasa_option=antardhasa_option)
+                    bhuktis = _vimsottari_bhukti(md_lord, md_start_jd,place, antardhasa_option=antardhasa_option)
                     bh_list = list(bhuktis.items())
 
                     for b_idx, (blord, bstart) in enumerate(bh_list):
                         bend = md_end_jd if b_idx == len(bh_list) - 1 else bh_list[b_idx + 1][1]
-                        antara = _vimsottari_antara(md_lord, blord, bstart)
-                        _emit_children_from_starts((md_lord, blord), list(antara.items()), bend)
-
+                        antara = _vimsottari_antara(md_lord,blord,bstart,place)
+                        _emit_children_from_starts((md_lord, blord),list(antara.items()),bend)
                 else:
                     if use_rasi_bhukthi_variation:
                         raise ValueError(
@@ -396,7 +447,12 @@ def vimsottari_immediate_children(
 
     if parent_end is None:
         parent_years = float(parent_duration)
-        end_jd = start_jd + parent_years * year_duration
+
+        end_jd = drik._get_dhasa_end_jd(
+            start_jd=start_jd,
+            place=place,
+            total_dasa_years=parent_years,
+        )
     else:
         end_jd = _tuple_to_jd(parent_end)
         parent_years = (end_jd - start_jd) / year_duration
@@ -409,15 +465,33 @@ def vimsottari_immediate_children(
     if use_rasi_bhukthi_variation and len(path) == 1:
         if jd is None or place is None:
             raise ValueError("jd and place are required for rasi-bhukthi at L2.")
-        planet_positions = charts.divisional_chart(jd, place, divisional_chart_factor=divisional_chart_factor)
+
+        planet_positions = charts.divisional_chart(
+            jd,
+            place,
+            divisional_chart_factor=divisional_chart_factor,
+        )
+
         maha_lord_rasi = planet_positions[parent_lord + 1][1][0]
-        rasi_bhuktis = _vimsottari_rasi_bhukthi(parent_lord, maha_lord_rasi, start_jd)
+
+        rasi_bhuktis = _vimsottari_rasi_bhukthi(
+            parent_lord,
+            maha_lord_rasi,
+            start_jd,
+            place,
+        )
+
         if not rasi_bhuktis:
             return []
 
         items = list(rasi_bhuktis.items())
+
         for idx, (child_lord, child_start_jd) in enumerate(items):
-            child_end_jd = end_jd if idx == len(items) - 1 else items[idx + 1][1]
+            if idx == len(items) - 1:
+                child_end_jd = end_jd
+            else:
+                child_end_jd = items[idx + 1][1]
+
             children.append([
                 path + (child_lord,),
                 _jd_to_tuple(child_start_jd),
@@ -426,6 +500,7 @@ def vimsottari_immediate_children(
 
         if children:
             children[-1][2] = _jd_to_tuple(end_jd)
+
         return children
 
     lord, dirn = _start_lord_and_dir(parent_lord, antardhasa_option)
@@ -435,7 +510,15 @@ def vimsottari_immediate_children(
     for idx in range(len(const.vimsottari_adhipati_list)):
         Y = float(vimsottari_dict[lord])
         child_years = parent_years * (Y / H)
-        child_end_jd = end_jd if idx == len(const.vimsottari_adhipati_list) - 1 else jd_cursor + child_years * year_duration
+
+        if idx == len(const.vimsottari_adhipati_list) - 1:
+            child_end_jd = end_jd
+        else:
+            child_end_jd = drik._get_dhasa_end_jd(
+                start_jd=jd_cursor,
+                place=place,
+                total_dasa_years=child_years,
+            )
 
         children.append([
             path + (lord,),
@@ -444,15 +527,16 @@ def vimsottari_immediate_children(
         ])
 
         jd_cursor = child_end_jd
+
         if jd_cursor >= end_jd:
             break
+
         lord = vimsottari_next_adhipati(lord, direction=dirn)
 
     if children:
         children[-1][2] = _jd_to_tuple(end_jd)
+
     return children
-
-
 def get_running_dhasa_for_given_date(
     current_jd,
     jd,
@@ -518,7 +602,7 @@ def get_running_dhasa_for_given_date(
         target_depth = 6
     target_depth = max(1, min(6, target_depth))
 
-    _vim_bal, maha_rows_raw = get_vimsottari_dhasa_bhukthi(
+    _vim_bal, maha_rows_raw = get_dhasa_bhukthi(
         jd=jd,
         place=place,
         dhasa_level_index=1,
@@ -595,7 +679,7 @@ def nakshathra_dhasa_progression(
     """
     utils.validate_star_index(seed_star)
     DLI = dhasa_level_index
-    _, vd = get_vimsottari_dhasa_bhukthi(
+    _, vd = get_dhasa_bhukthi(
         jd_at_dob,
         place,
         star_position_from_moon=star_position_from_moon,
@@ -645,6 +729,10 @@ if __name__ == "__main__":
     tob = (10, 34, 0)
     place = drik.Place('Chennai,IN', 13.0389, 80.2619, +5.5)
     jd_at_dob = utils.julian_day_number(dob, tob)
+    for dd in const.DHASA_YEAR_DURATION:
+        const.dhasa_year_duration_default = dd
+        print(dd.name,get_dhasa_bhukthi(jd_at_dob, place, dhasa_level_index=1))
+    exit()
     from datetime import datetime
     current_date_str, current_time_str = datetime.now().strftime('%Y,%m,%d;%H:%M:%S').split(';')
     y, m, d = map(int, current_date_str.split(','))
@@ -682,7 +770,7 @@ if __name__ == "__main__":
         print('new method elapsed time', time.time() - start_time)
 
         start_time = time.time()
-        _, ad = get_vimsottari_dhasa_bhukthi(
+        _, ad = get_dhasa_bhukthi(
             jd_at_dob,
             place,
             dhasa_level_index=DLI,

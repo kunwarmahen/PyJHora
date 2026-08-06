@@ -10,7 +10,7 @@
 #  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.     #
 #  See the GNU General Public License for more details.                                          #
 #  																								 #
-#  Vedic Astrology was givem to us by our ancient sages without any commerical benefits.         #
+#  Vedic Astrology was given to us by our ancient sages without any commercial benefits.         #
 #  Let us also do the same without any commercial benfits and distribute this free. THANK YOU    #
 #  You should have received a copy of the GNU General Public License along with this program.    #
 #  If not, see <http://www.gnu.org/licenses/>.                                                   #
@@ -18,7 +18,7 @@
 
 name = "PyJHora"
 
-version = "4.8.7"
+version = "5.0"
 
 author = "Sundar Sundaresan"
 
@@ -43,7 +43,6 @@ package_data = {
 }
 
 classifiers = [
-    "Programming Language :: Python :: 3.6",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3.8",
     "Operating System :: OS Independent",
 ]

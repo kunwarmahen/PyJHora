@@ -30,7 +30,7 @@ ALLCOUNTRIES_FILE = os.path.join(BASE_DIR, "allCountries.txt")
 ADMIN1_FILE = os.path.join(BASE_DIR, "admin1CodesASCII.txt")
 COUNTRYINFO_FILE = os.path.join(BASE_DIR, "countryInfo.txt")
 TIMEZONES_FILE = os.path.join(BASE_DIR, "timeZones.txt")
-OUTPUT_FILE = os.path.join(BASE_DIR, "geonames_places_500_IN.csv")
+OUTPUT_FILE = os.path.join(BASE_DIR, "geonames_places_all_IN.csv")
 # True  = only cities / towns / villages (feature_class == "P")
 # False = keep all GeoNames feature types
 ONLY_POPULATED_PLACES = True
@@ -38,7 +38,7 @@ ONLY_POPULATED_PLACES = True
 # 500    = keep rows with population >= 500
 # 1000   = keep rows with population >= 1000
 # 10000  = keep rows with population >= 10000
-POPULATION_MIN = 500
+POPULATION_MIN = None
 # Keep population=0 rows for these countries even when POPULATION_MIN is set
 # Example: India, USA
 ALLOW_ZERO_POP_COUNTRIES = {"IN"}

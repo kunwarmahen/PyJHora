@@ -52,6 +52,7 @@ def get_dhasa_antardhasa(
     round_duration=False,   # round only in returned rows; progression uses full precision
     dhasa_duration_type=None,
     savana_year_method=None,
+    varnada_method=None,
     **kwargs
 ):
     """
@@ -77,18 +78,14 @@ def get_dhasa_antardhasa(
     )[:const._pp_count_upto_ketu]
 
     lagna = planet_positions[0][1][0]
-    hora_lagna, _ = drik.hora_lagna(
-        jd_at_dob, place,
-        divisional_chart_factor=divisional_chart_factor,
-        chart_method=chart_method,
-        **kwargs
-    )
-    varnada_lagna, _ = charts.varnada_lagna(
-        dob, tob, place,
-        divisional_chart_factor=divisional_chart_factor,
-        chart_method=chart_method,
-        **kwargs
-    )
+    hora_lagna_full = charts.get_chart_element_longitude(
+        jd = jd_at_dob, place = place, divisional_chart_factor=divisional_chart_factor,
+        chart_method=chart_method, dhasa_starting_planet="HL")
+    hora_lagna, _ = drik.dasavarga_from_long(hora_lagna_full)
+    varnada_lagna_full = charts.get_chart_element_longitude(
+        jd = jd_at_dob, place = place, divisional_chart_factor=divisional_chart_factor,
+        chart_method=chart_method, dhasa_starting_planet="V1",varnada_method=varnada_method)
+    varnada_lagna, _ = drik.dasavarga_from_long(varnada_lagna_full)
 
     # L1 seed: stronger of Lagna & Hora Lagna
     dhasa_seed = house.stronger_rasi_from_planet_positions(planet_positions, lagna, hora_lagna)
@@ -168,6 +165,7 @@ def varnada_immediate_children(
     dhasa_duration_type=None,
     savana_year_method=None,
     round_duration: bool = False,   # tiler returns exact spans; keep unrounded here
+    varnada_method=None,
     **kwargs
 ):
     """
@@ -242,6 +240,7 @@ def get_running_dhasa_for_given_date(
     round_duration: bool = False,                    # runner uses exact spans; keep unrounded here
     dhasa_duration_type=None,
     savana_year_method=None,
+    varnada_method=None,
     **kwargs
 ):
     """
@@ -320,6 +319,7 @@ def get_running_dhasa_for_given_date(
         round_duration=False,
         dhasa_duration_type=dhasa_duration_type,
         savana_year_method=savana_year_method,
+        varnada_method=varnada_method,
         **kwargs
     ) or []
 
@@ -360,6 +360,7 @@ def get_running_dhasa_for_given_date(
             dhasa_duration_type=dhasa_duration_type,
             savana_year_method=savana_year_method,
             round_duration=False,
+            varnada_method=varnada_method,
             **kwargs
         )
         if not kids:

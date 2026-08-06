@@ -59,72 +59,23 @@ def _dhasa_progression(
     divisional_chart_factor=1,
     chart_method=1,
     star_position_from_moon=1,
-    dhasa_starting_planet=1,
+    dhasa_starting_planet=const._ascendant_symbol,
 ):
     y, m, d, fh = utils.jd_to_gregorian(jd)
     dob = drik.Date(y, m, d)
     tob = (fh, 0, 0)
     one_star = 360 / 27.0  # 27 nakshatras span 360°
-    from jhora.horoscope.chart import charts, sphuta
-
-    _special_planets = ['M', 'G', 'T', 'I', 'B', 'I', 'P']
-    planet_positions = charts.divisional_chart(
-        jd,
-        place,
-        divisional_chart_factor=divisional_chart_factor,
-        chart_method=chart_method,
-    )[:const._pp_count_upto_ketu]
-
-    if dhasa_starting_planet in const.SUN_TO_KETU:
-        planet_long = planet_positions[dhasa_starting_planet + 1][1][0] * 30 + planet_positions[dhasa_starting_planet + 1][1][1]
-    elif dhasa_starting_planet == const._ascendant_symbol:
-        planet_long = planet_positions[0][1][0] * 30 + planet_positions[0][1][1]
-    elif dhasa_starting_planet.upper() == 'M':
-        mn = drik.maandi_longitude(dob, tob, place, divisional_chart_factor=divisional_chart_factor)
-        planet_long = mn[0] * 30 + mn[1]
-    elif dhasa_starting_planet.upper() == 'G':
-        gl = drik.gulika_longitude(dob, tob, place, divisional_chart_factor=divisional_chart_factor)
-        planet_long = gl[0] * 30 + gl[1]
-    elif dhasa_starting_planet.upper() == 'B':
-        gl = drik.bhrigu_bindhu_lagna(
-            jd,
-            place,
-            divisional_chart_factor=divisional_chart_factor,
-            chart_method=chart_method,
-        )
-        planet_long = gl[0] * 30 + gl[1]
-    elif dhasa_starting_planet.upper() == 'I':
-        gl = drik.indu_lagna(
-            jd,
-            place,
-            divisional_chart_factor=divisional_chart_factor,
-            chart_method=chart_method,
-        )
-        planet_long = gl[0] * 30 + gl[1]
-    elif dhasa_starting_planet.upper() == 'P':
-        gl = drik.pranapada_lagna(
-            jd,
-            place,
-            divisional_chart_factor=divisional_chart_factor,
-            chart_method=chart_method,
-        )
-        planet_long = gl[0] * 30 + gl[1]
-    elif dhasa_starting_planet.upper() == 'T':
-        sp = sphuta.tri_sphuta(
-            dob,
-            tob,
-            place,
-            divisional_chart_factor=divisional_chart_factor,
-            chart_method=chart_method,
-        )
-        planet_long = sp[0] * 30 + sp[1]
-    else:
-        planet_long = planet_positions[2][1][0] * 30 + planet_positions[2][1][1]
-
-    if dhasa_starting_planet == 1:
-        planet_long += (star_position_from_moon - 1) * one_star
-
+    from jhora.horoscope.chart import charts
+    planet_long = charts.get_chart_element_longitude(
+        jd = jd,
+        place = place,
+        divisional_chart_factor = divisional_chart_factor,
+        chart_method = chart_method,
+        star_position_from_moon = star_position_from_moon,
+        dhasa_starting_planet = dhasa_starting_planet,
+    )
     nak = int(planet_long / one_star)
+    rem = planet_long - nak * one_star
     _dp = [(nak - i) % 27 for i in range(_dhasa_count)]
     return _dp
 
@@ -137,7 +88,7 @@ def get_dhasa_bhukthi(
     chart_method=1,
     star_position_from_moon=1,
     use_tribhagi_variation=False,
-    dhasa_starting_planet=1,
+    dhasa_starting_planet=const._ascendant_symbol,
     antardhasa_option=1,
     dhasa_level_index=const.MAHA_DHASA_DEPTH.ANTARA,
     round_duration=True,
@@ -154,7 +105,8 @@ def get_dhasa_bhukthi(
         @param chart_method: Default=1
         @param star_position_from_moon: 1=Moon(default), 4=Kshema, 5=Utpanna, 8=Adhana
         @param use_tribhagi_variation: False (default), True => durations scaled to 1/3 with 3 cycles
-        @param dhasa_starting_planet 0=Sun 1=Moon(default)...8=Ketu, 'L'=Lagna, M/G/T/B/I/P as supported
+        @param dhasa_starting_planet 0=Sun 1=Moon...8=Ketu, 'L'=Lagna(default), 
+            "Md" for Maandi, "BL" for Bhava Lagna "S1" Tri-sphuta etc
         @param antardhasa_option: ordering rule passed to _antardhasa(...)
         @param dhasa_level_index: Depth 1..6 (1=Maha only, 2=+Antara, 3=+Pratyantara, 4=+Sookshma, 5=+Prana, 6=+Deha)
         @param round_duration: If True, round only the returned duration values to dhasa_level_index
@@ -270,7 +222,7 @@ def saptharishi_nakshathra_immediate_children(
     use_tribhagi_variation=False,
     divisional_chart_factor=1,
     chart_method=1,
-    dhasa_starting_planet=1,
+    dhasa_starting_planet=const._ascendant_symbol,
     dhasa_duration_type=None,
     savana_year_method=None,
     **kwargs,
@@ -377,7 +329,7 @@ def get_running_dhasa_for_given_date(
     chart_method: int = 1,
     star_position_from_moon: int = 1,
     use_tribhagi_variation: bool = False,
-    dhasa_starting_planet: int = 1,
+    dhasa_starting_planet: int = const._ascendant_symbol,
     round_duration: bool = False,     # runner uses exact start/end
     dhasa_duration_type=None,
     savana_year_method=None,
@@ -534,6 +486,17 @@ if __name__ == "__main__":
     tob = (10, 34, 0)
     place = drik.Place('Chennai,IN', 13.0389, 80.2619, +5.5)
     jd_at_dob = utils.julian_day_number(dob, tob)
+    for dd in const.DHASA_YEAR_DURATION:
+        yd = get_dhasa_bhukthi(
+            dob,
+            tob,
+            place,
+            dhasa_level_index=const.MAHA_DHASA_DEPTH.MAHA_DHASA_ONLY,
+            dhasa_duration_type=dd,
+            dhasa_starting_planet=conse._ascendant_symbol,
+        )
+        print("Dhasa duration method:", dd.name, yd)
+    exit()
     from datetime import datetime
     current_date_str, current_time_str = datetime.now().strftime('%Y,%m,%d;%H:%M:%S').split(';')
     y, m, d = map(int, current_date_str.split(','))

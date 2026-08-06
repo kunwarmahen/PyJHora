@@ -1,4 +1,4 @@
-JHora 4.8.7
+JHora 4.9.3 (Developement)
 =================
 Python package containing almost all the features described in the book
 
@@ -98,6 +98,30 @@ Enter Time of birth, choose chart style, ayanamsa mode, language of display
 Click Show Chart to display the birth (Raasi and Navamsam) charts (every time any imput is changed)
 
 Click Show PDF to save the screen as a PDF file
+
+Changes since 4.8.7
+===================
+* All Issues reported Fixed.
+* Major design change: Earlier versions calculated non-planets for varga charts from varga positions. This version onwards all non-planets - first calculate the positions in rasi chart and then transform to appropriate varga/custom-varga/mixed-varga position. Because of this modules like `drik`, `arudhas`, `sphuta`, `saham` etc calculate only rasi positions while `charts.divisional_chart` using `exclude_non_planets=False` argument can calculate all chart elements including non-planets. Therefore this version has major changes in these modules. Use exclude_non_planets=False only if you want to get all non-planets.
+* Major design change: Earlier versions dhasa remaining at birth was calculated incorrectly for nakshathra dhasas. Now they are correctly computed and match with jaganatha hora.
+* `data/factory_settings.json`: Added `maximum_search_places, ashtakavarga_rasimana_multipliers, chara_karaka_default_method, ashtakavarga_reverse_ashtakavarga, ashtakavarga_consolidate_houses, ashtakavarga_include_lagna_as_planet, p_v_moon_benefic_9_from_moon, p_v_moon_malefic_9_from_mars, p_v_moon_benefic_2_from_jupiter, p_v_moon_malefic_12_from_jupiter, p_v_venus_benefic_4_from_mars, p_v_venus_malefic_5_from_mars`, `use_default_house_owner_for_saham_calculation`. String enum choices changed to int. e.g. DHASA_YEAR_DURATION.
+* `chart/ashtakavarga`: added rasimana multipler option - because PVR Book differs from other sources. PVR book is missing 3c rule in _ekadhipatya_sodhana which is added. with these changes PVR example results are matching now. Also added Varhamihira options similar to JHora. Error in `_ekadhipatya_sodhana` fixed per Issue #52 reported by `Askthesages`.
+* `chart/charts`: Added `chara_karakas` with 4 methods as specified in JHora: 1. `const.CHARA_KARAKA_METHOD.EIGHT_KARAKA_PARASHARI`, 2. `const.CHARA_KARAKA_METHOD.SEVEN_KARAKA_KNRAO_NOPiK`, 3. `const.CHARA_KARAKA_METHOD.SEVEN_KARAKA_PK_MERGED_WITH_MK` and 4. `const.CHARA_KARAKA_METHOD.MIXED_SEVEN_EIGHT_KARAKA_PARASHARA`. Use this instead of `house.chara_karakas` which will be removed in future versions.
+* `chart/charts`: Added `nava_thaara_for_all_planets`, `special_thaara_for_all_planets`, `nava_thaara_for_chart_element`, `special_thaara_for_chart_element`, `sphuta_longitudes`, `sphuta_longitudes_mixed_chart`, `varnada_lagna_longitudes`, `varnada_lagna_longitudes_mixed_chart`, `arudha_lagna_longitudes`, `arudha_lagna_longitudes_mixed_chart`, `solar_upagraha_longitudes`, `chara_karakas`, `chart_element_rasi_positions`, `saham_longitudes`, `saham_longitudes_mixed_chart`, functions. Fixed error in bhava arudha longitude calculations. Now all chart elements' longitudes are closely matching with JHora.
+* `chart/chrts`: For varga charts - default changed to non-cyclic. Error in `__parivritti_even_reverse` is fixed. Now non-cycle varga charts match with JHora (except mrityu, sookshma_tri sphutas for custom charts which differ by 3 to 6 degrees due to rasi level error propagtes at higher vargas). `divisional_chart` function can calculate both planet and other non-planets like sphuta, varna, upagraha, saham etc).
+* `chart/chart
+* `chart/arudhas`: `bhava_arudha_longitudes_from_planet_positions` removed. Use `charts.arudha_lagna_longitudes` instead. This module calculates only for rasi chart level. Use `charts.arudha_lagna_longitudes` for vargas.
+* json file close added to dosha.py, yoga.py, raja_yoga.py. 
+* `dhasa/graha/karaka`: Karaka dhasa now supports two methods: `const.CHARA_KARAKA_METHOD.EIGHT_KARAKA_PARASHARI` and `const.CHARA_KARAKA_METHOD.SEVEN_KARAKA_KNRAO_NOPiK`.
+* `horoscope/info` - modified to support two types of karaka dhasa
+* `place_db` - support to more CSV/Pickle/SQLite file options added.
+* `amsa_rulers_en.json` format fixed.
+* `const`: Added constants and enum classes for vyatipada method, ashtakavarga methods.
+* `panchanga/drik`: vyaptipata supports 2 methods. `nava_thaara`, `special_thaara` functions updated to support `base_star_planet` argument. Fixed error in vighati lagna rate factor. Also revised all special lagna algorithms which now closely match JHora results.
+* `ui/config_dialog`, `ui/horosc_chart_tabs` updated to support above changes
+* `ui/chart_styles` revised. removed hard-code menu strings resource strings etc.
+* `ui/pancha_pakshi_sastra_widget` - hour glass now does not overwrite text.
+* `ui_tests` folder added wherein some UI automation tests have been added.
 
 Changes since 4.8.6
 ===================

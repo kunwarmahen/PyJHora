@@ -263,7 +263,7 @@ class Horoscope():
             h += 1
         return _bhava_chart,_bhava_chart_info,_bhava_ascendant_house
     def get_horoscope_information_for_chart(self,chart_index=0,chart_method=1,divisional_chart_factor=None,
-                                            base_rasi=None,count_from_end_of_sign=None,varnada_method=1,
+                                            base_rasi=None,count_from_end_of_sign=None,varnada_method=None,
                                             dhasa_progression_correction=0.0):
         horoscope_info = {}
         self._vimsottari_balance = ();self._yoga_vimsottari_balance = ()
@@ -307,6 +307,7 @@ class Horoscope():
                          81:cal_key_list['nava_navamsa_str'],
                          108:cal_key_list['ashtotharamsa_str'],
                          144:cal_key_list['dwadas_dwadasamsa_str'],
+                         150:cal_key_list['nadiamsa_str'],
         }
         if divisional_chart_factor is None :
             if chart_index == len(const.division_chart_factors):
@@ -320,24 +321,19 @@ class Horoscope():
                                             years=self.years,months=self.months,sixty_hours=self.sixty_hours,
                                             calculation_type='drik',pravesha_type=self.pravesha_type,
                                             base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
-                                            dhasa_progression_correction=dhasa_progression_correction)
+                                            dhasa_progression_correction=dhasa_progression_correction,
+                                            exclude_non_planets=False)
+        planet_positions_dict = {p:(h,long) for p,(h,long) in planet_positions }
         ascendant_navamsa = planet_positions[0][1]
         asc_house = ascendant_navamsa[0]
-        #if dhasavarga_factor==9:
-        #    self._64th_navamsa = charts.get_64th_navamsa(planet_positions)
-        #elif dhasavarga_factor==3:
-        #    self._22nd_drekkana = charts.get_22nd_drekkana(planet_positions)
         horoscope_ascendant_house = asc_house
         jd = self.julian_day #V3.1.9
         horoscope_charts[asc_house] += cal_key_list['ascendant_str'] +"\n"
-        self._get_sphuta(dob, tob, place, divisional_chart_factor=dhasavarga_factor,
-                         dhasa_progression_correction=dhasa_progression_correction)
         abl = self._get_arudha_padhas(dob, tob, place, divisional_chart_factor=dhasavarga_factor,
                                 chart_method=chart_method,years=self.years,months=self.months,
                                 sixty_hours=self.sixty_hours,pravesha_type=self.pravesha_type,
                                 base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
                                 dhasa_progression_correction=dhasa_progression_correction)
-        #self._arudha_lagna_data_kundali = self._arudha_lagna_data[dhasavarga_factor].copy()
         for bli,_ in const._arudha_lagnas_included_in_chart.items():
             key = list(abl)[bli-1]
             value = abl[key]
@@ -345,79 +341,48 @@ class Horoscope():
         jd = self.julian_years # V3.1.9 Special Lagna do not take years arguments - so use julian years
         key_dhasa_factor = dhasavarga_dict[dhasavarga_factor] if divisional_chart_factor in const.division_chart_factors else cal_key_list['custom_varga_kundali_str']
         key = key_dhasa_factor +'-'+cal_key_list['bhava_lagna_str']+' ('+cal_key_list['bhava_lagna_short_str']+')'
-        value = drik.bhava_lagna(jd,place,divisional_chart_factor=dhasavarga_factor,
-                                 chart_method=chart_method,base_rasi=base_rasi,
-                                 count_from_end_of_sign=count_from_end_of_sign,
-                                 dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['BL']
         self._bhava_lagna_data_kundali[dhasavarga_factor] = value[0] # V3.1.9
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor +'-'+cal_key_list['hora_lagna_str']+' ('+cal_key_list['hora_lagna_short_str']+')'
-        value = drik.hora_lagna(jd,place,divisional_chart_factor=dhasavarga_factor,
-                                 chart_method=chart_method,base_rasi=base_rasi,
-                                 count_from_end_of_sign=count_from_end_of_sign,
-                                 dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['HL']
         self._hora_lagna_data_kundali[dhasavarga_factor] = value[0]
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor +'-'+cal_key_list['ghati_lagna_str']+' ('+cal_key_list['ghati_lagna_short_str']+')'
-        value = drik.ghati_lagna(jd,place,divisional_chart_factor=dhasavarga_factor,
-                                 chart_method=chart_method,base_rasi=base_rasi,
-                                 count_from_end_of_sign=count_from_end_of_sign,
-                                 dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['GL']
         self._ghati_lagna_data_kundali[dhasavarga_factor] = value[0]
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor +'-'+cal_key_list['vighati_lagna_str']+' ('+cal_key_list['vighati_lagna_short_str']+')'
-        value = drik.vighati_lagna(jd,place,divisional_chart_factor=dhasavarga_factor,
-                                 chart_method=chart_method,base_rasi=base_rasi,
-                                 count_from_end_of_sign=count_from_end_of_sign,
-                                 dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['VL']
         self._vighati_lagna_data_kundali[dhasavarga_factor] = value[0]
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor+'-'+cal_key_list['pranapada_lagna_str']+' ('+cal_key_list['pranapada_lagna_short_str']+')'
-        value = drik.pranapada_lagna(jd,place,divisional_chart_factor=dhasavarga_factor,
-                                 chart_method=chart_method,base_rasi=base_rasi,
-                                 count_from_end_of_sign=count_from_end_of_sign,
-                                 dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['PL']
         self._pranapada_lagna_data_kundali[dhasavarga_factor] = value[0]
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor+'-'+cal_key_list['indu_lagna_str']+' ('+cal_key_list['indu_lagna_short_str']+')'
-        value = drik.indu_lagna(jd,place,divisional_chart_factor=dhasavarga_factor,
-                                 chart_method=chart_method,base_rasi=base_rasi,
-                                 count_from_end_of_sign=count_from_end_of_sign,
-                                 dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['IL']
         self._indu_lagna_data_kundali[dhasavarga_factor] = value[0]
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor+'-'+cal_key_list['bhrigu_bindhu_lagna_str']+' ('+cal_key_list['bhrigu_bindhu_lagna_short_str']+')'
-        value = drik.bhrigu_bindhu_lagna(jd,place,divisional_chart_factor=dhasavarga_factor,
-                                 chart_method=chart_method,base_rasi=base_rasi,
-                                 count_from_end_of_sign=count_from_end_of_sign,
-                                 dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['BBL']
         self._bhrigu_bindhu_lagna_data_kundali[dhasavarga_factor] = value[0]
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor+'-'+cal_key_list['kunda_lagna_str']+' ('+cal_key_list['kunda_lagna_short_str']+')'
-        value = drik.kunda_lagna(jd,place,divisional_chart_factor=dhasavarga_factor,
-                                 chart_method=chart_method,base_rasi=base_rasi,
-                                 count_from_end_of_sign=count_from_end_of_sign,
-                                 dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['KL']
         self._kunda_lagna_data_kundali[dhasavarga_factor] = value[0]
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor +'-'+cal_key_list['sree_lagna_str']+' ('+cal_key_list['sree_lagna_short_str']+')'
         jd = self.julian_day # V3.1.9 revert to julian after special lagna calculations
-        value = drik.sree_lagna(jd,place,divisional_chart_factor=dhasavarga_factor,
-                                 chart_method=chart_method,base_rasi=base_rasi,
-                                 count_from_end_of_sign=count_from_end_of_sign,
-                                 dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['SL']
         self._sree_lagna_data_kundali[dhasavarga_factor] = value[0] # V3.1.9
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor +'-'+cal_key_list['varnada_lagna_str']+' ('+cal_key_list['varnada_lagna_short_str']+') '
-        value = charts.varnada_lagna(dob, tob, place,divisional_chart_factor=dhasavarga_factor,
-                                 chart_method=chart_method,base_rasi=base_rasi,
-                                 count_from_end_of_sign=count_from_end_of_sign,
-                                 dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['V1']
         self._varnada_lagna_data_kundali[dhasavarga_factor]=value[0]            
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor +'-'+cal_key_list['maandi_str']+' ('+cal_key_list['maandi_short_str']+')'
-        value = drik.maandi_longitude(dob,tob,place,divisional_chart_factor=dhasavarga_factor,
-                                      dhasa_progression_correction=0.0)
+        value = planet_positions_dict['Md']
         self._maandhi_data_kundali[dhasavarga_factor]=value[0]            
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         horoscope_info[key_dhasa_factor +'-'+cal_key_list['ascendant_str']] = \
@@ -428,64 +393,109 @@ class Horoscope():
                                               months=self.months, sixty_hours=self.sixty_hours,
                                               calculation_type=self.calculation_type, pravesha_type=self.pravesha_type,
                                               dhasa_progression_correction=dhasa_progression_correction)
-        for p,(h,long) in planet_positions[1:]:
+        planet_count = const._pp_count_upto_pluto if const._INCLUDE_URANUS_TO_PLUTO else const._pp_count_upto_ketu
+        for p,(h,long) in planet_positions[1:planet_count]:
             retStr = drik.get_planet_speed_sign(jd, place, p)
             planet_name = utils.PLANET_NAMES[p]+retStr
             k = key_dhasa_factor+'-'+planet_name
             planet_house = h
             ck_str = ''
-            if p !='L' and p < 8:
-                ck_index = chara_karaka_dict.index(p)
-                ck_str = ' (' + cal_key_list[chara_karaka_names[ck_index]] +')' # Fixed V3.7.2
+            if p !='L' and p < const.KETU_ID:
+                if p in chara_karaka_dict:
+                    ck_str = [utils.resource_strings[f"{k}_str"] for k in chara_karaka_dict[p]]
+                    ck_str = '(' + '/'.join(ck_str) +')'
             v = utils.RAASI_LIST[h]+' ' +utils.to_dms(long,is_lat_long='plong') + ck_str
             horoscope_charts[planet_house] += planet_name +'\n'
             horoscope_info[k]= v
-        sub_planet_list_1 = {'kaala_str':'kaala_longitude','mrityu_str':'mrityu_longitude',
-                             'artha_str':'artha_praharaka_longitude','yama_ghantaka_str':'yama_ghantaka_longitude',
-                           'gulika_str':'gulika_longitude','maandi_str':'maandi_longitude'}
-        sub_planet_list_2 = ['dhuma','vyatipaata','parivesha','indrachaapa','upaketu']
-        #sun_long = planet_positions[1][1][0]*30+planet_positions[1][1][1]
-        for sp, sp_func in sub_planet_list_1.items():
-            k = f"{key_dhasa_factor}-{cal_key_list[sp]} ({cal_key_list[sp.replace('_str', '_short_str')]})"
-            func = getattr(drik, sp_func, None)
-            if not callable(func):
-                raise AttributeError(f"'drik' has no callable '{sp_func}'")
-            v = func(dob, tob, place, divisional_chart_factor=dhasavarga_factor,
-                     dhasa_progression_correction=dhasa_progression_correction)
+        sub_planet_list_1 = {k:v+"_str" for k,v in utils._drik_upagrahas.items()}
+        sub_planet_list_2 = {k:v+"_str" for k,v in utils._chart_upagrahas.items()}
+        sp_start = planet_count
+        for sc, (sp, sp_str) in enumerate(sub_planet_list_1.items()):
+            k = f"{key_dhasa_factor}-{cal_key_list[sp_str]} ({cal_key_list[sp_str.replace('_str', '_short_str')]})"
+            sp_pos = planet_positions[sp_start]
+            if sp.lower()== sp_pos[0].lower():
+                v = sp_pos[1]
+            else:
+                raise ValueError(sp +' is not matching ' + sp_pos[0])
             horoscope_info[k] = utils.RAASI_LIST[v[0]] + ' ' + utils.to_dms(v[1], is_lat_long='plong')
-        for sp in sub_planet_list_2:
-            k = f"{key_dhasa_factor}-{cal_key_list[sp + '_str']} ({cal_key_list[sp + '_short_str']})"
-            v = charts.solar_upagraha_longitudes(
-                planet_positions,
-                sp,
-                divisional_chart_factor=dhasavarga_factor
-            )
-            horoscope_info[k] = utils.RAASI_LIST[v[0]] + " " + utils.to_dms(v[1], is_lat_long="plong")
+            sp_start += 1
+        for sc, (sp, sp_str) in enumerate(sub_planet_list_2.items()):
+            k = f"{key_dhasa_factor}-{cal_key_list[sp_str]} ({cal_key_list[sp_str.replace('_str', '_short_str')]})"
+            sp_pos = planet_positions[sp_start]
+            if sp.lower()== sp_pos[0].lower():
+                v = sp_pos[1]
+            else:
+                raise ValueError(sp +' is not matching ' + sp_pos[0])
+            horoscope_info[k] = utils.RAASI_LIST[v[0]] + ' ' + utils.to_dms(v[1], is_lat_long='plong')
+            sp_start += 1
         for h in range(12):
-            vl = charts.varnada_lagna(dob, tob, place, divisional_chart_factor=dhasavarga_factor,
-                                      chart_method=chart_method, house_index=h+1, varnada_method=varnada_method,
-                                      base_rasi=base_rasi, count_from_end_of_sign=count_from_end_of_sign,
-                                      dhasa_progression_correction=dhasa_progression_correction)
+            vl = planet_positions_dict['V'+str(h+1)]
             k = key_dhasa_factor+'-'+cal_key_list['varnada_lagna_str']+' (V'+str(h+1)+') '
             horoscope_info[k] = utils.RAASI_LIST[vl[0]] +' '+utils.to_dms(vl[1],is_lat_long='plong') 
-        spl_list = ['tri','chatur','pancha','prana','deha','mrityu','sookshma_tri','beeja','kshetra','tithi','yoga',
-                    'yogi','avayogi','rahu_tithi']
-        for spl in spl_list:
-            from jhora.horoscope.chart import sphuta
-            func_str = '_sphuta(dob,tob,place,divisional_chart_factor=dhasavarga_factor,chart_method=chart_method'+\
-                    ',base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,' + \
-                    'dhasa_progression_correction=dhasa_progression_correction)'
-            vl = eval('sphuta.'+spl+func_str)
-            k = (key_dhasa_factor+'-'+cal_key_list[spl+'_sphuta_str']+' '+cal_key_list['sphuta_str']+
-                 ' ('+cal_key_list[spl+'_sphuta_short_str']+') ')
+        for k,v in utils._sphutas.items():
+            vl = planet_positions_dict[k]
+            k = (key_dhasa_factor+'-'+cal_key_list[v+'_sphuta_str']+' '+cal_key_list['sphuta_str']+
+                 ' ('+cal_key_list[v+'_sphuta_short_str']+') ')
             horoscope_info[k] = utils.RAASI_LIST[vl[0]] +' '+utils.to_dms(vl[1],is_lat_long='plong') 
         return horoscope_info, horoscope_charts,horoscope_ascendant_house
+    def get_sphutas_from_positions(self, planet_positions_dict):
+        _vl_chart = ['' for _ in range(12)]
+        for dsp, spl in utils._sphutas.items():
+            if dsp in planet_positions_dict:
+                vl = planet_positions_dict[dsp]
+                _vl_chart[vl[0]] += self.cal_key_list[spl+'_sphuta_short_str'] +'\n'
+        return {self.cal_key_list['sphuta_str']: _vl_chart}
+
+    def get_special_lagnas_from_positions(self, planet_positions_dict):
+        _vl_chart = ['' for _ in range(12)]
+        for dsp, spl in utils._special_lagnas.items():
+            if dsp in planet_positions_dict:
+                vl = planet_positions_dict[dsp]
+                _vl_chart[vl[0]] += self.cal_key_list[spl+'_short_str'] +'\n'
+        return {self.cal_key_list['special_lagnas_str']: _vl_chart}
+
+    def get_varnada_lagna_from_positions(self, planet_positions_dict):
+        _vl_chart = ['' for _ in range(12)]
+        for dsp in utils._varnada_lagnas.keys():
+            if dsp in planet_positions_dict:
+                vl = planet_positions_dict[dsp]
+                _vl_chart[vl[0]] += dsp +'\n'
+        return {self.cal_key_list['varnada_lagna_str']: _vl_chart}
+
+    def get_sahams_from_positions(self, planet_positions_dict):
+        _saham_info = {}
+        _vl_chart = ['' for _ in range(12)]
+        for sp, sp_func in utils._sahams.items():
+            if sp in planet_positions_dict:
+                vl = planet_positions_dict[sp]
+                _vl_chart[vl[0]] += self.cal_key_list[sp_func+'_saham_short_str'] +'\n'
+                key = self.cal_key_list[sp_func+'_saham_str']+' '+self.cal_key_list['saham_str']
+                value = utils.RAASI_LIST[vl[0]]+' '+utils.to_dms(vl[1],is_lat_long='plong')
+                _saham_info[key] = value
+        return {self.cal_key_list['saham_str']: _vl_chart}, _saham_info
+    def get_special_planets_from_positions(self, planet_positions_dict):
+        _sp_info = {}
+        _vl_chart = ['' for _ in range(12)]
+        for sp, sp_func in utils._drik_upagrahas.items():
+            if sp in planet_positions_dict:
+                vl = planet_positions_dict[sp]
+                _vl_chart[vl[0]] += self.cal_key_list[sp_func+'_short_str'] +'\n'
+                key = self.cal_key_list[sp_func+'_str']
+                value = utils.RAASI_LIST[vl[0]]+' '+utils.to_dms(vl[1],is_lat_long='plong')
+                _sp_info[key] = value
+        for sp, sp_func in utils._chart_upagrahas.items():
+            if sp in planet_positions_dict:
+                vl = planet_positions_dict[sp]
+                _vl_chart[vl[0]] += self.cal_key_list[sp_func+'_short_str'] +'\n'
+                key = self.cal_key_list[sp_func+'_str']
+                value = utils.RAASI_LIST[vl[0]]+' '+utils.to_dms(vl[1],is_lat_long='plong')
+        return {self.cal_key_list['upagraha_str']: _vl_chart}, _sp_info
     def get_special_planets_for_chart(self,jd,place,divisional_chart_factor=1,chart_method=1,
                                             base_rasi=None,count_from_end_of_sign=None,
                                             dhasa_progression_correction=0.0):
         y,m,h,fh = utils.jd_to_gregorian(jd); dob = drik.Date(y,m,h); tob=(fh,0,0)
         cal_key_list = self.cal_key_list
-        sub_planet_list = {'Kl':'kaala_str','Mr':'mrityu_str','Ap':'artha_str','Yg':'yama_ghantaka_str',
+        sub_planet_list = {'Kl':'kaala_str','Mr':'mrityu_str','Ap':'artha_praharaka_str','Yg':'yama_ghantaka_str',
                            'Gk':'gulika_str','Md':'maandi_str','Dm':'dhuma_str','Vp':'vyatipaata_str',
                            'Pv':'parivesha_str','Ic':'indrachaapa_str','Uk':'upaketu_str'}
         spl = charts.special_planet_longitudes(dob, tob, place, divisional_chart_factor=divisional_chart_factor, 
@@ -499,7 +509,7 @@ class Horoscope():
                                             chart_method_2=1,dhasa_progression_correction=0.0):
         cal_key_list = self.cal_key_list
         y,m,d,fh = utils.jd_to_gregorian(jd); dob = drik.Date(y,m,d); tob=(fh,0,0)
-        sub_planet_list = {'Kl':'kaala_str','Mr':'mrityu_str','Ap':'artha_str','Yg':'yama_ghantaka_str',
+        sub_planet_list = {'Kl':'kaala_str','Mr':'mrityu_str','Ap':'artha_praharaka_str','Yg':'yama_ghantaka_str',
                            'Gk':'gulika_str','Md':'maandi_str','Dm':'dhuma_str','Vp':'vyatipaata_str',
                            'Pv':'parivesha_str','Ic':'indrachaapa_str','Uk':'upaketu_str'}
         spl = charts.special_planet_longitudes_mixed_chart(dob, tob, place, varga_factor_1=varga_factor_1,
@@ -511,7 +521,7 @@ class Horoscope():
             _special_planet_chart[h] += cal_key_list[sub_planet_list[sp].replace('_str','_short_str')]+'\n'
         return {cal_key_list['upagraha_str']:_special_planet_chart}
     def get_horoscope_information_for_mixed_chart(self,chart_index_1=0,chart_method_1=1,chart_index_2=0,
-                                                  chart_method_2=1,varnada_method=1,dhasa_progression_correction=0):
+                                                  chart_method_2=1,varnada_method=None,dhasa_progression_correction=0):
         horoscope_info = {}
         self._arudha_lagna_data_kundali = {}
         self._sphuta_data_kundali = {}
@@ -557,13 +567,15 @@ class Horoscope():
         mixed_dvf = dhasavarga_factor_1*dhasavarga_factor_2
         planet_positions = charts.mixed_chart(jd, place,varga_factor_1=dhasavarga_factor_1,chart_method_1=chart_method_1,
                                               varga_factor_2=dhasavarga_factor_2,chart_method_2=chart_method_2,
-                                              dhasa_progression_correction=dhasa_progression_correction)
+                                              dhasa_progression_correction=dhasa_progression_correction,
+                                              exclude_non_planets=False)
+        planet_positions_dict = {p:(h,long) for p,(h,long) in planet_positions }
         ascendant_navamsa = planet_positions[0][1]
         asc_house = ascendant_navamsa[0]
         horoscope_ascendant_house = asc_house
         jd = self.julian_day #V3.1.9
         horoscope_charts[asc_house] += cal_key_list['ascendant_str'] +"\n"
-        self._get_sphuta_mixed_chart(dob, tob, place, dhasavarga_factor_1, chart_method_1, dhasavarga_factor_2, chart_method_2)
+        #self._get_sphuta_mixed_chart(dob, tob, place, dhasavarga_factor_1, chart_method_1, dhasavarga_factor_2, chart_method_2)
         abl = self._get_arudha_padhas_mixed_chart(dob, tob, place, dhasavarga_factor_1, chart_method_1, dhasavarga_factor_2, chart_method_2)
         #self._arudha_lagna_data_kundali = self._arudha_lagna_data[mixed_dvf].copy()
         for bli,_ in const._arudha_lagnas_included_in_chart.items():
@@ -573,106 +585,100 @@ class Horoscope():
         jd = self.julian_years # V3.1.9 Special Lagna do not take years arguments - so use julian years
         key_dhasa_factor = 'D'+str(dhasavarga_factor_1)+'x'+'D'+str(dhasavarga_factor_2)
         key = key_dhasa_factor +'-'+cal_key_list['bhava_lagna_str']+' ('+cal_key_list['bhava_lagna_short_str']+')'
-        value = drik.bhava_lagna_mixed_chart(jd,place,dhasavarga_factor_1,chart_method_1,dhasavarga_factor_2,chart_method_2,
-                                             dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['BL']
         self._bhava_lagna_data_kundali[mixed_dvf] = value[0] # V3.1.9
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor +'-'+cal_key_list['hora_lagna_str']+' ('+cal_key_list['hora_lagna_short_str']+')'
-        value = drik.hora_lagna_mixed_chart(jd,place,dhasavarga_factor_1,chart_method_1,dhasavarga_factor_2,chart_method_2,
-                                            dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['HL']
         self._hora_lagna_data_kundali[mixed_dvf] = value[0]
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor +'-'+cal_key_list['ghati_lagna_str']+' ('+cal_key_list['ghati_lagna_short_str']+')'
-        value = drik.ghati_lagna_mixed_chart(jd,place,dhasavarga_factor_1,chart_method_1,dhasavarga_factor_2,chart_method_2,
-                                             dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['GL']
         self._ghati_lagna_data_kundali[mixed_dvf] = value[0]
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor +'-'+cal_key_list['vighati_lagna_str']+' ('+cal_key_list['vighati_lagna_short_str']+')'
-        value = drik.vighati_lagna_mixed_chart(jd,place,dhasavarga_factor_1,chart_method_1,dhasavarga_factor_2,chart_method_2,
-                                               dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['VL']
         self._vighati_lagna_data_kundali[mixed_dvf] = value[0]
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor+'-'+cal_key_list['pranapada_lagna_str']+' ('+cal_key_list['pranapada_lagna_short_str']+')'
-        value = drik.pranapada_lagna_mixed_chart(jd,place,dhasavarga_factor_1,chart_method_1,dhasavarga_factor_2,chart_method_2,
-                                                 dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['PL']
         self._pranapada_lagna_data_kundali[mixed_dvf] = value[0]
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor+'-'+cal_key_list['indu_lagna_str']+' ('+cal_key_list['indu_lagna_short_str']+')'
-        value = drik.indu_lagna_mixed_chart(jd,place,dhasavarga_factor_1,chart_method_1,dhasavarga_factor_2,chart_method_2,
-                                            dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['IL']
         self._indu_lagna_data_kundali[mixed_dvf] = value[0]
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor+'-'+cal_key_list['bhrigu_bindhu_lagna_str']+' ('+cal_key_list['bhrigu_bindhu_lagna_short_str']+')'
-        value = drik.bhrigu_bindhu_lagna_mixed_chart(jd,place,dhasavarga_factor_1,chart_method_1,dhasavarga_factor_2,
-                                                     chart_method_2,dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['BBL']
         self._bhrigu_bindhu_lagna_data_kundali[mixed_dvf] = value[0]
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor+'-'+cal_key_list['kunda_lagna_str']+' ('+cal_key_list['kunda_lagna_short_str']+')'
-        value = drik.kunda_lagna_mixed_chart(jd,place,dhasavarga_factor_1,chart_method_1,dhasavarga_factor_2,chart_method_2,
-                                             dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['KL']
         self._kunda_lagna_data_kundali[mixed_dvf] = value[0]
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor +'-'+cal_key_list['sree_lagna_str']+' ('+cal_key_list['sree_lagna_short_str']+')'
         jd = self.julian_day # V3.1.9 revert to julian after special lagna calculations
-        value = drik.sree_lagna_mixed_chart(jd,place,dhasavarga_factor_1,chart_method_1,dhasavarga_factor_2,chart_method_2,
-                                            dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['SL']
         self._sree_lagna_data_kundali[mixed_dvf] = value[0] # V3.1.9
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor +'-'+cal_key_list['varnada_lagna_str']+' ('+cal_key_list['varnada_lagna_short_str']+') '
-        value = charts.varnada_lagna_mixed_chart(dob, tob, place, house_index=1, 
-                                                 varga_factor_1=dhasavarga_factor_1, chart_method_1=chart_method_1, 
-                                                 varga_factor_2=dhasavarga_factor_2, chart_method_2=chart_method_2,
-                                                 dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['VL']
         self._varnada_lagna_data_kundali[mixed_dvf]=value[0]            
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         key = key_dhasa_factor +'-'+cal_key_list['maandi_str']+' ('+cal_key_list['maandi_short_str']+')'
-        value = drik.maandi_longitude(dob,tob,place,divisional_chart_factor=mixed_dvf,
-                                      dhasa_progression_correction=dhasa_progression_correction)
+        value = planet_positions_dict['Md']
         self._maandhi_data_kundali[mixed_dvf]=value[0]            
         horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
         horoscope_info[key_dhasa_factor +'-'+cal_key_list['ascendant_str']] = \
             utils.RAASI_LIST[ascendant_navamsa[0]]+' '+utils.to_dms(ascendant_navamsa[1],True,'plong')
         chara_karaka_names = [x+'_str' for x in house.chara_karaka_names]
-        chara_karaka_dict = house.chara_karakas(planet_positions)
-        for p,(h,long) in planet_positions[1:]:
+        chara_karaka_dict = charts.chara_karakas(planet_positions)
+        planet_count = const._pp_count_upto_pluto if const._INCLUDE_URANUS_TO_PLUTO else const._pp_count_upto_ketu
+        for p,(h,long) in planet_positions[1:planet_count]:
             retStr = drik.get_planet_speed_sign(jd, place, p)
             planet_name = utils.PLANET_NAMES[p]+retStr
-            #print('dhasavarga_factor',dhasavarga_factor,'planet_name',planet_name)
             k = key_dhasa_factor+'-'+planet_name
             planet_house = h
             ck_str = ''
-            if p !='L' and p < 8:
-                ck_index = chara_karaka_dict.index(p)
-                ck_str = ' (' + cal_key_list[chara_karaka_names[ck_index]] +')' # Fixed V3.7.2
+            if p !='L' and p < const.KETU_ID:
+                if p in chara_karaka_dict:
+                    ck_str = [utils.resource_strings[f"{k}_str"] for k in chara_karaka_dict[p]]
+                    ck_str = '(' + '/'.join(ck_str) +')'
             v = utils.RAASI_LIST[h]+' ' +utils.to_dms(long,is_lat_long='plong') + ck_str
             horoscope_charts[planet_house] += planet_name +'\n'
             horoscope_info[k]= v
-        sub_planet_list = {'Kl':'kaala_str','Mr':'mrityu_str','Ap':'artha_str','Yg':'yama_ghantaka_str',
-                           'Gk':'gulika_str','Md':'maandi_str','Dm':'dhuma_str','Vp':'vyatipaata_str',
-                           'Pv':'parivesha_str','Ic':'indrachaapa_str','Uk':'upaketu_str'}
-        spl = charts.special_planet_longitudes_mixed_chart(dob, tob, place, varga_factor_1=dhasavarga_factor_1, 
-                                        chart_method_1=chart_method_1, varga_factor_2=dhasavarga_factor_2,
-                                        chart_method_2=chart_method_2)
-        self._special_planet_chart = ['' for _ in range(12)]
-        for sp,(h,long) in spl:
-            k = key_dhasa_factor+'-'+cal_key_list[sub_planet_list[sp]]+' ('+cal_key_list[sub_planet_list[sp].replace('_str','_short_str')]+')'
-            horoscope_info[k] = utils.RAASI_LIST[h] +' '+utils.to_dms(long,is_lat_long='plong')
-            self._special_planet_chart[h] += cal_key_list[sub_planet_list[sp].replace('_str','_short_str')]+'\n'
+
+        sub_planet_list_1 = {k:v+"_str" for k,v in utils._drik_upagrahas.items()}
+        sub_planet_list_2 = {k:v+"_str" for k,v in utils._chart_upagrahas.items()}
+        sp_start = planet_count
+        for sc, (sp, sp_str) in enumerate(sub_planet_list_1.items()):
+            k = f"{key_dhasa_factor}-{cal_key_list[sp_str]} ({cal_key_list[sp_str.replace('_str', '_short_str')]})"
+            sp_pos = planet_positions[sp_start]
+            if sp.lower()== sp_pos[0].lower():
+                v = sp_pos[1]
+            else:
+                raise ValueError(sp +' is not matching ' + sp_pos[0])
+            horoscope_info[k] = utils.RAASI_LIST[v[0]] + ' ' + utils.to_dms(v[1], is_lat_long='plong')
+            sp_start += 1
+        for sc, (sp, sp_str) in enumerate(sub_planet_list_2.items()):
+            k = f"{key_dhasa_factor}-{cal_key_list[sp_str]} ({cal_key_list[sp_str.replace('_str', '_short_str')]})"
+            sp_pos = planet_positions[sp_start]
+            if sp.lower()== sp_pos[0].lower():
+                v = sp_pos[1]
+            else:
+                raise ValueError(sp +' is not matching ' + sp_pos[0])
+            horoscope_info[k] = utils.RAASI_LIST[v[0]] + ' ' + utils.to_dms(v[1], is_lat_long='plong')
+            sp_start += 1
         for h in range(12):
-            vl = charts.varnada_lagna_mixed_chart(dob, tob, place, house_index=h+1,
-                        varga_factor_1=dhasavarga_factor_1,chart_method_1=chart_method_1,
-                        varga_factor_2=dhasavarga_factor_2,chart_method_2=chart_method_2,varnada_method=varnada_method,
-                        dhasa_progression_correction=dhasa_progression_correction)
+            vl = planet_positions_dict['V'+str(h+1)]
             k = key_dhasa_factor+'-'+cal_key_list['varnada_lagna_str']+' (V'+str(h+1)+') '
             horoscope_info[k] = utils.RAASI_LIST[vl[0]] +' '+utils.to_dms(vl[1],is_lat_long='plong') 
         spl_list = ['tri','chatur','pancha','prana','deha','mrityu','sookshma_tri','beeja','kshetra','tithi','yoga',
                     'yogi','avayogi','rahu_tithi']
-        for spl in spl_list:
-            from jhora.horoscope.chart import sphuta
-            vl = eval('sphuta.'+spl+
-                      '_sphuta_mixed_chart(dob,tob,place, varga_factor_1=dhasavarga_factor_1, chart_method_1=chart_method_1, varga_factor_2=dhasavarga_factor_2, chart_method_2=chart_method_2,dhasa_progression_correction=dhasa_progression_correction)'
-                      )
-            k = key_dhasa_factor+'-'+cal_key_list[spl+'_sphuta_str']+' '+cal_key_list['sphuta_str']
+        for k,v in utils._sphutas.items():
+            vl = planet_positions_dict[k]
+            k = (key_dhasa_factor+'-'+cal_key_list[v+'_sphuta_str']+' '+cal_key_list['sphuta_str']+
+                 ' ('+cal_key_list[v+'_sphuta_short_str']+') ')
             horoscope_info[k] = utils.RAASI_LIST[vl[0]] +' '+utils.to_dms(vl[1],is_lat_long='plong') 
         return horoscope_info, horoscope_charts,horoscope_ascendant_house
     def get_horoscope_information(self):#,language='en'):
@@ -688,267 +694,74 @@ class Horoscope():
         self._maandhi_data = {}; self._aayu_dhasa_type = -1; self._kaala_dhasa_type = -1
         cal_key_list = self.cal_key_list#self._get_calendar_resource_strings(language)
         global dhasavarga_dict
-        dhasavarga_dict={2:cal_key_list['hora_str'],
-                         3:cal_key_list['drekkanam_str'],
-                         4:cal_key_list['chaturthamsa_str'],
-                         5:cal_key_list['panchamsa_str'],
-                         6:cal_key_list['shashthamsa_str'],
-                         7:cal_key_list['saptamsam_str'],
-                         8:cal_key_list['ashtamsa_str'],
+        dhasavarga_dict={ 1: cal_key_list['raasi_str'],
                          9:cal_key_list['navamsam_str'],
-                         10:cal_key_list['dhasamsam_str'],
-                         11:cal_key_list['rudramsa_str'],
-                         12:cal_key_list['dhwadamsam_str'],
-                         16:cal_key_list['shodamsa_str'],
-                         20:cal_key_list['vimsamsa_str'],
-                         24:cal_key_list['chaturvimsamsa_str'],
-                         27:cal_key_list['nakshatramsa_str'],
-                         30:cal_key_list['thrisamsam_str'],
-                         40:cal_key_list['khavedamsa_str'],
-                         45:cal_key_list['akshavedamsa_str'],
-                         60:cal_key_list['sashtiamsam_str'],
-                         81:cal_key_list['nava_navamsa_str'],
-                         108:cal_key_list['ashtotharamsa_str'],
-                         144:cal_key_list['dwadas_dwadasamsa_str'],
         }
         jd = self.julian_day # V3.1.9 If Julian_Years to be used then years/months arguments should not be used
         place = drik.Place(self.place_name,self.latitude,self.longitude,self.timezone_offset)
         dob = drik.Date(self.Date.year,self.Date.month,self.Date.day)
         tob=self.birth_time
         tob_in_hrs = tob[0]+tob[1]/60.0+tob[2]/3600.0
-        """ TODO: 
-            Planet Positions return type should match for both Drik and SS
-            SS does not have Lagna/Ascendant in planet positions - should be included
-            retrograde depends on return types of planet positions
-        """
-        if self.calculation_type=='ss':
-            planet_positions = surya_sidhantha.planet_positions(jd, place)
-        else:
-            planet_positions = charts.rasi_chart(jd, place, years=self.years,months=self.months,
+        horoscope_charts = [[ ''  for _ in range(len(utils.RAASI_LIST))] for _ in range(len(dhasavarga_dict))]
+        horoscope_ascendant_houses = [-1 for _ in range(len(dhasavarga_dict))]
+        for ci,dcf in enumerate(dhasavarga_dict.keys()):
+            planet_positions = charts.divisional_chart(jd, place,divisional_chart_factor=dcf,
+                                                       years=self.years,months=self.months,exclude_non_planets=True,
                                                  sixty_hours=self.sixty_hours,pravesha_type=self.pravesha_type)
-        #retrograde_planets = charts.planets_in_retrograde(planet_positions)
-        _ascendant = planet_positions[0][1] #drik.ascendant(jd,place)
-        horoscope_charts = [[ ''  for _ in range(len(utils.RAASI_LIST))] for _ in range(len(dhasavarga_dict)+1)]
-        horoscope_ascendant_houses = [-1 for _ in range(len(const.division_chart_factors))]
-        chart_counter = 0
-        divisional_chart_factor=1
-        jd = self.julian_day#jd = self.julian_years #
-        #"""
-        self._get_sphuta(dob, tob, place, divisional_chart_factor)
-        abl = self._get_arudha_padhas(dob, tob, place, divisional_chart_factor=divisional_chart_factor,
-                                      years=self.years,months=self.months,sixty_hours=self.sixty_hours,
-                                                 pravesha_type=self.pravesha_type)
-        #print('_get_arudha_padhas returned',abl)
-        for bli,blk in const._arudha_lagnas_included_in_chart.items():
-            key = list(abl)[bli-1]
-            #print('arudha padha key',key,'value',abl[key])
-            value = abl[key]
-            horoscope_info[key] = value
-        #"""
-        jd = self.julian_years # V3.1.9 Special Lagna do not take years arguments - so use julian years
-        key = cal_key_list['raasi_str']+'-'+cal_key_list['bhava_lagna_str']+' ('+cal_key_list['bhava_lagna_short_str']+')'
-        value = drik.bhava_lagna(jd,place,divisional_chart_factor=divisional_chart_factor)
-        self._bhava_lagna_data[divisional_chart_factor] = value[0]
-        horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-        key = cal_key_list['raasi_str']+'-'+cal_key_list['hora_lagna_str']+' ('+cal_key_list['hora_lagna_short_str']+')'
-        value = drik.hora_lagna(jd,place,divisional_chart_factor=divisional_chart_factor)
-        self._hora_lagna_data[divisional_chart_factor] = value[0]
-        horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-        key = cal_key_list['raasi_str']+'-'+cal_key_list['ghati_lagna_str']+' ('+cal_key_list['ghati_lagna_short_str']+')'
-        value = drik.ghati_lagna(jd,place,divisional_chart_factor=divisional_chart_factor)
-        self._ghati_lagna_data[divisional_chart_factor] = value[0]
-        horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-        key = cal_key_list['raasi_str']+'-'+cal_key_list['vighati_lagna_str']+' ('+cal_key_list['vighati_lagna_short_str']+')'
-        value = drik.vighati_lagna(jd,place,divisional_chart_factor=divisional_chart_factor)
-        self._vighati_lagna_data[divisional_chart_factor] = value[0]
-        horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-        key = cal_key_list['raasi_str']+'-'+cal_key_list['pranapada_lagna_str']+' ('+cal_key_list['pranapada_lagna_short_str']+')'
-        value = drik.pranapada_lagna(jd,place,divisional_chart_factor=divisional_chart_factor)
-        self._pranapada_lagna_data[divisional_chart_factor] = value[0]
-        horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-        key = cal_key_list['raasi_str']+'-'+cal_key_list['indu_lagna_str']+' ('+cal_key_list['indu_lagna_short_str']+')'
-        value = drik.indu_lagna(jd,place,divisional_chart_factor=divisional_chart_factor)
-        #print('indu lagna',value)
-        self._indu_lagna_data[divisional_chart_factor] = value[0]
-        horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-        key = cal_key_list['raasi_str']+'-'+cal_key_list['bhrigu_bindhu_lagna_str']+' ('+cal_key_list['bhrigu_bindhu_lagna_short_str']+')'
-        value = drik.bhrigu_bindhu_lagna(jd,place,divisional_chart_factor=divisional_chart_factor)
-        self._bhrigu_bindhu_lagna_data[divisional_chart_factor] = value[0]
-        horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-        key = cal_key_list['raasi_str']+'-'+cal_key_list['kunda_lagna_str']+' ('+cal_key_list['kunda_lagna_short_str']+')'
-        value = drik.kunda_lagna(jd,place,divisional_chart_factor=divisional_chart_factor)
-        self._kunda_lagna_data[divisional_chart_factor] = value[0]
-        horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-        key = cal_key_list['raasi_str'] +'-'+cal_key_list['sree_lagna_str']+' ('+cal_key_list['sree_lagna_short_str']+')'
-        value = drik.sree_lagna(jd,place,divisional_chart_factor=divisional_chart_factor)
-        self._sree_lagna_data[divisional_chart_factor] = value[0]
-        horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-        key = cal_key_list['raasi_str'] +'-'+cal_key_list['varnada_lagna_str']+' ('+cal_key_list['varnada_lagna_short_str']+') '
-        value = charts.varnada_lagna(dob, tob, place,divisional_chart_factor=divisional_chart_factor)
-        self._varnada_lagna_data[divisional_chart_factor] = value[0]
-        horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-        key = cal_key_list['raasi_str'] +'-'+cal_key_list['maandi_str']+' ('+cal_key_list['maandi_short_str']+')'
-        value = drik.maandi_longitude(dob,tob,place,divisional_chart_factor=divisional_chart_factor)
-        self._maandhi_data[divisional_chart_factor]=value[0]
-        horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-        jd = self.julian_day # V3.1.9 revert to julian after special lagna calculations
-        asc_house = _ascendant[0]
-        horoscope_ascendant_houses[chart_counter] = asc_house
-        horoscope_charts[chart_counter][asc_house] += cal_key_list['ascendant_str'] +"\n"
-        horoscope_info[cal_key_list['raasi_str']+'-'+cal_key_list['ascendant_str']] = utils.RAASI_LIST[asc_house] +' ' + utils.to_dms(_ascendant[1],is_lat_long='plong')
-        chara_karaka_names = [x+'_str' for x in house.chara_karaka_names]
-        chara_karaka_dict = house.chara_karakas(planet_positions)
-        for p,(h,long) in planet_positions[1:]:
-            retStr = drik.get_planet_speed_sign(jd, place, p)
-            planet_name = utils.PLANET_NAMES[p]+retStr
-            k = cal_key_list['raasi_str']+'-'+planet_name
-            ck_str = ''
-            if p !='L' and p < 8:
-                ck_index = chara_karaka_dict.index(p)
-                ck_str = ' (' + cal_key_list[chara_karaka_names[ck_index]] +')'
-            v = utils.RAASI_LIST[h]+' '+ utils.to_dms(long,is_lat_long='plong') + ck_str
-            planet_house = h
-            horoscope_charts[chart_counter][planet_house] += planet_name + "\n"
-            relative_planet_house = house.get_relative_house_of_planet(asc_house, planet_house)
-            horoscope_info[k]=v # + str(relative_planet_house)
-        # Shadow Sub Planet information
-        #k = cal_key_list['raasi_str']+'-'+cal_key_list['upagraha_str']
-        #horoscope_info[k]=''
-        sub_planet_list_1 = {'kaala_str':'kaala_longitude','mrityu_str':'mrityu_longitude','artha_str':'artha_praharaka_longitude',
-                             'yama_ghantaka_str':'yama_ghantaka_longitude',
-                           'gulika_str':'gulika_longitude','maandi_str':'maandi_longitude'}
-        sub_planet_list_2 = ['dhuma','vyatipaata','parivesha','indrachaapa','upaketu']
-        place = drik.Place(self.place_name,self.latitude,self.longitude,self.timezone_offset)
-        sun_long = planet_positions[1][1][0]*30+planet_positions[1][1][1]
-        for sp,sp_func in sub_planet_list_1.items():
-            k = cal_key_list['raasi_str']+'-'+cal_key_list[sp]+' ('+cal_key_list[sp.replace('_str','_short_str')]+')'
-            v = eval('drik.'+sp_func+'(dob,tob,place,divisional_chart_factor=divisional_chart_factor)')
-            horoscope_info[k]= utils.RAASI_LIST[v[0]] +' '+utils.to_dms(v[1],is_lat_long='plong')
-        for sp in sub_planet_list_2:
-            k = cal_key_list['raasi_str']+'-'+cal_key_list[sp+'_str']+' ('+cal_key_list[sp+'_short_str']+')'
-            v = eval('drik.'+'solar_upagraha_longitudes(sun_long,sp,divisional_chart_factor=divisional_chart_factor)')
-            horoscope_info[k]= utils.RAASI_LIST[v[0]] +' '+utils.to_dms(v[1],is_lat_long='plong')
-        ## Dhasavarga Charts
-        jd = self.julian_day  #V3.1.9
-        for dhasavarga_factor in dhasavarga_dict.keys():
-            " planet_positions lost: [planet_id, planet_constellation, planet_longitude] " 
-            chart_counter += 1
-            planet_positions = charts.divisional_chart(jd, place, 
-                                                       divisional_chart_factor=dhasavarga_factor,
-                                                       years=self.years,months=self.months,sixty_hours=self.sixty_hours,
-                                                       calculation_type=self.calculation_type,pravesha_type=self.pravesha_type)
-            chara_karaka_dict = house.chara_karakas(planet_positions)
-            ascendant_navamsa = planet_positions[0][1]
-            asc_house = ascendant_navamsa[0]
-            horoscope_ascendant_houses[chart_counter] = asc_house
-            ascendant_longitude = ascendant_navamsa[1]
-            jd = self.julian_day #V3.1.9
-            horoscope_charts[chart_counter][asc_house] += cal_key_list['ascendant_str'] +"\n"
-            self._get_sphuta(dob, tob, place, divisional_chart_factor=dhasavarga_factor)
-            abl = self._get_arudha_padhas(dob, tob, place, divisional_chart_factor=dhasavarga_factor,
-                                      years=self.years,months=self.months,sixty_hours=self.sixty_hours,
-                                      pravesha_type=self.pravesha_type)
-            for bli,blk in const._arudha_lagnas_included_in_chart.items():
-                key = list(abl)[bli-1]
-                #print('arudha padha key',key,'value',abl[key])
-                value = abl[key]
-                horoscope_info[key] = value
-            jd = self.julian_years # V3.1.9 Special Lagna do not take years arguments - so use julian years
-            key = dhasavarga_dict[dhasavarga_factor] +'-'+cal_key_list['bhava_lagna_str']+' ('+cal_key_list['bhava_lagna_short_str']+')'
-            value = drik.bhava_lagna(jd,place,divisional_chart_factor=dhasavarga_factor)
-            self._bhava_lagna_data[dhasavarga_factor] = value[0] # V3.1.9
-            horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-            key = dhasavarga_dict[dhasavarga_factor] +'-'+cal_key_list['hora_lagna_str']+' ('+cal_key_list['hora_lagna_short_str']+')'
-            value = drik.hora_lagna(jd,place,divisional_chart_factor=dhasavarga_factor)
-            self._hora_lagna_data[dhasavarga_factor] = value[0]
-            horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-            key = dhasavarga_dict[dhasavarga_factor] +'-'+cal_key_list['ghati_lagna_str']+' ('+cal_key_list['ghati_lagna_short_str']+')'
-            value = drik.ghati_lagna(jd,place,divisional_chart_factor=dhasavarga_factor)
-            self._ghati_lagna_data[dhasavarga_factor] = value[0]
-            horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-            key = dhasavarga_dict[dhasavarga_factor] +'-'+cal_key_list['vighati_lagna_str']+' ('+cal_key_list['vighati_lagna_short_str']+')'
-            value = drik.vighati_lagna(jd,place,divisional_chart_factor=dhasavarga_factor)
-            self._vighati_lagna_data[dhasavarga_factor] = value[0]
-            horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-            key = dhasavarga_dict[dhasavarga_factor]+'-'+cal_key_list['pranapada_lagna_str']+' ('+cal_key_list['pranapada_lagna_short_str']+')'
-            value = drik.pranapada_lagna(jd,place,divisional_chart_factor=divisional_chart_factor)
-            self._pranapada_lagna_data[divisional_chart_factor] = value[0]
-            horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-            key = dhasavarga_dict[dhasavarga_factor]+'-'+cal_key_list['indu_lagna_str']+' ('+cal_key_list['indu_lagna_short_str']+')'
-            value = drik.indu_lagna(jd,place,divisional_chart_factor=divisional_chart_factor)
-            self._indu_lagna_data[divisional_chart_factor] = value[0]
-            horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-            key = dhasavarga_dict[dhasavarga_factor]+'-'+cal_key_list['bhrigu_bindhu_lagna_str']+' ('+cal_key_list['bhrigu_bindhu_lagna_short_str']+')'
-            value = drik.bhrigu_bindhu_lagna(jd,place,divisional_chart_factor=divisional_chart_factor)
-            self._bhrigu_bindhu_lagna_data[divisional_chart_factor] = value[0]
-            horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-            key = dhasavarga_dict[dhasavarga_factor]+'-'+cal_key_list['kunda_lagna_str']+' ('+cal_key_list['kunda_lagna_short_str']+')'
-            value = drik.kunda_lagna(jd,place,divisional_chart_factor=divisional_chart_factor)
-            self._kunda_lagna_data[divisional_chart_factor] = value[0]
-            horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-            key = dhasavarga_dict[dhasavarga_factor] +'-'+cal_key_list['sree_lagna_str']+' ('+cal_key_list['sree_lagna_short_str']+')'
-            jd = self.julian_day # V3.1.9 revert to julian after special lagna calculations
-            value = drik.sree_lagna(jd,place,divisional_chart_factor=dhasavarga_factor)
-            self._sree_lagna_data[dhasavarga_factor] = value[0] # V3.1.9
-            horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-            key = dhasavarga_dict[dhasavarga_factor] +'-'+cal_key_list['varnada_lagna_str']
-            value = charts.varnada_lagna(dob, tob, place,divisional_chart_factor=dhasavarga_factor)
-            self._varnada_lagna_data[dhasavarga_factor]=value[0]            
-            horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-            key = dhasavarga_dict[dhasavarga_factor] +'-'+cal_key_list['maandi_str']+' ('+cal_key_list['maandi_short_str']+')'
-            value = drik.maandi_longitude(dob,tob,place,divisional_chart_factor=dhasavarga_factor)
-            self._maandhi_data[dhasavarga_factor]=value[0]            
-            horoscope_info[key] = utils.RAASI_LIST[value[0]] +' ' + utils.to_dms(value[1],is_lat_long='plong')
-            horoscope_info[dhasavarga_dict[dhasavarga_factor] +'-'+cal_key_list['ascendant_str']] = \
-                utils.RAASI_LIST[ascendant_navamsa[0]]+' '+utils.to_dms(ascendant_navamsa[1],True,'plong')
-            for p,(h,long) in planet_positions[1:]:
-                retStr = drik.get_planet_speed_sign(jd, place, p)
-                planet_name = utils.PLANET_NAMES[p]+retStr
-                #print('dhasavarga_factor',dhasavarga_factor,'planet_name',planet_name)
-                k = dhasavarga_dict[dhasavarga_factor]+'-'+planet_name
+            planet_positions_dict = {p:(h,long) for p,(h,long) in planet_positions }
+            _ascendant = planet_positions[0][1] #drik.ascendant(jd,place)
+            horoscope_ascendant_houses[ci] = _ascendant[0]
+            key_dhasa_factor = cal_key_list['raasi_str']
+            jd = self.julian_day#jd = self.julian_years #
+            for p,(h,long) in planet_positions:
+                if p == const._ascendant_symbol:
+                    retStr = ''
+                    planet_name = cal_key_list['ascendant_str']
+                else:
+                    retStr = drik.get_planet_speed_sign(jd, place, p)
+                    planet_name = utils.PLANET_NAMES[p]+retStr
+                k = cal_key_list['raasi_str']+'-'+planet_name
+                v = utils.RAASI_LIST[h]+' ' +utils.to_dms(long,is_lat_long='plong')
                 planet_house = h
-                ck_str = ''
-                if p !='L' and p < 8:
-                    #print('D'+str(dhasavarga_factor),planet_name,chara_karaka_dict[p])
-                    ck_str = ' (' + cal_key_list[chara_karaka_names[chara_karaka_dict[p]]] +')'
-                v = utils.RAASI_LIST[h]+' ' +utils.to_dms(long,is_lat_long='plong') + ck_str
-                horoscope_charts[chart_counter][planet_house] += planet_name +'\n'
-                relative_planet_house = house.get_relative_house_of_planet(asc_house, planet_house)
-                horoscope_info[k]= v #+ [relative_planet_house]
-            sun_long = planet_positions[1][1][0]*30+planet_positions[1][1][1]
-            for sp,sp_func in sub_planet_list_1.items():
-                k = dhasavarga_dict[dhasavarga_factor]+'-'+cal_key_list[sp]+' ('+cal_key_list[sp.replace('_str','_short_str')]+')'
-                v = eval('drik.'+sp_func+'(dob,tob,place,divisional_chart_factor=dhasavarga_factor)')
-                horoscope_info[k] = utils.RAASI_LIST[v[0]] +' '+utils.to_dms(v[1],is_lat_long='plong') 
-            for sp in sub_planet_list_2:
-                k = dhasavarga_dict[dhasavarga_factor]+'-'+cal_key_list[sp+'_str']+' ('+cal_key_list[sp+'_short_str']+')'
-                v = eval('drik.'+'solar_upagraha_longitudes(sun_long,sp,divisional_chart_factor=divisional_chart_factor)')
-                horoscope_info[k] = utils.RAASI_LIST[v[0]] +' '+utils.to_dms(v[1],is_lat_long='plong')
-        return horoscope_info, horoscope_charts,horoscope_ascendant_houses#, vimsottari_dhasa_bhukti_info,ashtottari_dhasa_bhukti_info,narayana_dhasa_info
-    def get_varnada_lagna_for_chart(self,dob, tob, place, divisional_chart_factor=1, chart_method=None,
-                                    varnada_method=1, base_rasi=None, count_from_end_of_sign=None,
-                                    dhasa_progression_correction=0.0):
-        _vl_chart = ['' for _ in range(12)]
-        for h in range(12):
-            vl = charts.varnada_lagna(dob, tob, place, divisional_chart_factor=divisional_chart_factor,
-                        chart_method=chart_method,house_index=h+1,
-                        varnada_method=varnada_method,base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
-                        dhasa_progression_correction=dhasa_progression_correction)
-            _vl_chart[vl[0]] += 'V'+str(h+1)+'\n'
-        _varnada_chart_dict = {self.cal_key_list['varnada_lagna_str']:_vl_chart}
-        return _varnada_chart_dict
-    def get_varnada_lagna_for_mixed_chart(self,dob, tob, place,varga_factor_1=None, chart_method_1=None,
-                                          varga_factor_2=None, chart_method_2=None,
-                            varnada_method=1,dhasa_progression_correction=0.0):
-        _vl_chart = ['' for _ in range(12)]
-        for h in range(12):
-            vl = charts.varnada_lagna_mixed_chart(dob, tob, place, house_index=h+1,
-                        varga_factor_1=varga_factor_1, chart_method_1=chart_method_1,
-                        varga_factor_2=varga_factor_2, chart_method_2=chart_method_2, varnada_method=varnada_method,
-                                                  dhasa_progression_correction=dhasa_progression_correction)
-            _vl_chart[vl[0]] += 'V'+str(h+1)+'\n'
-        _varnada_chart_dict = {self.cal_key_list['varnada_lagna_str']:_vl_chart}
-        return _varnada_chart_dict
+                horoscope_charts[ci][planet_house] += planet_name + "\n"
+                horoscope_info[k]=v # + str(relative_planet_house)
+        return horoscope_info, horoscope_charts,horoscope_ascendant_houses    
+    def _get_varnada(self,dob,tob,place,divisional_chart_factor=1,chart_method=1,years=1,months=1,sixty_hours=1,
+                    pravesha_type=0,base_rasi=None,count_from_end_of_sign=None,dhasa_progression_correction=0.0,
+                    varnada_method=None,**kwargs):
+        varnada_positions = charts.varnada_lagna_longitudes(dob, tob, place, divisional_chart_factor=divisional_chart_factor,
+                                 chart_method=chart_method, base_rasi=base_rasi,
+                                 count_from_end_of_sign=count_from_end_of_sign,
+                                 dhasa_progression_correction=dhasa_progression_correction,
+                                 varnada_method=varnada_method)
+        si = 0
+        _varnada_dict = {}
+        for p,(h,long) in varnada_positions:
+            if isinstance(p,int): continue
+            v_str = "V"+str(si+1)
+            if p.upper() == v_str:
+                s = utils._varnada_lagnas[p]
+                key = self.cal_key_list['varnada_lagna_str']+' ('+p+')'
+                _varnada_dict[key] = utils.RAASI_LIST[h]+' '+utils.to_dms(long, is_lat_long='plong')
+                si += 1
+        return _varnada_dict
+    def _get_varnada_mixed_chart(self,dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
+                                 varnada_method=None,**kwargs):
+        varnada_positions = charts.sphuta_longitudes_mixed_chart(dob, tob, place,varga_factor_1=varga_factor_1,
+                                                                chart_method_1=chart_method_1,varga_factor_2=varga_factor_2,
+                                                                chart_method_2=chart_method_2,
+                                                                varnada_method=varnada_method,**kwargs)
+        si = 0
+        _varnada_dict = {}
+        for p,(h,long) in varnada_positions:
+            if isinstance(p,int): continue
+            v_str = "V"+str(si+1)
+            if p.upper() == v_str:
+                s = utils._varnada_lagnas[p]
+                key = self.cal_key_list['varnada_lagna_str']+' ('+p+')'
+                _varnada_dict[key] = utils.RAASI_LIST[h]+' '+utils.to_dms(long, is_lat_long='plong')
+                si += 1
+        return _varnada_dict
     def _get_shad_bala(self,dob,tob,place):
         from jhora.horoscope.chart import strength
         jd = utils.julian_day_number(dob, tob)
@@ -1011,47 +824,46 @@ class Horoscope():
         for p in range(9):
             sv3[utils.PLANET_NAMES[p]]=utils.SHODASAVARGAMSA_NAMES[sv[p][0]]+'\n('+sv[p][1]+ ')\n'+str(round(sv[p][2],1))
         return [sv1,sv2,dv,sv3]
+    def _get_sphuta(self,dob,tob,place,divisional_chart_factor=1,chart_method=1,years=1,months=1,sixty_hours=1,
+                    pravesha_type=0,base_rasi=None,count_from_end_of_sign=None,dhasa_progression_correction=0.0,**kwargs):
+        sphuta_positions = charts.sphuta_longitudes(dob, tob, place, divisional_chart_factor=divisional_chart_factor,
+                                 chart_method=chart_method, base_rasi=base_rasi,
+                                 count_from_end_of_sign=count_from_end_of_sign,
+                                 dhasa_progression_correction=dhasa_progression_correction)
+        si = 0
+        _sphuta_dict = {}
+        for p,(h,long) in sphuta_positions:
+            if isinstance(p,int): continue
+            if p.upper() == "S"+str(si+1):
+                s = const.sphuta_list[si]
+                key = self.cal_key_list[s+'_sphuta_str']+' '+self.cal_key_list['sphuta_str']+' ('+self.cal_key_list[s+'_sphuta_short_str']+')'
+                _sphuta_dict[key] = utils.RAASI_LIST[h]+' '+utils.to_dms(long, is_lat_long='plong')
+                si += 1
+        return _sphuta_dict
     def _get_sphuta_mixed_chart(self,dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
-                                dhasa_progression_correction=0.0):
-        from jhora.horoscope.chart import sphuta
-        _sphuta_dict = {}
-        for s in const.sphuta_list:
-            key = self.cal_key_list[s+'_sphuta_str']+' '+self.cal_key_list['sphuta_str']+' ('+self.cal_key_list[s+'_sphuta_short_str']+')'
-            fn = 'sphuta.'+s+'_sphuta_mixed_chart(dob,tob,place,varga_factor_1=varga_factor_1,chart_method_1=chart_method_1,varga_factor_2=varga_factor_2,chart_method_2=chart_method_2)'
-            value = eval(fn); value1=value[0]*30+value[1]+dhasa_progression_correction
-            value = drik.dasavarga_from_long(value1)
-            _sphuta_dict[key] = utils.RAASI_LIST[value[0]]+' '+utils.to_dms(value[1], is_lat_long='plong')
-        #self._sphuta_data.update(_sphuta_dict)
-        return _sphuta_dict
-    def _get_sphuta(self,dob,tob,place,divisional_chart_factor=1,chart_method=1,
-                                        base_rasi=None,count_from_end_of_sign=None,
-                                        dhasa_progression_correction=0.0):
-        from jhora.horoscope.chart import sphuta
-        _sphuta_dict = {}
-        for s in const.sphuta_list:
-            key = self.cal_key_list[s+'_sphuta_str']+' '+self.cal_key_list['sphuta_str']+' ('+self.cal_key_list[s+'_sphuta_short_str']+')'
-            fn = 'sphuta.'+s+'_sphuta(dob,tob,place,divisional_chart_factor=divisional_chart_factor,chart_method=chart_method,base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign)'
-            value = eval(fn); value1=value[0]*30+value[1]+dhasa_progression_correction
-            value = drik.dasavarga_from_long(value1)
-            _sphuta_dict[key] = utils.RAASI_LIST[value[0]]+' '+utils.to_dms(value[1], is_lat_long='plong')
-        #self._sphuta_data.update(_sphuta_dict)
-        return _sphuta_dict
-    def _get_arudha_padhas_mixed_chart(self,dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,chart_method_2=1,
                                        **kwargs):
+        sphuta_positions = charts.sphuta_longitudes_mixed_chart(dob, tob, place,varga_factor_1=varga_factor_1,
+                                                                chart_method_1=chart_method_1,varga_factor_2=varga_factor_2,
+                                                                chart_method_2=chart_method_2,**kwargs)
+        si = 0
+        _sphuta_dict = {}
+        for p,(h,long) in sphuta_positions:
+            if isinstance(p,int): continue
+            if p.upper() == "S"+str(si+1):
+                s = const.sphuta_list[si]
+                key = self.cal_key_list[s+'_sphuta_str']+' '+self.cal_key_list['sphuta_str']+' ('+self.cal_key_list[s+'_sphuta_short_str']+')'
+                _sphuta_dict[key] = utils.RAASI_LIST[h]+' '+utils.to_dms(long, is_lat_long='plong')
+                si += 1
+        return _sphuta_dict
+    def _get_arudha_padhas_mixed_chart(self,dob,tob,place,varga_factor_1=1,chart_method_1=1,varga_factor_2=1,
+                                       chart_method_2=1,**kwargs):
         from jhora.horoscope.chart import arudhas
         jd_at_dob = utils.julian_day_number(dob, tob)
         mixed_dvf = varga_factor_1*varga_factor_2
         planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1, chart_method_1, varga_factor_2, chart_method_2)
-        self._arudha_menu_dict = self._get_arudha_padhas_menu_dict(jd_at_dob, place,varga_factor_1=varga_factor_1,
-                                                                   chart_method_1=chart_method_1,varga_factor_2=varga_factor_2,
-                                                                   chart_method_2=chart_method_2,**kwargs)
         asc_house = planet_positions[0][1][0]
-        #ba = arudhas.bhava_arudhas_from_planet_positions(planet_positions)
         ba = arudhas.bhava_arudha_longitudes(jd_at_dob, place,varga_factor_1=varga_factor_1,chart_method_1=chart_method_1,
                                              varga_factor_2=varga_factor_2,chart_method_2=chart_method_2)
-        #for bk,bv in const._arudha_lagnas_included_in_chart.items():
-        #    bai = int(bv.replace('bhava_arudha_a','').replace('_str',''))
-        #    #self._arudha_lagna_data[mixed_dvf][ba[bai-1]] += '\n'+self.cal_key_list[bv.replace("_str","_short_str")]
         houses = [(h + asc_house) % 12 for h in range(12)]
         bhava_arudhas = {}
         for i, h in enumerate(houses):
@@ -1060,28 +872,23 @@ class Horoscope():
             bhava_arudhas['D'+str(varga_factor_1)+'xD'+str(varga_factor_2) +'-'\
                           +self.cal_key_list['bhava_arudha_a'+str(i+1)+'_str'] \
                           +' ('+self.cal_key_list['bhava_arudha_a'+str(i+1)+'_short_str']+')']=val
-        #ga = arudhas.graha_arudhas_from_planet_positions(planet_positions)
-        #self._graha_lagna_data['D'+str(varga_factor_1)+'xD'+str(varga_factor_2)+'-'+self.cal_key_list['ascendant_str']]=utils.RAASI_LIST[ga[0]]    
-        #for p in range(1,const._pp_count_upto_ketu):
-        #    self._graha_lagna_data['D'+str(varga_factor_1)+'xD'+str(varga_factor_2)+'-'+utils.PLANET_NAMES[p-1]]=utils.RAASI_LIST[ga[p]]
         return bhava_arudhas
     def _get_arudha_padhas_menu_dict(self,jd_at_dob,place,divisional_chart_factor=1,chart_method=1,**kwargs):
-        from jhora.horoscope.chart import arudhas
+        y,m,d,fh = utils.jd_to_gregorian(jd_at_dob); dob = drik.Date(y,m,d); tob=(fh,0,0)
+        from jhora.horoscope.chart import charts # arudhas
         arudha_base_list = [self.cal_key_list['ascendant_short_str']]+ utils.PLANET_SHORT_NAMES[:const._planets_upto_ketu]
         arudha_menu_dict = {self.cal_key_list[r]:[] for r in const._bhava_arudha_list}
         for ab,(key,_) in enumerate(arudha_menu_dict.items()):
-            #ba = arudhas.bhava_arudhas_from_planet_positions(planet_positions,arudha_base=ab)
-            ba = arudhas.bhava_arudha_longitudes(jd_at_dob, place, arudha_base=ab,divisional_chart_factor=divisional_chart_factor,
-                                                 chart_method=chart_method,**kwargs)
+            ba = charts.arudha_lagna_longitudes(dob, tob, place, divisional_chart_factor, chart_method, 
+                                                arudha_base=ab,**kwargs)
             ba_chart = ['' for _ in range(12)]
             astr = arudha_base_list[ab]
-            for p,long in enumerate(ba):
-                r,_ = drik.dasavarga_from_long(long)
+            for p,[_,(r,_)] in enumerate(ba):
+                #r,_ = drik.dasavarga_from_long(long)
                 ba_chart[r] += self.cal_key_list['bhava_arudha_a'+str(p+1)+'_short_str']+'\n' if ab==0 else astr+str(p+1)+'\n'
             for b in range(len(ba_chart)):
                 if ba_chart[b] != '' and ba_chart[b][-1]=='\n': ba_chart[b] = ba_chart[b][:-1]
             arudha_menu_dict[key] = ba_chart
-        #arudha_menu_dict = {self.cal_key_list['arudhas_str']:arudha_menu_dict}
         return arudha_menu_dict
     def _get_arudha_padhas(self,dob,tob,place,divisional_chart_factor=1,chart_method=1,
                            years=1,months=1,sixty_hours=1,pravesha_type=0,
@@ -1098,25 +905,22 @@ class Horoscope():
                                                                    divisional_chart_factor=divisional_chart_factor,
                                                                    chart_method=chart_method,**kwargs)
         asc_house = planet_positions[0][1][0]
-        #ba = arudhas.bhava_arudhas_from_planet_positions(planet_positions)
-        ba = arudhas.bhava_arudha_longitudes(jd_at_dob, place, divisional_chart_factor=divisional_chart_factor,
-                                             chart_method=chart_method,**kwargs)
+        ba = charts.arudha_lagna_longitudes(dob, tob, place, divisional_chart_factor, chart_method,**kwargs)
+
+        #ba = arudhas.bhava_arudha_longitudes(jd_at_dob, place, divisional_chart_factor=divisional_chart_factor,
+        #                                     chart_method=chart_method,**kwargs)
         self._arudha_lagna_data_kundali = ['' for _ in range(12)]
         for _,bv in const._arudha_lagnas_included_in_chart.items():
             bai = int(bv.replace('bhava_arudha_a','').replace('_str',''))
-            ba_z,_ = drik.dasavarga_from_long(ba[bai-1])
+            _,(ba_z,_) = ba[bai-1]
             self._arudha_lagna_data_kundali[ba_z] += '\n'+self.cal_key_list[bv.replace("_str","_short_str")]
         houses = [(h + asc_house) % 12 for h in range(12)]
         bhava_arudhas = {}
         for i, h in enumerate(houses):
-            ba_z,ba_l = drik.dasavarga_from_long(ba[i])
+            _,(ba_z,ba_l) = ba[i]
             val = utils.RAASI_LIST[ba_z]+' '+ utils.to_dms(ba_l,is_lat_long='plong')
             bhava_arudhas['D-'+str(divisional_chart_factor)+'-'+self.cal_key_list['bhava_arudha_a'+str(i+1)+'_str'] \
                           +' ('+self.cal_key_list['bhava_arudha_a'+str(i+1)+'_short_str']+')']=val
-        #ga = arudhas.graha_arudhas_from_planet_positions(planet_positions)
-        #self._graha_lagna_data['D'+str(divisional_chart_factor)+'-'+self.cal_key_list['ascendant_str']]=utils.RAASI_LIST[ga[0]]       
-        #for p in range(1,const._pp_count_upto_ketu):
-        #    self._graha_lagna_data['D'+str(divisional_chart_factor)+'-'+utils.PLANET_NAMES[p-1]]=utils.RAASI_LIST[ga[p]]
         return bhava_arudhas
     def _get_graha_dhasa_bhukthi(self,dob,tob,place):
         self._vimsottari_balance,_vimsottari_dhasa_bhkthi_info = self._get_vimsottari_dhasa_bhukthi(dob, tob, place)
@@ -1307,7 +1111,7 @@ class Horoscope():
     def _get_vimsottari_dhasa_bhukthi(self,dob,tob,place,**kwargs):#,divisional_chart_factor=1):
         jd = utils.julian_day_number(dob, tob)
         from jhora.horoscope.dhasa.graha import vimsottari
-        self._vimsottari_balance,db = vimsottari.get_vimsottari_dhasa_bhukthi(jd, place,**kwargs)
+        self._vimsottari_balance,db = vimsottari.get_dhasa_bhukthi(jd, place,**kwargs)
         dhasa_bhukti_info = []
         for row in db:
             lords = row[0]; _date=row[1]; dhasa_lord = lords[0]; bukthi_lord = lords[1]
@@ -1361,7 +1165,7 @@ class Horoscope():
     def _get_rasi_bhukthi_vimsottari_dhasa_bhukthi(self,dob,tob,place,**kwargs):
         jd = utils.julian_day_number(dob, tob)
         from jhora.horoscope.dhasa.graha import vimsottari
-        _,db = vimsottari.get_vimsottari_dhasa_bhukthi(jd, place,use_rasi_bhukthi_variation=True,**kwargs)
+        _,db = vimsottari.get_dhasa_bhukthi(jd, place,use_rasi_bhukthi_variation=True,**kwargs)
         dhasa_bhukti_info = []
         for row in db:
             lords = row[0]; _date=row[1]; dhasa_lord = lords[0]; bukthi_lord = lords[1]
@@ -1389,7 +1193,7 @@ class Horoscope():
     def _get_ashtottari_dhasa_bhukthi(self,dob,tob,place,**kwargs):
         from jhora.horoscope.dhasa.graha import ashtottari
         jd = utils.julian_day_number(dob,tob)
-        db = ashtottari.get_ashtottari_dhasa_bhukthi(jd, place,**kwargs)
+        db = ashtottari.get_dhasa_bhukthi(jd, place,**kwargs)
         dhasa_bhukti_info = []
         for row in db:
             lords = row[0]; _date=row[1]; dhasa_lord = lords[0]; bukthi_lord = lords[1]
@@ -1917,68 +1721,117 @@ class Horoscope():
                 dhasa_lord_str = utils.RAASI_LIST[dhasa_lord]; bukthi_lord_str =utils.RAASI_LIST[bukthi_lord] 
                 dhasa_bhukti_info.append((dhasa_lord_str+'-'+bukthi_lord_str,s_date_str))
         return dhasa_bhukti_info
-    def get_chara_karakas_for_chart(self,jd_at_dob, place, divisional_chart_factor=1, chart_method=None,base_rasi=None,
-                                    count_from_end_of_sign=None,dhasa_progression_correction=0.0):
+    def get_chara_karakas_for_chart(self, planet_positions,chara_karaka_method=None):
         _vl_chart = ['' for _ in range(12)]
-        planet_positions = charts.divisional_chart(jd_at_dob, place,divisional_chart_factor=divisional_chart_factor,
-                            chart_method=chart_method,base_rasi=base_rasi, count_from_end_of_sign=count_from_end_of_sign,
-                            dhasa_progression_correction=dhasa_progression_correction)
-        _karakas = get_chara_karakas(jd_at_dob, place)
-        for ki,k in enumerate(_karakas):
-            h = planet_positions[k+1][1][0]
-            _vl_chart[h] = self.cal_key_list[const.chara_karaka_names[ki]+'_short_str']+'\n'+_vl_chart[h]
-        _karaka_chart_dict = {self.cal_key_list['karakas_str']:_vl_chart}
+        # Chara karakas are computed (as before) from rasi chart
+        planet_to_karakas = charts.chara_karakas(planet_positions, chara_karaka_method)
+        # Safe lookup by planet_id instead of assuming list index = planet_id + 1
+        pos_map = {row[0]: row[1] for row in planet_positions}
+        for planet_id, karaka_names in planet_to_karakas.items():
+            if planet_id not in pos_map:
+                continue
+            h = pos_map[planet_id][0]
+            # Convert karaka names to localized short strings
+            karaka_labels = [
+                self.cal_key_list[f'{karaka_name}_short_str']
+                for karaka_name in karaka_names
+            ]
+            label_text = '\n'.join(karaka_labels)
+            if _vl_chart[h]:
+                _vl_chart[h] = label_text + '\n' + _vl_chart[h]
+            else:
+                _vl_chart[h] = label_text
+        _karaka_chart_dict = {self.cal_key_list['karakas_str']: _vl_chart}
         return _karaka_chart_dict
     def get_chara_karakas_for_mixed_chart(self,jd_at_dob, place,varga_factor_1=None, chart_method_1=None,
                                           varga_factor_2=None, chart_method_2=None,
-                                          dhasa_progression_correction=0.0):
+                                          dhasa_progression_correction=0.0,chara_karaka_method=None):
         _vl_chart = ['' for _ in range(12)]
         planet_positions = charts.mixed_chart(jd_at_dob, place, varga_factor_1=varga_factor_1, chart_method_1=chart_method_1,
                                 varga_factor_2=varga_factor_2, chart_method_2=chart_method_2,
                                                   dhasa_progression_correction=dhasa_progression_correction)
-        _karakas = get_chara_karakas(jd_at_dob, place,dhasa_progression_correction=dhasa_progression_correction)
-        for ki,k in enumerate(_karakas):
-            h = planet_positions[k+1][1][0]
-            _vl_chart[h] = self.cal_key_list[const.chara_karaka_names[ki]+'_short_str']+'\n'+_vl_chart[h]
-        _karaka_chart_dict = {self.cal_key_list['karakas_str']:_vl_chart}
+        # Chara karakas are computed (as before) from rasi chart
+        planet_to_karakas = charts.chara_karakas(planet_positions, chara_karaka_method)
+    
+        # Safe lookup by planet_id instead of assuming list index = planet_id + 1
+        pos_map = {row[0]: row[1] for row in planet_positions}
+    
+        for planet_id, karaka_names in planet_to_karakas.items():
+            if planet_id not in pos_map:
+                continue
+    
+            h = pos_map[planet_id][0]
+    
+            # Convert karaka names to localized short strings
+            karaka_labels = [
+                self.cal_key_list[f'{karaka_name}_short_str']
+                for karaka_name in karaka_names
+            ]
+    
+            label_text = '\n'.join(karaka_labels)
+    
+            if _vl_chart[h]:
+                _vl_chart[h] = label_text + '\n' + _vl_chart[h]
+            else:
+                _vl_chart[h] = label_text
+    
+        _karaka_chart_dict = {self.cal_key_list['karakas_str']: _vl_chart}
         return _karaka_chart_dict
     def get_special_lagnas_for_chart(self,jd_at_dob, place, divisional_chart_factor=1, chart_method=None,base_rasi=None,
                                     count_from_end_of_sign=None,dhasa_progression_correction=0.0):
         y,m,d,fh = utils.jd_to_gregorian(jd_at_dob);dob = drik.Date(y,m,d); tob = (fh,0,0)
-        spl_list = ['hora_lagna','bhava_lagna','ghati_lagna','vighati_lagna','sree_lagna',
-                   'pranapada_lagna','indu_lagna','bhrigu_bindhu_lagna','kunda_lagna','varnada_lagna',]
+        spl_dict = utils._special_lagnas
         _vl_chart = ['' for _ in range(12)]
-        for spl in spl_list:
-            if spl == 'varnada_lagna':
-                vl = eval('charts.'+spl+'(dob,tob,place,divisional_chart_factor=divisional_chart_factor,chart_method=chart_method,base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,dhasa_progression_correction=dhasa_progression_correction)')
-            else:
-                vl = eval('drik.'+spl+'(jd_at_dob,place,divisional_chart_factor=divisional_chart_factor,chart_method=chart_method,base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign)')
+        sp_longs = charts.special_lagna_longitudes(dob, tob, place, divisional_chart_factor=divisional_chart_factor,
+                                            chart_method=chart_method, base_rasi=base_rasi,
+                                            count_from_end_of_sign=count_from_end_of_sign,
+                                            dhasa_progression_correction=dhasa_progression_correction,
+                                            )
+        sp_longs_dict = {k:v for k,v in sp_longs}
+        for dsp,spl in spl_dict.items():
+            vl = sp_longs_dict[dsp]
             _vl_chart[vl[0]] += self.cal_key_list[spl+'_short_str'] +'\n'
         _special_lagna_dict = {self.cal_key_list['special_lagnas_str']:_vl_chart}
         return _special_lagna_dict 
     def get_special_lagnas_for_mixed_chart(self,jd_at_dob, place,varga_factor_1=None, chart_method_1=None,
                                           varga_factor_2=None, chart_method_2=None,dhasa_progression_correction=0.0):
         y,m,d,fh = utils.jd_to_gregorian(jd_at_dob);dob = drik.Date(y,m,d); tob = (fh,0,0)
-        spl_list = ['hora_lagna','bhava_lagna','ghati_lagna','vighati_lagna','sree_lagna',
-                   'pranapada_lagna','indu_lagna','bhrigu_bindhu_lagna','kunda_lagna','varnada_lagna',]
+        spl_dict = utils._special_lagnas
         _vl_chart = ['' for _ in range(12)]
-        for spl in spl_list:
-            if spl == 'varnada_lagna':
-                vl = eval('charts.'+spl+'_mixed_chart(dob,tob, place, varga_factor_1=varga_factor_1, chart_method_1=chart_method_1, varga_factor_2=varga_factor_2, chart_method_2=chart_method_2,dhasa_progression_correction=dhasa_progression_correction)')
-            else:
-                vl = eval('drik.'+spl+'_mixed_chart(jd_at_dob, place, varga_factor_1=varga_factor_1, chart_method_1=chart_method_1, varga_factor_2=varga_factor_2, chart_method_2=chart_method_2,dhasa_progression_correction=dhasa_progression_correction)')
+        sp_longs = charts.special_lagna_longitudes_mixed_chart(dob, tob, place, varga_factor_1=varga_factor_1,
+                                                            chart_method_1=chart_method_1, varga_factor_2=varga_factor_2,
+                                                            chart_method_2=chart_method_2,
+                                                            dhasa_progression_correction=dhasa_progression_correction)
+        sp_longs_dict = {k:v for k,v in sp_longs}
+        for dsp,spl in spl_dict.items():
+            vl = sp_longs_dict[dsp]
             _vl_chart[vl[0]] += self.cal_key_list[spl+'_short_str'] +'\n'
         _special_lagna_dict = {self.cal_key_list['special_lagnas_str']:_vl_chart}
-        return _special_lagna_dict
+        return _special_lagna_dict 
+    def get_menu_dict(self, planet_positions,menu_dict,menu_short_suffix='_short_str',menu_key=''):
+        planet_positions_dict = {k: v for k,v in planet_positions}
+        _vl_chart = ['' for _ in range(12)]
+        for sp,sp_str in menu_dict.items():
+            vl = planet_positions_dict[sp]
+            print(sp,sp_str,vl)
+            _vl_chart[vl[0]] += self.cal_key_list[sp_str+menu_short_suffix]+'\n'
+        menu_dict = {self.cal_key_list[menu_key] : [v.strip() for v in _vl_chart] }
+        return menu_dict
+        
     def get_sphutas_for_chart(self,jd_at_dob, place, divisional_chart_factor=1, chart_method=None,base_rasi=None,
                                     count_from_end_of_sign=None,dhasa_progression_correction=0.0):
         y,m,d,fh = utils.jd_to_gregorian(jd_at_dob);dob = drik.Date(y,m,d); tob = (fh,0,0)
         spl_list = ['tri','chatur','pancha','prana','deha','mrityu','sookshma_tri','beeja','kshetra','tithi','yoga',
                     'yogi','avayogi','rahu_tithi']
+        spl_dict = utils._sphutas
         _vl_chart = ['' for _ in range(12)]
-        for spl in spl_list:
-            from jhora.horoscope.chart import sphuta
-            vl = eval('sphuta.'+spl+'_sphuta(dob,tob,place,divisional_chart_factor=divisional_chart_factor,chart_method=chart_method,base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,dhasa_progression_correction=dhasa_progression_correction)')
+        sp_longs = charts.sphuta_longitudes(dob, tob, place, divisional_chart_factor=divisional_chart_factor,
+                                            chart_method=chart_method, base_rasi=base_rasi,
+                                            count_from_end_of_sign=count_from_end_of_sign,
+                                            dhasa_progression_correction=dhasa_progression_correction)
+        sp_longs_dict = {k:v for k,v in sp_longs}
+        for dsp,spl in spl_dict.items():
+            vl = sp_longs_dict[dsp]
             _vl_chart[vl[0]] += self.cal_key_list[spl+'_sphuta_short_str'] +'\n'
         _sphuta_menu_dict = {self.cal_key_list['sphuta_str']:_vl_chart}
         return _sphuta_menu_dict
@@ -1988,21 +1841,21 @@ class Horoscope():
         y,m,d,fh = utils.jd_to_gregorian(jd_at_dob);dob = drik.Date(y,m,d); tob = (fh,0,0)
         spl_list = ['tri','chatur','pancha','prana','deha','mrityu','sookshma_tri','beeja','kshetra','tithi','yoga',
                     'yogi','avayogi','rahu_tithi']
+        spl_dict = utils._sphutas
         _vl_chart = ['' for _ in range(12)]
-        for spl in spl_list:
-            from jhora.horoscope.chart import sphuta
-            vl = eval('sphuta.'+spl+'_sphuta_mixed_chart(dob,tob,place, varga_factor_1=varga_factor_1, chart_method_1=chart_method_1, varga_factor_2=varga_factor_2, chart_method_2=chart_method_2,dhasa_progression_correction=dhasa_progression_correction)')
+        sp_longs = charts.sphuta_longitudes_mixed_chart(dob, tob, place, varga_factor_1=varga_factor_1,
+                                                            chart_method_1=chart_method_1, varga_factor_2=varga_factor_2,
+                                                            chart_method_2=chart_method_2,
+                                                            dhasa_progression_correction=dhasa_progression_correction)
+        sp_longs_dict = {k:v for k,v in sp_longs}
+        for dsp,spl in spl_dict.items():
+            vl = sp_longs_dict[dsp]
             _vl_chart[vl[0]] += self.cal_key_list[spl+'_sphuta_short_str'] +'\n'
         _sphuta_menu_dict = {self.cal_key_list['sphuta_str']:_vl_chart}
         return _sphuta_menu_dict
-    def get_ava_saha_yoga_info_for_chart(self,jd_at_dob, place, divisional_chart_factor=1, chart_method=None,base_rasi=None,
-                                    count_from_end_of_sign=None,dhasa_progression_correction=0.0):
-        y,m,d,fh = utils.jd_to_gregorian(jd_at_dob);dob = drik.Date(y,m,d); tob = (fh,0,0)
+    def get_ava_saha_yoga_info_for_chart(self,planet_positions_dict):
         line_sep = '<br>'
-        from jhora.horoscope.chart import sphuta
-        yh,yl = sphuta.yogi_sphuta(dob,tob,place,divisional_chart_factor=divisional_chart_factor,chart_method=chart_method,
-                                   base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
-                                   dhasa_progression_correction=dhasa_progression_correction)
+        yh,yl = planet_positions_dict["S13"]
         ystr = self.cal_key_list['yogi_sphuta_str']+' '+self.cal_key_list['raasi_str']+':'+\
                 utils.RAASI_LIST[yh]+' '+self.cal_key_list['longitude_str']+':'+utils.to_dms(yl,is_lat_long='plong')
         ynak = drik.nakshatra_pada(yh*30+yl)
@@ -2014,9 +1867,7 @@ class Horoscope():
         sahayogi_planet = const._house_owners_list[yh]
         ystr += line_sep+self.cal_key_list['sahayogi_str']+' '+self.cal_key_list['planet_str']+':'+ \
                 utils.PLANET_NAMES[sahayogi_planet]
-        yh,yl = sphuta.avayogi_sphuta(dob,tob,place,divisional_chart_factor=divisional_chart_factor,chart_method=chart_method,
-                                      base_rasi=base_rasi,count_from_end_of_sign=count_from_end_of_sign,
-                                      dhasa_progression_correction=dhasa_progression_correction)
+        yh,yl = planet_positions_dict["S14"]
         ynak = drik.nakshatra_pada(yh*30+yl)
         ystr += line_sep+self.cal_key_list['avayogi_sphuta_str']+' '+self.cal_key_list['raasi_str']+':'+\
                 utils.RAASI_LIST[yh]+' '+self.cal_key_list['longitude_str']+':'+utils.to_dms(yl,is_lat_long='plong')
@@ -2033,10 +1884,14 @@ class Horoscope():
                                           dhasa_progression_correction=0.0):
         y,m,d,fh = utils.jd_to_gregorian(jd_at_dob);dob = drik.Date(y,m,d); tob = (fh,0,0)
         line_sep = '<br>'
-        from jhora.horoscope.chart import sphuta
-        yh,yl = sphuta.yogi_sphuta_mixed_chart(dob,tob,place, varga_factor_1=varga_factor_1, chart_method_1=chart_method_1,
-                                               varga_factor_2=varga_factor_2, chart_method_2=chart_method_2,
-                                               dhasa_progression_correction=dhasa_progression_correction)
+        npk = "S12"
+        y_full_rasi = charts.get_chart_element_longitude(jd_at_dob, place, divisional_chart_factor=1,
+                                                     dhasa_starting_planet=npk,
+                                                     dhasa_progression_correction=dhasa_progression_correction)
+        y_full = charts._get_non_planet_mixed_varga_position(non_planet_key=npk, non_planet_long=y_full_rasi,
+                                                    varga_factor_1=varga_factor_1, chart_method_1=chart_method_1,
+                                                    varga_factor_2=varga_factor_2, chart_method_2=chart_method_2)
+        yh,yl = drik.dasavarga_from_long(y_full)
         ystr = self.cal_key_list['yogi_sphuta_str']+' '+self.cal_key_list['raasi_str']+':'+\
                 utils.RAASI_LIST[yh]+' '+self.cal_key_list['longitude_str']+':'+utils.to_dms(yl,is_lat_long='plong')
         ynak = drik.nakshatra_pada(yh*30+yl)
@@ -2048,9 +1903,14 @@ class Horoscope():
         sahayogi_planet = const._house_owners_list[yh]
         ystr += line_sep+self.cal_key_list['sahayogi_str']+' '+self.cal_key_list['planet_str']+':'+ \
                 utils.PLANET_NAMES[sahayogi_planet]
-        yh,yl = sphuta.avayogi_sphuta_mixed_chart(dob,tob,place, varga_factor_1=varga_factor_1, chart_method_1=chart_method_1,
-                                                  varga_factor_2=varga_factor_2, chart_method_2=chart_method_2,
-                                                  dhasa_progression_correction=dhasa_progression_correction)
+        npk = "S13"
+        y_full_rasi = charts.get_chart_element_longitude(jd_at_dob, place, divisional_chart_factor=1,
+                                                     dhasa_starting_planet=npk,
+                                                     dhasa_progression_correction=dhasa_progression_correction)
+        y_full = charts._get_non_planet_mixed_varga_position(non_planet_key=npk, non_planet_long=y_full_rasi,
+                                                    varga_factor_1=varga_factor_1, chart_method_1=chart_method_1,
+                                                    varga_factor_2=varga_factor_2, chart_method_2=chart_method_2)
+        yh,yl = drik.dasavarga_from_long(y_full)
         ynak = drik.nakshatra_pada(yh*30+yl)
         ystr += line_sep+self.cal_key_list['avayogi_sphuta_str']+' '+self.cal_key_list['raasi_str']+':'+\
                 utils.RAASI_LIST[yh]+' '+self.cal_key_list['longitude_str']+':'+utils.to_dms(yl,is_lat_long='plong')
@@ -2062,20 +1922,47 @@ class Horoscope():
                 utils.PLANET_NAMES[yogi_planet]
         key = self.cal_key_list['yogi_sphuta_str']+', '+self.cal_key_list['avayogi_sphuta_str']+', '+self.cal_key_list['sahayogi_str']
         return {key:ystr}       
-    def get_sahams(self,planet_positions):
+    def get_sahams(self,jd_at_dob, place, divisional_chart_factor=1, chart_method=None,base_rasi=None,
+                                    count_from_end_of_sign=None,dhasa_progression_correction=0.0):
         _saham_info = {}
-        from jhora.horoscope.transit import saham
+        from jhora.horoscope.chart import charts
+        y,m,d,fh = utils.jd_to_gregorian(jd_at_dob);dob = drik.Date(y,m,d); tob = (fh,0,0)
+        sp_longs = charts.saham_longitudes(dob, tob, place, divisional_chart_factor=divisional_chart_factor,
+                                           chart_method=chart_method,base_rasi=base_rasi, 
+                                           count_from_end_of_sign=count_from_end_of_sign,
+                                dhasa_progression_correction=dhasa_progression_correction)
+        sp_longs_dict = {k:v for k,v in sp_longs}
+        _saham_info = {}
         _vl_chart = ['' for _ in range(12)]
-        for sah in const._saham_list:
-            sl = eval('saham.'+sah+'_saham(planet_positions)')
-            vl = drik.dasavarga_from_long(sl)
-            _vl_chart[vl[0]] += self.cal_key_list[sah+'_saham_short_str'] +'\n'
-            key = self.cal_key_list[sah+'_saham_str']+' '+self.cal_key_list['saham_str']
+        for sp,sp_func in utils._sahams.items():
+            vl = sp_longs_dict[sp]
+            _vl_chart[vl[0]] += self.cal_key_list[sp_func+'_saham_short_str'] +'\n'
+            key = self.cal_key_list[sp_func+'_saham_str']+' '+self.cal_key_list['saham_str']
             value = utils.RAASI_LIST[vl[0]]+' '+utils.to_dms(vl[1],is_lat_long='plong')
             _saham_info[key] = value
-            #print(key,value)
         _saham_menu_dict = {self.cal_key_list['saham_str']:_vl_chart}
-        return _saham_menu_dict, _saham_info        
+        return _saham_menu_dict, _saham_info
+    def get_sahams_mixed_chart(self,jd_at_dob, place,varga_factor_1=None, chart_method_1=None,
+                                          varga_factor_2=None, chart_method_2=None,
+                                          dhasa_progression_correction=0.0):
+        _saham_info = {}
+        from jhora.horoscope.chart import charts
+        y,m,d,fh = utils.jd_to_gregorian(jd_at_dob);dob = drik.Date(y,m,d); tob = (fh,0,0)
+        sp_longs = charts.saham_longitudes_mixed_chart(dob, tob, place, varga_factor_1=varga_factor_1,
+                                                            chart_method_1=chart_method_1, varga_factor_2=varga_factor_2,
+                                                            chart_method_2=chart_method_2,
+                                                            dhasa_progression_correction=dhasa_progression_correction)
+        sp_longs_dict = {k:v for k,v in sp_longs}
+        _saham_info = {}
+        _vl_chart = ['' for _ in range(12)]
+        for sp,sp_func in utils._sahams.items():
+            vl = sp_longs_dict[sp]
+            _vl_chart[vl[0]] += self.cal_key_list[sp_func+'_saham_short_str'] +'\n'
+            key = self.cal_key_list[sp_func+'_saham_str']+' '+self.cal_key_list['saham_str']
+            value = utils.RAASI_LIST[vl[0]]+' '+utils.to_dms(vl[1],is_lat_long='plong')
+            _saham_info[key] = value
+        _saham_menu_dict = {self.cal_key_list['saham_str']:_vl_chart}
+        return _saham_menu_dict, _saham_info
     def _get_sudarsana_chakra_dhasa(self,dob,tob,place,**kwargs):
         return self._get_sudharsana_chakra_dhasa(dob,tob,place,**kwargs)
     def _get_sudharsana_chakra_dhasa(self,dob,tob,place,**kwargs):
@@ -2209,13 +2096,18 @@ def get_chara_karakas(jd, place, years=1,months=1,sixty_hours=1,calculation_type
                       dhasa_progression_correction=0.0):
     rasi_planet_positions = charts.rasi_chart(jd, place, years, months, sixty_hours, calculation_type, pravesha_type,
                                               dhasa_progression_correction=dhasa_progression_correction)
+    return charts.chara_karakas(rasi_planet_positions)
     return house.chara_karakas(rasi_planet_positions)
 
 if __name__ == "__main__":
     horoscope_language = 'ta' # """ Matplotlib charts available only English"""
     utils.set_language(horoscope_language)
+    lang = 'ta'
+    _ayanamsa = "TRUE_PUSHYA"
+    drik.set_ayanamsa_mode(_ayanamsa)
+    drik.set_planet_list(set_rahu_ketu_as_true_nodes=True, include_western_planets=False)
     dob = drik.Date(1996,12,7); tob = (10,34,0); place = drik.Place('Chennai,IN',13.0389, 80.2619, +5.5)
-    chart_index = 8; dcf = 3; chart_method = 1; base_rasi=None; count_from_end_of_sign=None
+    chart_index = 1; dcf = 9; chart_method = 1; base_rasi=None; count_from_end_of_sign=None
     varga_factor_1 = 9; chart_method_1=1; varga_factor_2=12; chart_method_2=1
     jd_at_dob = utils.julian_day_number(dob, tob)
     from datetime import datetime
@@ -2225,9 +2117,33 @@ if __name__ == "__main__":
     #current_date_jd = utils.julian_day_number(drik.Date(y,m,d),(hh,mm,ss))
     current_date_jd = utils.julian_day_number(drik.Date(2026,3,19),(18,30,0))
     
-    a = Horoscope(place_with_country_code=place.Place,latitude=place.latitude,longitude=place.longitude,
+    a = Horoscope(place_with_country_code=place.name,latitude=place.latitude,longitude=place.longitude,
                   timezone_offset=place.timezone,date_in=drik.Date(dob[0],dob[1],dob[2]),birth_time="10:34:00",
                   language=horoscope_language)
+    ba = a.get_sahams(jd_at_dob, place, divisional_chart_factor=dcf, chart_method=chart_method)
+    print('sahams',ba)
+    exit()
+    pp = charts.divisional_chart(jd_at_dob,place,divisional_chart_factor=1,exclude_non_planets=False)
+    menu_title = "sphuta_str"
+    md = a.get_menu_dict(planet_positions=pp, menu_dict=utils._sphutas, menu_short_suffix="_sphuta_short_str", menu_key=menu_title)
+    print(a.cal_key_list[menu_title],md)
+    menu_title = "special_lagnas_str"
+    md = a.get_menu_dict(planet_positions=pp, menu_dict=utils._special_lagnas, menu_short_suffix="_short_str", menu_key=menu_title)
+    print(a.cal_key_list[menu_title],md)
+    exit()
+    h1,h2,h3 = a.get_horoscope_information_for_chart(chart_index=chart_index,divisional_chart_factor=dcf)
+    amd = a.get_varnada_lagna_for_chart(dob,tob, place, divisional_chart_factor=dcf, chart_method=chart_method)
+    print('varnada menu dict',amd)
+    sp = a.get_sphutas_for_chart(jd_at_dob, place, divisional_chart_factor=dcf)
+    print('sphuta dict',sp)
+    sp = a.get_special_lagnas_for_chart(jd_at_dob, place, divisional_chart_factor=dcf, chart_method=chart_method)
+    print('special lagnas',sp)
+    ba = a._get_arudha_padhas(dob, tob, place, divisional_chart_factor=dcf, chart_method=chart_method)
+    print('arudha kundali',a._arudha_lagna_data_kundali)
+    print('arudha lagna',ba)
+    ba = a.get_sahams(jd_at_dob, place, divisional_chart_factor=dcf, chart_method=chart_method)
+    print('sahams',ba)
+    exit()
     import time
     GRAHA_DHASA_PKG = "jhora.horoscope.dhasa.graha"
     RAASI_DHASA_PKG = "jhora.horoscope.dhasa.raasi"

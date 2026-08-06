@@ -146,7 +146,7 @@ class OptionDialog(QDialog):
         else:
             for mc in range(len(self._options_list)):
                 _caption = self._options_list[mc]
-                print(mc,_caption,self._default_options)
+                #print(mc,_caption,self._default_options)
                 self._options.append(QRadioButton(_caption))
                 if mc in [self._default_options]:
                     self._options[mc].setChecked(True)

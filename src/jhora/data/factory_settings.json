@@ -15,8 +15,7 @@
       ["ka", "Kannada"],
       ["ml", "Malayalam"]
     ],
-    "const_name": "_DEFAULT_LANGUAGE",
-    "adapter": "language_code"
+    "const_name": "_DEFAULT_LANGUAGE"
   },
   "include_uranus_to_pluto": {
     "label": "Include Uranus / Neptune / Pluto",
@@ -58,6 +57,16 @@
     "visible": true,
     "const_name": "apply_daylight_savings_correction"
   },
+  "maximum_search_places": {
+    "label": "Maximum search places to display",
+    "type": "int",
+    "default": 30,
+    "tab": "User",
+    "section": "location",
+    "order": 10,
+    "visible": 30,
+    "const_name": "maximum_queried_search_places"
+  },
   "database_engine": {
     "label": "Place Database Engine",
     "type": "choice",
@@ -80,18 +89,18 @@
       [11, "PICKLE (Population > 500, India >= 0)"],
       [12, "SQLITE (Population > 500, India >= 0)"],
       [0, "NONE"],
-      [13, "CSV_1K"],
-      [14, "PICKLE_1K"],
-      [15, "SQLITE_1K"],
-      [16, "CSV_1K_IN"],
-      [17, "PICKLE_1K_IN"],
-      [18, "SQLITE_1K_IN"],
-      [19, "CSV_10K"],
-      [20, "PICKLE_10K"],
-      [21, "SQLITE_10K"],
-      [22, "CSV_10K_IN"],
-      [23, "PICKLE_10K_IN"],
-      [24, "SQLITE_10K_IN"]
+      [13, "CSV (Population > 1000)"],
+      [14, "PICKLE (Population > 1000)"],
+      [15, "SQLITE (Population > 1000)"],
+      [16, "CSV (Population > 1000, India >= 0)"],
+      [17, "PICKLE (Population > 1000, India >= 0)"],
+      [18, "SQLITE (Population > 1000, India >= 0)"],
+      [19, "CSV (Population > 10,000)"],
+      [20, "PICKLE (Population > 10,000)"],
+      [21, "SQLITE (Population > 10,000)"],
+      [22, "CSV (Population > 10,000, India >= 0)"],
+      [23, "PICKLE (Population > 10,000, India >= 0)"],
+      [24, "SQLITE (Population > 10,000, India >= 0)"]
     ],
     "setter": "set_place_database_engine"
   },
@@ -126,26 +135,25 @@
       ["SIDM_USER", "SIDM_USER"],
       ["SUNDAR_SS", "SUNDAR_SS"]
     ],
-    "const_name": "_DEFAULT_AYANAMSA_MODE",
-    "adapter": "ayanamsa_name"
+    "const_name": "_DEFAULT_AYANAMSA_MODE"
   },
   "dhasa_year_duration_default": {
     "label": "Dhasa Year Duration",
     "type": "choice",
-    "default": "TRUE_SIDEREAL_YEAR",
+    "default": 2,
     "tab": "User",
     "section": "calculation",
     "order": 20,
     "visible": true,
     "choices": [
-      ["TRUE_SIDEREAL_YEAR", "TRUE_SIDEREAL_YEAR"],
-      ["MEAN_SIDEREAL_YEAR", "MEAN_SIDEREAL_YEAR"],
-      ["MEAN_TROPICAL_YEAR", "MEAN_TROPICAL_YEAR"],
-      ["TRUE_TROPICAL_YEAR", "TRUE_TROPICAL_YEAR"],
-      ["SAVANA_YEAR", "SAVANA_YEAR"],
-      ["MEAN_LUNAR_YEAR", "MEAN_LUNAR_YEAR"],
-      ["TRUE_LUNAR_YEAR", "TRUE_LUNAR_YEAR"],
-      ["GREGORIAN_YEAR", "GREGORIAN_YEAR"]
+      [1, "MEAN_SIDEREAL_YEAR"],
+      [2, "TRUE_SIDEREAL_YEAR"],
+      [3, "MEAN_TROPICAL_YEAR"],
+      [4, "TRUE_TROPICAL_YEAR"],
+      [5, "SAVANA_YEAR"],
+      [6, "MEAN_LUNAR_YEAR"],
+      [7, "TRUE_LUNAR_YEAR"],
+      [8, "GREGORIAN_YEAR"]
     ],
     "const_name": "dhasa_year_duration_default",
     "enum_class": "DHASA_YEAR_DURATION",
@@ -160,9 +168,9 @@
     "order": 30,
     "visible": true,
     "choices": [
-      ["PROSPECTIVE_0_to_360_JHORA", "PROSPECTIVE_0_to_360_JHORA"],
-      ["MIDPOINT", "MIDPOINT"],
-      ["RETROSPECTIVE_360_to_0", "RETROSPECTIVE_360_to_0"]
+      [1, "PROSPECTIVE_0_to_360_JHORA"],
+      [0, "MIDPOINT"],
+      [-1, "RETROSPECTIVE_360_to_0"]
     ],
     "const_name": "savana_year_method_default",
     "enum_class": "SAVANA_YEAR_METHOD",
@@ -177,8 +185,8 @@
     "order": 40,
     "visible": true,
     "choices": [
-      ["TITHI_BOUNDARY", "TITHI_BOUNDARY"],
-      ["TITHI_AT_DOB", "TITHI_AT_DOB"]
+      [1, "TITHI_BOUNDARY"],
+      [2, "TITHI_AT_DOB"]
     ],
     "const_name": "true_lunar_year_method_default",
     "enum_class": "TRUE_LUNAR_YEAR_METHOD",
@@ -214,8 +222,7 @@
       ["W", "Whole Sign - (0,15,30),(30,45,60) - Same as Rasi Chart"],
       ["T", "Polich/Page (topocentric system)"]
     ],
-    "const_name": "bhaava_madhya_method",
-    "adapter": "house_method_key"
+    "const_name": "bhaava_madhya_method"
   },
   "include_special_and_arudha_lagna_in_charts": {
     "label": "Include special & arudha lagna in charts",
@@ -313,27 +320,35 @@
   },
   "scorpio_owner_for_dhasa_calculations": {
     "label": "Scorpio owner for dhasa calculations",
-    "type": "string",
-    "default": "",
+    "type": "choice",
+    "default": null,
+	"choices": [
+	    [null, "None"],
+	    [2, "Mars"],
+	    [8, "Ketu"]
+	  ],
     "tab": "Advanced",
     "section": "tradition_overrides",
     "order": 50,
-    "visible": false,
+    "visible": true,
     "nullable": true,
-    "const_name": "scorpio_owner_for_dhasa_calculations",
-    "adapter": "optional_string"
+    "const_name": "scorpio_owner_for_dhasa_calculations"
   },
   "aquarius_owner_for_dhasa_calculations": {
     "label": "Aquarius owner for dhasa calculations",
-    "type": "string",
-    "default": "",
+    "type": "choice",
+    "default": null,
+	"choices": [
+	    [null, "None"],
+	    [2, "Saturn"],
+	    [8, "Rahu"]
+	  ],
     "tab": "Advanced",
     "section": "tradition_overrides",
     "order": 60,
-    "visible": false,
+    "visible": true,
     "nullable": true,
-    "const_name": "aquarius_owner_for_dhasa_calculations",
-    "adapter": "optional_string"
+    "const_name": "aquarius_owner_for_dhasa_calculations"
   },
   "use_kp_dictionary_for_lords_calculation": {
     "label": "Use KP dictionary for lords calculation",
@@ -345,11 +360,38 @@
     "visible": true,
     "const_name": "use_kp_dictionary_for_lords_calculation"
   },
+  "use_default_house_owner_for_saham_calculation": {
+    "label": "Use default house owners for Saham Calculation",
+    "description": "To match Jagannatha Hora calculations keep this checked.\n Uncheck to use graha/rasi strengths to decide house owners.",
+    "type": "bool",
+    "default": true,
+    "tab": "Advanced",
+    "section": "tradition_overrides",
+    "order": 80,
+    "visible": true,
+    "const_name": "use_default_house_owner_for_saham_calculation"
+  },
+  "ashtakavarga_rasimana_multipliers": {
+    "label": "Choose Rasimana multiplier methodss - PVR or Alternate",
+    "description":"NOTE: PVR Book gives Rasimana Multipliers as (7, 10, 8, 4, 10, 6, 7, 8, 9, 5, 11, 12)\nWhereas: Ref: \n\t1. https://astrobix.com/learn/360-shodhya-pinda-of-ashtakavarga.html and \n\t 2. https://www.horosoft.net/learnastro_Zodiacal_Planetary_Products.html \ngives Rasimana multipliers as (7, 10, 8, 4, 10, 5, 7, 8, 9, 5, 11, 12)\nNotice: Virgo multipler is 6 in PVR's book and is 5 in above references",
+    "type": "choice",
+    "default": 2,
+    "tab": "Advanced",
+    "section": "Shodhaya Pinda Rasimana multipler methods",
+    "order": 80,
+    "visible": true,
+    "choices": [
+      [1, "Rasimana Multiplier from PVR Book (Virgo=6)"],
+      [2, "Rasimana Multiplier from Alternate Sources (Virgo=5)"]
+    ],
+    "enum_class": "RASIMANA_MULTIPLIER_OPTION",
+    "const_name": "ashtakavarga_rasimana_multipliers"
+  },
   "planet_position_reference_frame": {
     "label": "Planet Position Reference Frame",
     "type": "choice",
     "default": true,
-    "tab": "Planet Calculation",
+    "tab": "Planet Calculations",
     "section": "planet_positions",
     "order": 10,
     "visible": true,
@@ -364,7 +406,7 @@
     "label": "Planet Position Type",
     "type": "choice",
     "default": true,
-    "tab": "Planet Calculation",
+    "tab": "Planet Calculations",
     "section": "planet_positions",
     "order": 20,
     "visible": true,
@@ -379,7 +421,7 @@
     "label": "Use Aberration of Light",
     "type": "bool",
     "default": true,
-    "tab": "Planet Calculation",
+    "tab": "Planet Calculations",
     "section": "planet_positions",
     "order": 30,
     "visible": true,
@@ -390,7 +432,7 @@
     "label": "Use Gravitational Deflection",
     "type": "bool",
     "default": true,
-    "tab": "Planet Calculation",
+    "tab": "Planet Calculations",
     "section": "planet_positions",
     "order": 40,
     "visible": true,
@@ -401,7 +443,7 @@
     "label": "Use Nutation",
     "type": "bool",
     "default": true,
-    "tab": "Planet Calculation",
+    "tab": "Planet Calculations",
     "section": "planet_positions",
     "order": 50,
     "visible": true,
@@ -412,7 +454,7 @@
     "label": "Rahu / Ketu Node Type",
     "type": "choice",
     "default": true,
-    "tab": "Planet Calculation",
+    "tab": "Planet Calculations",
     "section": "nodes",
     "order": 10,
     "visible": true,
@@ -427,7 +469,7 @@
     "label": "Use Refraction for Rise / Set",
     "type": "bool",
     "default": false,
-    "tab": "Planet Calculation",
+    "tab": "Planet Calculations",
     "section": "rise_set",
     "order": 10,
     "visible": true,
@@ -438,7 +480,7 @@
     "label": "Disc Reference for Rise / Set",
     "type": "choice",
     "default": true,
-    "tab": "Planet Calculation",
+    "tab": "Planet Calculations",
     "section": "rise_set",
     "order": 20,
     "visible": true,
@@ -453,12 +495,55 @@
     "label": "Use Hindu Rising",
     "type": "bool",
     "default": true,
-    "tab": "Planet Calculation",
+    "tab": "Planet Calculations",
     "section": "rise_set",
     "order": 30,
     "visible": true,
     "const_name": "RISE_SET_HINDU_RISING",
     "description": "Uses the Hindu sunrise convention. When enabled, rise/set may not follow plain astronomical interpretation exactly."
+  },
+  "chara_karaka_default_method": {
+    "label": "Chara Karaka Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Planet Calculations",
+    "section": "Chara Karaka Methods",
+    "order": 90,
+    "visible": true,
+    "description": "Choose Chara Karaka Methods",
+    "choices": [
+      [1, "Eight Chara Karakas "],
+      [2, "Seven chara karakas [No PiK] - Sri KN Rao"],
+      [3, "Seven chara karakas [PK merged with MK]"],
+      [4, "Mixed seven/eight chara karakas of Parasara"]
+    ],
+    "const_name": "chara_karaka_default_method"
+  },
+  "vyatipada_calculation_method": {
+    "label": "Vyatipada Calculation Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Planet Calculations",
+    "section": "Vyatipada Methods",
+    "order": 100,
+    "visible": true,
+    "description": "Choose Vyatipada Calculation Method",
+    "choices": [
+      [1, "Vyatipada = 360.0 - dhuma"],
+      [2, "Vyatipada = (dhuma + 53 + 2.0 / 3.0)"]
+      ],
+    "const_name": "vyatipada_calculation_method"
+  },
+  "special_lagna_continuity": {
+    "label": "Special Lagna Continuity",
+    "type": "bool",
+    "default": true,
+    "tab": "Planet Calculations",
+    "section": "Special Lagna Calculations",
+    "order": 100,
+    "visible": true,
+    "description": "For special lagna calculations if sunrise time is used,\nthere is a discontinuity of about 1 degree.\nCheck this, to use birth time instead.",
+    "const_name": "special_lagna_continuity"
   },
   "skip_using_girls_varna_for_minimum_tamil_porutham": {
     "label": "Skip girl's varna for minimum Tamil porutham",
@@ -478,8 +563,7 @@
     "section": "compatibility",
     "order": 20,
     "visible": false,
-    "const_name": "mandatory_compatibility_south_list",
-    "adapter": "int_list"
+    "const_name": "mandatory_compatibility_south_list"
   },
   "compatibility_minimum_score_north": {
     "label": "Compatibility minimum score north",
@@ -520,6 +604,23 @@
     "order": 60,
     "visible": false,
     "const_name": "compatibility_maximum_score_south"
+  },
+  "default_dasha_sesham_method": {
+    "label": "Sesham Method - Nakshathra Dasas",
+    "type": "choice",
+    "default": 1,
+    "tab": "Dhasa Methods",
+    "section": "Calculation Methods",
+    "order": 5,
+    "visible": true,
+    "choices": [
+      [1, "Standard Dasa Sesham - Moon Elapsed Duration"],
+      [2, "Reverse Dasa Sesham - Moon Remaining Duration"],
+      [3, "No Dasa Sesham - Start at Birth"]
+    ],
+    "const_name": "default_dasha_sesham_method",
+    "enum_class": "DASHA_SESHAM_METHOD",
+    "description": "Choose dasa sesham method. \nStandard = Moon Elapsed Duration; \nReverse = Moon Remaining Duration; \nNo Dasa Sesham = Start at Birth."
   },
   "ashtakavarga_dhasa_method": {
     "label": "Ashtakavarga Dhasa Method",
@@ -577,7 +678,7 @@
   "aayu_type": {
     "label": "Aayu Dhasa Type",
     "type": "choice",
-    "default": "NONE",
+    "default": null,
     "tab": "Dhasa Methods",
     "section": "Calculation Methods",
     "order": 5,
@@ -622,6 +723,23 @@
     "const_name": "TARA_TYPE_DEFAULT",
     "enum_class": "TARA_TYPE"
   },
+  "varnada_method_default": {
+    "label": "Varnada Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Dhasa Methods",
+    "section": "Calculation Methods",
+    "order": 25,
+    "visible": true,
+    "choices": [
+      [1, "BV_RAMAN"],
+      [2, "SHARMA_SANTHANAM"],
+      [3,"SANJAY_RATH"],
+      [4,"JHA_PANDEY"]
+    ],
+    "const_name": "varnada_method_default",
+    "enum_class": "VARNADA_METHOD"
+  },
   "chara_type": {
     "label": "Chara Dhasa Type",
     "type": "choice",
@@ -631,11 +749,11 @@
     "order": 20,
     "visible": true,
     "choices": [
-      [1, "PVN_RAO"],
-      [2, "KN_RAO"],
-      [3, "IRANGATTI_MALE1"],
-      [4, "IRANGATTI_MALE2"],
-      [5, "MIND_SUTRA"]
+      [1, "Parasari / PVN Rao Method"],
+      [2, "K.N. Rao Method"],
+      [3, "Irangatti Rangacharya - Male-1 Method"],
+      [4, "Irangatti Rangacharya - Male-2 Method"],
+      [5, "Mind Sutra Method"]
     ],
     "const_name": "CHARA_TYPE_DEFAULT",
     "enum_class": "CHARA_TYPE"
@@ -701,5 +819,607 @@
     ],
     "const_name": "PADHANADHAMSA_TYPE_DEFAULT",
     "enum_class": "PADHANADHAMSA_TYPE"
+  },
+"ashtakavarga_reverse_ashtakavarga": {
+    "label": "Reverse the ashtakavarga",
+    "type": "bool",
+    "default": false,
+    "tab": "Planet Calculations",
+    "section": "Ashtaka Varga Calculation",
+    "order": 40,
+    "visible": true,
+    "const_name": "ashtakavarga_reverse_ashtakavarga",
+    "description": "Swaps the roles of contributing and receiving planets. \nNormally, we find houses relative to reference planet Y where target planet X contributes a point. \nReversing this swaps X and Y ('from' becomes 'of' and vice versa)."
+  },
+  "ashtakavarga_consolidate_houses": {
+    "label": "Consolidate Ashtakavarga houses instead of signs",
+    "type": "bool",
+    "default": false,
+    "tab": "Planet Calculations",
+    "section": "Ashtaka Varga Calculation",
+    "order": 41,
+    "visible": true,
+    "const_name": "ashtakavarga_consolidate_houses",
+    "description": "When computing the Samudaya Ashtakavarga (SAV), sums up points by relative house offsets \nfrom each planet rather than absolute zodiac signs."
+  },
+  "ashtakavarga_include_lagna_as_planet": {
+    "label": "Use 8 ashtakavargas. Include Lagna in calculation.",
+    "type": "bool",
+    "default": false,
+    "tab": "Planet Calculations",
+    "section": "Ashtaka Varga Calculation",
+    "order": 42,
+    "visible": true,
+    "const_name": "ashtakavarga_include_lagna_as_planet",
+    "description": "Includes Lagna's individual Ashtakavarga (8 independent charts in total)\n when summing up the final Samudaya Ashtakavarga (SAV) instead of just the standard 7 planets."
+  },
+  "p_v_moon_benefic_9_from_moon": {
+    "label": "Moon is benefic in 9th from Moon.",
+    "type": "bool",
+    "default": true,
+    "tab": "Planet Calculations",
+    "section": "Ashtaka Varga Calculation - For Varahamihira definitions: Uncheck these options.",
+    "order": 43,
+    "visible": true,
+    "const_name": "p_v_moon_benefic_9_from_moon",
+    "description": "Varahamihira (Brihat Jataka) considers the Moon benefic in the 9th house from itself,\n whereas Parasara considers it malefic (absent from the Bindu count)."
+  },
+  "p_v_moon_malefic_9_from_mars": {
+    "label": "Moon is malefic in 9th from Mars.",
+    "type": "bool",
+    "default": true,
+    "tab": "Planet Calculations",
+    "section": "Ashtaka Varga Calculation - For Varahamihira definitions: Uncheck these options.",
+    "order": 44,
+    "visible": true,
+    "const_name": "p_v_moon_malefic_9_from_mars",
+    "description": "Varahamihira considers the Moon malefic in the 9th house from Mars,\n whereas Parasara considers it benefic (included in the Bindu count)."
+  },
+  "p_v_moon_benefic_2_from_jupiter": {
+    "label": "Moon is benefic in 2nd from Jupiter.",
+    "type": "bool",
+    "default": true,
+    "tab": "Planet Calculations",
+    "section": "Ashtaka Varga Calculation - For Varahamihira definitions: Uncheck these options.",
+    "order": 45,
+    "visible": true,
+    "const_name": "p_v_moon_benefic_2_from_jupiter",
+    "description": "Varahamihira considers the Moon benefic in the 2nd house from Jupiter,\n whereas Parasara considers it malefic."
+  },
+  "p_v_moon_malefic_12_from_jupiter": {
+    "label": "Moon is malefic in 12th from Jupiter.",
+    "type": "bool",
+    "default": true,
+    "tab": "Planet Calculations",
+    "section": "Ashtaka Varga Calculation - For Varahamihira definitions: Uncheck these options.",
+    "order": 46,
+    "visible": true,
+    "const_name": "p_v_moon_malefic_12_from_jupiter",
+    "description": "Varahamihira considers the Moon malefic in the 12th house from Jupiter,\n whereas Parasara considers it benefic."
+  },
+  "p_v_venus_benefic_4_from_mars": {
+    "label": "Venus is benefic in 4th from Mars.",
+    "type": "bool",
+    "default": true,
+    "tab": "Planet Calculations",
+    "section": "Ashtaka Varga Calculation - For Varahamihira definitions: Uncheck these options.",
+    "order": 47,
+    "visible": true,
+    "const_name": "p_v_venus_benefic_4_from_mars",
+    "description": "Varahamihira considers Venus benefic in the 4th house from Mars,\n whereas Parasara considers it malefic."
+  },
+  "p_v_venus_malefic_5_from_mars": {
+    "label": "Venus is malefic in 5th from Mars.",
+    "type": "bool",
+    "default": true,
+    "tab": "Planet Calculations",
+    "section": "Ashtaka Varga Calculation - For Varahamihira definitions: Uncheck these options.",
+    "order": 48,
+    "visible": true,
+    "const_name": "p_v_venus_malefic_5_from_mars",
+    "description": "Varahamihira considers Venus malefic in the 5th house from Mars,\n whereas Parasara considers it benefic."
+  },
+  "d2_chart_method_default": {
+    "label": "D2 Hora Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 2,
+    "visible": true,
+    "choices": [
+      [1, "Parasara hora with parivritti & even side reversal (Uma Shambu)"],
+      [2, "Traditional Parasara (Only Le & Cn)"],
+      [3, "Raman Method (1st/11th, day/night)"],
+      [4, "Parivritti Dwaya (Bicyclical Hora)"],
+      [5, "Kashinatha Hora (ownership day/night)"],
+      [6, "Somanatha method (parivritti alternate)"]
+    ],
+    "const_name": "d2_chart_method_default",
+    "enum_class": "D2_CHART_METHOD",
+    "description": "Choose D2 Hora chart method."
+  },
+  "d3_chart_method_default": {
+    "label": "D3 Drekkana Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 3,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara with parivritti and even sign reversal (Uma Shambu)"],
+        [2, "Parivritti Traya"],
+        [3, "Somanatha method (parivritti alternate)"],
+        [4, "Jaganaatha method"],
+        [5, "Parasara Parivritti and Even sign reverse"]
+    ],
+    "const_name": "d3_chart_method_default",
+    "enum_class": "D3_CHART_METHOD",
+    "description": "Choose D3 Drekkana chart method."
+  },
+  "d4_chart_method_default": {
+    "label": "D4 Chathurthamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 4,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara"],
+        [2, "Parivritti Cyclic"],
+        [3, "Parivritti Even Reverse"],
+        [4, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d4_chart_method_default",
+    "enum_class": "D4_CHART_METHOD",
+    "description": "Choose D4 Chathurthamsa chart method."
+  },
+  "d5_chart_method_default": {
+    "label": "D5 Panchamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 5,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara"],
+        [2, "Parivritti Cyclic"],
+        [3, "Parivritti Even Reverse"],
+        [4, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d5_chart_method_default",
+    "enum_class": "D5_CHART_METHOD",
+    "description": "Choose D5 Panchamsa chart method."
+  },
+  "d6_chart_method_default": {
+    "label": "D6 Sashtamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 6,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara"],
+        [2, "Parivritti Cyclic"],
+        [3, "Parivritti Even Reverse"],
+        [4, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d6_chart_method_default",
+    "enum_class": "D6_CHART_METHOD",
+    "description": "Choose D6 Sashtamsa chart method."
+  },  
+  "d7_chart_method_default": {
+    "label": "D7 Sapthamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 7,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara (even start from 7th and go forward)"],
+        [2, "Traditional Parasara (even start from 7th and go backward)"],
+        [3, "Traditional Parasara (even reverse but end in 7th)"],
+        [4, "Parivritti Cyclic"],
+        [5, "Parivritti Even Reverse"],
+        [6, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d7_chart_method_default",
+    "enum_class": "D7_CHART_METHOD",
+    "description": "Choose D7 Sapthamsa chart method."
+  },
+  "d8_chart_method_default": {
+    "label": "D8 Ashtamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 8,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara"],
+        [2, "Parivritti Cyclic"],
+        [3, "Parivritti Even Reverse"],
+        [4, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d8_chart_method_default",
+    "enum_class": "D8_CHART_METHOD",
+    "description": "Choose D8 Ashtamsa chart method."
+  },
+  "d9_chart_method_default": {
+    "label": "D9 Navamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 9,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara"],
+        [2, "Parasara navamsa with even sign reversal (Uniform Krishna Mishra Navamsa)"],
+        [3, "Kalachakra Navamsa"],
+        [4, "Rangacharya Krishna Mishra Navamsa / Sanjay Rath Nadi Navamsa"],
+        [5, "Parivritti Cyclic"],
+        [6, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d9_chart_method_default",
+    "enum_class": "D9_CHART_METHOD",
+    "description": "Choose D9 Navamsa chart method."
+  },
+  "d10_chart_method_default": {
+    "label": "D10 Dasamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 10,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara (start from 9th and go forward)"],
+        [2, "Parasara even signs (start from 9th and go backward)"],
+        [3, "Parasara even signs (start from reverse 9th and go backward)"],
+        [4, "Parivritti Cyclic (Ojha)"],
+        [5, "Parivritti Even Reverse"],
+        [6, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d10_chart_method_default",
+    "enum_class": "D10_CHART_METHOD",
+    "description": "Choose D10 Dasamsa chart method."
+  },
+  "d11_chart_method_default": {
+    "label": "D11 Rudramsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 11,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara (Sanjay Rath)"],
+        [2, "BV Raman (Ekadasamsa - Anti-zodiacal)"],
+        [3, "Parivritti Cyclic (Ojha)"],
+        [4, "Parivritti Even Reverse"],
+        [5, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d11_chart_method_default",
+    "enum_class": "D11_CHART_METHOD",
+    "description": "Choose D11 Rudramsa chart method."
+  },
+  "d12_chart_method_default": {
+    "label": "D12 Dwadasamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 12,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara"],
+        [2, "Traditional Parasara with even sign reversal"],
+        [3, "Parivritti Cyclic (Ojha)"],
+        [4, "Parivritti Even Reverse"],
+        [5, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d12_chart_method_default",
+    "enum_class": "D12_CHART_METHOD",
+    "description": "Choose D12 Dwadasamsa chart method."
+  },
+  "d16_chart_method_default": {
+    "label": "D16 Shodasamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 16,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara"],
+        [2, "Parivritti Even Reverse"],
+        [3, "Parivritti Cyclic"],
+        [4, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d16_chart_method_default",
+    "enum_class": "D16_CHART_METHOD",
+    "description": "Choose D16 Shodasamsa chart method."
+  },
+  "d20_chart_method_default": {
+    "label": "D20 Vimsamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 20,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara"],
+        [2, "Parivritti Even Reverse"],
+        [3, "Parivritti Cyclic"],
+        [4, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d20_chart_method_default",
+    "enum_class": "D20_CHART_METHOD",
+    "description": "Choose D20 Vimsamsa chart method."
+  },
+  "d24_chart_method_default": {
+    "label": "D24 Chathurvimsamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 24,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara Siddhamsa (Odd Le->Cn, Even Cn->Ge)"],
+        [2, "Parasara with even sign reversal (Odd Le-> Cn, Even Cn->Le)"],
+        [3, "Parasara Siddhamsa with even sign double reversal (Odd Le->Cn, Even Le->Cn)"]
+    ],
+    "const_name": "d24_chart_method_default",
+    "enum_class": "D24_CHART_METHOD",
+    "description": "Choose D24 Chathurvimsamsa chart method."
+  },
+  "d27_chart_method_default": {
+    "label": "D27 Nakshatramsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 27,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara"],
+        [2, "Parivritti Even Reverse"],
+        [3, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d27_chart_method_default",
+    "enum_class": "D27_CHART_METHOD",
+    "description": "Choose D27 Nakshatramsa chart method."
+  },
+  "d30_chart_method_default": {
+    "label": "D30 Trimsamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 30,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara"],
+        [2, "Parivritti cyclical trimsamsa"],
+        [3, "Shastyamsa like trimsamsa"],
+        [4, "Parivritti Even Reverse"],
+        [5, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d30_chart_method_default",
+    "enum_class": "D30_CHART_METHOD",
+    "description": "Choose D30 Trimsamsa chart method."
+  },
+  "d40_chart_method_default": {
+    "label": "D40 Khavedamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 40,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara"],
+        [2, "Parivritti cyclical khavedamsa"],
+        [3, "Parivritti khavedamsa even reversal"],
+        [4, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d40_chart_method_default",
+    "enum_class": "D40_CHART_METHOD",
+    "description": "Choose D40 Khavedamsa chart method."
+  },
+  "d45_chart_method_default": {
+    "label": "D45 Akshavedamsa  Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 45,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara"],
+        [2, "Parivritti cyclical khavedamsa"],
+        [3, "Parivritti khavedamsa even reversal"],
+        [4, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d45_chart_method_default",
+    "enum_class": "D45_CHART_METHOD",
+    "description": "Choose D45 Akshavedamsa chart method."
+  },
+  "d60_chart_method_default": {
+    "label": "D60 Shashtyamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 60,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara shashtyamsa (from sign)"],
+        [2, "Parasara Shastyamsa (from Aries) - Same as Parvritti Cyclic"],
+        [3, "Parasara shashtyamsa even reversal (from Aries)"],
+        [4, "Parasara shashtyamsa even reversal (from sign)"]
+    ],
+    "const_name": "d60_chart_method_default",
+    "enum_class": "D60_CHART_METHOD",
+    "description": "Choose D60 Shashtyamsa chart method."
+  },
+  "d81_chart_method_default": {
+    "label": "D81 Nava Navamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 81,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara (Parivritti Cyclic)"],
+        [2, "Parivritti Even Reverse"],
+        [3, "Parivritti Alternate (aka Somanatha)"],
+        [4, "Kalachakra nava navamsa"]
+    ],
+    "const_name": "d81_chart_method_default",
+    "enum_class": "D81_CHART_METHOD",
+    "description": "Choose D81 Nava Navamsa chart method."
+  },
+  "d108_chart_method_default": {
+    "label": "D108 Ashtotharamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 108,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara"],
+        [2, "Parivritti cyclical"],
+        [3, "Parivritti even reversal"],
+        [4, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d108_chart_method_default",
+    "enum_class": "D108_CHART_METHOD",
+    "description": "Choose D108 Ashtotharamsa chart method."
+  },
+  "d144_chart_method_default": {
+    "label": "D144 Dwadas Dwadasamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 144,
+    "visible": true,
+    "choices": [
+        [1, "Traditional Parasara"],
+        [2, "Parivritti cyclical"],
+        [3, "Parivritti even reversal"],
+        [4, "Parivritti Alternate (aka Somanatha)"]
+    ],
+    "const_name": "d144_chart_method_default",
+    "enum_class": "D144_CHART_METHOD",
+    "description": "Choose D144 Dwadas Dwadasamsa chart method."
+  },
+  "d150_chart_method_default": {
+    "label": "D150 Nadiamsa Chart Method",
+    "type": "choice",
+    "default": 1,
+    "tab": "Chart Methods",
+    "section": "Calculation Methods",
+    "order": 150,
+    "visible": true,
+    "choices": [
+        [1, "PVR JHora - Uniform D150, own sign as base, forward for all signs"],
+        [2, "Non-uniform Chandra Kala Nadi - Movable: Aries, Fixed: Taurus [Rev], Dual: Gemini"],
+        [3, "Uniform D150 - Movable: Aries, Fixed: Taurus [Fwd], Dual: Gemini"],
+        [4, "Continuous Parivritti cyclic projection"],
+        [5, "Movable from Aries (dir), Fixed from Taurus (rev), Dual from Gemini (dir)"],
+        [6, "Movable from Aries (dir), Fixed from Scorpio (rev), Dual from Sagittarius (dir)"],
+        [7, "Movable from Aries (dir), Fixed from Leo (rev), Dual from Sagittarius (dir)"],
+        [8, "Movable from Sign (dir), Fixed from Sign (rev), Dual from Sign (dir)"]
+    ],
+    "const_name": "d150_chart_method_default",
+    "enum_class": "D150_CHART_METHOD",
+    "description": "Choose D150 Nadiamsa chart method."
+  },
+  "matsya_yoga_method": {
+    "label": "Choose Matsya Yoga Method",
+    "description":"BV Raman (300 Important Combinations): (method=1)\n(1) Malefics in Lagna AND 9th (optionally ONLY malefics if strict_exclusive=True)\n(2) 5th contains BOTH benefics AND malefics\n(3) 4th AND 8th contain ONLY malefics (and at least one in each)\n\n- Parasari / Jātaka Parijāta stream (common modern presentation): (method=2) PVR Book.\n(1) Benefics in Lagna AND 9th (optionally ONLY benefics if strict_exclusive=True)\n(2) 5th contains BOTH benefics AND malefics\n(3) 4th AND 8th contain ONLY malefics (and at least one in each)",
+    "type": "choice",
+    "default": 1,
+    "tab": "Advanced",
+    "section": "Yoga Method Selection",
+    "order": 300,
+    "visible": true,
+    "choices": [
+      [1, "PVR / Parasari / Jātaka Parijāta Method"],
+      [2, "BV Raman Method"]
+    ],
+    "const_name": "matsya_yoga_method"
+  },
+  "koorma_yoga_method": {
+    "label": "Choose Koorma Yoga Method",
+    "description":"BVR-54 Koorma Yoga: \nIf (1) the 5th, 6th and 7th houses are occupied by benefics who are in\nown, exaltation or friendly signs and (2) the 1st, 3rd and 11th houses are occupied by\nmalefics who are in own or exaltation signs. \nMethod = 1 BV Raman - \n2nd condition is also for BENEFICS (not malefics) AND \nONLY ONE of the above two conditions required \nCondition >= Friend, exalt, own \nMethod = 2 PVR - \nBOTH conditions are required and 1st for benefics and 2nd for malefics \nCondition 1 == Friend/exalt/Own and Condition 2 >= exalt/Own (No Friend)",
+    "type": "choice",
+    "default": 1,
+    "tab": "Advanced",
+    "section": "Yoga Method Selection",
+    "order": 310,
+    "visible": true,
+    "choices": [
+      [1, "BV Raman Method"],
+      [2, "PV Narasimha Rao Method"]
+    ],
+    "const_name": "matsya_yoga_method"
+  },
+  "brahma_yoga_method": {
+    "label": "Choose Brahma Yoga Method",
+    "description":"BVR-51 Brahma Yoga (part of harihara brahma yoga): \n Brahma Yoga: (Based on PVR Narasimha Rao) \n Method 1: Benefics in 4th, 10th and 11th from Lagna Lord. \n Method 2: Jupiter in quadrant from 9th lord, Venus in quadrant from 11th lord, \n and Mercury in quadrant from 1st or 10th lord.",
+    "type": "choice",
+    "default": 1,
+    "tab": "Advanced",
+    "section": "Yoga Method Selection",
+    "order": 320,
+    "visible": true,
+    "choices": [
+      [1, "PV Narasimha Rao Method"],
+      [2, "BV Raman Method"]
+    ],
+    "const_name": "matsya_yoga_method"
+  },
+  "amsaavatara_yoga_method": {
+    "label": "Choose Amsaavatara Yoga Method",
+    "description":"BVR-50 Amsaavatara Yoga: \n Method 1 (PVR): Jupiter, Venus, and exalted Saturn are in quadrants. \n Method 2 (BVR): Same as Method 1, but Lagna must be in a movable sign.",
+    "type": "choice",
+    "default": 1,
+    "tab": "Advanced",
+    "section": "Yoga Method Selection",
+    "order": 330,
+    "visible": true,
+    "choices": [
+      [1, "PV Narasimha Rao Method"],
+      [2, "BV Raman Method"]
+    ],
+    "const_name": "amsaavatara_yoga_method"
+  },
+  "dharidhdra_yoga_method": {
+    "label": "Choose Dharidhra Yoga Method",
+    "description":"BVR 144 to 152 \n Method=1 Ref: Medium - What is daridra yoga \n the lord of 1nd or 11th is situated in the 6th, 8th or 12th \n Method = 2 - Ref: BV Raman Dharidhra Yoga #144 to #152",
+    "type": "choice",
+    "default": 2,
+    "tab": "Advanced",
+    "section": "Yoga Method Selection",
+    "order": 340,
+    "visible": true,
+    "choices": [
+      [1, "Medium.com - What is daridra yoga"],
+      [2, "BV Raman Method"]
+    ],
+    "const_name": "dharidhdra_yoga_method"
   }
 }

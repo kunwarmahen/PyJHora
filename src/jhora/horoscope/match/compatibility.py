@@ -183,7 +183,8 @@ class Ashtakoota:
         @param girl_nakshatra_number: girl's nakshatra_list number [1 to 27]
         @param girl_paadham_number: girl's nakshatra_list paadham number [1 to 4]
     """
-    def __init__(self,boy_nakshatra_number:int,boy_paadham_number:int,girl_nakshatra_number:int,girl_paadham_number:int, method:str="North"):
+    def __init__(self,boy_nakshatra_number:int,boy_paadham_number:int,girl_nakshatra_number:int,girl_paadham_number:int,
+                 method:str=None):
         self.boy_nakshatra_number=boy_nakshatra_number#-1
         self.girl_nakshatra_number=girl_nakshatra_number#-1
         self.boy_paadham_number = boy_paadham_number
@@ -192,7 +193,8 @@ class Ashtakoota:
         self.girl_raasi_number=self._raasi_from_nakshatra_pada(girl_nakshatra_number, girl_paadham_number)
         self.count_from_girl = count_stars(self.girl_nakshatra_number,self.boy_nakshatra_number)
         self.count_from_boy = count_stars(self.boy_nakshatra_number,self.girl_nakshatra_number)
-        self.method=method
+        if method is None: method = const.default_chart_type
+        self.method = method
     def varna_porutham(self):
         """
             To compute varna koota / Varna Porutham for the given boy/girl birth star combination
@@ -202,7 +204,8 @@ class Ashtakoota:
         # bv/gv =  Rasi mapping of varna
         bv = vasiya_raasi_list ; gv = bv
         bvk = bv[self.boy_raasi_number-1] ; gvk = gv[self.girl_raasi_number-1]
-        if 'south' in self.method.lower(): return VarnaArray[gvk][bvk]==1
+        if self.method in [const.CHART_STYLE.SOUTH_INDIAN_IRREGULAR, const.CHART_STYLE.SOUTH_INDIAN_REGULAR]:
+            return VarnaArray[gvk][bvk]==1
         return (VarnaArray[gvk][bvk],varna_max_score)
     def _vasiya_porutham_new(self,use_astroyogi_method=False): #vasiya porutham
         chatushpada = lambda n,r,p: \
@@ -258,7 +261,8 @@ class Ashtakoota:
             To compute vasya koota / vasiya porutham for the given boy/girl birth star combination
             Returns the score in the range [0.5,0,5,1.0,2.0]
         """
-        if 'south' in self.method.lower(): return self.vasiya_porutham_south()
+        if self.method in [const.CHART_STYLE.SOUTH_INDIAN_IRREGULAR, const.CHART_STYLE.SOUTH_INDIAN_REGULAR]:
+            return self.vasiya_porutham_south()
         chatushpada = lambda r,p: r in[1,2] or (r==9 and p in[3,4]) or (r==10 and p in[1,2])
         manava = lambda r,p: r in[3,6,7,11] or (r==9 and p in[1,2])
         vanachara = lambda r: r == 5
@@ -332,7 +336,8 @@ class Ashtakoota:
             To compute dina / tara koota / nakshathra porutham for the given boy/girl birth star combination
             Returns the score in the range [0, 1.5, 3.0]
         """
-        if 'south' in self.method.lower(): return self.dina_porutham_south()
+        if self.method in [const.CHART_STYLE.SOUTH_INDIAN_IRREGULAR, const.CHART_STYLE.SOUTH_INDIAN_REGULAR]:
+            return self.dina_porutham_south()
         res = 0.0
         count = self.count_from_girl # (self.boy_nakshatra_number - self.girl_nakshatra_number)
 
@@ -367,7 +372,8 @@ class Ashtakoota:
             method = 2 => North Indian Style - saravali.de formula
             Returns the score in the range [0, 1, 5, 6]
         """
-        if 'south' in self.method.lower(): return self.gana_porutham_south()
+        if self.method in [const.CHART_STYLE.SOUTH_INDIAN_IRREGULAR, const.CHART_STYLE.SOUTH_INDIAN_REGULAR]:
+            return self.gana_porutham_south()
         boy_gana = self._find_gana(self.boy_nakshatra_number-1)
         girl_gana = self._find_gana(self.girl_nakshatra_number-1)
         return (gana_array[girl_gana][boy_gana],gana_max_score)
@@ -388,7 +394,8 @@ class Ashtakoota:
             To compute yoni koota / Yoni Porutham for the given boy/girl birth star combination
             Returns the score in the range [0..4]
         """
-        if 'south' in self.method.lower(): return self.yoni_porutham_south()
+        if self.method in [const.CHART_STYLE.SOUTH_INDIAN_IRREGULAR, const.CHART_STYLE.SOUTH_INDIAN_REGULAR]:
+            return self.yoni_porutham_south()
         return (YoniArray[yoni_mappings[self.girl_nakshatra_number-1]][yoni_mappings[self.boy_nakshatra_number-1]],yoni_max_score)
     def maitri_porutham(self):
         #if self.method.upper()=="SOUTH": return self.raasi_adhipathi_porutham_south()
@@ -404,7 +411,8 @@ class Ashtakoota:
             To compute maitri koota / Raasi adhipathi porutham for the given boy/girl birth star combination
             Returns the score in the range [0, 0.5, 1.0, 3.0, 4.0, 5.0]
         """
-        if 'south' in self.method.lower(): return self.raasi_adhipathi_porutham_south()
+        if self.method in [const.CHART_STYLE.SOUTH_INDIAN_IRREGULAR, const.CHART_STYLE.SOUTH_INDIAN_REGULAR]:
+            return self.raasi_adhipathi_porutham_south()
         return (raasi_adhipathi_array[raasi_adhipathi_mappings[self.girl_raasi_number-1]][raasi_adhipathi_mappings[self.boy_raasi_number-1]],raasi_adhipathi_max_score)
     def bahut_porutham(self):
         #if self.method.upper()=="SOUTH": return self.raasi_porutham_south()
@@ -416,7 +424,8 @@ class Ashtakoota:
             To compute bahut koota / Raasi Porutham for the given boy/girl birth star combination
             Returns the score in the range [0 or 7]
         """
-        if 'south' in self.method.lower(): return self.raasi_porutham_south()
+        if self.method in [const.CHART_STYLE.SOUTH_INDIAN_IRREGULAR, const.CHART_STYLE.SOUTH_INDIAN_REGULAR]:
+            return self.raasi_porutham_south()
         return (raasi_array[self.girl_raasi_number-1][self.boy_raasi_number-1],raasi_max_score)
     def naadi_porutham(self):
         """
@@ -425,7 +434,8 @@ class Ashtakoota:
         """
         bvk = [0,1,2,2,1,0,0,1,2,2,1,0,0,1,2,2,1,0,0,1,2,2,1,0,0,1,2] ; gvk = bvk
         bv = bvk[self.boy_nakshatra_number-1] ; gv = gvk[self.girl_nakshatra_number-1]
-        if 'south' in self.method.lower(): return NadiArray[bv][gv]==8
+        if self.method in [const.CHART_STYLE.SOUTH_INDIAN_IRREGULAR, const.CHART_STYLE.SOUTH_INDIAN_REGULAR]:
+            return NadiArray[bv][gv]==8
         return (NadiArray[bv][gv],naadi_max_score)
     def mahendra_porutham_south(self):
         return self.mahendra_porutham()
@@ -458,7 +468,8 @@ class Ashtakoota:
             To compute rajju porutham for the given boy/girl birth star combination
             Returns the score as True or False
         """
-        if 'south' in self.method.lower(): return self.rajju_porutham_south()
+        if self.method in [const.CHART_STYLE.SOUTH_INDIAN_IRREGULAR, const.CHART_STYLE.SOUTH_INDIAN_REGULAR]:
+            return self.rajju_porutham_south()
         bn = self.boy_nakshatra_number
         gn = self.girl_nakshatra_number
         rp = (bn in head_rajju) and (gn in head_rajju) or \
@@ -493,7 +504,8 @@ class Ashtakoota:
             To compute sthree dheerga porutham for the given boy/girl birth star combination
             Returns the score as True or False
         """
-        if 'south' in self.method.lower(): return self.sthree_dheerga_porutham_south()
+        if self.method in [const.CHART_STYLE.SOUTH_INDIAN_IRREGULAR, const.CHART_STYLE.SOUTH_INDIAN_REGULAR]:
+            return self.sthree_dheerga_porutham_south()
         return self.count_from_girl > const.sthree_dheerga_threshold
         #return ((self.boy_nakshatra_number + 27 - self.girl_nakshatra_number) % 27)+1 > const.sthree_dheerga_threshold # V3.0.6
     """
@@ -553,7 +565,7 @@ class Ashtakoota:
             else:
                 minimum_porutham = minimum_porutham and yoni_porutham
             return minimum_porutham
-        if 'south' in self.method.lower():
+        if self.method in [const.CHART_STYLE.SOUTH_INDIAN_IRREGULAR, const.CHART_STYLE.SOUTH_INDIAN_REGULAR]:
             compatibility_score = sum([dina_porutham,gana_porutham,mahendra_porutham,sthree_dheerga_porutham,yoni_porutham,\
                                          raasi_porutham,raasi_adhipathi_porutham,vasiya_porutham,rajju_porutham,vedha_porutham])
             minimum_porutham = _is_there_minimum_tamil_porutham()
@@ -576,10 +588,11 @@ class Ashtakoota:
         raasi_number = int(total_duration / raasi_duration)+1
 #        print('nakshatra_list'+nakshatra_list[nakshatra_number-1]+' paadham-'+str(paadha_number)+' is raasi_list',raasi_list[raasi_number-1])
         return raasi_number
-def update_compatibility_database(method='North'):
+def update_compatibility_database(method=None):
+    if method is None: method = const.default_chart_type
     import codecs, csv
     outFile = _DATABASE_FILE#'all_nak_pad_boy_girl.csv'
-    if 'south' in method.lower():
+    if self.method in [const.CHART_STYLE.SOUTH_INDIAN_IRREGULAR, const.CHART_STYLE.SOUTH_INDIAN_REGULAR]:
         outFile = _DATABASE_SOUTH_FILE#'all_nak_pad_boy_girl_south.csv'
     fp = codecs.open(outFile, encoding='utf-8', mode='w')
     csv_writer = csv.writer(fp)
@@ -596,15 +609,15 @@ def update_compatibility_database(method='North'):
 
 def _is_bool_literal(s: str) -> bool:
     s = str(s).strip().lower()
-    return s in ("true", "false", "1", "0", "yes", "no", "t", "f")
+    return s in ("true", "false", "yes", "no", "t", "f")
 
 def _to_bool(val):
     if isinstance(val, bool):
         return val
     s = str(val).strip().lower()
-    if s in ("true", "1", "yes", "t"):
+    if s in ("true", "yes", "t"):
         return True
-    if s in ("false", "0", "no", "f"):
+    if s in ("false", "no", "f"):
         return False
     # Fallback: non-empty string treated as True, empty as False (rare)
     return bool(s)
@@ -637,11 +650,11 @@ class Match:
                  check_for_vedha_porutham:bool=False,
                  check_for_rajju_porutham:bool=False,
                  check_for_shreedheerga_porutham:bool=False,
-                 method:str="North"):
-
+                 method=None):
+        self.method = method
         # Choose DB file and default minimum score like your original code
         db_file = _DATABASE_FILE
-        if 'south' in method.lower():
+        if self.method in [const.CHART_STYLE.SOUTH_INDIAN_IRREGULAR, const.CHART_STYLE.SOUTH_INDIAN_REGULAR]:
             db_file = _DATABASE_SOUTH_FILE
             if minimum_score is None:
                 minimum_score = const.compatibility_minimum_score_south
@@ -774,7 +787,7 @@ if __name__ == "__main__":
     #m = Match(girl_nakshatra_number=15,girl_paadham_number=1,method='South')
     #print(m.get_matching_partners())
     #exit()
-    a = Ashtakoota(13,1,2,1,method='South')
+    a = Ashtakoota(13,1,2,1,method=const.CHART_STYLE.SOUTH_INDIAN_REGULAR)
     print(a.compatibility_score())
     exit()
     update_compatibility_database()

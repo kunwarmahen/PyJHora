@@ -64,7 +64,7 @@ def get_dhasa_bhukthi(
     jd = utils.julian_day_number(dob, tob)
     _set_year_duration(jd, place, dhasa_duration_type, savana_year_method)
 
-    sl = drik.sree_lagna(jd, place, divisional_chart_factor=divisional_chart_factor)
+    sl = drik.sree_lagna(jd, place)#, divisional_chart_factor=divisional_chart_factor)
     sree_lagna_house = sl[0]
     sree_lagna_longitude = sl[1]
 

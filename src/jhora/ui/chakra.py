@@ -1,6 +1,8 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QVBoxLayout, QGridLayout, QSizePolicy
-from PyQt6.QtGui import QPainter, QColor,QFont, QPen
-from PyQt6.QtCore import Qt, QRectF, QPoint, QPointF, QSize
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel, QVBoxLayout, 
+                             QGridLayout, QSizePolicy)
+from PyQt6.QtGui import ( QPainter, QColor,QFont, QPen, QPolygonF )
+from PyQt6.QtCore import ( Qt, QRectF, QPoint, QPointF, QSize )
+
 import sys, math
 from jhora import utils,const
 
@@ -282,54 +284,207 @@ class ChandraKalanala(QWidget):
             painter.setPen(QPen())
     def paintEvent(self, event):
         self.createUI()
-class Tripataki(QWidget):
-    def __init__(self,planet_positions=[],planets_in_retrograde=[],label_font_size=6):
-        super().__init__()
-        self.x_dim = 5; self.y_dim = 5; self.x_gap = 80; self.y_gap=80
-        self.setGeometry(0, 0, 500, 500)
-        self.setWindowTitle(utils.resource_strings['tripataki_str']+' '+utils.resource_strings['chakra_str'])
-        self.lines = {(2,5):[(1,4),(2,1),(5,2)],(3,5):[(1,3),(3,1),(5,3)],(4,5):[(1,2),(4,1),(5,4)],
-                      (2,1):[(1,2),(5,4)],(3,1):[(1,3),(5,3)],(4,1):[(1,4),(5,2)],
-                      (1,2):[(5,2)],(1,3):[(5,3)],(1,4):[(5,4)]
-                       }
-        self.rasi_labels = [(1,3),(1,4),(2,5),(3,5),(4,5),(5,4),(5,3),(5,2),(4,1),(3,1),(2,1),(1,2)]
-        self._label_font_size = label_font_size
-        self._rasi_color = 'Red'; self._planet_color = 'Brown'; self._text_color='Green';
-        self._star_color = 'Blue'
-        self._planet_positions = planet_positions
-        self._planets_in_retrograde=planets_in_retrograde
-    def _update_with_planet_labels(self):
-        self.rasi_labels = [(x,y,utils.RAASI_SHORT_LIST[h]) for h,(x,y) in enumerate(self.rasi_labels)]
-        for p,(h,_) in self._planet_positions:
-            rstr = const._retrogade_symbol if p in self._planets_in_retrograde else ''
-            pstr = utils.resource_strings['ascendant_short_str'] if p==const._ascendant_symbol else utils.PLANET_SHORT_NAMES[p]
-            x,y,pl = self.rasi_labels[h]
-            self.rasi_labels[h] = [x,y,pl+'\n'+pstr+rstr]        
-    def setData(self,planet_positions,planets_in_retrograde=[],base_star=None,label_font_size=None):
-        if base_star  is not None: self._base_star = base_star
-        if label_font_size  is not None: self._label_font_size = label_font_size
-        self._planet_positions = planet_positions
-        self._planets_in_retrograde = planets_in_retrograde
-        self._update_with_planet_labels()
-        self.createUI()
-    def createUI(self):
-        painter = QPainter(self)
-        painter.setPen(QPen(Qt.GlobalColor.black, 2, Qt.PenStyle.SolidLine))
-        x_gap = self.x_gap; y_gap = self.y_gap
-        # Draw lines
-        for start,ends in self.lines.items():
-            for end in ends:
-                painter.drawLine(start[0] * x_gap, (start[1]) * y_gap, end[0] * x_gap, (end[1]) * y_gap)
 
-        # Draw text
-        font = QFont(); font.setPointSize(self._label_font_size); font.setWeight(QFont.Weight.Bold); painter.setFont(font)
-        for x, y,rasi_planets in self.rasi_labels:
-            color = self._planet_color if '\n' in rasi_planets else self._rasi_color
-            painter.setPen(QColor(color))
-            painter.drawText(QRectF(int(x * x_gap), int((y) * y_gap),300,300), str(rasi_planets))
-            painter.setPen(QPen())
-    def paintEvent(self, event):
-        self.createUI()
+class Tripataki(QWidget):
+
+  def __init__(
+      self,
+      planet_positions=[],
+      planets_in_retrograde=[],
+      rasi_asc_house=0,
+      label_font_size=6,
+      rasi_color='Blue',
+      planet_color='Brown',
+  ):
+    super().__init__()
+    self.x_dim = 5
+    self.y_dim = 5
+    self.x_gap = 80
+    self.y_gap = 80
+    self.setGeometry(0, 0, 500, 500)
+    self.setWindowTitle(
+        utils.resource_strings['tripataki_str']
+        + ' '
+        + utils.resource_strings['chakra_str']
+    )
+
+    # Fixed grid lines for the chakra structure
+    self.lines = {
+        (2, 5): [(1, 4), (2, 1), (5, 2)],
+        (3, 5): [(1, 3), (3, 1), (5, 3)],
+        (4, 5): [(1, 2), (4, 1), (5, 4)],
+        (2, 1): [(1, 2), (5, 4)],
+        (3, 1): [(1, 3), (5, 3)],
+        (4, 1): [(1, 4), (5, 2)],
+        (1, 2): [(5, 2)],
+        (1, 3): [(5, 3)],
+        (1, 4): [(5, 4)],
+    }
+
+    # Strict COUNTER-CLOCKWISE coordinate sequence starting from Top-Middle (3,1)
+    self._coord_list = [
+        (3, 1),  # 0: Top-Middle (Anchor for Rasi Ascendant)
+        (2, 1),  # 1: Top-Left
+        (1, 2),  # 2: Left-Upper
+        (1, 3),  # 3: Left-Middle
+        (1, 4),  # 4: Left-Lower
+        (2, 5),  # 5: Bottom-Left
+        (3, 5),  # 6: Bottom-Middle
+        (4, 5),  # 7: Bottom-Right
+        (5, 4),  # 8: Right-Lower
+        (5, 3),  # 9: Right-Middle
+        (5, 2),  # 10: Right-Upper
+        (4, 1),  # 11: Top-Right
+    ]
+
+    self._label_font_size = label_font_size
+    self._rasi_color = rasi_color
+    self._planet_color = planet_color
+    self._text_color = 'Green'
+    self._star_color = 'Blue'
+    self._planet_positions = planet_positions
+    self._planets_in_retrograde = planets_in_retrograde
+    self._rasi_asc_house = rasi_asc_house
+    self._update_rasi_labels()
+
+  def _update_rasi_labels(self):
+    self.rasi_labels = []
+    for idx, (x, y) in enumerate(self._coord_list):
+      h = (self._rasi_asc_house + idx) % 12
+      rasi_name = utils.RAASI_SHORT_LIST[h]
+
+      house_planets = []
+      for p, p_info in self._planet_positions:
+        h_val = p_info[0] if isinstance(p_info, (tuple, list)) else p_info
+        if h_val == h:
+          rstr = (
+              const._retrogade_symbol
+              if p in self._planets_in_retrograde
+              else ''
+          )
+          pstr = (
+              utils.resource_strings['ascendant_short_str']
+              if p == const._ascendant_symbol
+              else utils.PLANET_SHORT_NAMES[p]
+          )
+          house_planets.append(pstr + rstr)
+
+      self.rasi_labels.append((x, y, rasi_name, house_planets))
+
+  def setData(
+      self,
+      planet_positions,
+      planets_in_retrograde=[],
+      rasi_asc_house=None,
+      base_star=None,
+      label_font_size=None,
+      rasi_color=None,
+      planet_color=None,
+  ):
+    if base_star is not None:
+      self._base_star = base_star
+    if label_font_size is not None:
+      self._label_font_size = label_font_size
+    if rasi_asc_house is not None:
+      self._rasi_asc_house = rasi_asc_house
+    if rasi_color is not None:
+      self._rasi_color = rasi_color
+    if planet_color is not None:
+      self._planet_color = planet_color
+    self._planet_positions = planet_positions
+    self._planets_in_retrograde = planets_in_retrograde
+    self._update_rasi_labels()
+    self.createUI()
+
+  def createUI(self):
+    painter = QPainter(self)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(QPen(Qt.GlobalColor.black, 2, Qt.PenStyle.SolidLine))
+    x_gap = self.x_gap
+    y_gap = self.y_gap
+
+    # 1. Draw chakra lines
+    for start, ends in self.lines.items():
+      for end in ends:
+        painter.drawLine(
+            start[0] * x_gap,
+            (start[1]) * y_gap,
+            end[0] * x_gap,
+            (end[1]) * y_gap,
+        )
+
+    # 2. Draw Tri-Pataki Flags on the top 3 peaks
+    top_peaks = [(3, 1), (2, 1), (4, 1)]
+    for px_idx, py_idx in top_peaks:
+      px = px_idx * x_gap
+      py = py_idx * y_gap
+      flag_polygon = QPolygonF([
+          QPointF(px, py),
+          QPointF(px - 16, py - 10),
+          QPointF(px - 16, py + 10),
+      ])
+      painter.setBrush(QColor('white'))
+      painter.drawPolygon(flag_polygon)
+      painter.setBrush(Qt.BrushStyle.NoBrush)
+
+    # 3. Draw text labels with separated non-overlapping boxes (Planets above Rasi for top row)
+    font = QFont()
+    font.setPointSize(self._label_font_size)
+    font.setWeight(QFont.Weight.Bold)
+    painter.setFont(font)
+
+    for x, y, rasi_name, house_planets in self.rasi_labels:
+      if y == 1:  # Top row: Rasi near line, planets stacked ABOVE it
+        rasi_rect = QRectF(x * x_gap - 45, (y * y_gap) - 26, 90, 20)
+        rasi_align = (
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom
+        )
+        planet_rect = QRectF(x * x_gap - 45, (y * y_gap) - 68, 90, 40)
+        planet_align = (
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom
+        )
+      elif y == 5:  # Bottom row
+        rasi_rect = QRectF(x * x_gap - 45, (y * y_gap) + 5, 90, 20)
+        rasi_align = Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop
+        planet_rect = QRectF(x * x_gap - 45, (y * y_gap) + 26, 90, 40)
+        planet_align = Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop
+      elif x == 1:  # Left column
+        rasi_rect = QRectF((x * x_gap) - 75, (y * y_gap) - 25, 70, 20)
+        rasi_align = (
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
+        planet_rect = QRectF((x * x_gap) - 75, (y * y_gap) - 3, 70, 45)
+        planet_align = (
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop
+        )
+      elif x == 5:  # Right column
+        rasi_rect = QRectF((x * x_gap) + 5, (y * y_gap) - 25, 70, 20)
+        rasi_align = (
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
+        planet_rect = QRectF((x * x_gap) + 5, (y * y_gap) - 3, 70, 45)
+        planet_align = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
+      else:
+        rasi_rect = QRectF(int(x * x_gap), int(y * y_gap), 300, 300)
+        rasi_align = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
+        planet_rect = rasi_rect
+        planet_align = rasi_align
+
+      # Draw Rasi Name
+      painter.setPen(QColor(self._rasi_color))
+      painter.drawText(rasi_rect, rasi_align, rasi_name)
+
+      # Draw Planets
+      if house_planets:
+        planets_str = '\n'.join(house_planets)
+        painter.setPen(QColor(self._planet_color))
+        painter.drawText(planet_rect, planet_align, planets_str)
+
+      painter.setPen(QPen())
+
+  def paintEvent(self, event):
+    self.createUI()
+    
 class SuryaKalanala(QWidget):
     def __init__(self,base_star=18,planet_positions=[],planets_in_retrograde=[],label_font_size=6):
         super().__init__()
@@ -353,8 +508,8 @@ class SuryaKalanala(QWidget):
         self._label_font_size = label_font_size
         self._base_star = base_star
         self._update_with_star_labels()
-        self._rasi_color = 'Red'; self._planet_color = 'Brown'; self._text_color='Green';
-        self._star_color = 'Blue'
+        self._rasi_color = 'Blue'; self._planet_color = 'Brown'; self._text_color='Green';
+        self._star_color = 'Green'
         self._planet_positions = planet_positions
         self._planets_in_retrograde=planets_in_retrograde
     def _update_with_star_labels(self):

@@ -543,7 +543,7 @@ if __name__ == "__main__":
         sys.__excepthook__(cls, exception, traceback)
     sys.excepthook = except_hook
     App = QApplication(sys.argv)
-    #"""
+    """
     from jhora.panchanga.drik import Date,Place
     dob = Date(1996,12,7); tob = (10,34,0)
     place = Place('Chennai,IN', 13.0389, 80.2619, +5.5)    
@@ -562,12 +562,12 @@ if __name__ == "__main__":
     dlg.show()
     sys.exit(App.exec())
     exit()
-    #"""
     """
+    #"""
     print('total graha dhasas',len(const.dhasa_default_options))
     import random
     _dhasa_name = random.choice(list(const.dhasa_default_options))
-    _dhasa_name = 'narayana'
+    #_dhasa_name = 'narayana'
     print('Selected Dhasa',utils.resource_strings[_dhasa_name+"_str"])
     _graha_dhasa_options = const.dhasa_default_options[_dhasa_name]
     print(_graha_dhasa_options)
@@ -575,4 +575,4 @@ if __name__ == "__main__":
     #chart = DhasaBhukthiOptionDialog(2,[True,False,2,13,0,0,0,-1])
     chart.show()
     sys.exit(App.exec())
-    """
+    #"""

@@ -205,12 +205,12 @@ class VargaChartOptionsDialog(QDialog):
               '\nself._base_rasi_index',self._base_rasi_index,'self._count_from_end_of_sign',self._count_from_end_of_sign)
         """
     def _cancel_button_clicked(self):
-        self._accept_clicked = False
-        if self._varga_factor in const.division_chart_factors:
+        self._accept_clicked = False; rb_caption = ''
+        if self._varga_factor in const.division_chart_factors and self._method_index is not None:
             rb_caption = self.res['d'+str(self._varga_factor)+'_option'+str(self._method_index)+'_str']
-        else:
+        elif self._method_index is not None:
             rb_caption = self.res['dn_custom_option'+str(self._method_index)+'_str']
-        self._option_string = rb_caption#self.res['d'+str(self._varga_factor)+'_option'+str(self._method_index)+'_str']
+        self._option_string = rb_caption
         self.reject()
     
 if __name__ == "__main__":
@@ -221,11 +221,11 @@ if __name__ == "__main__":
         sys.__excepthook__(cls, exception, traceback)
     sys.excepthook = except_hook
     App = QApplication(sys.argv)
-    #chart = VargaChartOptionsDialog(chart_index=23,chart_method=None)
+    chart = VargaChartOptionsDialog(chart_index=8,chart_method=None)
     #chart = VargaChartOptionsDialog(chart_index=23,chart_method=0)
     #chart = VargaChartOptionsDialog(chart_index=23,varga_factor=63,base_rasi=1,chart_method=5,count_from_end_of_sign=True)
     #chart = VargaChartOptionsDialog(varga_factor=57,chart_method=0,base_rasi=0,count_from_end_of_sign=True)
-    chart = VargaChartOptionsDialog(varga_factor=9,chart_method=1)
+    #chart = VargaChartOptionsDialog(varga_factor=9,chart_method=1)
     #chart = VargaChartOptionsDialog(chart_index=8,chart_method=3)
     chart.show()
     sys.exit(App.exec())
