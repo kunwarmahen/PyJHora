@@ -5,7 +5,7 @@ whose 7am digest arrived at 8:30pm the evening before. So the tests that matter
 are the ones about a zone that *isn't* the birth zone, and about DST — which
 India has never had, which is why the codebase went so long without noticing.
 """
-from datetime import datetime, timezone as dt_timezone
+from datetime import datetime, timedelta, timezone as dt_timezone
 
 import pytest
 
@@ -126,3 +126,182 @@ class TestLocalNow:
     @pytest.mark.parametrize("junk", [None, "", "Mars/Olympus"])
     def test_is_none_for_a_bad_zone(self, junk):
         assert timezones.local_now(junk) is None
+
+
+class TestNowAtTz:
+    """`_now_at_tz` — the engine's answer to "what day is it *where the user is*".
+
+    The transit computes used `datetime.now()`, which reads the server's clock.
+    On a UTC pod that calls it Aug 6 at 02:50 while the user in Cary, NC is still
+    on the evening of Aug 5 — so their gochara-phala was dated a day ahead. India
+    never noticed: a UTC server is only ever 5.5h behind IST, never across
+    midnight in the direction that shows.
+    """
+
+    def test_matches_the_offset_applied_to_utc(self):
+        from astrology.engine import _now_at_tz
+
+        for offset in (-4.0, 5.5, 0.0, -12.0, 14.0):
+            expected = (datetime.now(dt_timezone.utc) + timedelta(hours=offset)).replace(tzinfo=None)
+            assert abs((_now_at_tz(offset) - expected).total_seconds()) < 5
+
+    def test_the_calendar_date_really_follows_the_offset(self):
+        from astrology.engine import _now_at_tz
+
+        # The inhabited offsets span 26 hours (Baker Island to Kiritimati), so
+        # these two can never be on the same calendar day — whatever the server
+        # clock says. This fails outright if "now" is server-local.
+        assert _now_at_tz(-12.0).date() != _now_at_tz(14.0).date()
+
+    def test_falls_back_to_the_server_clock_when_no_offset_is_known(self):
+        from astrology.engine import _now_at_tz
+
+        assert abs((_now_at_tz(None) - datetime.now()).total_seconds()) < 5
+
+    def test_gochara_phala_dates_the_snapshot_in_the_viewers_zone(self):
+        # The reported bug, end to end: same instant, same birth chart, two
+        # viewers 26 hours apart — they must not be handed the same "today".
+        from astrology import AstrologyCompute as A
+        from astrology.engine import _now_at_tz
+
+        def transit_date(current_tz):
+            r = A.get_gochara_phala(
+                dob="1976-06-04", tob="05:45:02", place="Shahgarh",
+                lat=27.845278, lon=78.334167, tz=5.5, current_tz=current_tz)
+            assert r["status"] == "success"
+            return r["transit_date"]
+
+        assert transit_date(-4.0) == _now_at_tz(-4.0).strftime("%Y-%m-%d")
+        assert transit_date(-12.0) != transit_date(14.0)
+
+
+class TestNowAtOffset:
+    """The shared primitive the engine, the tool layer and the prompt layer all
+    date "now" by. `timezones.now_at_offset` is the one implementation;
+    `astrology.engine._now_at_tz` is an alias so the compute mixins can reach it."""
+
+    def test_engine_alias_is_the_same_function(self):
+        from astrology.engine import _now_at_tz
+
+        a, b = _now_at_tz(-4.0), timezones.now_at_offset(-4.0)
+        assert abs((a - b).total_seconds()) < 2
+
+    def test_today_at_offset_is_an_iso_date(self):
+        assert timezones.today_at_offset(-4.0) == timezones.now_at_offset(-4.0).strftime("%Y-%m-%d")
+
+    def test_the_two_extreme_offsets_are_never_the_same_day(self):
+        assert timezones.today_at_offset(-12.0) != timezones.today_at_offset(14.0)
+
+
+class TestViewerTz:
+    """`deps.viewer_tz` — which offset a reading is dated by, and in what order
+    the candidates win. The stored current location (§40) is the reason the AI
+    paths are right without the frontend sending anything.
+
+    Driven with `asyncio.run` rather than pytest-asyncio, matching conftest's
+    ASGI client — the suite deliberately carries no async-test plugin."""
+
+    @staticmethod
+    def _call(monkeypatch, location, **kwargs):
+        import asyncio
+
+        import deps
+
+        async def _loc(_uid):
+            if isinstance(location, Exception):
+                raise location
+            return location
+
+        monkeypatch.setattr(deps.user_settings, "get_current_location", _loc)
+        return asyncio.run(deps.viewer_tz("u", **kwargs))
+
+    def test_an_explicit_offset_from_the_browser_wins(self, monkeypatch):
+        got = self._call(monkeypatch, {"timezone": "Asia/Kolkata"},
+                         explicit=-4.0, fallback=5.5)
+        assert got == -4.0
+
+    def test_falls_back_to_the_stored_current_location(self, monkeypatch):
+        # Resolved from the zone *now*, so it is the DST-correct offset, not a
+        # number frozen at the time the location was saved.
+        got = self._call(monkeypatch, {"timezone": "America/New_York"}, fallback=5.5)
+        assert got in (-5.0, -4.0)
+        assert got == timezones.offset_hours("America/New_York")
+
+    def test_uses_the_birth_offset_when_no_location_is_stored(self, monkeypatch):
+        assert self._call(monkeypatch, None, fallback=5.5) == 5.5
+
+    def test_ignores_a_stored_location_with_an_unusable_zone(self, monkeypatch):
+        assert self._call(monkeypatch, {"timezone": "Mars/Olympus"}, fallback=5.5) == 5.5
+
+    def test_a_broken_lookup_never_breaks_the_reading(self, monkeypatch):
+        assert self._call(monkeypatch, RuntimeError("mongo is down"), fallback=5.5) == 5.5
+
+    def test_none_when_nothing_at_all_is_known(self, monkeypatch):
+        # Callers read this as "use the server clock" — a guess, but an explicit one.
+        assert self._call(monkeypatch, None) is None
+
+
+class TestViewerDateReachesTheComputes:
+    """The plumbing, end to end: an offset handed in at the top must change what
+    the layers below call "today". Each of these was reading the server clock.
+
+    ±12/+14 are used throughout because those two offsets are 26 hours apart and
+    so can never share a calendar day — the assertion holds whatever the CI box's
+    own timezone is, which a fixed expected date would not.
+    """
+
+    CHART = {"dob": "1976-06-04", "tob": "05:45:02", "place": "Shahgarh",
+             "lat": 27.845278, "lon": 78.334167, "tz": 5.5}
+
+    def test_get_dashas_picks_the_current_period_by_the_viewers_date(self):
+        from astrology import AstrologyCompute as A
+
+        r = A.get_dashas(current_tz=-4.0, **self.CHART)
+        assert r.get("status") != "failed"
+        cur = r.get("current_dasha") or {}
+        today = timezones.today_at_offset(-4.0)
+        assert cur.get("start_date") <= today <= cur.get("end_date")
+
+    def test_chart_context_publishes_the_viewers_today(self):
+        from chart_context import build_chart_context
+
+        bd = {"dob": "1976-06-04", "tob": "05:45:02", "place": "Shahgarh",
+              "latitude": 27.845278, "longitude": 78.334167, "timezone": 5.5}
+        quiet = {k: False for k in
+                 ("dasha_tree", "yogas", "doshas", "transits",
+                  "ashtakavarga", "shadbala", "aspects", "arudhas")}
+        ctx = build_chart_context(bd, sections=quiet, vargas=[1], current_tz=-4.0)
+        assert ctx["today"] == timezones.today_at_offset(-4.0)
+        # And it is genuinely offset-driven, not incidentally the server's date.
+        west = build_chart_context(bd, sections=quiet, vargas=[1], current_tz=-12.0)
+        east = build_chart_context(bd, sections=quiet, vargas=[1], current_tz=14.0)
+        assert west["today"] != east["today"]
+
+    def test_the_prompt_states_the_readers_date_not_the_servers(self):
+        # prompts.py reads ctx["today"]; this is the line the user actually sees
+        # as "as of ..." in a reading.
+        from llm_service import llm_service
+
+        block = llm_service._render_context_block({"today": "2026-08-05"})
+        assert "2026-08-05" in block
+
+    def test_the_tool_layer_dates_by_the_viewer_too(self):
+        # dispatch injects current_tz into every handler's kwargs.
+        import tools as tool_registry
+
+        bd = {"dob": "1976-06-04", "tob": "05:45:02", "place": "Shahgarh",
+              "latitude": 27.845278, "longitude": 78.334167, "timezone": 5.5}
+        west = tool_registry.dispatch("get_gochara_phala", {}, bd, current_tz=-12.0)
+        east = tool_registry.dispatch("get_gochara_phala", {}, bd, current_tz=14.0)
+        assert west["transit_date"] != east["transit_date"]
+        assert east["transit_date"] == timezones.today_at_offset(14.0)
+
+    def test_a_handler_that_does_not_care_still_accepts_the_injection(self):
+        # Every handler takes **_, so injecting current_tz must not TypeError on
+        # the ones with no notion of "now".
+        import tools as tool_registry
+
+        bd = {"dob": "1976-06-04", "tob": "05:45:02", "place": "Shahgarh",
+              "latitude": 27.845278, "longitude": 78.334167, "timezone": 5.5}
+        r = tool_registry.dispatch("get_natal_chart", {}, bd, current_tz=-4.0)
+        assert "error" not in r

@@ -1815,8 +1815,10 @@ Be specific to the matches above — do not invent placements or events. Do NOT 
 
         from datetime import datetime
 
-        # Get current date for Dasha period identification
-        current_date = datetime.now().strftime("%Y-%m-%d")
+        # Current date for Dasha period identification. `build_chart_context` puts
+        # the *reader's* date here; `datetime.now()` is the server's, which is
+        # already tomorrow for anyone west of UTC late in their evening.
+        current_date = chart_data.get("today") or datetime.now().strftime("%Y-%m-%d")
 
         # Extract key information
         lagna_info = chart_data.get("lagna", {})

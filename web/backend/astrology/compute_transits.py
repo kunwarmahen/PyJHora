@@ -69,7 +69,7 @@ class TransitsMixin:
             if current_date:
                 ty, tm, td = map(int, current_date.split("-"))
             else:
-                now = datetime.now()
+                now = _now_at_tz(current_tz if current_tz is not None else tz_offset)
                 ty, tm, td = now.year, now.month, now.day
 
             if current_time:
@@ -415,7 +415,7 @@ class TransitsMixin:
             if current_date:
                 ty, tm, td = map(int, current_date.split("-"))
             else:
-                now = datetime.now()
+                now = _now_at_tz(current_tz if current_tz is not None else tz_offset)
                 ty, tm, td = now.year, now.month, now.day
             transit_tz = current_tz if current_tz is not None else tz_offset
             transit_place = drik.Place(place or "", lat, lon, transit_tz)

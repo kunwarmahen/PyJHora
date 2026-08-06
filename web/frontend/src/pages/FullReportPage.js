@@ -5,7 +5,7 @@ import { FileText, Printer } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
-import { intlLocale, formatDate, orDash } from "../utils/format";
+import { intlLocale, formatDate, orDash, todayISO } from "../utils/format";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
 import { PageHeader } from "../components/PageHeader";
@@ -169,7 +169,7 @@ export const FullReportPage = () => {
                 </span>
                 <span>
                   <strong>{t("report.generated")}:</strong>{" "}
-                  {formatDate(new Date().toISOString(), locale)}
+                  {formatDate(todayISO(), locale)}
                 </span>
               </div>
             </header>

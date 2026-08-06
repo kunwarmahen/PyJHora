@@ -7,7 +7,7 @@ import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
 import { RecentReadings } from "../components/RecentReadings";
-import { intlLocale } from "../utils/format";
+import { intlLocale, todayISO } from "../utils/format";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { ErrorBanner } from "../components/ErrorBanner";
@@ -17,14 +17,9 @@ import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
-// Today as a local-calendar YYYY-MM-DD (not toISOString, which is UTC and can
-// roll over a day west of UTC).
-const todayLocal = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate()
-  ).padStart(2, "0")}`;
-};
+// This page got the local-calendar date right on its own; it now shares the
+// helper so there is one place to be right.
+const todayLocal = todayISO;
 
 // Read the model the user already picked in "Ask Astrologer".
 const readModelConfig = () => {

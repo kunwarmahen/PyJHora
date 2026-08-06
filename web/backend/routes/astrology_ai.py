@@ -1245,6 +1245,7 @@ async def analyze_varshaphal(
             dob=bd.dob, tob=bd.tob, place=bd.place, year=request.year,
             lat=bd.latitude, lon=bd.longitude, tz=bd.timezone,
             ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+            current_tz=await viewer_tz(current_user, request.current_tz, bd.timezone),
         )
         if varsha.get("status") != "success":
             raise HTTPException(status_code=400, detail=varsha.get("error", "Calculation failed"))

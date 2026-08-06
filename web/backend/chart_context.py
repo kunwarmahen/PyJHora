@@ -62,8 +62,12 @@ _LEVEL_NAMES = {1: "Mahadasha", 2: "Antardasha (Bhukti)",
                 3: "Pratyantardasha", 4: "Sookshma (Sookshma-antardasha)"}
 
 
-def _today_str() -> str:
-    return datetime.now().strftime("%Y-%m-%d")
+def _today_str(current_tz: Optional[float] = None) -> str:
+    """Today on the *viewer's* calendar. `current_tz` is their UTC offset; without
+    one this is the server's date, which is a different day for a third of the
+    globe and picks the wrong running period on a dasha boundary."""
+    import timezones
+    return timezones.today_at_offset(current_tz)
 
 
 def _find_current(periods: List[Dict[str, Any]], today: str) -> Optional[Dict[str, Any]]:
@@ -76,13 +80,17 @@ def _find_current(periods: List[Dict[str, Any]], today: str) -> Optional[Dict[st
     return None
 
 
-def _running_dasha_chain(args: Dict[str, Any], dashas: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _running_dasha_chain(args: Dict[str, Any], dashas: Dict[str, Any],
+                         current_tz: Optional[float] = None) -> List[Dict[str, Any]]:
     """Walk the active Vimsottari chain from Maha down to Sookshma.
 
     `args` are the dob/tob/place/lat/lon/tz kwargs for AstrologyCompute calls;
     `dashas` is the already-computed get_dashas() result (reused for levels 1-2).
+    `current_tz` dates "now" by the viewer, which matters most at the bottom of
+    the chain: Sookshma periods are days long, so the server's date picks the
+    wrong lord outright rather than only on a boundary.
     """
-    today = _today_str()
+    today = _today_str(current_tz)
     chain: List[Dict[str, Any]] = []
 
     current_maha = dashas.get("current_dasha") or {}
@@ -134,13 +142,17 @@ def _running_dasha_chain(args: Dict[str, Any], dashas: Dict[str, Any]) -> List[D
 def build_chart_context(birth_details: Dict[str, Any],
                         ayanamsa: str = DEFAULT_AYANAMSA,
                         sections: Optional[Dict[str, bool]] = None,
-                        vargas: Optional[List[int]] = None) -> Dict[str, Any]:
+                        vargas: Optional[List[int]] = None,
+                        current_tz: Optional[float] = None) -> Dict[str, Any]:
     """Build the structured context dict for the LLM prompt.
 
     `birth_details` is a dict with dob, tob, place, latitude, longitude, timezone.
     `sections` overrides DEFAULT_SECTIONS to toggle individual context blocks.
     `vargas` is the list of divisional-chart factors to include (D1 is always the
     natal base; the rest are computed into a dedicated section).
+    `current_tz` is the viewer's UTC offset (see `deps.viewer_tz`); it decides
+    which dasha counts as "running now" and is published as `ctx["today"]` so the
+    prompt layer states the reader's date rather than the server's.
     """
     # Sections may be legacy bools or tri-state strings ("seed"/"tool"/"off").
     # Only "seed" (or True) is rendered into the prompt; "tool"/"off" are not
@@ -181,6 +193,10 @@ def build_chart_context(birth_details: Dict[str, Any],
             "tob": birth_details["tob"],
             "place": birth_details.get("place", ""),
         },
+        # The reader's own date. Carried in the context (rather than recomputed in
+        # the prompt layer) so every consumer states the same "today" — and so the
+        # LLM layer needs no timezone plumbing of its own.
+        "today": _today_str(current_tz),
         "time_accuracy": birth_details.get("time_accuracy") or "exact",
         "lagna": chart.get("lagna", {}),
         "moon_sign": {
@@ -200,12 +216,12 @@ def build_chart_context(birth_details: Dict[str, Any],
 
     # Dasha — always include the base current/next (cheap; used for fallback
     # rendering), plus the full running chain when requested.
-    dashas = AstrologyCompute.get_dashas(**args)
+    dashas = AstrologyCompute.get_dashas(current_tz=current_tz, **args)
     ctx["current_dasha"] = dashas.get("current_dasha", {})
     ctx["next_dasha"] = dashas.get("next_dasha", {})
     ctx["current_bhukthi"] = dashas.get("current_bhukthi", {})
     if sections.get("dasha_tree"):
-        ctx["dasha_tree"] = _running_dasha_chain(args, dashas)
+        ctx["dasha_tree"] = _running_dasha_chain(args, dashas, current_tz)
 
     if sections.get("yogas"):
         y = AstrologyCompute.get_yogas(ayanamsa=ayanamsa, **args)

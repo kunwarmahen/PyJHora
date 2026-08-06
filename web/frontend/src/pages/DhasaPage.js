@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Clock, AlertCircle, Star, ChevronDown, Calendar } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
-import { intlLocale } from "../utils/format";
+import { intlLocale, parseLocalDate } from "../utils/format";
 import { PageHeader } from "../components/PageHeader";
 import { ProfileBanner } from "../components/ProfileBanner";
 import { AdvancedOnly } from "../components/AdvancedOnly";
@@ -33,7 +33,7 @@ const isCurrentPeriod = (startDate, endDate) => {
 const formatDate = (dateStr, locale = "en-US") => {
   if (!dateStr) return "—";
   try {
-    return new Date(dateStr).toLocaleDateString(locale, {
+    return parseLocalDate(dateStr).toLocaleDateString(locale, {
       year: "numeric",
       month: "short",
       day: "numeric",

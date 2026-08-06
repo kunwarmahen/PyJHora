@@ -462,7 +462,9 @@ async def get_dhasa(
             lat=birth_details.latitude,
             lon=birth_details.longitude,
             tz=birth_details.timezone,
-            dhasa_type=dhasa_type
+            dhasa_type=dhasa_type,
+            current_tz=await viewer_tz(
+                current_user, fallback=birth_details.timezone),
         )
         return dhasa
     except Exception as e:
@@ -613,6 +615,8 @@ async def get_varshaphal(
             lat=birth_details.latitude, lon=birth_details.longitude,
             tz=birth_details.timezone, ayanamsa=ayanamsa,
             dasha_system=dasha_system,
+            current_tz=await viewer_tz(
+                current_user, fallback=birth_details.timezone),
         )
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
@@ -1004,6 +1008,11 @@ async def ask_question(
     """Ask a question about the birth chart using AI"""
     _enforce_rate_limit(current_user)
     try:
+        # Where the reader is now, so "today" and the running dasha are theirs and
+        # not the server's. Falls back to the birth offset when no current
+        # location is stored — see deps.viewer_tz.
+        tz_now = await viewer_tz(
+            current_user, fallback=request.birth_details.timezone)
         # Build the rich, structured chart context (D1 + running dasha chain +
         # yogas + doshas + transits), token-budgeted and section-toggleable.
         chart_data = build_chart_context(
@@ -1011,6 +1020,7 @@ async def ask_question(
             ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
             sections=request.sections,
             vargas=request.vargas,
+            current_tz=tz_now,
         )
 
         # Resolve the model config (request key → user's stored key → env key)
@@ -1035,7 +1045,7 @@ async def ask_question(
                     seed_block, request.question, history, cfg, bd,
                     request.ayanamsa or DEFAULT_AYANAMSA,
                     tool_names=tool_registry.tool_names_for_sections(request.sections),
-                    usage=usage):
+                    usage=usage, current_tz=tz_now):
                 et = ev.get("type")
                 if et == "token":
                     parts.append(ev["text"])
@@ -1094,12 +1104,14 @@ async def ask_question_stream(
     """Stream an answer token-by-token (SSE), with multi-turn context, and persist
     the completed turn. Frontend reads this with a fetch + ReadableStream."""
     _enforce_rate_limit(current_user)
+    tz_now = await viewer_tz(current_user, fallback=request.birth_details.timezone)
     # Build context + resolve model up front so failures surface as HTTP errors.
     chart_data = build_chart_context(
         birth_details=request.birth_details.model_dump(),
         ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
         sections=request.sections,
         vargas=request.vargas,
+        current_tz=tz_now,
     )
     cfg = await _resolve_cfg(current_user, request)
     conv = await convo.get_conversation(current_user, request.conversation_id) \
@@ -1140,7 +1152,7 @@ async def ask_question_stream(
                         seed_block, request.question, history, cfg, bd,
                         request.ayanamsa or DEFAULT_AYANAMSA,
                         tool_names=tool_registry.tool_names_for_sections(request.sections),
-                        usage=usage):
+                        usage=usage, current_tz=tz_now):
                     et = ev.get("type")
                     if et == "token":
                         parts.append(ev["text"])
@@ -1197,6 +1209,8 @@ async def generate_prediction(
             ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
             sections=request.sections,
             vargas=request.vargas,
+            current_tz=await viewer_tz(
+                current_user, fallback=request.birth_details.timezone),
         )
 
         # Resolve the model config (request key → user's stored key → env key)
@@ -1779,7 +1793,9 @@ async def life_report_chapter(
         chart_data = build_chart_context(
             birth_details=request.birth_details.model_dump(),
             ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
-            sections=request.sections, vargas=request.vargas)
+            sections=request.sections, vargas=request.vargas,
+            current_tz=await viewer_tz(
+                current_user, fallback=request.birth_details.timezone))
         cfg = await _resolve_cfg(current_user, request)
         text = await llm_service.generate_life_report_chapter(
             chart_data=chart_data, title=title, focus=focus,

@@ -10,7 +10,7 @@ import { Card } from "../components/Card";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { useSettings } from "../contexts/SettingsContext";
-import { intlLocale } from "../utils/format";
+import { intlLocale, todayISO } from "../utils/format";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Journal.css";
@@ -43,7 +43,9 @@ const CATEGORIES = [
 
 const emptyForm = () => ({
   id: null,
-  date: new Date().toISOString().slice(0, 10),
+  // The viewer's calendar day — an entry written at 10pm is about today, not
+  // tomorrow (which is what the UTC date says from the Americas).
+  date: todayISO(),
   title: "",
   category: "milestone",
   notes: "",

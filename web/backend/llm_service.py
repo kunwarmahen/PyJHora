@@ -1204,7 +1204,8 @@ Reply with STRICT JSON only, exactly this shape:
                             birth_details: Dict[str, Any], ayanamsa: str,
                             tool_names: Optional[List[str]] = None,
                             max_rounds: int = MAX_TOOL_ROUNDS,
-                            usage: Optional[Dict[str, Any]] = None) -> AsyncGenerator[Dict[str, Any], None]:
+                            usage: Optional[Dict[str, Any]] = None,
+                            current_tz: Optional[float] = None) -> AsyncGenerator[Dict[str, Any], None]:
         """Drive the agentic loop, yielding event dicts:
           {"type": "tool_call", "name", "args"}
           {"type": "tool_result", "name", "ok"}
@@ -1329,7 +1330,8 @@ Reply with STRICT JSON only, exactly this shape:
                 else:
                     try:
                         result = tool_registry.dispatch(c["name"], args,
-                                                        birth_details, ayanamsa)
+                                                        birth_details, ayanamsa,
+                                                        current_tz=current_tz)
                         ok = not (isinstance(result, dict) and result.get("error"))
                     except tool_registry.ToolError as te:
                         result = {"error": str(te)}

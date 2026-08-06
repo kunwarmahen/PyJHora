@@ -620,7 +620,7 @@ class ReferenceMixin:
             if current_date:
                 ty, tm, td = map(int, current_date.split("-"))
             else:
-                now = datetime.now()
+                now = _now_at_tz(current_tz if current_tz is not None else tz_offset)
                 ty, tm, td = now.year, now.month, now.day
             if current_time:
                 tt = current_time.split(":")
@@ -773,7 +773,7 @@ class ReferenceMixin:
             if current_date:
                 ty, tm, td = map(int, current_date.split("-"))
             else:
-                now = datetime.now()
+                now = _now_at_tz(current_tz if current_tz is not None else tz_offset)
                 ty, tm, td = now.year, now.month, now.day
             if current_time:
                 tt = current_time.split(":")
@@ -914,7 +914,7 @@ class ReferenceMixin:
             if current_date:
                 ty, tm, td = map(int, current_date.split("-"))
             else:
-                now = datetime.now()
+                now = _now_at_tz(current_tz if current_tz is not None else tz_offset)
                 ty, tm, td = now.year, now.month, now.day
             if current_time:
                 tt = current_time.split(":")
@@ -1127,7 +1127,7 @@ class ReferenceMixin:
             if current_date:
                 ty, tm, td = map(int, current_date.split("-"))
             else:
-                now = datetime.now()
+                now = _now_at_tz(current_tz if current_tz is not None else tz_offset)
                 ty, tm, td = now.year, now.month, now.day
             if current_time:
                 cparts = current_time.split(":")

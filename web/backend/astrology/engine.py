@@ -118,6 +118,26 @@ SUPPORTED_AYANAMSAS = {
 }
 
 
+def _now_at_tz(tz_offset):
+    """"Now" on the *viewer's* calendar, given their UTC offset in hours.
+
+    `datetime.now()` reads the server's clock, which says nothing about the user:
+    a pod running UTC calls it 2026-08-06 02:50 while the person in Cary, NC is
+    still on the evening of Aug 5, and every "as of today" transit then lands a
+    day ahead. The offset the frontend sends is the only thing that knows what
+    day it is where the user is standing, so date the snapshot from that.
+
+    Returns a naive datetime deliberately — callers want the wall-clock fields
+    (year/month/day/hour) to feed `swe.julday` alongside a `Place` carrying the
+    same offset, which is how the engine's local→UT conversion is set up.
+
+    Thin alias for `timezones.now_at_offset`, which is the one implementation;
+    the engine keeps a local name because the compute mixins import from here.
+    """
+    import timezones
+    return timezones.now_at_offset(tz_offset)
+
+
 def _set_ayanamsa(name):
     """Set the global ayanamsa for the next computation; fall back to the default
     for unknown values. Returns the key that was actually applied.
@@ -1377,7 +1397,8 @@ def _varsha_lord_name(system_key, lord_repr):
         return str(val)
 
 
-def _annual_dasha(system_key, jd_dob, place_obj, age, dob_date, tob_tuple):
+def _annual_dasha(system_key, jd_dob, place_obj, age, dob_date, tob_tuple,
+                  current_tz=None):
     """Compute the maha-period list for a Varshaphal dasha system, normalised to
     the flat shape the frontend table consumes: {system, system_key, lord_type,
     periods:[{lord_name, start, end, current}]}.
@@ -1421,7 +1442,10 @@ def _annual_dasha(system_key, jd_dob, place_obj, age, dob_date, tob_tuple):
         })
     items.sort(key=lambda x: x["start_jd"])
 
-    today = _date.today().isoformat()
+    # An annual dasha divides one year among nine lords, so its periods are weeks
+    # — a server-dated "today" mismarks the current one far more often than a
+    # Vimsottari maha ever would.
+    today = _now_at_tz(current_tz).strftime("%Y-%m-%d")
 
     def _iso(jd):
         y, m, d, _ = utils.jd_to_gregorian(jd)

@@ -77,9 +77,15 @@ class DashasMixin:
 
     @staticmethod
     def get_dashas(dob: str, tob: str, place: str, dhasa_type: str = "vimsottari",
-                lat: Optional[float] = None, lon: Optional[float] = None, tz: Optional[float] = None) -> Dict:
+                lat: Optional[float] = None, lon: Optional[float] = None, tz: Optional[float] = None,
+                current_tz: Optional[float] = None) -> Dict:
         """
         Calculate Dasha periods (life periods) using Jyotir AI's accurate calculations
+
+        `current_tz` is the viewer's UTC offset, used only to decide which period
+        is running *now*. Without it "now" is the server's clock, which is a
+        different date for a third of the world and so returns the wrong
+        current/next dasha across a boundary.
         """
         if not ENGINE_AVAILABLE:
             return {"error": "Jyotir AI engine not available"}
@@ -191,7 +197,7 @@ class DashasMixin:
                 })
 
             # Find current dasha and next dasha
-            current_datetime = datetime.now()
+            current_datetime = _now_at_tz(current_tz)
             current_dasha = None
             next_dasha = None
             current_bhukthi_periods = []

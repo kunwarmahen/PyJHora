@@ -4,6 +4,7 @@ import { Sun, Sunrise, Sunset, MapPin } from "lucide-react";
 import { astrologyService } from "../services/api";
 import { useSettings } from "../contexts/SettingsContext";
 import { useLocalizeName } from "../i18n/localizeName";
+import { todayISO } from "../utils/format";
 
 /**
  * Reverse-geocode coordinates to a "City, Country" label using BigDataCloud's
@@ -38,7 +39,7 @@ export const PanchangaPanel = ({
 }) => {
   const { t } = useTranslation();
   const ln = useLocalizeName();
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayISO();
   const [date, setDate] = useState(today);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

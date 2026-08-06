@@ -14,7 +14,7 @@ So a current location stores an **IANA zone name**, never an offset, and the
 offset is derived from it *for the moment it's needed*. `zoneinfo` carries the
 DST rules; `TimezoneFinder` maps coordinates to the zone offline (no network).
 """
-from datetime import datetime, timezone as _utc
+from datetime import datetime, timedelta, timezone as _utc
 from typing import Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -110,3 +110,29 @@ def local_now(zone: str) -> Optional[datetime]:
         return datetime.now(ZoneInfo(zone))
     except (ZoneInfoNotFoundError, ValueError, TypeError):
         return None
+
+
+def now_at_offset(offset_hours_: Optional[float]) -> datetime:
+    """Wall-clock "now" at a fixed UTC offset, as a *naive* datetime.
+
+    The engine speaks in float offsets, not zone names: it pairs a local Julian
+    day with a `Place` carrying the same offset. So the transit/dasha computes
+    need this shape rather than `local_now`'s aware datetime.
+
+    Prefer `local_now(zone)` wherever a zone name is available — it is DST-correct
+    by construction, whereas an offset is only a snapshot of one. This exists for
+    the layers that only ever receive the offset the browser sent.
+
+    `None` means "nothing known about the viewer", and falls back to the server's
+    clock — which is a guess, not an answer, and is why callers should try to
+    supply an offset.
+    """
+    if offset_hours_ is None:
+        return datetime.now()
+    return (datetime.now(_utc.utc) + timedelta(hours=offset_hours_)).replace(tzinfo=None)
+
+
+def today_at_offset(offset_hours_: Optional[float]) -> str:
+    """"Today" on the viewer's calendar as `YYYY-MM-DD` — the date a reading is
+    "as of". See `now_at_offset` for why the server's own date is not it."""
+    return now_at_offset(offset_hours_).strftime("%Y-%m-%d")

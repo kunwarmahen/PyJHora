@@ -17,7 +17,8 @@ class TajakaMixin:
                        lat: Optional[float] = None, lon: Optional[float] = None,
                        tz: Optional[float] = None,
                        ayanamsa: str = DEFAULT_AYANAMSA,
-                       dasha_system: str = "mudda") -> Dict:
+                       dasha_system: str = "mudda",
+                       current_tz: Optional[float] = None) -> Dict:
         """Varshaphal / Tajaka annual (solar-return) horoscope for a target year.
 
         Returns the annual chart (formatted for the Kundali component), the
@@ -200,7 +201,7 @@ class TajakaMixin:
             tob_tuple = (hour, minute, 0)
             try:
                 annual_dasha = _annual_dasha(dasha_key, jd_dob, place_obj, age,
-                                             dob_date, tob_tuple)
+                                             dob_date, tob_tuple, current_tz)
             except Exception as e:
                 print(f"Varshaphal annual-dasha ({dasha_key}) error: {e}")
 

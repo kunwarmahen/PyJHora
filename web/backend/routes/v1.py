@@ -113,6 +113,8 @@ async def api_v1_run_tool(tool_name: str, req: ToolRunRequest,
         result = tool_registry.dispatch(
             tool_name, req.args or {}, birth_details,
             ayanamsa=req.ayanamsa or DEFAULT_AYANAMSA,
+            current_tz=await viewer_tz(
+                current_user, fallback=birth_details.get("timezone")),
         )
     except tool_registry.ToolError as e:
         raise HTTPException(status_code=400, detail=str(e))

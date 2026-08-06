@@ -13,7 +13,7 @@ import { Card } from "../components/Card";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { useSettings } from "../contexts/SettingsContext";
-import { intlLocale } from "../utils/format";
+import { intlLocale, todayISO } from "../utils/format";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Timeline.css";
@@ -167,7 +167,7 @@ export const TimelinePage = () => {
     (xView) => {
       const f = Math.max(0, Math.min(1, (xView - PX0) / PW));
       const d = new Date(t0 + f * (t1 - t0));
-      return d.toISOString().slice(0, 10);
+      return todayISO(d);
     },
     [t0, t1]
   );

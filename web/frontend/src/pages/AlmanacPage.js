@@ -22,6 +22,7 @@ import { PanchangaPanel } from "../components/PanchangaPanel";
 import { Card } from "../components/Card";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
+import { parseLocalDate, todayISO } from "../utils/format";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 
@@ -126,11 +127,13 @@ async function reverseGeocode(latitude, longitude) {
   }
 }
 
-const todayISO = () => new Date().toISOString().split("T")[0];
+// Step a `YYYY-MM-DD` by whole days on the *local* calendar. Both halves used to
+// go through UTC (parse and format), whose errors cancelled on ordinary days and
+// stopped cancelling across a DST change.
 const addDaysISO = (iso, days) => {
-  const d = new Date(iso);
+  const d = parseLocalDate(iso);
   d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
+  return todayISO(d);
 };
 
 /* ── Planetary hours (hora) ────────────────────────────────────────────── */

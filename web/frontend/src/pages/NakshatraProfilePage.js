@@ -13,7 +13,7 @@ import { Card } from "../components/Card";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { useSettings } from "../contexts/SettingsContext";
-import { intlLocale } from "../utils/format";
+import { intlLocale, todayISO } from "../utils/format";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Nakshatra.css";
@@ -120,7 +120,9 @@ export const NakshatraProfilePage = () => {
     setPnAnalysis("");
     setPnError("");
     try {
-      const res = await astrologyService.getNakshatraProfile(birthDetails, null, ayanamsa);
+      // Send our own calendar date: the tarabala strip starts "today", and the
+      // backend's fallback is the *server's* today, which is a day off abroad.
+      const res = await astrologyService.getNakshatraProfile(birthDetails, todayISO(), ayanamsa);
       setData(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || t("nakshatra.calcError"));

@@ -75,9 +75,11 @@ def _natal_chart(bd, ayanamsa, **_):
     }
 
 
-def _dasha_chain(bd, ayanamsa, dhasa_type: str = "vimsottari", **_):
+def _dasha_chain(bd, ayanamsa, dhasa_type: str = "vimsottari",
+                 current_tz: Optional[float] = None, **_):
     args = _args(bd)
-    dashas = AstrologyCompute.get_dashas(dhasa_type=dhasa_type, **args)
+    dashas = AstrologyCompute.get_dashas(dhasa_type=dhasa_type,
+                                         current_tz=current_tz, **args)
     if dashas.get("status") == "failed":
         return dashas
     result = {
@@ -87,7 +89,7 @@ def _dasha_chain(bd, ayanamsa, dhasa_type: str = "vimsottari", **_):
     }
     # The precise running Maha -> Bhukti -> Antara -> Sookshma chain (Vimsottari).
     if dhasa_type == "vimsottari":
-        result["dasha_tree"] = _running_dasha_chain(args, dashas)
+        result["dasha_tree"] = _running_dasha_chain(args, dashas, current_tz)
     return result
 
 
@@ -112,8 +114,9 @@ def _doshas(bd, ayanamsa, **_):
     return {"doshas": d.get("doshas", []) if d.get("status") == "success" else []}
 
 
-def _transits(bd, ayanamsa, **_):
-    t = AstrologyCompute.get_transits(ayanamsa=ayanamsa, **_args(bd))
+def _transits(bd, ayanamsa, current_tz: Optional[float] = None, **_):
+    t = AstrologyCompute.get_transits(ayanamsa=ayanamsa, current_tz=current_tz,
+                                      **_args(bd))
     if t.get("status") != "success":
         return t
     return {
@@ -199,12 +202,14 @@ def _panchanga(bd, ayanamsa, date: Optional[str] = None, **_):
         date=date, place=a["place"], lat=a["lat"], lon=a["lon"], tz=a["tz"])
 
 
-def _varshaphal(bd, ayanamsa, year: Optional[int] = None, **_):
+def _varshaphal(bd, ayanamsa, year: Optional[int] = None,
+                current_tz: Optional[float] = None, **_):
     try:
         yr = int(year)
     except (TypeError, ValueError):
         raise ToolError("get_varshaphal requires an integer 'year' (e.g. 2026).")
-    v = AstrologyCompute.get_varshaphal(year=yr, ayanamsa=ayanamsa, **_args(bd))
+    v = AstrologyCompute.get_varshaphal(year=yr, ayanamsa=ayanamsa,
+                                        current_tz=current_tz, **_args(bd))
     if v.get("status") != "success":
         return v
     return {
@@ -416,7 +421,8 @@ def _sarvatobhadra(bd, ayanamsa, current_date: Optional[str] = None, **_):
     }
 
 
-def _dasha_periods(bd, ayanamsa, dhasa_type: str = "", **_):
+def _dasha_periods(bd, ayanamsa, dhasa_type: str = "",
+                   current_tz: Optional[float] = None, **_):
     if not dhasa_type or dhasa_type not in SUPPORTED_DASHAS:
         raise ToolError(
             "get_dasha_periods requires a 'dhasa_type' from: "
@@ -424,8 +430,8 @@ def _dasha_periods(bd, ayanamsa, dhasa_type: str = "", **_):
     r = AstrologyCompute.get_dasha_periods(dhasa_type, ayanamsa=ayanamsa, **_args(bd))
     if r.get("status") != "success":
         return r
-    from datetime import date as _date
-    today = _date.today().isoformat()
+    import timezones
+    today = timezones.today_at_offset(current_tz)
     periods = r.get("periods", [])
     current = next((p for p in periods
                     if p["start_date"] <= today <= p["end_date"]), None)
@@ -685,9 +691,11 @@ def _nakshatra_profile(bd, ayanamsa, current_date: Optional[str] = None, **_):
     }
 
 
-def _gochara_phala(bd, ayanamsa, current_date: Optional[str] = None, **_):
+def _gochara_phala(bd, ayanamsa, current_date: Optional[str] = None,
+                   current_tz: Optional[float] = None, **_):
     r = AstrologyCompute.get_gochara_phala(
-        ayanamsa=ayanamsa, current_date=current_date, **_args(bd))
+        ayanamsa=ayanamsa, current_date=current_date, current_tz=current_tz,
+        **_args(bd))
     if r.get("status") != "success":
         return r
     return {
@@ -1418,14 +1426,24 @@ def tool_catalog() -> List[Dict[str, Any]]:
 
 def dispatch(name: str, model_args: Optional[Dict[str, Any]],
              birth_details: Dict[str, Any],
-             ayanamsa: str = DEFAULT_AYANAMSA) -> Dict[str, Any]:
+             ayanamsa: str = DEFAULT_AYANAMSA,
+             current_tz: Optional[float] = None) -> Dict[str, Any]:
     """Execute one tool call. Raises ToolError for an unknown name; other handler
     failures are returned as `{"error": ...}` so the loop can feed them back to
-    the model rather than crashing."""
+    the model rather than crashing.
+
+    `current_tz` is the viewer's UTC offset (see `deps.viewer_tz`). It is injected
+    into every handler's kwargs, not declared per tool: the time-sensitive
+    handlers name it, the rest absorb it in `**_`. It deliberately overrides
+    anything the model supplied — where the user is standing is a fact of the
+    request, not something for the model to infer.
+    """
     tool = TOOLS.get(name)
     if tool is None:
         raise ToolError(f"Unknown tool '{name}'. Available: {', '.join(TOOLS)}.")
     kwargs = {k: v for k, v in (model_args or {}).items()}
+    if current_tz is not None:
+        kwargs["current_tz"] = current_tz
     try:
         return tool.handler(birth_details, ayanamsa, **kwargs)
     except ToolError:

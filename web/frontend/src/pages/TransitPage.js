@@ -5,7 +5,7 @@ import { Orbit, Calendar, TrendingUp, RotateCcw } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
-import { intlLocale } from "../utils/format";
+import { intlLocale, parseLocalDate } from "../utils/format";
 import { NorthIndianChart } from "../components/NorthIndianChart";
 import { SouthIndianChart } from "../components/SouthIndianChart";
 import { PageHeader } from "../components/PageHeader";
@@ -32,7 +32,7 @@ const tzOffset = (d) => -d.getTimezoneOffset() / 60;
 const formatDate = (dateStr, locale = "en-US") => {
   if (!dateStr) return "—";
   try {
-    return new Date(dateStr).toLocaleDateString(locale, {
+    return parseLocalDate(dateStr).toLocaleDateString(locale, {
       year: "numeric",
       month: "short",
       day: "numeric",

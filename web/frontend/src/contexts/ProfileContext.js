@@ -7,6 +7,7 @@ import {
   resolveStartupProfile,
 } from "../config/startupProfile";
 import { useAuth } from "./AuthContext";
+import { todayISO } from "../utils/format";
 
 const ProfileContext = createContext();
 
@@ -198,7 +199,7 @@ export const ProfileProvider = ({ children }) => {
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const stamp = new Date().toISOString().slice(0, 10);
+    const stamp = todayISO();
     a.href = url;
     a.download = `jyotirai-profiles-${stamp}.json`;
     document.body.appendChild(a);

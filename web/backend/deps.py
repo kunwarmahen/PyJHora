@@ -32,6 +32,7 @@ import journal
 import ical
 import tool_traces
 import user_settings
+import timezones
 import ratelimit
 import shares
 import quiz
@@ -330,6 +331,39 @@ def _quiz_context(birth_details: dict, topics: list, ayanamsa: str) -> dict:
         birth_details=birth_details, ayanamsa=ayanamsa,
         sections=sections, vargas=vargas,
     )
+
+
+async def viewer_tz(user_id: str, explicit: Optional[float] = None,
+                    fallback: Optional[float] = None) -> Optional[float]:
+    """The UTC offset to date "now" by, for this user, right now.
+
+    "Today" is a property of where the reader is standing, not of where the server
+    is racked: a UTC pod calls it Aug 6 while a user in Cary, NC is still on the
+    evening of Aug 5, and every "as of today" reading then runs a day ahead.
+
+    In preference order:
+
+    1. `explicit` — the offset the browser sent with this request. Most exact:
+       it is the device's own answer, DST included.
+    2. The user's stored current location (§40). A zone name, so `offset_hours`
+       resolves the DST rule *in force now* rather than whenever it was saved.
+       This is what makes the AI paths right without the frontend sending a thing.
+    3. `fallback` — usually the birth offset. Correct for the many people who
+       still live where they were born, and wrong (but stable) for those who moved.
+    4. `None` — nothing is known; callers fall back to the server clock.
+    """
+    if explicit is not None:
+        return explicit
+    try:
+        loc = await user_settings.get_current_location(user_id)
+        zone = (loc or {}).get("timezone")
+        if zone:
+            offset = timezones.offset_hours(zone)
+            if offset is not None:
+                return offset
+    except Exception as e:  # a missing location must never break a reading
+        print(f"[viewer_tz] current-location lookup failed for {user_id}: {e}")
+    return fallback
 
 
 # Export everything (including the _single_underscore helpers the moved route

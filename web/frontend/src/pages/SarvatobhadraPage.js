@@ -8,7 +8,7 @@ import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
 import { RecentReadings } from "../components/RecentReadings";
-import { intlLocale } from "../utils/format";
+import { intlLocale, parseLocalDate } from "../utils/format";
 import { PageHeader } from "../components/PageHeader";
 import { KotaChakra } from "../components/KotaChakra";
 import { KaalaChakra } from "../components/KaalaChakra";
@@ -31,7 +31,7 @@ const tzOffset = (d) => -d.getTimezoneOffset() / 60;
 const formatDate = (dateStr, locale = "en-US") => {
   if (!dateStr) return "—";
   try {
-    return new Date(dateStr).toLocaleDateString(locale, {
+    return parseLocalDate(dateStr).toLocaleDateString(locale, {
       year: "numeric",
       month: "short",
       day: "numeric",
