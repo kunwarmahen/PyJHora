@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Bird, Sparkles, Sun, Moon, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Bird, Sparkles, Sun, Moon, ThumbsUp, ThumbsDown, MapPin } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
@@ -218,6 +218,14 @@ export const PanchaPakshiPage = () => {
                     <Moon size={14} style={{ color: "var(--cosmic-indigo)" }} /> {result.sunset}
                   </span>
                   <span className="info-pill">{result.paksha} paksha</span>
+                  {/* Every window below is on this place's wall clock. Naming it
+                      is the difference between a usable timing and a number. */}
+                  {result.place && (
+                    <span className="info-pill">
+                      <MapPin size={14} style={{ color: "var(--cosmic-indigo)" }} />{" "}
+                      {result.place}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

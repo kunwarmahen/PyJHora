@@ -366,6 +366,37 @@ async def viewer_tz(user_id: str, explicit: Optional[float] = None,
     return fallback
 
 
+async def viewer_place(user_id: str) -> Optional[Dict[str, Any]]:
+    """Where the user physically is, as `{place, latitude, longitude, timezone}`
+    with the timezone resolved to a float offset — or None if they never set one.
+
+    `viewer_tz` answers "what day is it for them"; this answers "what does the sky
+    do over their head", which anything sunrise-based needs. Pancha Pakshi, the
+    horas, the choghadiya: all of them divide the interval between *their* sunrise
+    and sunset, so computing them at the birth place hands a person in North
+    Carolina a day that begins when the sun comes up over India.
+
+    None means "fall back to the birth profile" — the pre-location behaviour, and
+    still right for everyone who lives where they were born.
+    """
+    try:
+        loc = await user_settings.get_current_location(user_id)
+    except Exception as e:
+        print(f"[viewer_place] current-location lookup failed for {user_id}: {e}")
+        return None
+    if not loc or loc.get("latitude") is None or loc.get("longitude") is None:
+        return None
+    offset = timezones.offset_hours(loc.get("timezone"))
+    if offset is None:
+        return None
+    return {
+        "place": loc.get("place") or "",
+        "latitude": loc["latitude"],
+        "longitude": loc["longitude"],
+        "timezone": offset,
+    }
+
+
 # Export everything (including the _single_underscore helpers the moved route
 # bodies call by bare name) to `from deps import *` in the route modules.
 __all__ = [_n for _n in dir() if not _n.startswith('__')]

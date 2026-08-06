@@ -305,3 +305,76 @@ class TestViewerDateReachesTheComputes:
               "latitude": 27.845278, "longitude": 78.334167, "timezone": 5.5}
         r = tool_registry.dispatch("get_natal_chart", {}, bd, current_tz=-4.0)
         assert "error" not in r
+
+
+class TestPanchaPakshiReadsTheDayWhereYouStand:
+    """Pancha Pakshi divides the interval between sunrise and sunset into ten
+    periods and tells you which to act in. Computed at the birth place, a user in
+    North Carolina got a day that begins when the sun rises over India — the
+    timings were real, but for a clock they were not on.
+
+    The split the fix rests on: the *bird* is a constant of the nativity, the
+    *timeline* is a clock. So the bird must not move with the viewer, and
+    everything else must.
+    """
+
+    BIRTH = {"dob": "1976-06-04", "tob": "05:45:02", "place": "Shahgarh",
+             "lat": 27.845278, "lon": 78.334167, "tz": 5.5}
+    # Two real places far enough apart that sunrise cannot coincide.
+    INDIA = {"current_place": "Shahgarh", "current_lat": 27.845278,
+             "current_lon": 78.334167, "current_tz": 5.5}
+    CARY = {"current_place": "Cary, NC", "current_lat": 35.7915,
+            "current_lon": -78.7811, "current_tz": -4.0}
+
+    def _run(self, **over):
+        from astrology import AstrologyCompute as A
+
+        r = A.get_pancha_pakshi(date="2026-08-06", **self.BIRTH, **over)
+        assert r["status"] == "success"
+        return r
+
+    def test_the_birth_bird_does_not_move_with_the_viewer(self):
+        assert self._run(**self.INDIA)["birth_bird"] == self._run(**self.CARY)["birth_bird"]
+
+    def test_sunrise_and_sunset_are_the_viewers_own(self):
+        india, cary = self._run(**self.INDIA), self._run(**self.CARY)
+        assert india["sunrise"] != cary["sunrise"]
+        assert india["sunset"] != cary["sunset"]
+
+    def test_the_activity_windows_are_on_the_viewers_clock(self):
+        india, cary = self._run(**self.INDIA), self._run(**self.CARY)
+        assert india["segments"][0]["start"] == india["sunrise"]
+        assert cary["segments"][0]["start"] == cary["sunrise"]
+        assert india["best_times"][0]["start"] != cary["best_times"][0]["start"]
+
+    def test_the_result_names_the_place_its_timings_belong_to(self):
+        cary = self._run(**self.CARY)
+        assert cary["place"] == "Cary, NC"
+        assert cary["timezone"] == -4.0
+        # The birth place is still reported, just not conflated with the clock.
+        assert cary["birth_place"] == "Shahgarh"
+
+    def test_omitting_the_current_place_keeps_the_old_birth_place_behaviour(self):
+        # Nobody who lives where they were born should see any change.
+        assert self._run() == self._run(**self.INDIA)
+
+    def test_the_default_day_is_the_viewers_day(self):
+        from astrology import AstrologyCompute as A
+
+        def day(tz):
+            return A.get_pancha_pakshi(**self.BIRTH, current_lat=1.87,
+                                       current_lon=-157.4, current_tz=tz)["date"]
+
+        assert day(-12.0) != day(14.0)
+
+    def test_the_tool_layer_gets_the_viewers_place_injected(self):
+        import tools as tool_registry
+
+        bd = {"dob": "1976-06-04", "tob": "05:45:02", "place": "Shahgarh",
+              "latitude": 27.845278, "longitude": 78.334167, "timezone": 5.5}
+        viewer = {"place": "Cary, NC", "latitude": 35.7915,
+                  "longitude": -78.7811, "timezone": -4.0}
+        r = tool_registry.dispatch("get_pancha_pakshi", {"date": "2026-08-06"},
+                                   bd, viewer=viewer)
+        assert r["place"] == "Cary, NC"
+        assert r["best_times"][0]["start"] == self._run(**self.CARY)["best_times"][0]["start"]

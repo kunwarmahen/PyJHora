@@ -1281,10 +1281,13 @@ async def analyze_pancha_pakshi(
     _enforce_rate_limit(current_user)
     try:
         bd = request.birth_details
+        here = await viewer_place(current_user) or {}
         pp = AstrologyCompute.get_pancha_pakshi(
             dob=bd.dob, tob=bd.tob, place=bd.place,
             lat=bd.latitude, lon=bd.longitude, tz=bd.timezone,
             date=request.date,
+            current_place=here.get("place"), current_lat=here.get("latitude"),
+            current_lon=here.get("longitude"), current_tz=here.get("timezone"),
         )
         if pp.get("status") != "success":
             raise HTTPException(status_code=400, detail=pp.get("error", "Calculation failed"))

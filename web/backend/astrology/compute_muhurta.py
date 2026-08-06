@@ -469,15 +469,26 @@ class MuhurtaMixin:
     def get_pancha_pakshi(dob: str, tob: str, place: str,
                           lat: Optional[float] = None, lon: Optional[float] = None,
                           tz: Optional[float] = None,
-                          date: Optional[str] = None) -> Dict:
+                          date: Optional[str] = None,
+                          current_place: Optional[str] = None,
+                          current_lat: Optional[float] = None,
+                          current_lon: Optional[float] = None,
+                          current_tz: Optional[float] = None) -> Dict:
         """Pancha Pakshi Sastra — the bird-cycle daily-timing system.
 
         Assigns the native a *birth bird* (from the birth nakshatra + paksha),
         then rates the chosen day's activity windows by that bird's state
         (ruling / eating / walking / sleeping / dying) across ten main periods
         (5 daytime from sunrise, 5 nighttime), each split into 5 sub-periods.
-        The birth bird is fixed from birth; the timeline is for `date` (defaults
-        to today at `place`). This system is independent of ayanamsa.
+        This system is independent of ayanamsa.
+
+        **Two places, not one.** The birth bird is a constant of the nativity, so
+        it is read at the birth place. Everything else is a clock: the ten periods
+        run from *sunrise where you are standing*, and their timings are yours to
+        act on — "avoid 14:20–15:05" is useless in a timezone you are not in. So
+        the day's sunrise, length, weekday, paksha and the running-window marker
+        all come from `current_*`, which defaults to the birth place and thereby
+        keeps the old behaviour for anyone who still lives where they were born.
         """
         if not ENGINE_AVAILABLE:
             return {"error": "Jyotir AI engine not available", "status": "failed"}
@@ -501,21 +512,28 @@ class MuhurtaMixin:
             bird_index = pp._get_birth_bird_from_nakshathra(birth_star, birth_paksha)
             bird_name = pp.pancha_pakshi_birds[bird_index - 1].capitalize()
 
+            # ── Where the day is being read (see the docstring) ────────────
+            q_lat = current_lat if current_lat is not None else lat
+            q_lon = current_lon if current_lon is not None else lon
+            q_tz = current_tz if current_tz is not None else tz_offset
+            q_place_name = current_place or place or ""
+            query_place = drik.Place(q_place_name, q_lat, q_lon, q_tz)
+
             # ── Query day ──────────────────────────────────────────────────
             if date:
                 qy, qm, qd = map(int, date.split("-"))
             else:
-                local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+                local_now = datetime.now(_utc.utc) + timedelta(hours=q_tz)
                 qy, qm, qd = local_now.year, local_now.month, local_now.day
 
             # Anchor the query at local sunrise (the day boundary for this system).
             jd_noon = swe.julday(qy, qm, qd, 12)
-            sunrise_jd = drik.sunrise(jd_noon, place_obj)[2]
-            weekday_index = drik.vaara(jd_noon, place_obj) + 1
-            q_paksha = pp._get_paksha(jd_noon, place_obj)
+            sunrise_jd = drik.sunrise(jd_noon, query_place)[2]
+            weekday_index = drik.vaara(jd_noon, query_place) + 1
+            q_paksha = pp._get_paksha(jd_noon, query_place)
 
-            day_len = drik.day_length(jd_noon, place_obj)      # hours
-            night_len = drik.night_length(jd_noon, place_obj)  # hours
+            day_len = drik.day_length(jd_noon, query_place)      # hours
+            night_len = drik.night_length(jd_noon, query_place)  # hours
             day_inc = day_len / 5.0
             night_inc = night_len / 5.0
 
@@ -543,7 +561,7 @@ class MuhurtaMixin:
             segments = []
             best = []
             time_from_jd = sunrise_jd
-            now_local = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
+            now_local = datetime.now(_utc.utc) + timedelta(hours=q_tz)
             is_today = (now_local.year, now_local.month, now_local.day) == (qy, qm, qd)
             now_jd = None
             if is_today:
@@ -609,7 +627,13 @@ class MuhurtaMixin:
             return {
                 "status": "success",
                 "date": f"{qy:04d}-{qm:02d}-{qd:02d}",
-                "place": place,
+                # The place these timings are *in*. Every clock time below is on
+                # this location's wall clock, so naming it is not decoration:
+                # without it there is no way to tell a reading cast for Chennai
+                # from one cast for Cary.
+                "place": q_place_name,
+                "timezone": q_tz,
+                "birth_place": place,
                 "birth_bird": {
                     "name": bird_name,
                     "index": bird_index,

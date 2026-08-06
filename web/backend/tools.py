@@ -541,13 +541,23 @@ def _longevity(bd, ayanamsa, **_):
             "factors": r.get("factors", [])}
 
 
-def _pancha_pakshi(bd, ayanamsa, date: Optional[str] = None, **_):
-    r = AstrologyCompute.get_pancha_pakshi(date=date, **_args(bd))
+def _pancha_pakshi(bd, ayanamsa, date: Optional[str] = None,
+                   current_place: Optional[str] = None,
+                   current_lat: Optional[float] = None,
+                   current_lon: Optional[float] = None,
+                   current_tz: Optional[float] = None, **_):
+    r = AstrologyCompute.get_pancha_pakshi(
+        date=date, current_place=current_place, current_lat=current_lat,
+        current_lon=current_lon, current_tz=current_tz, **_args(bd))
     if r.get("status") != "success":
         return r
     # Trim the full 10×5 timeline to the summary the model actually needs.
     return {
         "date": r.get("date"),
+        # These are wall-clock windows; without the place they are in, the model
+        # can only present them as bare numbers and the reader cannot know which
+        # clock to read them on.
+        "place": r.get("place"),
         "birth_bird": r.get("birth_bird", {}),
         "best_times": r.get("best_times", []),
         "avoid_times": r.get("avoid_times", []),
@@ -1427,16 +1437,23 @@ def tool_catalog() -> List[Dict[str, Any]]:
 def dispatch(name: str, model_args: Optional[Dict[str, Any]],
              birth_details: Dict[str, Any],
              ayanamsa: str = DEFAULT_AYANAMSA,
-             current_tz: Optional[float] = None) -> Dict[str, Any]:
+             current_tz: Optional[float] = None,
+             viewer: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Execute one tool call. Raises ToolError for an unknown name; other handler
     failures are returned as `{"error": ...}` so the loop can feed them back to
     the model rather than crashing.
 
-    `current_tz` is the viewer's UTC offset (see `deps.viewer_tz`). It is injected
-    into every handler's kwargs, not declared per tool: the time-sensitive
-    handlers name it, the rest absorb it in `**_`. It deliberately overrides
-    anything the model supplied — where the user is standing is a fact of the
-    request, not something for the model to infer.
+    Where the reader is, is injected into every handler's kwargs rather than
+    declared per tool: the handlers that care name the arguments, the rest absorb
+    them in `**_`. It deliberately overrides anything the model supplied — where
+    the user is standing is a fact of the request, not something for the model to
+    infer (and not something it can know).
+
+    `current_tz` is the offset alone (see `deps.viewer_tz`) — enough to date
+    "today". `viewer` is the full place from `deps.viewer_place` — needed by
+    anything sunrise-based, which divides the day between *their* sunrise and
+    sunset. When both are given, `viewer`'s offset wins, since it came with the
+    coordinates it belongs to.
     """
     tool = TOOLS.get(name)
     if tool is None:
@@ -1444,6 +1461,12 @@ def dispatch(name: str, model_args: Optional[Dict[str, Any]],
     kwargs = {k: v for k, v in (model_args or {}).items()}
     if current_tz is not None:
         kwargs["current_tz"] = current_tz
+    if viewer:
+        kwargs["current_place"] = viewer.get("place")
+        kwargs["current_lat"] = viewer.get("latitude")
+        kwargs["current_lon"] = viewer.get("longitude")
+        if viewer.get("timezone") is not None:
+            kwargs["current_tz"] = viewer["timezone"]
     try:
         return tool.handler(birth_details, ayanamsa, **kwargs)
     except ToolError:

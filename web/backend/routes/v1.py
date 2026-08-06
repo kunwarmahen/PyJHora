@@ -115,6 +115,7 @@ async def api_v1_run_tool(tool_name: str, req: ToolRunRequest,
             ayanamsa=req.ayanamsa or DEFAULT_AYANAMSA,
             current_tz=await viewer_tz(
                 current_user, fallback=birth_details.get("timezone")),
+            viewer=await viewer_place(current_user),
         )
     except tool_registry.ToolError as e:
         raise HTTPException(status_code=400, detail=str(e))

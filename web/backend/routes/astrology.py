@@ -704,10 +704,15 @@ async def get_pancha_pakshi(
 ):
     """Pancha Pakshi Sastra — birth bird + the day's activity-strength timeline."""
     try:
+        # The timeline is a clock, so it runs on the reader's sunrise, not the
+        # birth place's. None here keeps the birth place, as before.
+        here = await viewer_place(current_user) or {}
         result = AstrologyCompute.get_pancha_pakshi(
             dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
             lat=birth_details.latitude, lon=birth_details.longitude,
             tz=birth_details.timezone, date=date,
+            current_place=here.get("place"), current_lat=here.get("latitude"),
+            current_lon=here.get("longitude"), current_tz=here.get("timezone"),
         )
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
@@ -1013,6 +1018,7 @@ async def ask_question(
         # location is stored — see deps.viewer_tz.
         tz_now = await viewer_tz(
             current_user, fallback=request.birth_details.timezone)
+        here = await viewer_place(current_user)
         # Build the rich, structured chart context (D1 + running dasha chain +
         # yogas + doshas + transits), token-budgeted and section-toggleable.
         chart_data = build_chart_context(
@@ -1045,7 +1051,7 @@ async def ask_question(
                     seed_block, request.question, history, cfg, bd,
                     request.ayanamsa or DEFAULT_AYANAMSA,
                     tool_names=tool_registry.tool_names_for_sections(request.sections),
-                    usage=usage, current_tz=tz_now):
+                    usage=usage, current_tz=tz_now, viewer=here):
                 et = ev.get("type")
                 if et == "token":
                     parts.append(ev["text"])
@@ -1105,6 +1111,7 @@ async def ask_question_stream(
     the completed turn. Frontend reads this with a fetch + ReadableStream."""
     _enforce_rate_limit(current_user)
     tz_now = await viewer_tz(current_user, fallback=request.birth_details.timezone)
+    here = await viewer_place(current_user)
     # Build context + resolve model up front so failures surface as HTTP errors.
     chart_data = build_chart_context(
         birth_details=request.birth_details.model_dump(),
@@ -1152,7 +1159,7 @@ async def ask_question_stream(
                         seed_block, request.question, history, cfg, bd,
                         request.ayanamsa or DEFAULT_AYANAMSA,
                         tool_names=tool_registry.tool_names_for_sections(request.sections),
-                        usage=usage, current_tz=tz_now):
+                        usage=usage, current_tz=tz_now, viewer=here):
                     et = ev.get("type")
                     if et == "token":
                         parts.append(ev["text"])
