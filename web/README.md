@@ -275,6 +275,13 @@ DST: a stored `-6.0` for Chicago is an hour wrong for half the year (India has n
 why this went unnoticed for so long). The zone is derived from the coordinates offline with
 `timezonefinder`; the offset is computed from the zone *for the moment it's needed*.
 
+It is no longer only the digest's concern. `deps.viewer_tz` resolves the offset — request value,
+then the stored zone, then the birth offset — and `deps.viewer_place` the full place, and between
+them they decide what "today" means everywhere: the transit and gochara snapshots, the running
+dasha, the date every AI reading is told it is, and the sunrise a Pancha Pakshi day is divided
+from. Before that, each of those quietly used the *server's* clock or the *birth* place, which is
+how one evening in Cary produced three different wrong days (§57).
+
 Setting one is optional and detection is only ever a **suggestion** — a banner offers ("You seem to
 be on Central Time (UTC−5)… Use this timezone / Ignore for now"), the user confirms. Nothing is
 adopted silently, or a fortnight abroad would quietly move your digest. Confirming is **one click**:
@@ -1057,6 +1064,10 @@ DB name), which is deliberate.
   window outlined
 - **Best** and **quieter** window summaries (top/bottom by effect) for "good time for X"
   planning, a date picker + "Today" reset
+- The **timings are on your own clock**: the birth bird is fixed from the nativity, but
+  the periods divide sunrise→sunset *where you are now*, taken from your current
+  location and falling back to the birth place. The pill names the place they're in —
+  a window you can't act in isn't a timing (§57.4)
 - Optional **plain-language AI day-guide** (uses the model picked in Ask AI Astrologer),
   and a smart-lookup **tool** (`get_pancha_pakshi`) so the AI can pull today's timing
 

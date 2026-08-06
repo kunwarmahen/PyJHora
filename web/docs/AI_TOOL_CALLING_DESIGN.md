@@ -114,8 +114,15 @@ A single source of truth: for each tool, `{name, description, json_schema,
 handler}`. `handler(birth_details, ayanamsa, **model_args) -> dict`. Exposes:
 - `tool_specs()` → list of provider-neutral specs (name/description/params) used
   to build native `tools=` payloads **and** the JSON-protocol instructions.
-- `dispatch(name, args, birth_details, ayanamsa)` → executes one call, with name
-  validation and arg coercion.
+- `dispatch(name, args, birth_details, ayanamsa, current_tz=None, viewer=None)` →
+  executes one call, with name validation and arg coercion.
+  `current_tz` (the reader's UTC offset) and `viewer` (their full place, from
+  `deps.viewer_tz` / `deps.viewer_place`) are **injected into every handler's
+  kwargs** rather than declared per tool: the time- and place-sensitive handlers
+  name them, the rest absorb them in `**_`. They deliberately override anything
+  the model supplied — where the user is standing is a fact of the request, not
+  something the model can know. Without this the tool layer dated everything by
+  the server's clock and computed sunrise at the birth place (§57).
 
 ### 4.2 Tool loop (`llm_service`)
 A provider-agnostic `run_tool_loop(messages, cfg, tools, on_event)`:

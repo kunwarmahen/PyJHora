@@ -5670,3 +5670,114 @@ days must produce at least seven distinct taras. That is the acceptance test for
 this whole section, and it would fail the moment the day-variable layer regressed.
 Plus `test_tarabala_agrees_with_the_nakshatra_page`: two code paths compute this
 now, and the digest must not tell someone something different from `/nakshatra`.
+
+## 57. Three dates, three different wrong days (owner reports 2026-08-05/06)
+
+> "in the date it shows 08/05/2006 but underneath it says As of Aug 4, 2026,
+> 22:50, why is there a bug, I am in Cary, NC right now"
+>
+> "also gochara phala shows As of 2026-08-06"
+>
+> "Pancha Pakshi Sastra still shows Indian data, date and time"
+
+Three reports, one evening, one root cause underneath: **nothing downstream knew
+where the reader was standing.** Every layer guessed, and each guessed
+differently — so on the same evening the Transits page said Aug 4, Gochara Phala
+said Aug 6, and the true answer in Cary was Aug 5.
+
+None of this is visible from India. IST is east of UTC and has never had DST, so
+a UTC server is only ever 5.5h behind — never across midnight in the direction
+that shows. Every one of these was found only after the owner moved to the US.
+
+### 57.1 A day behind, in the browser
+
+`new Date("2026-08-05")` is *defined* to mean UTC midnight. In EDT that Date is
+Aug 4 at 20:00, so `toLocaleDateString` prints "Aug 4". The `22:50` beside it was
+a raw string from the backend, unaffected — which is why the two disagreed in the
+same pill.
+
+Three pages parsed backend dates that way (`TransitPage`, `DhasaPage`,
+`SarvatobhadraPage`); the other twelve already appended `T00:00:00` by hand.
+Now one `parseLocalDate` in `utils/format.js`.
+
+The Dhasa one had the teeth: a dasha boundary rendering a day early is the kind
+of thing you act on without ever suspecting the display.
+
+### 57.2 A day ahead, on the server
+
+The transit computes dated "now" from `datetime.now()` — the pod's clock — while
+**ignoring the `current_tz` the frontend had just sent**, and which they used two
+lines later to build the `Place`. Six identical copies of that:
+`compute_transits` ×2 (transits, gochara-phala), `compute_reference` ×4 (Kota,
+Kaala, Tripataki, Sarvatobhadra).
+
+### 57.3 A day ahead in the browser too
+
+`toISOString()` yields the *UTC* date, already tomorrow after ~20:00 EDT. So the
+Almanac opened on tomorrow, the dashboard panchanga read tomorrow, **a journal
+entry written at 10pm was filed under tomorrow**, and the printed report claimed
+it was generated tomorrow. The Almanac's day-stepper had two UTC errors that
+cancelled on ordinary days and would have stopped cancelling across a DST change.
+
+### 57.4 Pancha Pakshi: the wrong *place*, not just the wrong day
+
+The whole timeline was built from a `Place` made of birth details, so sunrise,
+day/night length, weekday, paksha, all ten activity periods and the running-window
+marker were Shahgarh's. A reader in Cary was told to act between 13:42 and 14:08
+— IST.
+
+The system has two halves that belong to different places, and the code treated
+them as one:
+
+* the **birth bird** is a constant of the nativity → birth place (already right);
+* the **timeline is a clock**, dividing sunrise→sunset *over your own head* → the
+  current location. A window you cannot act in is not a timing.
+
+Now split, defaulting to the birth place so nobody who still lives where they
+were born sees any change. Verified: Shahgarh sunrise 05:46 / best 13:42–14:08
+vs Cary sunrise 06:31 / best 14:43–15:10, same Owl either way.
+
+### The layer that was missing
+
+§40 already stored each user's current location as an **IANA zone** — the right
+thing, unused by any of this. Two resolvers now read it:
+
+* `deps.viewer_tz(user_id, explicit, fallback)` → the offset. Request value, then
+  the stored zone (DST-correct *at this instant*, not frozen at save time), then
+  the birth offset. Answers *what day is it for them*.
+* `deps.viewer_place(user_id)` → the full place. Answers *what does the sky do
+  over them*, which is what anything sunrise-based needs.
+
+`timezones.now_at_offset` / `today_at_offset` are the one implementation
+(`astrology.engine._now_at_tz` is an alias so the compute mixins can reach it),
+matching the idiom `compute_digests` and `compute_muhurta` already had right.
+
+`build_chart_context` publishes the reader's date as `ctx["today"]`, which is how
+the prompt layer states it **with no timezone plumbing of its own** — before, it
+told every model the server's date. `tools.dispatch` injects `current_tz` plus
+`current_place/lat/lon` into every handler's kwargs: handlers that care name them,
+the rest absorb them in `**_`.
+
+### Not done, deliberately
+
+Three `datetime.now()` calls anchoring coarse windows — a ±37-year Saturn sweep,
+Bhrigu life-span markers, the life-timeline range. A day cannot show at that
+scale, and widening the signatures buys nothing.
+
+The **horas and choghadiya** have the same latent place bug as Pancha Pakshi
+(they divide the same day). Not fixed here, but `dispatch` now carries the place,
+so they have somewhere to plug in.
+
+### Tests
+
+21 added across `test_timezones.py` (which already existed for exactly this class
+of bug — "born in India, living in the US") and a new `utils/format.test.js`.
+
+The pattern worth reusing: **compare offsets −12 and +14**. Those are 26 hours
+apart, so they can never share a calendar day — the assertion holds whatever
+timezone CI runs in, which a fixed expected date would not. Any regression to a
+server-clock "today" fails outright.
+
+For §57.4 the tests assert both directions of the split: the bird must *not* move
+with the viewer, and sunrise, the windows, the weekday and the default day all
+must.
