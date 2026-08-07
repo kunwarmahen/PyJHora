@@ -11,6 +11,14 @@ const path = require("path");
 
 const SRC = path.join(__dirname, "..");
 const APP_CSS = path.join(SRC, "App.css");
+/**
+ * The landing page is the app's *second* token layer: it is scoped under
+ * `.landing` and ships its own palette on purpose (see the file header), so
+ * its declaration blocks are as legitimate a home for a literal as App.css's
+ * :root. It gets the same deal — exempt from the file sweep below, and held to
+ * "literals only inside the token blocks" by its own test.
+ */
+const LANDING_CSS = path.join(SRC, "styles", "Landing.css");
 const LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(\s*[0-9]/g;
 
 /**
@@ -84,8 +92,9 @@ describe("theme tokens", () => {
       .map((f) => fs.readFileSync(f, "utf8"))
       .join("\n");
     const defined = new Set([...all.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)].map((m) => m[1]));
-    // Set from JS at runtime rather than in any stylesheet.
-    const runtime = new Set(["--lvl-accent", "--avatar"]);
+    // Set from JS at runtime rather than in any stylesheet — all three come
+    // from the same style object on the Dhasa page's tree rows.
+    const runtime = new Set(["--lvl-accent", "--avatar", "--depth"]);
     const used = new Set([...decolour(all).matchAll(/var\(\s*(--[a-z0-9-]+)/g)].map((m) => m[1]));
     const missing = [...used].filter((t) => !defined.has(t) && !runtime.has(t));
     expect(missing).toEqual([]);
@@ -94,11 +103,24 @@ describe("theme tokens", () => {
   it("keeps colour literals out of every stylesheet but the token layer", () => {
     const offenders = [];
     for (const file of cssFiles(SRC)) {
-      if (file === APP_CSS) continue;
+      if (file === APP_CSS || file === LANDING_CSS) continue;
       const hits = decolour(fs.readFileSync(file, "utf8")).match(LITERAL);
       if (hits) offenders.push(`${path.relative(SRC, file)}: ${hits.join(", ")}`);
     }
     expect(offenders).toEqual([]);
+  });
+
+  it("confines Landing.css literals to its own token blocks", () => {
+    // Same rule as App.css, one scope down: the `.landing` palette and its two
+    // themed overrides may spell colours out; every rule below them must go
+    // through a token. This is what stops the night sections from drifting back
+    // into a private cream per section, which is how they were found.
+    const src = decolour(fs.readFileSync(LANDING_CSS, "utf8"));
+    // The token layer runs from the top to the first non-token rule.
+    const end = src.indexOf(".landing *, .landing *::before");
+    expect(end).toBeGreaterThan(-1);
+    const rules = src.slice(end);
+    expect(rules.match(LITERAL)).toBeNull();
   });
 
   it("keeps NAMED colours out too — `background: white` is still a literal", () => {

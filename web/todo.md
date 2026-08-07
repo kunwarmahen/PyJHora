@@ -5847,3 +5847,56 @@ the last day of the intended month.
 to render "Gemini → Gemini", the ordinary forward ingress, and the retrograde
 re-entry the old code skipped — sign pair, date, and the `retrograde_reentry`
 flag, plus a standing assertion that `from_sign != to_sign`.
+
+## 59. The token guard had been red since the landing page shipped
+
+`styles/tokens.test.js` is the §37 guard that keeps a colour from being spelled
+out anywhere but the token layer. It went red on 2026-07-23 with §49's landing
+page and stayed that way — three failures nobody was looking at, which is the
+failure mode a guard has when it is allowed to stay red: it stops being read at
+all, and the next real regression lands silently beside the noise.
+
+Three separate causes.
+
+### 59.1 `--depth` was a false positive
+
+`DhasaPage` sets `--depth`, `--lvl-accent` and `--avatar` in one style object on
+each dasha tree row. Two of the three were in the test's runtime allowlist. The
+fix is the third name.
+
+### 59.2 The app has *two* token layers, and the test knew about one
+
+`Landing.css` is scoped under `.landing` and deliberately ships its own palette —
+that is the point of the file, and it is properly theme-reactive (light base,
+`prefers-color-scheme`, and both explicit `data-theme` overrides). Its
+declaration blocks are as legitimate a home for a literal as `App.css`'s
+`:root`. So it now gets exactly the deal App.css gets: exempt from the
+file-wide sweep, and held by its own test to *literals only above the first
+rule*. Verified against a canary — an injected `#abcdef` in a rule fails it.
+
+### 59.3 The night sections really were unreachable colour
+
+The rest was genuine. The hero, the practitioner "depth" band and the final CTA
+stay night in **both** themes, so their text cannot follow `--ink` — and it had
+been written as literals, one set per section. Tokenizing them showed the same
+role spelled nine ways: body copy on night was `#efe8d8` in the hero, `#e9e2d2`
+in the depth band, `#f4ecdb` in the final CTA, `#f0e6cf` on the chips. Secondary
+paragraphs, three more.
+
+That is precisely the drift a token layer exists to prevent, so they collapse to
+the four roles the page actually has — `--night-ink`, `-hi`, `-soft`, `-faint` —
+at the cost of some colours moving up to 12/255 on a channel. Sub-perceptible,
+and the drifted values were never adjacent on screen. Confirmed by diffing
+`getComputedStyle` for 26 properties across both themes, before and against
+after: every remaining delta is one of those, nothing resolved to a fallback.
+
+Two hues *kept* distinct after that diff caught them: the bloom under the primary
+button (`255,135,20`) and the radial wash behind the night sections
+(`255,120,40`) are not `--hero-accent` (`255,159,61`), and folding them in moved
+a channel by 39. At those alphas that difference is the mood of the hero, so
+they are their own tokens and render byte-identical to before.
+
+The three traffic-light dots on the mock reading card moved from inline
+`style={{ background: "#ff6a5c" }}` to classes. Inline style is the one place
+the stylesheet audit cannot see, which is the whole reason that second test
+exists.

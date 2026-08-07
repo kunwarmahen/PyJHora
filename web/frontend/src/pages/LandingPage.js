@@ -480,9 +480,9 @@ export const LandingPage = () => {
             </div>
             <div className="reading reveal">
               <div className="reading-top">
-                <span className="dot" style={{ background: "#ff6a5c" }} />
-                <span className="dot" style={{ background: "#ffc266" }} />
-                <span className="dot" style={{ background: "#7ec27e" }} />
+                <span className="dot dot-red" />
+                <span className="dot dot-amber" />
+                <span className="dot dot-green" />
                 <span className="rlabel">ask · your chart</span>
               </div>
               <div className="reading-body">
