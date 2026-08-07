@@ -126,18 +126,25 @@ class TransitsMixin:
             # (Jupiter transit, Saturn Sade Sati). The lunar nodes are skipped —
             # Jyotir AI's retrograde node-ingress search returns a full ~18yr nodal
             # cycle rather than the next boundary, so its dates aren't trustworthy.
+            # We scan rather than call drik.next_planet_entry_date: see
+            # _next_sign_ingress for why that helper cannot name the sign entered.
             upcoming = []
             for pidx in (4, 6):  # Jupiter, Saturn
                 try:
-                    cur_rasi = transit[pidx + 1][1][0]
-                    entry_jd, entry_long = drik.next_planet_entry_date(
-                        pidx, transit_jd, transit_place, increment_days=1, precision=0.1)
+                    ing = AstrologyCompute._next_sign_ingress(
+                        pidx, transit_jd, transit_tz)
+                    if not ing:
+                        continue
+                    from_rasi, to_rasi, entry_jd = ing
                     ey, em, ed, _ = utils.jd_to_gregorian(entry_jd)
-                    to_rasi = int(entry_long // 30) % 12
                     upcoming.append({
                         "planet": PLANET_NAMES[pidx],
-                        "from_sign": ZODIAC_NAMES[cur_rasi],
+                        "from_sign": ZODIAC_NAMES[from_rasi],
                         "to_sign": ZODIAC_NAMES[to_rasi],
+                        # A backward step is the graha turning back into the sign it
+                        # just left — a real ingress, and a different story from the
+                        # forward one, so the frontend can say so.
+                        "retrograde_reentry": to_rasi == (from_rasi - 1) % 12,
                         "date": f"{ey:04d}-{em:02d}-{ed:02d}",
                     })
                 except Exception as ie:
@@ -238,6 +245,49 @@ class TransitsMixin:
             jd = jd_next
         spans.append((cur_sign, span_start, jd_end))
         return spans
+
+    @staticmethod
+    def _next_sign_ingress(pl_idx: int, jd_from: float, tz_offset: float,
+                           max_days: int = 1100) -> Optional[tuple]:
+        """The graha's next sign change after `jd_from`: (from_sign0, to_sign0, jd).
+
+        Same daily-sample-then-bisect method as `_planet_sign_spans`, stopping at
+        the first boundary. `None` if the graha holds its sign for the whole
+        window (1100 days covers Saturn's ~2.5 years in a sign).
+
+        We do **not** use `drik.next_planet_entry_date` for this, for two reasons:
+
+        1. It returns the longitude *at* the boundary, which the interpolation
+           lands on either side of — 89.9999999999771 for a Gemini→Cancer entry.
+           `int(long // 30)` then names Gemini, and the card read "Gemini →
+           Gemini". Reading the sign from a sample taken *after* the crossing
+           can't be ambiguous that way.
+        2. It always aims at the next sign *forward*. A graha retrograding a
+           degree inside a sign next re-enters the sign behind it, and that
+           helper cannot express such an event at all; a scan just finds it."""
+        pl = drik.ephemeris_planet_index(pl_idx)
+
+        def sign_at(j):
+            return int(drik.sidereal_longitude(j - tz_offset / 24.0, pl) // 30) % 12
+
+        jd_end = jd_from + max_days
+        cur_sign = sign_at(jd_from)
+        jd = jd_from
+        while jd < jd_end:
+            jd_next = min(jd + 1.0, jd_end)
+            if sign_at(jd_next) != cur_sign:
+                lo, hi = jd, jd_next
+                for _ in range(30):
+                    mid = (lo + hi) / 2.0
+                    if sign_at(mid) == cur_sign:
+                        lo = mid
+                    else:
+                        hi = mid
+                    if hi - lo < 1.0 / 24.0:
+                        break
+                return cur_sign, sign_at(hi), hi
+            jd = jd_next
+        return None
 
     # Saturn's house-from-Moon → the Sade Sati phase label.
     _SADE_SATI_PHASES = {12: "rising", 1: "peak", 2: "setting"}

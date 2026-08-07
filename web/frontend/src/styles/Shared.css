@@ -965,6 +965,12 @@
   color: var(--text-secondary);
   margin-top: 2px;
 }
+/* The graha stepping back into the sign it just left, not on to the next one. */
+.ingress-card__note {
+  font-size: 0.75rem;
+  color: var(--vermillion);
+  margin-top: var(--space-xs);
+}
 
 /* AI Tools — classical-text citation status (§5.12) */
 .ai-tools-sources {

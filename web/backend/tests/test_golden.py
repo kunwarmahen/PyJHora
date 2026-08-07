@@ -176,6 +176,36 @@ def test_transit_carries_bindu_annotation(args1):
     assert sarva[planets["Saturn"]["rasi"]] == 39
 
 
+def test_upcoming_ingress_names_the_sign_entered(args1):
+    """The "Key Upcoming Transits" cards, pinned on three fixed dates.
+
+    The engine's `next_planet_entry_date` returns the longitude *at* the sign
+    boundary, and the interpolation lands just under it (89.9999999999771 for a
+    Gemini→Cancer entry) — so reading the sign off it named the sign being left
+    and the card read "Gemini → Gemini". It also always aims forward, so it
+    skipped retrograde re-entries entirely: on 2026-11-15 it reported Jupiter's
+    Virgo entry eleven months out and missed the return to Cancer before it.
+    Both halves are pinned here."""
+    # (date, planet) → (from, to, ingress date, is a retrograde re-entry)
+    expected = {
+        # The case that used to render "Gemini → Gemini".
+        ("2026-03-01", "Jupiter"): ("Gemini", "Cancer", "2026-06-01", False),
+        ("2026-07-16", "Jupiter"): ("Cancer", "Leo", "2026-10-31", False),
+        # Jupiter turns back into the sign it left in October.
+        ("2026-11-15", "Jupiter"): ("Leo", "Cancer", "2027-01-25", True),
+        ("2026-07-16", "Saturn"): ("Pisces", "Aries", "2027-06-03", False),
+    }
+    for (date, planet), (frm, to, on, reentry) in expected.items():
+        tr = A.get_transits(**args1, current_date=date)
+        assert tr.get("status") == "success", tr
+        u = next(x for x in tr["upcoming"] if x["planet"] == planet)
+        assert (u["from_sign"], u["to_sign"]) == (frm, to), f"{date} {planet}: {u}"
+        assert u["date"] == on, f"{date} {planet} ingress date: {u}"
+        assert u["retrograde_reentry"] is reentry, f"{date} {planet}: {u}"
+        # The sign entered is never the sign left — the bug this pins.
+        assert u["from_sign"] != u["to_sign"]
+
+
 def test_sudarshana_chakra_dasha(args1):
     """§2.7 Sudarshana Chakra: a 12-year wheel run from three references at once.
 

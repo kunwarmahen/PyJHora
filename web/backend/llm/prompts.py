@@ -819,7 +819,9 @@ Reason from the placements given; cite the factors behind your read. Do NOT make
                       or "none computed")
         bhukti = (dasha.get("bhukti") or {})
         upcoming = "\n".join(
-            f"- {u['planet']} enters {u['to_sign']} on {u['date']}"
+            f"- {u['planet']} "
+            f"{'re-enters (retrograde)' if u.get('retrograde_reentry') else 'enters'} "
+            f"{u['to_sign']} on {u['date']}"
             for u in transits.get("upcoming", [])
         ) or "- (none imminent)"
         retro = transits.get("retrograde", [])
@@ -1975,8 +1977,9 @@ Planetary Positions (All 9 Grahas):"""
                     f"from Lagna / {p.get('house_from_moon', '?')} from Moon{retro}"
                 )
             for u in transits.get("upcoming", []):
+                verb = "re-enters (retrograde)" if u.get("retrograde_reentry") else "enters"
                 chart_description += (
-                    f"\n- Upcoming: {u.get('planet', '?')} enters {u.get('to_sign', '?')} "
+                    f"\n- Upcoming: {u.get('planet', '?')} {verb} {u.get('to_sign', '?')} "
                     f"(from {u.get('from_sign', '?')}) on {u.get('date', '?')}"
                 )
 

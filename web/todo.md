@@ -5781,3 +5781,69 @@ server-clock "today" fails outright.
 For §57.4 the tests assert both directions of the split: the bird must *not* move
 with the viewer, and sunrise, the windows, the weekday and the default day all
 must.
+
+## 58. "Jupiter Cancer → Cancer" — the ingress that named the wrong sign (owner reports 2026-08-07)
+
+> "for transit chart, it says Jupiter Cancer → Cancer under Key Upcoming
+> Transits and same for Saturn showing same to same which is wrong, and also we
+> should moving a month back and forth"
+
+### 58.1 The card that said nothing
+
+`get_transits` asked the engine for the next sign entry and read the sign off the
+longitude it returned:
+
+```python
+entry_jd, entry_long = drik.next_planet_entry_date(pidx, transit_jd, ...)
+to_rasi = int(entry_long // 30) % 12
+```
+
+`next_planet_entry_date` returns the longitude **at** the boundary, and its
+Lagrange interpolation lands on either side of it. For Jupiter's Gemini→Cancer
+entry it returned `89.9999999999771`. `int(89.99… // 30)` is 2 — Gemini. So the
+card announced the sign the graha was *leaving* as the sign it was entering, and
+read "Gemini → Gemini". On a sweep of 2026, 34 of 114 cards were degenerate this
+way; whether one was depended on which side of the boundary the interpolation
+happened to fall, which is why it looked intermittent.
+
+The date beside it was right, which is what made the card so quietly useless: it
+was a correct date attached to a non-event.
+
+### 58.2 The worse half: a whole class of ingress it could not report
+
+`next_planet_entry_date` always aims at the next sign **forward**. A graha
+retrograding a degree inside a sign next re-enters the sign *behind* it — and
+that helper cannot express such an event at all. On 2026-11-15 it named Jupiter's
+Virgo entry, 2027-11-26, eleven months out, silently stepping over Jupiter's
+return to Cancer on 2027-01-25. Not a rounding error: the wrong event.
+
+So the fix is not to round the longitude better. `_next_sign_ingress` samples the
+graha's sign once a day and bisects the first change to the hour — the same
+method `_planet_sign_spans` has always used for the Sade Sati windows. The sign
+is then read from a sample taken *after* the crossing, where it cannot be
+ambiguous, and a backward step is simply whichever boundary comes first.
+
+Cross-checked against an independent `_planet_sign_spans` scan at 82 sample dates
+across three years: zero disagreements, on both the sign pair and the date.
+
+A retrograde re-entry now says so, on the card (`℞ Retrograde re-entry`) and in
+the prompt text ("re-enters (retrograde)"), because "Jupiter enters Cancer" reads
+as progress when it is the opposite.
+
+Cost: ~1100 `sidereal_longitude` calls worst case (Saturn holds a sign ~2.5
+years), which is under a millisecond — the whole `get_transits` still returns in
+the ~10ms it did before.
+
+### 58.3 Moving a month
+
+The ± steppers had minute / hour / day / year, so a reader following a Jupiter
+transit had to press Day thirty times or overshoot by a year. Month sits between
+them now. `setMonth` overflows — Jan 31 + 1 month is March 3 — so it clamps to
+the last day of the intended month.
+
+### Tests
+
+`test_upcoming_ingress_names_the_sign_entered` pins all three: the case that used
+to render "Gemini → Gemini", the ordinary forward ingress, and the retrograde
+re-entry the old code skipped — sign pair, date, and the `retrograde_reentry`
+flag, plus a standing assertion that `from_sign != to_sign`.

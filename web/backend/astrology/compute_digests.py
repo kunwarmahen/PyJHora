@@ -477,8 +477,9 @@ class DigestsMixin:
                     "sade_sati": sat.get("house_from_moon") in (12, 1, 2),
                 }
                 for u in transits.get("upcoming", []):
+                    verb = "re-enters" if u.get("retrograde_reentry") else "enters"
                     highlights.append(
-                        f"{u['planet']} enters {u['to_sign']} on {u['date']}")
+                        f"{u['planet']} {verb} {u['to_sign']} on {u['date']}")
 
             # On the lunar basis the day carries its tithi-pravesha chart.
             pravesh = None

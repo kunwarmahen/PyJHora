@@ -91,7 +91,14 @@ export const TransitPage = () => {
     if (field === "minute") d.setMinutes(d.getMinutes() + amount);
     else if (field === "hour") d.setHours(d.getHours() + amount);
     else if (field === "day") d.setDate(d.getDate() + amount);
-    else if (field === "year") d.setFullYear(d.getFullYear() + amount);
+    else if (field === "month") {
+      // Jan 31 + 1 month must land on Feb 28, not spill into March: setMonth
+      // overflows, so clamp back to the last day of the intended month.
+      const day = d.getDate();
+      d.setDate(1);
+      d.setMonth(d.getMonth() + amount);
+      d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+    } else if (field === "year") d.setFullYear(d.getFullYear() + amount);
     setMomentMs(d.getTime());
   };
 
@@ -187,6 +194,7 @@ export const TransitPage = () => {
     { field: "minute", label: t("transit.unitMinute") },
     { field: "hour", label: t("transit.unitHour") },
     { field: "day", label: t("transit.unitDay") },
+    { field: "month", label: t("transit.unitMonth") },
     { field: "year", label: t("transit.unitYear") },
   ];
 
@@ -387,11 +395,18 @@ export const TransitPage = () => {
                 <div className="card-grid">
                   {result.upcoming.map((u, i) => (
                     <div key={i} className="ingress-card">
-                      <div className="ingress-card__planet">{u.planet}</div>
+                      <div className="ingress-card__planet">{ln(u.planet, "graha")}</div>
                       <div className="ingress-card__signs">
-                        {u.from_sign} → <strong>{u.to_sign}</strong>
+                        {ln(u.from_sign, "rasi")} → <strong>{ln(u.to_sign, "rasi")}</strong>
                       </div>
                       <div className="ingress-card__date">{formatDate(u.date, locale)}</div>
+                      {/* A backward step is the graha turning back into the sign it
+                          just left — say so, rather than let it read as progress. */}
+                      {u.retrograde_reentry && (
+                        <div className="ingress-card__note">
+                          ℞ {t("transit.retroReentry")}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
