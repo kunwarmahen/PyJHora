@@ -62,6 +62,24 @@ class TransitsMixin:
                 print(f"Transit ashtakavarga join failed: {ae}")
                 av_bhinna, av_sarva = {}, None
 
+            # ── Bhava arudhas of the natal chart (§60) ──────────────────────
+            # A third reference frame for gochara, after the Lagna and the Moon:
+            # the arudhas are what the chart *projects* — AL the perceived self
+            # and standing, UL the marriage — so a graha crossing them is read
+            # for the visible, material face of an event rather than its inner
+            # one. Arudhas are natal points and do not move; only the grahas do.
+            #
+            # Joined here for the same reason the bindus above are: both halves
+            # were already in the AI's context as separate blocks, leaving the
+            # model to do modular arithmetic to notice Saturn was on the AL —
+            # which it does badly. Same best-effort contract as the bindus.
+            try:
+                arudha_padas = _format_arudha_padas(
+                    arudhas.bhava_arudhas_from_planet_positions(natal))
+            except Exception as ae:
+                print(f"Transit arudha join failed: {ae}")
+                arudha_padas = []
+
             # ── Transit moment ──────────────────────────────────────────────
             # Anchor to the *viewer's* current location: their wall-clock time and
             # timezone, not the birthplace's. This keeps fast movers (especially the
@@ -95,6 +113,9 @@ class TransitsMixin:
             def house_from(ref_rasi, rasi):
                 return ((rasi - ref_rasi) % 12) + 1
 
+            # short → 0-based sign, for counting each transit from every pada.
+            pada_rasi = {p["short"]: p["sign"] - 1 for p in arudha_padas}
+
             planets = {}
             for planet_index, (rasi, degrees) in transit[1:]:  # skip ascendant
                 name = PLANET_NAMES.get(planet_index, f"Planet_{planet_index}")
@@ -115,6 +136,14 @@ class TransitsMixin:
                     "retrograde": planet_index in retro_ids,
                     "house_from_lagna": house_from(natal_lagna_rasi, rasi),
                     "house_from_moon": house_from(natal_moon_rasi, rasi),
+                    # AL and UL are named separately because they are the two
+                    # arudhas with their own reading; A2..A11 ride in the map.
+                    "house_from_al": (house_from(pada_rasi["AL"], rasi)
+                                      if "AL" in pada_rasi else None),
+                    "house_from_ul": (house_from(pada_rasi["UL"], rasi)
+                                      if "UL" in pada_rasi else None),
+                    "house_from_padas": {short: house_from(sign0, rasi)
+                                         for short, sign0 in pada_rasi.items()},
                     "bav_bindus": own_bav,
                     "sav_bindus": sav_bindu,
                     "bindu_strength": strength,
@@ -184,6 +213,20 @@ class TransitsMixin:
                 },
                 "planets": planets,
                 "upcoming": upcoming,
+                # The natal arudhas the transits above are counted from (§60), so
+                # a caller can label the chart and name a house without recomputing
+                # them. `significations` is the classical meaning of a house counted
+                # FROM AL/UL — supplied for the houses the tradition reads, absent
+                # for the rest rather than invented.
+                "arudhas": {
+                    "padas": arudha_padas,
+                    "al": next((p for p in arudha_padas if p["short"] == "AL"), None),
+                    "ul": next((p for p in arudha_padas if p["short"] == "UL"), None),
+                    "significations": {
+                        "AL": AL_HOUSE_SIGNIFICATIONS,
+                        "UL": UL_HOUSE_SIGNIFICATIONS,
+                    },
+                } if arudha_padas else None,
                 # SAV row so the frontend can show a bindu legend / context (§2.4).
                 "ashtakavarga": {"sarva": av_sarva} if av_sarva else None,
             }

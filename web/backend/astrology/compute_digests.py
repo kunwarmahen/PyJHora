@@ -449,7 +449,10 @@ class DigestsMixin:
                 if sat_house in (12, 1, 2):
                     phase = {12: "first (rising)", 1: "peak (janma)",
                              2: "final (setting)"}[sat_house]
-                    highlights.append(f"Saturn is in your {sat_house}th from "
+                    # _ordinal, not f"{n}th": Sade-Sati's houses are 12, 1 and 2,
+                    # so this line has been reading "1th"/"2th" for two of its
+                    # three phases. Same for Jupiter below, which takes any house.
+                    highlights.append(f"Saturn is in your {_ordinal(sat_house)} from "
                                       f"the Moon — Sade-Sati {phase} phase"
                                       + _bindu_note(sat))
                 elif sat_house in _SANI_FROM_MOON:
@@ -457,15 +460,39 @@ class DigestsMixin:
                     # a reader who knows the term deserves to see it, and explained,
                     # because one who doesn't deserves to know what it means.
                     label, meaning = _SANI_FROM_MOON[sat_house]
-                    highlights.append(f"{label}: Saturn in your {sat_house}th from the "
-                                      f"Moon" + _bindu_note(sat))
+                    highlights.append(f"{label}: Saturn in your {_ordinal(sat_house)} "
+                                      f"from the Moon" + _bindu_note(sat))
                     cautions.append(_caution(f"{label} — {meaning}", "standing"))
                     # Named here, so don't repeat it as a bare gochara verdict below.
                     named_planets.add("Saturn")
                 if jup:
                     highlights.append(
-                        f"Jupiter transits your {jup.get('house_from_moon')}th from the Moon "
-                        f"({jup.get('sign_name')}){_bindu_note(jup)}")
+                        f"Jupiter transits your {_ordinal(jup.get('house_from_moon'))} "
+                        f"from the Moon ({jup.get('sign_name')}){_bindu_note(jup)}")
+                # ── The arudha frame (§60) ──────────────────────────────────
+                # A slow mover crossing the Arudha Lagna or the Upapada is read
+                # for the *visible* face of a matter — standing, reputation, the
+                # marriage — where the Moon-referenced verdict above speaks to
+                # how it is lived. Reported only for the houses the tradition
+                # actually reads (5 of 12 from AL, 3 of 12 from UL): silence the
+                # rest of the time is the point, or the daily note gains a line
+                # of Jaimini vocabulary every single morning.
+                for pname, p in (("Saturn", sat), ("Jupiter", jup)):
+                    if not p:
+                        continue
+                    for short, label, table in (
+                            ("al", "Arudha Lagna", AL_HOUSE_SIGNIFICATIONS),
+                            ("ul", "Upapada", UL_HOUSE_SIGNIFICATIONS)):
+                        h = p.get(f"house_from_{short}")
+                        if h not in table:
+                            continue
+                        where = (f"is on your {label}" if h == 1
+                                 else f"transits your {_ordinal(h)} from the {label}")
+                        highlights.append(f"{pname} {where} — {table[h]}")
+                        # One arudha line per graha, AL before UL — the same
+                        # single-line budget the Moon-referenced lines above take.
+                        break
+
                 retro = [name for name, p in planets.items() if p.get("retrograde")]
                 if retro:
                     highlights.append("Retrograde now: " + ", ".join(retro))
@@ -473,6 +500,7 @@ class DigestsMixin:
                     "planets": planets,
                     "upcoming": transits.get("upcoming", []),
                     "natal": transits.get("natal", {}),
+                    "arudhas": transits.get("arudhas"),
                     "retrograde": retro,
                     "sade_sati": sat.get("house_from_moon") in (12, 1, 2),
                 }

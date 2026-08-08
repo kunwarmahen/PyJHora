@@ -598,6 +598,14 @@
 .data-table tbody tr.is-current td:first-child {
   box-shadow: inset 3px 0 0 var(--saffron);
 }
+/* A grid rather than a list: many narrow numeric columns (the transit × arudha
+   pada matrix is 11 wide). Tighter cells so it fits without horizontal scroll
+   on a laptop; .table-scroll still catches the phone. */
+.data-table--compact tbody td,
+.data-table--compact th {
+  padding: 6px 4px;
+  white-space: nowrap;
+}
 
 /* ---- Text / color utilities (replace one-off inline color styles) ---- */
 .text-saffron {

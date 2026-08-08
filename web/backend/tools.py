@@ -124,6 +124,9 @@ def _transits(bd, ayanamsa, current_tz: Optional[float] = None, **_):
         "natal": t.get("natal", {}),
         "planets": t.get("planets", {}),
         "upcoming": t.get("upcoming", []),
+        # The natal arudhas each transit is also counted from (§60):
+        # every planet row carries house_from_al / _ul / _padas.
+        "arudhas": t.get("arudhas"),
     }
 
 
@@ -788,7 +791,13 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         "get_transits",
         "Current planetary transits (Gochara) over the natal chart: each planet's "
         "sign/degree/nakshatra, house from natal Lagna and Moon, retrograde flag, "
-        "plus upcoming sign ingresses. Use for current/near-future timing.",
+        "plus upcoming sign ingresses. Use for current/near-future timing. Also "
+        "counts each transit from the natal bhava arudhas — house_from_al (the "
+        "Arudha Lagna: image, standing, the visible face of a matter), "
+        "house_from_ul (the Upapada: marriage) and house_from_padas for all "
+        "twelve — so a transit can be read for how a season LOOKS as well as how "
+        "it feels. The classical good/bad gochara tables are counted from the "
+        "Moon, not from an arudha; treat the arudha houses as position only.",
         _EMPTY_PARAMS, _transits,
     ),
     _Tool(

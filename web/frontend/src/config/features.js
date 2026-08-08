@@ -430,7 +430,8 @@ export const FEATURE_ALIASES = {
   dailyDigest: "today daily forecast horoscope of the day",
   compatibility: "marriage match matching guna milan ashtakoot dashakoota partner spouse relationship love porutham mangal dosha",
   dhasa: "dasha vimshottari vimsottari mahadasha bhukti antardasha period timing",
-  transit: "gochara current planets movement now",
+  transit: "gochara current planets movement now arudha arudh aroodha lagna al upapada ul pada"
+    + " padas bhava arudha",
   remedies: "gemstone gem stone mantra upaya parihara donation deity",
   lifeReport: "report full life story chapters narrative",
   history: "saved readings past previous history",
@@ -456,13 +457,13 @@ export const FEATURE_ALIASES = {
   sensitivePoints: "sphuta saham argala sensitive points special lagna upagraha hora ghati bhava vighati varnada gulika maandi kaala mrityu dhuma vyatipata parivesha indrachapa upaketu sree indu bhrigu bindu pranapada kunda",
   vedicClock: "clock ghati hora retrograde vakra vedic clock",
   kp: "krishnamurti sub lord significator ruling planets horary kp system",
-  jaimini: "chara karaka karakamsa swamsa argala jaimini",
+  jaimini: "chara karaka karakamsa swamsa argala jaimini arudha pada upapada",
   now: "chart of the moment now current instant",
   compare: "compare two charts synastry side by side",
   rectify: "birth time correction rectification unknown time",
   learn: "quiz learn practice study lesson",
   journal: "diary log events astro journal notes",
-  advanced: "more all everything advanced tools",
+  advanced: "more all everything advanced tools arudha arudh aroodha pada padas upapada al ul",
 };
 
 /**

@@ -5900,3 +5900,64 @@ The three traffic-light dots on the mock reading card moved from inline
 `style={{ background: "#ff6a5c" }}` to classes. Inline style is the one place
 the stylesheet audit cannot see, which is the whole reason that second test
 exists.
+
+## 60. Transits from the arudhas — the join, not the data
+
+> "should we also show Arudha lagnas etc on transit page? also may be provide to
+> the ai as part of context wherever transit info is provided"
+
+Both halves were already computed and already in the AI's context — `arudhas`
+and `transits` as **separate blocks**. Which meant the model had AL's sign and
+Saturn's sign and had to subtract them to notice Saturn was sitting on the
+Arudha Lagna. It does that badly. This is the same shape as the §2.4 bindu join
+and was fixed the same way: do the arithmetic in code, hand over the answer.
+
+The Lagna is where you stand and the Moon is how it feels; the arudha is how it
+**looks** — image, standing, the material face of a matter, and for the Upapada
+the marriage. A graha can be doing one thing to the first two and another to the
+third, which is the whole reason the frame is worth carrying.
+
+### What is computed, and what deliberately is not
+
+Every transiting graha now carries `house_from_al`, `house_from_ul` and
+`house_from_padas` (all twelve). Arudhas are natal points — the transit date
+must never move them, which is its own test.
+
+**No good/bad verdict is attached, and that is a decision, not an omission.**
+The classical gochara phala and vedha tables are counted *from the Moon*; there
+is no equivalent table for the arudhas. So the position is stated, the classical
+signification of the house is named where the tradition has one, and the verdict
+is left to the reader and the model — the same line already held for the
+Tripataki chakra and the uninterpreted special points.
+
+Those significations now live in **one** table in `engine.py`.
+`get_arudha_analysis` had them inline; the transit response and the digest would
+have been a second and third copy, and the three would have drifted. A test
+asserts the natal analysis and the transit payload quote the same object.
+
+### Where it surfaces
+
+* **Transit page**, Everything view only (the same gate the AV Support column
+  uses — arudhas are specialist material and an Essentials reader sees none of
+  it): `FROM AL` / `FROM UL` columns with a graha *on* an arudha marked, AL and
+  UL labelled in their signs on the Gochara kundali behind a toggle, and all
+  twelve padas as a 12×9 grid below.
+* **The AI, everywhere transits reach it** — `get_transits`, `chart_context`,
+  the transit prompt block, the daily digest. The prompt states which frame is
+  which and that AL is *not* a second opinion on the Moon's verdict, because a
+  model handed four house numbers per graha will otherwise average them.
+* **A visible daily-digest line** when Saturn or Jupiter occupies a house from
+  AL/UL the tradition reads — one line per graha, AL before UL, the same
+  single-line budget the Moon-referenced lines take.
+
+### The bug found on the way
+
+The digest had been rendering **"1th"** and **"2th"** since it shipped.
+Sade-Sati's houses are 12, 1 and 2, so two of its three phases printed a broken
+ordinal, and the Jupiter-from-Moon line took any house at all. `_ordinal` was
+right there in the same file, used by the Chandra Bala lines.
+
+The test pins the *class*: every `\d+(st|nd|rd|th)` in every highlight must equal
+what `_ordinal` would write. Worth noting the trap it walked into first — an
+assertion looking for the substring `"2th"` passes `"12th"` and fails a correct
+line.

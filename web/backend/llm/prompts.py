@@ -1967,15 +1967,36 @@ Planetary Positions (All 9 Grahas):"""
         transits = chart_data.get("transits", {})
         t_planets = transits.get("planets", {}) if isinstance(transits, dict) else {}
         if t_planets:
+            # The arudha frame, when the transit block carries it. Counted in
+            # code, because the model reads AL's sign and a graha's sign and
+            # will not reliably subtract them — the same reason the bindus are
+            # joined rather than left adjacent.
+            t_arudhas = transits.get("arudhas") or {}
+            al, ul = t_arudhas.get("al"), t_arudhas.get("ul")
             chart_description += f"\n\nCurrent Transits (Gochara) as of {transits.get('transit_date', current_date)}:"
-            chart_description += "\n(house counted from natal Lagna / natal Moon)"
+            chart_description += "\n(house counted from natal Lagna / natal Moon"
+            if al and ul:
+                chart_description += (
+                    f" / Arudha Lagna, in {al.get('sign_name')} / Upapada, in "
+                    f"{ul.get('sign_name')}. AL is the projected self — image, "
+                    "standing, the material face of a matter; UL is the marriage. "
+                    "They are a third and fourth reference frame, NOT a second "
+                    "opinion on the Moon's verdict")
+            chart_description += ")"
             for name, p in t_planets.items():
                 retro = " [Retrograde]" if p.get("retrograde") else ""
+                aru = ""
+                if p.get("house_from_al") is not None:
+                    aru = (f" / {p['house_from_al']} from AL"
+                           f" / {p['house_from_ul']} from UL")
                 chart_description += (
                     f"\n- {name}: {p.get('sign_name', '?')} {p.get('degrees', 0):.1f}° "
                     f"({p.get('nakshatra', '?')}), house {p.get('house_from_lagna', '?')} "
-                    f"from Lagna / {p.get('house_from_moon', '?')} from Moon{retro}"
+                    f"from Lagna / {p.get('house_from_moon', '?')} from Moon{aru}{retro}"
                 )
+            for short, sig in (t_arudhas.get("significations") or {}).items():
+                for h, meaning in sorted(sig.items(), key=lambda kv: int(kv[0])):
+                    chart_description += f"\n- ({h} from {short} signifies {meaning})"
             for u in transits.get("upcoming", []):
                 verb = "re-enters (retrograde)" if u.get("retrograde_reentry") else "enters"
                 chart_description += (

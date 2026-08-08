@@ -383,26 +383,20 @@ class ChartsMixin:
             al_sign = by_short["AL"]["sign"] - 1
             ul_sign = by_short["UL"]["sign"] - 1
 
-            # Classical significations of the houses counted FROM an arudha. These are
-            # the standard readings (the 12th from AL as the seat of loss/expenditure
-            # and detachment is the best-known); we supply the signification and the
-            # occupants, and let the reading do the interpreting.
+            # The houses counted FROM an arudha that the tradition actually reads;
+            # significations come from the one table in engine.py, which the
+            # transit and digest layers name from too. We supply the signification
+            # and the occupants, and let the reading do the interpreting. House 1
+            # is the arudha itself, already described by `enriched` above.
             al_derived = [
-                _cell(al_sign + 1, house_from_al=2,
-                      signifies="sustenance and the income that supports the image"),
-                _cell(al_sign + 9, house_from_al=10,
-                      signifies="public role and standing in work"),
-                _cell(al_sign + 10, house_from_al=11,
-                      signifies="gains, networks and what accrues to the image"),
-                _cell(al_sign + 11, house_from_al=12,
-                      signifies="loss, expenditure and detachment from the image "
-                                "(benefics here read as giving away, malefics as erosion)"),
+                _cell(al_sign + h - 1, house_from_al=h,
+                      signifies=AL_HOUSE_SIGNIFICATIONS[h])
+                for h in (2, 10, 11, 12)
             ]
             ul_derived = [
-                _cell(ul_sign + 1, house_from_ul=2,
-                      signifies="the sustenance and durability of the marriage"),
-                _cell(ul_sign + 6, house_from_ul=7,
-                      signifies="how the partnership meets the wider world"),
+                _cell(ul_sign + h - 1, house_from_ul=h,
+                      signifies=UL_HOUSE_SIGNIFICATIONS[h])
+                for h in (2, 7)
             ]
 
             return {

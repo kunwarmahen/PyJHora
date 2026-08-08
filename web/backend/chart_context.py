@@ -239,6 +239,9 @@ def build_chart_context(birth_details: Dict[str, Any],
                 "natal": t.get("natal", {}),
                 "planets": t.get("planets", {}),
                 "upcoming": t.get("upcoming", []),
+                # The natal arudhas each transit is also counted from (§60):
+                # every planet row carries house_from_al / _ul / _padas.
+                "arudhas": t.get("arudhas"),
             }
 
     if sections.get("ashtakavarga"):

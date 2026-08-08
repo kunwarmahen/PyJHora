@@ -226,6 +226,29 @@ def _format_arudha_padas(ba):
         for i, s in enumerate(ba)
     ]
 
+# Classical significations of the houses counted FROM an arudha, keyed by that
+# house number. Only the houses the tradition actually reads are here — the 12th
+# from AL as the seat of loss and detachment is the best-known. The signification
+# is stated; the verdict is always left to the reader (or the model), exactly as
+# `get_arudha_analysis` has done since it shipped.
+#
+# ONE copy, because two of them would drift: `get_arudha_analysis` describes
+# these houses in the natal chart and the transit/digest layer names them again
+# when a graha crosses one. House 1 is definitional — the arudha itself.
+AL_HOUSE_SIGNIFICATIONS = {
+    1: "the image itself — how one is seen",
+    2: "sustenance and the income that supports the image",
+    10: "public role and standing in work",
+    11: "gains, networks and what accrues to the image",
+    12: "loss, expenditure and detachment from the image "
+        "(benefics here read as giving away, malefics as erosion)",
+}
+UL_HOUSE_SIGNIFICATIONS = {
+    1: "the marriage itself",
+    2: "the sustenance and durability of the marriage",
+    7: "how the partnership meets the wider world",
+}
+
 # Traditional (7-graha) sign lords, indexed by sign 0=Aries..11=Pisces → planet index.
 # Aries/Scorpio→Mars, Tau/Lib→Venus, Gem/Vir→Mercury, Can→Moon, Leo→Sun,
 # Sag/Pis→Jupiter, Cap/Aqu→Saturn.

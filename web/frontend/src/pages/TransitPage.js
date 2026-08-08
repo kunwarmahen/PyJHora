@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Orbit, Calendar, TrendingUp, RotateCcw } from "lucide-react";
+import { Orbit, Calendar, TrendingUp, RotateCcw, Landmark } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
@@ -118,6 +118,14 @@ export const TransitPage = () => {
     setMomentMs(d.getTime());
   };
 
+  // AL/UL labelled in their signs on the Gochara kundali. Its own key rather
+  // than BirthChart's `showArudhas`: there the labels sit on an otherwise empty
+  // natal cell, here they share the cell with whatever is transiting it, so the
+  // two pages earn separate answers to "is this too busy?".
+  const [showArudhas, setShowArudhas] = useState(
+    () => localStorage.getItem("showTransitArudhas") !== "0"
+  );
+
   // Chart style + ayanamsa come from global Settings now.
   const { settings } = useSettings();
   // The Ashtakavarga bindu column is a specialist's cross-check, and "AV Support"
@@ -181,6 +189,16 @@ export const TransitPage = () => {
   const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
   const planets = result?.planets || {};
   const orderedPlanets = PLANET_ORDER.filter((p) => planets[p]).map((p) => [p, planets[p]]);
+
+  // The natal arudhas the transits above are also counted from. Specialist
+  // material, so the whole arudha layer follows the same Everything-mode gate
+  // the Ashtakavarga column does.
+  const padas = (showBindus && result?.arudhas?.padas) || [];
+  // Only AL and UL go on the chart: the other ten would land in cells that
+  // already hold transiting grahas, and a label nobody can read is not a label.
+  const chartPadas = padas.filter((p) => p.short === "AL" || p.short === "UL");
+  const alSign = result?.arudhas?.al?.sign_name;
+  const ulSign = result?.arudhas?.ul?.sign_name;
 
   // The snapshot is anchored to a specific wall-clock moment, so show date + time.
   const transitMoment = result
@@ -293,15 +311,33 @@ export const TransitPage = () => {
 
             <div className="chart-grid">
               {/* Transit chart over natal lagna */}
-              <Kundali
-                planets={planets}
-                lagna={result.lagna}
-                title={t("transit.gochara")}
-                subtitle={t("transit.transitsOn", {
-                  date: formatDate(result.transit_date, locale),
-                })}
-                exportable
-              />
+              <div>
+                <Kundali
+                  planets={planets}
+                  lagna={result.lagna}
+                  title={t("transit.gochara")}
+                  subtitle={t("transit.transitsOn", {
+                    date: formatDate(result.transit_date, locale),
+                  })}
+                  arudhas={chartPadas}
+                  showArudhas={showArudhas && chartPadas.length > 0}
+                  exportable
+                />
+                {chartPadas.length > 0 && (
+                  <button
+                    type="button"
+                    className={`aspect-toggle${showArudhas ? " is-active" : ""}`}
+                    onClick={() => {
+                      const next = !showArudhas;
+                      setShowArudhas(next);
+                      localStorage.setItem("showTransitArudhas", next ? "1" : "0");
+                    }}
+                  >
+                    <Landmark size={16} />
+                    {showArudhas ? t("arudhas.hideOnChart") : t("transit.showArudhasOnChart")}
+                  </button>
+                )}
+              </div>
 
               {/* Transit table */}
               <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush">
@@ -318,6 +354,16 @@ export const TransitPage = () => {
                         <th>{t("common.nakshatra")}</th>
                         <th className="text-center">{t("transit.fromLagna")}</th>
                         <th className="text-center">{t("transit.fromMoon")}</th>
+                        {padas.length > 0 && (
+                          <>
+                            <th className="text-center" title={t("transit.fromAlTitle")}>
+                              {t("transit.fromAl")}
+                            </th>
+                            <th className="text-center" title={t("transit.fromUlTitle")}>
+                              {t("transit.fromUl")}
+                            </th>
+                          </>
+                        )}
                         {showBindus && <th className="text-center">{t("transit.support")}</th>}
                       </tr>
                     </thead>
@@ -351,6 +397,26 @@ export const TransitPage = () => {
                           <td className="text-center fw-600 text-vermillion">
                             {ordinal(p.house_from_moon)}
                           </td>
+                          {padas.length > 0 && (
+                            <>
+                              {/* House 1 = the graha is ON the arudha, the one
+                                  position worth spotting at a glance. */}
+                              <td
+                                className={`text-center${
+                                  p.house_from_al === 1 ? " fw-700 text-saffron" : ""
+                                }`}
+                              >
+                                {ordinal(p.house_from_al)}
+                              </td>
+                              <td
+                                className={`text-center${
+                                  p.house_from_ul === 1 ? " fw-700 text-saffron" : ""
+                                }`}
+                              >
+                                {ordinal(p.house_from_ul)}
+                              </td>
+                            </>
+                          )}
                           {showBindus && (
                             <td className="text-center">
                               {p.bindu_strength ? (
@@ -381,9 +447,63 @@ export const TransitPage = () => {
                   </table>
                 </div>
                 <p className="card-note">{t("transit.houseNote")}</p>
+                {padas.length > 0 && (
+                  <p className="card-note">
+                    {t("transit.arudhaNote", { al: ln(alSign, "rasi"), ul: ln(ulSign, "rasi") })}
+                  </p>
+                )}
                 {showBindus && <p className="card-note">{t("transit.supportNote")}</p>}
               </div>
             </div>
+
+            {/* Every bhava arudha as a reference frame. The two named ones are
+                columns above; the rest only make sense as a grid, so they get
+                their own card rather than ten more columns. */}
+            {padas.length > 0 && (
+              <div className="ui-card ui-card--accent-indigo ui-card--flush mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <Landmark size={18} />
+                  {t("transit.padaMatrix")}
+                </h3>
+                <div className="table-scroll">
+                  <table className="data-table data-table--compact">
+                    <thead>
+                      <tr>
+                        <th>{t("transit.pada")}</th>
+                        <th>{t("common.sign")}</th>
+                        {orderedPlanets.map(([name]) => (
+                          <th key={name} className="text-center" title={name}>
+                            {ln(name, "graha", { abbr: true })}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {padas.map((pada) => (
+                        <tr key={pada.short}>
+                          <td className="fw-700 text-indigo" title={pada.label}>
+                            {pada.short}
+                          </td>
+                          <td className="text-secondary">{ln(pada.sign_name, "rasi")}</td>
+                          {orderedPlanets.map(([name, p]) => {
+                            const h = p.house_from_padas?.[pada.short];
+                            return (
+                              <td
+                                key={name}
+                                className={`text-center${h === 1 ? " fw-700 text-saffron" : ""}`}
+                              >
+                                {h == null ? "—" : h}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="card-note">{t("transit.padaMatrixNote")}</p>
+              </div>
+            )}
 
             {/* Upcoming ingresses */}
             {result.upcoming && result.upcoming.length > 0 && (

@@ -38,6 +38,7 @@ export const HELP_SECTIONS = [
       { id: "rasiVsNavamsa" },
       { id: "whatIsNakshatra", to: "/nakshatra" },
       { id: "yogaAndDosha" },
+      { id: "whatIsArudha", to: "/transit" },
       { id: "retrograde" },
       { id: "conditionalDashas", to: "/dhasa" },
       { id: "whatIsKaalaVela", to: "/muhurta" },

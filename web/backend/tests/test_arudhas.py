@@ -7,9 +7,12 @@ derives them, plus the prompt's handling of the user's arudha selection.
 
 Chart 1 is the JHora-verified reference chart from conftest.
 """
+import re
+
 import pytest
 
 from astrology import AstrologyCompute as A
+from astrology.compute_digests import _ordinal
 from llm_service import llm_service
 
 # ── Golden arudha placements for chart 1 (1976-06-04 05:45:02, Aligarh) ──────
@@ -118,3 +121,90 @@ def test_prompt_uses_correct_ordinals(arudha1):
     assert "10th from it" in p
     assert " 2th" not in p   # leading space: "12th" legitimately ends in "2th"
     assert " 1th" not in p
+
+
+# ── The arudha frame inside get_transits (§60) ───────────────────────────────
+#
+# The gochara reading counts each transiting graha from the natal arudhas as
+# well as the Lagna and the Moon. These pin the *class* of thing that can break:
+# the join being silently absent, and the arithmetic disagreeing with the padas
+# it claims to be counted from.
+
+def test_transits_carry_every_arudha_reference(args1):
+    """Each transiting graha is counted from all twelve padas, and the named
+    AL/UL shortcuts agree with the map they summarize."""
+    tr = A.get_transits(**args1, current_date="2026-08-07")
+    assert tr["status"] == "success", tr
+    padas = tr["arudhas"]["padas"]
+    # The same twelve arudhas the natal analysis reports, in the same signs —
+    # arudhas are natal points, so a transit date must not move them.
+    assert {p["short"]: p["sign_name"] for p in padas} == CHART1_ARUDHA_SIGNS
+    assert tr["arudhas"]["al"]["sign_name"] == "Aquarius"
+    assert tr["arudhas"]["ul"]["sign_name"] == "Cancer"
+
+    by_short = {p["short"]: p["sign"] - 1 for p in padas}
+    for name, p in tr["planets"].items():
+        houses = p["house_from_padas"]
+        assert set(houses) == set(CHART1_ARUDHA_SIGNS), name
+        for short, h in houses.items():
+            # Counted inclusively from the arudha's sign to the graha's sign.
+            assert h == ((p["rasi"] - by_short[short]) % 12) + 1, f"{name} {short}"
+        # The two named columns are the map's AL/UL entries, not a second sum.
+        assert p["house_from_al"] == houses["AL"], name
+        assert p["house_from_ul"] == houses["UL"], name
+
+
+def test_transit_arudha_significations_come_from_the_one_table(args1):
+    """The classical meanings shipped with the transits are the same table the
+    natal arudha analysis derives its houses from — two copies would drift."""
+    from astrology.engine import AL_HOUSE_SIGNIFICATIONS, UL_HOUSE_SIGNIFICATIONS
+
+    tr = A.get_transits(**args1, current_date="2026-08-07")
+    sig = tr["arudhas"]["significations"]
+    assert sig["AL"] is AL_HOUSE_SIGNIFICATIONS
+    assert sig["UL"] is UL_HOUSE_SIGNIFICATIONS
+
+    # Every house the natal analysis describes must have its meaning here, so a
+    # reading can name the same house whether it arrives via natal or transit.
+    an = A.get_arudha_analysis(**args1)
+    for row in an["al_derived"]:
+        assert row["signifies"] == AL_HOUSE_SIGNIFICATIONS[row["house_from_al"]]
+    for row in an["ul_derived"]:
+        assert row["signifies"] == UL_HOUSE_SIGNIFICATIONS[row["house_from_ul"]]
+
+
+def test_golden_arudha_houses_for_a_fixed_transit_date(args1):
+    """Pinned values, so a change in the arudha maths or the house count fails
+    here rather than quietly re-reading someone's chart."""
+    tr = A.get_transits(**args1, current_date="2026-08-07")
+    p = tr["planets"]
+    # AL is Aquarius (sign 11), UL is Cancer (sign 4).
+    assert (p["Saturn"]["sign_name"], p["Saturn"]["house_from_al"],
+            p["Saturn"]["house_from_ul"]) == ("Pisces", 2, 9)
+    assert (p["Jupiter"]["sign_name"], p["Jupiter"]["house_from_al"],
+            p["Jupiter"]["house_from_ul"]) == ("Cancer", 6, 1)
+
+
+def test_digest_names_the_arudha_only_for_houses_the_tradition_reads(args1):
+    """The daily highlight fires on the read houses and stays silent otherwise —
+    and never renders a raw "2th"."""
+    from astrology.engine import AL_HOUSE_SIGNIFICATIONS
+
+    d = A.get_daily_digest(**args1, date="2026-08-07")
+    lines = [h for h in d["highlights"] if "Arudha Lagna" in h or "Upapada" in h]
+    assert lines, d["highlights"]
+
+    # Every ordinal in every highlight must be the one _ordinal() would write.
+    # Checked as a class, not per-phrase: the Sade-Sati line (houses 12/1/2) and
+    # the Jupiter-from-Moon line (any house) had both been rendering "1th"/"2th"
+    # since they shipped, and a substring test for "2th" would pass "12th".
+    for h in d["highlights"]:
+        for num, suffix in re.findall(r"\b(\d+)(st|nd|rd|th)\b", h):
+            assert f"{num}{suffix}" == _ordinal(int(num)), f"{h!r}"
+    # Every arudha line quotes a signification from the shared table.
+    for line in lines:
+        if "Arudha Lagna" in line:
+            assert any(s in line for s in AL_HOUSE_SIGNIFICATIONS.values()), line
+    # At most one arudha line per slow graha, the same budget the Moon lines take.
+    for graha in ("Saturn", "Jupiter"):
+        assert len([h for h in lines if h.startswith(graha)]) <= 1

@@ -16,7 +16,9 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   on the chart), Vimsottari Dhasa (+ 14 other dasha systems — including the **Sudarshana Chakra
   dasha**, a 12-year wheel read from the Lagna, Moon and Sun at once — & Sudarsana Chakra charts),
   Transits (Gochara — each transiting graha **weighted by its Ashtakavarga bindus** for the
-  sign it occupies, with a supported/neutral/rough chip),
+  sign it occupies, with a supported/neutral/rough chip, and counted from the **bhava
+  arudhas** as well as the Lagna and Moon: AL/UL columns and labels on the chart, all
+  twelve padas in a grid, steppers from a minute to a year),
   an Ephemeris & transit calendar (daily sidereal grid + sign-ingress dates),
   a Bhava / house-cusp chart (Sripati / Placidus / KP / Equal),
   a print-ready Full Report (Save-as-PDF),
