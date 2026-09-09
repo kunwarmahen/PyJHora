@@ -5,6 +5,7 @@ old single-file astrology.py; `AstrologyCompute` is bound at import time by
 core.py so cross-module `AstrologyCompute.x` calls keep working.
 """
 from .engine import *  # noqa: F401,F403  (constants + helpers the bodies use)
+from .chart_view import chart_positions
 
 # Rebound by core.py once the composed class exists (late binding).
 AstrologyCompute = None
@@ -1137,22 +1138,27 @@ class ChartsMixin:
         if chart.get("error"):
             return chart
 
-        d1 = chart.get("d1_chart", {})
+        # Houses counted from the Lagna, and the renderer's sign numbers
+        # (`rasi` / `house`) dropped — this summary is read by the prompt
+        # builders, and there "house 4" must mean the 4th bhava.
+        natal = chart_positions(chart.get("lagna", {}), chart.get("d1_chart", {}))
+        d1 = natal["planets"]
         moon = d1.get("Moon", {})
         sun = d1.get("Sun", {})
         return {
             "status": "success",
             "birth_details": {"dob": dob, "tob": tob, "place": place},
-            "lagna": chart.get("lagna", {}),
+            "house_system": natal["house_system"],
+            "lagna": natal["lagna"],
             "moon_sign": {
                 "sign_name": moon.get("sign_name", "Unknown"),
-                "rasi": moon.get("rasi", 0),
+                "house": moon.get("house"),
                 "nakshatra": moon.get("nakshatra", "Unknown"),
                 "nakshatra_pada": moon.get("nakshatra_pada", 0),
             },
             "sun_sign": {
                 "sign_name": sun.get("sign_name", "Unknown"),
-                "rasi": sun.get("rasi", 0),
+                "house": sun.get("house"),
                 "nakshatra": sun.get("nakshatra", "Unknown"),
                 "nakshatra_pada": sun.get("nakshatra_pada", 0),
             },

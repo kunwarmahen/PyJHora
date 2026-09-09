@@ -856,8 +856,20 @@ export const AskAstrologerPage = () => {
   const getChartDataForLLM = () => {
     if (!chartData) return "No chart data available";
 
-    const moonData = chartData.d1_chart?.Moon || {};
-    const sunData = chartData.d1_chart?.Sun || {};
+    // Preview of what the backend assembles, and it must agree with it: `rasi`
+    // and the chart's `house` are sign numbers for the Kundali renderer, never
+    // bhavas, so they are replaced here by the house counted from the Lagna.
+    const lagnaRasi = (chartData.lagna?.house ?? 1) - 1;
+    const houseFromLagna = (rasi) =>
+      rasi == null ? undefined : ((((rasi - lagnaRasi) % 12) + 12) % 12) + 1;
+    const positioned = Object.fromEntries(
+      Object.entries(chartData.d1_chart || {}).map(([name, p]) => {
+        const { rasi, house, ...rest } = p;
+        return [name, { ...rest, house: houseFromLagna(rasi) }];
+      })
+    );
+    const moonData = positioned.Moon || {};
+    const sunData = positioned.Sun || {};
 
     return {
       birth_details: {
@@ -865,20 +877,23 @@ export const AskAstrologerPage = () => {
         tob: selectedProfile.birth_details.tob,
         place: selectedProfile.birth_details.place,
       },
-      lagna: chartData.lagna,
+      house_system: `Whole-sign houses counted from this chart's own Lagna in ${
+        chartData.lagna?.sign_name || "?"
+      }, so that sign is house 1.`,
+      lagna: { ...chartData.lagna, house: 1 },
       moon_sign: {
         sign_name: moonData.sign_name || "Unknown",
-        rasi: moonData.rasi || 0,
+        house: moonData.house,
         nakshatra: moonData.nakshatra || "Unknown",
         nakshatra_pada: moonData.nakshatra_pada || 0,
       },
       sun_sign: {
         sign_name: sunData.sign_name || "Unknown",
-        rasi: sunData.rasi || 0,
+        house: sunData.house,
         nakshatra: sunData.nakshatra || "Unknown",
         nakshatra_pada: sunData.nakshatra_pada || 0,
       },
-      planetary_positions: chartData.d1_chart || {},
+      planetary_positions: positioned,
       current_dasha: chartData.dashas?.current_dasha || {},
       next_dasha: chartData.dashas?.next_dasha || {},
       current_bhukthi: chartData.dashas?.current_bhukthi || {},

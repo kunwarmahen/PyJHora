@@ -16,7 +16,8 @@ dict consumed by llm_service._build_chart_analysis_prompt.
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
-from astrology import AstrologyCompute, DEFAULT_AYANAMSA, SUPPORTED_VARGAS
+from astrology import (AstrologyCompute, DEFAULT_AYANAMSA, SUPPORTED_VARGAS,
+                       chart_positions, strip_layout_all)
 
 # Which context sections are included by default.
 DEFAULT_SECTIONS = {
@@ -184,7 +185,11 @@ def build_chart_context(birth_details: Dict[str, Any],
     }
 
     chart = AstrologyCompute.calculate_birth_chart(ayanamsa=ayanamsa, **args)
-    d1 = chart.get("d1_chart", {})
+    # The compute layer's `rasi`/`house` are sign numbers for the Kundali
+    # renderer, not bhavas — chart_positions swaps them for the real house
+    # counted from the Lagna before any of it reaches the model.
+    natal = chart_positions(chart.get("lagna", {}), chart.get("d1_chart", {}))
+    d1 = natal["planets"]
     moon = d1.get("Moon", {})
     sun = d1.get("Sun", {})
 
@@ -199,16 +204,17 @@ def build_chart_context(birth_details: Dict[str, Any],
         # LLM layer needs no timezone plumbing of its own.
         "today": _today_str(current_tz),
         "time_accuracy": birth_details.get("time_accuracy") or "exact",
-        "lagna": chart.get("lagna", {}),
+        "house_system": natal["house_system"],
+        "lagna": natal["lagna"],
         "moon_sign": {
             "sign_name": moon.get("sign_name", "Unknown"),
-            "rasi": moon.get("rasi", 0),
+            "house": moon.get("house"),
             "nakshatra": moon.get("nakshatra", "Unknown"),
             "nakshatra_pada": moon.get("nakshatra_pada", 0),
         },
         "sun_sign": {
             "sign_name": sun.get("sign_name", "Unknown"),
-            "rasi": sun.get("rasi", 0),
+            "house": sun.get("house"),
             "nakshatra": sun.get("nakshatra", "Unknown"),
             "nakshatra_pada": sun.get("nakshatra_pada", 0),
         },
@@ -237,8 +243,10 @@ def build_chart_context(birth_details: Dict[str, Any],
         if t.get("status") == "success":
             ctx["transits"] = {
                 "transit_date": t.get("transit_date"),
-                "natal": t.get("natal", {}),
-                "planets": t.get("planets", {}),
+                # natal.lagna / natal.moon carry a drawing-only sign number
+                # under `house`; only the reference sign matters here.
+                "natal": strip_layout_all(t.get("natal", {})),
+                "planets": strip_layout_all(t.get("planets", {})),
                 "upcoming": t.get("upcoming", []),
                 # The natal arudhas each transit is also counted from (§60):
                 # every planet row carries house_from_al / _ul / _padas.
@@ -423,13 +431,16 @@ def build_chart_context(birth_details: Dict[str, Any],
         vc = AstrologyCompute.calculate_divisional_chart(
             varga_factor=factor, ayanamsa=ayanamsa, **args)
         if vc.get("status") == "success":
+            # Houses in a varga are counted from the VARGA's own lagna.
+            view = chart_positions(vc.get("lagna", {}), vc.get("planets", {}))
             varga_charts.append({
                 "varga": vc.get("varga"),
                 "code": vc.get("code"),
                 "name": vc.get("name"),
                 "significance": vc.get("significance"),
-                "lagna": vc.get("lagna", {}),
-                "planets": vc.get("planets", {}),
+                "house_system": view["house_system"],
+                "lagna": view["lagna"],
+                "planets": view["planets"],
             })
     if varga_charts:
         ctx["vargas"] = varga_charts

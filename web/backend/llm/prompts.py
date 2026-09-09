@@ -6,6 +6,11 @@ composes over `self` with no other changes.
 """
 from .base import *  # noqa: F401,F403
 
+# `rasi`/`house` on a compute-layer position are sign numbers for the Kundali
+# renderer, not bhavas. chart_positions counts the real house from that chart's
+# own lagna, so a prompt can print "house 12" and mean it.
+from astrology import chart_positions
+
 
 class PromptsMixin:
 
@@ -492,10 +497,12 @@ Be specific to the findings above — do not invent placements that aren't liste
         muntha = v.get("muntha", {})
         yl = v.get("year_lord") or {}
 
-        lagna = v.get("lagna", {})
-        planets = v.get("planets", {})
+        view = chart_positions(v.get("lagna", {}), v.get("planets", {}))
+        lagna = view["lagna"]
+        planets = view["planets"]
         placements = ", ".join(
-            f"{p}: {d.get('sign_name')}" for p, d in planets.items()
+            f"{p}: {d.get('sign_name')} (house {d.get('house')})"
+            for p, d in planets.items()
         )
 
         sahams = v.get("sahams", [])
@@ -745,13 +752,14 @@ Keep it grounded and encouraging. Do NOT make fated, medical, legal or financial
         sun = p.get("sun") or {}
         panch = p.get("panchanga") or {}
         moment = p.get("moment") or {}
-        planets = p.get("planets") or {}
+        planets = chart_positions(lagna, p.get("planets") or {})["planets"]
 
         # Compact one-line placements for the nine grahas.
         plines = "\n".join(
             f"- {name}: {info.get('sign_name')} {round(info.get('degrees', 0), 1)}°"
             f"{' (retrograde)' if info.get('retrograde') else ''}, "
-            f"{info.get('nakshatra')} nakshatra"
+            f"{info.get('nakshatra')} nakshatra, house {info.get('house')} "
+            "from the Lagna"
             for name, info in planets.items()
         )
         tithi = panch.get("tithi") or {}
@@ -992,9 +1000,10 @@ Reason only from the data above; it is authoritative — do not contradict it an
         Sahams — exist only on the annual rung (they are derived from the age in
         *years*, so they are meaningless for a single tithi), and the prompt simply
         omits them below it rather than inviting the model to read noise."""
-        lagna = d.get("lagna") or {}
+        _view = chart_positions(d.get("lagna") or {}, d.get("planets") or {})
+        lagna = _view["lagna"]
         window = d.get("window") or {}
-        planets = d.get("planets") or {}
+        planets = _view["planets"]
         yogas = d.get("tajaka_yogas") or []
 
         rung = d.get("rung", "annual")
@@ -1004,7 +1013,7 @@ Reason only from the data above; it is authoritative — do not contradict it an
         is_annual = rung == "annual"
 
         planet_lines = "\n".join(
-            f"- {p}: {v.get('sign_name')} {v.get('degrees')}°"
+            f"- {p}: {v.get('sign_name')} {v.get('degrees')}°, house {v.get('house')}"
             for p, v in planets.items()
         ) or "- (none)"
 
@@ -1806,7 +1815,9 @@ Be specific to the matches above — do not invent placements or events. Do NOT 
         """Format planetary positions for prompt"""
         result = []
         for planet, data in planets.items():
-            result.append(f"- {planet}: {data.get('sign_name', 'Unknown')}")
+            house = data.get("house")
+            where = f" (house {house})" if house else ""
+            result.append(f"- {planet}: {data.get('sign_name', 'Unknown')}{where}")
         return "\n".join(result)
 
     def _render_context_block(self, chart_data: Dict[str, Any], tool_mode: bool = False) -> str:
@@ -1857,27 +1868,29 @@ Birth Details:
 - Time of Birth: {birth_details.get('tob', 'Unknown')}
 - Place of Birth: {birth_details.get('place', 'Unknown')}{accuracy_note}
 
-Lagna (Ascendant):
-- Sign: {lagna_info.get('sign_name', 'Unknown')} (House #{lagna_info.get('house', 'Unknown')})
+Lagna (Ascendant): {lagna_info.get('sign_name', 'Unknown')} — this sign is house 1, and every house below is counted from it whole-sign.
 - Nakshatra: {lagna_info.get('nakshatra', 'Unknown')} Pada {lagna_info.get('nakshatra_pada', 'Unknown')}
 - Degrees: {lagna_info.get('degrees', 'Unknown')}°
 
 Moon Sign (Chandra Rasi):
-- Sign: {moon_info.get('sign_name', 'Unknown')} (Rasi #{moon_info.get('rasi', 'Unknown')})
+- Sign: {moon_info.get('sign_name', 'Unknown')} (house {moon_info.get('house', '?')})
 - Nakshatra: {moon_info.get('nakshatra', 'Unknown')} Pada {moon_info.get('nakshatra_pada', 'Unknown')}
 
 Sun Sign (Surya Rasi):
-- Sign: {sun_info.get('sign_name', 'Unknown')} (Rasi #{sun_info.get('rasi', 'Unknown')})
+- Sign: {sun_info.get('sign_name', 'Unknown')} (house {sun_info.get('house', '?')})
 - Nakshatra: {sun_info.get('nakshatra', 'Unknown')} Pada {sun_info.get('nakshatra_pada', 'Unknown')}
 
-Planetary Positions (All 9 Grahas):"""
+Planetary Positions (All 9 Grahas) — house counted from the Lagna:"""
 
         # Add planetary positions with nakshatras
         for planet, data in planets.items():
             nakshatra_info = ""
             if data.get('nakshatra'):
                 nakshatra_info = f", Nakshatra: {data.get('nakshatra', 'Unknown')} Pada {data.get('nakshatra_pada', 'Unknown')}"
-            chart_description += f"\n- {planet}: {data.get('sign_name', 'Unknown')} sign (Rasi #{data.get('rasi', 'Unknown')}), {data.get('degrees', 0):.2f}°{nakshatra_info}"
+            chart_description += (
+                f"\n- {planet}: {data.get('sign_name', 'Unknown')} "
+                f"{data.get('degrees', 0):.2f}°, house {data.get('house', '?')}"
+                f"{nakshatra_info}")
 
         # Divisional charts (vargas) — compact one line per chart for token economy
         vargas = chart_data.get("vargas", [])
@@ -1886,12 +1899,13 @@ Planetary Positions (All 9 Grahas):"""
             for v in vargas:
                 lagna_sign = v.get("lagna", {}).get("sign_name", "?")
                 placements = ", ".join(
-                    f"{name} {p.get('sign_name', '?')}"
+                    f"{name} {p.get('sign_name', '?')} (H{p.get('house', '?')})"
                     for name, p in v.get("planets", {}).items()
                 )
                 chart_description += (
                     f"\n- {v.get('code', '?')} {v.get('name', '')} "
-                    f"({v.get('significance', '')}): Asc {lagna_sign}; {placements}"
+                    f"({v.get('significance', '')}): Asc {lagna_sign} = H1, houses "
+                    f"counted from it; {placements}"
                 )
 
         # Add Dasha information

@@ -6181,3 +6181,68 @@ now reports `engine_version` and `default_ayanamsa`, so "which engine and which
 ayanamsa is this pod on" is answerable from the portal.
 
 605 backend tests green; engine suite green at 6,495.
+
+## 63. `"rasi": 3, "house": 4` — the two numbers that told the model the wrong house (owner report 2026-09-09)
+
+Asking about the Navamsa, the owner opened "what was sent" and found this in the
+D9 payload:
+
+```json
+"Sun": { "rasi": 3, "house": 4, "degrees": 0.03, "sign_name": "Cancer" }
+```
+
+The Sun is in the **12th** house of that D9 (Navamsa lagna Leo, Sun in Cancer);
+the Moon in Aries is in the **9th**, not the 1st. Both numbers in the payload
+were wrong as houses because neither was ever meant to be one:
+
+* `rasi` is the **0-based sign index** — Cancer is 3 here and 4 in every book
+  the model has read;
+* `house` is that index **+ 1** — the 1-based *sign cell* the Kundali component
+  draws the planet in. It equals the bhava only for an Aries lagna.
+
+They were introduced for the renderer (`# Convert from 0-based rasi to 1-based
+house`, compute_charts.py) and then passed to the LLM untouched, in the seeded
+context, in the tool results, and in the annual/transit payloads. Two plausible
+numbers, no lagna in sight, and a key literally called `house`: the model read
+the sign number as the bhava every time, and no prompt wording was going to beat
+that — the fix has to be in the data.
+
+Interestingly the rest of the codebase already had the convention right:
+sphutas, sahams, KP bodies, transits and Muntha all compute
+`((sign - lagna) % 12) + 1` and call it `house`. Only the chart builders — the
+ones with a Kundali to feed — used the name for the sign.
+
+### The fix
+
+`astrology/chart_view.py` — one place that turns a renderer payload into an LLM
+payload:
+
+* `chart_positions(lagna, planets)` counts the real whole-sign house from *that
+  chart's own* lagna (a varga's houses come off the varga's lagna, not the D1's),
+  drops `rasi`/`house`, and returns a `house_system` line naming the rising sign
+  so the frame is stated, not inferred;
+* `strip_layout_all` for payloads that already carry their own counts — transits
+  ship `house_from_lagna`/`_moon`/`_al`/`_ul`, and the sign number was simply
+  competing with them.
+
+Applied at every AI boundary: `chart_context` (natal, vargas, transits),
+`tools.py` (natal, divisional, transits, Varshaphal, Tithi Pravesha, the pravesha
+summary) and `get_horoscope_predictions`, which feeds the compatibility and
+compare prompts. REST responses and the frontend chart components keep the
+`rasi`/`house` they draw from — nothing there changed.
+
+The prompts stopped printing the misleading numbers too: the natal block said
+"Lagna … (House #5)" and "Moon … (Rasi #4)", and the varga one-liner listed bare
+signs, leaving the model to count houses itself — which is the arithmetic it had
+been getting wrong. Both now carry the counted house. The "what was sent" preview
+in Ask (the pre-answer fallback, before the backend's real context arrives) does
+the same count in JS so it can't disagree with the payload.
+
+### Guards
+
+`tests/test_llm_chart_shapes.py` pins the owner's own D9 — Sun 12th, Moon 9th,
+Saturn with the lagna — and walks every AI payload asserting no `rasi` survives
+anywhere in it. The walk is the part that generalises: it fails on any new tool
+that passes a chart straight through.
+
+617 backend tests green.

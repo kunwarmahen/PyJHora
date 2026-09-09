@@ -131,6 +131,27 @@ handler}`. `handler(birth_details, ayanamsa, **model_args) -> dict`. Exposes:
   something the model can know. Without this the tool layer dated everything by
   the server's clock and computed sunrise at the birth place (§57).
 
+### 4.1b Result shapes: houses, never sign numbers (§63)
+
+Every handler returns a **projection** of the compute payload, not the payload.
+The compute layer speaks the Kundali renderer's language — `rasi` is the 0-based
+sign index and `house` is that index + 1, the *sign cell* a chart component draws
+in — and neither is a bhava. Shipped verbatim, `{"rasi": 3, "house": 4,
+"sign_name": "Cancer"}` made every model place a D9 Sun in the 4th when it is in
+the 12th from that chart's Leo lagna.
+
+So any handler returning a chart passes it through
+`astrology.chart_view.chart_positions(lagna, planets)`, which counts the real
+whole-sign house from **that chart's own lagna** (a varga's houses come off the
+varga's lagna), drops the two layout keys and adds a `house_system` line naming
+the rising sign. Payloads that already carry their own counts (transits:
+`house_from_lagna` / `_moon` / `_al` / `_ul`) use `strip_layout_all` instead, so
+the sign number stops competing with them.
+
+A new tool that returns planets must do one or the other —
+`tests/test_llm_chart_shapes.py` walks the payloads and fails on any surviving
+`rasi`.
+
 ### 4.2 Tool loop (`llm_service`)
 A provider-agnostic `run_tool_loop(messages, cfg, tools, on_event)`:
 1. Send messages (+ tools) to the provider.

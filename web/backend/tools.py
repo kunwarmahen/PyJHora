@@ -21,7 +21,8 @@ pre-seeded into the prompt or fetched on demand via a tool.
 from typing import Any, Callable, Dict, List, Optional
 
 from astrology import (AstrologyCompute, DEFAULT_AYANAMSA, SUPPORTED_VARGAS,
-                       SUPPORTED_DASHAS)
+                       SUPPORTED_DASHAS, chart_positions, strip_layout,
+                       strip_layout_all)
 from chart_context import _running_dasha_chain
 import rag
 
@@ -54,20 +55,24 @@ def _natal_chart(bd, ayanamsa, **_):
     chart = AstrologyCompute.calculate_birth_chart(ayanamsa=ayanamsa, **args)
     if "error" in chart:
         return chart
-    d1 = chart.get("d1_chart", {})
+    # `rasi`/`house` off the compute layer are sign numbers for the Kundali
+    # renderer; chart_positions turns them into real houses from the Lagna.
+    natal = chart_positions(chart.get("lagna", {}), chart.get("d1_chart", {}))
+    d1 = natal["planets"]
     moon = d1.get("Moon", {})
     sun = d1.get("Sun", {})
     return {
-        "lagna": chart.get("lagna", {}),
+        "house_system": natal["house_system"],
+        "lagna": natal["lagna"],
         "moon_sign": {
             "sign_name": moon.get("sign_name", "Unknown"),
-            "rasi": moon.get("rasi", 0),
+            "house": moon.get("house"),
             "nakshatra": moon.get("nakshatra", "Unknown"),
             "nakshatra_pada": moon.get("nakshatra_pada", 0),
         },
         "sun_sign": {
             "sign_name": sun.get("sign_name", "Unknown"),
-            "rasi": sun.get("rasi", 0),
+            "house": sun.get("house"),
             "nakshatra": sun.get("nakshatra", "Unknown"),
             "nakshatra_pada": sun.get("nakshatra_pada", 0),
         },
@@ -121,8 +126,10 @@ def _transits(bd, ayanamsa, current_tz: Optional[float] = None, **_):
         return t
     return {
         "transit_date": t.get("transit_date"),
-        "natal": t.get("natal", {}),
-        "planets": t.get("planets", {}),
+        "natal": strip_layout_all(t.get("natal", {})),
+        # Each row already carries house_from_lagna / _moon / _al / _ul; the
+        # layout-only sign numbers would compete with them.
+        "planets": strip_layout_all(t.get("planets", {})),
         "upcoming": t.get("upcoming", []),
         # The natal arudhas each transit is also counted from (§60):
         # every planet row carries house_from_al / _ul / _padas.
@@ -189,13 +196,16 @@ def _divisional_chart(bd, ayanamsa, varga_factor: Optional[int] = None, **_):
         varga_factor=factor, ayanamsa=ayanamsa, **_args(bd))
     if vc.get("status") != "success":
         return vc
+    # A varga's houses are counted from the VARGA's own lagna, not the D1's.
+    view = chart_positions(vc.get("lagna", {}), vc.get("planets", {}))
     return {
         "varga": vc.get("varga"),
         "code": vc.get("code"),
         "name": vc.get("name"),
         "significance": vc.get("significance"),
-        "lagna": vc.get("lagna", {}),
-        "planets": vc.get("planets", {}),
+        "house_system": view["house_system"],
+        "lagna": view["lagna"],
+        "planets": view["planets"],
     }
 
 
@@ -215,12 +225,14 @@ def _varshaphal(bd, ayanamsa, year: Optional[int] = None,
                                         current_tz=current_tz, **_args(bd))
     if v.get("status") != "success":
         return v
+    view = chart_positions(v.get("lagna", {}), v.get("planets", {}))
     return {
         "year": v.get("year"),
         "age": v.get("age"),
         "year_entry": v.get("year_entry", {}),
-        "lagna": v.get("lagna", {}),
-        "planets": v.get("planets", {}),
+        "house_system": view["house_system"],
+        "lagna": view["lagna"],
+        "planets": view["planets"],
         "muntha": v.get("muntha", {}),
         "year_lord": v.get("year_lord"),
         "sahams": v.get("sahams", []),
@@ -233,7 +245,10 @@ def _pravesh_summary(pravesh):
     if not pravesh:
         return None
     return {
-        "lagna": pravesh.get("lagna"), "muntha": pravesh.get("muntha"),
+        # lagna carries a drawing-only sign number under `house`; drop it so the
+        # model doesn't read it as a bhava.
+        "lagna": strip_layout(pravesh.get("lagna") or {}),
+        "muntha": pravesh.get("muntha"),
         "year_lord": pravesh.get("year_lord"),
         "tajaka_yogas": pravesh.get("tajaka_yogas", []),
     }
@@ -273,9 +288,11 @@ def _tithi_pravesha(bd, ayanamsa, year: Optional[int] = None,
     t = AstrologyCompute.get_tithi_pravesha(year=yr, date=date, ayanamsa=ayanamsa, **_args(bd))
     if t.get("status") != "success":
         return t
+    view = chart_positions(t.get("lagna") or {}, t.get("planets") or {})
     return {
         "label": t.get("label"), "window": t.get("window"),
-        "lagna": t.get("lagna"), "planets": t.get("planets"),
+        "house_system": view["house_system"],
+        "lagna": view["lagna"], "planets": view["planets"],
         "muntha": t.get("muntha"), "year_lord": t.get("year_lord"),
         "tajaka_yogas": t.get("tajaka_yogas", []),
     }
@@ -748,8 +765,9 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
     _Tool(
         "get_natal_chart",
         "Natal (D1/Rasi) chart: Lagna, Sun & Moon signs/nakshatras, and the "
-        "rasi/degrees/nakshatra of all nine grahas. Call this first if the natal "
-        "placements were not already provided.",
+        "sign/degrees/nakshatra of all nine grahas plus the house each occupies, "
+        "counted from the Lagna. Call this first if the natal placements were not "
+        "already provided.",
         _EMPTY_PARAMS, _natal_chart,
     ),
     _Tool(
@@ -840,8 +858,9 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
     ),
     _Tool(
         "get_divisional_chart",
-        "A divisional (varga) chart for a life area, with its Lagna and planet "
-        "placements. Pick the varga_factor by topic — " + _VARGA_DESC + ".",
+        "A divisional (varga) chart for a life area, with its own Lagna and the "
+        "planet placements — each planet's `house` is counted from THAT chart's "
+        "Lagna, not the D1's. Pick the varga_factor by topic — " + _VARGA_DESC + ".",
         {"type": "object", "properties": {
             "varga_factor": {"type": "integer",
                              "enum": [f for f in sorted(SUPPORTED_VARGAS) if f != 1],
