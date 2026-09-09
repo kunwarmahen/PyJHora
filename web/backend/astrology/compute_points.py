@@ -73,45 +73,16 @@ class PointsMixin:
             return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             _set_ayanamsa(ayanamsa)
-            from jhora.horoscope.transit import saham as saham_mod
 
             jd, place_obj, y, m, d, hour, minute = \
                 AstrologyCompute._natal_jd_place(dob, tob, place, lat, lon, tz)
             cht = charts.rasi_chart(jd, place_obj)
             asc_sign = cht[0][1][0]
 
-            # Day- or night-birth from the natal sunrise/sunset.
-            night_birth = False
-            try:
-                birth_hrs = hour + minute / 60.0
-                sr = utils.from_dms_str_to_dms(drik.sunrise(jd, place_obj)[1])
-                ss = utils.from_dms_str_to_dms(drik.sunset(jd, place_obj)[1])
-                sr_h = sr[0] + sr[1] / 60.0 + sr[2] / 3600.0
-                ss_h = ss[0] + ss[1] / 60.0 + ss[2] / 3600.0
-                night_birth = birth_hrs > ss_h or birth_hrs < sr_h
-            except Exception as e:
-                print(f"Saham night-birth error: {e}")
-
-            items = []
-            for label, fn_name, significance in NATAL_SAHAMS:
-                try:
-                    fn = getattr(saham_mod, fn_name)
-                    try:
-                        s_long = fn(cht, night_birth)
-                    except TypeError:
-                        s_long = fn(cht)
-                    s_long = float(s_long) % 360
-                    s_sign = int(s_long // 30)
-                    items.append({
-                        "name": label,
-                        "significance": significance,
-                        "sign": s_sign,
-                        "sign_name": ZODIAC_NAMES[s_sign],
-                        "degrees": round(s_long % 30, 2),
-                        "house": ((s_sign - asc_sign) % 12) + 1,
-                    })
-                except Exception as e:
-                    print(f"Saham {label} error: {e}")
+            # Day- or night-birth: the engine's own test, so the flag reported
+            # here is the one each saham's formula actually branched on.
+            night_birth = _is_night_instant(jd, place_obj)
+            items = _saham_points(jd, place_obj, NATAL_SAHAMS, asc_sign)
 
             return {"status": "success", "night_birth": night_birth,
                     "lagna_sign": asc_sign, "lagna_sign_name": ZODIAC_NAMES[asc_sign],

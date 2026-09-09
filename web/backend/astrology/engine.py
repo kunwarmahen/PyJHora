@@ -715,9 +715,9 @@ VARNADA_METHODS = {
 }
 DEFAULT_VARNADA_METHOD = 1
 
-# The 36 natal Sahams (Arabic-part-like sensitive points). Each engine fn takes
-# (planet_positions, night_time_birth); a few take positions only (handled with a
-# TypeError fallback). label -> (saham.<fn>, significance).
+# The 36 natal Sahams (Arabic-part-like sensitive points).
+# label -> (saham.<fn>, significance). Every engine fn takes (jd, place) — see
+# _saham_points below for why that is worth stating.
 NATAL_SAHAMS = [
     ("Punya",      "punya_saham",      "Fortune, merit, good deeds"),
     ("Vidya",      "vidya_saham",      "Education, learning"),
@@ -1493,6 +1493,56 @@ def _annual_dasha(system_key, jd_dob, place_obj, age, dob_date, tob_tuple,
 
     return {"system": label, "system_key": system_key,
             "lord_type": lord_type, "periods": periods}
+
+
+def _is_night_instant(jd, place_obj):
+    """Whether `jd` falls between sunset and sunrise, by the engine's own rule.
+
+    Reported alongside the Sahams so the flag in the payload is the one the
+    formulas actually branched on, rather than a second, hand-rolled sunrise
+    comparison that can disagree with it at the margins.
+    """
+    from jhora.horoscope.transit import saham as saham_mod
+    try:
+        return bool(saham_mod.is_night_time_birth(jd, place_obj))
+    except Exception as e:
+        print(f"Saham night/day error: {e}")
+        return False
+
+
+def _saham_points(jd, place_obj, table, lagna_sign):
+    """The Sahams at one instant: longitude -> sign, degree, house from `lagna_sign`.
+
+    Every saham is `(jd, place, dhasa_progression_correction=0.0)` and casts its
+    own chart — it reads the ayanamsa the caller has already set, and decides
+    day/night birth itself.
+
+    It has not always been so: up to PyJHora V4.6.0 the signature was
+    `(planet_positions, night_time_birth)`, which is what this code passed. The
+    V4.9.3 change arrived with the 5.0 upgrade (§61) and every call started
+    raising TypeError — swallowed by an `except TypeError` fallback that retried
+    with one argument, failed again, printed, and moved on. Both Saham lists
+    silently became empty while the endpoint kept reporting success (§64).
+    So: no fallback here. One signature, and a failure is a failure.
+    """
+    from jhora.horoscope.transit import saham as saham_mod
+    items = []
+    for label, fn_name, significance in table:
+        try:
+            longitude = float(getattr(saham_mod, fn_name)(jd, place_obj)) % 360.0
+        except Exception as e:
+            print(f"Saham {label} error: {e}")
+            continue
+        sign = int(longitude // 30)
+        items.append({
+            "name": label,
+            "significance": significance,
+            "sign": sign,
+            "sign_name": ZODIAC_NAMES[sign],
+            "degrees": round(longitude % 30, 2),
+            "house": ((sign - lagna_sign) % 12) + 1,
+        })
+    return items
 
 
 # Export everything (including _single_underscore helpers) to the mixins.

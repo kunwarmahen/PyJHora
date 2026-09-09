@@ -49,7 +49,7 @@ class TajakaMixin:
             _set_ayanamsa(ayanamsa)
             import contextlib
             import io
-            from jhora.horoscope.transit import tajaka, saham, tajaka_yoga
+            from jhora.horoscope.transit import tajaka, tajaka_yoga
 
             y, m, d = map(int, dob.split("-"))
             time_parts = tob.split(":")
@@ -109,40 +109,11 @@ class TajakaMixin:
             except Exception as e:
                 print(f"Varshaphal year-lord error: {e}")
 
-            # Day/night of the annual entry drives the Sahams' day/night formula.
-            night_birth = False
-            try:
-                ann_jd = drik.next_solar_date(jd_dob, place_obj, years=age + 1)
-                entry_hrs = drik.jd_to_gregorian(ann_jd)[3]
-                sr = utils.from_dms_str_to_dms(drik.sunrise(ann_jd, place_obj)[1])
-                ss = utils.from_dms_str_to_dms(drik.sunset(ann_jd, place_obj)[1])
-                sr_h = sr[0] + sr[1] / 60.0 + sr[2] / 3600.0
-                ss_h = ss[0] + ss[1] / 60.0 + ss[2] / 3600.0
-                night_birth = entry_hrs > ss_h or entry_hrs < sr_h
-            except Exception as e:
-                print(f"Varshaphal night-birth error: {e}")
-
             # ── Sahams (sensitive points) ──────────────────────────────────
-            sahams = []
-            for label, fn_name, significance in VARSHAPHAL_SAHAMS:
-                try:
-                    fn = getattr(saham, fn_name)
-                    try:
-                        s_long = fn(cht, night_birth)
-                    except TypeError:
-                        s_long = fn(cht)  # a few sahams take positions only
-                    s_long = float(s_long) % 360
-                    s_sign = int(s_long // 30)
-                    sahams.append({
-                        "name": label,
-                        "significance": significance,
-                        "sign": s_sign,
-                        "sign_name": ZODIAC_NAMES[s_sign],
-                        "degrees": round(s_long % 30, 2),
-                        "house": ((s_sign - asc_rasi) % 12) + 1,
-                    })
-                except Exception as e:
-                    print(f"Varshaphal saham {label} error: {e}")
+            # Cast for the solar-return instant itself — the same one
+            # `varsha_pravesh` built the annual chart from.
+            ann_jd = drik.next_solar_date(jd_dob, place_obj, years=age + 1)
+            sahams = _saham_points(ann_jd, place_obj, VARSHAPHAL_SAHAMS, asc_rasi)
 
             # ── Tajaka yogas (curated) ─────────────────────────────────────
             tajaka_yogas = []
@@ -250,7 +221,7 @@ class TajakaMixin:
         try:
             from datetime import datetime, timezone as _utc, timedelta
             import contextlib, io
-            from jhora.horoscope.transit import tajaka, saham, tajaka_yoga
+            from jhora.horoscope.transit import tajaka, tajaka_yoga
             from jhora import const as _const
 
             _set_ayanamsa(ayanamsa)
@@ -363,36 +334,9 @@ class TajakaMixin:
             except Exception as e:
                 print(f"Masa-pravesh year-lord error: {e}")
 
-            # Day/night of the month entry drives the Sahams' day/night formula.
-            night_entry = False
-            try:
-                entry_hrs = drik.jd_to_gregorian(start_jd)[3]
-                sr = utils.from_dms_str_to_dms(drik.sunrise(start_jd, place_obj)[1])
-                ss = utils.from_dms_str_to_dms(drik.sunset(start_jd, place_obj)[1])
-                sr_h = sr[0] + sr[1] / 60.0 + sr[2] / 3600.0
-                ss_h = ss[0] + ss[1] / 60.0 + ss[2] / 3600.0
-                night_entry = entry_hrs > ss_h or entry_hrs < sr_h
-            except Exception as e:
-                print(f"Masa-pravesh night-entry error: {e}")
-
-            sahams = []
-            for label, fn_name, significance in VARSHAPHAL_SAHAMS:
-                try:
-                    fn = getattr(saham, fn_name)
-                    try:
-                        s_long = fn(cht, night_entry)
-                    except TypeError:
-                        s_long = fn(cht)
-                    s_long = float(s_long) % 360
-                    s_sign = int(s_long // 30)
-                    sahams.append({
-                        "name": label, "significance": significance,
-                        "sign": s_sign, "sign_name": ZODIAC_NAMES[s_sign],
-                        "degrees": round(s_long % 30, 2),
-                        "house": ((s_sign - asc_rasi) % 12) + 1,
-                    })
-                except Exception as e:
-                    print(f"Masa-pravesh saham {label} error: {e}")
+            # The month-entry instant: `maasa_pravesh` casts the chart from the
+            # same next_solar_date, and each saham decides day/night from it.
+            sahams = _saham_points(start_jd, place_obj, VARSHAPHAL_SAHAMS, asc_rasi)
 
             tajaka_yogas = []
             p2h = utils.get_planet_house_dictionary_from_planet_positions(cht)
@@ -646,42 +590,11 @@ class TajakaMixin:
         block = {"lagna": lagna, "planets": planets, "muntha": muntha,
                  "year_lord": year_lord, "tajaka_yogas": yogas}
 
-        if with_sahams:
-            # Sahams are sensitive points derived from the cast chart's planetary
-            # positions, so they are well-defined on any pravesha chart. Their
-            # day/night formula keys off whether the pravesha instant is by day.
-            from jhora.horoscope.transit import saham
-
-            night_entry = False
-            try:
-                entry_hrs = drik.jd_to_gregorian(jd_event)[3]
-                sr = utils.from_dms_str_to_dms(drik.sunrise(jd_event, place_obj)[1])
-                ss = utils.from_dms_str_to_dms(drik.sunset(jd_event, place_obj)[1])
-                sr_h = sr[0] + sr[1] / 60.0 + sr[2] / 3600.0
-                ss_h = ss[0] + ss[1] / 60.0 + ss[2] / 3600.0
-                night_entry = entry_hrs > ss_h or entry_hrs < sr_h
-            except Exception as e:
-                print(f"[pravesha] night-entry error: {e}")
-
-            sahams = []
-            for slabel, fn_name, significance in VARSHAPHAL_SAHAMS:
-                try:
-                    fn = getattr(saham, fn_name)
-                    try:
-                        s_long = fn(cht, night_entry)
-                    except TypeError:
-                        s_long = fn(cht)
-                    s_long = float(s_long) % 360
-                    s_sign = int(s_long // 30)
-                    sahams.append({
-                        "name": slabel, "significance": significance,
-                        "sign": s_sign, "sign_name": ZODIAC_NAMES[s_sign],
-                        "degrees": round(s_long % 30, 2),
-                        "house": ((s_sign - asc_rasi) % 12) + 1,
-                    })
-                except Exception as e:
-                    print(f"[pravesha] saham {slabel} error: {e}")
-            block["sahams"] = sahams
+        if with_sahams and jd_event is not None:
+            # Sahams are well-defined on any pravesha chart; each is cast for the
+            # pravesha instant itself and decides day/night from it.
+            block["sahams"] = _saham_points(jd_event, place_obj,
+                                            VARSHAPHAL_SAHAMS, asc_rasi)
 
         return block
 

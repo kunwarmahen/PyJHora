@@ -6285,3 +6285,80 @@ Saturn with the lagna — then generalises three ways:
   vacuous — under the old code they read 5 where the answer is 10.
 
 676 backend tests green.
+
+## 64. Every Saham had been silently empty since the 5.0 upgrade (found while auditing §63)
+
+`get_sahams` was returning this, and had been for as long as PyJHora 5.0 has
+been in place:
+
+```json
+{"status": "success", "night_birth": false, "sahams": []}
+```
+
+Thirty-six sensitive points, none of them computed, reported as a success. The
+Sensitive Points page's Sahams panel, the Varshaphal reading's saham lines and
+the annual pravesha digests had all quietly lost the whole device — the prompt
+even had `or "- (none computed)"` ready, so the readings just stopped mentioning
+them and nothing looked broken.
+
+### Cause: an upstream signature change, caught by a fallback and turned into a print
+
+Up to PyJHora **V4.6.0**:
+
+```python
+def punya_saham(planet_positions, night_time_birth=False):
+```
+
+From **V4.9.3** (so, arriving with the 5.0 upgrade, §61):
+
+```python
+def punya_saham(jd_at_dob, place, dhasa_progression_correction=0.0):
+```
+
+The saham now casts its own chart and decides day/night itself. All four call
+sites still passed the old pair, `(chart, night_flag)` — which the new signature
+reads as `(jd, place)`, so `place` came out a bool and the calls died two ways:
+
+```
+punya_saham() missing 1 required positional argument: 'place'   # the fn(cht) retry
+'bool' object has no attribute 'timezone'                        # place=night_flag
+```
+
+Both were caught per-saham, printed to stdout, and skipped. **The `except
+TypeError: fn(cht)` fallback is what hid this** — it was written for "a few
+sahams take positions only", and it turned a signature change into a debug line
+in a log nobody reads. §61 upgraded the engine and re-checked three call sites;
+this was a fourth, and it failed in a way that looked like nothing.
+
+### The fix
+
+One `_saham_points(jd, place, table, lagna_sign)` in engine.py, replacing four
+copies of the loop, with **no signature fallback** — one contract, and a failure
+is a failure. Each rung passes the instant its chart was actually cast for: the
+natal JD, the solar-return JD (`next_solar_date(..., years=age+1)`, the same one
+`varsha_pravesh` uses), the month-entry JD, the pravesha JD. The hand-rolled
+sunrise/sunset comparisons went with it — the engine's own
+`is_night_time_birth` decides, so the flag reported is the one the formulas
+actually branched on.
+
+### Verified against the formula, not against the old output
+
+Punya by day is Moon − Sun + Lagna. For the owner's chart: 120.75 − 50.00 +
+55.06 = 125.81 → **Leo 5.81°**, which is exactly what the engine now returns.
+
+The annual chart is the sharper check, because it catches a wrong *instant* as
+well as a wrong formula: the 2026 solar return falls at **01:30**, so Punya must
+take the night branch (Sun − Moon + Lagna) → Cancer 19.22°, and the engine
+returns Cancer 19.23°. Passing the birth's day/night instead — which is what the
+old code was reaching for — puts it in Libra, a whole sign away.
+
+### Guards
+
+`tests/test_sahams.py` — there were **no saham tests at all**, which is how a
+whole feature went dark unnoticed. Now: all 36 natal sahams present (the empty
+list was the bug), Punya re-derived from the chart's own Moon/Sun/Lagna, every
+house re-counted from the lagna, 8 on each annual rung, the night-branch check
+above, and `inspect.signature(punya_saham)` pinned to `(jd_at_dob, place, …)` so
+the next upstream bump fails here instead of emptying the panel again.
+
+684 backend tests green.
