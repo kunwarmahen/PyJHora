@@ -1002,7 +1002,8 @@ Reply with STRICT JSON only, exactly this shape:
                       f"{nxt.provider_type.value}/{nxt.model}")
         raise last or LLMUnavailable("Error: no model configuration to try.")
 
-    async def _complete_once(self, prompt: str, cfg: ModelConfig, max_tokens: int,
+    async def _complete_once(self, prompt: str, cfg: ModelConfig,
+                             max_tokens: Optional[int],
                              sys_prompt: str,
                              usage: Optional[Dict[str, Any]]) -> str:
         if cfg.provider_type == ProviderType.OLLAMA:
@@ -1013,7 +1014,8 @@ Reply with STRICT JSON only, exactly this shape:
             return await self._call_gemini(prompt, cfg, max_tokens, sys_prompt, usage)
         return "Unsupported LLM provider"
 
-    async def _complete(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
+    async def _complete(self, prompt: str, cfg: ModelConfig,
+                        max_tokens: Optional[int] = None,
                         system: Optional[str] = None,
                         usage: Optional[Dict[str, Any]] = None) -> str:
         """One completion, or an LLMUnavailable — never an error string.
@@ -1060,7 +1062,7 @@ Reply with STRICT JSON only, exactly this shape:
     # ------------------------------------------------------------------ #
     async def stream_answer(self, chart_data: Dict[str, Any], question: str,
                             history: Optional[List[Dict[str, str]]], cfg: ModelConfig,
-                            max_tokens: int = 4096,
+                            max_tokens: Optional[int] = None,
                             usage: Optional[Dict[str, Any]] = None) -> AsyncGenerator[str, None]:
         """Stream an answer for a question, including chart context + prior turns.
 
@@ -1416,7 +1418,8 @@ Reply with STRICT JSON only, exactly this shape:
         content, u = await self._complete_chat_once(messages, cfg)
         return {"content": content, "tool_calls": [], "usage": u}
 
-    async def _complete_chat(self, messages, cfg: ModelConfig, max_tokens: int = 4096):
+    async def _complete_chat(self, messages, cfg: ModelConfig,
+                             max_tokens: Optional[int] = None):
         """Gated, fallback-walking plain chat. Used by run_tool_loop's forced final
         answer, which is a top-level call and so takes its own slot."""
         async def _run(active):
@@ -1424,7 +1427,8 @@ Reply with STRICT JSON only, exactly this shape:
 
         return await self._guarded_call(cfg, _run)
 
-    async def _complete_chat_once(self, messages, cfg: ModelConfig, max_tokens: int = 4096):
+    async def _complete_chat_once(self, messages, cfg: ModelConfig,
+                                  max_tokens: Optional[int] = None):
         """Non-streaming plain chat (no tools) over neutral messages. Returns
         (content, usage). Used by the JSON-protocol path and the forced final answer.
 
@@ -1434,7 +1438,8 @@ Reply with STRICT JSON only, exactly this shape:
             url = (cfg.base_url or self.ollama_url).rstrip("/")
             payload = {"model": cfg.model or self.ollama_default_model,
                        "messages": self._to_text_messages(messages), "stream": False,
-                       "options": {"temperature": 0.7, "num_predict": max_tokens}}
+                       "options": {"temperature": 0.7,
+                                   **output_cap(max_tokens, "num_predict")}}
             async with httpx.AsyncClient(timeout=300.0) as client:
                 r = await client.post(f"{url}/api/chat", json=payload)
                 if r.status_code != 200:
@@ -1452,7 +1457,8 @@ Reply with STRICT JSON only, exactly this shape:
             if cfg.api_key:
                 headers["Authorization"] = f"Bearer {cfg.api_key}"
             payload = {"model": cfg.model, "messages": self._to_text_messages(messages),
-                       "temperature": 0.7, "max_tokens": max_tokens}
+                       "temperature": 0.7,
+                       **output_cap(max_tokens, "max_tokens")}
             timeout = _request_timeout(cfg.provider_type)
             async with httpx.AsyncClient(timeout=timeout) as client:
                 r = await client.post(f"{base_url}/chat/completions", json=payload, headers=headers)
@@ -1473,7 +1479,9 @@ Reply with STRICT JSON only, exactly this shape:
                          "parts": [{"text": m["content"]}]}
                         for m in plain if m["role"] != "system"]
             payload = {"contents": contents,
-                       "generationConfig": {"temperature": 0.7, "maxOutputTokens": max_tokens}}
+                       "generationConfig": {
+                           "temperature": 0.7,
+                           **output_cap(max_tokens, "maxOutputTokens")}}
             if system_text:
                 payload["system_instruction"] = {"parts": [{"text": system_text}]}
             url = (f"https://generativelanguage.googleapis.com/v1beta/models/"

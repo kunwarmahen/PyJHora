@@ -1099,7 +1099,7 @@
       "maxTokens": "Max response length",
       "mtDefault": "Auto",
       "mtUseDefault": "Use the model's default length",
-      "maxTokensHint": "How many tokens the AI may generate per answer. Raise this if answers get cut off; lower it for shorter, faster replies.",
+      "maxTokensHint": "How many tokens the AI may generate per answer — the output budget, not the model's context window. Auto sends no limit, so the model stops when it is done. Set a value to cap long answers, or if a model runs on past the point of being useful.",
       "manageKeys": "Manage API keys",
       "viewCapabilities": "View AI capabilities"
     },

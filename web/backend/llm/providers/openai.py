@@ -158,7 +158,7 @@ class OpenAIMixin:
             "model": cfg.model,
             "messages": messages,
             "temperature": 0.7,
-            "max_tokens": max_tokens,
+            **output_cap(max_tokens, "max_tokens"),
             "stream": True,
             # Ask for a final usage chunk; servers that don't support it ignore this.
             "stream_options": {"include_usage": True},
@@ -197,10 +197,12 @@ class OpenAIMixin:
         except Exception as e:
             yield f"Error calling model: {str(e)}"
 
-    async def _call_openai_style(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
+    async def _call_openai_style(self, prompt: str, cfg: ModelConfig,
+                                 max_tokens: Optional[int] = None,
                                  system: str = SYSTEM_PROMPT,
                                  usage: Optional[Dict[str, Any]] = None) -> str:
         """OpenAI and any OpenAI-compatible server share the /chat/completions schema."""
+        max_tokens = cfg.max_tokens or max_tokens
         base_url = (cfg.base_url or "").rstrip("/")
         if not base_url:
             return "Error: no base URL configured for this OpenAI-compatible provider."
@@ -220,7 +222,7 @@ class OpenAIMixin:
                         {"role": "user", "content": prompt},
                     ],
                     "temperature": 0.7,
-                    "max_tokens": max_tokens,
+                    **output_cap(max_tokens, "max_tokens"),
                 }
                 response = await client.post(f"{base_url}/chat/completions",
                                              json=payload, headers=headers)
@@ -277,7 +279,8 @@ class OpenAIMixin:
             "name": s["name"], "description": s["description"],
             "parameters": s["parameters"]}} for s in specs]
 
-    async def _chat_once_openai(self, messages, specs, cfg, max_tokens: int = 4096) -> Dict[str, Any]:
+    async def _chat_once_openai(self, messages, specs, cfg,
+                                max_tokens: Optional[int] = None) -> Dict[str, Any]:
         max_tokens = cfg.max_tokens or max_tokens
         base_url = (cfg.base_url or "").rstrip("/")
         if not base_url:
@@ -289,7 +292,7 @@ class OpenAIMixin:
             "model": cfg.model,
             "messages": self._to_openai_messages(messages),
             "temperature": 0.7,
-            "max_tokens": max_tokens,
+            **output_cap(max_tokens, "max_tokens"),
             "tools": self._openai_tool_payload(specs),
             "tool_choice": "auto",
         }

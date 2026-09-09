@@ -117,7 +117,7 @@ class OllamaMixin:
             "model": model,
             "messages": messages,
             "stream": True,
-            "options": {"temperature": 0.7, "num_predict": max_tokens},
+            "options": {"temperature": 0.7, **output_cap(max_tokens, "num_predict")},
         }
         try:
             async with httpx.AsyncClient(timeout=300.0) as client:
@@ -151,7 +151,8 @@ class OllamaMixin:
         except Exception as e:
             yield f"Error calling Ollama: {str(e)}"
 
-    async def _call_ollama(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
+    async def _call_ollama(self, prompt: str, cfg: ModelConfig,
+                           max_tokens: Optional[int] = None,
                            system: str = SYSTEM_PROMPT,
                            usage: Optional[Dict[str, Any]] = None) -> str:
         """One-shot completion against Ollama's /api/generate.
@@ -170,6 +171,7 @@ class OllamaMixin:
         `_retry_without_think` covers that; a still-empty answer is reported as a
         failure rather than returned as one.
         """
+        max_tokens = cfg.max_tokens or max_tokens
         url = (cfg.base_url or self.ollama_url).rstrip("/")
         model = cfg.model or self.ollama_default_model
         payload = {
@@ -179,7 +181,7 @@ class OllamaMixin:
             "stream": False,
             # Explicitly off, not merely unset: several models think by default.
             "think": False,
-            "options": {"temperature": 0.7, "num_predict": max_tokens},
+            "options": {"temperature": 0.7, **output_cap(max_tokens, "num_predict")},
         }
         try:
             # Local models can be slow to cold-load + generate; allow up to 5 min
@@ -222,7 +224,8 @@ class OllamaMixin:
                 out.append({"role": role, "content": m.get("content", "")})
         return out
 
-    async def _chat_once_ollama(self, messages, specs, cfg, max_tokens: int = 4096) -> Dict[str, Any]:
+    async def _chat_once_ollama(self, messages, specs, cfg,
+                                max_tokens: Optional[int] = None) -> Dict[str, Any]:
         max_tokens = cfg.max_tokens or max_tokens
         url = (cfg.base_url or self.ollama_url).rstrip("/")
         payload = {
@@ -230,7 +233,7 @@ class OllamaMixin:
             "messages": self._to_ollama_messages(messages),
             "stream": False,
             "tools": self._openai_tool_payload(specs),
-            "options": {"temperature": 0.7, "num_predict": max_tokens},
+            "options": {"temperature": 0.7, **output_cap(max_tokens, "num_predict")},
         }
         async with httpx.AsyncClient(timeout=300.0) as client:
             r = await client.post(f"{url}/api/chat", json=payload)

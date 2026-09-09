@@ -4781,6 +4781,24 @@ the raw type, which CSS `capitalize` rendered as "Openrouter" / "Openai-Compatib
 cap at all so the backend's 4096 default applies. Gemini 2.5 Pro can emit far more.
 Making the cap provider-driven is a separate change and was not made here.
 
+**SUPERSEDED 2026-09-09 — both halves of that paragraph fixed.** The owner asked why
+the ceiling was 8192 when their Ollama models hold 32k, which surfaced two things:
+(1) the slider stopped at 8192 while `deps._resolve_cfg` has always clamped to
+**256..32768**, so the UI offered a quarter of what the API accepted — `MT_MAX` is now
+32768, matching the clamp; (2) **"Use the model's default length" did not use the
+model's default.** It sent no `max_tokens`, and every provider method's own
+`max_tokens: int = 4096` default then sent `num_predict: 4096` (and `max_tokens` /
+`maxOutputTokens`) anyway — a hardcoded cap *lower* than the slider's midpoint, and
+lower than any modern local model manages. Auto now genuinely omits the field: new
+`output_cap(max_tokens, key)` in `llm/base.py` returns `{}` for an unset budget and is
+spread into all ten provider payload sites, and every `max_tokens` default became
+`Optional[int] = None` (`_complete`, `_complete_once`, `stream_answer`,
+`_complete_chat`(`_once`), `_call_ollama`/`_call_openai_style`/`_call_gemini`, the
+three `_chat_once_*`). The three *explicit* call-site budgets are deliberate and stay:
+rectification chat 2048, quiz generate/grade 8192 (the 2026-06-29 empty-response fix).
+Note this is the **output** budget throughout — the app has never set Ollama's
+`num_ctx`, so the context window remains whatever the host is configured for.
+
 Files: `llm/base.py` (`OPENROUTER`, `OPENAI_STYLE_PROVIDERS`, `_KEY_ENV_VAR`,
 `_request_timeout`, `_missing_key_error`), `llm/providers/openai.py` (OpenRouter
 status/catalogue, `_openai_models`, shared `_openai_style_headers`),

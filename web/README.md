@@ -95,9 +95,12 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Provider & model selection**: Ollama (local, auto-detected models), any OpenAI-compatible
   local server (LM Studio / llama.cpp / vLLM), Google Gemini, or OpenAI — pick the exact model.
   Chosen in the new **Settings** page (see below); the Ask page shows the active model with a
-  "Change in Settings" link. A **Max response length** slider (also in Settings) raises the output
-  cap if answers get cut off — it applies across **every** AI feature (Ask, predictions,
-  compatibility, quiz, and the per-page plain-language analyses), not just the Ask page.
+  "Change in Settings" link. A **Max response length** slider (also in Settings, 512–32768 tokens)
+  caps how many tokens a model may *generate* per answer — the output budget, not the context
+  window, which the app never touches and leaves at the provider's own setting. Its **Auto**
+  default sends no cap at all, so the model stops when it is done. The setting applies across
+  **every** AI feature (Ask, predictions, compatibility, quiz, and the per-page plain-language
+  analyses), not just the Ask page.
 - **Streaming answers**: responses stream token-by-token (SSE) with a **Stop** button
 - **Per-answer token usage**: each answer shows the provider-reported token count
   (prompt + completion breakdown on hover), captured from Ollama, OpenAI/-compatible
@@ -1620,7 +1623,8 @@ Users can select their preferred provider **and model** in the frontend:
 
 - Go to **Settings → AI**
 - Pick a provider (Ollama / OpenAI-compatible / Gemini / OpenAI / OpenRouter) and a specific model
-- Optionally raise the **Max response length** if answers get cut off
+- **Max response length** defaults to **Auto** — no cap, the model stops when it is done.
+  Set a value only to rein in a model that runs on past the point of being useful.
 - Each model will provide different perspectives on your chart
 
 Model dropdowns are populated live from each vendor (Ollama's installed models,

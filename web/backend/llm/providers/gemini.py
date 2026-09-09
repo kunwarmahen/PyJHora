@@ -77,7 +77,8 @@ class GeminiMixin:
             contents.append({"role": role, "parts": [{"text": m["content"]}]})
         payload = {
             "contents": contents,
-            "generationConfig": {"temperature": 0.7, "maxOutputTokens": max_tokens},
+            "generationConfig": {"temperature": 0.7,
+                                 **output_cap(max_tokens, "maxOutputTokens")},
         }
         if system_text:
             payload["system_instruction"] = {"parts": [{"text": system_text}]}
@@ -113,9 +114,11 @@ class GeminiMixin:
         except Exception as e:
             yield f"Error calling Gemini: {str(e)}"
 
-    async def _call_gemini(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
+    async def _call_gemini(self, prompt: str, cfg: ModelConfig,
+                           max_tokens: Optional[int] = None,
                            system: str = SYSTEM_PROMPT,
                            usage: Optional[Dict[str, Any]] = None) -> str:
+        max_tokens = cfg.max_tokens or max_tokens
         api_key = cfg.api_key or self.gemini_api_key
         model = cfg.model or self.gemini_default_model
         if not api_key:
@@ -127,7 +130,9 @@ class GeminiMixin:
                 payload = {
                     "system_instruction": {"parts": [{"text": system}]},
                     "contents": [{"parts": [{"text": prompt}]}],
-                    "generationConfig": {"temperature": 0.7, "maxOutputTokens": max_tokens},
+                    "generationConfig": {
+                        "temperature": 0.7,
+                        **output_cap(max_tokens, "maxOutputTokens")},
                 }
                 response = await client.post(url, json=payload)
                 if response.status_code == 200:
@@ -237,7 +242,8 @@ class GeminiMixin:
             decls.append(decl)
         return [{"functionDeclarations": decls}]
 
-    async def _chat_once_gemini(self, messages, specs, cfg, max_tokens: int = 4096) -> Dict[str, Any]:
+    async def _chat_once_gemini(self, messages, specs, cfg,
+                                max_tokens: Optional[int] = None) -> Dict[str, Any]:
         max_tokens = cfg.max_tokens or max_tokens
         api_key = cfg.api_key or self.gemini_api_key
         model = cfg.model or self.gemini_default_model
@@ -248,7 +254,8 @@ class GeminiMixin:
             "contents": contents,
             "tools": self._gemini_tool_payload(specs),
             "toolConfig": {"functionCallingConfig": {"mode": "AUTO"}},
-            "generationConfig": {"temperature": 0.7, "maxOutputTokens": max_tokens},
+            "generationConfig": {"temperature": 0.7,
+                                 **output_cap(max_tokens, "maxOutputTokens")},
         }
         if system_text:
             payload["system_instruction"] = {"parts": [{"text": system_text}]}

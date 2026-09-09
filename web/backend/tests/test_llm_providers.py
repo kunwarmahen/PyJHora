@@ -322,3 +322,79 @@ def test_one_shot_completions_ask_for_no_thinking(monkeypatch):
     out = asyncio.run(llm_service._call_ollama("write me a note", cfg))
     assert out == "a reading"
     assert seen["think"] is False
+
+
+# ── "Auto" means the model's default, not a hidden 4096 (2026-09-09) ─────────
+# Settings → AI offers "Use the model's default length", which sends no
+# max_tokens. Every provider method then defaulted to `max_tokens: int = 4096`
+# and sent that cap anyway — shorter than the slider's own midpoint, and far
+# shorter than a 32k-context local model manages. An unset budget must now omit
+# the field entirely so the provider's own default applies.
+
+def _capture_client(monkeypatch, payload_box, body):
+    """Swap httpx.AsyncClient for one that records the JSON body it is posted."""
+    class _Resp:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return body
+
+    class _Client:
+        def __init__(self, *a, **k):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        async def post(self, url, json=None, headers=None):
+            payload_box.update(json or {})
+            return _Resp()
+
+    import httpx
+    monkeypatch.setattr(httpx, "AsyncClient", _Client)
+
+
+def test_output_cap_omits_the_field_when_no_budget_was_asked_for():
+    from llm.base import output_cap
+    assert output_cap(None, "num_predict") == {}
+    assert output_cap(0, "num_predict") == {}          # the slider's "Auto"
+    assert output_cap(4096, "num_predict") == {"num_predict": 4096}
+
+
+def test_auto_sends_no_num_predict_to_ollama(monkeypatch):
+    seen = {}
+    _capture_client(monkeypatch, seen, {"response": "a reading", "eval_count": 9})
+    cfg = llm_service.resolve_config("ollama", model="gemma4:12b")
+    assert asyncio.run(llm_service._call_ollama("hello", cfg)) == "a reading"
+    assert "num_predict" not in seen["options"]
+    assert seen["options"]["temperature"] == 0.7      # the rest still travels
+
+
+def test_an_explicit_cap_still_reaches_ollama(monkeypatch):
+    seen = {}
+    _capture_client(monkeypatch, seen, {"response": "a reading", "eval_count": 9})
+    cfg = llm_service.resolve_config("ollama", model="gemma4:12b")
+    cfg.max_tokens = 12000                            # above the old 8192 ceiling
+    assert asyncio.run(llm_service._call_ollama("hello", cfg)) == "a reading"
+    # The adapter reads cfg itself, not only whatever _complete resolved for it.
+    assert seen["options"]["num_predict"] == 12000
+
+
+def test_auto_sends_no_cap_to_openai_style_or_gemini(monkeypatch):
+    seen = {}
+    _capture_client(monkeypatch, seen, {
+        "choices": [{"message": {"content": "hi"}}], "usage": {}})
+    cfg = llm_service.resolve_config("openai", api_key="sk-test")
+    asyncio.run(llm_service._call_openai_style("hello", cfg))
+    assert "max_tokens" not in seen
+
+    seen.clear()
+    _capture_client(monkeypatch, seen, {
+        "candidates": [{"content": {"parts": [{"text": "hi"}]}}]})
+    cfg = llm_service.resolve_config("gemini", model="gemini-2.5-pro", api_key="k")
+    asyncio.run(llm_service._call_gemini("hello", cfg))
+    assert "maxOutputTokens" not in seen["generationConfig"]

@@ -58,8 +58,12 @@ const TAB_ICONS = {
   account: <User size={16} />,
 };
 const TAB_KEYS = Object.keys(TAB_ICONS);
+// The output budget, not the context window: how many tokens the model may
+// *generate* per answer, out of the total it can hold. The ceiling matches the
+// backend's own clamp in `deps._resolve_cfg` (256..32768) — it used to stop at
+// 8192, four times short of what the API already accepted.
 const MT_MIN = 512;
-const MT_MAX = 8192;
+const MT_MAX = 32768;
 const MT_STEP = 256;
 
 export const SettingsPage = () => {

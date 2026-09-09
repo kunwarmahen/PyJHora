@@ -292,6 +292,19 @@ _LEGACY_MAP = {
 }
 
 
+def output_cap(max_tokens: Optional[int], key: str) -> Dict[str, Any]:
+    """The output-budget field for a provider payload, or nothing at all.
+
+    "Auto" in Settings → AI means *no* cap: the model generates until it is done
+    (or until its own context fills), which is what "use the model's default
+    length" says on the tin. It used to mean a hardcoded 4096, silently shorter
+    than any modern local model would manage. Spread this into the options dict
+    (`**output_cap(max_tokens, "num_predict")`) so an unset budget omits the key
+    rather than sending a number nobody chose.
+    """
+    return {key: int(max_tokens)} if max_tokens else {}
+
+
 @dataclass
 class ModelConfig:
     provider_type: ProviderType
