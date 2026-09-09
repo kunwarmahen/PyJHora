@@ -73,6 +73,72 @@ def _shashtihayani_rows(jd, place_obj, dob_t, tob_t):
     return shifted
 
 
+
+# ── Vimsottari sub-periods by proportional solar arc ────────────────────────
+#
+# A Vimsottari period of N dasha-years is exactly N x 360 degrees of the Sun's
+# *sidereal* travel — checked against Jagannatha Hora's own printout, where a
+# 0.36-year Pratyantardasha spans 129.59999 deg. Its children divide that ARC in
+# the usual 7:20:6:10:7:18:16:19:17 proportion, and each boundary is the moment
+# the Sun has covered the cumulative share. Because the Sun's angular speed
+# varies (fastest near January perihelion), equal arcs are *not* equal spans of
+# time, which is why the sub-periods bulge relative to a flat pro-rata split.
+#
+# This is done here rather than via `vimsottari.vimsottari_immediate_children`
+# because that routine derives each child's length independently from its own
+# dasha-years instead of from the parent's arc. The children then fail to tile
+# the parent: on the owner's chart the last Sookshma of a Pratyantardasha
+# overran its parent's end by ~2.5 days, and boundaries drifted up to 55 h from
+# JHora. Dividing the parent's own arc closes on both ends by construction and
+# reproduces JHora to under a second at every level.
+def _sun_arc_solver(start_jd, end_jd, tz_offset):
+    """(total arc over the span, time-for-cumulative-arc solver)."""
+    tz = tz_offset / 24.0
+    l0 = drik.sidereal_longitude(start_jd - tz, swe.SUN)
+
+    def unwrapped(j):
+        # Sun longitude is modulo 360; recover whole revolutions from elapsed time.
+        frac = (drik.sidereal_longitude(j - tz, swe.SUN) - l0) % 360.0
+        revs = round(((j - start_jd) / 365.2564) - frac / 360.0)
+        return frac + 360.0 * revs
+
+    total = unwrapped(end_jd)
+
+    def time_at(arc):
+        lo, hi = start_jd, end_jd
+        for _ in range(80):                      # ~sub-second on a 20-year span
+            mid = (lo + hi) / 2.0
+            if unwrapped(mid) < arc:
+                lo = mid
+            else:
+                hi = mid
+        return (lo + hi) / 2.0
+
+    return total, time_at
+
+
+def _vimsottari_arc_children(start_jd, end_jd, parent_lord, tz_offset):
+    """Immediate children of a Vimsottari period as [(lord, start_jd, end_jd)].
+
+    The sequence starts at the period's own lord, as Vimsottari always does.
+    """
+    total_arc, time_at = _sun_arc_solver(start_jd, end_jd, tz_offset)
+    order = [parent_lord]
+    while len(order) < 9:
+        order.append(vimsottari.vimsottari_next_adhipati(order[-1]))
+
+    out, cum = [], 0.0
+    for n, lord in enumerate(order):
+        share = total_arc * vimsottari.vimsottari_dict[lord] / 120.0
+        # Pin the outer edges to the parent exactly rather than re-solving them,
+        # so the children tile the parent with no rounding seam.
+        s = start_jd if n == 0 else time_at(cum)
+        e = end_jd if n == len(order) - 1 else time_at(cum + share)
+        out.append((lord, s, e))
+        cum += share
+    return out
+
+
 class DashasMixin:
 
     @staticmethod
@@ -334,46 +400,36 @@ class DashasMixin:
                 end_jd = start_jd + vimsottari.vimsottari_dict[maha] * vimsottari.year_duration
 
             cur_path = [maha]
-            cur_start = utils.jd_to_gregorian(start_jd)  # (y, m, d, fractional_hour)
-            cur_end = utils.jd_to_gregorian(end_jd)
+            cur_start, cur_end = start_jd, end_jd
 
-            # Walk down the path, recomputing each level so spans stay precise.
+            # Walk down the path, subdividing each level's own solar arc so the
+            # spans stay exact and every level tiles its parent.
             for next_lord in path_idx[1:]:
-                kids = vimsottari.vimsottari_immediate_children(
-                    cur_path, cur_start, parent_end=cur_end,
-                    jd=jd, place=place_obj)
-                match = next((k for k in kids if k[0][-1] == next_lord), None)
+                kids = _vimsottari_arc_children(
+                    cur_start, cur_end, cur_path[-1], tz_offset)
+                match = next((k for k in kids if k[0] == next_lord), None)
                 if match is None:
                     return {"error": "Invalid dasha path", "status": "failed"}
-                cur_path = list(match[0])
-                cur_start, cur_end = match[1], match[2]
+                cur_path = cur_path + [next_lord]
+                _, cur_start, cur_end = match
 
-            # Children of the resolved node.
-            # jd/place are required from 5.0 on: the transit-based year lengths
-            # walk the Sun from a real instant, so omitting them makes
-            # `_get_dhasa_end_jd` dereference a None place. Harmless before 5.0,
-            # which multiplied by a fixed year and never looked at either.
-            kids = vimsottari.vimsottari_immediate_children(
-                cur_path, cur_start, parent_end=cur_end,
-                jd=jd, place=place_obj)
+            kids = _vimsottari_arc_children(
+                cur_start, cur_end, cur_path[-1], tz_offset)
 
-            def _tuple_to_jd(t):
-                y, m, d, fh = t
-                return utils.julian_day_number(drik.Date(y, m, d), (fh, 0, 0))
-
-            def _fmt(t):
-                return f"{t[0]:04d}-{t[1]:02d}-{t[2]:02d}"
+            def _fmt(j):
+                y, m, d, _fh = drik.jd_to_gregorian(j)
+                return f"{y:04d}-{m:02d}-{d:02d}"
 
             child_level = len(cur_path) + 1  # 3=Antara, 4=Sookshma
             children = []
-            for child_path, s_t, e_t in kids:
-                dur_years = (_tuple_to_jd(e_t) - _tuple_to_jd(s_t)) / vimsottari.year_duration
+            for child_lord, s_jd, e_jd in kids:
+                dur_years = (e_jd - s_jd) / vimsottari.year_duration
                 children.append({
-                    "lord": PLANET_NAMES.get(child_path[-1], str(child_path[-1])),
-                    "path": [PLANET_NAMES.get(p, str(p)) for p in child_path],
+                    "lord": PLANET_NAMES.get(child_lord, str(child_lord)),
+                    "path": [PLANET_NAMES.get(p, str(p)) for p in cur_path + [child_lord]],
                     "level": child_level,
-                    "start_date": _fmt(s_t),
-                    "end_date": _fmt(e_t),
+                    "start_date": _fmt(s_jd),
+                    "end_date": _fmt(e_jd),
                     "duration_years": round(dur_years, 3),
                     "duration_months": round(dur_years * 12, 2),
                     "duration_days": round(dur_years * 365.25, 1),

@@ -584,3 +584,51 @@ def test_dasha_periods_honour_the_ayanamsa(args1):
     lahiri = A.get_dasha_periods("shashtihayani", ayanamsa="LAHIRI", **args1)
     citra = A.get_dasha_periods("shashtihayani", ayanamsa="TRUE_CITRA", **args1)
     assert lahiri["periods"][0]["start_date"] != citra["periods"][0]["start_date"]
+
+
+def test_chart1_vimsottari_subperiods_match_jhora(args1):
+    """Every level of the running Vimsottari chain, against JHora's own printout.
+
+    This is the regression that closes a long hunt. PyJHora's
+    `vimsottari_immediate_children` derives each child's length from its own
+    dasha-years rather than from the parent's solar arc, so the children do not
+    tile the parent — the last Sookshma here overran its Pratyantardasha's end by
+    ~2.5 days and boundaries drifted up to 55 h from JHora. `compute_dashas`
+    subdivides the parent's arc instead (see `_vimsottari_arc_children`), which
+    closes on both ends by construction.
+
+    A Vimsottari period of N dasha-years is exactly N x 360 deg of the Sun's
+    sidereal travel; children take that arc in the 7:20:6:10:7:18:16:19:17
+    proportion. Because the Sun runs fastest near January perihelion, equal arcs
+    are NOT equal spans of time — a flat pro-rata split misses by up to 17 h.
+    """
+    ad = A.get_dasha_children(**args1, lords_path=["Rahu"])["children"]
+    assert (ad[0]["lord"], ad[0]["start_date"], ad[0]["end_date"]) == \
+        ("Rahu", "2026-01-12", "2028-09-26")
+
+    pd = A.get_dasha_children(**args1, lords_path=["Rahu", "Rahu"])["children"]
+    jup = next(c for c in pd if c["lord"] == "Jupiter")
+    assert (jup["start_date"], jup["end_date"]) == ("2026-06-08", "2026-10-20")
+
+    # All nine Sookshmas of that Pratyantardasha, exactly as JHora prints them.
+    sk = A.get_dasha_children(**args1, lords_path=["Rahu", "Rahu", "Jupiter"])["children"]
+    assert [(c["lord"], c["start_date"]) for c in sk] == [
+        ("Jupiter", "2026-06-08"), ("Saturn", "2026-06-26"), ("Mercury", "2026-07-18"),
+        ("Ketu", "2026-08-06"), ("Venus", "2026-08-14"), ("Sun", "2026-09-05"),
+        ("Moon", "2026-09-12"), ("Mars", "2026-09-23"), ("Rahu", "2026-10-01"),
+    ]
+
+
+def test_vimsottari_children_tile_their_parent(args1):
+    """The invariant the old routine broke, checkable without JHora: children must
+    start where the parent starts, end where it ends, and leave no gap between."""
+    for path in (["Rahu"], ["Rahu", "Rahu"], ["Rahu", "Rahu", "Jupiter"]):
+        parent_kids = A.get_dasha_children(**args1, lords_path=path)["children"]
+        for a, b in zip(parent_kids, parent_kids[1:]):
+            assert a["end_date"] == b["start_date"], f"gap in {path}: {a} -> {b}"
+        if len(path) < 3:
+            child = A.get_dasha_children(**args1, lords_path=path + [parent_kids[0]["lord"]])
+            kids = child["children"]
+            assert kids[0]["start_date"] == parent_kids[0]["start_date"]
+            assert kids[-1]["end_date"] == parent_kids[0]["end_date"], \
+                "children overran the parent — the pre-fix failure mode"

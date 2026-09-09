@@ -98,16 +98,16 @@ def test_ayanamsa_actually_moves_the_vimsottari_timeline():
 
 
 def test_both_ayanamsas_stay_pinned():
-    """A differential regression guard, deliberately making no claim about JHora.
+    """TRUE_CITRA is now Jagannatha Hora's own value, verified against the owner's
+    printout: Sun Sookshma under Rahu/Rahu/Jupiter runs to 2026-09-12, and all
+    nine Sookshmas in that Pratyantardasha agree to under a second.
 
-    An earlier version of this test asserted the Lahiri value "matched Jagannatha
-    Hora". That was wrong: the owner's JHora runs True Lahiri/Chitrapaksha (Spica
-    fixed at the middle of Chitra), which is our TRUE_CITRA, not our LAHIRI. The
-    two ayanamsas differ by 0.71', so Lahiri appeared to match by coincidence.
-    The maha-level gap turned out to be the dasha year length, since corrected
-    (see test_golden); a residual ~2-day gap at Sookshma is still open.
-
-    So these are pinned only as our own values, to catch drift.
+    An earlier version of this test claimed the *Lahiri* row matched JHora. That
+    was wrong twice over: the owner's JHora runs True Lahiri/Chitrapaksha (our
+    TRUE_CITRA), and the real cause of the gap was the dasha year length plus the
+    sub-period subdivision, both since fixed. Lahiri is kept only as the
+    differential half of the guard — it must stay *different*, proving the
+    ayanamsa still reaches the compute.
     """
-    assert _sun_sookshma("TRUE_CITRA") == ("2026-09-08", "2026-09-14")
-    assert _sun_sookshma("LAHIRI") == ("2026-09-11", "2026-09-17")
+    assert _sun_sookshma("TRUE_CITRA") == ("2026-09-05", "2026-09-12")
+    assert _sun_sookshma("LAHIRI") == ("2026-09-08", "2026-09-15")
