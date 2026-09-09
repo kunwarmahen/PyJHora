@@ -924,10 +924,12 @@ def parivritti_even_reverse(dcf,dirn=1):
     hs = 0
     for r in range(0,12,2):
         for h in range(0,dcf):
-            pc.append((r,h,hs)); hs = (hs+dirn)%12
-        r += 1
+            pc.append((r,h,hs))
+            hs = (hs+dirn)%12
+        next_r = r + 1
         for h in range(dcf-1,-1,-1):
-            pc.append((r,h,hs)); hs = (hs+dirn)%12
+            pc.append((next_r,h,hs))
+            hs = (hs+dirn)%12
     return pc
 def parivritti_cyclic(dcf,dirn=1):
     """
@@ -938,7 +940,7 @@ def parivritti_cyclic(dcf,dirn=1):
             (0-15 deg) of rasi sign = 0(Ar), 15-30deg of Ar  gets next rasi = 1 (Ta) = > (0,1), 
             Now for rasi sign = 2 (Gemini) 0-15 deg is Ge (2) and 15-30 deg is Cn (3) => (2,3)
             And so on (0,1), (2,3)..
-            Similarly for drekkana (0,1,2), (2,3,4), (5,6,7), (7,8,9), (9,10,11), (0,1,2)... 
+            Similarly for drekkana (0,1,2), (3,4,5), (6,7,8), (9,10,11), (0,1,2)... 
         @param varga divisional chart factor: 2=>Hora, 3=Drekkana etc
         @return parivritti cyclical tuple 
     """
@@ -968,82 +970,82 @@ def parivritti_alternate(dcf,dirn=1):
         pc.append(t1); pc.append(t2)
     return pc
     
-def __varga_non_cyclic(dcf,base_rasi=0,start_sign_variation=1,count_from_end_of_sign=False):
+def __varga_non_cyclic(dcf, base_rasi=0, start_sign_variation=1, count_from_end_of_sign=False):
     """
-        STILL UNDER EXPERIMENT
-        generates varga non_cyclic varga rasi tuple (rasi_sign, hora_portion_of_varga, varga_sign)
-        @param divisional_chart_factor: 1.. 300
-        @param start_sign_variation:
-            0=>start from base for all signs
-            1=>1st/7th from base if sign is odd/even
-            2=>1st/9th from base if sign is odd/even
-            3=>1st/5th from base if sign is odd/even
-            4=>1st/11th from base if sign is odd/even
-            5=>1st/3rd from base if sign is odd/even
-            6=>1st/5th/9th from base if sign is movable/fixed/dual
-            7=>1st/9th/5th from base if sign is movable/fixed/dual
-            8=>1st/4th/7th/10th from base if sign is fire/earth/air/water
-            9=>1st/10th/7th/4th from base if sign is fire/earth/air/water
-        @param base_rasi: 0=>Base is Aries 1=>base is the sign
-        @param count_from_end_of_sign=False. 
-            If True = Count N divisions from end of the sign if sign is even
-            And go anti-zodiac from there by N signs
-            TODO: THIS PARAMETER IS NOT MATCHING WITH JHORA - STILL UNDER EXPERIMENT
-        @return varga non cyclic tuple 
+        Generates varga non_cyclic varga rasi tuple (rasi_sign, hora_portion_of_varga, varga_sign)
+        ... (your existing docstrings) ...
     """
-    pc = []; dirn=1
+    pc = []
+    
     for sign in range(12):
-        seed = 0 if base_rasi==0 else sign
-        t = tuple()
+        # FIX 1: Reset direction to forward at the start of EVERY sign
+        dirn = 1 
+        
+        # 1. Determine the initial base seed (0 for Aries, or the sign itself)
+        seed = 0 if base_rasi == 0 else sign
+        
+        # 2. Apply the start_sign_variation to find the normal forward starting sign
+        start_sign = seed
+        
+        if start_sign_variation == 1 and sign in const.even_signs: start_sign = (seed + 6) % 12
+        elif start_sign_variation == 2 and sign in const.even_signs: start_sign = (seed + 8) % 12
+        elif start_sign_variation == 3 and sign in const.even_signs: start_sign = (seed + 4) % 12
+        elif start_sign_variation == 4 and sign in const.even_signs: start_sign = (seed + 10) % 12
+        elif start_sign_variation == 5 and sign in const.even_signs: start_sign = (seed + 2) % 12
+        elif start_sign_variation == 6:
+            if sign in const.fixed_signs: start_sign = (seed + 4) % 12
+            elif sign in const.dual_signs: start_sign = (seed + 8) % 12
+        elif start_sign_variation == 7:
+            if sign in const.fixed_signs: start_sign = (seed + 8) % 12
+            elif sign in const.dual_signs: start_sign = (seed + 4) % 12
+        elif start_sign_variation == 8:
+            if sign in const.earth_signs: start_sign = (seed + 3) % 12
+            elif sign in const.air_signs: start_sign = (seed + 6) % 12
+            elif sign in const.water_signs: start_sign = (seed + 9) % 12
+        elif start_sign_variation == 9:
+            if sign in const.earth_signs: start_sign = (seed + 9) % 12
+            elif sign in const.air_signs: start_sign = (seed + 6) % 12
+            elif sign in const.water_signs: start_sign = (seed + 3) % 12
+            
+        # FIX 2 & 3: Apply the backward calculation AFTER the base mapping, 
+        # and base it on the newly calculated `start_sign`, not the raw `sign`.
         if count_from_end_of_sign and sign in const.even_signs:
-            seed = (12 + sign - dcf + 1)%12
+            # Shift the start sign backward by (dcf - 1)
+            start_sign = (start_sign - dcf + 1) % 12
             dirn = -1
-        start_sign = seed #start_sign_variation==0
-        if start_sign_variation==1 and sign in const.even_signs: start_sign = (seed+6)%12
-        elif start_sign_variation==2 and sign in const.even_signs: start_sign = (seed+8)%12
-        elif start_sign_variation==3 and sign in const.even_signs: start_sign = (seed+4)%12
-        elif start_sign_variation==4 and sign in const.even_signs: start_sign = (seed+10)%12
-        elif start_sign_variation==5 and sign in const.even_signs: start_sign = (seed+2)%12
-        elif start_sign_variation==6:
-            if sign in const.fixed_signs: start_sign = (seed+4)%12
-            elif sign in const.dual_signs: start_sign = (seed+8)%12
-        elif start_sign_variation==7:
-            if sign in const.fixed_signs: start_sign = (seed+8)%12
-            elif sign in const.dual_signs: start_sign = (seed+4)%12
-        elif start_sign_variation==8:
-            if sign in const.earth_signs: start_sign = (seed+3)%12
-            elif sign in const.air_signs: start_sign = (seed+6)%12
-            elif sign in const.water_signs: start_sign = (seed+9)%12
-        elif start_sign_variation==9:
-            if sign in const.earth_signs: start_sign = (seed+9)%12
-            elif sign in const.air_signs: start_sign = (seed+6)%12
-            elif sign in const.water_signs: start_sign = (seed+3)%12        
-        for h in range(dcf):
-            t += ((start_sign+dirn*h)%12,)
+
+        # Generate the tuple for this sign mathematically 
+        t = tuple((start_sign + dirn * h) % 12 for h in range(dcf))
         pc.append(t)
+        
     return pc
 def _index_containing_substring(the_list, substring):
     for i, s in enumerate(the_list):
         if substring in s:
             return i
     return -1
-def _convert_1d_house_data_to_2d(rasi_1d,chart_type='south_indian'):
+def _convert_1d_house_data_to_2d(rasi_1d,chart_type=None):
+    if chart_type is None: chart_type = const.default_chart_type
     separator = '/'
-    if 'south' in chart_type.lower():
+    if chart_type  == const.CHART_STYLE.SOUTH_INDIAN_REGULAR:
         row_count = 4
         col_count = 4
         map_to_2d = [ [11,0,1,2], [10,"","",3], [9,"","",4], [8,7,6,5] ]
-    elif 'east' in chart_type.lower():
+    elif chart_type  == const.CHART_STYLE.SOUTH_INDIAN_IRREGULAR:
+        row_count = 4
+        col_count = 4
+        map_to_2d = [ [2,1,0,11], [3,"","",10], [4,"","",9], [5,6,7,8] ]
+    elif chart_type in [const.CHART_STYLE.EAST_INDIAN_WITH_FRAME, const.CHART_STYLE.EAST_INDIAN_NO_FRAME]:
         row_count = 3
         col_count = 3
         map_to_2d = [['2'+separator+'1','0','11'+separator+'10'], ['3', "",'9' ], ['4'+separator+'5','6','7'+separator+'8']]
     rasi_2d = [['X']*row_count for _ in range(col_count)]
     for p,val in enumerate(rasi_1d):
         for index, row in enumerate(map_to_2d):
-            if 'south' in chart_type.lower():
+            if chart_type in [const.CHART_STYLE.SOUTH_INDIAN_IRREGULAR, const.CHART_STYLE.SOUTH_INDIAN_REGULAR]:
                 i,j = [(index, row.index(p)) for index, row in enumerate(map_to_2d) if p in row][0]
                 rasi_2d[i][j] = str(val)
-            elif 'east' in chart_type.lower():
+            elif chart_type in [const.CHART_STYLE.EAST_INDIAN_WITH_FRAME, const.CHART_STYLE.EAST_INDIAN_NO_FRAME]:
                 p_index = _index_containing_substring(row,str(p))
                 if p_index != -1:
                     i,j = (index, p_index)
@@ -1281,6 +1283,38 @@ def trim_info_list_lines(info_lines: list[str], skip_lines: int) -> list[str]:
 
     return trimmed_lines
 def get_varga_option_dict():
+    global resource_strings
+    from jhora import config  # Import your config manager
+    
+    """ dict: {dcf:(method_count,method_index,base_rasi_index,count_from_end_of_sign)}"""
+    _varga_option_dict = {}; _res = resource_strings
+    
+    if const.TREAT_STANDARD_CHART_AS_CUSTOM:
+        _varga_option_dict[1] = (None,None,None,None)
+        for dcf in range(2,const.MAX_DHASAVARGA_FACTOR+1):                
+            _opt_count = len([k for k in _res.keys() if 'dn_custom_option' in k ])
+            
+            # Fetch user's saved choice from config (fallback to 0)
+            # *Note: adjust the key "varga_d{dcf}_method" to match your factory_settings.json
+            saved_idx = config.get_value(f"d{dcf}_chart_method_default", 1)
+            _varga_option_dict[dcf] = (_opt_count, saved_idx, None, None)
+    else:
+        _varga_option_dict[1] = (None,None,None,None)
+        for dcf in const.division_chart_factors[1:]:
+            _opt_count = len([k for k in _res.keys() if 'd'+str(dcf)+'_option' in k ])
+            
+            # Fetch user's saved choice from config (fallback to 1)
+            saved_idx = config.get_value(f"d{dcf}_chart_method_default", 1)
+            _varga_option_dict[dcf] = (_opt_count, saved_idx, None, None)
+            
+        for dcf in [d for d in range(2,const.MAX_DHASAVARGA_FACTOR+1) if d not in const.division_chart_factors]:                
+            _opt_count = len([k for k in _res.keys() if 'dn_custom_option' in k ])
+            
+            # Fetch user's saved choice from config (fallback to 0)
+            saved_idx = config.get_value(f"d{dcf}_chart_method_default", 1)
+            _varga_option_dict[dcf] = (_opt_count, saved_idx, None, None)
+    return _varga_option_dict
+def _get_varga_option_dict():
     global resource_strings
     """ dict: {dcf:(method_count,method_index,base_rasi_index,count_from_end_of_sign)}"""
     _varga_option_dict = {}; _res = resource_strings
@@ -2532,14 +2566,22 @@ _main_planets = {p:PLANET_NAMES[p] for p in range(12)}
 _ascendant = {const._ascendant_symbol:resource_strings['ascendant_str']}
 _drik_upagrahas = {'Kl':'kaala','Mr':'mrityu','Ap':'artha_praharaka','Yg':'yama_ghantaka','Gk':'gulika','Md':'maandi'}
 _chart_upagrahas = {'Dm':'dhuma','Vp':'vyatipaata','Pv':'parivesha','Ic':'indrachaapa','Uk':'upaketu'}
+_upagrahas = (_drik_upagrahas | _chart_upagrahas )
 _special_lagnas= {'BL':'bhava_lagna','HL':'hora_lagna','GL':'ghati_lagna','PL':'pranapada_lagna',
                                  'VL':'vighati_lagna','KL':'kunda_lagna','BBL':'bhrigu_bindhu_lagna',
                                  'SL':'sree_lagna','IL':'indu_lagna'}
 _arudha_lagnas = {"A"+str(k):'bhava_arudha_a'+str(k) for k in range(1,13)}
 _varnada_lagnas = {"V"+str(k):'varnada_lagna (V'+str(k)+")" for k in range(1,13)}
 _sphutas = {"S"+str(s+1):sp for s,sp in enumerate(const.sphuta_list)}
+_sahams = {'Pn': 'punya', 'Vd': 'vidya', 'Ys': 'yasas', 'Mi': 'mitra', 'Mh': 'mahatmaya', 'As': 'asha', 'Sm': 'samartha', 
+           'Bh': 'bhratri', 'Gv': 'gaurava', 'Pi': 'pithri', 'Rj': 'rajya', 'Ma': 'maathri', 'Pu': 'puthra', 
+           'Jv': 'jeeva', 'Km': 'karma', 'Rg': 'roga', 'Ka': 'kali', 'Ss': 'sastra', 'Bd': 'bandhu', 'Mu': 'mrithyu', 
+           'Pr': 'paradesa', 'Ar': 'artha', 'Pd': 'paradara', 'Vk': 'vanika', 'Ks': 'karyasiddhi', 'Vv': 'vivaha', 
+           'Sn': 'santapa', 'Sr': 'sraddha', 'Pt': 'preethi', 'Jd': 'jadya', 'Vy': 'vyaapaara', 'St': 'sathru', 
+           'Jp': 'jalapatna', 'Ba':'bandhana', 'Am': 'apamrithyu', 'Lb': 'laabha'}
+
 all_chart_planets = (_ascendant | _main_planets | _drik_upagrahas | _chart_upagrahas | _special_lagnas 
-                        | _arudha_lagnas | _varnada_lagnas | _sphutas )
+                        | _arudha_lagnas | _varnada_lagnas | _sphutas | _sahams )
 
 def set_owner_overrides_for_dhasa(overrides=None):
     """
@@ -2767,8 +2809,25 @@ def validate_star_index(star,min_index=1,max_index=27):
 def validate_raasi_index(raasi,min_index=1,max_index=12):
     if not (min_index <= raasi <= max_index):
         raise ValueError(f"Raasi must be in range of {min_index}..{max_index}")
-        
+
+
+def get_available_chart_styles(chart_style_module="jhora.ui.chart_styles"):
+    import importlib, copy
+    chart_module = importlib.import_module(chart_style_module)
+
+    available_chart_styles = copy.deepcopy(const.AVAILABLE_CHART_STYLES)
+
+    for _, config in available_chart_styles.items():
+        class_name = config.get("class")
+
+        if isinstance(class_name, str):
+            config["class"] = getattr(chart_module, class_name)
+
+    return available_chart_styles
+    
 if __name__ == "__main__":
+    print(len(all_chart_planets))
+    exit()
     import time
     start_time = time.time()
     from jhora.panchanga.drik import Date,Place

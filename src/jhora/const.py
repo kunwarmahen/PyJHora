@@ -18,6 +18,13 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+    Release History:
+        V4.8.9
+            - Ashtakavarga shodhaya pinda constants updated to support PVR and alternate sources
+            - special lagna continuity
+            - chart method enum classes added
+"""
 """ Module describing PyJHora constants"""
 import os
 import swisseph as swe
@@ -229,7 +236,7 @@ reverse_languages = {v: k for k, v in available_languages.items()}
 """
 day_rulers = [[0,1,2,3,4,5,6,-1],[1,2,3,4,5,6,-1,0],[2,3,4,5,6,-1,0,1],[3,4,5,6,-1,0,1,2],[4,5,6,-1,0,1,2,3],[5,6,-1,0,1,2,3,4],[6,-1,0,1,2,3,4,5]]
 night_rulers = [[4,5,6,-1,0,1,2,3],[5,6,-1,0,1,2,3,4],[6,-1,0,1,2,3,4,5],[0,1,2,3,4,5,6,-1],[1,2,3,4,5,6,-1,0],[2,3,4,5,6,-1,0,1],[3,4,5,6,-1,0,1,2]]
-division_chart_factors = [1,2,3,4,5,6,7,8,9,10,11,12,16,20,24,27,30,40,45,60,81,108,144]
+division_chart_factors = [1,2,3,4,5,6,7,8,9,10,11,12,16,20,24,27,30,40,45,60,81,108,144,150]
 dhasavarga_amsa_vimsopaka = {1:3,2:1.5,3:1.5,7:1.5,9:1.5,10:1.5,12:1.5,16:1.5,30:1.5,60:5}
 shadvarga_amsa_vimsopaka = {1:6,2:2,3:4,9:5,12:2,30:1}
 sapthavarga_amsa_vimsopaka = {1:5,2:2,3:3,7:1,9:2.5,12:4.5,30:2}
@@ -330,8 +337,23 @@ kalachakra_rasis_list = sum(savya_stars_1_rasis,[])+sum(savya_stars_2_rasis,[])+
 #print(kalachakra_rasis_list)
 
 kalachakra_paramayush = [savya_stars_1_rasis_paramayush,savya_stars_2_rasis_paramayush,apasavya_stars_1_rasis_paramayush,apasavya_stars_2_rasis_paramayush]
-# dict of benefic houses for a planet to occupy with respect to another planet
-# For example dict[0][3] = 3,5,6... Which means 3,4,5.. are the benefic houses from Mercury for sun to occupy
+# ashtaka_varga_dict[target][source] = list of house numbers (1..12)
+# that are benefic (table value = 1) for the target planet/lagna,
+# counted from the source planet/lagna.
+#
+# target = top-level dict key:
+#     "0"=Sun, "1"=Moon, "2"=Mars, "3"=Mercury,
+#     "4"=Jupiter, "5"=Venus, "6"=Saturn, "7"=Lagna
+#
+# source = index inside the value list:
+#     0=Sun, 1=Moon, 2=Mars, 3=Mercury,
+#     4=Jupiter, 5=Venus, 6=Saturn, 7=Lagna
+#
+# Example:
+# ashtaka_varga_dict["0"][3] = [3, 5, 6, 9, 10, 11, 12]
+# means:
+# In Sun's Ashtakavarga, the benefic houses counted from Mercury
+# are the 3rd, 5th, 6th, 9th, 10th, 11th, and 12th houses.
 ashtaka_varga_dict={ #7 is used for Lagna here
     "0":[[1,2,4,7,8,9,10,11],[3,6,10,11],[1,2,4,7,8,9,10,11],[3,5,6,9,10,11,12],[5,6,9,11],[6,7,12],[1,2,4,7,8,9,10,11],[3,4,6,10,11,12]],
     "1":[[3,6,7,8,10,11 ],[1,3,6,7,9,10,11],[2,3,5,6,10,11],[1,3,4,5,7,8,10,11],[1,2,4,7,8,10,11],[3,4,5,7,9,10,11],[3,5,6,11],[3,6,10,11]],
@@ -342,7 +364,7 @@ ashtaka_varga_dict={ #7 is used for Lagna here
     "6":[[1,2,4,7,8,10,11],[3,6,11],[3,5,6,10,11,12],[6,8,9,10,11,12],[5,6,11,12],[6,11,12],[3,5,6,11],[1,3,4,6,10,11]],
     "7":[[3,4,6,10,11,12],[3,6,10,11,12],[1,3,6,10,11],[1,2,4,6,8,10,11],[1,2,4,5,6,7,9,10,11],[1,2,3,4,5,8,9],[1,3,4,6,10,11],[3,6,10,11]] ## This is for Lagna
     }
- #Jupiter/Venus. Mercury benefic if alone or with other benefics. Moon benefic in sukla paksha (tithi <=15)
+#Jupiter/Venus. Mercury benefic if alone or with other benefics. Moon benefic in sukla paksha (tithi <=15)
 natural_benefics = [4,5] 
 natural_malefics = [0,2,6,7,8]
 """ TODO: Check some of the following female planets should go to neutral planets 
@@ -364,7 +386,8 @@ special_thaara_lords = {8:(0,9,18,26), 5:(1,10,19), 0:(2,11,27), 1:(3,12,20), 2:
 special_thaara_lords_1 = {8:(0,9,18), 5:(1,10,19), 0:(2,11,20), 1:(3,12,21,22), 2:(4,13,23,), 7:(5,14,24),
                           4:(6,15,25,), 6:(7,16,26), 3:(8,17,27)}
 # In the order of Janma, Karma, Samudayika, Sanghatika, Jaathi, Naidhana, Desha,Abhisheka, Aadhaana, Vainasika, Maanasa
-special_thaara_map = [1,10,18,16,4,7,12,27,19,22,25]#[1,10,18,16,4,7,12,28,19,22,25]
+#special_thaara_map = [1,10,18,16,4,7,12,27,19,22,25]#[1,10,18,16,4,7,12,28,19,22,25]
+special_thaara_map = [1, 10, 18, 16, 4, 7, 12, 28, 19, 22, 25]
 _ABHIJITH_STAR_INDEX = 21 # In the range of 1..28
 house_lords_dict = {0:[4],1:[3],2:[0,7],3:[2,5],4:[8,11],5:[1,6],6:[9,10],7:[10],8:[7]}
 houses_of_rahu_kethu = {7:10,8:7}
@@ -380,11 +403,12 @@ _ENEMY = 1
 _DEBILITATED_NEECHAM = 0
 house_strength_types = {5:'Ruler/Owner/Lord',4:'Uccham/Exalted',3:'Friend',2:'Samam',1:'Enemy',0:'Neecham/Defibilated'}
 house_strengths_of_planets = [
+    #Ar,Ta,Ge,Cn,Le,Vi,Li,Sc,Sg,Cp,Aq,Pi
     [4, 1, 2, 2, 5, 2, 0, 3, 3, 1, 1, 3], # 0 Sun
     [2, 4, 3, 5, 3, 3, 2, 0, 2, 2, 2, 2], # 1 Moon
     [5, 2, 1, 0, 3, 1, 2, 5, 3, 4, 2, 3], # 2 Mars
     [2, 3, 5, 1, 3, 5, 3, 2, 2, 2, 2, 0], # 3 Mercury
-    [3, 1, 1, 4, 3, 3, 1, 3, 5, 0, 2, 5], # 4 Jupiter
+    [3, 1, 1, 4, 3, 1, 1, 3, 5, 0, 2, 5], # 4 Jupiter #Fixed per Issue#67
     [2, 5, 3, 1, 1, 0, 5, 2, 3, 3, 3, 4], # 5 Venus
     [0, 3, 3, 1, 1, 3, 4, 1, 2, 5, 5, 2], # 6 Saturn
     [1, 4, 4, 1, 1, 3, 3, 0, 0, 3, 1, 3], # 7 Rahu (Exalted 1,2 | Debilitated 7,8)
@@ -459,15 +483,15 @@ compound_planet_relations_including_western_planets = [  # V4.8.5
     [5, 2, 5, 2, 4, 1, 2, 1, 5, 4, 4, -1]  # Pluto (Higher Octave Mars)
 ]
 """ 3:'Friend',2:'Samam',1:'Enemy' """
-planet_relations = [ [5,3,3,2,3,1,1,1,2],
-                     [3,5,2,3,2,2,2,2,2],
-                     [3,3,5,1,3,2,2,2,2],
-                     [3,1,2,5,2,3,2,2,1],
-                     [3,3,3,1,5,1,2,1,2],
-                     [1,1,2,3,2,5,3,3,2],
-                     [1,1,1,3,2,3,5,3,1],
-                     [1,1,1,2,2,3,3,5,2],
-                     [3,2,3,2,2,1,1,2,5]
+planet_relations = [ [5,3,3,2,3,1,1,1,2], #Sun
+                     [3,5,2,3,2,2,2,2,2], #Moon
+                     [3,3,5,1,3,2,2,2,2], #Mars
+                     [3,1,2,5,2,3,2,2,1], #Mercury
+                     [3,3,3,1,5,1,2,1,2], #Jupiter
+                     [1,1,2,3,2,5,3,3,2], #Venus
+                     [1,1,1,3,2,3,5,3,1], #Saturn
+                     [1,1,1,2,2,3,3,5,2], #Rahu
+                     [3,2,3,2,2,1,1,2,5]  #Ketu
                    ]
 friendly_planets = []
 for row in planet_relations:
@@ -507,8 +531,11 @@ planet_deep_debilitation_longitudes = [(e+180.0)%360 for e in planet_deep_exalta
 planet_deep_debilitation_tolerance = 1.0 # 1 degree
 graha_drishti = {0:[7],1:[7],2:[4,7,8],3:[7],4:[5,7,9],5:[7],6:[3,7,10],7:[7],8:[7],9:[7],10:[7],11:[7]}
 movable_signs = [0,3,6,9]
+chara_rasis = movable_signs
 fixed_signs = [1,4,7,10]
+sthira_rasis = fixed_signs
 dual_signs = [2,5,8,11]
+ubhaya_rasis = dual_signs
 longevity = {0:[(0,0),(1,2),(2,1)],1:[(0,1),(1,0),(2,2)],2:[(0,2),(1,1),(2,0)]} #0=>Fixed, 1=> Movable, 2=>Dual
 longevity_years = [[32,36,40],[64,72,80],[96,108,120]] # 0th element Short Life, 1st : Middle Life, 2nd element: Long Life
 odd_signs = [0,2,4,6,8,10] # => 1,3,5,7,9,11
@@ -704,6 +731,16 @@ compatibility_maximum_score_south = 10.0
 compatibility_maximum_score_north = 36.0
 mandatory_compatibility_south_list = [1,2,3,5] # Gana(1), Dhinam/Thara/Star(2), Yoni(3), Rasi(5). Rajju is also added.
 available_chart_types = ['south indian','north indian','east indian','western','sudarsana chakra']
+class CHART_STYLE(IntEnum):
+    SOUTH_INDIAN_REGULAR = 1
+    NORTH_INDIAN = 2
+    EAST_INDIAN_WITH_FRAME = 3
+    WESTERN = 4
+    SUDARSANA_CHAKRA = 5
+    SOUTH_INDIAN_IRREGULAR = 6
+    EAST_INDIAN_NO_FRAME = 7
+default_chart_type = CHART_STYLE.SOUTH_INDIAN_REGULAR
+
 birth_rectification_step_minutes = 0.25
 birth_rectification_loop_count = 120 # Number of steps
 _GREEN_CHECK = '\u2705' ; _RED_CROSS = '\u274C'
@@ -808,7 +845,8 @@ mrityu_bhaga_base_longitudes = [[20,26,19,15,19,28,10,14,8,23,1],
                                 [23,12,6,5,28,19,15,8,14,22,10]
                                 ]
 
-_asc_house_row_col__chart_map = [(0,1),(0,2),(0,3),(1,3),(2,3),(3,3),(3,2),(3,1),(3,0),(2,0),(1,0),(0,0)]
+south_indian_regular_chart_2d_map = [(0,1),(0,2),(0,3),(1,3),(2,3),(3,3),(3,2),(3,1),(3,0),(2,0),(1,0),(0,0)]
+south_indian_irregular_chart_2d_map = [(0,2),(0,1),(0,0),(1,0),(2,0),(3,0),(3,1),(3,2),(3,3),(2,3),(1,3),(0,3)]
 hora_list_raman = [(7,9), (1,11), (5,0), (3,6), (4,2),(2,3),(6,4), (0,5), (11,1), (9,7), (10,8), (8,10)] 
 drekkana_jagannatha = [(0,4,8),(9,1,5),(6,10,2),(3,7,11), (0,4,8),(9,1,5),(6,10,2),(3,7,11), (0,4,8),(9,1,5),(6,10,2),(3,7,11)]
 # Kalachakra Navamsa - Star => Rasi/padha mapping
@@ -1286,7 +1324,12 @@ muhurthas_of_the_day = {'rudra':0,'aahi':0,'mithra':1,'pithra':0,'vasu':1,'varaa
                          'brahma':1,'samudhra':1} # 0 - Inauspicious 1=Auspicious
 ### Tamil month methods: 0=> Ravi Annasamy (sunset/UTC) 1=>V4.3.5 (sunset as starting jd) 2=>Start jd with 10AM
 ##                       3 => Midday, UTC
-tamil_month_method = 3
+class TAMIL_MONTH_METHOD:
+    BASED_ON_LOCAL_10AM = 0
+    BASED_ON_SUNSET_TIME = 1
+    BASED_ON_BIRTH_TIME = 2
+    FLEXIBLE_METHOD = 3
+tamil_month_method = TAMIL_MONTH_METHOD.FLEXIBLE_METHOD
 #### Enable / Disable World City Checking
 check_database_for_world_cities = True
 use_internet_for_location_check = True
@@ -1304,7 +1347,20 @@ benefic_signs = [TAURUS, GEMINI, CANCER, VIRGO, LIBRA, SAGITTARIUS, PISCES]
 malefic_signs = [ARIES, LEO, SCORPIO, CAPRICORN, AQUARIUS]
 show_yoga_caution_message = True
 ashtakavarga_rasi_owners=[4,3,(0,7),(2,5),(8,11),(1,6),(9,10)]
-ashtakavarga_rasimana_multipliers = [7,10,8,4,10,6,7,8,9,5,11,12]
+## Based on PVR's book value an alternate is added
+## But still rasi pinda differs by book value for Saturn
+## The Alternate is picked up from Horosoft
+### Ref: https://www.horosoft.net/learnastro_Zodiacal_Planetary_Products.html
+### Ref: https://astrobix.com/learn/360-shodhya-pinda-of-ashtakavarga.html
+class RASIMANA_MULTIPLIER_OPTION:
+    RASIMANA_PVR = 1
+    RASIMANA_ALTERNATE = 2
+RASIMANA_MULTIPLIERS = {
+    RASIMANA_MULTIPLIER_OPTION.RASIMANA_PVR: (7, 10, 8, 4, 10, 6, 7, 8, 9, 5, 11, 12),
+    RASIMANA_MULTIPLIER_OPTION.RASIMANA_ALTERNATE: (7, 10, 8, 4, 10, 5, 7, 8, 9, 5, 11, 12),
+}
+ashtakavarga_rasimana_multiplier_option = RASIMANA_MULTIPLIER_OPTION.RASIMANA_ALTERNATE
+ashtakavarga_rasimana_multipliers = RASIMANA_MULTIPLIERS[ashtakavarga_rasimana_multiplier_option]
 ashtakavarga_grahamana_multipliers = [5,5,8,5,10,7,5]
 planet_hora_dict_for_odd_even_signs = {0:(4,4),1:(3,3),2:(7,0),3:(5,2),4:(11,8),5:(6,1),6:(10,9),7:(10,10),8:(4,4)}
 panchamsa_odd_signs = [0,10,8,2,6]
@@ -1338,8 +1394,8 @@ class MAHA_DHASA_DEPTH(IntEnum):
 DHASA_DURATION_ROUNDING_TO = 2
 
 """ V4.6.5 - Use the below constants to force and reset owners of Sc/Aq for dhasa calculations """ 
-scorpio_owner_for_dhasa_calculations = None
-aquarius_owner_for_dhasa_calculations = None
+scorpio_owner_for_dhasa_calculations = None # Or MARS_ID Or KETU_ID
+aquarius_owner_for_dhasa_calculations = None # Or SATURN_ID or Rahu_ID
 use_kp_dictionary_for_lords_calculation = False
 _JULIAN_TRANSITION_DAY = 2299149.5 # (1582,10,4) (0,0,0)
 
@@ -1448,7 +1504,7 @@ _chart_names = ['raasi_str','hora_str','drekkanam_str','chaturthamsa_str','panch
               'shashthamsa_str','saptamsam_str','ashtamsa_str','navamsam_str','dhasamsam_str','rudramsa_str',
               'dhwadamsam_str','shodamsa_str','vimsamsa_str','chaturvimsamsa_str','nakshatramsa_str','thrisamsam_str',
               'khavedamsa_str','akshavedamsa_str','sashtiamsam_str','nava_navamsa_str','ashtotharamsa_str',
-              'dwadas_dwadasamsa_str','custom_varga_kundali_str','mixed_varga_kundali_str']
+              'dwadas_dwadasamsa_str','nadiamsa_str','custom_varga_kundali_str','mixed_varga_kundali_str']
 _chart_names_upto_d144 = _chart_names[:-2]
 _bala_names = ['amsa_ruler_str','sphuta_str','drishti_str','bhava_graha_arudha_str','vimsopaka_bala_str','vaiseshikamsa_bala_str',
                'harsha_pancha_dwadhasa_vargeeya_bala_str','shad_bala_str','bhava_bala_str']
@@ -1725,6 +1781,311 @@ vedic_mean_speeds = {
 }
 
 planet_info_round_factors = [3,3,4,3,3,6]
+maximum_visible_search_places_in_UI = 20
+maximum_queried_search_places = 30
+
+class CHARA_KARAKA_METHOD(IntEnum):
+    EIGHT_KARAKA_PARASHARI = 1 # Sun to Rahu fit to 8 karaka
+    SEVEN_KARAKA_KNRAO_NOPiK = 2 # No Rahu - No Pitru Karaka
+    SEVEN_KARAKA_PK_MERGED_WITH_MK = 3 # No Rahu and Pk/Mk are merged
+    MIXED_SEVEN_EIGHT_KARAKA_PARASHARA = 4 # 
+chara_karaka_default_method = CHARA_KARAKA_METHOD.EIGHT_KARAKA_PARASHARI
+### Vyatipada method = 1 => 360.0 - dhuma
+### Vyatipada method = 2 => dhuma + 53deg20min
+vyatipada_calculation_method = 1 
+# ==========================================
+# Ashtakavarga Calculation Preferences Setup
+# ==========================================
+# True => counts how many target planets receive a benefic point from reference planet in that sign.
+ashtakavarga_reverse_ashtakavarga = False
+# True=> SAV is calculated based on relative house offsets from the planet itself instead of absolute zodiac signs.
+ashtakavarga_consolidate_houses = False
+# True=>Lagna is treated as a fully active planet contributing to the collective destiny points.
+ashtakavarga_include_lagna_as_planet = False 
+# Parasara-Varahamihira Discrepancy checkboxes
+p_v_moon_benefic_9_from_moon = True
+p_v_moon_malefic_9_from_mars = True
+p_v_moon_benefic_2_from_jupiter = True
+p_v_moon_malefic_12_from_jupiter = True
+p_v_venus_benefic_4_from_mars = True
+p_v_venus_malefic_5_from_mars = True
+### Use of special lagna definition of giving continuity
+special_lagna_continuity = True
+exclude_non_planets_in_varga_chart_calculations = True
+
+class VARNADA_METHOD(IntEnum):
+    BV_RAMAN = 1
+    SHARMA_SANTHANAM = 2
+    SANJAY_RATH = 3
+    JHA_PANDEY = 4
+varnada_method_default = 1
+use_default_house_owner_for_saham_calculation = True
+class D2_CHART_METHOD(IntEnum):
+    PARASARA_UMA_SHAMBU_VARIATION = 1
+    TRADITIONA_PARASARA_WITH_Le_Cn_ONLY = 2
+    RAMAN_1st_11th_DAY_NIGHT = 3
+    PARIVRITTI_DWAYA_BICYCLICAL_HORA = 4
+    KASHINATHA_HORA_OWNERSHIP_DAY_NIGHT = 5
+    SOMANATHA_PARIVRITTI_ALTERNATE = 6
+d2_chart_method_default = D2_CHART_METHOD.PARASARA_UMA_SHAMBU_VARIATION
+class D3_CHART_METHOD(IntEnum):
+    PARASARA_UMA_SHAMBU = 1
+    PARIVRITTI_TRAYA = 2
+    SOMANATHA_PARIVRITTI_ALTERNATE = 3
+    JAGANAATHA = 4
+    PARASARA_PARIVRITTI_EVEN_REVERSE = 5
+d3_chart_method_default = D3_CHART_METHOD.PARASARA_UMA_SHAMBU
+class D4_CHART_METHOD(IntEnum):
+    PARASARA_TRADITIONAL = 1
+    PARIVRITTI_CYCLIC = 2
+    PARIVRITTI_EVEN_REVERSE = 3
+    SOMANATHA_PARIVRITTI_ALTERNATE = 4
+d4_chart_method_default = D4_CHART_METHOD.PARASARA_TRADITIONAL
+class D5_CHART_METHOD(IntEnum):
+    PARASARA_TRADITIONAL = 1
+    PARIVRITTI_CYCLIC = 2
+    PARIVRITTI_EVEN_REVERSE = 3
+    SOMANATHA_PARIVRITTI_ALTERNATE = 4
+d5_chart_method_default = D5_CHART_METHOD.PARASARA_TRADITIONAL
+class D6_CHART_METHOD(IntEnum):
+    PARASARA_TRADITIONAL = 1
+    PARIVRITTI_CYCLIC = 2
+    PARIVRITTI_EVEN_REVERSE = 3
+    SOMANATHA_PARIVRITTI_ALTERNATE = 4
+d6_chart_method_default = D6_CHART_METHOD.PARASARA_TRADITIONAL
+class D7_CHART_METHOD(IntEnum):
+    PARASARA_EVEN_START_7TH_GO_FORWARD = 1
+    PARASARA_EVEN_START_7TH_GO_BACKWARD = 2
+    PARASARA_EVEN_REVERSE_END_7TH = 3
+    PARIVRITTI_CYCLIC = 4
+    PARIVRITTI_EVEN_REVERSE = 5
+    SOMANATHA_PARIVRITTI_ALTERNATE = 6
+d7_chart_method_default = D7_CHART_METHOD.PARASARA_EVEN_START_7TH_GO_FORWARD
+class D8_CHART_METHOD(IntEnum):
+    PARASARA_TRADITIONAL = 1
+    PARIVRITTI_CYCLIC = 2
+    PARIVRITTI_EVEN_REVERSE = 3
+    SOMANATHA_PARIVRITTI_ALTERNATE = 4
+d8_chart_method_default = D8_CHART_METHOD.PARASARA_TRADITIONAL
+class D9_CHART_METHOD(IntEnum):
+    PARASARA_TRADITIONAL = 1
+    PARASARA_EVEN_REVERSAL_UNIFORM_KRISHNA_MISRA = 2
+    KALACHAKRA_NAVAMSA = 3
+    RANGACHARYA_KRISHNA_MISRA_SANJAY_RATH_NADI_NAVAMSA = 4
+    PARIVRITTI_CYCLIC = 5
+    SOMANATHA_PARIVRITTI_ALTERNATE = 6
+d9_chart_method_default = D9_CHART_METHOD.PARASARA_TRADITIONAL
+class D10_CHART_METHOD(IntEnum):
+    TRADITIONAL_PARASARA_START_9TH_FORWARD = 1
+    PARASARA_EVEN_START_9TH_BACKWARD = 2
+    PARASARA_EVEN_START_REVERSE_9TH_BACKWARD = 3
+    PARIVRITTI_CYCLIC_OJHA = 4
+    PARIVRITTI_EVEN_REVERSE = 5
+    SOMANATHA_PARIVRITTI_ALTERNATE = 6
+d10_chart_method_default = D10_CHART_METHOD.TRADITIONAL_PARASARA_START_9TH_FORWARD    
+class D11_CHART_METHOD(IntEnum):
+    TRADITIONAL_PARASARA_SANJAY_RATH = 1
+    BVRAMAN_EKADASAMSA_ANTI_ZODIACAL = 2
+    PARIVRITTI_CYCLIC_OJHA = 3
+    PARIVRITTI_EVEN_REVERSE = 4
+    SOMANATHA_PARIVRITTI_ALTERNATE = 4
+d11_chart_method_default = D11_CHART_METHOD.TRADITIONAL_PARASARA_SANJAY_RATH
+class D12_CHART_METHOD(IntEnum):
+    TRADITIONAL_PARASARA = 1
+    TRADITIONAL_PARASARA_EVEN_REVERSAL = 2
+    PARIVRITTI_CYCLIC_OJHA = 3
+    PARIVRITTI_EVEN_REVERSE = 4
+    SOMANATHA_PARIVRITTI_ALTERNATE = 5
+d12_chart_method_default = D12_CHART_METHOD.TRADITIONAL_PARASARA
+class D16_CHART_METHOD(IntEnum):
+    PARASARA_TRADITIONAL = 1
+    PARIVRITTI_EVEN_REVERSE = 2
+    PARIVRITTI_CYCLIC = 3
+    SOMANATHA_PARIVRITTI_ALTERNATE = 4
+d16_chart_method_default = D16_CHART_METHOD.PARASARA_TRADITIONAL
+class D20_CHART_METHOD(IntEnum):
+    PARASARA_TRADITIONAL = 1
+    PARIVRITTI_EVEN_REVERSE = 2
+    PARIVRITTI_CYCLIC = 3
+    SOMANATHA_PARIVRITTI_ALTERNATE = 4
+d20_chart_method_default = D20_CHART_METHOD.PARASARA_TRADITIONAL
+class D24_CHART_METHOD(IntEnum):
+    TRADITIONAL_PARASARA = 1
+    PARASARA_EVEN_REVERSE = 2
+    PARASARA_EVEN_DOUBLE_REVERSE = 3
+d24_chart_method_default = D24_CHART_METHOD.TRADITIONAL_PARASARA
+class D27_CHART_METHOD(IntEnum):
+    TRADITIONAL_PARASARA = 1
+    PARASARA_EVEN_REVERSE = 2
+    SOMANATHA_PARIVRITTI_ALTERNATE = 3
+d27_chart_method_default = D27_CHART_METHOD.TRADITIONAL_PARASARA
+class D30_CHART_METHOD(IntEnum):
+    TRADITIONAL_PARASARA = 1
+    PARIVRITTI_CYCLIC_TRIMSAMSA = 2
+    SASHTYAMSA_LIKE_TRIMSAMSA = 3
+    PARASARA_EVEN_REVERSE = 4
+    SOMANATHA_PARIVRITTI_ALTERNATE = 5
+d30_chart_method_default = D30_CHART_METHOD.TRADITIONAL_PARASARA
+class D40_CHART_METHOD(IntEnum):
+    PARASARA_TRADITIONAL = 1
+    PARIVRITTI_CYCLIC = 2
+    PARIVRITTI_EVEN_REVERSE = 3
+    SOMANATHA_PARIVRITTI_ALTERNATE = 4
+d40_chart_method_default = D40_CHART_METHOD.PARASARA_TRADITIONAL
+class D45_CHART_METHOD(IntEnum):
+    PARASARA_TRADITIONAL = 1
+    PARIVRITTI_CYCLIC = 2
+    PARIVRITTI_EVEN_REVERSE = 3
+    SOMANATHA_PARIVRITTI_ALTERNATE = 4
+d45_chart_method_default = D45_CHART_METHOD.PARASARA_TRADITIONAL
+class D60_CHART_METHOD(IntEnum):
+    PARASARA_TRADITIONAL_FROM_SIGN = 1
+    PARASARA_CYCLIC_FROM_ARIES = 2
+    PARASARA_EVEN_REVERSE_FROM_ARIES = 3
+    PARASARA_EVEN_REVERSE_FROM_SIGN = 4
+d60_chart_method_default = D60_CHART_METHOD.PARASARA_TRADITIONAL_FROM_SIGN
+class D81_CHART_METHOD(IntEnum):
+    PARASARA_TRADITIONAL_PARIVRITTI_CYCLIC= 1
+    PARIVRITTI_EVEN_REVERSE = 2
+    SOMANATHA_PARIVRITTI_ALTERNATE = 3
+    KALACHAKRA_NAVA_NAVAMSA = 4
+d81_chart_method_default = D81_CHART_METHOD.PARASARA_TRADITIONAL_PARIVRITTI_CYCLIC
+class D108_CHART_METHOD(IntEnum):
+    PARASARA_TRADITIONAL = 1
+    PARIVRITTI_CYCLIC = 2
+    PARIVRITTI_EVEN_REVERSE = 3
+    SOMANATHA_PARIVRITTI_ALTERNATE = 4
+d108_chart_method_default = D108_CHART_METHOD.PARASARA_TRADITIONAL
+class D144_CHART_METHOD(IntEnum):
+    PARASARA_TRADITIONAL = 1
+    PARIVRITTI_CYCLIC = 2
+    PARIVRITTI_EVEN_REVERSE = 3
+    SOMANATHA_PARIVRITTI_ALTERNATE = 4
+d144_chart_method_default = D144_CHART_METHOD.PARASARA_TRADITIONAL
+class D150_CHART_METHOD(IntEnum):
+    PVR_JHORA_METHOD_OWN_SIGN_UNIFORM_DIRECT = 1
+    DEVA_KERALAM_CHANDRA_KALA_NADI_NON_UNIFORM = 2
+    DEVA_KERALAM_CHANDRA_KALA_NADI_UNIFORM_DIRECT = 3
+    PARIVRITTI_CYCLIC = 4
+    MOVABLE_ARIES_FWD_FIXED_TAURUS_BACK_DUAL_GEMINI_FWD = 5
+    MOVABLE_ARIES_FWD_FIXED_SCORPIO_BACK_DUAL_SAGITARIUS_FWD = 6
+    MOVABLE_ARIES_FWD_FIXED_LEO_BACK_DUAL_SAGITARIUS_FWD = 7
+    MOVABLE_SIGN_FWD_FIXED_SIGN_BACK_DUAL_SIGN_FWD = 8
+d150_chart_method_default = D150_CHART_METHOD.PVR_JHORA_METHOD_OWN_SIGN_UNIFORM_DIRECT
+amsa_supported_vargas = [2,3,4,7,9,10,12,16,20,24,27,30,45,60,150]
+AVAILABLE_CHART_STYLES = {
+    CHART_STYLE.SOUTH_INDIAN_REGULAR: {"class": "SouthIndianChart", "args": {"chart_style_irregular": False},
+                                             "resource":"south_indian_str"},
+    CHART_STYLE.NORTH_INDIAN: {"class": "NorthIndianChart","args": {},"resource":"north_indian_str"},
+    CHART_STYLE.EAST_INDIAN_WITH_FRAME: {"class": "EastIndianChart","args": {"draw_frames": True},
+                                             "resource":"east_indian_str"},
+    CHART_STYLE.WESTERN: {"class": "WesternChart","args": {},"resource":"western_str"},
+    CHART_STYLE.SUDARSANA_CHAKRA: {"class": "SudarsanaChakraChart","args": {},"resource":"sudarsana_chakra_str"},
+    CHART_STYLE.SOUTH_INDIAN_IRREGULAR: {"class": "SouthIndianChart","args": {"chart_style_irregular": True},
+                                             "resource":"south_indian_irregular_str"},
+    CHART_STYLE.EAST_INDIAN_NO_FRAME: {"class": "EastIndianChart","args": {"draw_frames": False},
+                                             "resource":"east_indian_noframe_str"},
+}
+_SOUTH_CHART_TYPES = (
+    CHART_STYLE.SOUTH_INDIAN_REGULAR,
+    CHART_STYLE.SOUTH_INDIAN_IRREGULAR,
+)
+
+_EAST_CHART_TYPES = (
+    CHART_STYLE.EAST_INDIAN_WITH_FRAME,
+    CHART_STYLE.EAST_INDIAN_NO_FRAME,
+)
+
+_SOUTH_EAST_TYPES = _SOUTH_CHART_TYPES + _EAST_CHART_TYPES
+
+south_regular_zodiac_symbol_map = [
+    ['\u2653', '\u2648', '\u2649', '\u264A'],
+    ['\u2652', '', '', '\u264B'],
+    ['\u2651', '', '', '\u264C'],
+    ['\u2650', '\u264F', '\u264E', '\u264D']
+]
+
+south_irregular_zodiac_symbol_map = [
+    ['\u264A', '\u2649', '\u2648', '\u2653'],
+    ['\u264B', '', '', '\u2652'],
+    ['\u264C', '', '', '\u2651'],
+    ['\u264D', '\u264E', '\u264F', '\u2650']
+]
+
+class DASHA_SESHAM_METHOD(IntEnum):
+    STANDARD = 1
+    REVERSE = 2
+    NONE = 3
+default_dasha_sesham_method = DASHA_SESHAM_METHOD.STANDARD
+
+class CHAKRA_TYPE(IntEnum):
+    KOTA_CHAKRA = 0
+    KAALA_CHAKRA = 1
+    SARVATOBADRA_CHAKRA = 2
+    SURYA_KALANALA_CHAKRA = 3
+    CHANDRA_KALANALA_CHAKRA = 4
+    SHOOLA_CHAKRA = 5
+    TRIPATAKI_CHAKRA = 6
+    SAPTHA_SHALAKA_CHAKRA = 7
+    PANCHA_SHALAKA_CHAKRA = 8
+    SAPTHA_NADI_CHAKRA = 9
+special_thaara_names = ['janma_str', 'karma_str', 'samudayika_str', 'sangathika_str','jaathi_str',
+                        'naidhana_str', 'desha_str', 'abhisheka_str','aadhaana_str', 
+                        'vainasika_str', 'maanasa_str']
+""" 
+    BVR-72 Sara/Ishu Yoga: all the planets are in 4th, 5th, 6th and 7th houses from lagna, 
+    NOTE: BV Raman in his book states 4,5,9,7. Not sure spellinhg mistake? (method=2) 
+    In one place in the book BVR says:  in 4th, 5th, 9th and 7th, Ishu or Sara is produced;
+    In another place, he says: Thus, for instance,I shu Yoga, said to be caused by the 
+    seven planets occupying the 4th, 5th, 6th and 7th houses. Chart-48 has 4,5,6,7
+    Choose method = 2 only if you want to use 4th, 5th, 7th and 9th.
+"""
+sara_yoga_method = 1 
+""" BVR-53 Matsya Yoga - 2 methods
+- BV Raman (300 Important Combinations): (method=1)
+    (1) Malefics in Lagna AND 9th (optionally ONLY malefics if strict_exclusive=True)
+    (2) 5th contains BOTH benefics AND malefics
+    (3) 4th AND 8th contain ONLY malefics (and at least one in each)
+
+- Parasari / Jātaka Parijāta stream (common modern presentation): (method=2) PVR Book.
+    (1) Benefics in Lagna AND 9th (optionally ONLY benefics if strict_exclusive=True)
+    (2) 5th contains BOTH benefics AND malefics
+    (3) 4th AND 8th contain ONLY malefics (and at least one in each)
+"""
+matsya_yoga_method = 1
+""" BVR-54 Koorma Yoga: If (1) the 5th, 6th and 7th houses are occupied by benefics who are in
+    own, exaltation or friendly signs and (2) the 1st, 3rd and 11th houses are occupied by
+    malefics who are in own or exaltation signs. 
+    Method = 1 BV Raman - 
+        2nd condition is also for BENEFICS (not malefics) AND 
+        ONLY ONE of the above two conditions required
+        Condition >= Friend, exalt, own
+    Method = 2 PVR - 
+        BOTH conditions are required and 1st for benefics and 2nd for malefics
+        Condition 1 == Friend/exalt/Own and Condition 2 >= exalt/Own (No Friend)
+"""
+koorma_yoga_method = 1
+""" BVR-51 Brahma Yoga (part of harihara brahma yoga): 
+    Brahma Yoga: (Based on PVR Narasimha Rao)
+    Method 1: Benefics in 4th, 10th and 11th from Lagna Lord.
+    Method 2: Jupiter in quadrant from 9th lord, Venus in quadrant from 11th lord, 
+                and Mercury in quadrant from 1st or 10th lord.
+"""
+brahma_yoga_method = 1
+""" 
+BVR-50 Amsaavatara Yoga: 
+Method 1 (PVR): Jupiter, Venus, and exalted Saturn are in quadrants.
+Method 2 (BVR): Same as Method 1, but Lagna must be in a movable sign.
+"""
+amsaavatara_yoga_method = 1
+""" 
+    BVR 144 to 152
+    Method=1 Ref: Medium - What is daridra yoga
+    the lord of 1nd or 11th is situated in the 6th, 8th or 12th
+    Method = 2 - Ref: BV Raman Dharidhra Yoga #144 to #152
+"""
+dharidhdra_yoga_method = 2
+
 
 if __name__ == "__main__":
     print('graha',len(_graha_dhasa_dict),len(dhasa_default_options))

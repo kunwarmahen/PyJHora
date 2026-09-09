@@ -382,10 +382,10 @@ def get_dhasa_bhukthi(
     planet_long = charts.get_chart_element_longitude(
         jd,
         place,
-        divisional_chart_factor,
-        chart_method,
-        star_position_from_moon,
-        dhasa_starting_planet,
+        divisional_chart_factor=divisional_chart_factor,
+        chart_method=chart_method,
+        star_position_from_moon=star_position_from_moon,
+        dhasa_starting_planet=dhasa_starting_planet,
     )
     return kalachakra_dhasa(
         planet_longitude=planet_long,
@@ -500,10 +500,10 @@ def kalachakra_immediate_children(
     planet_long = charts.get_chart_element_longitude(
         jd_at_dob,
         place,
-        divisional_chart_factor,
-        chart_method,
-        star_position_from_moon,
-        dhasa_starting_planet,
+        divisional_chart_factor=1,
+        chart_method=chart_method,
+        star_position_from_moon=star_position_from_moon,
+        dhasa_starting_planet=dhasa_starting_planet,
     )
     dhasa_periods = _get_dhasa_progression(planet_longitude=planet_long, dhasa_method=dhasa_method)
     if not dhasa_periods:

@@ -5,26 +5,32 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "PyJHora"
 description = "Complete Vedic Astrology Python package."
-version = "4.8.7"
+version = "5.0"
 authors = [
 	{name="Sundar Sundaresan",email = "carnaticmusicguru2015@comcast.net"},
 ]
 readme = "README.MD"
-license = {file="LICENSE"}
 requires-python = ">=3.8"
 keywords = ["Vedic Astrology", "Astrology", "Hindu Astrology", "Kundali", "Panchang", "Horoscope", "Hora", "JHora"]
+
+# PEP 639 modern fields replacing license = {file="LICENSE"}
+license-expression = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
+
 classifiers = [
-	"Programming Language :: Python :: 3",
-	"License :: OSI Approved :: MIT License",
-	"Operating System :: OS Independent",
-	"Intended Audience :: Other Audience",
-	"Topic :: Scientific/Engineering :: Astronomy",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Other Audience",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    # Legacy "License :: ..." classifiers are removed completely
 ]
+
 [tool.setuptools.package-data]
 "jhora.lang" = ["*"]
 "jhora.images" = ["*"]
 "jhora.tests" = ["*"]
 "*" = ["*.txt", "*.csv","*.md", "*.json"]
+
 [project.urls]
 homepage = "https://github.com/naturalstupid/pyjhora"
 repository = "https://github.com/naturalstupid/pyjhora"

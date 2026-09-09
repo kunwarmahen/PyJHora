@@ -199,10 +199,10 @@ class SettingWidgetFactory:
             return widget.value()
 
         if isinstance(widget, QComboBox):
-            data = widget.currentData()
-            if data is None:
-                return widget.currentText()
-            return data
+            return widget.currentData()
+            #if data is None:
+            #    return widget.currentText()
+            #return data
 
         if isinstance(widget, QLineEdit):
             text = widget.text()
@@ -368,7 +368,7 @@ class ConfigDialog(QDialog):
         self.setWindowTitle("Configuration")
         self._tab_pages: Dict[str, ConfigTabPage] = {}
         self._build_ui()
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(800, 625)
         self.adjustSize()
 
     def _selected_tabs(self) -> List[str]:

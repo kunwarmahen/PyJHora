@@ -19,6 +19,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+    Release History:
+        V4.8.9 - minor data validation fixes.
+"""
+"""
     Computation of pindayu, Nisargayu, Amsayu dasa
     Ref: https://medium.com/thoughts-on-jyotish/thoughts-on-the-mathematical-ayur-models-and-their-usage-in-the-dasas-such-as-moola-and-naisargika-517dee1396ae
     NOTE: !!! DO NOT USE THIS YET - NOT FULLY IMPLEMENTED YET !!!
@@ -360,10 +364,12 @@ def _amsayu(planet_positions,apply_haranas=True,method=1):
     else:
         return planet_base_longevity
 def _stronger_of_lagna_sun_moon(planet_positions):
-    sp = house.stronger_planet_from_planet_positions(planet_positions, 0, 1)
+    sp = house.stronger_planet_from_planet_positions(planet_positions, const.SUN_ID, const.MOON_ID)
+    if _DEBUG: print("Stronger of Moon/Sun",sp) 
     p_to_h = utils.get_planet_house_dictionary_from_planet_positions(planet_positions)
     asc_house = p_to_h[const._ascendant_symbol]; sp_house = p_to_h[sp]
     sr = house.stronger_rasi_from_planet_positions(planet_positions, asc_house, sp_house)
+    if _DEBUG: print("Stronger of ",sp_house,asc_house,"is",sr)
     if sr == asc_house: 
         return const._ascendant_symbol
     else:
@@ -443,6 +449,8 @@ def get_dhasa_antardhasa(
           Example (L2): [ (7, 5, '1915-02-09 00:00:00 AM', 1.23), (7, 0, '1916-05-10 08:12:34 AM', 1.23), ...]
     """
     if aayur_type is None: aayur_type = const.AAYU_TYPE_DEFAULT
+    if aayur_type not in [const.AAYU_TYPE.AMSA, const.AAYU_TYPE.NISARGA, const.AAYU_TYPE.PINDA, const.AAYU_TYPE.NONE]:
+        raise ValueError(f"aayur_type argument {aayur_type} should be one of const.AAYUR_TYPE")
     global one_year_days
     one_year_days = drik.dhasa_year_duration(dhasa_duration_type=dhasa_duration_type, jd=jd, place=place,
                                              savana_year_method=savana_year_method)
@@ -822,6 +830,8 @@ if __name__ == "__main__":
     current_jd = utils.julian_day_number(drik.Date(y, m, d), (hh, mm, ss))
     import time
     _method = 2
+    print(get_dhasa_antardhasa(jd_at_dob, place, dhasa_level_index=const.MAHA_DHASA_DEPTH.MAHA_DHASA_ONLY, method=_method))
+    exit()
     for dd in const.DHASA_YEAR_DURATION:
         yd = drik.dhasa_year_duration(
             jd=jd_at_dob,

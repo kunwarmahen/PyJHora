@@ -1214,8 +1214,6 @@ if __name__ == "__main__":
     sb = shad_bala(jd,place)
     for i,b in enumerate(['sthaana bala','kaala bala','dig bala','chesta bala','naisargika bala','drik bala','shad bala','shad bala (rupas)','shad bala (strength)']):
         print(b,sb[i])
-    bms = drik.bhaava_madhya_sripathi_new(jd, place)
-    print('bhava madhya Sripathi',bms)
     _bhava_method='S'
     bms = drik._bhaava_madhya_new(jd, place, bhava_madhya_method=_bhava_method)
     print('bhava_madhya_method',_bhava_method,'bhava madhya',bms)

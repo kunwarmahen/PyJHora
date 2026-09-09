@@ -415,7 +415,7 @@ def ashtakavarga_immediate_children(
     Notes:
         Uses module-level year_length_days. Public callers should set it first.
     """
-
+    global year_length_days
     if isinstance(parent_lords, int):
         path = (parent_lords,)
     elif isinstance(parent_lords, (list, tuple)):

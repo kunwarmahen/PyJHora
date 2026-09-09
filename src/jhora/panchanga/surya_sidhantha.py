@@ -407,7 +407,8 @@ def _declination_of_sun(jd):
     days = jd-jd_eq
     deli = (23+27/60.)*sind(360*days/365.25)
     #print(jd_eq,jd,days,deli)
-    return delidef sunrise_set(jd,place):
+    return deli
+def sunrise_set(jd,place):
     decl = drik.declination_of_planets(jd, place)
     decl_sun = _declination_of_sun(jd)
     lat = place.latitude
