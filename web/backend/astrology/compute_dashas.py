@@ -78,7 +78,8 @@ class DashasMixin:
     @staticmethod
     def get_dashas(dob: str, tob: str, place: str, dhasa_type: str = "vimsottari",
                 lat: Optional[float] = None, lon: Optional[float] = None, tz: Optional[float] = None,
-                current_tz: Optional[float] = None) -> Dict:
+                current_tz: Optional[float] = None,
+                ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """
         Calculate Dasha periods (life periods) using Jyotir AI's accurate calculations
 
@@ -91,6 +92,11 @@ class DashasMixin:
             return {"error": "Jyotir AI engine not available"}
 
         try:
+            # Load-bearing, not cosmetic: a nakshatra dasha's balance at birth is
+            # read straight off the Moon's sidereal longitude, so the ~1' between
+            # Lahiri and True Chitra moves the whole timeline ~3 days — enough to
+            # change which lord is running today once you drill to Sookshma.
+            _set_ayanamsa(ayanamsa)
             from datetime import datetime
 
             # Parse date/time
@@ -261,11 +267,14 @@ class DashasMixin:
             import traceback
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
     def get_dasha_children(dob: str, tob: str, place: str, lords_path: List[str],
                            lat: Optional[float] = None, lon: Optional[float] = None,
-                           tz: Optional[float] = None) -> Dict:
+                           tz: Optional[float] = None,
+                           ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """Lazily compute the immediate child periods of a Vimsottari node.
 
         `lords_path` is the chain of planet names from the Maha Dasha down to the
@@ -281,6 +290,11 @@ class DashasMixin:
             return {"error": "lords_path is required", "status": "failed"}
 
         try:
+            # Load-bearing, not cosmetic: a nakshatra dasha's balance at birth is
+            # read straight off the Moon's sidereal longitude, so the ~1' between
+            # Lahiri and True Chitra moves the whole timeline ~3 days — enough to
+            # change which lord is running today once you drill to Sookshma.
+            _set_ayanamsa(ayanamsa)
             year, month, day = map(int, dob.split("-"))
             time_parts = tob.split(":")
             hour = int(time_parts[0])
@@ -371,6 +385,8 @@ class DashasMixin:
             import traceback
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
 
     @staticmethod
     def get_dasha_periods(dhasa_type: str, dob: str, tob: str, place: str,
@@ -387,8 +403,14 @@ class DashasMixin:
         The ayanamsa is not cosmetic here: a nakshatra dasha's balance at birth
         is read straight off the Moon's sidereal longitude, so the ~1' between
         Lahiri and True Chitra moves every period by a couple of days over a
-        60-year cycle. This used to ignore the setting entirely — the one compute
-        in the app that did — and silently answered in True Chitra.
+        60-year cycle. This used to ignore the setting entirely and silently
+        answered in True Chitra.
+
+        It was *not* the only one, despite what this docstring claimed for a
+        while: `get_dashas`, `get_dasha_children` and `get_pancha_pakshi` took no
+        ayanamsa argument at all until the whole class was swept. See
+        tests/test_ayanamsa_reaches_computes.py, which now fails if a new
+        chart-derived compute is added without one.
         """
         if not ENGINE_AVAILABLE:
             return {"error": "Jyotir AI engine not available", "status": "failed"}
@@ -690,7 +712,7 @@ class DashasMixin:
 
             # ── Dasha bands (Vimsottari maha + running-window bhuktis) ────────
             dashas = AstrologyCompute.get_dashas(
-                dob, tob, place, lat=lat, lon=lon, tz=tz)
+                dob, tob, place, lat=lat, lon=lon, tz=tz, ayanamsa=ayanamsa)
             maha_bands, bhukti_bands = [], []
             if dashas.get("status") == "success":
                 for d in dashas.get("dasha_sequence", []):
@@ -862,7 +884,8 @@ class DashasMixin:
         # sequence (tl.bhukti_bands only details the *running* maha, so a
         # far-future target needs the complete tree here).
         maha, bhukti = None, None
-        dashas = AstrologyCompute.get_dashas(dob, tob, place, lat=lat, lon=lon, tz=tz)
+        dashas = AstrologyCompute.get_dashas(dob, tob, place, lat=lat, lon=lon, tz=tz,
+                                             ayanamsa=ayanamsa)
         if dashas.get("status") == "success":
             for d in dashas.get("dasha_sequence", []):
                 if d["start_date"] <= target_date <= d["end_date"]:

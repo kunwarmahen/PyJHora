@@ -451,6 +451,7 @@ async def get_yogas(
 async def get_dhasa(
     birth_details: BirthDetails,
     dhasa_type: str = "vimsottari",
+    ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user)
 ):
     """Get Dasha periods"""
@@ -463,6 +464,7 @@ async def get_dhasa(
             lon=birth_details.longitude,
             tz=birth_details.timezone,
             dhasa_type=dhasa_type,
+            ayanamsa=ayanamsa,
             current_tz=await viewer_tz(
                 current_user, fallback=birth_details.timezone),
         )
@@ -474,6 +476,7 @@ async def get_dhasa(
 async def get_dhasa_children(
     birth_details: BirthDetails,
     lords: str = "",
+    ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user)
 ):
     """Lazily fetch the immediate child periods (Antara/Sookshma) of a Vimsottari
@@ -488,6 +491,7 @@ async def get_dhasa_children(
             lon=birth_details.longitude,
             tz=birth_details.timezone,
             lords_path=lords_path,
+            ayanamsa=ayanamsa,
         )
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
@@ -700,6 +704,7 @@ async def get_sudarsana_chakra(
 async def get_pancha_pakshi(
     birth_details: BirthDetails,
     date: Optional[str] = None,
+    ayanamsa: str = DEFAULT_AYANAMSA,
     current_user: str = Depends(get_current_user)
 ):
     """Pancha Pakshi Sastra — birth bird + the day's activity-strength timeline."""
@@ -713,6 +718,7 @@ async def get_pancha_pakshi(
             tz=birth_details.timezone, date=date,
             current_place=here.get("place"), current_lat=here.get("latitude"),
             current_lon=here.get("longitude"), current_tz=here.get("timezone"),
+            ayanamsa=ayanamsa,
         )
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))

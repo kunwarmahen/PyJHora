@@ -266,6 +266,9 @@ class PanchaPakshiAnalysisRequest(BaseModel):
     birth_details: BirthDetails
     profile_id: Optional[str] = None  # for grouping the saved reading in history
     date: Optional[str] = None
+    # The bird is derived from the birth nakshatra, so the ayanamsa can change
+    # which bird you are — not merely the timings. Matches the other AI requests.
+    ayanamsa: Optional[str] = None
     person_name: Optional[str] = None
     llm_provider: str = "qwen"  # legacy fallback
     provider_type: Optional[str] = None

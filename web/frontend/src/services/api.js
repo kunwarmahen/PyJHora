@@ -302,15 +302,18 @@ export const astrologyService = {
     api.post("/api/astrology/doshas", birthDetails, { params: { ayanamsa, lang: uiLang() } }),
   getYogas: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/yogas", birthDetails, { params: { ayanamsa, lang: uiLang() } }),
-  getDhasa: (birthDetails, dashaType = "vimsottari") =>
+  // The ayanamsa is load-bearing: a nakshatra dasha's balance at birth is read
+  // off the Moon's sidereal longitude, so Lahiri vs True Chitra moves the whole
+  // timeline ~3 days — enough to change the running lord at Sookshma.
+  getDhasa: (birthDetails, dashaType = "vimsottari", ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/dhasa", birthDetails, {
-      params: { dhasa_type: dashaType },
+      params: { dhasa_type: dashaType, ayanamsa },
     }),
   // Lazily fetch the immediate children of a Vimsottari node. `lordsPath` is the
   // chain of lord names from the Maha Dasha down, e.g. ["Venus", "Saturn"].
-  getDhasaChildren: (birthDetails, lordsPath = []) =>
+  getDhasaChildren: (birthDetails, lordsPath = [], ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/dhasa/children", birthDetails, {
-      params: { lords: lordsPath.join(",") },
+      params: { lords: lordsPath.join(","), ayanamsa },
     }),
   getTransits: (
     birthDetails,
@@ -426,9 +429,11 @@ export const astrologyService = {
       params: { year_offset: yearOffset, ayanamsa },
     }),
   // Pancha Pakshi Sastra — birth bird + day's activity-strength timeline.
-  getPanchaPakshi: (birthDetails, date = null) =>
+  // The bird comes from the birth nakshatra, so the ayanamsa can change which
+  // bird you are, not just the timings.
+  getPanchaPakshi: (birthDetails, date = null, ayanamsa = DEFAULT_AYANAMSA) =>
     api.post("/api/astrology/pancha-pakshi", birthDetails, {
-      params: date ? { date } : {},
+      params: { ...(date ? { date } : {}), ayanamsa },
     }),
   // Plain-language AI reading of today's Pancha Pakshi timing.
   analyzePanchaPakshiAI: (birthDetails, opts = {}, model = {}) =>

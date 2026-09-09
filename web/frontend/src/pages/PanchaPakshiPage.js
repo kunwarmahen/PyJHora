@@ -104,14 +104,14 @@ export const PanchaPakshiPage = () => {
     setAiError("");
     setAiModel("");
     try {
-      const res = await astrologyService.getPanchaPakshi(birthDetails, date);
+      const res = await astrologyService.getPanchaPakshi(birthDetails, date, ayanamsa);
       setResult(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || t("panchaPakshi.calcError"));
     } finally {
       setLoading(false);
     }
-  }, [birthDetails, date, t]);
+  }, [birthDetails, date, t, ayanamsa]);
 
   useEffect(() => {
     if (!selectedProfile) {

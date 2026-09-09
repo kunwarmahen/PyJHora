@@ -25,6 +25,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
+import { useSettings } from "../contexts/SettingsContext";
 import { formatDate } from "../utils/format";
 import { VARGAS, VARGA_SUGGESTIONS } from "../constants/jyotish";
 import { astrologyService, streamAskQuestion } from "../services/api";
@@ -162,6 +163,7 @@ export const AskAstrologerPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { selectedProfile } = useProfile();
+  const { settings } = useSettings();
 
   const location = useLocation();
   const [chartData, setChartData] = useState(null);
@@ -451,8 +453,8 @@ export const AskAstrologerPage = () => {
 
       // Fetch both chart data and dasha data
       const [chartResponse, dashaResponse] = await Promise.all([
-        astrologyService.calculateBirthChart(birthDetails),
-        astrologyService.getDhasa(birthDetails, "vimsottari"),
+        astrologyService.calculateBirthChart(birthDetails, settings.ayanamsa),
+        astrologyService.getDhasa(birthDetails, "vimsottari", settings.ayanamsa),
       ]);
 
       // Combine chart data with dasha data

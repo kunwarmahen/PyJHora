@@ -80,7 +80,7 @@ export const FullReportPage = () => {
         astrologyService.getYogas(birthDetails, ayanamsa),
         astrologyService.getDoshas(birthDetails, ayanamsa),
         astrologyService.getTransits(birthDetails, null, ayanamsa),
-        astrologyService.getDhasa(birthDetails, "vimsottari"),
+        astrologyService.getDhasa(birthDetails, "vimsottari", ayanamsa),
       ]);
       const chartData = val(chart);
       if (!chartData) {

@@ -331,8 +331,8 @@ export const CompatibilityPage = () => {
     setTimelineLoading(true);
     setTimelineError("");
     Promise.all([
-      astrologyService.getDhasa(p1),
-      astrologyService.getDhasa(p2),
+      astrologyService.getDhasa(p1, "vimsottari", ayanamsa),
+      astrologyService.getDhasa(p2, "vimsottari", ayanamsa),
       astrologyService.getSaturnTransits(p1, ayanamsa).catch(() => null),
       astrologyService.getSaturnTransits(p2, ayanamsa).catch(() => null),
     ])

@@ -355,7 +355,8 @@ class DigestsMixin:
                 current_date=date_str, current_time=current_time,
                 current_tz=current_tz, ayanamsa=ayanamsa)
             dashas = AstrologyCompute.get_dashas(
-                dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz)
+                dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz,
+                ayanamsa=ayanamsa)
 
             # The classical gochara verdicts for today — the digest's only source
             # of an honestly *unfavourable* reading. Best-effort: a day without it
@@ -730,7 +731,8 @@ class DigestsMixin:
                 dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz,
                 current_date=today_str, ayanamsa=ayanamsa)
             dashas = AstrologyCompute.get_dashas(
-                dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz)
+                dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz,
+                ayanamsa=ayanamsa)
             events = AstrologyCompute._transit_events_in_window(
                 place, lat, lon, tz_offset, start_str, end_jd)
 

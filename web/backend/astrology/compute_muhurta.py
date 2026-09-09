@@ -473,7 +473,8 @@ class MuhurtaMixin:
                           current_place: Optional[str] = None,
                           current_lat: Optional[float] = None,
                           current_lon: Optional[float] = None,
-                          current_tz: Optional[float] = None) -> Dict:
+                          current_tz: Optional[float] = None,
+                          ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """Pancha Pakshi Sastra — the bird-cycle daily-timing system.
 
         Assigns the native a *birth bird* (from the birth nakshatra + paksha),
@@ -493,6 +494,10 @@ class MuhurtaMixin:
         if not ENGINE_AVAILABLE:
             return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
+            # The bird is derived from the birth nakshatra, so the ayanamsa picks
+            # which nakshatra that is — a wrong one changes the bird itself, not
+            # merely the timings.
+            _set_ayanamsa(ayanamsa)
             from datetime import datetime, timezone as _utc, timedelta
             from jhora.panchanga import pancha_paksha as pp
 
@@ -654,3 +659,5 @@ class MuhurtaMixin:
             import traceback
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)

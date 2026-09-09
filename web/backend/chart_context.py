@@ -81,7 +81,8 @@ def _find_current(periods: List[Dict[str, Any]], today: str) -> Optional[Dict[st
 
 
 def _running_dasha_chain(args: Dict[str, Any], dashas: Dict[str, Any],
-                         current_tz: Optional[float] = None) -> List[Dict[str, Any]]:
+                         current_tz: Optional[float] = None,
+                         ayanamsa: str = DEFAULT_AYANAMSA) -> List[Dict[str, Any]]:
     """Walk the active Vimsottari chain from Maha down to Sookshma.
 
     `args` are the dob/tob/place/lat/lon/tz kwargs for AstrologyCompute calls;
@@ -121,7 +122,7 @@ def _running_dasha_chain(args: Dict[str, Any], dashas: Dict[str, Any],
     # Levels 3-4: drill down via get_dasha_children, recomputed at full precision.
     path = [current_maha["lord"], current_bhukti["lord"]]
     for level in (3, 4):
-        res = AstrologyCompute.get_dasha_children(lords_path=path, **args)
+        res = AstrologyCompute.get_dasha_children(lords_path=path, ayanamsa=ayanamsa, **args)
         if res.get("status") != "success":
             break
         current = _find_current(res.get("children", []), today)
@@ -216,12 +217,12 @@ def build_chart_context(birth_details: Dict[str, Any],
 
     # Dasha — always include the base current/next (cheap; used for fallback
     # rendering), plus the full running chain when requested.
-    dashas = AstrologyCompute.get_dashas(current_tz=current_tz, **args)
+    dashas = AstrologyCompute.get_dashas(current_tz=current_tz, ayanamsa=ayanamsa, **args)
     ctx["current_dasha"] = dashas.get("current_dasha", {})
     ctx["next_dasha"] = dashas.get("next_dasha", {})
     ctx["current_bhukthi"] = dashas.get("current_bhukthi", {})
     if sections.get("dasha_tree"):
-        ctx["dasha_tree"] = _running_dasha_chain(args, dashas, current_tz)
+        ctx["dasha_tree"] = _running_dasha_chain(args, dashas, current_tz, ayanamsa=ayanamsa)
 
     if sections.get("yogas"):
         y = AstrologyCompute.get_yogas(ayanamsa=ayanamsa, **args)

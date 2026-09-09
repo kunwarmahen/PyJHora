@@ -79,7 +79,7 @@ def _dasha_chain(bd, ayanamsa, dhasa_type: str = "vimsottari",
                  current_tz: Optional[float] = None, **_):
     args = _args(bd)
     dashas = AstrologyCompute.get_dashas(dhasa_type=dhasa_type,
-                                         current_tz=current_tz, **args)
+                                         current_tz=current_tz, ayanamsa=ayanamsa, **args)
     if dashas.get("status") == "failed":
         return dashas
     result = {
@@ -89,7 +89,7 @@ def _dasha_chain(bd, ayanamsa, dhasa_type: str = "vimsottari",
     }
     # The precise running Maha -> Bhukti -> Antara -> Sookshma chain (Vimsottari).
     if dhasa_type == "vimsottari":
-        result["dasha_tree"] = _running_dasha_chain(args, dashas, current_tz)
+        result["dasha_tree"] = _running_dasha_chain(args, dashas, current_tz, ayanamsa=ayanamsa)
     return result
 
 
@@ -98,7 +98,7 @@ def _dasha_children(bd, ayanamsa, lords_path: Optional[List[str]] = None, **_):
         raise ToolError("get_dasha_children requires a non-empty 'lords_path' list "
                         "of dasha lords from Maha downward, e.g. ['Venus', 'Sun'].")
     args = _args(bd)
-    res = AstrologyCompute.get_dasha_children(lords_path=lords_path, **args)
+    res = AstrologyCompute.get_dasha_children(lords_path=lords_path, ayanamsa=ayanamsa, **args)
     if res.get("status") != "success":
         return res
     return {"lords_path": lords_path, "children": res.get("children", [])}
@@ -551,7 +551,7 @@ def _pancha_pakshi(bd, ayanamsa, date: Optional[str] = None,
                    current_tz: Optional[float] = None, **_):
     r = AstrologyCompute.get_pancha_pakshi(
         date=date, current_place=current_place, current_lat=current_lat,
-        current_lon=current_lon, current_tz=current_tz, **_args(bd))
+        current_lon=current_lon, current_tz=current_tz, ayanamsa=ayanamsa, **_args(bd))
     if r.get("status") != "success":
         return r
     # Trim the full 10×5 timeline to the summary the model actually needs.

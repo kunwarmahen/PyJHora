@@ -1288,6 +1288,7 @@ async def analyze_pancha_pakshi(
             date=request.date,
             current_place=here.get("place"), current_lat=here.get("latitude"),
             current_lon=here.get("longitude"), current_tz=here.get("timezone"),
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
         )
         if pp.get("status") != "success":
             raise HTTPException(status_code=400, detail=pp.get("error", "Calculation failed"))

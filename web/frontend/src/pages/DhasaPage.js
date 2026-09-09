@@ -73,6 +73,10 @@ const formatDuration = (node, level, t) => {
 // Dasha ships its Bhuktis). Deeper levels are lazy-fetched on first expand.
 function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
   const { t, i18n } = useTranslation();
+  // Read the ayanamsa here rather than drilling it through every recursive node.
+  // It is load-bearing: it moves the whole dasha timeline by ~3 days, which at
+  // Sookshma length is enough to change which lord is shown as running.
+  const { settings } = useSettings();
   const locale = intlLocale(i18n.language);
   const isCurrent = isCurrentPeriod(node.start_date, node.end_date);
   const canExpand = level < 4;
@@ -87,14 +91,14 @@ function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
     setLoading(true);
     setError("");
     try {
-      const res = await astrologyService.getDhasaChildren(birthDetails, path);
+      const res = await astrologyService.getDhasaChildren(birthDetails, path, settings.ayanamsa);
       setChildren(res.data.children || []);
     } catch (e) {
       setError(e.response?.data?.detail || t("dhasa.loadChildrenError"));
     } finally {
       setLoading(false);
     }
-  }, [birthDetails, path, t]);
+  }, [birthDetails, path, settings.ayanamsa, t]);
 
   // Auto-load children when a node opens (incl. the current-period cascade,
   // which expands the whole live Mahadasha→Antardasha→Pratyantardasha→Sookshma chain on mount).
@@ -492,6 +496,7 @@ export const DhasaPage = () => {
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
+  const { settings } = useSettings();
   const [dhasaSearchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(true);
@@ -521,14 +526,14 @@ export const DhasaPage = () => {
     }
     calculateDasha();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProfile, navigate]);
+  }, [selectedProfile, navigate, settings.ayanamsa]);
 
   const calculateDasha = async () => {
     if (!selectedProfile) return;
     setLoading(true);
     setError("");
     try {
-      const response = await astrologyService.getDhasa(birthDetails, "vimsottari");
+      const response = await astrologyService.getDhasa(birthDetails, "vimsottari", settings.ayanamsa);
       setResult(response.data);
     } catch (err) {
       setError(err.response?.data?.detail || t("dhasa.calcError"));
