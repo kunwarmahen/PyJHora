@@ -6,6 +6,7 @@ import { RASI_NAMES, RASI_GLYPHS, rasiTattvaColor, ASPECT_COLORS } from "../cons
 import { useLocalizeName } from "../i18n/localizeName";
 import { useSettings } from "../contexts/SettingsContext";
 import { signLabelParts } from "../config/signLabel";
+import { signNumOf } from "../config/chartPosition";
 import { ChartExportButtons } from "./ChartExportButtons";
 import "../styles/NorthIndianChart.css";
 
@@ -59,6 +60,11 @@ export const SouthIndianChart = ({
     return <div className="chart-empty">No chart data</div>;
   }
 
+  // Unlike the North Indian diamond, the South Indian grid's cells are fixed to
+  // the signs, so the diagram is still correct without a lagna — it just loses
+  // the Lagna marker and the aspect lines. Hence no hard guard here.
+  const lagnaSignNum = signNumOf(lagna);
+
   // Planet-condition flags: fullName -> { tone, labels[] }.
   const flagsByPlanet = {};
   (conditions || []).forEach((p) => {
@@ -88,11 +94,11 @@ export const SouthIndianChart = ({
   // Items (lagna + planets) occupying a given zodiac sign (1–12)
   const itemsForSign = (signNum) => {
     const items = [];
-    if (lagna && lagna.sign_num === signNum) {
+    if (lagnaSignNum === signNum) {
       items.push({ name: t("common.lagnaAbbr"), type: "lagna", degrees: lagna.degrees });
     }
     Object.entries(planets).forEach(([name, data]) => {
-      if (data.sign_num === signNum) {
+      if (signNumOf(data) === signNum) {
         items.push({
           // `name` is display text; `fullName` stays canonical English because it keys
           // flagsByPlanet / onSelectPlanet and must not follow the UI language.
@@ -126,7 +132,7 @@ export const SouthIndianChart = ({
           const signNum = Number(key);
           const { col, row } = SIGN_POS[signNum];
           const items = itemsForSign(signNum);
-          const isLagna = lagna && lagna.sign_num === signNum;
+          const isLagna = lagnaSignNum === signNum;
           const isCrowded = items.length > 3;
           return (
             <div
@@ -213,13 +219,14 @@ export const SouthIndianChart = ({
           >
             {aspects.flatMap((a) => {
               const data = planets[a.planet];
-              if (!data || !data.sign_num) return [];
+              const dataSign = signNumOf(data);
+              if (dataSign == null || lagnaSignNum == null) return [];
               if (focusPlanet && focusPlanet !== a.planet) return [];
-              const src = cellCenter(data.sign_num);
+              const src = cellCenter(dataSign);
               if (!src) return [];
               const color = ASPECT_COLORS[a.planet] || "#37474f";
               return (a.aspects_houses || []).map((h) => {
-                const sign = ((lagna.sign_num - 1 + (h.house - 1)) % 12) + 1;
+                const sign = ((lagnaSignNum - 1 + (h.house - 1)) % 12) + 1;
                 const tgt = cellCenter(sign);
                 if (!tgt) return null;
                 // Weight the line by aspect strength (0-100%).

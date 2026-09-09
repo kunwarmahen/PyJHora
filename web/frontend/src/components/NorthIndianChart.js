@@ -6,6 +6,7 @@ import { RASI_NAMES, RASI_GLYPHS, rasiTattvaColor, ASPECT_COLORS } from "../cons
 import { useLocalizeName } from "../i18n/localizeName";
 import { useSettings } from "../contexts/SettingsContext";
 import { signLabelParts } from "../config/signLabel";
+import { signNumOf, signAtVisualHouse } from "../config/chartPosition";
 import { ChartExportButtons } from "./ChartExportButtons";
 import "../styles/NorthIndianChart.css";
 
@@ -65,30 +66,29 @@ export const NorthIndianChart = ({
     neutral: "#8b8fa8",
   };
 
-  if (!planets) {
+  // The lagna's own cell (1 = Aries … 12 = Pisces). Everything on the diagram is
+  // counted from it, so without it there is no chart to draw — and drawing one
+  // anyway is how a stale build came to number every cell with its house number
+  // (§66). No chart beats a plausible wrong one.
+  const lagnaSignNum = signNumOf(lagna);
+  if (!planets || lagnaSignNum == null) {
     return <div className="chart-empty">No chart data</div>;
   }
 
   // Which zodiac sign sits in a given visual house position (1 = where Lagna is)
-  const getSignForVisualHouse = (visualHouseNum) => {
-    if (!lagna) return visualHouseNum;
-    const lagnaSign = lagna.sign_num; // e.g. 4 for Cancer
-    let signNum = lagnaSign + visualHouseNum - 1;
-    if (signNum > 12) signNum -= 12;
-    return signNum;
-  };
+  const getSignForVisualHouse = (visualHouseNum) => signAtVisualHouse(lagnaSignNum, visualHouseNum);
 
   // Planets + lagna occupying a specific visual house position
   const getPlanetsInHouse = (visualHouseNum) => {
     const items = [];
     const signAtThisPosition = getSignForVisualHouse(visualHouseNum);
 
-    if (lagna && lagna.sign_num === signAtThisPosition) {
+    if (lagnaSignNum === signAtThisPosition) {
       items.push({ name: t("common.lagnaAbbr"), type: "lagna", degrees: lagna.degrees });
     }
 
     Object.entries(planets).forEach(([name, data]) => {
-      if (data.sign_num === signAtThisPosition) {
+      if (signNumOf(data) === signAtThisPosition) {
         items.push({
           // `name` is display text; `fullName` stays canonical English because it keys
           // flagsByPlanet / onSelectPlanet and must not follow the UI language.
@@ -302,10 +302,11 @@ export const NorthIndianChart = ({
             <g className="aspect-lines">
               {aspects.flatMap((a) => {
                 const data = planets[a.planet];
-                if (!data || !data.sign_num) return [];
+                const dataSign = signNumOf(data);
+                if (dataSign == null) return [];
                 // `sign_num` is the sign cell; the visual house is that counted
                 // from the Lagna's cell (which is `data.house`, when present).
-                const srcVisual = ((data.sign_num - lagna.sign_num + 12) % 12) + 1;
+                const srcVisual = ((dataSign - lagnaSignNum + 12) % 12) + 1;
                 const src = houses[srcVisual - 1];
                 if (!src) return [];
                 const dim = focusPlanet && focusPlanet !== a.planet;

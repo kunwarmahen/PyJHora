@@ -7,7 +7,9 @@
  *   - same-origin static GETs: stale-while-revalidate
  *   - anything under /api or cross-origin: passthrough (never cached)
  */
-const CACHE = "jyotir-ai-v1";
+// Bumping this name drops the previous shell on activate — do it whenever the
+// cached shell could be stale in a way that matters (see the navigation note).
+const CACHE = "jyotir-ai-v2";
 const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png"];
 
 self.addEventListener("install", (event) => {
@@ -33,10 +35,19 @@ self.addEventListener("fetch", (event) => {
   // Never touch API calls or cross-origin requests.
   if (url.origin !== self.location.origin || url.pathname.startsWith("/api")) return;
 
-  // App navigations: try network, fall back to cached shell offline.
+  // App navigations: network-first, falling back to the cached shell offline.
+  //
+  // `cache: "reload"` is load-bearing. index.html is the only thing that names
+  // the current hashed bundles, and a plain fetch() may be answered from the
+  // browser's HTTP cache — which pins the tab to a previous build's JavaScript,
+  // across new tabs, for as long as heuristic freshness lasts. An old bundle
+  // against the current API does not error; it renders something plausible and
+  // wrong (todo.md §66). So always revalidate the shell against the network.
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() => caches.match("./index.html"))
+      fetch(request, { cache: "reload" })
+        .catch(() => fetch(request))
+        .catch(() => caches.match("./index.html"))
     );
     return;
   }

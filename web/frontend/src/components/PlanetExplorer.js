@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { X, Sparkles } from "lucide-react";
 import "../styles/PlanetExplorer.css";
 import { useLocalizeName } from "../i18n/localizeName";
+import { signNumOf } from "../config/chartPosition";
 
 // Sign (0-based rasi) owned by each graha — used to derive the houses it lords.
 const RULERSHIP = {
@@ -45,7 +46,7 @@ export const PlanetExplorer = ({
   // 0-based ascendant sign, for the rulership counts below. Each graha's own
   // house comes from the backend now (`house` is the bhava; `sign_num` is only
   // the cell the Kundali draws it in).
-  const lagnaRasi = (chart?.lagna?.sign_num ?? 1) - 1;
+  const lagnaRasi = (signNumOf(chart?.lagna) ?? 1) - 1;
 
   const houseFromLagna = (rasi) => (((rasi - lagnaRasi) % 12) + 12) % 12; // 0..11
 

@@ -6429,3 +6429,69 @@ House Cusps table), Chart of the Moment, and the Sahams panel from §64 — 36 r
 where there were none. No console errors on any page.
 
 699 backend tests green, 181 frontend.
+
+## 66. "Every chart says 1 in the first house" — a stale bundle, and a UI that guessed (owner report 2026-09-09)
+
+The owner opened the app after §65 and saw the numeral **1** in the first house
+of every chart, 2 in the second, and so on — house numbers where the rasi number
+belongs. His lagna is Taurus, so the first house should read **2**. Crucially:
+**F12 fixed it, and a new tab reproduced it.**
+
+### It was not the new code — it was the old code, still running
+
+The rename is a contract change between the frontend and the API, and an old
+bundle against the current API is not a crash. It is this:
+
+```js
+const lagnaSign = lagna.house;          // old bundle: `house` WAS the sign cell
+let n = lagnaSign + visualHouseNum - 1; // new API: a lagna's `house` is 1 (its bhava)
+// → n === visualHouseNum, for every cell
+```
+
+`1 + v - 1 = v`. Every cell numbered with its own house number, exactly as
+reported — and the grahas still land in the right *houses*, because the geometry
+already fixes those, so the chart looks almost right. A stale client fails
+**plausibly**, which is the same failure mode as §63 one layer out.
+
+### Why a new tab kept the old bundle, and why F12 fixed it
+
+nginx long-caches `/static/` (correct — the filenames are content-hashed) but
+sent **no `Cache-Control` for `index.html`**, which is the one file that names
+the current hashed bundles. With no explicit header the browser falls back to
+heuristic freshness and may reuse it without revalidating — in a new tab, in a
+new window, indefinitely. DevTools' "disable cache while open" bypasses exactly
+that, which is why F12 "fixed" it and why the fix didn't survive closing it.
+
+Three layers, because one is not enough here:
+
+1. **nginx**: `no-store, no-cache, must-revalidate` on `= /index.html` and
+   `= /sw.js`. The SPA rule. (`try_files … /index.html` is an internal redirect,
+   so it re-enters location matching and picks this up.)
+2. **The service worker**: navigations now `fetch(request, {cache: "reload"})`.
+   This matters more than the nginx change for *already-affected* browsers:
+   adding a header now cannot reach an index.html a browser is already holding,
+   but the SW updates itself and then revalidates the shell on every navigation.
+   Cache name bumped to `v2` so the old shell is dropped on activate.
+3. **The UI stops guessing.** `getSignForVisualHouse` used to fall back to the
+   visual house number when the lagna was missing — inventing precisely the
+   wrong-but-plausible numbering this bug shows. New `config/chartPosition.js`
+   reads `sign_num`, falls back to `rasi` (unambiguous, and present on
+   pre-rename payloads) and otherwise returns **null**; the North Indian chart
+   then renders "No chart data" rather than a mislabelled diamond. `house` is
+   never a source for it — for a lagna it is always 1, which is the whole bug.
+
+The South Indian chart needs no such guard and doesn't get one: its cells are
+fixed to the signs, so without a lagna it loses the Lagna marker and the aspect
+lines but stays correct.
+
+### Guards
+
+`config/chartPosition.test.js` — six cases, including the one that matters:
+`signNumOf({house: 1, sign_name: "Taurus"})` must be **null**, never 1.
+
+### For anyone still seeing it
+
+A hard reload (Ctrl/Cmd+Shift+R) or clearing site data fixes an affected browser
+immediately. After this deploy it cannot recur.
+
+699 backend tests green, 187 frontend (6 new).
