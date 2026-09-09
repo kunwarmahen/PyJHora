@@ -134,11 +134,16 @@ handler}`. `handler(birth_details, ayanamsa, **model_args) -> dict`. Exposes:
 ### 4.1b Result shapes: houses, never sign numbers (§63)
 
 Every handler returns a **projection** of the compute payload, not the payload.
-The compute layer speaks the Kundali renderer's language — `rasi` is the 0-based
-sign index and `house` is that index + 1, the *sign cell* a chart component draws
-in — and neither is a bhava. Shipped verbatim, `{"rasi": 3, "house": 4,
-"sign_name": "Cancer"}` made every model place a D9 Sun in the 4th when it is in
-the 12th from that chart's Leo lagna.
+
+Since §65 the compute layer keeps the two ideas apart by name: `house` is always
+the bhava, and `sign_num` is the 1-based sign whose cell a Kundali component
+draws the graha in. Before that the drawing coordinate was itself called `house`
+(with a 0-based `rasi` beside it), so `{"rasi": 3, "house": 4, "sign_name":
+"Cancer"}` made every model place a D9 Sun in the 4th when it is in the 12th from
+that chart's Leo lagna.
+
+`sign_num` is unambiguous but still not something to reason from — it is a
+coordinate, not a placement — so it does not go to the model either.
 
 So any handler returning a chart passes it through
 `astrology.chart_view.chart_positions(lagna, planets)`, which counts the real
@@ -150,11 +155,10 @@ the sign number stops competing with them.
 
 On top of that, `dispatch` runs `sanitize()` over **every** result, so the safe
 shape is the default rather than something each handler must remember: it drops
-`rasi`, and any bare integer `sign` / `*_sign` whose own `*_name` sibling already
-spells the sign out (that integer is 0-based in most payloads and 1-based in the
-arudhas — unreadable even in principle). It never touches `house`: by then that
-is a real bhava, either counted by the compute (sphutas, sahams, KP, Muntha,
-transits) or by `chart_positions`.
+`rasi`, `sign_num`, and any bare integer `sign` / `*_sign` whose own `*_name`
+sibling already spells the sign out (that integer is 0-based in most payloads and 1-based in the
+arudhas — unreadable even in principle). It never touches `house` — that is the bhava, counted by
+the compute layer itself.
 
 A new tool that returns a chart still has to call `chart_positions` itself —
 `sanitize` can drop an ambiguous number but cannot invent the house count.
