@@ -6021,22 +6021,111 @@ matters beyond this one point: `drik.sidereal_longitude` derives **Ketu** as
 `swe.calc_ut(jd, const._RAHU)`, so the same stale constant was feeding Ketu on
 any path not going through `planet_list`.
 
-### The dasha year length, and a misnamed upstream default
+### The dasha year length — and a wrong turn, corrected in §62
 
 V4.9.0 rerouted every dasha start/end through `drik._get_dhasa_start_jd`, which
-walks the Sun's actual transit instead of multiplying by a fixed year length. It
-defaults to `DHASA_YEAR_DURATION.JHORA_DEFAULT` — **and that alias is a
-misnomer**: it resolves to `TRUE_SIDEREAL_YEAR`, which put every Vimsottari maha
-boundary a full day later than Jagannatha Hora actually prints (Ketu 1976-01-12
-vs 1976-01-11).
+walks the Sun's actual transit instead of multiplying by a fixed year length, and
+defaults to `DHASA_YEAR_DURATION.JHORA_DEFAULT` (= `TRUE_SIDEREAL_YEAR`).
 
-`MEAN_SIDEREAL_YEAR` reproduces the pre-5.0 formula (`jd - elapsed_years *
-const.sidereal_year`) and is the one that agrees with JHora, so it is now pinned
-in the matching-defaults block next to the ayanamsa and node settings. It is
-global, so it covers every dasha system rather than just Vimsottari.
+**That default is correct. This section originally called it a misnomer and
+pinned `MEAN_SIDEREAL_YEAR` instead — that was wrong**, and §62 undoes it. The
+reasoning failed on provenance: `test_golden`'s Ketu maha of 1976-01-11 looked
+like a JHora-verified value and was actually a stale pre-5.0 baseline of our own
+output. JHora prints 1976-01-12 10:43:17. Left here rather than rewritten,
+because the mistake is the instructive part.
 
 ### Verification
 
 597 backend tests green, and `./dev.sh test engine` green — 6,495 of PyJHora's
 own tests, the single failure being the conjunction-rounding baseline already
 listed in `ENGINE_KNOWN_FAILURES`.
+
+## 62. The Sookshma that was three days out — ayanamsa, year length, solar arc
+
+Reported after the 5.0 deploy: JHora showed Rahu/Rahu/Jupiter/**Sun** running to
+2026-09-12; we showed Moon, with Sun having ended 09-09. The owner suspected it
+predated the upgrade. It did — 4.8.7 gives byte-identical output — and it took
+three attempts to find, two of them wrong. All three are recorded because the
+wrong turns are the reusable part.
+
+### Wrong turn 1: the ayanamsa
+
+Switching the profile to Lahiri reproduced 09-12 exactly, which looked conclusive.
+It was coincidence. The owner's JHora runs **True Lahiri/Chitrapaksha (Spica
+always at the middle of Chitra)** — which is our `TRUE_CITRA`, already the
+default. Verified rather than assumed: our `TRUE_CITRA` maps to swe
+`SIDM_TRUE_CITRA` and puts Spica at exactly 180.000000; `LAHIRI` puts it at
+179.988. The two differ by 0.71' and the gap needed 0.94' of Moon — close enough
+to fool a single data point.
+
+### The real bug it uncovered anyway
+
+Switching ayanamsa *appeared* to do nothing on the Dhasa page, because it did
+nothing: `get_dashas`, `get_dasha_children` and `get_pancha_pakshi` took no
+`ayanamsa` argument at all. `get_dasha_periods` had been fixed for exactly this
+once, and its docstring then claimed it was "the one compute in the app that did"
+— so the whole class got audited, not just the reported call. Seven other
+chart-derived computes forward it correctly and were left alone. Now guarded
+structurally (a new compute taking `dob`/`tob` must accept an `ayanamsa`) and
+behaviourally (the value must change the answer, not merely be accepted).
+
+Also swept up: `PanchaPakshiAnalysisRequest` had no `ayanamsa` field while the UI
+was already sending one, so pydantic dropped it; and `AskAstrologerPage` passed
+none to *either* of its calls, which would have left it rendering a True Chitra
+chart beside a Lahiri timeline had only the dasha call been fixed.
+
+### Wrong turn 2: the year length
+
+With the ayanamsa cleared, the next suspect was §61's `MEAN_SIDEREAL_YEAR` pin.
+The owner's JHora printout settled it — and settled it *against* the pin:
+
+```
+JHora     Ketu 1976-01-12 (10:43:17)
+true sid       1976-01-12 (10:43:43)   ~26s, all nine boundaries
+mean sid       1976-01-11 (18:40:56)   ~16h out, every one
+```
+
+**Lesson worth keeping: a golden value only proves agreement with JHora if
+someone actually compared it to JHora.** Check provenance before treating one as
+an oracle. Also fixed here: our own call into `vimsottari_immediate_children`
+omitted `jd`/`place` — harmless pre-5.0, fatal from 5.0, and initially
+mis-reported as an upstream bug.
+
+### The actual cause: sub-periods must divide the parent's SOLAR ARC
+
+Maha and Antardasha then matched to under a minute, but Pratyantardasha entered
+8h05m late and Sookshma drifted to ~2.8 days. The decisive test needed no
+reference to JHora at all: given JHora's *own exact* Pratyantardasha span, our
+children still overran its end by ~2.5 days. Sub-periods must tile their parent.
+
+`vimsottari_immediate_children` derives each child's length independently from
+its own dasha-years rather than from the parent's arc, so they do not tile.
+The rule JHora uses:
+
+* a period of N dasha-years is exactly **N x 360 deg of the Sun's sidereal
+  travel** — their 0.36-year Pratyantardasha spans 129.59999 deg;
+* children divide that **arc** in the 7:20:6:10:7:18:16:19:17 proportion;
+* a boundary is the moment the Sun has covered the cumulative share.
+
+The subtlety is that the Sun runs fastest near January perihelion, so **equal
+arcs are not equal spans of time**. A flat pro-rata split was tested too and is
+wrong by up to 17h. Dividing the parent's own arc closes on both ends by
+construction — `compute_dashas._vimsottari_arc_children`.
+
+Every level of the printout now agrees to under a second: Antardasha
+2026-01-12 -> 2028-09-26, Pratyantardasha 2026-06-08 -> 2026-10-20, and all nine
+Sookshmas. The reported node reads Sun 2026-09-05 -> 2026-09-12.
+
+Scope: only Vimsottari exposes a drill-down. The other 17 systems are maha-only
+(`dhasa_level_index=1`), so they cannot hit the tiling defect — if one ever gains
+sub-periods, it needs this treatment.
+
+### Guards
+
+The full JHora chain is pinned, and so is the **tiling invariant** — children
+must start and end exactly on their parent with no gaps. That one needs no
+external oracle and would have caught this without the printout. `/health` also
+now reports `engine_version` and `default_ayanamsa`, so "which engine and which
+ayanamsa is this pod on" is answerable from the portal.
+
+605 backend tests green; engine suite green at 6,495.
