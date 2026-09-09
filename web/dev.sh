@@ -45,6 +45,8 @@
 #   #   "[scheduler] daily-digest scheduler started" startup message)
 #   ./dev.sh nas ps           # container status on NAS
 #   ./dev.sh nas shell [svc]  # shell into a NAS container (default: backend)
+#   #   both passwords (SSH, then NAS sudo) are asked ONCE, up front, before any
+#   #   building or shipping — export NAS_SUDO_PASSWORD to skip the sudo prompt
 #   #   config via web/.env (see .env.nas.example): NAS_HOST/USER/PATH, TUNNEL_TOKEN, ...
 #   #   e.g.  NAS_HOST=192.168.1.50 ./dev.sh nas deploy
 #
@@ -96,6 +98,11 @@ NAS_PATH="${NAS_PATH:-$(env_val NAS_PATH)}"; NAS_PATH="${NAS_PATH:-pyjhora}"  # 
 NAS_SSH_KEY="${NAS_SSH_KEY:-$(env_val NAS_SSH_KEY)}"
 NAS_SSH_PORT="${NAS_SSH_PORT:-$(env_val NAS_SSH_PORT)}"; NAS_SSH_PORT="${NAS_SSH_PORT:-22}"
 NAS_SSH_CTL="/tmp/.jyotirai-ssh-$$"   # ControlMaster socket — one password prompt per deploy
+# The master is opened before the image builds so its password is asked up front;
+# it must therefore outlive a cold build, not the old 120s idle window.
+NAS_SSH_PERSIST="${NAS_SSH_PERSIST:-4h}"
+NAS_SUDO_PW=""                        # captured once, in memory only — never written to disk
+NAS_SUDO_MODE=""                      # "" | nopasswd | password | prompt
 
 # --- colours ------------------------------------------------------------
 if [ -t 1 ]; then
@@ -349,7 +356,7 @@ require_env() {
 # shellcheck disable=SC2046  # intentional word-splitting of ssh_opts below
 ssh_opts() {
   local o="-p ${NAS_SSH_PORT} -o StrictHostKeyChecking=no -o ConnectTimeout=10"
-  o="$o -o ControlMaster=auto -o ControlPath=${NAS_SSH_CTL} -o ControlPersist=120"
+  o="$o -o ControlMaster=auto -o ControlPath=${NAS_SSH_CTL} -o ControlPersist=${NAS_SSH_PERSIST}"
   [ -n "$NAS_SSH_KEY" ] && o="$o -i $NAS_SSH_KEY"
   echo "$o"
 }
@@ -362,7 +369,58 @@ nas_ssh() {  # nas_ssh [-t] <cmd...>   (-t forces a PTY so sudo can prompt)
 nas_scp() {  # nas_scp <local> <remote>
   local key=""; [ -n "$NAS_SSH_KEY" ] && key="-i $NAS_SSH_KEY"
   scp -P "$NAS_SSH_PORT" -o StrictHostKeyChecking=no -o ControlMaster=auto \
-      -o "ControlPath=${NAS_SSH_CTL}" -o ControlPersist=120 $key "$1" "${NAS_USER}@${NAS_HOST}:$2"
+      -o "ControlPath=${NAS_SSH_CTL}" -o ControlPersist="${NAS_SSH_PERSIST}" $key "$1" "${NAS_USER}@${NAS_HOST}:$2"
+}
+
+# Every remote command runs `sudo docker ...`, and sudo's prompt used to land on
+# a PTY *after* the build and the image transfer — a deploy you had to babysit.
+# Ask for it once, up front, right after the SSH password, and authenticate the
+# remote sudo timestamp so the later commands go through unattended.
+nas_sudo_prime() {
+  [ -n "$NAS_SUDO_MODE" ] && return 0
+  if nas_ssh 'sudo -n true' >/dev/null 2>&1; then
+    NAS_SUDO_MODE=nopasswd
+    info "NAS sudo: passwordless — nothing to ask"
+    return 0
+  fi
+  # Deliberately NOT read from web/.env: that file is scp'd to the NAS, so a sudo
+  # password living in it would be shipped to the very box it unlocks.
+  local pw="${NAS_SUDO_PASSWORD:-}" out
+  if [ -z "$pw" ] && [ -r /dev/tty ]; then
+    printf 'sudo password for %s@%s (asked once, up front): ' "$NAS_USER" "$NAS_HOST" >&2
+    read -rs pw < /dev/tty; printf '\n' >&2
+  fi
+  if [ -n "$pw" ]; then
+    # Password goes over ssh's stdin, never on the remote command line (where the
+    # NAS's own `ps` would show it), and with no PTY so nothing echoes it back.
+    if out="$(printf '%s\n' "$pw" | nas_ssh 'sudo -S -v' 2>&1)"; then
+      NAS_SUDO_PW="$pw"; NAS_SUDO_MODE=password
+      ok "sudo authenticated on ${NAS_HOST} — the rest of the deploy runs unattended"
+      return 0
+    fi
+    case "$out" in
+      *tty*|*askpass*) err "NAS sudo needs a terminal — it will prompt during the deploy" ;;
+      *) err "sudo password rejected by ${NAS_HOST}"; exit 1 ;;
+    esac
+  fi
+  NAS_SUDO_MODE=prompt
+}
+
+# Run a remote script with sudo already authenticated (falls back to an
+# interactive PTY prompt when priming was not possible).
+nas_sudo_sh() {
+  case "$NAS_SUDO_MODE" in
+    password)
+      # Authenticate, then hold the credential open for as long as the remote
+      # script runs: a cold `docker load` can outlast sudo's 5-minute cache, and
+      # with no PTY a lapsed cache would fail outright instead of re-prompting.
+      printf '%s\n' "$NAS_SUDO_PW" | nas_ssh "sudo -S -v >/dev/null 2>&1
+( while sudo -n -v 2>/dev/null; do sleep 60; done ) >/dev/null 2>&1 &
+__ka=\$!
+trap 'kill \$__ka 2>/dev/null' EXIT
+$1" ;;
+    *) nas_ssh -t "$1" ;;
+  esac
 }
 
 build_backend_image() {  # context = repo root, so the image can vendor the jhora `src/` library
@@ -461,11 +519,16 @@ nas_deploy() {
 
   require_nas_host; require_env
   detect_engine
-  [ "$skip_build" = 1 ] || nas_build_images "$want_be" "$want_web"
 
+  # Connect and collect BOTH credentials first: the SSH master password, then the
+  # NAS sudo password. Everything slow — the parallel builds, the image stream —
+  # happens after, so the deploy never stops for input once it is under way.
   nas_ssh_open
   trap 'nas_ssh_close' EXIT
+  nas_sudo_prime
   detect_codec
+
+  [ "$skip_build" = 1 ] || nas_build_images "$want_be" "$want_web"
 
   info "preparing ${NAS_PATH} on ${NAS_HOST} ..."
   nas_ssh "mkdir -p '${NAS_PATH}/nginx' '${NAS_PATH}/mongo-data'"
@@ -523,7 +586,7 @@ nas_deploy() {
   # No `compose down` first: compose recreates exactly the containers whose image
   # ID changed, so mongo and the tunnel stay up instead of bouncing every deploy.
   # Need a hard reset? ./dev.sh nas down && ./dev.sh nas up
-  nas_ssh -t "
+  nas_sudo_sh "
     set -e
     cd '${NAS_PATH}'${load_cmds}
     echo '[nas] restarting stack ...'
@@ -544,19 +607,19 @@ nas_deploy() {
   info "logs: ./dev.sh nas logs   |   stop: ./dev.sh nas down"
 }
 
-nas_up()    { require_nas_host; nas_ssh_open; trap 'nas_ssh_close' EXIT; info "(re)starting stack on ${NAS_HOST} ...";
-              nas_ssh -t "cd '${NAS_PATH}' && sudo docker compose up -d --remove-orphans && sudo docker compose ps";
+nas_up()    { require_nas_host; nas_ssh_open; trap 'nas_ssh_close' EXIT; nas_sudo_prime; info "(re)starting stack on ${NAS_HOST} ...";
+              nas_sudo_sh "cd '${NAS_PATH}' && sudo docker compose up -d --remove-orphans && sudo docker compose ps";
               nas_ssh_close; trap - EXIT; ok "done"; }
-nas_down()  { require_nas_host; nas_ssh_open; trap 'nas_ssh_close' EXIT; info "stopping stack on ${NAS_HOST} ...";
-              nas_ssh -t "cd '${NAS_PATH}' && sudo docker compose down"; nas_ssh_close; trap - EXIT; ok "done"; }
+nas_down()  { require_nas_host; nas_ssh_open; trap 'nas_ssh_close' EXIT; nas_sudo_prime; info "stopping stack on ${NAS_HOST} ...";
+              nas_sudo_sh "cd '${NAS_PATH}' && sudo docker compose down"; nas_ssh_close; trap - EXIT; ok "done"; }
 # nas_logs [svc] [n]  — n defaults to 100; "all" replays the whole log from
 # container start. Startup lines (e.g. "[scheduler] ... started") print once at
 # boot, so on a long-running container they sit far past a 100-line tail and a
 # grep for them comes back empty even though the line was logged.
 nas_logs()  { require_nas_host; local svc="${1:-}" n="${2:-100}"; nas_ssh_open; trap 'nas_ssh_close' EXIT; info "tailing NAS logs (Ctrl-C to stop) ...";
               nas_ssh -t "cd '${NAS_PATH}' && sudo docker compose logs -f --tail=$n $svc"; nas_ssh_close; trap - EXIT; }
-nas_ps()    { require_nas_host; nas_ssh_open; trap 'nas_ssh_close' EXIT;
-              nas_ssh -t "cd '${NAS_PATH}' && sudo docker compose ps"; nas_ssh_close; trap - EXIT; }
+nas_ps()    { require_nas_host; nas_ssh_open; trap 'nas_ssh_close' EXIT; nas_sudo_prime;
+              nas_sudo_sh "cd '${NAS_PATH}' && sudo docker compose ps"; nas_ssh_close; trap - EXIT; }
 nas_shell() { require_nas_host; local svc="${1:-backend}"; nas_ssh_open; trap 'nas_ssh_close' EXIT; info "shell into '$svc' on ${NAS_HOST} ...";
               nas_ssh -t "cd '${NAS_PATH}' && sudo docker compose exec $svc /bin/sh"; nas_ssh_close; trap - EXIT; }
 
@@ -684,7 +747,7 @@ case "$ACTION" in
     esac
     ;;
   ""|-h|--help|help)
-    sed -n '2,51p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,53p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     ;;
   *)
     err "unknown action '$ACTION'"
