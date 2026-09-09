@@ -148,9 +148,24 @@ the rising sign. Payloads that already carry their own counts (transits:
 `house_from_lagna` / `_moon` / `_al` / `_ul`) use `strip_layout_all` instead, so
 the sign number stops competing with them.
 
-A new tool that returns planets must do one or the other —
-`tests/test_llm_chart_shapes.py` walks the payloads and fails on any surviving
-`rasi`.
+On top of that, `dispatch` runs `sanitize()` over **every** result, so the safe
+shape is the default rather than something each handler must remember: it drops
+`rasi`, and any bare integer `sign` / `*_sign` whose own `*_name` sibling already
+spells the sign out (that integer is 0-based in most payloads and 1-based in the
+arudhas — unreadable even in principle). It never touches `house`: by then that
+is a real bhava, either counted by the compute (sphutas, sahams, KP, Muntha,
+transits) or by `chart_positions`.
+
+A new tool that returns a chart still has to call `chart_positions` itself —
+`sanitize` can drop an ambiguous number but cannot invent the house count.
+`tests/test_llm_chart_shapes.py` dispatches every tool in `TOOLS` and walks what
+comes back, so a handler that adds a new sign-shaped key fails there.
+
+**The prompt builders are a second AI boundary** and none of this reaches them:
+readings that render a compute payload directly (`_build_now_chart_prompt`,
+Prashna, Varshaphal, Tithi Pravesha) never see `tools.py`, and the now-chart one
+was printing the Kundali's sign cell as the bhava until §63. Any prompt that
+prints "house N" from a chart payload must go through `chart_positions` first.
 
 ### 4.2 Tool loop (`llm_service`)
 A provider-agnostic `run_tool_loop(messages, cfg, tools, on_event)`:

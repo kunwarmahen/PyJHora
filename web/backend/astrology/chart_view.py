@@ -17,11 +17,35 @@ So nothing reaches a prompt with those keys. `chart_positions` replaces them
 with the real whole-sign house counted from that chart's own Lagna (a varga's
 houses are counted from the varga's Lagna, not the D1's), and `strip_layout`
 drops them from payloads that already carry their own `house_from_*` counts.
+
+A bare integer `sign` is the same disease under another name, and worse: it is
+0-based in most payloads (`special_lagnas`, `upagrahas`, `varnadas`, `muntha`,
+`lagna_sign`) but 1-based in the arudhas, so the model cannot even learn one
+rule for it. Every one of those rows already carries `sign_name`, and most a
+real `house` too, so `sanitize` drops the integer wherever a name sits beside
+it — deep, over any payload shape, from `tools.dispatch`, which makes it the
+default for tools that do not yet exist.
 """
 from .engine import ZODIAC_NAMES
 
 # Keys that mean "which sign cell to draw this in", not "which bhava".
 LAYOUT_KEYS = ("rasi", "house")
+
+
+def _redundant_sign_int(key, value, siblings):
+    """True for an integer sign index that a `*_name` sibling already spells out.
+
+    `sign` next to `sign_name`, `lagna_sign` next to `lagna_sign_name`. The
+    integer is ambiguous (0- or 1-based, depending on the payload) and the name
+    is not, so the name wins and the number goes.
+    """
+    if not isinstance(value, int) or isinstance(value, bool):
+        return False
+    if key == "rasi":
+        return True
+    if key == "sign":
+        return "sign_name" in siblings
+    return key.endswith("_sign") and f"{key}_name" in siblings
 
 
 def sign_index(pos):
@@ -41,6 +65,22 @@ def sign_index(pos):
 def strip_layout(pos):
     """A copy of one position dict without the drawing-only sign numbers."""
     return {k: v for k, v in pos.items() if k not in LAYOUT_KEYS}
+
+
+def sanitize(payload):
+    """Deep-clean a payload of sign integers that read as house numbers.
+
+    Drops `rasi` and any redundant integer sign anywhere in the structure, and
+    leaves `house` alone — by the time a payload reaches here its `house` is a
+    real bhava, either because the compute already counted it (sphutas, sahams,
+    KP, Muntha, transits) or because `chart_positions` did.
+    """
+    if isinstance(payload, dict):
+        return {k: sanitize(v) for k, v in payload.items()
+                if not _redundant_sign_int(k, v, payload)}
+    if isinstance(payload, list):
+        return [sanitize(v) for v in payload]
+    return payload
 
 
 def strip_layout_all(positions):

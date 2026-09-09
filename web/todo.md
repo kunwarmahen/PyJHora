@@ -6238,11 +6238,50 @@ been getting wrong. Both now carry the counted house. The "what was sent" previe
 in Ask (the pre-answer fallback, before the backend's real context arrives) does
 the same count in JS so it can't disagree with the payload.
 
+### The sweep (owner: "this is not just D9, it's every D-chart")
+
+Correct, and it was never only the vargas either. Rather than grep, every tool
+was dispatched for real and its JSON walked for sign-shaped numbers. That found
+the D-charts already fixed (they all share one handler, D2 through D60), and two
+things the first pass missed.
+
+**A bare integer `sign` is the same disease under another name — and worse.** It
+is 0-based in `special_lagnas`, `upagrahas`, `varnadas`, `sphutas`, `muntha` and
+`lagna_sign`, but **1-based in the arudhas**, so there is no rule the model could
+learn even if it tried. Every one of those rows already carries `sign_name`, and
+most a correctly-counted `house` beside it, so the integer is pure downside.
+
+**The chart of the moment was reading its own houses off the Kundali cells.**
+`get_now_chart` returns `calculate_birth_chart`'s `planets` — the renderer's set
+— and `_build_now_chart_prompt` printed `(house {info['house']})` from it. With
+Scorpio rising it told the model Sun in the 5th when the Sun was in the 10th.
+That reading never touches `tools.py`, which is why the tool audit could not see
+it; the prompt builders are a second, independent AI boundary.
+
+So the fix moved from per-handler to structural: `sanitize()` deep-cleans every
+`tools.dispatch` result, which makes the safe shape the default for tools that
+don't exist yet, and the chart-bearing prompt builders (now-chart, Prashna,
+Varshaphal, Tithi Pravesha) each count through `chart_positions`.
+
+What deliberately did **not** change: the renderer's own key. Renaming `house`
+to `sign_num` at source would make leaks impossible rather than merely caught,
+but it lands on 60 call sites across 18 frontend files — every chart page, the
+PDF/print path, both Kundali components — with no frontend tests behind it. Not
+worth it to fix a leak that is now closed at the boundary and guarded there.
+
 ### Guards
 
 `tests/test_llm_chart_shapes.py` pins the owner's own D9 — Sun 12th, Moon 9th,
-Saturn with the lagna — and walks every AI payload asserting no `rasi` survives
-anywhere in it. The walk is the part that generalises: it fails on any new tool
-that passes a chart straight through.
+Saturn with the lagna — then generalises three ways:
 
-617 backend tests green.
+* **every tool** (parametrized over `tools.TOOLS`, run for real, payload walked)
+  rather than the handful I thought to check — this is the test that will catch
+  tool #47;
+* **every varga** D2–D60, each planet's house recomputed from that chart's own
+  lagna;
+* **the prompt surface**: the now-chart and Varshaphal readings are rendered and
+  their printed house numbers re-derived from the ascendant they claim to count
+  from. Both charts happen to have non-Aries lagnas, so the assertion is not
+  vacuous — under the old code they read 5 where the answer is 10.
+
+676 backend tests green.

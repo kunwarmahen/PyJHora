@@ -21,8 +21,8 @@ pre-seeded into the prompt or fetched on demand via a tool.
 from typing import Any, Callable, Dict, List, Optional
 
 from astrology import (AstrologyCompute, DEFAULT_AYANAMSA, SUPPORTED_VARGAS,
-                       SUPPORTED_DASHAS, chart_positions, strip_layout,
-                       strip_layout_all)
+                       SUPPORTED_DASHAS, chart_positions, sanitize,
+                       strip_layout, strip_layout_all)
 from chart_context import _running_dasha_chain
 import rag
 
@@ -1496,7 +1496,11 @@ def dispatch(name: str, model_args: Optional[Dict[str, Any]],
         if viewer.get("timezone") is not None:
             kwargs["current_tz"] = viewer["timezone"]
     try:
-        return tool.handler(birth_details, ayanamsa, **kwargs)
+        # Every result is sanitized on the way out, not per handler: a sign index
+        # (`rasi`, or a bare integer `sign` beside its own name) reads as a house
+        # number to the model and outranks the truth (§63). Doing it here makes
+        # the safe shape the default for tools that don't exist yet.
+        return sanitize(tool.handler(birth_details, ayanamsa, **kwargs))
     except ToolError:
         raise
     except TypeError as e:

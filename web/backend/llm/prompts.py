@@ -1650,14 +1650,17 @@ Cite the placements you reason from. Arudhas describe perception, not worth — 
     def _build_now_chart_prompt(self, d: Dict[str, Any]) -> str:
         """Read the chart of the moment (the current sky) as a general tenor."""
         lagna = d.get("lagna") or {}
-        planets = d.get("planets") or {}
+        # `d["planets"]` is the renderer's set: its `house` is the sign cell the
+        # Kundali draws in, and this prompt was printing it as the bhava.
+        planets = chart_positions(lagna, d.get("planets") or {})["planets"]
         panch = d.get("panchanga") or {}
         moment = d.get("moment") or {}
         tithi = (panch.get("tithi") or {}) if panch else {}
         nak = (panch.get("nakshatra") or {}) if panch else {}
         vaara = (panch.get("vaara") or {}) if panch else {}
         p_lines = "\n".join(
-            f"- {name}: {info.get('sign_name')} (house {info.get('house')})"
+            f"- {name}: {info.get('sign_name')} (house {info.get('house')} "
+            "from the Ascendant)"
             for name, info in planets.items())
         return f"""You are a Vedic astrologer reading the **chart of the moment** — the current sky cast for {moment.get('date')} {moment.get('time')} at {d.get('place') or 'this place'}. This is not a birth chart; it reflects the tenor of the present time itself (like a mundane/prasna snapshot). Read it in that spirit.
 
