@@ -5961,3 +5961,82 @@ The test pins the *class*: every `\d+(st|nd|rd|th)` in every highlight must equa
 what `_ordinal` would write. Worth noting the trap it walked into first — an
 assertion looking for the substring `"2th"` passes `"12th"` and fails a correct
 line.
+
+## 61. PyJHora 4.8.7 → 5.0: three call sites, and two workarounds that changed status
+
+Upstream shipped one squashed commit (`48e57d2`), tagged `V4.9.3` but declaring
+`version = "5.0"` internally. Our fork carries **zero local edits to `src/`**, so
+the merge itself was clean — everything below is about what the new engine did to
+our call sites and our golden values.
+
+Scope was established before touching anything: an AST scan of every `jhora`
+symbol the backend touches — **174 symbols across 5,540 call sites** — checked for
+missing names, changed required arguments, removed keyword arguments and arity
+breaks. Exactly **two** broke. The rest of the work was numerical, not structural.
+
+### The API breaks
+
+* `ashtottari.get_ashtottari_dhasa_bhukthi` → `get_dhasa_bhukthi` (upstream made
+  the name uniform across dasha modules).
+* `vimsottari._vimsottari_bhukti` gained a required `place`. Two call sites:
+  `compute_dashas.py` and `compute_rectification.py`.
+
+### Two documented workarounds, two different verdicts
+
+The tripwire tests in `test_special_points.py` exist to fire when upstream fixes
+a bug we route around. Both fired. **They did not mean the same thing**, and the
+difference was only visible by measuring rather than assuming:
+
+```
+point          ours    upstream 5.0
+Bhava Lagna    0.52'      1.34'
+Hora Lagna     1.05'      1.87'
+Ghati Lagna    2.63'      3.45'
+Pranapada     11.78'     10.52'
+```
+
+* **`_kaala_lagna` is KEPT.** Upstream fixed the gross timezone bug (13-16' →
+  ~2'), but ours is still consistently ~0.8' closer to JHora. The tripwire was
+  rewritten to assert the thing that now justifies the code — *ours stays at
+  least as close as the engine's* — instead of asserting a bug that no longer
+  exists.
+* **`_pranapada_lagna` is RETIRED.** Upstream's rewrite measures better than the
+  workaround did, so Pranapada now comes straight from `drik.pranapada_lagna`.
+
+The residual on both sides is the ~2 s sunrise-algorithm difference against
+JHora, irreducible here.
+
+### Bhrigu Bindu: a stale constant, not a formula change
+
+5.0 rewrote `bhrigu_bindhu_lagna` to read `sidereal_longitude(jd, const._RAHU)`
+directly instead of going through `charts.divisional_chart`. But `const._RAHU` is
+bound **once at import** to `swe.TRUE_NODE`; `set_planet_list(…nodes=False)`
+computes the node id into a *local* `swe_rahu` for its `planet_list` dict and
+never rebinds the module constant. So Bhrigu Bindu averaged a True-node Rahu
+against a Mean-node Moon and landed 31' off JHora.
+
+Fixed at the source — `const._RAHU = swe.MEAN_NODE` alongside the existing
+`set_planet_list` call — rather than with another bespoke local recompute. That
+matters beyond this one point: `drik.sidereal_longitude` derives **Ketu** as
+`swe.calc_ut(jd, const._RAHU)`, so the same stale constant was feeding Ketu on
+any path not going through `planet_list`.
+
+### The dasha year length, and a misnamed upstream default
+
+V4.9.0 rerouted every dasha start/end through `drik._get_dhasa_start_jd`, which
+walks the Sun's actual transit instead of multiplying by a fixed year length. It
+defaults to `DHASA_YEAR_DURATION.JHORA_DEFAULT` — **and that alias is a
+misnomer**: it resolves to `TRUE_SIDEREAL_YEAR`, which put every Vimsottari maha
+boundary a full day later than Jagannatha Hora actually prints (Ketu 1976-01-12
+vs 1976-01-11).
+
+`MEAN_SIDEREAL_YEAR` reproduces the pre-5.0 formula (`jd - elapsed_years *
+const.sidereal_year`) and is the one that agrees with JHora, so it is now pinned
+in the matching-defaults block next to the ayanamsa and node settings. It is
+global, so it covers every dasha system rather than just Vimsottari.
+
+### Verification
+
+597 backend tests green, and `./dev.sh test engine` green — 6,495 of PyJHora's
+own tests, the single failure being the conjunction-rounding baseline already
+listed in `ENGINE_KNOWN_FAILURES`.

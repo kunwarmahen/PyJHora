@@ -100,52 +100,59 @@ def test_special_lagna_matches_jhora(points, name, expected):
     assert row["degrees"] == pytest.approx(expected[1], abs=tol)
 
 
-def test_kaala_lagnas_beat_the_pyjhora_bug(points):
-    """The load-bearing regression: `drik.bhava_lagna` & co. add the timezone to
-    an already-local JD, evaluating the Sun 5.5 h late and throwing every kaala
-    lagna ~13-16' off. If someone ever "simplifies" `_kaala_lagna` back to the
-    drik lambdas, this fails."""
+def test_kaala_lagna_still_beats_the_engine(points):
+    """`_kaala_lagna` originally existed because `drik.bhava_lagna` & co. added the
+    timezone to an already-local JD, evaluating the Sun 5.5 h late and throwing
+    every kaala lagna ~13-16' off. Upstream 5.0 fixed that.
+
+    It is kept because it is still the more accurate of the two, by ~0.8' on each
+    of the three. This guards both halves of that claim: ours stays within 1' of
+    JHora, and it stays at least as close as the engine's own. If upstream ever
+    closes the gap, the second assertion fails and `_kaala_lagna` can be retired
+    in favour of the drik lambdas."""
     from jhora.panchanga import drik
     import swisseph as swe
 
     place = drik.Place("Shahgarh", ARGS["lat"], ARGS["lon"], ARGS["tz"])
     jd = swe.julday(1976, 6, 4, 5 + 45/60 + 2/3600)
-    buggy = drik.hora_lagna(jd, place)
-    buggy_abs = (int(buggy[0]) % 12) * 30 + float(buggy[1])
 
     ours = _by_name(points["special_lagnas"])["Hora Lagna"]
     ours_abs = ours["sign"] * 30 + ours["degrees"]
     jhora_abs = 60 + JHORA_SPECIAL_LAGNAS["Hora Lagna"][1]
-
     assert abs(ours_abs - jhora_abs) * 60 < 1.0, "our Hora Lagna drifted from JHora"
-    assert abs(buggy_abs - jhora_abs) * 60 > 10.0, \
-        "drik's Hora Lagna now agrees with JHora — the upstream bug may be fixed, " \
-        "in which case _kaala_lagna can be retired"
+
+    raw = drik.hora_lagna(jd, place)
+    raw_abs = (int(raw[0]) % 12) * 30 + float(raw[1])
+    ours_err = abs(ours_abs - jhora_abs) * 60
+    raw_err = abs(raw_abs - jhora_abs) * 60
+    assert ours_err <= raw_err, (
+        f"drik.hora_lagna ({raw_err:.2f}') is now at least as close to JHora as "
+        f"_kaala_lagna ({ours_err:.2f}') — the workaround can be retired"
+    )
 
 
-def test_pranapada_beats_the_tharparai_unit_bug(points):
-    """`utils.udhayadhi_nazhikai` scales tharparai at 9000/hour and 150/minute —
-    2.5 per second — but adds seconds raw, at 1. Pranapada advances 5°/minute, so
-    that 60% shortfall lands 84' off JHora, more than a quarter of a sign.
-    `_pranapada_lagna` fixes the scale; the ~12' residual is the 2 s sunrise
+def test_pranapada_uses_the_engine_and_matches_jhora(points):
+    """Pranapada came from `_pranapada_lagna` while `utils.udhayadhi_nazhikai`
+    scaled tharparai at 2.5/second but added seconds raw, landing 84' off JHora.
+
+    Upstream 5.0 rewrote `drik.pranapada_lagna` and it now measures *better* than
+    the workaround did (10.5' vs 11.8'), so the workaround was retired and this
+    value comes straight from the engine. The residual is the ~2 s sunrise
     difference, which at 5°/minute is already 10' and cannot be reduced here."""
     row = _by_name(points["special_lagnas"])["Pranapada Lagna"]
     jhora = 2 + 28/60 + 26.58/3600          # 2 Ta 28' 26.58"
     assert row["sign_name"] == "Taurus"
     err_arcmin = abs(row["degrees"] - jhora) * 60
-    assert err_arcmin < 15, f"Pranapada drifted to {err_arcmin:.1f}' from JHora"
-    # And prove the raw engine call is still the bad one, so the workaround is
-    # not quietly redundant.
+    assert err_arcmin < 12, f"Pranapada drifted to {err_arcmin:.1f}' from JHora"
+
+    # The displayed value must be the engine's, not a lingering local copy.
     from jhora.panchanga import drik
     import swisseph as swe
     place = drik.Place("Shahgarh", ARGS["lat"], ARGS["lon"], ARGS["tz"])
     jd = swe.julday(1976, 6, 4, 5 + 45/60 + 2/3600)
     raw = drik.pranapada_lagna(jd, place)
-    raw_err = abs(((int(raw[0]) % 12) * 30 + float(raw[1])) - (30 + jhora)) * 60
-    assert raw_err > 60, (
-        "drik.pranapada_lagna now agrees with JHora — the upstream unit bug may "
-        "be fixed, in which case _pranapada_lagna can be retired"
-    )
+    raw_abs = (int(raw[0]) % 12) * 30 + float(raw[1])
+    assert abs(raw_abs - (row["sign"] * 30 + row["degrees"])) * 60 < 0.6
 
 
 def test_varnada_is_not_silently_corrupted_by_the_same_bug():

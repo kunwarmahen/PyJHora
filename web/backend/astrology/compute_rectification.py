@@ -263,7 +263,7 @@ class RectificationMixin:
                 out = []
                 for i, (mlord, mstart) in enumerate(smd):
                     mend = smd[i + 1][1] if i + 1 < len(smd) else mstart + vdict[mlord] * yd
-                    bh = vimsottari._vimsottari_bhukti(mlord, mstart)
+                    bh = vimsottari._vimsottari_bhukti(mlord, mstart, place_obj)
                     sbh = sorted(bh.items(), key=lambda x: x[1])
                     for j, (blord, bstart) in enumerate(sbh):
                         bend = sbh[j + 1][1] if j + 1 < len(sbh) else mend

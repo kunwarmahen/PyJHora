@@ -53,6 +53,30 @@ try:
     # mapping the chart code actually iterates (const.set_node_mode alone won't).
     drik.set_planet_list(set_rahu_ketu_as_true_nodes=False)
 
+    # …and rebind `const._RAHU` to match. `set_planet_list` computes the node id
+    # into a *local* `swe_rahu` for the planet_list dict but leaves the module
+    # constant pinned to swe.TRUE_NODE, where it was bound at import. Anything
+    # reading `const._RAHU` directly therefore keeps using the True node even in
+    # Mean mode. That is not hypothetical: `drik.sidereal_longitude` derives KETU
+    # as `swe.calc_ut(jd, const._RAHU)`, and since upstream 5.0 rewrote
+    # `bhrigu_bindhu_lagna` to call `sidereal_longitude(jd, const._RAHU)` instead
+    # of going through `charts.divisional_chart`, Bhrigu Bindu silently landed
+    # 31' off JHora — True-node Rahu averaged against a Mean-node Moon.
+    const._RAHU = swe.MEAN_NODE
+
+    # Match Jagannatha Hora's dasha year length (Mean sidereal, 365.256364 d).
+    # Upstream 5.0 (V4.9.0) rerouted every dasha start/end through
+    # `drik._get_dhasa_start_jd`, which walks the Sun's actual transit instead of
+    # multiplying by a fixed year, and defaults to
+    # `DHASA_YEAR_DURATION.JHORA_DEFAULT`. That alias is a misnomer: it resolves
+    # to TRUE_SIDEREAL_YEAR, and on the owner's reference chart it puts every
+    # Vimsottari maha boundary a full day later than Jagannatha Hora actually
+    # prints (Ketu 1976-01-12 vs 1976-01-11). MEAN_SIDEREAL_YEAR reproduces the
+    # pre-5.0 formula — `jd - elapsed_years * const.sidereal_year` — which is the
+    # one that agrees with JHora. This is global and so covers every dasha
+    # system, not just Vimsottari.
+    const.dhasa_year_duration_default = const.DHASA_YEAR_DURATION.MEAN_SIDEREAL_YEAR
+
     # ── Speed patch: drik.true_sidereal_year ──────────────────────────────
     #
     # `dhasa_year_duration` (and so EVERY annual/varsha dasha — Mudda, Patyayini,
@@ -569,17 +593,23 @@ def _kaala_lagna(jd, place, rate):
     """A time-based kaala lagna: the Sun's sidereal longitude at sunrise, advanced
     by `rate` degrees for every minute elapsed since sunrise.
 
-    Computed here rather than via `drik.bhava_lagna` & co. because PyJHora's
-    `special_ascendant` has a timezone bug. It does:
+    Computed here rather than via `drik.bhava_lagna` & co. Originally this worked
+    around an outright timezone bug in PyJHora's `special_ascendant`, which added
+    `place.timezone/24` to an already-local sunrise JD and so evaluated the Sun a
+    full timezone late — 13.7'-15.8' off Jagannatha Hora on the owner's chart.
 
-        jd_at_sunrise = srise[2] + place.timezone/24
+    **Upstream 5.0 fixed that bug**, so the two now agree closely. This is kept
+    because it is still the more accurate of the two, consistently by ~0.8':
 
-    but `srise[2]` is already in the same local-clock JD convention that
-    `charts.divisional_chart` expects (the same one the natal jd uses, which is
-    why the natal planets are correct). Adding the offset evaluates the Sun a
-    full timezone later — 5.5 h for IST, i.e. ~13.2' of solar motion — and every
-    kaala lagna inherits it. On the owner's reference chart that put Bhava/Hora/
-    Ghati Lagna 13.7'-15.8' off Jagannatha Hora; this brings them to 0.5'-2.6'.
+        point          ours    upstream 5.0
+        Bhava Lagna    0.52'      1.34'
+        Hora Lagna     1.05'      1.87'
+        Ghati Lagna    2.63'      3.45'
+
+    The remaining error on both sides is dominated by the ~2 s sunrise-algorithm
+    difference against JHora, which at these rates is irreducible here. If a
+    later upstream release closes that 0.8' gap, this can be retired — the
+    tripwire in test_special_points.py compares the two and will say so.
 
     Returns [sign_index, degrees_in_sign], matching the drik functions.
     """
@@ -591,49 +621,6 @@ def _kaala_lagna(jd, place, rate):
     sun = charts.rasi_chart(jd_sunrise, place)[1][1]
     sun_long = (int(sun[0]) % 12) * 30 + float(sun[1])
     spl_long = (sun_long + elapsed_min * rate) % 360
-    return [int(spl_long // 30) % 12, spl_long % 30]
-
-
-def _pranapada_lagna(jd, place):
-    """Pranapada lagna, recomputed to work around a second PyJHora bug.
-
-    `utils.udhayadhi_nazhikai` converts the time since sunrise into *tharparai*:
-
-        tharparai1 = int(hours)*9000 + int(minutes)*150 + int(seconds)
-
-    The unit scale is 9000 per hour and 150 per minute — i.e. 2.5 per second —
-    but seconds are added raw, at 1. Pranapada advances 4 signs per ghati (5° per
-    minute), so that 60% shortfall on the seconds term is heavily amplified: on
-    the owner's reference chart it puts Pranapada **84' off** Jagannatha Hora,
-    more than a quarter of a sign. Scaling seconds correctly brings it to ~12',
-    the rest being the ~2 s sunrise-algorithm difference — irreducible here,
-    because at 5°/minute two seconds is already 10'.
-
-    Mirrors `drik.pranapada_lagna` otherwise: the elapsed-time term, the Sun at
-    *birth* (not sunrise), and the movable/fixed/dual offset off the Sun's sign.
-
-    Returns [sign_index, degrees_in_sign].
-    """
-    _, _, _, birth_hours = drik.jd_to_gregorian(jd)
-    sunrise_hours = drik.sunrise(jd, place)[0]
-    elapsed = birth_hours - sunrise_hours
-    if elapsed < 0:
-        elapsed += 24.0
-    hours, minutes, seconds = utils.to_dms(elapsed, as_string=False)
-    tharparai = int(hours) * 9000 + int(minutes) * 150 + seconds * 2.5
-    birth_long = ((tharparai / 3600.0) * 4) % 12
-
-    sun_sign, sun_deg = charts.rasi_chart(jd, place)[1][1]
-    sun_sign = int(sun_sign) % 12
-    sun_long = sun_sign * 30 + float(sun_deg)
-    if sun_sign in const.fixed_signs:
-        offset = 240
-    elif sun_sign in const.dual_signs:
-        offset = 120
-    else:
-        offset = 0
-
-    spl_long = (birth_long * 30 + sun_long + offset) % 360
     return [int(spl_long // 30) % 12, spl_long % 30]
 
 

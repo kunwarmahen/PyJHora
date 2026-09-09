@@ -21,7 +21,7 @@ pywebpush==2.3.0
 google-auth==2.38.0
 
 # --- PyJHora runtime deps ---
-# The backend imports PyJHora 4.8.7 from ../../src (see astrology.py). These are the
+# The backend imports PyJHora 5.0 from ../../src (see astrology.py). These are the
 # library's runtime dependencies actually exercised by the chart/dasha/compatibility
 # code paths. GUI/PDF-only deps (PyQt6, img2pdf, Pillow, pyephem) are intentionally
 # omitted. Versions pinned to a known-good, tested set.

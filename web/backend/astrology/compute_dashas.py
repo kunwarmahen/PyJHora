@@ -158,7 +158,7 @@ class DashasMixin:
                 duration_years = (end_jd - start_jd) / vimsottari.year_duration
 
                 # Calculate bhuktis (sub-periods) using Jyotir AI
-                bhuktis = vimsottari._vimsottari_bhukti(lord, start_jd)
+                bhuktis = vimsottari._vimsottari_bhukti(lord, start_jd, place_obj)
                 sub_periods = []
                 bhukti_lords = list(bhuktis.keys())
 
@@ -413,7 +413,7 @@ class DashasMixin:
             if dhasa_type == "yogini":
                 rows = yogini.get_dhasa_bhukthi(dob_t, tob_t, place_obj, dhasa_level_index=1)
             elif dhasa_type == "ashtottari":
-                rows = ashtottari.get_ashtottari_dhasa_bhukthi(jd, place_obj, dhasa_level_index=1)
+                rows = ashtottari.get_dhasa_bhukthi(jd, place_obj, dhasa_level_index=1)
             elif dhasa_type == "narayana":
                 rows = narayana.narayana_dhasa_for_rasi_chart(dob_t, tob_t, place_obj, dhasa_level_index=1)
             elif dhasa_type == "kalachakra":
