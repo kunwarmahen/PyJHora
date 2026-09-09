@@ -379,6 +379,34 @@ where they were born.
   or streamable-HTTP. It talks to the public API with your token; setup is in
   [`web/mcp/README.md`](mcp/README.md).
 
+#### What a position looks like (and what changed in Sept 2026)
+
+Every graha, lagna and sensitive point comes back in one shape, and the two
+sign-ish numbers mean different things:
+
+| key | meaning |
+| --- | --- |
+| `sign_name` | the sign, spelled out — `"Cancer"` |
+| `house` | the **bhava**, counted whole-sign from *that chart's own* lagna (a varga's houses come off the varga's lagna, not the D1's) |
+| `sign_num` | the **1-based sign** (Aries 1 … Pisces 12) — a drawing coordinate for a Kundali cell, not a placement |
+| `degrees` | degrees within the sign |
+
+A transit carries no plain `house`: it is read from several references at once,
+so each is named — `house_from_lagna`, `house_from_moon`, `house_from_al`,
+`house_from_ul`.
+
+**Breaking change (§63/§65, Sept 2026)** for anything parsing these payloads:
+
+- `house` used to be the sign cell (the 1-based sign) on chart payloads. It is
+  now the bhava. If you were reading it as a sign, read `sign_num`.
+- `rasi` — the 0-based twin — is **gone** from chart payloads. `sign_num` is
+  `rasi + 1`.
+- Tool results served through `/api/v1` and MCP are sanitized for LLM use: the
+  drawing coordinates (`sign_num`, `rasi`, and bare integer `sign` fields that sit
+  beside a `*_name`) are stripped, because a coordinate reads as a house number to
+  a model and outranks the truth. Read `sign_name` and `house` there. The REST
+  chart endpoints the web UI uses keep `sign_num`, since they have a chart to draw.
+
 ### Public landing page
 
 `/` serves a public **marketing landing page** to signed-out visitors (glowing
@@ -900,8 +928,8 @@ DB name), which is deliberate.
 - Divisional (varga) charts D1–D60 with a picker
 - North / South Indian chart styles, selectable ayanamsa
 - **Sign labels** follow the classical convention — the numeral in a house is the **rasi**
-  number (1 = Aries … 12 = Pisces), not the house number, which the chart's geometry already
-  fixes. Settings → General chooses Number / Glyph / Number + glyph / Abbreviation; glyphs are
+  number (1 = Aries … 12 = Pisces; `sign_num` in the API), not the house number, which the
+  chart's geometry already fixes. Settings → General chooses Number / Glyph / Number + glyph / Abbreviation; glyphs are
   tinted by **tattva** (fire, earth, air, water). Hovering a house names the sign in full
 - Yogas & Doshas surfaced as cards
 - **Raja Yogas** card — the fundamental Kendra–Trikona raja yogas (a quadrant lord

@@ -68,6 +68,27 @@ Add to `claude_desktop_config.json` (Settings → Developer → Edit Config):
 Restart Claude Desktop; the Jyotir AI tools appear in the tools menu. Ask it to
 "list my profiles", then "run the natal chart for <profile>".
 
+## What the tools return
+
+Positions come back naming the sign, not numbering it — a model reading a
+coordinate as a house number is the whole reason these payloads are shaped the
+way they are (`web/todo.md` §63):
+
+```json
+"Sun": { "sign_name": "Cancer", "degrees": 0.03, "house": 12 }
+```
+
+`house` is the **bhava**, counted whole-sign from *that chart's own* lagna — a
+varga's houses come off the varga's lagna, not the D1's, and each chart result
+carries a `house_system` line naming the sign that is house 1. Transits carry no
+plain `house` (they are read from several references at once) but name each count:
+`house_from_lagna`, `house_from_moon`, `house_from_al`, `house_from_ul`.
+
+Drawing coordinates — the 1-based `sign_num`, the 0-based `rasi`, and bare integer
+`sign` fields that sit beside a spelled-out name — are stripped from every tool
+result before it leaves the API. They are cell references for a Kundali, not
+placements, and they were being read as house numbers.
+
 ## Config (env)
 
 | Var | Default | Meaning |
