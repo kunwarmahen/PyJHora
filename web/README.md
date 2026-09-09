@@ -585,8 +585,7 @@ runs the minified production build, so it reflects exactly what ships.
 #### NAS deploy (`./dev.sh nas …`)
 
 Builds both images **locally** and loads them on the NAS — the NAS never builds
-anything. Everything below runs over a single SSH ControlMaster connection, so
-you're asked for a password once.
+anything. Everything below runs over a single SSH ControlMaster connection.
 
 ```bash
 ./dev.sh nas deploy              # build, ship what changed, restart the stack
@@ -615,6 +614,26 @@ image builds run in parallel, and the backend image carries no compiler toolchai
 The deploy no longer runs `compose down` before `up`: compose recreates exactly
 the containers whose image ID changed, so Mongo and the Cloudflare tunnel stay up
 across a redeploy. For a hard reset use `./dev.sh nas down && ./dev.sh nas up`.
+
+**Passwords are asked once, up front.** There are two of them, and they are two
+different credentials: the **SSH login** (unless you've installed a key on the
+NAS with `ssh-copy-id`) and the NAS's own **`sudo`** password, since every remote
+command is `sudo docker …`. Both are collected back to back *before* the image
+builds start, so a deploy never stops for input once it's under way — and a wrong
+sudo password fails immediately instead of after the whole transfer.
+
+ControlMaster covers the SSH side for the rest of the run. For sudo, `dev.sh`
+authenticates the remote credential once and holds it open with a keepalive for
+as long as the remote script runs (a cold `docker load` can outlast sudo's
+five-minute cache). The password travels over ssh's **stdin** — never on the
+remote command line, where the NAS's own `ps` would show it — and no PTY is
+allocated, so nothing echoes it back to your terminal.
+
+To skip the sudo prompt entirely, `export NAS_SUDO_PASSWORD=…` in your shell.
+It is deliberately **not** read from `web/.env`: that file is scp'd to the NAS on
+every deploy, so a sudo password living in it would be shipped to the very box it
+unlocks. If the NAS grants passwordless sudo, nothing is asked at all. To drop
+the SSH prompt too, install your key: `ssh-copy-id <NAS_USER>@<NAS_HOST>`.
 
 ## Configuration
 

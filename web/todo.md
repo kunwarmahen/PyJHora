@@ -2510,7 +2510,7 @@ SSH → `sudo docker compose up`) but tunnel-only, so **nothing is exposed on th
       LLM calls.
 - [x] **`dev.sh nas` command group** — `deploy | up | down | logs | ps | shell`. `deploy` builds
       both images locally (`jyotirai-backend`, `jyotirai-web`), ships them over an SSH
-      ControlMaster (one password prompt), loads + retags on the NAS, and `docker compose up -d`.
+      ControlMaster (one SSH prompt), loads + retags on the NAS, and `docker compose up -d`.
       Config comes from `web/.env` / env vars: `NAS_HOST/USER/PATH/SSH_KEY/SSH_PORT`.
       (Originally gzip + `scp` of both images every time — see the deploy-speed section below.)
 - [x] **`.env.nas.example`** documents every var (NAS conn, `TUNNEL_TOKEN`, `MONGO_PASSWORD`,
@@ -2584,6 +2584,38 @@ rather than guessed; three causes, all worth fixing. All figures measured on thi
   single-target, and one-image-changed.
 - CAVEAT: a real `./dev.sh nas deploy` against the NAS was **not** run — the remote script changed
   materially, so watch the first one. If the NAS lacks `zstd` the codec falls back automatically.
+
+### Deploy prompted for a password twice, the second one mid-deploy (owner ask 2026-09-09)
+
+Two *different* credentials, not one asked twice: the **SSH login** (no key installed on the NAS)
+and the NAS's own **`sudo`** password, since every remote command is `sudo docker …`. ControlMaster
+already collapsed the SSH side to one prompt, but sudo's landed on a PTY *after* the parallel
+builds and the image stream — so a deploy had to be babysat to completion. Owner asked for the
+prompts up front instead. (Offered the fully-unattended route — `ssh-copy-id` + a NOPASSWD sudoers
+rule — and the owner chose to leave the NAS untouched and have `dev.sh` ask once at the start.)
+
+- [x] **Both credentials collected before the slow work.** `nas_deploy` now opens the SSH master
+      and calls the new `nas_sudo_prime` *before* `nas_build_images`. A wrong sudo password fails
+      immediately rather than after the whole build + transfer.
+- [x] **`nas_sudo_prime` / `nas_sudo_sh`** — detects passwordless sudo (asks nothing), otherwise
+      reads the password once with `read -rs` and validates it. `nas_sudo_sh` runs each remote
+      script with sudo pre-authenticated; `nas up|down|ps` use the same path. `nas logs`/`nas
+      shell` keep the interactive PTY — they're interactive anyway, and prompt immediately.
+- [x] **Password never touches the remote command line** (the NAS's own `ps` would show it) — it
+      goes over ssh's **stdin**, and no PTY is allocated, so the pty can't echo it back either.
+      That echo is exactly why `sudo -S` under `-tt` was rejected.
+- [x] **Remote sudo keepalive** (`sudo -n -v` every 60s, killed by an EXIT trap). A cold
+      `docker load` can outlast sudo's 5-minute cache, and *without* a PTY a lapsed cache fails
+      outright instead of re-prompting — the one real regression risk of dropping the tty.
+- [x] **`ControlPersist` 120s → 4h** — the master is now opened before a cold build, so the old
+      idle window would have expired mid-build and re-prompted.
+- [x] **`NAS_SUDO_PASSWORD`** skips the prompt entirely. Deliberately read from the **environment
+      only, never `web/.env`**: that file is scp'd to the NAS every deploy, so a sudo password in
+      it would be shipped to the very box it unlocks.
+- Verified with a stubbed-NAS harness over the three paths (wrong password → fails fast; correct →
+  primed, remote side receives the keepalive wrapper with the password only on stdin; unprimed →
+  falls back to the old interactive `-t` prompt), plus `bash -n`. A real deploy was **not** run —
+  it needs the owner's password — so the live round-trip is unproven; watch the first one.
 
 ## 21. Export / import birth profiles (owner ask 2026-07-08)
 
