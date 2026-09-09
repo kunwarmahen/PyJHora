@@ -589,13 +589,12 @@ def test_dasha_periods_honour_the_ayanamsa(args1):
 def test_chart1_vimsottari_subperiods_match_jhora(args1):
     """Every level of the running Vimsottari chain, against JHora's own printout.
 
-    This is the regression that closes a long hunt. PyJHora's
-    `vimsottari_immediate_children` derives each child's length from its own
-    dasha-years rather than from the parent's solar arc, so the children do not
-    tile the parent — the last Sookshma here overran its Pratyantardasha's end by
-    ~2.5 days and boundaries drifted up to 55 h from JHora. `compute_dashas`
-    subdivides the parent's arc instead (see `_vimsottari_arc_children`), which
-    closes on both ends by construction.
+    PyJHora's `vimsottari_immediate_children` sizes each child from the parent's
+    elapsed *time* over a mean year rather than from the parent's actual solar
+    arc. Those differ whenever the Sun is off its mean speed, so every child gets
+    2.07% too much arc here and the last is truncated to absorb the shortfall —
+    2.78 days (13.8%) short, with interior boundaries up to 55 h from JHora.
+    `compute_dashas._vimsottari_arc_children` divides the parent's arc instead.
 
     A Vimsottari period of N dasha-years is exactly N x 360 deg of the Sun's
     sidereal travel; children take that arc in the 7:20:6:10:7:18:16:19:17
@@ -619,16 +618,45 @@ def test_chart1_vimsottari_subperiods_match_jhora(args1):
     ]
 
 
-def test_vimsottari_children_tile_their_parent(args1):
-    """The invariant the old routine broke, checkable without JHora: children must
-    start where the parent starts, end where it ends, and leave no gap between."""
-    for path in (["Rahu"], ["Rahu", "Rahu"], ["Rahu", "Rahu", "Jupiter"]):
-        parent_kids = A.get_dasha_children(**args1, lords_path=path)["children"]
-        for a, b in zip(parent_kids, parent_kids[1:]):
-            assert a["end_date"] == b["start_date"], f"gap in {path}: {a} -> {b}"
-        if len(path) < 3:
-            child = A.get_dasha_children(**args1, lords_path=path + [parent_kids[0]["lord"]])
-            kids = child["children"]
-            assert kids[0]["start_date"] == parent_kids[0]["start_date"]
-            assert kids[-1]["end_date"] == parent_kids[0]["end_date"], \
-                "children overran the parent — the pre-fix failure mode"
+def test_vimsottari_children_take_their_proper_share_of_the_parent_arc(args1):
+    """The invariant that actually catches the old routine, with no external oracle.
+
+    Contiguity does NOT catch it — the old children tiled the parent perfectly,
+    because the last one was clamped to the parent's end. What was wrong was the
+    *share*: every child took 2.07% too much arc and the last absorbed -11.72%.
+
+    Asserted against the helper at full JD precision, because the API rounds
+    endpoints to whole days and a day is ~14% of a week-long Sookshma — far too
+    coarse to resolve a 2% error. Time share is deliberately not asserted: equal
+    arcs are unequal times, which is the whole point.
+    """
+    from astrology.compute_dashas import _sun_arc_solver, _vimsottari_arc_children
+    from astrology.engine import drik
+    from jhora.horoscope.dhasa.graha import vimsottari
+    import swisseph as swe
+
+    tz = args1["tz"]
+    y, m, d = map(int, args1["dob"].split("-"))
+    hh, mm, ss = (list(map(int, args1["tob"].split(":"))) + [0, 0])[:3]
+    jd = swe.julday(y, m, d, hh + mm / 60.0 + ss / 3600.0)
+    place = drik.Place(args1["place"], args1["lat"], args1["lon"], tz)
+
+    md = sorted(vimsottari.vimsottari_mahadasa(jd, place).items(), key=lambda x: x[1])
+    lords = [l for l, _ in md]
+    rahu = lords.index(7)
+    span = (md[rahu][1], md[rahu + 1][1])
+
+    def check(start_jd, end_jd, lord, depth):
+        total, _ = _sun_arc_solver(start_jd, end_jd, tz)
+        kids = _vimsottari_arc_children(start_jd, end_jd, lord, tz)
+        assert kids[0][1] == start_jd and kids[-1][2] == end_jd, "children must tile the parent"
+        for child_lord, s_jd, e_jd in kids:
+            got, _ = _sun_arc_solver(s_jd, e_jd, tz)
+            nominal = total * vimsottari.vimsottari_dict[child_lord] / 120.0
+            assert abs(got - nominal) / nominal < 1e-6, (
+                f"depth {depth} lord {child_lord}: arc {got:.6f} vs nominal {nominal:.6f}"
+            )
+        if depth < 3:
+            check(kids[0][1], kids[0][2], kids[0][0], depth + 1)
+
+    check(span[0], span[1], 7, 1)

@@ -6095,12 +6095,28 @@ mis-reported as an upstream bug.
 
 Maha and Antardasha then matched to under a minute, but Pratyantardasha entered
 8h05m late and Sookshma drifted to ~2.8 days. The decisive test needed no
-reference to JHora at all: given JHora's *own exact* Pratyantardasha span, our
-children still overran its end by ~2.5 days. Sub-periods must tile their parent.
+reference to JHora: hand the routine JHora's *own exact* Pratyantardasha span and
+check what share each child gets.
 
-`vimsottari_immediate_children` derives each child's length independently from
-its own dasha-years rather than from the parent's arc, so they do not tile.
-The rule JHora uses:
+**A correction to what was first written here.** The initial diagnosis was that
+the children "failed to tile the parent, overrunning its end by ~2.5 days". That
+was an inference from the last child's *start* plus a nominal length, never
+measured — and it is wrong. The children tile perfectly: they are contiguous and
+the last one is clamped to the parent's end. Commit `fca44e8`'s message carries
+the same error and cannot be amended now that it is pushed.
+
+What is actually wrong is the *share*. `vimsottari_immediate_children` sizes each
+child from the parent's elapsed **time** over a mean year rather than from the
+parent's **arc**, and those differ whenever the Sun is off mean speed:
+
+```
+parent arc                  129.6000 deg   (0.36 dasha-years)
+elapsed                     134.2143 days
+/ const.sidereal_year       0.367446 "years"  -> 2.07% too many
+```
+
+So every child is handed 2.07% too much arc and the ninth absorbs -11.72%,
+coming out 2.78 days (13.8%) short. The rule JHora uses:
 
 * a period of N dasha-years is exactly **N x 360 deg of the Sun's sidereal
   travel** — their 0.36-year Pratyantardasha spans 129.59999 deg;
@@ -6122,9 +6138,13 @@ sub-periods, it needs this treatment.
 
 ### Guards
 
-The full JHora chain is pinned, and so is the **tiling invariant** — children
-must start and end exactly on their parent with no gaps. That one needs no
-external oracle and would have caught this without the printout. `/health` also
+The full JHora chain is pinned, and so is the **arc-share invariant** — each
+child must take `weight/120` of its parent's solar arc. That one needs no
+external oracle: it fails at 11.72% on the old routine and passes under 1e-6 on
+the new one. A contiguity check was tried first and is useless here — it passes
+on the buggy output, because the endpoints were always clamped. It must also be
+asserted at full JD precision, since a whole day is ~14% of a week-long Sookshma
+and swamps the 2% signal. `/health` also
 now reports `engine_version` and `default_ayanamsa`, so "which engine and which
 ayanamsa is this pod on" is answerable from the portal.
 

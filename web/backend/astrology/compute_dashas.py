@@ -85,12 +85,17 @@ def _shashtihayani_rows(jd, place_obj, dob_t, tob_t):
 # time, which is why the sub-periods bulge relative to a flat pro-rata split.
 #
 # This is done here rather than via `vimsottari.vimsottari_immediate_children`
-# because that routine derives each child's length independently from its own
-# dasha-years instead of from the parent's arc. The children then fail to tile
-# the parent: on the owner's chart the last Sookshma of a Pratyantardasha
-# overran its parent's end by ~2.5 days, and boundaries drifted up to 55 h from
-# JHora. Dividing the parent's own arc closes on both ends by construction and
-# reproduces JHora to under a second at every level.
+# because that routine sizes each child from the parent's elapsed *time* divided
+# by a mean year, rather than from the parent's actual arc. Those differ whenever
+# the Sun is off its mean speed: the Pratyantardasha below spans 129.6 deg but
+# takes 134.2143 days, which is 0.36745 mean-sidereal years against a nominal
+# 0.36 — so every child is handed 2.07% too much arc, and the last one is
+# truncated at the parent's end to absorb the accumulated 11.72% shortfall. On
+# the owner's chart the final Sookshma came out 2.78 days (13.8%) short and
+# interior boundaries drifted up to 55 h from JHora.
+#
+# Note the children still *tile* the parent — endpoints are clamped — so a
+# contiguity check does not catch this. The invariant that does is arc share.
 def _sun_arc_solver(start_jd, end_jd, tz_offset):
     """(total arc over the span, time-for-cumulative-arc solver)."""
     tz = tz_offset / 24.0
