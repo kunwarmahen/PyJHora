@@ -192,6 +192,34 @@ async def list_for_user(user_id: str, profile_id: Optional[str] = None,
     return [_list_item(doc) async for doc in cursor]
 
 
+async def last_narrative(user_id: str, profile_id: Optional[str],
+                         cadence: str, exclude_date: Optional[str] = None) -> Optional[str]:
+    """The AI narrative most recently delivered to this person at this cadence.
+
+    Fed back into the focused prompt so a note can decline to repeat the one
+    before it — the single biggest reason consecutive digests read alike is that
+    nothing ever told the model what it had already said.
+
+    `exclude_date` is the window being written now, so regenerating today's
+    reading is not handed *its own* previous text and told to differ from it. It
+    matches on the stored window label rather than an ordering, because a period
+    digest's `date` is a "start → end" string that does not sort.
+    Best-effort: continuity is a nicety, and no digest should fail without it.
+    """
+    if not profile_id:
+        return None
+    q: Dict[str, Any] = {"user_id": user_id, "profile_id": profile_id,
+                         "cadence": cadence, "narrative": {"$nin": [None, ""]}}
+    if exclude_date:
+        q["date"] = {"$ne": exclude_date}
+    try:
+        doc = await get_database()[COLLECTION].find_one(q, sort=[("created_at", -1)])
+    except Exception as e:
+        print(f"[digest_history] last_narrative lookup failed for {user_id}: {e}")
+        return None
+    return ((doc or {}).get("narrative") or "").strip() or None
+
+
 async def get(user_id: str, item_id: str) -> Optional[Dict[str, Any]]:
     oid = _oid(item_id)
     if oid is None:

@@ -8,6 +8,30 @@ from ..base import *  # noqa: F401,F403
 from ..gate import gate
 
 
+def _rejects_think(body: str) -> bool:
+    """Ollama's way of saying a model has no thinking mode. Older daemons 400 on
+    the unknown key instead, which the same check catches."""
+    t = (body or "").lower()
+    return "think" in t and ("does not support" in t or "not support" in t
+                             or "unknown field" in t or "unsupported" in t)
+
+
+def _empty_response_error(model: str, data: Dict[str, Any]) -> str:
+    """A 200 that carried no answer, described so the classifier and the logs can
+    both act on it. `done_reason: "length"` with a populated `thinking` field is
+    the thinking-budget exhaustion above; anything else is a model that simply
+    said nothing."""
+    reason = data.get("done_reason") or "unknown"
+    thought = len(data.get("thinking") or "")
+    if reason == "length" and thought:
+        return (f"Error from Ollama ({model}): the model spent its entire "
+                f"{data.get('eval_count') or 'token'} budget thinking "
+                f"({thought} characters) and produced no answer. Raise the "
+                f"model's token limit, or use a model without a thinking mode.")
+    return (f"Error from Ollama ({model}): the model returned an empty response "
+            f"(done_reason={reason}).")
+
+
 class OllamaMixin:
 
     async def _ollama_status(self) -> Dict[str, Any]:
@@ -130,24 +154,49 @@ class OllamaMixin:
     async def _call_ollama(self, prompt: str, cfg: ModelConfig, max_tokens: int = 4096,
                            system: str = SYSTEM_PROMPT,
                            usage: Optional[Dict[str, Any]] = None) -> str:
+        """One-shot completion against Ollama's /api/generate.
+
+        Thinking models (qwen3, deepseek-r1, gpt-oss…) split their output into a
+        `thinking` field and a `response` field, and `num_predict` caps the *sum*.
+        A long, heavily-constrained prompt can therefore burn the entire budget on
+        deliberation and return `response: ""` with `done_reason: "length"` — a
+        200 OK carrying nothing, which every caller downstream read as a
+        successful empty answer. (The daily digest silently shipped as a bare
+        bullet list whenever it happened.)
+
+        So: ask for no thinking on the first attempt. These are single-turn
+        writing tasks, not proofs — deliberation buys nothing and costs the whole
+        budget. Ollama rejects `think` on models that do not support it, and
+        `_retry_without_think` covers that; a still-empty answer is reported as a
+        failure rather than returned as one.
+        """
         url = (cfg.base_url or self.ollama_url).rstrip("/")
         model = cfg.model or self.ollama_default_model
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "system": system,
+            "stream": False,
+            # Explicitly off, not merely unset: several models think by default.
+            "think": False,
+            "options": {"temperature": 0.7, "num_predict": max_tokens},
+        }
         try:
             # Local models can be slow to cold-load + generate; allow up to 5 min
             async with httpx.AsyncClient(timeout=300.0) as client:
-                payload = {
-                    "model": model,
-                    "prompt": prompt,
-                    "system": system,
-                    "stream": False,
-                    "options": {"temperature": 0.7, "num_predict": max_tokens},
-                }
                 response = await client.post(f"{url}/api/generate", json=payload)
+                if response.status_code != 200 and _rejects_think(response.text):
+                    # Not a thinking model — it wants the key gone, not false.
+                    payload.pop("think", None)
+                    response = await client.post(f"{url}/api/generate", json=payload)
                 if response.status_code == 200:
                     data = response.json()
                     self._fill_usage(usage, data.get("prompt_eval_count"),
                                      data.get("eval_count"))
-                    return data.get("response", "No response from model")
+                    text = (data.get("response") or "").strip()
+                    if text:
+                        return text
+                    return _empty_response_error(model, data)
                 return f"Error from Ollama ({model}): {response.status_code} - {response.text}"
         except httpx.ConnectError:
             return ("Error: Cannot connect to Ollama. Ensure it is running "

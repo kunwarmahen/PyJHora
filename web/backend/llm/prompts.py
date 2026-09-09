@@ -12,6 +12,33 @@ from .base import *  # noqa: F401,F403
 from astrology import chart_positions
 
 
+def _ordinal_en(n) -> str:
+    """1 → "1st". House numbers read as ordinals in a reading ("your 7th"), and a
+    prompt that prints "house 7" invites the model to echo that phrasing back."""
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return str(n)
+    if 10 <= n % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
+def _fmt_period_days(dates, days) -> str:
+    """Tara Bala dates as "2026-09-10 (Sampat)".
+
+    `tarabala.best` / `.worst` are bare date strings; the tara that earned a date
+    its place is over in `.days`. The classic prompt was handed only the *counts*
+    ("1 well-starred") and then told to name the dates, which it could not do —
+    so it either omitted the most actionable line in the briefing or made one up.
+    Joining the two here is what lets the instruction be followed."""
+    label = {d.get("date"): d.get("tarabala") for d in (days or []) if d.get("date")}
+    out = [f"{dt} ({label[dt]})" if label.get(dt) else str(dt) for dt in (dates or [])]
+    return ", ".join(out)
+
+
 class PromptsMixin:
 
     def _build_quiz_gen_prompt(self, chart_data: Dict[str, Any], topics: List[str],
@@ -787,6 +814,179 @@ Write a focused ~300-word horary reading:
 4. **Guidance** — one practical, encouraging suggestion.
 Reason from the placements given; cite the factors behind your read. Do NOT make medical, legal or financial guarantees, and frame the answer as astrological guidance, not certainty."""
 
+
+    # ── The focused digest style (§67) ──────────────────────────────────────
+    #
+    # The classic prompts below spend ~1,000 words instructing a ~200-word answer,
+    # and the shape of what comes back is the shape of the data they were handed:
+    # a paragraph of supports, a paragraph of cautions, a paragraph of timing,
+    # every single morning. Three things are wrong with that, and this style fixes
+    # each one rather than adding more rules to the old prompt:
+    #
+    #   1. **Cover everything → lead on one thing.** Asking for every signal in
+    #      200 words buys one clause per signal: a list wearing prose. The reader
+    #      is told to pick the strongest signal, spend half the note on it, and
+    #      let the rest pass in a clause or go unmentioned.
+    #   2. **Pre-chewed strings → the chart itself.** The classic prompt gets the
+    #      engine's summary lines and nothing else, so it cannot say *which part of
+    #      a life* a day touches. This one gets the natal placements, and above all
+    #      where the running dasha lords sit and what they rule — the difference
+    #      between "a demanding day" and "a demanding day for the work you are
+    #      known for".
+    #   3. **A fixed shape → a rotating one.** Same instructions plus same data
+    #      equals the same skeleton daily. `_digest_angle` rotates which honest
+    #      opening the note takes. It rotates on the date, so it is deterministic
+    #      (same day re-read twice is not a different reading) but consecutive
+    #      mornings do not open alike.
+    #
+    # The banned-phrase list is gone on purpose. Forbidding "lean into" does not
+    # produce voice, it produces the next-most-generic verb, and every rule spent
+    # on what not to write is capacity not spent on having something to say. What
+    # replaces it is a demand for specificity: name the house, name the hour, name
+    # the thing. Generic prose has nowhere to hide next to that.
+
+    # Four honest ways into the same day. Rotated so consecutive notes differ in
+    # shape; every one of them is answerable from the data, none invents content.
+    _DIGEST_ANGLES = (
+        "Open on the day's own verdict — the personal measures that changed "
+        "overnight — then say what it means for the part of their life the "
+        "running dasha governs.",
+        "Open on the area of life the running dasha lords govern (their houses "
+        "below), then say how today's sky treats it.",
+        "Open on the sharpest contrast in the data — the strongest support set "
+        "against the hardest difficulty — and resolve it rather than averaging it.",
+        "Open on what to actually do today and when, then justify it from the "
+        "placements that make it the right call.",
+    )
+
+    @staticmethod
+    def _digest_angle(date_str: str, angles=None) -> str:
+        """Which opening this date takes. Keyed off the date so the same day always
+        reads the same way (a reader refreshing the page is not handed a different
+        reading) while consecutive days rotate."""
+        angles = angles or PromptsMixin._DIGEST_ANGLES
+        try:
+            y, m, d = (int(x) for x in str(date_str).split("-")[:3])
+            ordinal = y * 372 + m * 31 + d
+        except (TypeError, ValueError):
+            ordinal = 0
+        return angles[ordinal % len(angles)]
+
+    @staticmethod
+    def _natal_line(name: str, natal_planets: Dict[str, Any]) -> str:
+        """One graha's birth placement, in the vocabulary a reading uses: the house
+        it sits in, the houses it rules, its sign and star. Returns "" when the
+        graha is absent from the payload, so a caller can filter falsy lines
+        instead of printing "None"."""
+        p = (natal_planets or {}).get(name)
+        if not p:
+            return ""
+        owns = p.get("owns_houses") or []
+        owns_txt = (" and rules your " + " and ".join(_ordinal_en(h) for h in owns)
+                    if owns else "; a node, so it rules no house of its own")
+        retro = ", retrograde at birth" if p.get("retrograde") else ""
+        return (f"{name} sits in your {_ordinal_en(p.get('house'))} house "
+                f"({p.get('sign_name')}, {p.get('nakshatra')}{retro}){owns_txt}")
+
+    def _build_daily_digest_focused_prompt(self, d: Dict[str, Any], name: str,
+                                           previously: Optional[str] = None) -> str:
+        """The focused daily note: one signal led hard, the natal chart behind it,
+        and no repeat of what yesterday's note already said."""
+        panch = d.get("panchanga") or {}
+        dasha = d.get("dasha") or {}
+        transits = d.get("transits") or {}
+        natal_planets = (transits.get("natal") or {}).get("planets") or {}
+        tithi = panch.get("tithi") or {}
+        nak = panch.get("nakshatra") or {}
+        vaara = panch.get("vaara") or {}
+        bhukti = dasha.get("bhukti") or {}
+
+        def _scoped(key, scope):
+            return [c["text"] for c in (d.get(key) or []) if c.get("scope") == scope]
+
+        today_supports = _scoped("supports", "today")
+        today_cautions = _scoped("cautions", "today")
+        standing = [c["text"] for c in (d.get("cautions") or []) + (d.get("supports") or [])
+                    if c.get("scope") != "today"]
+        changes = d.get("changes") or []
+
+        # The running dasha, as placements rather than as two bare planet names.
+        # This is the block that lets the note name a domain of life at all.
+        lord_rows = []
+        for role, lord in (("Mahadasha lord", dasha.get("maha_lord")),
+                           ("Bhukti lord", bhukti.get("lord"))):
+            line = self._natal_line(lord, natal_planets) if lord else ""
+            if line:
+                lord_rows.append(f"- {role} {lord}: {line}")
+        lord_lines = "\n".join(lord_rows) or "- (dasha lords not resolvable from this chart)"
+
+        aw = d.get("action_window") or {}
+        # A Choghadiya and the Rahu Kalam trio divide the same daylight
+        # independently, so the day's "good" window can sit inside an
+        # inauspicious one. The model is given the collision rather than left to
+        # recommend the hour and warn against it two sentences later.
+        action_line = (
+            f"{aw['name']} {aw['start']}–{aw['end']}"
+            + (f" — but it overlaps {', '.join(aw['conflicts'])}, so recommend it "
+               f"only with that said, or pick no hour at all"
+               if aw.get("conflicts") else "")
+            if aw.get("name") else "none flagged today")
+        avoid = "; ".join(f"{w['name']} {w['start']}–{w['end']}"
+                          for w in (d.get("avoid_windows") or [])) or "none computed"
+        retro = transits.get("retrograde") or []
+        upcoming = "; ".join(
+            f"{u['planet']} → {u['to_sign']} on {u['date']}"
+            for u in (transits.get("upcoming") or [])) or "none imminent"
+
+        def _bullets(items, empty):
+            return "\n".join(f"- {i}" for i in items) if items else f"- ({empty})"
+
+        continuity = ""
+        if previously:
+            continuity = f"""
+YESTERDAY YOU WROTE THIS TO THEM (do not repeat its points, its opening move or its closing suggestion — {name} has read it; if a theme genuinely continues, say so as continuation, in a clause, and move on):
+\"\"\"{previously.strip()[:900]}\"\"\"
+"""
+
+        return f"""You are {name}'s personal Vedic astrologer, writing their note for {d.get('date')}. You have read this chart for years. Speak to them directly, as one person to another who already trusts you.
+
+TODAY'S ANGLE — {self._digest_angle(d.get('date'))}
+{continuity}
+WHAT CHANGED OVERNIGHT (if anything is here, it is the freshest thing you know):
+{_bullets(changes, "nothing moved since the last note")}
+
+IN THEIR FAVOUR TODAY — the tradition's verdicts for this date, recomputed every morning:
+{_bullets(today_supports, "nothing especially favourable flagged")}
+
+AGAINST THEM TODAY — same source, equal weight; a day the classics call hard is reported hard:
+{_bullets(today_cautions, "nothing difficult flagged")}
+
+THEIR BIRTH CHART — Lagna {(transits.get('natal') or {}).get('lagna', {}).get('sign_name', 'n/a')}, Moon in {(transits.get('natal') or {}).get('moon', {}).get('sign_name', 'n/a')} ({(transits.get('natal') or {}).get('moon', {}).get('nakshatra', 'n/a')}).
+The period they are living through, and the houses it governs — THIS is how you name which part of their life today is touching:
+{lord_lines}
+Mahadasha runs to {dasha.get('maha_end', 'n/a')}{'; Bhukti to ' + bhukti['end_date'] if bhukti.get('end_date') else ''}.
+
+THE SLOW BACKDROP (true for weeks or months — {name} is already living in it; it is never news, and belongs in a clause at most):
+{_bullets(standing, "none")}
+
+TIMING AND SKY (facts to draw on, not a list to recite): {vaara.get('name')}, {tithi.get('name')}, {nak.get('name')} nakshatra. Good window: {action_line}. Keep clear: {avoid}. Retrograde: {', '.join(retro) if retro else 'none'}. Coming up: {upcoming}.
+
+WRITE THE NOTE NOW: exactly THREE paragraphs, each of at most FOUR sentences, no headings. That is the whole note — about 220 words. The limit is the point: past it you have stopped choosing what matters, and choosing is the job.
+
+Lead on ONE thing and give it half the note. Pick whichever signal above is genuinely the strongest today — the angle at the top tells you how to come at it. Everything else either earns a single clause or goes unwritten; a note that mentions six factors has said nothing about any of them.
+
+Be specific enough that this note could only have been written for this person on this date. Name the house and what it governs for them. Name the hour when you mean a time. If you claim the day is hard, say hard for what. "A supportive day for your work" is worth ten sentences of atmosphere.
+
+Where the tradition has a word for it — Tara Bala, Chandra Bala, Ashtama Sani, vedha, Vishti karana — use the word and explain it in the same breath, the way you would to someone across a table.
+
+The supports and the difficulties may flatly contradict each other. That is normal: they are independent measures answering different questions. Never average them into "a mixed day". Say which is which, and tell {name} which one to act on.
+
+End with one thing to actually do, tied to your lead. If a window is given above, you may anchor it to those hours.
+
+The data above is authoritative — reason only from it, invent no placement, verdict or time. Honesty about a hard day is not a prediction of disaster: no fated outcomes, no medical, legal or financial claims, nothing about death or catastrophe. Leave them something they can do.
+
+Three paragraphs, four sentences each at most. Begin."""
+
     def _build_daily_digest_prompt(self, d: Dict[str, Any], name: str) -> str:
         """A warm personalized 'today' reading tying panchanga + dasha + transits."""
         panch = d.get("panchanga") or {}
@@ -859,7 +1059,7 @@ SPECIFIC TO {name} (build the reading around these — this is what makes today 
 {highlights}
 
 SHARED SKY (context only — nearly everyone reading a digest today sees the same, so do NOT open with it or make it the headline):
-- Panchanga: {vaara.get('name')}, {tithi.get('paksha')} {tithi.get('name')}, {nak.get('name')} nakshatra.
+- Panchanga: {vaara.get('name')}, {tithi.get('name')}, {nak.get('name')} nakshatra.
 - Retrograde now: {', '.join(retro) if retro else 'none'}.
 - Next auspicious window today (Choghadiya): {action_line}.
 - Periods to keep clear of for anything new: {avoid_line}.
@@ -875,6 +1075,130 @@ Write ~170 words as 2–3 short flowing paragraphs (no headings, no bullet label
 - Close with ONE concrete, specific suggestion tied to their strongest signal today. If an auspicious window is given above, you may anchor a time-sensitive suggestion to it (name the window and its hours once); you may likewise name ONE period to avoid if it matters for what you are suggesting. Never invent a time.
 
 Hard rules: The data above is authoritative — reason only from it, never contradict it, and never invent a placement, verdict or time. Do NOT restate the mechanical facts verbatim (never write "Retrograde now: …", "Jupiter enters …", "gochara: Unfavourable" as a bare line, or "Tajaka yoga — …"). Do NOT open with "Today's alignment of…" or any fixed template. Avoid scare-quotes and stock phrases — no "slow down", "trust the timing", "audit your projects", "bridge period", "electric", "big thing", "inner compass", "navigate", "lean into". Being honest about a hard day does NOT mean predicting disaster: no fated outcomes, no medical, legal or financial claims, nothing about death, illness or catastrophe. Frame difficulty as what to handle carefully, and always leave them with something they can actually do. Vary your opening from other people's readings."""
+
+
+    # A period briefing's problem is the mirror of the daily note's. A day has
+    # four moving parts and the classic prompt padded them out; a fortnight has
+    # dated events and the classic prompt flattened them into "the theme of this
+    # window". So these angles rotate around *what to do with the dates* rather
+    # than around which signal leads.
+    _PERIOD_ANGLES = (
+        "Open on the single most consequential dated event in the window and "
+        "build the briefing around it — before it, after it.",
+        "Open on what this window is for, given the houses the dasha lords rule, "
+        "then hang the dates off that purpose.",
+        "Open on the days that are theirs — the well-starred dates — and work "
+        "outward to what the window asks in between.",
+    )
+
+    def _build_period_digest_focused_prompt(self, d: Dict[str, Any], name: str,
+                                            period: str,
+                                            previously: Optional[str] = None) -> str:
+        """The focused fortnight/month briefing. Same three fixes as the daily
+        note — lead on one thing, read the natal chart, do not repeat the last
+        one — with the emphasis moved to dates, because a date is the only thing
+        in a fortnight a reader can actually plan around."""
+        is_fortnight = period == "fortnight"
+        basis = d.get("basis") or "solar"
+        dasha = d.get("dasha") or {}
+        transits = d.get("transits") or {}
+        natal = transits.get("natal") or {}
+        natal_planets = natal.get("planets") or {}
+        pravesh = d.get("pravesh") or {}
+        bhukti = dasha.get("bhukti") or {}
+
+        noun = "fortnight" if is_fortnight else "month"
+        if is_fortnight:
+            paksha = pravesh.get("paksha") or "lunar"
+            chart_name = f"{paksha} Paksha Pravesha chart (the lunar fortnight)"
+        elif basis == "lunar":
+            chart_name = "lunar-month chart (their birth tithi returning, ~29.5 days)"
+        else:
+            chart_name = "Maasa Pravesha chart (the Tajaka monthly solar return)"
+
+        def _bullets(items, empty):
+            return "\n".join(f"- {i}" for i in items) if items else f"- ({empty})"
+
+        events = [f"{e['date']}: {e['text']}" for e in (d.get("events") or [])]
+        supports = [c["text"] for c in (d.get("supports") or [])]
+        cautions = [c["text"] for c in (d.get("cautions") or [])]
+
+        lord_rows = []
+        for role, lord in (("Mahadasha lord", dasha.get("maha_lord")),
+                           ("Bhukti lord", bhukti.get("lord"))):
+            line = self._natal_line(lord, natal_planets) if lord else ""
+            if line:
+                lord_rows.append(f"- {role} {lord}: {line}")
+        lord_lines = "\n".join(lord_rows) or "- (dasha lords not resolvable from this chart)"
+
+        # The dated Tara Bala days are the one thing in a window that is specific
+        # to this person on these dates; everything else moves too slowly to tell
+        # one fortnight from the next. So they are given as dates, not as a count.
+        tb = d.get("tarabala") or {}
+        tb_days = tb.get("days") or []
+        best = _fmt_period_days((tb.get("best") or [])[:6], tb_days)
+        worst = _fmt_period_days((tb.get("worst") or [])[:6], tb_days)
+        tb_block = (f"Well-starred days: {best or 'none stand out'}.\n"
+                    f"Days to keep light: {worst or 'none stand out'}.")
+
+        yogas = [y["name"] + (f" ({'/'.join(y['pair'])})" if y.get("pair") else "")
+                 for y in (pravesh.get("tajaka_yogas") or [])]
+        lagna = (pravesh.get("lagna") or {}).get("sign_name")
+        pravesh_line = (
+            f"Progressed chart for this {noun} — the {chart_name}, cast when the window "
+            f"opened: Lagna {lagna or 'n/a'}"
+            + (f"; active Tajaka yogas: {', '.join(yogas)}" if yogas else "; no notable Tajaka yogas")
+            + ".\n\nMuntha and the year-lord are deliberately not given: both are "
+              "reckoned in whole years and hold the same value for every window of "
+              "the year, so they are not news about this one."
+        ) if pravesh else ""
+
+        continuity = ""
+        if previously:
+            continuity = f"""
+YOUR LAST BRIEFING FOR {name.upper()} SAID THIS (do not re-run its argument or repeat its opening; where a theme carries over, mark it as carrying over and spend your words on what is new):
+\"\"\"{previously.strip()[:900]}\"\"\"
+"""
+
+        window = f"{d.get('start_date')} → {d.get('end_date')} ({d.get('span_days')} days)"
+        target = 230 if is_fortnight else 260
+
+        return f"""You are {name}'s personal Vedic astrologer, writing their briefing for the {noun} of {window}. You have read this chart for years. Speak to them directly.
+
+THIS BRIEFING'S ANGLE — {self._digest_angle(d.get('start_date'), self._PERIOD_ANGLES)}
+{continuity}
+DATED EVENTS INSIDE THE WINDOW — ingresses and retrograde stations. These are the spine of the briefing: they are the only things here a reader can plan around:
+{_bullets(events, "no sign-changes or stations fall in this window")}
+
+{tb_block}
+These Tara Bala days are counted from {name}'s own birth star to each date's star. They are personal and they are actionable — name the actual dates.
+
+WORKING IN THEIR FAVOUR:
+{_bullets(supports, "nothing especially favourable flagged")}
+
+WHAT THE TRADITION FLAGS AS DIFFICULT (equal weight — a briefing that reports only good news is not a reading):
+{_bullets(cautions, "nothing flagged as difficult in this window")}
+
+THEIR BIRTH CHART — Lagna {natal.get('lagna', {}).get('sign_name', 'n/a')}, Moon in {natal.get('moon', {}).get('sign_name', 'n/a')} ({natal.get('moon', {}).get('nakshatra', 'n/a')}).
+The period they are living through, and the houses it governs — this is how you name which part of their life this {noun} belongs to:
+{lord_lines}
+Mahadasha runs to {dasha.get('maha_end', 'n/a')}{'; Bhukti to ' + bhukti['end_date'] if bhukti.get('end_date') else ''}. Sade-Sati active: {'yes' if transits.get('sade_sati') else 'no'}. Retrograde as the window opens: {', '.join(transits.get('retrograde') or []) or 'none'}.
+
+{pravesh_line}
+
+WRITE THE BRIEFING NOW: exactly {'THREE' if is_fortnight else 'FOUR'} paragraphs, each of at most FIVE sentences, no headings — about {target} words.
+
+Give the dates the weight. A {noun} briefing whose reader cannot tell you afterwards which days mattered has failed, however well written. Every date you name should arrive attached to what to do about it.
+
+Lead on ONE thing, as the angle above directs, and let it organise the rest. Name the house and what it governs for them rather than describing a mood. Where the tradition has a word — Tara Bala, Ashtama Sani, vedha, a Tajaka yoga — use it and explain it in the same breath.
+
+The supports and the difficulties may contradict each other; they are independent measures. Say which is which rather than averaging them into "a mixed {noun}".
+
+End with one or two specific things to do, anchored to dates you have named.
+
+The data above is authoritative — reason only from it and invent no placement, date or verdict. Candour is not doom: no fated outcomes, no medical, legal or financial claims, nothing about death or catastrophe.
+
+{'Three' if is_fortnight else 'Four'} paragraphs, five sentences each at most. Begin."""
 
     def _build_period_digest_prompt(self, d: Dict[str, Any], name: str, period: str) -> str:
         """A warm fortnight / month reading tying the running dasha to the window's

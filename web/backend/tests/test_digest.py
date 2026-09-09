@@ -10,6 +10,8 @@ behaviours that keep a family digest from repeating itself:
   every profile was computed for the same day, and print only the personal
   lines under each name.
 """
+import pytest
+
 import digest
 
 
@@ -186,3 +188,155 @@ def test_render_no_hoist_when_days_differ_keeps_full_sections():
     # Each section carries its own (different) ingress line.
     assert "Jupiter enters Leo on 2026-10-31" in text
     assert "Jupiter enters Leo on 2026-10-30" in text
+
+
+# ── The focused narrative style (§67) ────────────────────────────────────────
+# Two prompts now write digests, chosen by a runtime knob, and the email shape
+# follows the prompt that actually wrote the section. These pin the switch, the
+# de-duplicated email, and the fallback that keeps a narrative-less section from
+# arriving empty.
+import html as _html
+
+import runtime_config
+from llm.prompts import PromptsMixin, _ordinal_en, _fmt_period_days
+
+
+def _focused_block(name="Mahen", narrative="A reading.", glance=("Good window — Amrit 07:36–09:09",)):
+    return {"name": name, "date": "2026-09-09", "style": "focused",
+            "narrative": narrative, "glance": list(glance),
+            "highlights": ["Wednesday · Krishna Trayodashi"],
+            "sky": [], "personal": ["Rahu Mahadasha, Venus Bhukti"],
+            "supports": [{"text": "Tara Bala: Mitra", "scope": "today"}],
+            "cautions": [{"text": "Chandra Bala weak", "scope": "today"}],
+            "changes": []}
+
+
+def test_focused_email_drops_the_bullets_the_narrative_was_written_from():
+    text = digest._render_text([_focused_block()], "2026-09-09", "digest")
+    assert "At a glance:" in text
+    assert "Good window — Amrit 07:36–09:09" in text
+    # The narrative is built from these, so repeating them says the day twice.
+    assert "Working in your favour" not in text
+    assert "Take care with" not in text
+    assert "Highlights:" not in text
+
+
+def test_classic_email_keeps_every_section():
+    block = _focused_block()
+    block["style"] = "classic"
+    text = digest._render_text([block], "2026-09-09", "digest")
+    assert "Working in your favour" in text
+    assert "Take care with" in text
+    assert "At a glance" not in text
+
+
+def test_focused_section_without_a_narrative_falls_back_to_the_bullets():
+    """An empty reading must not produce an empty email."""
+    block = _focused_block(narrative=None)
+    assert digest._is_focused(block) is False
+    text = digest._render_text([block], "2026-09-09", "digest")
+    assert "Working in your favour" in text
+
+
+def test_glance_carries_times_and_dates_not_the_verdicts():
+    lines = digest._glance_lines({
+        "action_window": {"name": "Amrit", "start": "07:36", "end": "09:09"},
+        "avoid_windows": [{"name": "Rahu Kalam", "start": "12:14", "end": "13:46"}],
+        "transits": {"upcoming": [{"planet": "Jupiter", "to_sign": "Leo",
+                                   "date": "2026-10-31"}]},
+        "dasha": {"bhukti": {"lord": "Venus", "end_date": "2028-06-17"}},
+        "changes": ["Saturn has turned retrograde"],
+    }, "daily")
+    assert lines[0] == "New today — Saturn has turned retrograde"
+    assert "Good window — Amrit 07:36–09:09" in lines
+    assert "Keep clear — Rahu Kalam 12:14–13:46" in lines
+    assert "Jupiter enters Leo — 2026-10-31" in lines
+    assert "Venus Bhukti runs to 2028-06-17" in lines
+
+
+def test_glance_for_a_period_leads_with_dated_events():
+    lines = digest._glance_lines({
+        "events": [{"date": "2026-09-02", "text": "Venus enters Libra"}],
+        "tarabala": {"best": ["2026-09-10"]},
+    }, "fortnightly")
+    assert lines[0] == "2026-09-02 — Venus enters Libra"
+    assert "Well-starred days — 2026-09-10" in lines
+
+
+def test_inline_markdown_renders_but_cannot_inject():
+    assert digest._inline_md(_html.escape("the **Amrit window**")) == \
+        "the <strong>Amrit window</strong>"
+    assert digest._inline_md(_html.escape("a * b * c")) == "a * b * c"
+    # Escaping happens first, so nothing in the narrative can become markup.
+    assert "<script>" not in digest._inline_md(_html.escape("<script> **x**"))
+
+
+def test_narrative_style_knob_rejects_nonsense_and_defaults_to_focused():
+    assert runtime_config.defaults()["digest_narrative_style"] in runtime_config.NARRATIVE_STYLES
+    assert runtime_config._coerce("digest_narrative_style", "CLASSIC ") == "classic"
+    with pytest.raises(ValueError):
+        runtime_config._coerce("digest_narrative_style", "poetic")
+
+
+def test_digest_angle_is_stable_per_date_but_rotates():
+    a = PromptsMixin._digest_angle("2026-09-09")
+    assert a == PromptsMixin._digest_angle("2026-09-09")   # same day, same reading
+    assert a != PromptsMixin._digest_angle("2026-09-10")   # consecutive days differ
+    assert PromptsMixin._digest_angle("nonsense") in PromptsMixin._DIGEST_ANGLES
+
+
+def test_natal_line_names_the_house_and_what_it_rules():
+    natal = {"Venus": {"house": 10, "sign_name": "Aries", "nakshatra": "Bharani",
+                       "owns_houses": [11, 4], "retrograde": False},
+             "Rahu": {"house": 10, "sign_name": "Aries", "nakshatra": "Bharani",
+                      "owns_houses": [], "retrograde": True}}
+    venus = PromptsMixin._natal_line("Venus", natal)
+    assert "10th house" in venus and "rules your 11th and 4th" in venus
+    rahu = PromptsMixin._natal_line("Rahu", natal)
+    assert "rules no house of its own" in rahu and "retrograde at birth" in rahu
+    assert PromptsMixin._natal_line("Neptune", natal) == ""
+
+
+def test_ordinals():
+    assert [_ordinal_en(n) for n in (1, 2, 3, 4, 11, 12, 13, 21)] == \
+        ["1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st"]
+
+
+def test_period_days_join_their_tara_label():
+    days = [{"date": "2026-09-10", "tarabala": "Parama Mitra"},
+            {"date": "2026-09-11", "tarabala": "Vipat"}]
+    assert _fmt_period_days(["2026-09-10"], days) == "2026-09-10 (Parama Mitra)"
+    # A date with no matching row still prints, rather than vanishing.
+    assert _fmt_period_days(["2026-09-99"], days) == "2026-09-99"
+
+
+# ── When the good hour and a bad hour are the same hour ──────────────────────
+from astrology.compute_digests import _clock_overlaps
+
+
+def test_clock_overlap_detection():
+    amrit = {"start": "07:36", "end": "09:09"}
+    assert _clock_overlaps(amrit, {"start": "07:36", "end": "09:08"})
+    assert _clock_overlaps(amrit, {"start": "09:00", "end": "10:30"})
+    assert not _clock_overlaps(amrit, {"start": "09:09", "end": "10:30"})  # touching
+    assert not _clock_overlaps(amrit, {"start": "12:14", "end": "13:46"})
+    assert not _clock_overlaps(amrit, {"start": "bad", "end": None})
+
+
+def test_glance_says_when_the_good_window_collides():
+    """The digest used to recommend Amrit 07:36–09:09 and warn off Yamaganda
+    07:36–09:08 in the same list, as separate advice about the same 90 minutes."""
+    lines = digest._glance_lines({
+        "action_window": {"name": "Amrit", "start": "07:36", "end": "09:09",
+                          "conflicts": ["Yamaganda"]},
+        "avoid_windows": [{"name": "Yamaganda", "start": "07:36", "end": "09:08"}],
+    }, "daily")
+    assert lines[0] == "Good window — Amrit 07:36–09:09 (overlaps Yamaganda)"
+
+
+def test_glance_leaves_an_uncontested_window_unqualified():
+    lines = digest._glance_lines({
+        "action_window": {"name": "Amrit", "start": "07:36", "end": "09:09",
+                          "conflicts": []},
+    }, "daily")
+    assert lines[0] == "Good window — Amrit 07:36–09:09"

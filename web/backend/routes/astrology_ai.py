@@ -9,7 +9,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse, Response
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 import json
 import re
 from pydantic import BaseModel
@@ -36,6 +36,8 @@ import password_reset
 import email_service
 import notifications
 import digest as digest_service
+import digest_history
+import runtime_config
 import scheduler
 import uuid
 from fastapi import APIRouter
@@ -535,6 +537,27 @@ async def analyze_prashna(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+async def _digest_style(user_id: str, profile_id: Optional[str],
+                        cadence: str) -> Tuple[Optional[str], Optional[str]]:
+    """The narrative style for a digest read *in the app*, and the last note this
+    person was sent at this cadence.
+
+    Same source as the scheduled email — `runtime_config`, which the admin console
+    edits live — so the page and the inbox are never written by different prompts.
+    The continuity text is looked up only for the focused style, which is the only
+    one that has anywhere to put it.
+    """
+    try:
+        style = (await runtime_config.get()).get("digest_narrative_style")
+    except Exception as e:  # a config read must never cost someone their reading
+        print(f"[digest] style lookup failed, using the default: {e}")
+        return None, None
+    previously = None
+    if style == "focused" and profile_id:
+        previously = await digest_history.last_narrative(user_id, profile_id, cadence)
+    return style, previously
+
+
 @router.post("/api/astrology/daily-digest-analysis")
 async def analyze_daily_digest(
     request: DailyDigestAnalysisRequest,
@@ -553,8 +576,10 @@ async def analyze_daily_digest(
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
+        style, previously = await _digest_style(current_user, request.profile_id, "daily")
         ai_analysis = await llm_service.analyze_daily_digest(
-            digest_data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            digest_data=result, name=request.person_name or bd.name or "this person",
+            config=cfg, style=style, previously=previously)
         await _save_reading(
             current_user, source="daily_digest",
             title=f"Daily digest — {request.date or 'today'} · {request.person_name or bd.name or 'chart'}",
@@ -587,8 +612,10 @@ async def analyze_fortnightly_digest(
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
+        style, previously = await _digest_style(current_user, request.profile_id, "fortnightly")
         ai_analysis = await llm_service.analyze_fortnightly_digest(
-            digest_data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            digest_data=result, name=request.person_name or bd.name or "this person",
+            config=cfg, style=style, previously=previously)
         await _save_reading(
             current_user, source="fortnightly_digest",
             title=f"Fortnightly digest — {result.get('start_date')} · {request.person_name or bd.name or 'chart'}",
@@ -622,8 +649,10 @@ async def analyze_monthly_digest(
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
+        style, previously = await _digest_style(current_user, request.profile_id, "monthly")
         ai_analysis = await llm_service.analyze_monthly_digest(
-            digest_data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            digest_data=result, name=request.person_name or bd.name or "this person",
+            config=cfg, style=style, previously=previously)
         await _save_reading(
             current_user, source="monthly_digest",
             title=f"Monthly digest ({basis}) — {result.get('start_date')} · {request.person_name or bd.name or 'chart'}",

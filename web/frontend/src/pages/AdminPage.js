@@ -732,6 +732,19 @@ const CONFIG_FIELDS = [
     max: 720,
     help: "How late a digest may be while the model is busy with another workload. Past this, it goes out with its rule-based highlights and no narrative — late beats never. 0 sends immediately without waiting.",
   },
+  {
+    key: "digest_narrative_style",
+    label: "Narrative style",
+    type: "choice",
+    // The options come from the API (`narrative_styles`) so a new style needs no
+    // frontend change; these are only the labels and the "why you'd pick it".
+    optionsKey: "narrative_styles",
+    labels: {
+      focused: "Focused",
+      classic: "Classic",
+    },
+    help: "Which prompt writes the reading. Focused leads on the single strongest signal of the day, reads the birth chart to name the area of life it touches, and avoids repeating the note before it. Classic covers every signal in the order the data lists them. Both stay in the app — switch back any time and the next digest is written the old way.",
+  },
 ];
 
 /**
@@ -820,6 +833,19 @@ function SettingsTab() {
                     checked={!!draft[f.key]}
                     onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.checked }))}
                   />
+                ) : f.type === "choice" ? (
+                  <select
+                    id={`cfg-${f.key}`}
+                    className="admin-input"
+                    value={draft[f.key] ?? ""}
+                    onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
+                  >
+                    {(cfg[f.optionsKey] || []).map((opt) => (
+                      <option key={opt} value={opt}>
+                        {f.labels?.[opt] || opt}
+                      </option>
+                    ))}
+                  </select>
                 ) : (
                   <input
                     id={`cfg-${f.key}`}

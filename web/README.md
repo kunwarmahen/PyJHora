@@ -810,6 +810,12 @@ DIGEST_SCHEDULER_INTERVAL_MINUTES=15
 # The console edits this as a *duration* (digest_ai_max_delay_minutes, default
 # 6 × 15 = 90) because a retry count silently changes meaning with the interval.
 DIGEST_AI_MAX_DEFERRALS=6
+# Which prompt writes the digest narrative — "focused" (leads on the day's single
+# strongest signal, reads the birth chart to name the area of life it touches, and
+# does not repeat yesterday's note) or "classic" (covers every signal in the order
+# the data lists them). Both ship; this is only the default, and Admin › Settings
+# switches a live deployment either way without a redeploy.
+DIGEST_NARRATIVE_STYLE=focused
 # How many delivered digests are kept per user in their reading history. Digests
 # are stored separately from chats/readings under their own cap, precisely so a
 # daily send across several profiles can never evict AI_HISTORY_MAX conversations.
@@ -1293,6 +1299,16 @@ Three approaches, chosen with a mode toggle:
     this is a browser rule, not a server problem (email + in-app digest still work). Serve the app
     over HTTPS, or use `localhost`, to enable push. The badge distinguishes three cases: server not
     configured (no VAPID keys), insecure page (needs HTTPS/localhost), or an unsupported browser.
+- **Narrative style** (§67): two prompts write the reading, chosen by
+  `DIGEST_NARRATIVE_STYLE` or the **Admin › Settings** picker (runtime, no redeploy).
+  **Focused** (the default) leads on whichever signal is genuinely strongest that day,
+  reads the natal chart — the house the running dasha lord occupies and the houses it
+  rules — so it can name *which part of a life* the day touches, rotates how it opens
+  from one day to the next, and is given the last note it sent so it does not re-argue
+  it. Its email drops the bullet lists it was written from and keeps a short **At a
+  glance** of what a 220-word note cannot carry (clock times, dates, the next ingress).
+  **Classic** is the original prompt, kept so a deployment can be put back with one
+  click. A section whose narrative fails falls back to the full bullet lists either way.
 - **Scheduler**: an opt-in in-process scheduler (`DIGEST_SCHEDULER_ENABLED`, or the runtime
   switch in **Admin › Settings**) delivers each user's
   digest once a day at **or after** their preferred local hour — using "at or after" (not only the

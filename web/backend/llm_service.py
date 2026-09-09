@@ -494,31 +494,64 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
+    # Which prompt writes a digest narrative. "classic" is the original; "focused"
+    # is the Sept 2026 rewrite (see llm/prompts.py). The caller resolves the style
+    # — from `runtime_config`, which the admin console edits live — rather than
+    # this layer reading config, so a route and the scheduler can never disagree
+    # about which reading a user is getting. An unknown style falls back to
+    # classic: a bad value must not cost someone their morning digest.
+    def _digest_prompt(self, style: Optional[str], focused, classic):
+        return focused if str(style or "").lower() == "focused" else classic
+
     async def analyze_daily_digest(self,
                                    digest_data: Dict[str, Any],
                                    name: str = "this person",
-                                   config: Optional[ModelConfig] = None) -> str:
-        """Warm, personalized reading of today's digest for the person."""
-        prompt = self._build_daily_digest_prompt(digest_data, name)
+                                   config: Optional[ModelConfig] = None,
+                                   style: Optional[str] = None,
+                                   previously: Optional[str] = None) -> str:
+        """Warm, personalized reading of today's digest for the person.
+
+        `previously` is the last narrative this person was sent, given to the
+        focused prompt so today's note does not re-argue yesterday's. The classic
+        prompt has no such input and ignores it."""
+        prompt = self._digest_prompt(
+            style,
+            lambda: self._build_daily_digest_focused_prompt(digest_data, name, previously),
+            lambda: self._build_daily_digest_prompt(digest_data, name),
+        )()
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
     async def analyze_fortnightly_digest(self,
                                          digest_data: Dict[str, Any],
                                          name: str = "this person",
-                                         config: Optional[ModelConfig] = None) -> str:
+                                         config: Optional[ModelConfig] = None,
+                                         style: Optional[str] = None,
+                                         previously: Optional[str] = None) -> str:
         """Warm, personalized reading of the fortnight (Paksha Pravesha) digest."""
-        prompt = self._build_period_digest_prompt(digest_data, name, "fortnight")
+        prompt = self._digest_prompt(
+            style,
+            lambda: self._build_period_digest_focused_prompt(
+                digest_data, name, "fortnight", previously),
+            lambda: self._build_period_digest_prompt(digest_data, name, "fortnight"),
+        )()
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
     async def analyze_monthly_digest(self,
                                      digest_data: Dict[str, Any],
                                      name: str = "this person",
-                                     config: Optional[ModelConfig] = None) -> str:
+                                     config: Optional[ModelConfig] = None,
+                                     style: Optional[str] = None,
+                                     previously: Optional[str] = None) -> str:
         """Warm, personalized reading of the monthly digest — the Maasa Pravesha
         (solar) or birth-tithi-return (lunar) chart, per the digest's basis."""
-        prompt = self._build_period_digest_prompt(digest_data, name, "month")
+        prompt = self._digest_prompt(
+            style,
+            lambda: self._build_period_digest_focused_prompt(
+                digest_data, name, "month", previously),
+            lambda: self._build_period_digest_prompt(digest_data, name, "month"),
+        )()
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 

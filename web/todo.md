@@ -6495,3 +6495,123 @@ A hard reload (Ctrl/Cmd+Shift+R) or clearing site data fixes an affected browser
 immediately. After this deploy it cannot recur.
 
 699 backend tests green, 187 frontend (6 new).
+
+---
+
+## §67 Digest narrative — the focused style, behind a runtime switch (SHIPPED 2026-09-09)
+
+The owner's report was that the digest read "a little boring". It did, and one of
+the reasons was that some mornings it carried no reading at all.
+
+### The bug underneath it
+
+`qwen3.8-64k` is a thinking model. Ollama's `/api/generate` splits a thinking
+model's output into `thinking` and `response`, and `num_predict` caps the **sum**.
+The daily prompt was 1,063 words of dense, partly contradictory instruction for a
+170-word answer, so the model deliberated until the budget ran out and returned:
+
+```
+resp len: 0    think len: 13083    done_reason: length    eval_count: 4096
+```
+
+A 200 OK carrying nothing. `_call_ollama` returned that empty string as success,
+`digest.py` turned it into `narrative = None` with `_ai_retryable = False`, so
+`should_defer` didn't hold it and nothing was logged — the digest shipped as a bare
+bullet list. Reproduced on roughly one run in two.
+
+Fixed at source: **one-shot completions now send `think: False`**. These are
+single-turn writing tasks; deliberation buys nothing and costs the whole budget.
+Same prompt, same model: **7 minutes and nothing → 13 seconds and a full reading.**
+`_rejects_think` retries without the key for models that have no thinking mode, and
+`_empty_response_error` turns a still-empty 200 into a classified failure (`fatal`,
+not transient — retrying deliberates identically, so the digest should degrade to
+highlights now rather than 90 minutes late). Scoped to `_call_ollama`; the chat and
+streaming paths are untouched.
+
+### Why the prose was flat
+
+Four causes, and the fix for each:
+
+1. **Constraint overload.** 8 hard "do NOT"s plus a 9-phrase ban list. Forbidding
+   "lean into" does not produce voice, it produces the next-most-generic verb, and
+   every rule spent on what not to write is capacity not spent on having something
+   to say. The ban list is gone; a demand for specificity replaces it.
+2. **Cover-everything.** Naming six factors in 170 words buys one clause each — a
+   list wearing prose. Both observed runs put supports in paragraph 1, cautions in
+   paragraph 2 and timing in paragraph 3: the shape of the *data*, every morning.
+   The focused prompt leads on ONE signal and gives it half the note.
+3. **No material to be specific with.** The prompt got the engine's pre-cooked
+   summary strings and nothing else. `transits.natal` held only lagna and Moon, so
+   a reading knew "Rahu Mahadasha, Venus Bhukti" but not where Venus sat or what it
+   ruled — and could therefore never name *which area of life* a day touched.
+4. **No memory.** `_diff_signals` fires on four coarse signals, so `changes` is
+   empty most mornings, while every past narrative sat unused in `digest_readings`.
+
+### What shipped
+
+- **Natal placements in the transit payload** (`compute_transits.py`): every graha's
+  birth `house`, `sign_name`, nakshatra, retrograde flag and `owns_houses` (whole-sign
+  lordship counted from the natal Lagna). One `rasi_chart` call that was already being
+  made. Follows the position contract — plain `house` because a natal placement has
+  exactly one reference, and `sanitize` strips `sign_num` on the way to the model, so
+  **every AI transit answer gained the natal chart too**, not just the digest.
+- **`_build_daily_digest_focused_prompt` / `_build_period_digest_focused_prompt`**
+  (626 and 571 words, vs 1,063). Lead on one signal; the dasha lords rendered as
+  placements (`_natal_line`: "Venus sits in your 10th house and rules your 11th and
+  4th"); `_digest_angle` rotates one of four honest openings, keyed off the date so
+  a re-read is identical but consecutive mornings differ.
+- **Continuity**: `digest_history.last_narrative` feeds the last note back with
+  "do not repeat this". `exclude_date` matches the window label rather than ordering,
+  because a period digest's `date` is a "start → end" string that does not sort.
+- **The runtime switch**: `digest_narrative_style` in `runtime_config.FIELDS` with a
+  new `_one_of` coercer, `DIGEST_NARRATIVE_STYLE` as the deployed default (`focused`),
+  and a select in Admin › Settings whose options come from the API (`narrative_styles`)
+  so a third style needs no frontend change. Both prompts stay in the tree; reverting
+  the whole deployment is one click. Style is resolved **once per send** so every
+  profile in a combined message shares one voice, and the route resolves it from the
+  same place so the page and the inbox never disagree.
+- **Email**: the focused shape drops the supports/cautions/highlights bullets — the
+  narrative is written *from* those, so printing them underneath said the day three
+  times — and keeps a short `_glance_lines` "At a glance" built from structured fields
+  (times, dates, ingresses), never by re-parsing the highlight strings. `_is_focused`
+  falls back to the full lists when a narrative is missing, so a failed reading never
+  produces an empty email.
+
+### Traps found on the way
+
+- **`{paksha} {tithi.name}` printed "Krishna Krishna Trayodashi"** — the tithi name
+  already carries its paksha. Present in the classic prompt since it was written;
+  fixed in both.
+- **The classic period prompt asked the model to "name the actual dates" while being
+  handed only the counts** ("1 well-starred"). It could not, so it either omitted the
+  most actionable line in the briefing or invented one. `_fmt_period_days` joins
+  `tarabala.best` (bare dates) to `tarabala.days` (which holds the tara) →
+  "2026-09-10 (Parama Mitra)".
+- **The digest recommended and forbade the same 90 minutes.** Choghadiya and the
+  Rahu Kalam / Yamaganda / Gulika trio are independent eighths of the same daylight,
+  so an Amrit window can sit inside Yamaganda. `action_window.conflicts` now names
+  the collision; the glance prints "(overlaps Yamaganda)" and the prompt is told to
+  recommend the hour only with that said. **Deliberately not resolved** — which
+  division takes precedence is genuinely disputed, and picking a winner here would
+  quietly override the Muhurta page's own answer. Left as an open question for the
+  owner.
+- **Word counts are advisory to a model.** The same prompt returned 234, 337 and 395
+  words on three consecutive days. Replaced with a structural limit — "exactly three
+  paragraphs, at most four sentences each" — which is countable while writing and
+  actually binds: 153–218 words across four runs.
+- **Markdown reached the email as literal asterisks.** The page renders the narrative
+  through ReactMarkdown, the email escaped and wrapped it. `_inline_md` renders `**b**`
+  and `*i*` *after* escaping, so nothing in a narrative can inject markup.
+
+### Tests
+
+728 backend (22 new, all DB- and LLM-free), 187 frontend. New coverage: the empty-200
+detection and its classification, `think: False` on the one-shot path, the natal
+placements pinned by golden value for chart 1 (Taurus lagna → Venus rules the 1st and
+6th, nodes rule nothing) and asserted not to move with the transit date, the AI-visible
+payload keeping `house`/`owns_houses` while losing `sign_num`, both email shapes, the
+narrative-less fallback, the angle rotation's stability-per-date, the style knob's
+rejection of a bad value, and the window-overlap detection.
+
+FAQ: `digestWindowOverlap` (why an hour is recommended and warned about) and
+`digestReadingShape` (why the reading and the email look different).

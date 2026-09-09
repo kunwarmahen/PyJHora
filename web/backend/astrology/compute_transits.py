@@ -116,6 +116,42 @@ class TransitsMixin:
             # short → 0-based sign, for counting each transit from every pada.
             pada_rasi = {p["short"]: p["sign"] - 1 for p in arudha_padas}
 
+            # ── The natal placements themselves (§67) ───────────────────────
+            # The transit block has always carried *where the grahas are now* and
+            # counted that from the natal Lagna — but never said where the grahas
+            # *were born*. A reading could therefore say "Saturn crosses your 12th"
+            # and never "your dasha lord sits in your 7th and rules your 2nd",
+            # which is the half that names the area of life an event belongs to.
+            # Both halves are one `rasi_chart` call apart, and it was already made.
+            #
+            # `owns_houses` is whole-sign lordship: the bhavas whose sign this
+            # graha rules, counted from the natal Lagna. It is the single most
+            # useful derived fact here and the one a model gets wrong most often
+            # when left to do the modular arithmetic itself. Rahu and Ketu own
+            # nothing in the classical scheme, so their list is empty rather than
+            # invented.
+            natal_retro_ids = set(drik.planets_in_retrograde(natal_jd, place_obj))
+            natal_planets = {}
+            for planet_index, (rasi, degrees) in natal[1:]:  # skip ascendant
+                name = PLANET_NAMES.get(planet_index, f"Planet_{planet_index}")
+                abs_long = rasi * 30.0 + degrees
+                nak_idx = int(abs_long / nak_span)
+                natal_planets[name] = {
+                    "sign_name": ZODIAC_NAMES[rasi],
+                    "sign_num": rasi + 1,
+                    "degrees": round(degrees, 2),
+                    # A natal placement has one reference — the natal Lagna — so
+                    # this is a plain `house`, per the position-payload contract.
+                    "house": house_from(natal_lagna_rasi, rasi),
+                    "house_from_moon": house_from(natal_moon_rasi, rasi),
+                    "nakshatra": NAKSHATRA_NAMES[nak_idx],
+                    "nakshatra_pada": int((abs_long % nak_span) / pada_span) + 1,
+                    "retrograde": planet_index in natal_retro_ids,
+                    "owns_houses": [house_from(natal_lagna_rasi, sign0)
+                                    for sign0, lord in enumerate(SIGN_LORD)
+                                    if lord == planet_index],
+                }
+
             planets = {}
             for planet_index, (rasi, degrees) in transit[1:]:  # skip ascendant
                 name = PLANET_NAMES.get(planet_index, f"Planet_{planet_index}")
@@ -205,6 +241,10 @@ class TransitsMixin:
                         "nakshatra": NAKSHATRA_NAMES[_janma_nakshatra(
                             natal_moon_rasi * 30.0 + natal_moon_deg) - 1],
                     },
+                    # Where every graha actually sits in the birth chart, and what
+                    # it rules — the reference frame a reading needs to say which
+                    # part of a life a transit or a dasha is touching.
+                    "planets": natal_planets,
                 },
                 # Natal lagna drives the Kundali houses; planets are the transits.
                 "lagna": {

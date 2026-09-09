@@ -660,3 +660,54 @@ def test_vimsottari_children_take_their_proper_share_of_the_parent_arc(args1):
             check(kids[0][1], kids[0][2], kids[0][0], depth + 1)
 
     check(span[0], span[1], 7, 1)
+
+
+# ── Natal placements inside the transit block (§67) ─────────────────────────
+# `get_transits` always said where the grahas are *now* and counted that from the
+# natal Lagna, but never said where they were *born*. Without it a digest could
+# say "Saturn crosses your 12th" and never "your dasha lord sits in your 10th and
+# rules your 11th" — the half that names the area of life an event belongs to.
+# Chart 1 is Taurus lagna, so these are hand-checkable: Venus rules Taurus (1st)
+# and Libra (6th), Saturn rules Capricorn (9th) and Aquarius (10th), and the
+# nodes rule nothing.
+CHART1_NATAL = {
+    "Sun":     ("Taurus", 1, [4]),
+    "Moon":    ("Leo", 4, [3]),
+    "Mars":    ("Cancer", 3, [12, 7]),
+    "Mercury": ("Taurus", 1, [2, 5]),
+    "Jupiter": ("Aries", 12, [8, 11]),
+    "Venus":   ("Taurus", 1, [1, 6]),
+    "Saturn":  ("Cancer", 3, [9, 10]),
+    "Rahu":    ("Libra", 6, []),
+    "Ketu":    ("Aries", 12, []),
+}
+
+
+def test_transit_block_carries_the_natal_placements(args1):
+    tr = A.get_transits(**args1, current_date="2026-07-16")
+    assert tr.get("status") == "success", tr
+    natal = tr["natal"]
+    assert natal["lagna"]["sign_name"] == "Taurus"
+    for name, (sign, house, owns) in CHART1_NATAL.items():
+        p = natal["planets"][name]
+        assert p["sign_name"] == sign, f"{name}: {p['sign_name']} != {sign}"
+        assert p["house"] == house, f"{name} house: {p['house']} != {house}"
+        assert p["owns_houses"] == owns, f"{name} lordship: {p['owns_houses']} != {owns}"
+
+
+def test_natal_placements_do_not_move_with_the_transit_date(args1):
+    """The birth chart is the one thing in a transit payload that must not change
+    when the date does — a regression here would silently rewrite every reading."""
+    a = A.get_transits(**args1, current_date="2026-07-16")["natal"]["planets"]
+    b = A.get_transits(**args1, current_date="2027-02-01")["natal"]["planets"]
+    assert a == b
+
+
+def test_daily_digest_exposes_the_natal_chart_to_the_prompt(args1):
+    """The focused digest prompt reads `transits.natal.planets`; this pins the
+    path it reads rather than trusting the two layers to stay joined."""
+    d = A.get_daily_digest(**args1, date="2026-07-16")
+    assert d.get("status") == "success", d
+    planets = d["transits"]["natal"]["planets"]
+    assert set(planets) == set(CHART1_NATAL)
+    assert planets["Venus"]["owns_houses"] == [1, 6]

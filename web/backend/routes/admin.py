@@ -30,6 +30,7 @@ class RuntimeConfigRequest(BaseModel):
     digest_scheduler_enabled: Optional[bool] = None
     digest_scheduler_interval_minutes: Optional[int] = None
     digest_ai_max_delay_minutes: Optional[int] = None
+    digest_narrative_style: Optional[str] = None
     # Which of the above the caller means to clear (JSON null is indistinguishable
     # from "absent" once parsed, so clearing is requested explicitly).
     clear: Optional[list] = None
@@ -162,6 +163,9 @@ async def admin_get_config(admin: str = Depends(get_admin_user)):
         "defaults": runtime_config.defaults(),
         "overridden": list((await runtime_config.overrides()).keys()),
         "max_deferrals": runtime_config.max_deferrals(values),
+        # Served rather than hard-coded in the console, so adding a third
+        # narrative style is a backend-only change.
+        "narrative_styles": list(runtime_config.NARRATIVE_STYLES),
     }
 
 
@@ -184,4 +188,5 @@ async def admin_set_config(req: RuntimeConfigRequest, request: Request,
         # What the configured delay works out to in scheduler ticks — the number
         # the operator would otherwise have to derive to sanity-check the setting.
         "max_deferrals": runtime_config.max_deferrals(values),
+        "narrative_styles": list(runtime_config.NARRATIVE_STYLES),
     }

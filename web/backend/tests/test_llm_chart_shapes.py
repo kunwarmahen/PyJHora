@@ -179,6 +179,23 @@ def test_transits_keep_their_own_house_counts():
     assert 1 <= saturn["house_from_moon"] <= 12
 
 
+def test_transit_tool_carries_the_natal_chart_with_its_lordships():
+    """The natal half of a transit reading (§67). A transit gets several named
+    counts and no bare `house`; a *natal* placement has exactly one reference —
+    the birth Lagna — so it gets a plain `house`, and the sign coordinate is
+    still stripped on the way to the model."""
+    t = tools.dispatch("get_transits", {}, BD1, AYAN)
+    venus = t["natal"]["planets"]["Venus"]
+    assert "sign_num" not in venus and "rasi" not in venus
+    assert 1 <= venus["house"] <= 12
+    assert venus["sign_name"]
+    # Whole-sign lordship, counted from the natal Lagna — the fact that lets a
+    # reading name the area of life a dasha or transit belongs to.
+    assert all(1 <= h <= 12 for h in venus["owns_houses"])
+    assert len(venus["owns_houses"]) == 2          # Taurus + Libra
+    assert t["natal"]["planets"]["Rahu"]["owns_houses"] == []   # a node rules nothing
+
+
 def test_seeded_context_matches_the_tool_payloads():
     ctx = chart_context.build_chart_context(
         BD1, sections={k: False for k in chart_context.DEFAULT_SECTIONS},

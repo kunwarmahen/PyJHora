@@ -86,6 +86,13 @@ class Settings(BaseSettings):
     # minutes — see runtime_config.py. The scheduler reads the runtime value.
     DIGEST_AI_MAX_DEFERRALS: int = 6
 
+    # Which prompt writes the digest narrative — "focused" (the Sept 2026 rewrite:
+    # leads on one signal, reads the natal chart, remembers yesterday) or "classic"
+    # (the original, which covers every signal in the order the data lists them).
+    # The deployed default; the admin console overrides it at runtime, so reverting
+    # a reading everyone dislikes is one click and not a redeploy.
+    DIGEST_NARRATIVE_STYLE: str = "focused"
+
     # ── Admin console (§44) ────────────────────────────────────────────────
     # Deployer-controlled superuser access. This env var is the SOURCE OF TRUTH
     # for who is an admin — the app reconciles the `is_admin` flag on `users`

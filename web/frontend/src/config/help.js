@@ -104,6 +104,8 @@ export const HELP_SECTIONS = [
       { id: "aiDigestHistory" },
       { id: "digestCautions", to: "/daily-digest" },
       { id: "digestTaraBala" },
+      { id: "digestWindowOverlap" },
+      { id: "digestReadingShape" },
     ],
   },
   {

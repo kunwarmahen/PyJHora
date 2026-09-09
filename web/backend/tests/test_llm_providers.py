@@ -255,3 +255,70 @@ def test_hosted_providers_are_left_alone(monkeypatch):
     cfg = llm_service.resolve_config("gemini", model="gemini-3.5-flash",
                                      api_key="k")
     assert asyncio.run(llm_service.ensure_model_installed(cfg)).model == "gemini-3.5-flash"
+
+
+# ── A 200 that carries no answer (§67) ───────────────────────────────────────
+# Thinking models split their output into `thinking` and `response`, and
+# `num_predict` caps the sum. A long prompt could therefore spend the entire
+# budget deliberating and return `response: ""` with HTTP 200 — which the whole
+# stack read as a successful empty reading, so the daily digest silently shipped
+# as a bare bullet list. These pin the detection and the classification.
+from llm.base import classify_error_text
+from llm.providers.ollama import _empty_response_error, _rejects_think
+
+
+def test_thinking_truncation_is_reported_not_returned_as_an_answer():
+    err = _empty_response_error("qwen3.8-64k:latest", {
+        "done_reason": "length", "thinking": "x" * 13083, "eval_count": 4096})
+    assert err.lower().startswith("error")
+    assert "thinking" in err and "13083" in err
+    # Retrying identically would deliberate identically, so this is not
+    # transient: the digest should degrade to highlights now, not in 90 minutes.
+    assert classify_error_text(err) == "fatal"
+
+
+def test_a_plain_empty_answer_is_also_an_error():
+    err = _empty_response_error("some-model", {"done_reason": "stop"})
+    assert classify_error_text(err) == "fatal"
+    assert "empty response" in err
+
+
+def test_rejects_think_only_matches_ollama_saying_so():
+    assert _rejects_think('{"error":"qwen2.5 does not support thinking"}')
+    assert _rejects_think('{"error":"unknown field think"}')
+    assert not _rejects_think('{"error":"model not found"}')
+    assert not _rejects_think("")
+
+
+def test_one_shot_completions_ask_for_no_thinking(monkeypatch):
+    """The fix at source: a 200-word narrative is a writing task, and thinking
+    buys nothing while costing the whole token budget."""
+    seen = {}
+
+    class _Resp:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {"response": "a reading", "eval_count": 12}
+
+    class _Client:
+        def __init__(self, *a, **k):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        async def post(self, url, json=None):
+            seen.update(json or {})
+            return _Resp()
+
+    import httpx
+    monkeypatch.setattr(httpx, "AsyncClient", _Client)
+    cfg = llm_service.resolve_config("ollama", model="qwen3.8-64k:latest")
+    out = asyncio.run(llm_service._call_ollama("write me a note", cfg))
+    assert out == "a reading"
+    assert seen["think"] is False

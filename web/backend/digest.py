@@ -24,6 +24,7 @@ import digest_history
 import digest_recipients
 import email_service
 import notifications
+import runtime_config
 import timezones
 import user_settings
 
@@ -342,7 +343,8 @@ def _shared_sky(blocks: List[Dict[str, Any]]) -> Optional[List[str]]:
 async def _profile_block(user_id: str, profile: Dict[str, Any],
                          include_ai: bool, cadence: str = "daily",
                          basis: str = "solar",
-                         observer: Optional[Dict[str, Any]] = None
+                         observer: Optional[Dict[str, Any]] = None,
+                         style: Optional[str] = None
                          ) -> Optional[Dict[str, Any]]:
     """Compute one profile's digest section for the given cadence (daily/
     fortnightly/monthly): name, window label, highlights, and an optional AI
@@ -350,7 +352,11 @@ async def _profile_block(user_id: str, profile: Dict[str, Any],
 
     `observer` is the reader's current-location clock (see `observer_clock`); it
     fixes *which day* the digest is about. The birth details below stay untouched
-    — they are the chart, and the chart does not move when the person does."""
+    — they are the chart, and the chart does not move when the person does.
+
+    `style` picks the narrative prompt ("classic" / "focused"). It is resolved
+    once by the caller from `runtime_config` and passed down, so every profile in
+    one combined message is written in the same voice."""
     spec = _cadence(cadence)
     bd = profile.get("birth_details") or {}
     compute = getattr(AstrologyCompute, spec["compute"])
@@ -404,8 +410,24 @@ async def _profile_block(user_id: str, profile: Dict[str, Any],
             cfg = await _digest_cfg(user_id)
             provider, model = cfg.provider_type.value, cfg.model
             analyze = getattr(llm_service, spec["analyze"])
-            text = await analyze(digest_data=digest, name=name, config=cfg)
+            # The focused style reads the last note it sent so it can decline to
+            # repeat it; the classic prompt has no such input and ignores it. The
+            # lookup is skipped entirely for classic rather than fetched and
+            # thrown away.
+            previously = None
+            if style == "focused":
+                previously = await digest_history.last_narrative(
+                    user_id, str(profile.get("_id") or ""), cadence, exclude_date=window)
+            text = await analyze(digest_data=digest, name=name, config=cfg,
+                                 style=style, previously=previously)
             narrative = (text or "").strip() or None
+            if not narrative:
+                # A provider that returns 200-with-nothing (a thinking model that
+                # spent its whole budget deliberating, say). Not an exception, so
+                # it used to pass for a successful empty reading and the digest
+                # shipped as bare bullets with nothing logged.
+                print(f"[digest] AI narrative was empty for {user_id}/{name} "
+                      f"({provider}/{model}) — sending highlights only")
         except LLMUnavailable as e:  # GPU busy / host down — may be worth waiting for
             ai_retryable = e.retryable
             print(f"[digest] AI narrative unavailable for {user_id}/{name} "
@@ -428,6 +450,10 @@ async def _profile_block(user_id: str, profile: Dict[str, Any],
         "cautions": digest.get("cautions") or [],
         "supports": digest.get("supports") or [],
         "narrative": narrative,
+        # Which prompt wrote it — the renderer picks the matching email shape.
+        "style": style,
+        # Reference facts for the focused style's "At a glance" (see _glance_lines).
+        "glance": _glance_lines(digest, cadence),
         # Consumed by send_digest_for_user (and stripped before rendering): the
         # narrative is missing for a reason that may clear on its own.
         "_ai_retryable": ai_retryable,
@@ -438,6 +464,65 @@ async def _profile_block(user_id: str, profile: Dict[str, Any],
         "_context": {"person_name": name, "date": digest.get("date"),
                      "basis": basis, "cadence": cadence},
     }
+
+
+# `**bold**` and `*italic*` only — the whole of what a narrative ever uses, and
+# a deliberately tiny surface. Applied to already-escaped text, so the captured
+# group cannot carry markup of its own.
+_MD_BOLD = re.compile(r"\*\*(?=\S)(.+?)(?<=\S)\*\*", re.DOTALL)
+_MD_ITALIC = re.compile(r"(?<!\*)\*(?=\S)([^*]+?)(?<=\S)\*(?!\*)", re.DOTALL)
+
+
+def _inline_md(escaped: str) -> str:
+    return _MD_ITALIC.sub(r"<em>\1</em>", _MD_BOLD.sub(r"<strong>\1</strong>", escaped))
+
+
+def _is_focused(block: Dict[str, Any]) -> bool:
+    """Render this section the focused way? Only when the focused prompt actually
+    wrote it. A section whose narrative failed falls back to the full bullet
+    lists — an email with neither a reading nor its highlights would be empty."""
+    return block.get("style") == "focused" and bool(block.get("narrative"))
+
+
+def _glance_lines(digest: Dict[str, Any], cadence: str) -> List[str]:
+    """The scannable reference facts, for the focused style's "At a glance".
+
+    Deliberately NOT the supports/cautions lines: the focused narrative is built
+    from those, so repeating them under the reading is the redundancy that made
+    the old email say the same day three times over. What survives is only what a
+    reader needs as *reference* and a 200-word note cannot be expected to carry —
+    clock times, dates, the next ingress — built from the structured fields rather
+    than by parsing the highlight strings back apart.
+    """
+    lines: List[str] = []
+    for c in (digest.get("changes") or [])[:2]:
+        lines.append(f"New today — {c}")
+
+    if cadence == "daily":
+        aw = digest.get("action_window") or {}
+        if aw.get("name"):
+            # Say when the good hour and an inauspicious one are the same hour,
+            # rather than printing both as though they were separate advice.
+            clash = (f" (overlaps {', '.join(aw['conflicts'])})"
+                     if aw.get("conflicts") else "")
+            lines.append(f"Good window — {aw['name']} {aw['start']}–{aw['end']}{clash}")
+        for w in (digest.get("avoid_windows") or [])[:2]:
+            lines.append(f"Keep clear — {w['name']} {w['start']}–{w['end']}")
+    else:
+        for e in (digest.get("events") or [])[:3]:
+            lines.append(f"{e['date']} — {e['text']}")
+        best = (digest.get("tarabala") or {}).get("best") or []
+        if best:
+            lines.append("Well-starred days — " + ", ".join(best[:4]))
+
+    for u in (digest.get("transits") or {}).get("upcoming", [])[:2]:
+        verb = "re-enters" if u.get("retrograde_reentry") else "enters"
+        lines.append(f"{u['planet']} {verb} {u['to_sign']} — {u['date']}")
+
+    bh = (digest.get("dasha") or {}).get("bhukti") or {}
+    if bh.get("lord") and bh.get("end_date"):
+        lines.append(f"{bh['lord']} Bhukti runs to {bh['end_date']}")
+    return lines
 
 
 def _render_text(blocks: List[Dict[str, Any]], date: str, noun: str,
@@ -464,23 +549,32 @@ def _render_text(blocks: List[Dict[str, Any]], date: str, noun: str,
         if b.get("narrative"):
             parts.append(b["narrative"])
             parts.append("")
-        if b.get("changes"):
-            parts.append("Since your last digest:")
-            parts.extend(f"• {c}" for c in b["changes"])
-            parts.append("")
-        if b.get("supports"):
-            parts.append("Working in your favour:")
-            parts.extend(f"• {c['text']}" for c in b["supports"])
-            parts.append("")
-        if b.get("cautions"):
-            parts.append("Take care with:")
-            parts.extend(f"• {c['text']}" for c in b["cautions"])
-            parts.append("")
-        lines = b.get("personal") if shared else b.get("highlights")
-        if lines:
-            parts.append("For you:" if shared else "Highlights:")
-            parts.extend(f"• {h}" for h in lines)
-            parts.append("")
+        if _is_focused(b):
+            # The focused note is written *from* the supports and cautions, so
+            # printing them underneath it says the same day twice. Only the
+            # reference facts follow it.
+            if b.get("glance"):
+                parts.append("At a glance:")
+                parts.extend(f"• {g}" for g in b["glance"])
+                parts.append("")
+        else:
+            if b.get("changes"):
+                parts.append("Since your last digest:")
+                parts.extend(f"• {c}" for c in b["changes"])
+                parts.append("")
+            if b.get("supports"):
+                parts.append("Working in your favour:")
+                parts.extend(f"• {c['text']}" for c in b["supports"])
+                parts.append("")
+            if b.get("cautions"):
+                parts.append("Take care with:")
+                parts.extend(f"• {c['text']}" for c in b["cautions"])
+                parts.append("")
+            lines = b.get("personal") if shared else b.get("highlights")
+            if lines:
+                parts.append("For you:" if shared else "Highlights:")
+                parts.extend(f"• {h}" for h in lines)
+                parts.append("")
         if app_url and b.get("_profile_id"):
             parts.append(f"Open {b['name']}'s reading: "
                          f"{app_url}{open_path}?profile={b['_profile_id']}")
@@ -504,8 +598,12 @@ def _render_html(blocks: List[Dict[str, Any]], date: str, noun: str,
 
     def narrative_html(text: str) -> str:
         # Render blank-line-separated paragraphs; keep it dependency-free.
+        # The app renders the same text through ReactMarkdown, so a model that
+        # emphasises a term ("**Amrit window**") looked right on the page and
+        # showed its asterisks in the email. Escape first, then re-introduce the
+        # two inline marks — order matters, or a model could inject markup.
         paras = [p.strip() for p in text.split("\n\n") if p.strip()]
-        return "".join(f"<p>{esc(p)}</p>" for p in paras)
+        return "".join(f"<p>{_inline_md(esc(p))}</p>" for p in paras)
 
     def _btn(url: str, label: str, primary: bool) -> str:
         bg = "#FF9933" if primary else "transparent"
@@ -538,23 +636,30 @@ def _render_html(blocks: List[Dict[str, Any]], date: str, noun: str,
                    if multi else f"<p>Hi {esc(b['name'])},</p>")
         if b.get("narrative"):
             out.append(narrative_html(b["narrative"]))
-        if b.get("changes"):
-            out.append('<p style="margin:8px 0 2px;color:#B8541A">'
-                       '<b>Since your last digest</b></p>')
-            out.append("<ul>" + "".join(f"<li>{esc(c)}</li>" for c in b["changes"]) + "</ul>")
-        if b.get("supports"):
-            out.append('<p style="margin:8px 0 2px;color:#2e6b47">'
-                       '<b>Working in your favour</b></p>')
-            out.append("<ul>" + "".join(f"<li>{esc(c['text'])}</li>"
-                                       for c in b["supports"]) + "</ul>")
-        if b.get("cautions"):
-            out.append('<p style="margin:8px 0 2px;color:#8a4b2a">'
-                       '<b>Take care with</b></p>')
-            out.append("<ul>" + "".join(f"<li>{esc(c['text'])}</li>"
-                                       for c in b["cautions"]) + "</ul>")
-        lines = b.get("personal") if shared else b.get("highlights")
-        if lines:
-            out.append("<ul>" + "".join(f"<li>{esc(h)}</li>" for h in lines) + "</ul>")
+        if _is_focused(b):
+            if b.get("glance"):
+                out.append('<p style="margin:14px 0 4px;color:#8a6d3b">'
+                           '<b>At a glance</b></p>')
+                out.append("<ul>" + "".join(f"<li>{esc(g)}</li>"
+                                            for g in b["glance"]) + "</ul>")
+        else:
+            if b.get("changes"):
+                out.append('<p style="margin:8px 0 2px;color:#B8541A">'
+                           '<b>Since your last digest</b></p>')
+                out.append("<ul>" + "".join(f"<li>{esc(c)}</li>" for c in b["changes"]) + "</ul>")
+            if b.get("supports"):
+                out.append('<p style="margin:8px 0 2px;color:#2e6b47">'
+                           '<b>Working in your favour</b></p>')
+                out.append("<ul>" + "".join(f"<li>{esc(c['text'])}</li>"
+                                           for c in b["supports"]) + "</ul>")
+            if b.get("cautions"):
+                out.append('<p style="margin:8px 0 2px;color:#8a4b2a">'
+                           '<b>Take care with</b></p>')
+                out.append("<ul>" + "".join(f"<li>{esc(c['text'])}</li>"
+                                           for c in b["cautions"]) + "</ul>")
+            lines = b.get("personal") if shared else b.get("highlights")
+            if lines:
+                out.append("<ul>" + "".join(f"<li>{esc(h)}</li>" for h in lines) + "</ul>")
         out.append(links_html(b))
     if not app_url:
         out.append(f"<p>Open {esc(settings.SITE_NAME)} for the full reading.</p>")
@@ -600,6 +705,11 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
         return {"status": "error", "reason": "no_profile"}
 
     include_ai = prefs.get("include_ai", True)
+    # Which narrative prompt writes this send. Read once, here, so every profile
+    # in one combined message is written in the same voice even if an admin flips
+    # the knob mid-loop — and so the whole deployment can be reverted to the
+    # classic reading from the console without a redeploy.
+    style = (await runtime_config.get()).get("digest_narrative_style")
     # One clock for the whole message: the reader's current location, or — failing
     # that — the first profile's birth offset, so every profile shares one day.
     observer = await observer_clock(user_id, profiles)
@@ -616,7 +726,7 @@ async def send_digest_for_user(user_id: str, prefs: Optional[Dict[str, Any]] = N
                 continue
         try:
             block = await _profile_block(user_id, profile, include_ai, cadence,
-                                         basis, observer)
+                                         basis, observer, style)
         except Exception as e:  # one bad profile shouldn't sink the whole digest
             print(f"[digest] profile calc failed for {user_id}: {e}")
             block = None

@@ -287,6 +287,20 @@ def _avoid_windows(panch):
     return out
 
 
+def _clock_overlaps(a, b):
+    """Do two same-day "HH:MM"→"HH:MM" windows share any minutes?
+
+    Both are daylight subdivisions, so neither wraps midnight and a plain
+    comparison is enough."""
+    def _h(t):
+        hh, mm = (str(t).split(":") + ["0"])[:2]
+        return int(hh) + int(mm) / 60.0
+    try:
+        return _h(a["start"]) < _h(b["end"]) and _h(b["start"]) < _h(a["end"])
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
 def _next_good_window(choghadiya, now_h):
     """The next auspicious Choghadiya window at/after ``now_h`` (local hours).
 
@@ -561,6 +575,18 @@ class DigestsMixin:
             avoid = []
             if panch.get("status") == "success":
                 avoid = _avoid_windows(panch)
+                # The Choghadiya and the Rahu Kalam / Yamaganda / Gulika trio are
+                # independent eighths of the same daylight, so an "Amrit" window
+                # can land squarely inside Yamaganda — and the digest would then
+                # recommend and forbid the same 90 minutes in one breath. The
+                # collision is stated rather than resolved: which one yields is a
+                # matter the traditions disagree on, and inventing a ruling here
+                # would quietly override the muhurta page's own answer. Naming it
+                # lets the narrative and the email say "good window, but note the
+                # overlap" instead of contradicting themselves.
+                if action_window:
+                    action_window["conflicts"] = [
+                        w["name"] for w in avoid if _clock_overlaps(action_window, w)]
                 if avoid:
                     first = avoid[0]
                     highlights.append(

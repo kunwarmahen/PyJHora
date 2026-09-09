@@ -59,6 +59,31 @@ def _clamp_int(lo: int, hi: int):
     return _coerce
 
 
+def _default_narrative_style() -> str:
+    """The deployed default style. An unrecognised env value falls back rather
+    than raising: a typo in a deploy secret must not stop the app booting."""
+    style = str(settings.DIGEST_NARRATIVE_STYLE or "").strip().lower()
+    return style if style in NARRATIVE_STYLES else DEFAULT_STYLE
+
+
+def _one_of(*allowed: str):
+    """A closed set of strings. Anything else raises, which `get`/`set_values`
+    already treat as "keep the default" — so a typo in the console or a
+    hand-edited document can never leave the digest with no prompt at all."""
+    def _coerce(v):
+        t = str(v).strip().lower()
+        if t not in allowed:
+            raise ValueError(f"expected one of {allowed}, got {v!r}")
+        return t
+    return _coerce
+
+
+# The narrative styles, and the fallback when the env var says something else.
+# A tuple rather than a bare pair so adding a third style is a one-line change.
+NARRATIVE_STYLES = ("classic", "focused")
+DEFAULT_STYLE = "focused"
+
+
 FIELDS = {
     # Master switch. Env sets the default; the console can flip it either way at
     # runtime, which is why the scheduler task always runs and checks this rather
@@ -73,6 +98,13 @@ FIELDS = {
     # entirely: the digest goes out immediately with its rule-based highlights.
     "digest_ai_max_delay_minutes": (
         _default_max_delay_minutes, _clamp_int(0, 720)),
+    # Which prompt writes the narrative. Runtime-switchable on purpose: the two
+    # styles are a matter of taste as much as quality, and the person who has to
+    # read the thing every morning should be able to change their mind about it
+    # without a deploy. Both prompts stay in the codebase; this picks between them.
+    "digest_narrative_style": (
+        _default_narrative_style,
+        _one_of(*NARRATIVE_STYLES)),
 }
 
 
