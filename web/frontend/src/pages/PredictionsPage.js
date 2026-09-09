@@ -245,8 +245,7 @@ export const PredictionsPage = () => {
                     <strong>{t("birthChart.lagnaAscendant")}:</strong>
                     <span>
                       {typeof result.lagna === "object"
-                        ? ln(result.lagna.sign_name, "rasi") ||
-                          `Rasi ${result.lagna.house || result.lagna.rasi || ""}`
+                        ? ln(result.lagna.sign_name, "rasi")
                         : result.lagna}
                     </span>
                   </div>

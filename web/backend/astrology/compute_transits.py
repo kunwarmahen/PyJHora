@@ -127,8 +127,9 @@ class TransitsMixin:
                 sav_bindu = av_sarva[rasi] if av_sarva else None
                 strength, chip = AstrologyCompute._bindu_chip(own_bav, sav_bindu)
                 planets[name] = {
-                    "house": rasi + 1,  # 1-based sign for the Kundali component
-                    "rasi": rasi,
+                    # No plain `house` here on purpose: a transit is counted from
+                    # several references at once, and each is named below.
+                    "sign_num": rasi + 1,
                     "degrees": round(degrees, 2),
                     "sign_name": ZODIAC_NAMES[rasi],
                     "nakshatra": NAKSHATRA_NAMES[nak_idx],
@@ -187,12 +188,12 @@ class TransitsMixin:
                 "transit_time": f"{t_hour:02d}:{t_min:02d}",
                 "natal": {
                     "lagna": {
-                        "house": natal_lagna_rasi + 1,
+                        "sign_num": natal_lagna_rasi + 1,
                         "degrees": round(natal_lagna_deg, 2),
                         "sign_name": ZODIAC_NAMES[natal_lagna_rasi],
                     },
                     "moon": {
-                        "house": natal_moon_rasi + 1,
+                        "sign_num": natal_moon_rasi + 1,
                         "degrees": round(natal_moon_deg, 2),
                         "sign_name": ZODIAC_NAMES[natal_moon_rasi],
                         # The janma nakshatra (1-27). Everything Moon-referenced in
@@ -207,7 +208,8 @@ class TransitsMixin:
                 },
                 # Natal lagna drives the Kundali houses; planets are the transits.
                 "lagna": {
-                    "house": natal_lagna_rasi + 1,
+                    "sign_num": natal_lagna_rasi + 1,
+                    "house": 1,
                     "degrees": round(natal_lagna_deg, 2),
                     "sign_name": ZODIAC_NAMES[natal_lagna_rasi],
                 },

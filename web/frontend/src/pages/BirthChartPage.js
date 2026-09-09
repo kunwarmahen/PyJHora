@@ -356,7 +356,7 @@ export const BirthChartPage = () => {
                   const moon = result.planets?.Moon;
                   const chandraLagna =
                     unknownTime && moon
-                      ? { house: moon.house, degrees: 0, sign_name: moon.sign_name }
+                      ? { sign_num: moon.sign_num, degrees: 0, sign_name: moon.sign_name }
                       : null;
                   return (
                     <>
@@ -447,10 +447,7 @@ export const BirthChartPage = () => {
                       chart, so the AL/UL chips refer to labels the user can see. */}
                       {showArudhas && (
                         <div className="mt-xl">
-                          <RecentReadings
-                            source="arudha"
-                            profileId={selectedProfile?._id}
-                          />
+                          <RecentReadings source="arudha" profileId={selectedProfile?._id} />
                           <ArudhaAiPanel
                             arudhas={arudhas}
                             birthDetails={selectedProfile.birth_details}

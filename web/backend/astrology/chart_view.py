@@ -1,17 +1,19 @@
 """LLM-safe chart shapes.
 
-The compute layer speaks the *renderer's* language: `rasi` is the 0-based sign
-index and `house` is that index + 1 — i.e. the 1-based SIGN number whose cell a
-Kundali component draws the planet in. Neither is a bhava.
-
-Handed to a model unchanged, a row like::
+`house` now means the bhava everywhere in the compute layer, and the Kundali's
+drawing coordinate — the 1-based sign whose cell a graha is painted in — is
+`sign_num` (§65). Before that rename the coordinate *was* called `house`, and a
+row read::
 
     "Sun": {"rasi": 3, "house": 4, "sign_name": "Cancer"}
 
-reads as "Sun in the 4th house", which is only ever true for an Aries lagna —
-and the 0-based `rasi` is off by one against every convention the model knows
-(Cancer is rasi 4 in the books, not 3). Both numbers then out-argue the truth,
-because there are two of them and no lagna in sight.
+which says "Sun in the 4th house" to anything that reads it, and is only ever
+true for an Aries lagna. Two numbers, no lagna in sight, and the key literally
+named `house`.
+
+`sign_num` is unambiguous but still not something a model should reason from —
+it is a coordinate, not a placement — so it is stripped at the AI boundary along
+with any `rasi` a payload still carries.
 
 So nothing reaches a prompt with those keys. `chart_positions` replaces them
 with the real whole-sign house counted from that chart's own Lagna (a varga's
@@ -29,7 +31,8 @@ default for tools that do not yet exist.
 from .engine import ZODIAC_NAMES
 
 # Keys that mean "which sign cell to draw this in", not "which bhava".
-LAYOUT_KEYS = ("rasi", "house")
+# `house` is deliberately NOT here: since §65 it is always a real bhava.
+LAYOUT_KEYS = ("rasi", "sign_num")
 
 
 def _redundant_sign_int(key, value, siblings):
@@ -41,7 +44,7 @@ def _redundant_sign_int(key, value, siblings):
     """
     if not isinstance(value, int) or isinstance(value, bool):
         return False
-    if key == "rasi":
+    if key in ("rasi", "sign_num"):
         return True
     if key == "sign":
         return "sign_name" in siblings
@@ -49,13 +52,17 @@ def _redundant_sign_int(key, value, siblings):
 
 
 def sign_index(pos):
-    """0-based sign of a compute-layer position dict, or None."""
+    """0-based sign of a compute-layer position dict, or None.
+
+    Never derived from `house` — that is a bhava, and reading a sign out of it
+    is the whole mistake this module exists to undo.
+    """
     if not isinstance(pos, dict):
         return None
+    if pos.get("sign_num") is not None:
+        return (int(pos["sign_num"]) - 1) % 12
     if pos.get("rasi") is not None:
         return int(pos["rasi"]) % 12
-    if pos.get("house") is not None:
-        return (int(pos["house"]) - 1) % 12
     name = pos.get("sign_name")
     if name in ZODIAC_NAMES:
         return ZODIAC_NAMES.index(name)
@@ -70,10 +77,9 @@ def strip_layout(pos):
 def sanitize(payload):
     """Deep-clean a payload of sign integers that read as house numbers.
 
-    Drops `rasi` and any redundant integer sign anywhere in the structure, and
-    leaves `house` alone — by the time a payload reaches here its `house` is a
-    real bhava, either because the compute already counted it (sphutas, sahams,
-    KP, Muntha, transits) or because `chart_positions` did.
+    Drops `rasi`, `sign_num` and any redundant integer sign anywhere in the
+    structure, and leaves `house` alone — it is a real bhava, counted by the
+    compute layer itself.
     """
     if isinstance(payload, dict):
         return {k: sanitize(v) for k, v in payload.items()

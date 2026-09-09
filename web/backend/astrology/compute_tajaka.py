@@ -75,7 +75,8 @@ class TajakaMixin:
 
             asc_rasi, asc_deg = cht[0][1]
             lagna = {
-                "house": asc_rasi + 1,
+                "sign_num": asc_rasi + 1,
+                "house": 1,
                 "degrees": round(asc_deg, 2),
                 "sign_name": ZODIAC_NAMES[asc_rasi],
             }
@@ -83,8 +84,8 @@ class TajakaMixin:
             for planet_index, (rasi, degrees) in cht[1:]:
                 name = PLANET_NAMES.get(planet_index, f"Planet_{planet_index}")
                 planets[name] = {
-                    "rasi": rasi,
-                    "house": rasi + 1,
+                    "sign_num": rasi + 1,
+                    "house": ((rasi - asc_rasi) % 12) + 1,
                     "degrees": round(degrees, 2),
                     "sign_name": ZODIAC_NAMES[rasi],
                 }
@@ -309,12 +310,14 @@ class TajakaMixin:
             }
 
             asc_rasi, asc_deg = cht[0][1]
-            lagna = {"house": asc_rasi + 1, "degrees": round(asc_deg, 2),
+            lagna = {"sign_num": asc_rasi + 1, "house": 1,
+                     "degrees": round(asc_deg, 2),
                      "sign_name": ZODIAC_NAMES[asc_rasi]}
             planets = {}
             for planet_index, (rasi, degrees) in cht[1:]:
                 name = PLANET_NAMES.get(planet_index, f"Planet_{planet_index}")
-                planets[name] = {"rasi": rasi, "house": rasi + 1,
+                planets[name] = {"sign_num": rasi + 1,
+                                 "house": ((rasi - asc_rasi) % 12) + 1,
                                  "degrees": round(degrees, 2),
                                  "sign_name": ZODIAC_NAMES[rasi]}
 
@@ -530,12 +533,14 @@ class TajakaMixin:
         from jhora.horoscope.transit import tajaka, tajaka_yoga
 
         asc_rasi, asc_deg = cht[0][1]
-        lagna = {"house": asc_rasi + 1, "degrees": round(asc_deg, 2),
+        lagna = {"sign_num": asc_rasi + 1, "house": 1,
+                 "degrees": round(asc_deg, 2),
                  "sign_name": ZODIAC_NAMES[asc_rasi]}
         planets = {}
         for planet_index, (rasi, degrees) in cht[1:]:
             name = PLANET_NAMES.get(planet_index, f"Planet_{planet_index}")
-            planets[name] = {"rasi": rasi, "house": rasi + 1,
+            planets[name] = {"sign_num": rasi + 1,
+                             "house": ((rasi - asc_rasi) % 12) + 1,
                              "degrees": round(degrees, 2),
                              "sign_name": ZODIAC_NAMES[rasi]}
 

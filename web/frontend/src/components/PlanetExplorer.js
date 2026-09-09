@@ -42,7 +42,10 @@ export const PlanetExplorer = ({
   const setSelected = onSelect || setSelfSelected;
 
   const d1 = chart?.d1_chart || {};
-  const lagnaRasi = (chart?.lagna?.house ?? 1) - 1; // 0-based ascendant sign
+  // 0-based ascendant sign, for the rulership counts below. Each graha's own
+  // house comes from the backend now (`house` is the bhava; `sign_num` is only
+  // the cell the Kundali draws it in).
+  const lagnaRasi = (chart?.lagna?.sign_num ?? 1) - 1;
 
   const houseFromLagna = (rasi) => (((rasi - lagnaRasi) % 12) + 12) % 12; // 0..11
 
@@ -56,7 +59,7 @@ export const PlanetExplorer = ({
       name,
       sign: ln(p.sign_name, "rasi"),
       degrees: p.degrees,
-      house: ORD[houseFromLagna(p.rasi)],
+      house: ORD[p.house - 1],
       nakshatra: ln(p.nakshatra, "nakshatra"),
       pada: p.nakshatra_pada,
       owned,

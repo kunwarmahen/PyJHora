@@ -134,7 +134,8 @@ class KpMixin:
                                 "degrees": round(long, 2), "house": ((sign - int(rasi)) % 12) + 1,
                                 "sign_lord": d["sign_lord"], "star_lord": d["star_lord"],
                                 "sub_lord": d["sub_lord"], "retrograde": long < 0})
-                planets_for_chart[name] = {"house": sign + 1, "degrees": round(long, 2),
+                planets_for_chart[name] = {"sign_num": sign + 1,
+                                           "degrees": round(long, 2),
                                            "sign_name": ZODIAC_NAMES[sign % 12]}
 
             rp = _kp_ruling_planets(y, m, dd, hh, mi, place_obj)
@@ -143,7 +144,8 @@ class KpMixin:
                     "moment": {"date": date_str, "time": time_str, "tz": tz_off},
                     "place": place,
                     "chart": {"planets": planets_for_chart,
-                              "lagna": {"house": int(rasi) + 1, "degrees": round(asc_deg, 2),
+                              "lagna": {"sign_num": int(rasi) + 1, "house": 1,
+                                        "degrees": round(asc_deg, 2),
                                         "sign_name": ZODIAC_NAMES[int(rasi) % 12]}}}
         except Exception as e:
             import traceback

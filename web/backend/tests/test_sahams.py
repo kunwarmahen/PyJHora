@@ -46,7 +46,7 @@ def test_punya_is_moon_minus_sun_plus_lagna(natal):
     chart = AstrologyCompute.calculate_birth_chart(ayanamsa=AYAN, **_compute_args(CHART1))
     d1 = chart["d1_chart"]
     moon, sun = _longitude(d1["Moon"]), _longitude(d1["Sun"])
-    lagna = chart["ascendant"]["rasi"] * 30.0 + chart["ascendant"]["degrees"]
+    lagna = (chart["ascendant"]["sign_num"] - 1) * 30.0 + chart["ascendant"]["degrees"]
 
     assert natal["night_birth"] is False
     expected = (moon - sun + lagna) % 360.0

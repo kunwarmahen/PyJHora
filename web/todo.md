@@ -6362,3 +6362,70 @@ above, and `inspect.signature(punya_saham)` pinned to `(jd_at_dob, place, …)` 
 the next upstream bump fails here instead of emptying the panel again.
 
 684 backend tests green.
+
+## 65. `house` now means the bhava everywhere — the renderer's key is `sign_num` (owner ask, 2026-09-09)
+
+§63 closed the leak at the AI boundary and said the airtight fix — renaming the
+drawing coordinate at source — wasn't worth 60 call sites. The owner overruled
+that, correctly: with the key renamed, a leak becomes *impossible* rather than
+caught, and the rename immediately turned up two places the caught-at-the-boundary
+approach could never have reached.
+
+### The rule, now true everywhere
+
+| key | meaning |
+| --- | --- |
+| `sign_num` | 1-based sign — the **cell** a Kundali component draws the graha in |
+| `house` | the **bhava**, counted whole-sign from that chart's own lagna |
+
+`rasi` (the 0-based twin of `sign_num`) is gone from every chart payload. Charts
+that carry no single house — transits, read from the lagna *and* the Moon *and*
+the arudhas at once — carry no `house` key at all, only the named counts.
+
+### What the rename found that the boundary fix could not
+
+**The Varshaphal and Tithi Pravesha pages were printing the sign number in a
+column headed "House".** Not the AI — the actual UI, for anyone reading their
+annual chart. With a Pisces annual lagna the page showed the Sun in the "2nd"
+because the Sun is in Taurus, the 2nd *sign*. It reads 3rd now. There was even a
+caption under the table explaining the number — "House shown as the sign number
+counted from the annual Ascendant" — documenting the bug rather than fixing it.
+
+That is the argument for renaming at source in one line: the boundary fix only
+protects consumers you remembered to route through it.
+
+### Scope
+
+Backend producers: natal D1/D9/renderer set, every varga, Bhava Chalit, the
+Sudarsana wheels (`lagna_house` → `lagna_sign_num`), transits, all three Tajaka
+rungs, the KP horary chart. Every planet dict now also carries its real `house`,
+which is what makes the two UI tables above correct for free.
+
+Frontend: both Kundali components (they place by cell, so they read `sign_num`),
+PlanetExplorer — which had been counting the house in JS off `p.rasi` and now
+just reads `p.house` — plus the four pages that hand-built a `{house: …}` lagna
+prop. The Ask "what was sent" preview lost its JS house-counting entirely; the
+backend's numbers are now the right ones to show.
+
+`chart_view` follows: `LAYOUT_KEYS` is `("rasi", "sign_num")` — `house` is
+deliberately not in it any more — `sanitize` drops `sign_num` (a coordinate is
+not a placement, so the model still never sees it), and `sign_index` refuses to
+derive a sign from `house`, which is the original bug in mirror image.
+
+### Guards
+
+`tests/test_chart_keys.py` walks every chart-shaped payload we publish — natal,
+D2/D9/D10/D60, Varshaphal, Tithi Pravesha, chart of the moment — and asserts
+`sign_num` is the sign, `house` is the count from that chart's own lagna, and
+`rasi` is gone. Transits get their own: no `house`, and `house_from_lagna` /
+`house_from_moon` each re-derived. Bhava Chalit gets its own too, since it is the
+one chart where the cell is deliberately *not* the graha's own sign.
+
+### Verified in the browser, not only in tests
+
+Birth chart (D1 grahas in the right cells against JHora's), Transits, Varshaphal,
+Tithi Pravesha, Bhava Chalit (Moon drawn in the Cancer cell by cusp, matching the
+House Cusps table), Chart of the Moment, and the Sahams panel from §64 — 36 rows
+where there were none. No console errors on any page.
+
+699 backend tests green, 181 frontend.

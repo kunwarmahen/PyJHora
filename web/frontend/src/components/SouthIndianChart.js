@@ -88,11 +88,11 @@ export const SouthIndianChart = ({
   // Items (lagna + planets) occupying a given zodiac sign (1–12)
   const itemsForSign = (signNum) => {
     const items = [];
-    if (lagna && lagna.house === signNum) {
+    if (lagna && lagna.sign_num === signNum) {
       items.push({ name: t("common.lagnaAbbr"), type: "lagna", degrees: lagna.degrees });
     }
     Object.entries(planets).forEach(([name, data]) => {
-      if (data.house === signNum) {
+      if (data.sign_num === signNum) {
         items.push({
           // `name` is display text; `fullName` stays canonical English because it keys
           // flagsByPlanet / onSelectPlanet and must not follow the UI language.
@@ -126,7 +126,7 @@ export const SouthIndianChart = ({
           const signNum = Number(key);
           const { col, row } = SIGN_POS[signNum];
           const items = itemsForSign(signNum);
-          const isLagna = lagna && lagna.house === signNum;
+          const isLagna = lagna && lagna.sign_num === signNum;
           const isCrowded = items.length > 3;
           return (
             <div
@@ -213,13 +213,13 @@ export const SouthIndianChart = ({
           >
             {aspects.flatMap((a) => {
               const data = planets[a.planet];
-              if (!data || !data.house) return [];
+              if (!data || !data.sign_num) return [];
               if (focusPlanet && focusPlanet !== a.planet) return [];
-              const src = cellCenter(data.house);
+              const src = cellCenter(data.sign_num);
               if (!src) return [];
               const color = ASPECT_COLORS[a.planet] || "#37474f";
               return (a.aspects_houses || []).map((h) => {
-                const sign = ((lagna.house - 1 + (h.house - 1)) % 12) + 1;
+                const sign = ((lagna.sign_num - 1 + (h.house - 1)) % 12) + 1;
                 const tgt = cellCenter(sign);
                 if (!tgt) return null;
                 // Weight the line by aspect strength (0-100%).

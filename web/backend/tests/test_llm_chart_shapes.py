@@ -29,17 +29,17 @@ BD1 = {"dob": CHART1["dob"], "tob": CHART1["tob"], "place": CHART1["place"],
 def _layout_keys(node, path="$"):
     """Every place a sign index survived into an LLM payload.
 
-    `rasi` anywhere, and a bare integer `sign` / `*_sign` whose own `*_name`
-    sibling already spells the sign out — the latter is 0-based in most payloads
-    and 1-based in the arudhas, so it is unreadable even in principle.
+    `rasi` / `sign_num` anywhere, and a bare integer `sign` / `*_sign` whose own
+    `*_name` sibling already spells the sign out — the latter is 0-based in most
+    payloads and 1-based in the arudhas, so it is unreadable even in principle.
     """
     found = []
     if isinstance(node, dict):
         for k, v in node.items():
             is_int = isinstance(v, int) and not isinstance(v, bool)
             named = ("sign_name" in node if k == "sign" else f"{k}_name" in node)
-            if k == "rasi" and is_int:
-                found.append(f"{path}.rasi")
+            if k in ("rasi", "sign_num") and is_int:
+                found.append(f"{path}.{k}")
             elif is_int and (k == "sign" or k.endswith("_sign")) and named:
                 found.append(f"{path}.{k}")
             found += _layout_keys(v, f"{path}.{k}")
@@ -72,27 +72,37 @@ def _sample_args(tool):
 # ── the helper itself ───────────────────────────────────────────────────────
 def test_chart_positions_counts_from_the_lagna():
     view = chart_positions(
-        {"rasi": 4, "house": 5, "sign_name": "Leo", "degrees": 15.56},
-        {"Sun": {"rasi": 3, "house": 4, "sign_name": "Cancer", "degrees": 0.03},
-         "Moon": {"rasi": 0, "house": 1, "sign_name": "Aries", "degrees": 6.78},
-         "Saturn": {"rasi": 4, "house": 5, "sign_name": "Leo", "degrees": 27.3}},
+        {"sign_num": 5, "house": 1, "sign_name": "Leo", "degrees": 15.56},
+        {"Sun": {"sign_num": 4, "house": 12, "sign_name": "Cancer", "degrees": 0.03},
+         "Moon": {"sign_num": 1, "house": 9, "sign_name": "Aries", "degrees": 6.78},
+         "Saturn": {"sign_num": 5, "house": 1, "sign_name": "Leo", "degrees": 27.3}},
     )
     assert view["lagna"]["house"] == 1
     assert view["planets"]["Sun"]["house"] == 12      # Cancer, 12th from Leo
     assert view["planets"]["Moon"]["house"] == 9      # Aries, 9th from Leo
     assert view["planets"]["Saturn"]["house"] == 1    # with the lagna
     assert "Leo" in view["house_system"]
-    # The renderer's numbers are gone, the readable ones stay.
+    # The renderer's coordinate is gone, the readable numbers stay.
     for pos in [view["lagna"]] + list(view["planets"].values()):
-        assert "rasi" not in pos
+        assert "rasi" not in pos and "sign_num" not in pos
         assert set(pos) >= {"sign_name", "degrees", "house"}
 
 
-def test_chart_positions_survives_a_lagna_without_rasi():
-    """Payloads that carry only the 1-based `house` (varga lagnas) still count."""
-    view = chart_positions({"house": 5, "sign_name": "Leo"},
-                           {"Sun": {"house": 4, "sign_name": "Cancer"}})
+def test_a_sign_is_never_read_out_of_a_house():
+    """`house` is a bhava, so it must not be mistaken for the sign cell.
+
+    Reading the sign out of `house` is the original bug in mirror image: here the
+    Sun's `house` (12) and its sign (Cancer, cell 4) disagree, and only `sign_num`
+    is the sign.
+    """
+    view = chart_positions(
+        {"sign_num": 5, "house": 1, "sign_name": "Leo"},
+        {"Sun": {"sign_num": 4, "house": 12, "sign_name": "Cancer"}})
     assert view["planets"]["Sun"]["house"] == 12
+    # And a payload that predates sign_num still resolves, through `rasi`.
+    legacy = chart_positions({"rasi": 4, "sign_name": "Leo"},
+                             {"Sun": {"rasi": 3, "sign_name": "Cancer"}})
+    assert legacy["planets"]["Sun"]["house"] == 12
 
 
 # ── the AI boundary ─────────────────────────────────────────────────────────
@@ -146,7 +156,7 @@ def test_sanitize_keeps_real_houses_and_sign_names():
     """It must only take the ambiguous integers — never a bhava or a name."""
     clean = sanitize({
         "sphutas": [{"name": "Prana", "sign": 8, "sign_name": "Sagittarius",
-                     "house": 8, "degrees": 3.2}],
+                     "sign_num": 9, "house": 8, "degrees": 3.2}],
         "lagna_sign": 1, "lagna_sign_name": "Taurus",
         "moon_sign": "Leo",                       # a name, not an index
         "vedha": [{"target": "Rohini", "sign": "Taurus"}],

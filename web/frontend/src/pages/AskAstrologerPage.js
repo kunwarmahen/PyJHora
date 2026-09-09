@@ -856,17 +856,11 @@ export const AskAstrologerPage = () => {
   const getChartDataForLLM = () => {
     if (!chartData) return "No chart data available";
 
-    // Preview of what the backend assembles, and it must agree with it: `rasi`
-    // and the chart's `house` are sign numbers for the Kundali renderer, never
-    // bhavas, so they are replaced here by the house counted from the Lagna.
-    const lagnaRasi = (chartData.lagna?.house ?? 1) - 1;
-    const houseFromLagna = (rasi) =>
-      rasi == null ? undefined : ((((rasi - lagnaRasi) % 12) + 12) % 12) + 1;
+    // Preview of what the backend assembles, and it must agree with it. `house`
+    // is already the bhava; `sign_num` is the Kundali's drawing cell and the
+    // backend strips it before anything reaches the model, so drop it here too.
     const positioned = Object.fromEntries(
-      Object.entries(chartData.d1_chart || {}).map(([name, p]) => {
-        const { rasi, house, ...rest } = p;
-        return [name, { ...rest, house: houseFromLagna(rasi) }];
-      })
+      Object.entries(chartData.d1_chart || {}).map(([name, { sign_num, ...rest }]) => [name, rest])
     );
     const moonData = positioned.Moon || {};
     const sunData = positioned.Sun || {};
@@ -880,7 +874,7 @@ export const AskAstrologerPage = () => {
       house_system: `Whole-sign houses counted from this chart's own Lagna in ${
         chartData.lagna?.sign_name || "?"
       }, so that sign is house 1.`,
-      lagna: { ...chartData.lagna, house: 1 },
+      lagna: (({ sign_num, ...rest }) => rest)(chartData.lagna || {}),
       moon_sign: {
         sign_name: moonData.sign_name || "Unknown",
         house: moonData.house,

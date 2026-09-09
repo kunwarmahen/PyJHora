@@ -72,7 +72,7 @@ export const NorthIndianChart = ({
   // Which zodiac sign sits in a given visual house position (1 = where Lagna is)
   const getSignForVisualHouse = (visualHouseNum) => {
     if (!lagna) return visualHouseNum;
-    const lagnaSign = lagna.house; // e.g. 4 for Cancer
+    const lagnaSign = lagna.sign_num; // e.g. 4 for Cancer
     let signNum = lagnaSign + visualHouseNum - 1;
     if (signNum > 12) signNum -= 12;
     return signNum;
@@ -83,12 +83,12 @@ export const NorthIndianChart = ({
     const items = [];
     const signAtThisPosition = getSignForVisualHouse(visualHouseNum);
 
-    if (lagna && lagna.house === signAtThisPosition) {
+    if (lagna && lagna.sign_num === signAtThisPosition) {
       items.push({ name: t("common.lagnaAbbr"), type: "lagna", degrees: lagna.degrees });
     }
 
     Object.entries(planets).forEach(([name, data]) => {
-      if (data.house === signAtThisPosition) {
+      if (data.sign_num === signAtThisPosition) {
         items.push({
           // `name` is display text; `fullName` stays canonical English because it keys
           // flagsByPlanet / onSelectPlanet and must not follow the UI language.
@@ -302,8 +302,10 @@ export const NorthIndianChart = ({
             <g className="aspect-lines">
               {aspects.flatMap((a) => {
                 const data = planets[a.planet];
-                if (!data || !data.house) return [];
-                const srcVisual = ((data.house - lagna.house + 12) % 12) + 1;
+                if (!data || !data.sign_num) return [];
+                // `sign_num` is the sign cell; the visual house is that counted
+                // from the Lagna's cell (which is `data.house`, when present).
+                const srcVisual = ((data.sign_num - lagna.sign_num + 12) % 12) + 1;
                 const src = houses[srcVisual - 1];
                 if (!src) return [];
                 const dim = focusPlanet && focusPlanet !== a.planet;

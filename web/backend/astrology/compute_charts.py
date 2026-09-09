@@ -94,7 +94,8 @@ class ChartsMixin:
                 nakshatra_idx, pada = get_nakshatra_from_longitude(absolute_longitude)
 
                 d1_planets[planet_name] = {
-                    "rasi": rasi,
+                    "sign_num": rasi + 1,
+                    "house": ((rasi - ascendant[0]) % 12) + 1,
                     "degrees": round(degrees, 2),
                     "sign_name": zodiac_names[rasi],
                     "nakshatra": nakshatra_names[nakshatra_idx],
@@ -102,32 +103,34 @@ class ChartsMixin:
                     "absolute_longitude": round(absolute_longitude, 2)
                 }
 
-            # Format planetary positions for D9
-            # Include 1-based 'house' so the frontend chart component can render D9
+            # Navamsa: houses counted from the D9's OWN lagna, since that is the
+            # chart being read — `sign_num` is only where the Kundali draws it.
+            d9_ascendant = d9_chart[0][1]  # (rasi, degrees)
             d9_planets = {}
             for planet_index, (rasi, degrees) in d9_chart[1:]:
                 planet_name = planet_names.get(planet_index, f"Planet_{planet_index}")
                 d9_planets[planet_name] = {
-                    "rasi": rasi,
-                    "house": rasi + 1,  # Convert from 0-based rasi to 1-based house
+                    "sign_num": rasi + 1,
+                    "house": ((rasi - d9_ascendant[0]) % 12) + 1,
                     "degrees": round(degrees, 2),
                     "sign_name": zodiac_names[rasi]
                 }
 
-            # D9 (Navamsa) ascendant / lagna — index 0 of the divisional chart
-            d9_ascendant = d9_chart[0][1]  # (rasi, degrees)
             d9_lagna = {
-                "house": d9_ascendant[0] + 1,  # 1-based for frontend
+                "sign_num": d9_ascendant[0] + 1,
+                "house": 1,
                 "degrees": round(d9_ascendant[1], 2),
                 "sign_name": zodiac_names[d9_ascendant[0]]
             }
 
-            # Format for frontend chart component (expects 'house' which is 1-based instead of 'rasi' which is 0-based)
+            # The chart component's own set: it places a graha by the sign cell
+            # it belongs in, which is what `sign_num` is for.
             planets_for_chart = {}
             for planet_index, (rasi, degrees) in d1_chart[1:]:
                 planet_name = planet_names.get(planet_index, f"Planet_{planet_index}")
                 planets_for_chart[planet_name] = {
-                    "house": rasi + 1,  # Convert from 0-based rasi to 1-based house
+                    "sign_num": rasi + 1,
+                    "house": ((rasi - ascendant[0]) % 12) + 1,
                     "degrees": round(degrees, 2),
                     "sign_name": zodiac_names[rasi]
                 }
@@ -149,7 +152,7 @@ class ChartsMixin:
                 "tob": tob,
                 "place": place,
                 "ascendant": {
-                    "rasi": ascendant[0],
+                    "sign_num": ascendant[0] + 1,
                     "degrees": round(ascendant[1], 2),
                     "sign_name": zodiac_names[ascendant[0]],
                     "nakshatra": nakshatra_names[ascendant_nakshatra_idx],
@@ -157,7 +160,8 @@ class ChartsMixin:
                     "absolute_longitude": round(ascendant_longitude, 2)
                 },
                 "lagna": {
-                    "house": ascendant[0] + 1,  # Convert from 0-based to 1-based for frontend
+                    "sign_num": ascendant[0] + 1,
+                    "house": 1,  # the Lagna's sign is, by definition, the 1st bhava
                     "degrees": round(ascendant[1], 2),
                     "sign_name": zodiac_names[ascendant[0]],
                     "nakshatra": nakshatra_names[ascendant_nakshatra_idx],
@@ -219,17 +223,19 @@ class ChartsMixin:
             # Ascendant / lagna is index 0; planets follow.
             asc_rasi, asc_deg = chart[0][1]
             lagna = {
-                "house": asc_rasi + 1,  # 1-based for the frontend
+                "sign_num": asc_rasi + 1,
+                "house": 1,
                 "degrees": round(asc_deg, 2),
                 "sign_name": ZODIAC_NAMES[asc_rasi],
             }
 
+            # A varga's houses are counted from the varga's own lagna.
             planets = {}
             for planet_index, (rasi, degrees) in chart[1:]:
                 name = PLANET_NAMES.get(planet_index, f"Planet_{planet_index}")
                 planets[name] = {
-                    "rasi": rasi,
-                    "house": rasi + 1,  # 1-based for the frontend
+                    "sign_num": rasi + 1,
+                    "house": ((rasi - asc_rasi) % 12) + 1,
                     "degrees": round(degrees, 2),
                     "sign_name": ZODIAC_NAMES[rasi],
                 }
@@ -865,11 +871,12 @@ class ChartsMixin:
                         planet_bhava[occ] = bhava_no
                         r, d = rasi_of_planet.get(occ, (bhava_rasi, 0.0))
                         planets[name] = {
-                            # Placed in the SIGN of its bhava → Bhava Chalit layout.
-                            "house": bhava_rasi + 1,
+                            # Drawn in the SIGN of its bhava → Bhava Chalit layout.
+                            # `sign_name` stays the graha's own sign, which is not
+                            # the same cell whenever a cusp splits them.
+                            "sign_num": bhava_rasi + 1,
                             "bhava": bhava_no,
                             "degrees": round(d, 2),
-                            "rasi": r,
                             "sign_name": ZODIAC_NAMES[r],
                         }
                 houses.append({
@@ -885,7 +892,8 @@ class ChartsMixin:
             # Lagna = first bhava; drawn on the Kundali at the sign of bhava 1.
             asc_rasi, asc_deg = d1[0][1]
             lagna = {
-                "house": bhava[0][0] + 1,
+                "sign_num": bhava[0][0] + 1,
+                "bhava": 1,
                 "degrees": round(asc_deg, 2),
                 "sign_name": ZODIAC_NAMES[bhava[0][0]],
             }
@@ -1090,19 +1098,21 @@ class ChartsMixin:
             planets = {}
             for pidx, (rasi, degrees) in pp[1:]:
                 name = PLANET_NAMES.get(pidx, f"Planet_{pidx}")
+                # One set of placements drawn on three wheels, so the house
+                # depends on which wheel — `sign_num` is the shared coordinate.
                 planets[name] = {
-                    "rasi": rasi, "house": rasi + 1,
+                    "sign_num": rasi + 1,
                     "degrees": round(degrees, 2), "sign_name": ZODIAC_NAMES[rasi],
                 }
 
             yy, mm, dd, _fh = utils.jd_to_gregorian(jd_year)
             wheels = [
                 {"ref": "Lagna", "lagna_sign": asc_sign,
-                 "lagna_house": asc_sign + 1, "sign_name": ZODIAC_NAMES[asc_sign]},
+                 "lagna_sign_num": asc_sign + 1, "sign_name": ZODIAC_NAMES[asc_sign]},
                 {"ref": "Chandra (Moon)", "lagna_sign": moon_sign,
-                 "lagna_house": moon_sign + 1, "sign_name": ZODIAC_NAMES[moon_sign]},
+                 "lagna_sign_num": moon_sign + 1, "sign_name": ZODIAC_NAMES[moon_sign]},
                 {"ref": "Surya (Sun)", "lagna_sign": sun_sign,
-                 "lagna_house": sun_sign + 1, "sign_name": ZODIAC_NAMES[sun_sign]},
+                 "lagna_sign_num": sun_sign + 1, "sign_name": ZODIAC_NAMES[sun_sign]},
             ]
             return {
                 "status": "success",

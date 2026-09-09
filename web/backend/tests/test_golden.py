@@ -180,7 +180,7 @@ def test_transit_carries_bindu_annotation(args1):
 
     # The per-planet SAV reading must agree with the returned Sarva row.
     sarva = tr["ashtakavarga"]["sarva"]
-    assert sarva[planets["Saturn"]["rasi"]] == 39
+    assert sarva[planets["Saturn"]["sign_num"] - 1] == 39
 
 
 def test_upcoming_ingress_names_the_sign_entered(args1):

@@ -148,7 +148,7 @@ def test_transits_carry_every_arudha_reference(args1):
         assert set(houses) == set(CHART1_ARUDHA_SIGNS), name
         for short, h in houses.items():
             # Counted inclusively from the arudha's sign to the graha's sign.
-            assert h == ((p["rasi"] - by_short[short]) % 12) + 1, f"{name} {short}"
+            assert h == ((p["sign_num"] - 1 - by_short[short]) % 12) + 1, f"{name} {short}"
         # The two named columns are the map's AL/UL entries, not a second sum.
         assert p["house_from_al"] == houses["AL"], name
         assert p["house_from_ul"] == houses["UL"], name

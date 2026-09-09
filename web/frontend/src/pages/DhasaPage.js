@@ -285,100 +285,100 @@ function OtherDashaSystems({ birthDetails }) {
 
   return (
     <div ref={sectionRef}>
-    <Card title={t("dhasa.otherSystems")} icon={<Clock size={24} />}>
-      {applicable.length > 0 && (
-        <div className="dasha-reco">
-          <div className="dasha-reco__label">
-            <Star size={15} /> {t("dhasa.applicableTitle")}
+      <Card title={t("dhasa.otherSystems")} icon={<Clock size={24} />}>
+        {applicable.length > 0 && (
+          <div className="dasha-reco">
+            <div className="dasha-reco__label">
+              <Star size={15} /> {t("dhasa.applicableTitle")}
+            </div>
+            <div className="dasha-reco__chips">
+              {applicable.map((a) => {
+                const clickable = !!a.picker_key;
+                return (
+                  <button
+                    key={a.key}
+                    type="button"
+                    className={`dasha-reco__chip${clickable ? "" : " is-static"}`}
+                    title={a.description}
+                    disabled={!clickable}
+                    onClick={() => clickable && onChange(a.picker_key)}
+                  >
+                    {a.name}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="card-note">{t("dhasa.applicableNote")}</p>
           </div>
-          <div className="dasha-reco__chips">
-            {applicable.map((a) => {
-              const clickable = !!a.picker_key;
+        )}
+
+        <label className="ayanamsa-select" style={{ marginBottom: "var(--space-lg)" }}>
+          <span>{t("dhasa.system")}</span>
+          <select value={selected} onChange={(e) => onChange(e.target.value)}>
+            <option value="">{t("dhasa.chooseSystem")}</option>
+            {systems.map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {selected && systems.find((s) => s.key === selected)?.description && (
+          <p className="text-secondary" style={{ marginBottom: "var(--space-lg)" }}>
+            {systems.find((s) => s.key === selected).description}
+          </p>
+        )}
+
+        <ErrorBanner message={error} />
+        {loading && <LoadingState message={t("dhasa.calcPeriods")} />}
+
+        {/* Sudarshana Chakra runs three wheels at once — name the reference signs
+          so the three-part lord ("Taurus · Leo · Taurus") is readable. */}
+        {data?.lord_type === "chakra" && data?.chakra_refs && (
+          <p className="card-note">
+            {t("dhasa.chakraRefs", {
+              lagna: data.chakra_refs.lagna,
+              moon: data.chakra_refs.moon,
+              sun: data.chakra_refs.sun,
+            })}
+          </p>
+        )}
+
+        {data?.periods?.length > 0 && (
+          <div className="period-list">
+            {data.periods.map((p, i) => {
+              const current = isCurrentPeriod(p.start_date, p.end_date);
               return (
-                <button
-                  key={a.key}
-                  type="button"
-                  className={`dasha-reco__chip${clickable ? "" : " is-static"}`}
-                  title={a.description}
-                  disabled={!clickable}
-                  onClick={() => clickable && onChange(a.picker_key)}
-                >
-                  {a.name}
-                </button>
+                <div key={`${p.lord}-${i}`} className={`period-row${current ? " is-current" : ""}`}>
+                  <span className="fw-700 text-indigo">
+                    {p.chakra ? (
+                      <span className="chakra-wheels">
+                        {["lagna", "moon", "sun"].map((w) => (
+                          <span key={w} className={`chakra-wheel chakra-wheel--${w}`}>
+                            <span className="chakra-wheel__ref">{t(`dhasa.wheel.${w}`)}</span>
+                            {p.chakra[w].sign}
+                            <span className="chakra-wheel__house">{p.chakra[w].house}</span>
+                          </span>
+                        ))}
+                      </span>
+                    ) : (
+                      p.lord
+                    )}
+                    {current && <span className="period-row__now">{t("dhasa.now")}</span>}
+                  </span>
+                  <span className="text-secondary" style={{ fontSize: "0.8125rem" }}>
+                    {formatDate(p.start_date, locale)} – {formatDate(p.end_date, locale)}
+                  </span>
+                  <span className="text-muted" style={{ fontSize: "0.8125rem" }}>
+                    {p.duration_years}y
+                  </span>
+                </div>
               );
             })}
           </div>
-          <p className="card-note">{t("dhasa.applicableNote")}</p>
-        </div>
-      )}
-
-      <label className="ayanamsa-select" style={{ marginBottom: "var(--space-lg)" }}>
-        <span>{t("dhasa.system")}</span>
-        <select value={selected} onChange={(e) => onChange(e.target.value)}>
-          <option value="">{t("dhasa.chooseSystem")}</option>
-          {systems.map((s) => (
-            <option key={s.key} value={s.key}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {selected && systems.find((s) => s.key === selected)?.description && (
-        <p className="text-secondary" style={{ marginBottom: "var(--space-lg)" }}>
-          {systems.find((s) => s.key === selected).description}
-        </p>
-      )}
-
-      <ErrorBanner message={error} />
-      {loading && <LoadingState message={t("dhasa.calcPeriods")} />}
-
-      {/* Sudarshana Chakra runs three wheels at once — name the reference signs
-          so the three-part lord ("Taurus · Leo · Taurus") is readable. */}
-      {data?.lord_type === "chakra" && data?.chakra_refs && (
-        <p className="card-note">
-          {t("dhasa.chakraRefs", {
-            lagna: data.chakra_refs.lagna,
-            moon: data.chakra_refs.moon,
-            sun: data.chakra_refs.sun,
-          })}
-        </p>
-      )}
-
-      {data?.periods?.length > 0 && (
-        <div className="period-list">
-          {data.periods.map((p, i) => {
-            const current = isCurrentPeriod(p.start_date, p.end_date);
-            return (
-              <div key={`${p.lord}-${i}`} className={`period-row${current ? " is-current" : ""}`}>
-                <span className="fw-700 text-indigo">
-                  {p.chakra ? (
-                    <span className="chakra-wheels">
-                      {["lagna", "moon", "sun"].map((w) => (
-                        <span key={w} className={`chakra-wheel chakra-wheel--${w}`}>
-                          <span className="chakra-wheel__ref">{t(`dhasa.wheel.${w}`)}</span>
-                          {p.chakra[w].sign}
-                          <span className="chakra-wheel__house">{p.chakra[w].house}</span>
-                        </span>
-                      ))}
-                    </span>
-                  ) : (
-                    p.lord
-                  )}
-                  {current && <span className="period-row__now">{t("dhasa.now")}</span>}
-                </span>
-                <span className="text-secondary" style={{ fontSize: "0.8125rem" }}>
-                  {formatDate(p.start_date, locale)} – {formatDate(p.end_date, locale)}
-                </span>
-                <span className="text-muted" style={{ fontSize: "0.8125rem" }}>
-                  {p.duration_years}y
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </Card>
+        )}
+      </Card>
     </div>
   );
 }
@@ -477,7 +477,7 @@ function SudarsanaChakra({ birthDetails }) {
                   <Kundali
                     key={i}
                     planets={data.planets}
-                    lagna={{ house: w.lagna_house, sign_name: w.sign_name }}
+                    lagna={{ sign_num: w.lagna_sign_num, sign_name: w.sign_name }}
                     title={wheelLabel(w.ref)}
                     subtitle={ln(w.sign_name, "rasi")}
                   />
@@ -533,7 +533,11 @@ export const DhasaPage = () => {
     setLoading(true);
     setError("");
     try {
-      const response = await astrologyService.getDhasa(birthDetails, "vimsottari", settings.ayanamsa);
+      const response = await astrologyService.getDhasa(
+        birthDetails,
+        "vimsottari",
+        settings.ayanamsa
+      );
       setResult(response.data);
     } catch (err) {
       setError(err.response?.data?.detail || t("dhasa.calcError"));
