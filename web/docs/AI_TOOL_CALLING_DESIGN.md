@@ -101,6 +101,13 @@ model only supplies the genuinely free parameters.
 Design rules:
 - **Birth details + ayanamsa are server-injected**, never trusted from the model
   — the model can't ask about a different person.
+  - Injecting is not the same as *forwarding*. `_dasha_chain`, `_dasha_children`
+    and `_pancha_pakshi` each accepted the injected `ayanamsa` and then called a
+    compute that had no such parameter, so the value was silently dropped and the
+    tool answered in the default — this contract read as satisfied for months.
+    `tests/test_ayanamsa_reaches_computes.py` now checks the whole class: any
+    compute taking `dob`/`tob` must accept an `ayanamsa`, and the value must
+    change the answer rather than merely be accepted.
 - Each tool returns the same compact, token-budgeted shape the context renderer
   already produces (reuse the per-section formatting in `_render_context_block`
   so a tool result reads the same whether seeded or fetched).

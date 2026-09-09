@@ -966,8 +966,24 @@ DB name), which is deliberate.
   The AI has the same view via the `get_applicable_dashas` tool.
 - All of these honour the **selected ayanamsa** — a nakshatra dasha's balance at
   birth is read off the Moon's sidereal longitude, so the ~1' between Lahiri and
-  True Chitra moves every period by a couple of days over a 60-year cycle.
-  Shashtihayani additionally routes past a PyJHora balance-at-birth bug (it
+  True Chitra moves every period by a couple of days over a 60-year cycle. This
+  line described the intent rather than the behaviour until 2026-09: `get_dashas`
+  and `get_dasha_children` took no ayanamsa argument at all, so the Vimsottari
+  page always answered in the default and changing the setting did nothing
+  visible. Now wired through and guarded by a test that a new chart-derived
+  compute must accept an ayanamsa *and* that the value changes the answer.
+- **Vimsottari agrees with Jagannatha Hora at every level**, verified against a
+  JHora printout for the reference chart: all nine maha boundaries to ~25-40 s
+  across 120 years, and the Antardasha / Pratyantardasha / Sookshma chain to
+  under a second. Two things are load-bearing for that. The dasha year is the
+  **true sidereal** year (`DHASA_YEAR_DURATION.JHORA_DEFAULT`) — a mean year is
+  ~16 h out on every maha boundary. And sub-periods divide the parent's **solar
+  arc**, not its elapsed time: a period of N dasha-years is exactly N x 360 deg
+  of the Sun's sidereal travel, and since the Sun runs fastest near January
+  perihelion, equal arcs are deliberately *unequal* spans of time. PyJHora's own
+  `vimsottari_immediate_children` sizes children from elapsed time instead, which
+  hands each one 2.07% too much and leaves the last 13.8% short. See todo.md §62.
+- Shashtihayani additionally routes past a PyJHora balance-at-birth bug (it
   divides by one nakshatra where its contiguous star-blocks require the whole
   block); corrected, it matches Jagannatha Hora to the day. See todo.md §52.1.
 - **Sudarsana Chakra**: a collapsible section showing the three wheels read from the
@@ -1681,7 +1697,12 @@ masked, and used ahead of any global env key for that user's requests.
 
 ### Health
 
-- `GET /health` - Health check endpoint
+- `GET /health` - Health check endpoint. Also reports `engine_version` (PyJHora's
+  own version string) and `default_ayanamsa`. Both answer questions that only
+  arise after a deploy and otherwise need a shell inside the container: an engine
+  upgrade moves real numbers, and the default ayanamsa sets every nakshatra
+  dasha's balance at birth, so two pods on different values print different dasha
+  dates while both report healthy. Settings › System shows the version.
 
 ## Frontend Pages
 
