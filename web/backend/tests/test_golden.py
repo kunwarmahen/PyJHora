@@ -85,10 +85,17 @@ def test_chart1_vimsottari_boundaries(args1):
     assert d.get("status") != "failed", d
     seq = d["dasha_sequence"]
     # First three maha lords + boundary dates (all 120 years are seeded from birth).
+    #
+    # These are Jagannatha Hora's own printout for this chart, checked 2026-09-09
+    # against all nine maha boundaries — we reproduce them to ~25-40 seconds.
+    # They previously read 01-11, which was a stale pre-5.0 baseline that had
+    # never been checked against JHora; when 5.0 changed the dasha year length it
+    # was mistaken for evidence of JHora agreement and the engine was pinned to
+    # the wrong year mode to satisfy it. Do not "restore" the 01-11 values.
     assert [(m["lord"], m["start_date"], m["end_date"]) for m in seq[:3]] == [
-        ("Ketu", "1976-01-11", "1983-01-11"),
-        ("Venus", "1983-01-11", "2003-01-11"),
-        ("Sun", "2003-01-11", "2009-01-11"),
+        ("Ketu", "1976-01-12", "1983-01-12"),
+        ("Venus", "1983-01-12", "2003-01-12"),
+        ("Sun", "2003-01-12", "2009-01-11"),
     ]
 
 

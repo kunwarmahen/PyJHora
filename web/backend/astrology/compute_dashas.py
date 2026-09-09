@@ -340,7 +340,8 @@ class DashasMixin:
             # Walk down the path, recomputing each level so spans stay precise.
             for next_lord in path_idx[1:]:
                 kids = vimsottari.vimsottari_immediate_children(
-                    cur_path, cur_start, parent_end=cur_end)
+                    cur_path, cur_start, parent_end=cur_end,
+                    jd=jd, place=place_obj)
                 match = next((k for k in kids if k[0][-1] == next_lord), None)
                 if match is None:
                     return {"error": "Invalid dasha path", "status": "failed"}
@@ -348,8 +349,13 @@ class DashasMixin:
                 cur_start, cur_end = match[1], match[2]
 
             # Children of the resolved node.
+            # jd/place are required from 5.0 on: the transit-based year lengths
+            # walk the Sun from a real instant, so omitting them makes
+            # `_get_dhasa_end_jd` dereference a None place. Harmless before 5.0,
+            # which multiplied by a fixed year and never looked at either.
             kids = vimsottari.vimsottari_immediate_children(
-                cur_path, cur_start, parent_end=cur_end)
+                cur_path, cur_start, parent_end=cur_end,
+                jd=jd, place=place_obj)
 
             def _tuple_to_jd(t):
                 y, m, d, fh = t

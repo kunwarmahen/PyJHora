@@ -103,10 +103,11 @@ def test_both_ayanamsas_stay_pinned():
     An earlier version of this test asserted the Lahiri value "matched Jagannatha
     Hora". That was wrong: the owner's JHora runs True Lahiri/Chitrapaksha (Spica
     fixed at the middle of Chitra), which is our TRUE_CITRA, not our LAHIRI. The
-    two ayanamsas differ by 0.71', and the unexplained gap against JHora needs
-    0.94' of Moon — close enough that Lahiri appeared to match by coincidence.
+    two ayanamsas differ by 0.71', so Lahiri appeared to match by coincidence.
+    The maha-level gap turned out to be the dasha year length, since corrected
+    (see test_golden); a residual ~2-day gap at Sookshma is still open.
 
     So these are pinned only as our own values, to catch drift.
     """
-    assert _sun_sookshma("TRUE_CITRA") == ("2026-09-03", "2026-09-09")
-    assert _sun_sookshma("LAHIRI") == ("2026-09-06", "2026-09-12")
+    assert _sun_sookshma("TRUE_CITRA") == ("2026-09-08", "2026-09-14")
+    assert _sun_sookshma("LAHIRI") == ("2026-09-11", "2026-09-17")

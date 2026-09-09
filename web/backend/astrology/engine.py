@@ -64,18 +64,22 @@ try:
     # 31' off JHora — True-node Rahu averaged against a Mean-node Moon.
     const._RAHU = swe.MEAN_NODE
 
-    # Match Jagannatha Hora's dasha year length (Mean sidereal, 365.256364 d).
-    # Upstream 5.0 (V4.9.0) rerouted every dasha start/end through
-    # `drik._get_dhasa_start_jd`, which walks the Sun's actual transit instead of
-    # multiplying by a fixed year, and defaults to
-    # `DHASA_YEAR_DURATION.JHORA_DEFAULT`. That alias is a misnomer: it resolves
-    # to TRUE_SIDEREAL_YEAR, and on the owner's reference chart it puts every
-    # Vimsottari maha boundary a full day later than Jagannatha Hora actually
-    # prints (Ketu 1976-01-12 vs 1976-01-11). MEAN_SIDEREAL_YEAR reproduces the
-    # pre-5.0 formula — `jd - elapsed_years * const.sidereal_year` — which is the
-    # one that agrees with JHora. This is global and so covers every dasha
-    # system, not just Vimsottari.
-    const.dhasa_year_duration_default = const.DHASA_YEAR_DURATION.MEAN_SIDEREAL_YEAR
+    # Match Jagannatha Hora's dasha year length. Upstream 5.0 (V4.9.0) rerouted
+    # every dasha start/end through `drik._get_dhasa_start_jd`, which walks the
+    # Sun's actual transit instead of multiplying by a fixed year, and defaults
+    # to `DHASA_YEAR_DURATION.JHORA_DEFAULT` (= TRUE_SIDEREAL_YEAR).
+    #
+    # That default is correct, and this pin only makes it explicit. Checked
+    # against the owner's JHora printout for the reference chart — it reproduces
+    # all nine Vimsottari maha boundaries to within ~25-40 SECONDS across 120
+    # years (Ketu 1976-01-12 10:43:43 vs JHora's 10:43:17). The pre-5.0 formula,
+    # `jd - elapsed_years * const.sidereal_year` (MEAN_SIDEREAL_YEAR), is ~16
+    # hours out on every one of them and was briefly pinned here on the strength
+    # of a golden test whose date turned out to be a stale 4.8.7 baseline rather
+    # than a JHora-verified value.
+    #
+    # Global, so it covers every dasha system, not just Vimsottari.
+    const.dhasa_year_duration_default = const.DHASA_YEAR_DURATION.JHORA_DEFAULT
 
     # ── Speed patch: drik.true_sidereal_year ──────────────────────────────
     #
