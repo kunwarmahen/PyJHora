@@ -11,6 +11,10 @@ The failure mode is the nasty kind: nothing errors, nothing looks wrong, and the
 numbers are plausible. It only surfaces at Sookshma, where periods are days long
 and a ~3-day shift changes which lord is reported as running *today*.
 
+Note the bug this file guards is real and fixed, but it was NOT the cause of the
+Sookshma mismatch that led here — that remains open, and needs only 0.94' of Moon
+longitude to explain. Do not read these pins as agreement with JHora.
+
 Two guards here. The structural one catches the whole class the next time a
 compute is added; the behavioural one proves the wiring is live end to end.
 """
@@ -93,9 +97,16 @@ def test_ayanamsa_actually_moves_the_vimsottari_timeline():
         "get_dasha_children ignores the ayanamsa"
 
 
-def test_lahiri_sookshma_matches_jagannatha_hora():
-    """The owner's JHora install runs Lahiri and prints this Sookshma as ending
-    2026-09-12. Under True Chitra we get 09-09; the 3-day gap is the whole reason
-    this was reported. Pinned so the Lahiri path stays honest."""
-    assert _sun_sookshma("LAHIRI") == ("2026-09-06", "2026-09-12")
+def test_both_ayanamsas_stay_pinned():
+    """A differential regression guard, deliberately making no claim about JHora.
+
+    An earlier version of this test asserted the Lahiri value "matched Jagannatha
+    Hora". That was wrong: the owner's JHora runs True Lahiri/Chitrapaksha (Spica
+    fixed at the middle of Chitra), which is our TRUE_CITRA, not our LAHIRI. The
+    two ayanamsas differ by 0.71', and the unexplained gap against JHora needs
+    0.94' of Moon — close enough that Lahiri appeared to match by coincidence.
+
+    So these are pinned only as our own values, to catch drift.
+    """
     assert _sun_sookshma("TRUE_CITRA") == ("2026-09-03", "2026-09-09")
+    assert _sun_sookshma("LAHIRI") == ("2026-09-06", "2026-09-12")
