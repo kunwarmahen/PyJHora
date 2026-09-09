@@ -122,9 +122,21 @@ try:
     import varsha_tithi_ashtottari as vta
 
     ENGINE_AVAILABLE = True
+
+    # Surfaced on /health so a deployment's engine version is checkable from the
+    # portal (Settings › System) instead of from a shell inside the container.
+    # An engine upgrade moves real numbers — dasha boundaries especially — so
+    # "which version is this pod actually running" is the first question worth
+    # answering when a chart disagrees with Jagannatha Hora.
+    try:
+        from jhora import _package_info as _jhora_pkg
+        ENGINE_VERSION = str(_jhora_pkg.version)
+    except Exception:
+        ENGINE_VERSION = "unknown"
 except ImportError as e:
     print(f"Jyotir AI import error: {e}")
     ENGINE_AVAILABLE = False
+    ENGINE_VERSION = None
 
 DEFAULT_AYANAMSA = "TRUE_CITRA"
 

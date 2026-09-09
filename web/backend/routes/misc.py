@@ -18,7 +18,7 @@ from config import settings
 from database import connect_to_mongo, close_mongo_connection
 from auth import create_access_token, decode_token, get_password_hash, verify_password, Token
 from database import User, BirthDetails, ChartData
-from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, SUPPORTED_VARGAS, SUPPORTED_DASHAS
+from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, SUPPORTED_VARGAS, SUPPORTED_DASHAS, ENGINE_VERSION
 from chart_context import build_chart_context
 from llm_service import llm_service, LLMProvider
 import tools as tool_registry
@@ -154,6 +154,14 @@ async def health_check():
     return {
         "status": "healthy",
         "engine_available": AstrologyCompute.ENGINE_AVAILABLE,
+        # PyJHora's own version string. An engine upgrade moves real numbers, so
+        # this answers "which engine is this deployment actually running?" without
+        # a shell into the container.
+        "engine_version": ENGINE_VERSION,
+        # The ayanamsa every compute falls back to when a profile/request does not
+        # name one. Not cosmetic: it sets each nakshatra dasha's balance at birth,
+        # so two deployments on different defaults print different dasha dates.
+        "default_ayanamsa": DEFAULT_AYANAMSA,
         "local_ai": {
             "available": bool(local.get("available")),
             "base_url": local.get("base_url"),

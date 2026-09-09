@@ -537,7 +537,15 @@ export const SettingsPage = () => {
   const healthChecks = health
     ? [
         { key: "server", label: t("settings.system.server"), ok: health.status === "healthy" },
-        { key: "pyjhora", label: t("settings.system.pyjhora"), ok: !!health.engine_available },
+        {
+          key: "pyjhora",
+          label: t("settings.system.pyjhora"),
+          ok: !!health.engine_available,
+          // Show which engine build this deployment is on. An engine upgrade
+          // moves real numbers (dasha boundaries most of all), so when a chart
+          // disagrees with Jagannatha Hora this is the first thing to check.
+          value: health.engine_version || "",
+        },
         {
           key: "localAi",
           label: t("settings.system.localAi"),
