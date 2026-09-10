@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Globe, Sparkles, RefreshCw } from "lucide-react";
+import { Globe, Sparkles, RefreshCw, MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
+import { useCurrentLocation } from "../contexts/LocationContext";
+import { momentPlace } from "../config/currentLocation";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
 import { RecentReadings } from "../components/RecentReadings";
@@ -29,25 +32,11 @@ const readModelConfig = () => {
   };
 };
 
-const browserLocation = () =>
-  new Promise((resolve) => {
-    if (!navigator.geolocation) return resolve(null);
-    navigator.geolocation.getCurrentPosition(
-      (pos) =>
-        resolve({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          timezone: -new Date().getTimezoneOffset() / 60,
-        }),
-      () => resolve(null),
-      { timeout: 8000 }
-    );
-  });
-
 export const NowChartPage = () => {
   const { t } = useTranslation();
   const ln = useLocalizeName();
   const { selectedProfile } = useProfile();
+  const { location, loaded: locationLoaded } = useCurrentLocation();
   const { settings } = useSettings();
   const ayanamsa = settings.ayanamsa;
   const chartStyle = settings.chartStyle;
@@ -56,7 +45,18 @@ export const NowChartPage = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [loc, setLoc] = useState(null);
+
+  // Where "here" is. Resolved from the location the user confirmed once, else
+  // their birth place — never from a GPS prompt raised on arrival, and never
+  // from the backend's hardcoded Chennai default, which this page used to reach
+  // by passing no coordinates at all. See config/currentLocation#momentPlace.
+  // Null until the stored location has been fetched: "not loaded yet" looks
+  // like "there is none", and casting on that difference showed the birth-place
+  // chart for a beat before replacing it with the right one.
+  const loc = useMemo(
+    () => (locationLoaded ? momentPlace(location, selectedProfile?.birth_details) : null),
+    [locationLoaded, location, selectedProfile]
+  );
 
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [aiModel, setAiModel] = useState("");
@@ -74,25 +74,23 @@ export const NowChartPage = () => {
   }, [pendingReading, loading]);
 
   const load = useCallback(async () => {
+    if (!loc) {
+      // Nothing to cast for. Waiting on the location fetch is not the same as
+      // knowing there is none, so only the latter stops the spinner.
+      setData(null);
+      setLoading(!locationLoaded);
+      return;
+    }
     setLoading(true);
     setError("");
     setAiAnalysis("");
     try {
-      const here =
-        (await browserLocation()) ||
-        (selectedProfile
-          ? {
-              latitude: selectedProfile.birth_details.latitude,
-              longitude: selectedProfile.birth_details.longitude,
-              timezone: selectedProfile.birth_details.timezone,
-            }
-          : {});
-      setLoc(here);
       const res = await astrologyService.getNowChart({
-        latitude: here.latitude,
-        longitude: here.longitude,
-        timezone: here.timezone,
-        currentTz: here.timezone,
+        place: loc.place,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        timezone: loc.timezone,
+        currentTz: loc.timezone,
         ayanamsa,
       });
       setData(res.data);
@@ -101,7 +99,7 @@ export const NowChartPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedProfile, ayanamsa, t]);
+  }, [loc, locationLoaded, ayanamsa, t]);
 
   useEffect(() => {
     load();
@@ -113,6 +111,7 @@ export const NowChartPage = () => {
     try {
       const res = await astrologyService.analyzeNowChartAI(
         {
+          place: loc?.place,
           latitude: loc?.latitude,
           longitude: loc?.longitude,
           timezone: loc?.timezone,
@@ -146,7 +145,7 @@ export const NowChartPage = () => {
         <div
           style={{ display: "flex", justifyContent: "flex-end", marginBottom: "var(--space-md)" }}
         >
-          <button className="ui-btn ui-btn--secondary" onClick={load} disabled={loading}>
+          <button className="ui-btn ui-btn--secondary" onClick={load} disabled={loading || !loc}>
             <RefreshCw size={16} /> {t("now.refresh")}
           </button>
         </div>
@@ -157,11 +156,29 @@ export const NowChartPage = () => {
           <Card>
             <LoadingState message={t("now.loading")} />
           </Card>
+        ) : !loc ? (
+          <Card accent="indigo">
+            <p className="ai-panel__hint">{t("now.noPlace")}</p>
+            <Link to="/settings?tab=location" className="ui-btn ui-btn--secondary">
+              <MapPin size={16} /> {t("now.setLocation")}
+            </Link>
+          </Card>
         ) : data ? (
           <div className="fade-in">
             {data.moment && (
               <p className="card-note">
                 {t("now.asOf", { date: data.moment.date, time: data.moment.time })}
+                {loc.place
+                  ? ` · ${t(loc.source === "birth" ? "now.castForBirth" : "now.castFor", {
+                      place: loc.place,
+                    })}`
+                  : ""}
+              </p>
+            )}
+            {loc.source === "birth" && (
+              <p className="card-note">
+                {t("now.castForBirthHint")}{" "}
+                <Link to="/settings?tab=location">{t("now.setLocation")}</Link>
               </p>
             )}
 

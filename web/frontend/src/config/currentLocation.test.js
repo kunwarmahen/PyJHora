@@ -1,5 +1,6 @@
 import {
   detectOffsetHours,
+  momentPlace,
   dismissZone,
   isZoneDismissed,
   locationPrompt,
@@ -181,5 +182,48 @@ describe("detectOffsetHours", () => {
     spy.mockReturnValue(360); // US Central, standard time
     expect(detectOffsetHours()).toBe(-6);
     spy.mockRestore();
+  });
+});
+
+describe("momentPlace", () => {
+  const stored = { ...chicago, utc_offset: -6 };
+  const birth = { place: "Shahgarh", latitude: 27.05, longitude: 78.44, timezone: 5.5 };
+
+  it("prefers the location the user confirmed", () => {
+    expect(momentPlace(stored, birth)).toEqual({
+      place: "Chicago",
+      latitude: 41.88,
+      longitude: -87.63,
+      timezone: -6,
+      source: "viewer",
+    });
+  });
+
+  it("returns the FLOAT offset, not the IANA zone name", () => {
+    // location.timezone is "America/Chicago"; the compute takes hours. Passing
+    // the string through is a 422 from the endpoint, and was the bug that made
+    // this helper necessary.
+    expect(momentPlace(stored, birth).timezone).toBe(-6);
+  });
+
+  it("falls back to the birth place, and says so", () => {
+    expect(momentPlace(null, birth)).toEqual({ ...birth, source: "birth" });
+  });
+
+  it("falls back when a stored location has no usable offset", () => {
+    expect(momentPlace({ ...chicago, utc_offset: null }, birth).source).toBe("birth");
+  });
+
+  it("keeps a zero offset, which is a real place and not a missing one", () => {
+    // UTC+0 is falsy. Testing truthiness instead of finiteness would send
+    // everyone in London to their birth place.
+    const london = { place: "London", latitude: 51.5, longitude: -0.13, utc_offset: 0 };
+    expect(momentPlace(london, birth).source).toBe("viewer");
+    expect(momentPlace(null, { ...birth, timezone: 0 }).source).toBe("birth");
+  });
+
+  it("is null when no place is known at all", () => {
+    expect(momentPlace(null, null)).toBeNull();
+    expect(momentPlace(null, undefined)).toBeNull();
   });
 });

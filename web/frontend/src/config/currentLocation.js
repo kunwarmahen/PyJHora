@@ -122,3 +122,46 @@ export const locationPrompt = ({ location, birthOffset, zone, offset } = {}) => 
   if (!Number.isFinite(birthOffset) || !Number.isFinite(offset)) return null;
   return offset === birthOffset ? null : { kind: "unset", zone };
 };
+
+/**
+ * Where to cast a "chart of the moment", and what to call that place.
+ *
+ * A chart of the moment is the one reading where location is not a detail: the
+ * ascendant moves a degree every four minutes, so casting "now" at the wrong
+ * meridian doesn't approximate the answer, it answers a different question.
+ * That makes *saying* which place was used part of the result, not a nicety —
+ * hence `source`, which every caller renders.
+ *
+ * The order is the app's standing convention (see LocationContext): the
+ * location the user confirmed, else their birth place, which is still exactly
+ * right for anyone who lives where they were born. What it will NOT do is ask
+ * the browser for GPS — detection suggests through `locationPrompt` and the
+ * user confirms once; a chart is not the place to re-litigate that, and the
+ * backend's own last-resort fallback is a hardcoded Chennai that would be
+ * silently wrong for nearly everyone.
+ *
+ * Returns `{place, latitude, longitude, timezone, source}` — `timezone` being
+ * the float offset the compute takes, NOT the IANA name `location.timezone`
+ * holds — or null when we know of no place at all.
+ */
+export const momentPlace = (location, birthDetails) => {
+  if (location && Number.isFinite(location.utc_offset)) {
+    return {
+      place: location.place,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      timezone: location.utc_offset,
+      source: "viewer",
+    };
+  }
+  if (birthDetails && Number.isFinite(birthDetails.timezone)) {
+    return {
+      place: birthDetails.place,
+      latitude: birthDetails.latitude,
+      longitude: birthDetails.longitude,
+      timezone: birthDetails.timezone,
+      source: "birth",
+    };
+  }
+  return null;
+};

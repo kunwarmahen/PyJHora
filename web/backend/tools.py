@@ -137,6 +137,47 @@ def _transits(bd, ayanamsa, current_tz: Optional[float] = None, **_):
     }
 
 
+def _now_chart(bd, ayanamsa, current_place: Optional[str] = None,
+               current_lat: Optional[float] = None,
+               current_lon: Optional[float] = None,
+               current_tz: Optional[float] = None, **_):
+    """The sky right now, cast as its own chart — not the natal chart, and not a
+    transit overlay on it.
+
+    Where it is cast from matters more here than anywhere else: the ascendant
+    moves a degree every four minutes, so the wrong meridian doesn't approximate
+    this answer, it answers a different question. Hence `location` in the result
+    and the instruction in the description to quote it: `current_*` is the
+    viewer's real place when the request carried one, and their birth place when
+    it did not, and the model must not present the second as the first.
+    """
+    a = _args(bd)
+    lat = current_lat if current_lat is not None else a["lat"]
+    lon = current_lon if current_lon is not None else a["lon"]
+    tz = current_tz if current_tz is not None else a["tz"]
+    from_viewer = current_lat is not None and current_lon is not None
+    place = (current_place if from_viewer else None) or a["place"]
+
+    r = AstrologyCompute.get_now_chart(
+        place=place or "", lat=lat, lon=lon, tz=tz, current_tz=tz,
+        ayanamsa=ayanamsa)
+    if r.get("status") != "success":
+        return r
+    view = chart_positions(r.get("lagna", {}), r.get("d1_chart", {}))
+    return {
+        "moment": r.get("moment", {}),
+        "location": {
+            "place": place,
+            "source": "viewer_current_location" if from_viewer else "birth_place",
+        },
+        "house_system": view["house_system"],
+        "lagna": view["lagna"],
+        "planets": strip_layout_all(view["planets"]),
+        "panchanga": r.get("panchanga"),
+        "hora_lord": r.get("hora_lord"),
+    }
+
+
 def _ashtakavarga(bd, ayanamsa, **_):
     av = AstrologyCompute.get_ashtakavarga(ayanamsa=ayanamsa, **_args(bd))
     if av.get("status") != "success":
@@ -819,6 +860,19 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _EMPTY_PARAMS, _transits,
     ),
     _Tool(
+        "get_now_chart",
+        "Chart of the moment: the sky RIGHT NOW cast as a chart in its own "
+        "right — its own ascendant, planets by house from that ascendant, "
+        "today's panchanga and the running hora lord. Distinct from "
+        "get_transits, which overlays the same sky on the NATAL chart: use this "
+        "one for 'what is the sky doing now', for judging the present moment to "
+        "act (muhurta/prashna-flavoured questions), and for the quality of the "
+        "hour itself. The result's `location` says which place it was cast for; "
+        "when its source is birth_place, say so rather than implying it is "
+        "where the user is standing.",
+        _EMPTY_PARAMS, _now_chart,
+    ),
+    _Tool(
         "get_ashtakavarga",
         "Sarva Ashtakavarga: combined benefic bindus per sign (higher = more "
         "supportive), with the total out of 337. Use to gauge which signs/houses "
@@ -1339,7 +1393,7 @@ ALWAYS_TOOLS: List[str] = [
     "get_fortnightly_digest", "get_monthly_digest", "get_tithi_pravesha",
     "get_raja_yogas", "get_nadi", "get_longevity", "get_pancha_pakshi",
     "get_sphuta", "get_sahams", "get_argala",
-    "get_vedic_clock", "get_retrograde", "get_muhurta",
+    "get_vedic_clock", "get_retrograde", "get_muhurta", "get_now_chart",
     "get_kp", "get_jaimini", "get_life_timeline", "get_strength",
     "get_dasha_periods", "get_applicable_dashas",
     "get_sarvatobhadra_chakra", "get_kota_chakra",
@@ -1404,6 +1458,7 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_dasha_chain":      {"label": "Running dasha periods",  "category": "Timing"},
     "get_dasha_children":   {"label": "Dasha sub-periods",      "category": "Timing"},
     "get_transits":         {"label": "Current transits (Gochara)", "category": "Timing"},
+    "get_now_chart":        {"label": "Chart of the moment (the sky right now)", "category": "Timing"},
     "get_gochara_phala":    {"label": "Gochara-phala with vedha (Moon-referenced)", "category": "Timing"},
     "get_panchanga":        {"label": "Panchanga almanac",      "category": "Timing"},
     "get_varshaphal":       {"label": "Varshaphal (annual chart)", "category": "Timing"},

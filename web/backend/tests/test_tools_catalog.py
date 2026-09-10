@@ -145,3 +145,37 @@ def test_section_tool_covers_every_toggleable_section():
 
     missing = [s for s in DEFAULT_SECTIONS if s not in tool_registry.SECTION_TOOL]
     assert not missing, f"sections with no tool: {missing}"
+
+
+def test_now_chart_tool_says_which_place_it_cast_for():
+    """The chart of the moment is the one reading where the meridian IS the
+    answer — the ascendant moves a degree every four minutes. So the tool must
+    (a) prefer the viewer's real location over the birth place, and (b) label
+    which of the two it used, or the model will narrate a Chicago evening as if
+    the user were standing in Uttar Pradesh at dawn."""
+    birth = tool_registry.dispatch("get_now_chart", {}, dict(CHART1))
+    assert "error" not in birth, birth
+    assert birth["location"]["source"] == "birth_place"
+    assert birth["location"]["place"] == CHART1["place"]
+
+    viewer = tool_registry.dispatch(
+        "get_now_chart", {}, dict(CHART1),
+        viewer={"place": "Chicago", "latitude": 41.88,
+                "longitude": -87.63, "timezone": -5.0})
+    assert "error" not in viewer, viewer
+    assert viewer["location"] == {"place": "Chicago",
+                                  "source": "viewer_current_location"}
+    assert viewer["moment"]["tz"] == -5.0
+    # Same instant, different meridian: it is genuinely a different chart, which
+    # is the whole reason the location is reported rather than assumed.
+    assert viewer["lagna"]["sign_name"] != birth["lagna"]["sign_name"]
+
+
+def test_now_chart_tool_gives_houses_not_sign_indices():
+    """Houses are counted from the moment's OWN ascendant. A bare sign number
+    reaching the model reads as a house and outranks the truth (§63)."""
+    r = tool_registry.dispatch("get_now_chart", {}, dict(CHART1))
+    assert r["house_system"]
+    for name, p in r["planets"].items():
+        assert 1 <= p["house"] <= 12, f"{name}: {p}"
+        assert "rasi" not in p, f"{name} leaked a layout sign index: {p}"

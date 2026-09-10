@@ -64,8 +64,12 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   significators, ruling planets, and KP horary 1–249, with AI readings),
   a **Jaimini** deep-dive (Chara Karakas, Karakamsa/Swamsa with rasi-drishti aspects, and
   argala, with AI reading),
-  a **Chart of the Moment** (the current sky as a chart — a Dashboard mini-kundali widget
-  plus a full `/now` page with panchanga & AI reading),
+  a **Chart of the Moment** (the current sky as a chart in its own right, not overlaid on a
+  birth chart — a full `/now` page with panchanga, hora & AI reading, plus a Dashboard
+  mini-kundali widget; both Everything-mode only. It is cast for your Settings → Location,
+  falling back to your birth place, and always names which it used, since a four-minute
+  shift of meridian is a whole degree of ascendant. The AI can fetch it from any page via
+  the `get_now_chart` tool),
   a **Chakras** page (`/chakras`, tabbed) — four classical chakras for any chosen moment, each
   with a plain-language AI reading: **Sarvatobhadra** (transits + vedha), the **Kota Chakra**
   (the fort — transiting malefics marked as they breach the inner enclosures, the classical
