@@ -27,8 +27,8 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   engine toggle, the Hijri date, and an AI day-guide),
   Pancha Pakshi Sastra (bird-cycle day timing, with AI day-guide),
   Muhurta / electional astrology (auspicious windows for an activity, **scored against your own
-  chart** — Tara Bala, Chandra Bala, your running dasha lords and per-window lagna shuddhi — with AI
-  rationale, plus day sub-tools: Choghadiya, Panchaka, Tarabala & Chandrabala),
+  chart** — Tara Bala, Chandra Bala, your running dasha lords and per-window lagna shuddhi (§71) —
+  with AI rationale, plus day sub-tools: Choghadiya, Panchaka, Tarabala & Chandrabala),
   Prashna / horary (a chart for the moment you ask, with a horary AI reading),
   personalized daily / fortnightly / monthly readings, each anchored to a real progressed (pravesha)
   chart on the solar (Tajaka) or lunar (tithi) ladder — "Today", "This Fortnight" (Paksha Pravesha) and
@@ -1303,7 +1303,7 @@ Three approaches, chosen with a mode toggle:
 - Optional **AI reading** of the current sky + smart-lookup **tools** (`get_vedic_clock`,
   `get_retrograde`)
 
-### 15. Muhurta / Electional Astrology (`/muhurta`)
+### 15. Muhurta / Electional Astrology (`/muhurta`) — personal to your chart (§71)
 
 - Find **auspicious time windows** for an activity (general, marriage, travel, new business,
   housewarming, education, medical) over a date range, computed at your profile's place
@@ -1798,6 +1798,9 @@ masked, and used ahead of any global env key for that user's requests.
 - `POST /api/astrology/life-report/start` - Start a server-side Life Report run (re-attaches to one already running for the profile)
 - `GET /api/astrology/life-report/job?profile_id=` - Progress while generating, the finished report afterwards (the page polls this)
 - `POST /api/astrology/life-report/cancel?job_id=` - Stop a running report
+- `POST /api/astrology/muhurta?activity=&start_date=&end_date=&place=&latitude=&longitude=&timezone=&ayanamsa=` - Auspicious windows for an activity over a date range. **The body is an optional `BirthDetails`** (§71): send it and every day and window is also scored against that chart (Tara Bala, Chandra Bala, the running Vimsottari lords' gochara, per-window lagna shuddhi) and the result carries `personalized: true` + `personal_basis`; omit it and the answer is the location-only almanac. Coordinates are **required** — a muhurta without a place is refused, not answered for a default city
+- `POST /api/astrology/muhurta/subtools` - Choghadiya + Panchaka for a day (`MuhurtaSubtoolsRequest`), plus personal Tarabala / Chandrabala when `birth_details` is sent
+- `POST /api/astrology/muhurta-analysis` - AI rationale for the recommended windows (`MuhurtaAnalysisRequest`; names the personal reasons when `birth_details` is sent, and says the answer is the public almanac's when it is not)
 
 ### Saved Profiles
 
@@ -1885,7 +1888,7 @@ concern in §4 — pure file moves, no behaviour change):
 - **llm_service.py** + **llm/**: unified LLM service (Ollama / OpenAI-compatible /
   Gemini / OpenAI) — the tool loop stays in `llm_service.py`; provider adapters are
   `llm/providers/*`, prompt builders + the context renderer are `llm/prompts.py`
-- **tools.py**: the AI tool registry (43 tools) — also what `/api/v1/tools` and the
+- **tools.py**: the AI tool registry (48 tools) — also what `/api/v1/tools` and the
   MCP server publish
 - **events.py**: the forward calendar of a chart's own events (§70) — dasha
   changes, Saturn's phases, ingresses, retrograde stations, eclipses — stored per

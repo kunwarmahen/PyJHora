@@ -7297,7 +7297,14 @@ missing feature.)
 - **Search / Help / i18n** — muhurta keywords gain the romanisation variants (`tara bala`/`tarabala`,
   `chandra bala`/`chandrabala`, `lagna shuddhi`/`suddhi`); two new FAQ entries
   (`personalMuhurta`, `whatIsLagnaShuddhi`); `muhurta.personalize*`, `muhurta.basis`,
-  `muhurta.shuddhi.*` and the two hint strings in `en.json`.
+  `muhurta.shuddhi.*`, `muhurta.chandraChip.*` and the two hint strings in `en.json`.
+- **Docs** — `web/README.md`: the feature blurb, §15, and — newly — the **three muhurta endpoints,
+  which had never been in the API reference at all**, with the optional-body contract spelled out.
+  A stale count fixed while there: `tools.py` is 48 tools, not the 43 the module map claimed.
+  Nothing to change in `web/mcp/README.md` (its catalogue is fetched from `/api/v1/tools` at startup,
+  so the personalised muhurta reaches MCP clients with no edit here) or in
+  `docs/AI_TOOL_CALLING_DESIGN.md` (a design snapshot of the original eleven tools, not a live
+  registry).
 
 ### The Chennai fallback, removed
 
