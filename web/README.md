@@ -444,6 +444,8 @@ pyjhora-web/
 │   ├── llm_service.py       # Multi-provider LLM layer (composes the llm/ mixins) + streaming
 │   ├── llm/                 # base.py (enums/config), providers/{ollama,openai,gemini}.py, prompts.py
 │   ├── chart_context.py     # Builds the structured chart context sent to the AI
+│   ├── claim_check.py       # Checks a finished reading against the chart it came from (§69) — extract, verify, regenerate once, annotate
+│   ├── claim_reports.py     # Daily claim-check counters + the admin triage queue
 │   ├── tools.py             # Tool registry for agentic mode (wraps AstrologyCompute) + GET /api/ai/tools catalog
 │   ├── tool_traces.py       # Lazy side-storage for smart-lookup tool results
 │   ├── conversations.py     # Unified AI history: chat threads + one-shot readings (source registry, save_reading, retention cap)
@@ -1867,6 +1869,11 @@ concern in §4 — pure file moves, no behaviour change):
   `llm/providers/*`, prompt builders + the context renderer are `llm/prompts.py`
 - **tools.py**: the AI tool registry (43 tools) — also what `/api/v1/tools` and the
   MCP server publish
+- **claim_check.py** + **claim_reports.py**: the claim checker (§69). `claim_check`
+  is pure and database-free — it extracts the checkable assertions from a finished
+  reading and tests them against the same context the model was given, then
+  `guard()` regenerates once and annotates what survives. `claim_reports` holds the
+  daily counters and the admin triage queue, and resolves the runtime mode
 
 ### Frontend Architecture
 
