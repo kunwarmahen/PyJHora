@@ -101,8 +101,10 @@ NAS_SSH_CTL="/tmp/.jyotirai-ssh-$$"   # ControlMaster socket — one password pr
 # The master is opened before the image builds so its password is asked up front;
 # it must therefore outlive a cold build, not the old 120s idle window.
 NAS_SSH_PERSIST="${NAS_SSH_PERSIST:-4h}"
-NAS_SUDO_PW=""                        # captured once, in memory only — never written to disk
+NAS_SSH_PW=""                         # captured once, in memory only — never written to disk
+NAS_SUDO_PW=""                        # ditto; usually the SSH one (see nas_sudo_prime)
 NAS_SUDO_MODE=""                      # "" | nopasswd | password | prompt
+NAS_ASKPASS=""                        # helper script ssh calls instead of prompting
 
 # --- colours ------------------------------------------------------------
 if [ -t 1 ]; then
@@ -360,8 +362,34 @@ ssh_opts() {
   [ -n "$NAS_SSH_KEY" ] && o="$o -i $NAS_SSH_KEY"
   echo "$o"
 }
-nas_ssh_open()  { info "connecting to ${NAS_USER}@${NAS_HOST} ..."; ssh $(ssh_opts) -o ControlMaster=yes -fN "${NAS_USER}@${NAS_HOST}"; }
-nas_ssh_close() { ssh -O exit -o "ControlPath=${NAS_SSH_CTL}" "${NAS_USER}@${NAS_HOST}" 2>/dev/null || true; rm -f "$NAS_SSH_CTL"; }
+# ssh has no "read the password from here" flag, so hand it an askpass helper.
+# The helper holds NO secret: it prints an environment variable we export for the
+# ssh child alone, so the password never touches disk.
+nas_askpass_setup() {
+  [ -n "$NAS_ASKPASS" ] && return 0
+  NAS_ASKPASS="$(mktemp "${TMPDIR:-/tmp}/.jyotirai-askpass.XXXXXX")"
+  cat >"$NAS_ASKPASS" <<'ASKPASS'
+#!/bin/sh
+printf '%s\n' "$JYOTIRAI_SSH_PW"
+ASKPASS
+  chmod 700 "$NAS_ASKPASS"
+}
+nas_ssh_open() {
+  info "connecting to ${NAS_USER}@${NAS_HOST} ..."
+  if [ -n "$NAS_SSH_PW" ]; then
+    nas_askpass_setup
+    # SSH_ASKPASS_REQUIRE=force (OpenSSH 8.4+) makes ssh use the helper even
+    # though it has a terminal; NumberOfPasswordPrompts=1 turns a bad password
+    # into an immediate failure instead of three silent retries.
+    if JYOTIRAI_SSH_PW="$NAS_SSH_PW" SSH_ASKPASS="$NAS_ASKPASS" SSH_ASKPASS_REQUIRE=force \
+       ssh $(ssh_opts) -o ControlMaster=yes -o NumberOfPasswordPrompts=1 -fN "${NAS_USER}@${NAS_HOST}"; then
+      return 0
+    fi
+    err "SSH password rejected by ${NAS_HOST}"; exit 1
+  fi
+  ssh $(ssh_opts) -o ControlMaster=yes -fN "${NAS_USER}@${NAS_HOST}"
+}
+nas_ssh_close() { ssh -O exit -o "ControlPath=${NAS_SSH_CTL}" "${NAS_USER}@${NAS_HOST}" 2>/dev/null || true; rm -f "$NAS_SSH_CTL" ${NAS_ASKPASS:+"$NAS_ASKPASS"}; }
 nas_ssh() {  # nas_ssh [-t] <cmd...>   (-t forces a PTY so sudo can prompt)
   local tty=""; [ "${1:-}" = "-t" ] && { tty="-tt"; shift; }
   ssh $(ssh_opts) $tty "${NAS_USER}@${NAS_HOST}" "$@"
@@ -372,10 +400,47 @@ nas_scp() {  # nas_scp <local> <remote>
       -o "ControlPath=${NAS_SSH_CTL}" -o ControlPersist="${NAS_SSH_PERSIST}" $key "$1" "${NAS_USER}@${NAS_HOST}:$2"
 }
 
-# Every remote command runs `sudo docker ...`, and sudo's prompt used to land on
-# a PTY *after* the build and the image transfer — a deploy you had to babysit.
-# Ask for it once, up front, right after the SSH password, and authenticate the
-# remote sudo timestamp so the later commands go through unattended.
+# --- credentials --------------------------------------------------------
+# Two DIFFERENT passwords are in play: the SSH login, and the NAS's own sudo
+# (every remote command is `sudo docker ...`). sudo's prompt used to land on a
+# PTY *after* the build and the image transfer — a deploy you had to babysit.
+# Both are now collected before any slow work, and since a NAS is one box with
+# one account they are almost always the same password, so the sudo prompt
+# defaults to the SSH one: bare Enter accepts it, typing gives a different one.
+
+nas_ssh_key_works() {  # does key/agent auth already get us in? then ask nothing
+  local o="-p ${NAS_SSH_PORT} -o StrictHostKeyChecking=no -o ConnectTimeout=10"
+  # ControlPath=none on purpose: this probe must not open (or reuse) the master.
+  o="$o -o BatchMode=yes -o ControlPath=none"
+  [ -n "$NAS_SSH_KEY" ] && o="$o -i $NAS_SSH_KEY"
+  # shellcheck disable=SC2086
+  ssh $o "${NAS_USER}@${NAS_HOST}" true >/dev/null 2>&1
+}
+
+nas_read_pw() {  # nas_read_pw <prompt> — echo a password read from the terminal
+  local pw=""
+  [ -r /dev/tty ] || return 1
+  printf '%s' "$1" >&2
+  read -rs pw < /dev/tty
+  printf '\n' >&2
+  printf '%s' "$pw"
+}
+
+# Capture the SSH password (if one is needed at all) BEFORE opening the master,
+# so `ssh` never has to stop and prompt on its own.
+nas_ssh_prime() {
+  [ -n "$NAS_SSH_PW" ] && return 0
+  if nas_ssh_key_works; then
+    info "SSH: key accepted — no password needed"
+    return 0
+  fi
+  if [ -n "${NAS_SSH_PASSWORD:-}" ]; then
+    NAS_SSH_PW="$NAS_SSH_PASSWORD"
+    return 0
+  fi
+  NAS_SSH_PW="$(nas_read_pw "SSH password for ${NAS_USER}@${NAS_HOST}: " || true)"
+}
+
 nas_sudo_prime() {
   [ -n "$NAS_SUDO_MODE" ] && return 0
   if nas_ssh 'sudo -n true' >/dev/null 2>&1; then
@@ -383,26 +448,45 @@ nas_sudo_prime() {
     info "NAS sudo: passwordless — nothing to ask"
     return 0
   fi
+
   # Deliberately NOT read from web/.env: that file is scp'd to the NAS, so a sudo
   # password living in it would be shipped to the very box it unlocks.
-  local pw="${NAS_SUDO_PASSWORD:-}" out
-  if [ -z "$pw" ] && [ -r /dev/tty ]; then
-    printf 'sudo password for %s@%s (asked once, up front): ' "$NAS_USER" "$NAS_HOST" >&2
-    read -rs pw < /dev/tty; printf '\n' >&2
+  local pw="${NAS_SUDO_PASSWORD:-}" out reuse=0
+  if [ -z "$pw" ]; then
+    if [ -n "$NAS_SSH_PW" ]; then
+      pw="$(nas_read_pw "sudo password for ${NAS_USER}@${NAS_HOST} [Enter = same as the SSH password]: " || true)"
+      if [ -z "$pw" ]; then pw="$NAS_SSH_PW"; reuse=1; fi
+    else
+      pw="$(nas_read_pw "sudo password for ${NAS_USER}@${NAS_HOST}: " || true)"
+    fi
   fi
-  if [ -n "$pw" ]; then
+
+  local tries=0
+  while [ -n "$pw" ]; do
     # Password goes over ssh's stdin, never on the remote command line (where the
     # NAS's own `ps` would show it), and with no PTY so nothing echoes it back.
     if out="$(printf '%s\n' "$pw" | nas_ssh 'sudo -S -v' 2>&1)"; then
       NAS_SUDO_PW="$pw"; NAS_SUDO_MODE=password
-      ok "sudo authenticated on ${NAS_HOST} — the rest of the deploy runs unattended"
+      if [ "$reuse" = 1 ]; then ok "sudo accepted the SSH password — the rest of the deploy runs unattended"
+      else ok "sudo authenticated on ${NAS_HOST} — the rest of the deploy runs unattended"; fi
       return 0
     fi
     case "$out" in
-      *tty*|*askpass*) err "NAS sudo needs a terminal — it will prompt during the deploy" ;;
-      *) err "sudo password rejected by ${NAS_HOST}"; exit 1 ;;
+      *tty*|*askpass*)
+        err "NAS sudo needs a terminal — it will prompt during the deploy"
+        NAS_SUDO_MODE=prompt; return 0 ;;
     esac
-  fi
+    tries=$((tries + 1))
+    if [ "$reuse" = 1 ]; then
+      err "the SSH password is not the sudo password on ${NAS_HOST}"
+      reuse=0
+    else
+      err "sudo password rejected by ${NAS_HOST}"
+    fi
+    if [ "$tries" -ge 3 ] || [ ! -r /dev/tty ] || [ -n "${NAS_SUDO_PASSWORD:-}" ]; then exit 1; fi
+    pw="$(nas_read_pw "sudo password for ${NAS_USER}@${NAS_HOST}: " || true)"
+  done
+
   NAS_SUDO_MODE=prompt
 }
 
@@ -523,7 +607,7 @@ nas_deploy() {
   # Connect and collect BOTH credentials first: the SSH master password, then the
   # NAS sudo password. Everything slow — the parallel builds, the image stream —
   # happens after, so the deploy never stops for input once it is under way.
-  nas_ssh_open
+  nas_ssh_prime; nas_ssh_open
   trap 'nas_ssh_close' EXIT
   nas_sudo_prime
   detect_codec
@@ -607,20 +691,24 @@ nas_deploy() {
   info "logs: ./dev.sh nas logs   |   stop: ./dev.sh nas down"
 }
 
-nas_up()    { require_nas_host; nas_ssh_open; trap 'nas_ssh_close' EXIT; nas_sudo_prime; info "(re)starting stack on ${NAS_HOST} ...";
+nas_up()    { require_nas_host; nas_ssh_prime; nas_ssh_open; trap 'nas_ssh_close' EXIT; nas_sudo_prime; info "(re)starting stack on ${NAS_HOST} ...";
               nas_sudo_sh "cd '${NAS_PATH}' && sudo docker compose up -d --remove-orphans && sudo docker compose ps";
               nas_ssh_close; trap - EXIT; ok "done"; }
-nas_down()  { require_nas_host; nas_ssh_open; trap 'nas_ssh_close' EXIT; nas_sudo_prime; info "stopping stack on ${NAS_HOST} ...";
+nas_down()  { require_nas_host; nas_ssh_prime; nas_ssh_open; trap 'nas_ssh_close' EXIT; nas_sudo_prime; info "stopping stack on ${NAS_HOST} ...";
               nas_sudo_sh "cd '${NAS_PATH}' && sudo docker compose down"; nas_ssh_close; trap - EXIT; ok "done"; }
 # nas_logs [svc] [n]  — n defaults to 100; "all" replays the whole log from
 # container start. Startup lines (e.g. "[scheduler] ... started") print once at
 # boot, so on a long-running container they sit far past a 100-line tail and a
 # grep for them comes back empty even though the line was logged.
-nas_logs()  { require_nas_host; local svc="${1:-}" n="${2:-100}"; nas_ssh_open; trap 'nas_ssh_close' EXIT; info "tailing NAS logs (Ctrl-C to stop) ...";
-              nas_ssh -t "cd '${NAS_PATH}' && sudo docker compose logs -f --tail=$n $svc"; nas_ssh_close; trap - EXIT; }
-nas_ps()    { require_nas_host; nas_ssh_open; trap 'nas_ssh_close' EXIT; nas_sudo_prime;
+nas_logs()  { require_nas_host; local svc="${1:-}" n="${2:-100}"; nas_ssh_prime; nas_ssh_open; trap 'nas_ssh_close' EXIT; nas_sudo_prime;
+              info "tailing NAS logs (Ctrl-C to stop) ...";
+              nas_sudo_sh "cd '${NAS_PATH}' && sudo docker compose logs -f --tail=$n $svc"; nas_ssh_close; trap - EXIT; }
+nas_ps()    { require_nas_host; nas_ssh_prime; nas_ssh_open; trap 'nas_ssh_close' EXIT; nas_sudo_prime;
               nas_sudo_sh "cd '${NAS_PATH}' && sudo docker compose ps"; nas_ssh_close; trap - EXIT; }
-nas_shell() { require_nas_host; local svc="${1:-backend}"; nas_ssh_open; trap 'nas_ssh_close' EXIT; info "shell into '$svc' on ${NAS_HOST} ...";
+# `nas shell` is the one command that keeps its own PTY: an interactive shell
+# needs one, and sudo's tty_tickets means a credential primed on a ttyless
+# session wouldn't count for it — so sudo still prompts here.
+nas_shell() { require_nas_host; local svc="${1:-backend}"; nas_ssh_prime; nas_ssh_open; trap 'nas_ssh_close' EXIT; info "shell into '$svc' on ${NAS_HOST} ...";
               nas_ssh -t "cd '${NAS_PATH}' && sudo docker compose exec $svc /bin/sh"; nas_ssh_close; trap - EXIT; }
 
 # --- tests --------------------------------------------------------------

@@ -654,21 +654,44 @@ across a redeploy. For a hard reset use `./dev.sh nas down && ./dev.sh nas up`.
 different credentials: the **SSH login** (unless you've installed a key on the
 NAS with `ssh-copy-id`) and the NAS's own **`sudo`** password, since every remote
 command is `sudo docker …`. Both are collected back to back *before* the image
-builds start, so a deploy never stops for input once it's under way — and a wrong
-sudo password fails immediately instead of after the whole transfer.
+builds start, so a deploy never stops for input once it's under way.
 
-ControlMaster covers the SSH side for the rest of the run. For sudo, `dev.sh`
-authenticates the remote credential once and holds it open with a keepalive for
-as long as the remote script runs (a cold `docker load` can outlast sudo's
-five-minute cache). The password travels over ssh's **stdin** — never on the
-remote command line, where the NAS's own `ps` would show it — and no PTY is
-allocated, so nothing echoes it back to your terminal.
+On a NAS they are usually the same account and the same password, so the second
+prompt offers the first as its default — **bare Enter reuses the SSH password**,
+or type a different one:
 
-To skip the sudo prompt entirely, `export NAS_SUDO_PASSWORD=…` in your shell.
-It is deliberately **not** read from `web/.env`: that file is scp'd to the NAS on
-every deploy, so a sudo password living in it would be shipped to the very box it
-unlocks. If the NAS grants passwordless sudo, nothing is asked at all. To drop
-the SSH prompt too, install your key: `ssh-copy-id <NAS_USER>@<NAS_HOST>`.
+```
+==> connecting to admin@nas.local ...
+SSH password for admin@nas.local:
+sudo password for admin@nas.local [Enter = same as the SSH password]:
+✓ sudo accepted the SSH password — the rest of the deploy runs unattended
+```
+
+If they turn out to differ, you're told so and re-prompted (three attempts) —
+not left to discover it after the transfer. Nothing is asked at all when the NAS
+grants passwordless sudo, and the SSH prompt is skipped when key auth already
+works; `dev.sh` probes for that first.
+
+Mechanically: `ssh` has no "read the password from here" flag, so `dev.sh` hands
+it a tiny **askpass helper** (`SSH_ASKPASS_REQUIRE=force`, OpenSSH 8.4+). The
+helper holds no secret — it prints an environment variable exported for the `ssh`
+child alone, so the password never reaches disk. ControlMaster then covers the
+SSH side for the rest of the run. For sudo, `dev.sh` authenticates the remote
+credential once and holds it open with a keepalive for as long as the remote
+script runs (a cold `docker load` can outlast sudo's five-minute cache). That
+password travels over ssh's **stdin** — never on the remote command line, where
+the NAS's own `ps` would show it — and no PTY is allocated, so nothing echoes it
+back to your terminal.
+
+`./dev.sh nas shell` is the one exception: an interactive shell needs its own
+PTY, and sudo's `tty_tickets` means a credential primed on a ttyless session
+doesn't count for it, so sudo still prompts there.
+
+For a fully unattended run, `export NAS_SSH_PASSWORD=…` and/or
+`NAS_SUDO_PASSWORD=…` in your shell. They are deliberately **not** read from
+`web/.env`: that file is scp'd to the NAS on every deploy, so a password living
+in it would be shipped to the very box it unlocks. Better still, install your key
+(`ssh-copy-id <NAS_USER>@<NAS_HOST>`) and the SSH prompt disappears for good.
 
 ## Configuration
 

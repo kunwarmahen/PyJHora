@@ -2617,6 +2617,36 @@ rule — and the owner chose to leave the NAS untouched and have `dev.sh` ask on
   falls back to the old interactive `-t` prompt), plus `bash -n`. A real deploy was **not** run —
   it needs the owner's password — so the live round-trip is unproven; watch the first one.
 
+**FOLLOW-UP (same day): default the sudo prompt to the SSH password.** Owner: "assume it is same as
+the first, give the option to enter as if it is same or enter if it is different." One box, one
+account — they usually *are* the same, so the second prompt should be a bare Enter.
+
+- [x] **`dev.sh` now captures the SSH password too.** It couldn't before — `ssh` prompted for it
+      itself, so there was nothing to offer as a default. There is no "read the password from here"
+      flag, and no `sshpass` on this box, so `nas_askpass_setup` writes a tiny **askpass helper**
+      and runs the master with `SSH_ASKPASS_REQUIRE=force` (OpenSSH 8.4+; 9.6 here). The helper
+      contains **no secret** — it prints an env var exported for the `ssh` child alone, so the
+      password never reaches disk. `NumberOfPasswordPrompts=1` turns a bad password into an
+      immediate failure instead of three silent retries.
+- [x] **`nas_ssh_prime` asks only when it must** — probes key/agent auth first with
+      `BatchMode=yes -o ControlPath=none` (ControlPath=none matters: the probe must not open or
+      reuse the master). Key users see no SSH prompt at all.
+- [x] **`sudo password for … [Enter = same as the SSH password]`.** Empty input reuses it. If it's
+      rejected the message says *why* ("the SSH password is not the sudo password") and re-prompts,
+      up to three attempts, rather than exiting.
+- [x] **`NAS_SSH_PASSWORD`** joins `NAS_SUDO_PASSWORD` for a fully unattended run. Environment
+      only, never `web/.env` — that file is scp'd to the NAS.
+- [x] **`nas logs` moved onto the primed path too**; `nas shell` is the deliberate exception —
+      an interactive shell needs its own PTY, and sudo's `tty_tickets` means a credential primed on
+      a ttyless session doesn't count for it, so sudo still prompts there. Documented.
+- Verified with a stubbed-NAS harness over five paths: same password (bare Enter), different
+  password typed, Enter-then-mismatch → re-prompt → success, key auth (no SSH prompt), and
+  passwordless sudo (nothing asked). The askpass mechanism was additionally proven against a
+  **real sshd** (localhost, one deliberate wrong password): ssh invoked the helper instead of
+  prompting on the tty, and failed after a single attempt. Trap for a future harness: `nas_read_pw`
+  is called inside `$( )`, so a fake-keystroke counter kept in a shell variable is lost every call
+  — queue the answers in a file.
+
 ## 21. Export / import birth profiles (owner ask 2026-07-08)
 
 Let users move their saved birth profiles (name, DOB, time, place, coordinates, timezone)
