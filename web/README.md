@@ -1816,6 +1816,26 @@ The frontend uses React with:
 - **Mobile/PWA**: responsive rules in `src/styles/Responsive.css`; installable PWA via
   `public/manifest.json` + icons + `public/sw.js` (registered in production only; the
   service worker never caches `/api`)
+- **Adding a dependency — regenerate the lockfile with the build image's npm.**
+  `frontend/Dockerfile.nas` builds on `node:18-alpine`, whose **npm is 10.8.2**, and it runs
+  `npm ci`, which refuses a lockfile that disagrees with `package.json`. A newer local npm
+  (11.x) prunes nested entries that npm 10 still requires — it dropped
+  `tailwindcss/node_modules/yaml`, and the NAS build died with *"Missing: yaml@2.9.0 from
+  lock file"* even though the install had worked locally. So run the install through the
+  same image rather than the host npm:
+
+  ```bash
+  cd web/frontend
+  podman run --rm -v "$PWD":/app:Z -w /app node:18-alpine \
+    npm install --package-lock-only <pkg>
+  ```
+
+  Verify before deploying — this catches it in ~20s instead of at the end of a NAS build:
+
+  ```bash
+  podman run --rm -v "$PWD":/app:Z -w /app node:18-alpine npm ci --dry-run
+  ```
+
 - **Tooling**: `npm run lint` (ESLint) and `npm run format` / `format:check` (Prettier).
   When `REACT_APP_API_URL` is unset, `src/services/api.js` defaults to the **same host** the
   page was served from (on port 8000) — so the app works from any device on the LAN with no

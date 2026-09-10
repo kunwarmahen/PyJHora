@@ -9,6 +9,10 @@ FROM node:18-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
+# npm here is 10.8.2 (whatever node:18-alpine ships) and `npm ci` rejects a
+# lockfile that disagrees with package.json. A newer host npm (11.x) prunes
+# nested entries npm 10 still needs, so regenerate the lock through THIS image
+# when adding a dependency — see "Adding a dependency" in web/README.md.
 RUN npm ci
 
 COPY . .
