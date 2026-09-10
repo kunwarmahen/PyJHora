@@ -3,7 +3,7 @@
 Part of the §4b main.py split — handlers moved verbatim; only the
 decorator changed from @app.* to @router.*.
 """
-from fastapi import FastAPI, Depends, HTTPException, status, Request, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, status, Request, BackgroundTasks, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse, Response
@@ -1426,14 +1426,25 @@ async def get_muhurta(
     latitude: Optional[float] = None,
     longitude: Optional[float] = None,
     timezone: Optional[float] = None,
+    ayanamsa: Optional[str] = None,
+    # Optional body. Without it this is the almanac-only muhurta it always was;
+    # with it every day and window is also scored against the native's own chart
+    # (Tara Bala, Chandra Bala, the running dasha lords, lagna shuddhi — §68.6).
+    birth_details: Optional[BirthDetails] = Body(None),
     current_user: str = Depends(get_current_user),
 ):
     """Auspicious windows for an activity over a date range (electional astrology).
-    Location-driven; not tied to a birth chart."""
+    Location-driven; personalised to the birth chart when `birth_details` is sent."""
     try:
+        bd = birth_details
         result = AstrologyCompute.get_muhurta(
             activity=activity, start_date=start_date, end_date=end_date,
-            place=place, lat=latitude, lon=longitude, tz=timezone)
+            place=place, lat=latitude, lon=longitude, tz=timezone,
+            birth_dob=bd.dob if bd else None, birth_tob=bd.tob if bd else None,
+            birth_lat=bd.latitude if bd else None,
+            birth_lon=bd.longitude if bd else None,
+            birth_tz=bd.timezone if bd else None,
+            ayanamsa=ayanamsa or DEFAULT_AYANAMSA)
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         return result

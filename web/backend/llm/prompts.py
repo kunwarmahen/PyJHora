@@ -750,36 +750,85 @@ Write a friendly ~250-300 word day-guide:
 Use only the times given; do NOT invent windows. Do NOT make medical, financial, legal or fated claims. Close with a one-line reminder that the panchanga is a traditional rhythm-of-the-day aid for reflection, not a rule to live by."""
 
     def _build_muhurta_prompt(self, m: Dict[str, Any]) -> str:
-        """Explain the recommended auspicious windows for the chosen activity."""
+        """Explain the recommended auspicious windows for the chosen activity.
+
+        When the scan was personalised (§68.6) the prompt carries the *personal*
+        half too — Tara Bala, Chandra Bala, the running dasha lords' gochara and
+        each window's lagna shuddhi — and asks for those by name. Without it a
+        reading of a personalised scan silently reads like a public almanac,
+        which is exactly the complaint the feature exists to answer."""
+        personal = bool(m.get("personalized"))
         windows = m.get("best_windows", [])[:8]
-        win_lines = "\n".join(
-            f"- {w['date']} {w['start']}–{w['end']} · {w['label']} ({w['quality']}) — {w['reason']}"
-            for w in windows
-        ) or "- (no clearly auspicious window found in this range)"
+
+        def _win_line(w):
+            line = (f"- {w['date']} {w['start']}–{w['end']} · {w['label']} "
+                    f"({w['quality']}) — {w['reason']}")
+            ls = w.get("lagna_shuddhi") or {}
+            if ls:
+                # The verdict's own `note` is written to the reader ("your Moon")
+                # and would clash with this prompt's third person; the counts say
+                # the same thing and the model can phrase it itself.
+                line += (f" · lagna shuddhi: {ls['rising_sign']} rising — house "
+                         f"{ls['from_moon']} from their janma rasi, house "
+                         f"{ls['from_lagna']} from their janma lagna "
+                         f"→ {ls['verdict']}")
+            if w.get("kaala_vela"):
+                line += f" · falls inside {w['kaala_vela']}"
+            return line
+
+        win_lines = "\n".join(_win_line(w) for w in windows) \
+            or "- (no clearly auspicious window found in this range)"
 
         # A few of the strongest days for context.
         days = sorted(m.get("days", []), key=lambda d: -d.get("score", 0))[:4]
-        day_lines = "\n".join(
-            f"- {d['date']} ({d['weekday']}): {d['rating']} — {d['nakshatra']['name']} nakshatra, "
-            f"{d['tithi']['name']} tithi, {d['yoga']['name']} yoga"
-            for d in days
-        ) or "- (none)"
+
+        def _day_line(d):
+            line = (f"- {d['date']} ({d['weekday']}): {d['rating']} — "
+                    f"{d['nakshatra']['name']} nakshatra, {d['tithi']['name']} tithi, "
+                    f"{d['yoga']['name']} yoga")
+            p = d.get("personal") or {}
+            tb, cb = p.get("tarabala") or {}, p.get("chandrabala") or {}
+            if tb:
+                line += f"; Tara Bala {tb['tara']} ({tb['tone']}) — {tb.get('meaning', '')}"
+            if cb:
+                line += (f"; Chandra Bala: Moon in house {cb['position']} counted from "
+                         f"their natal Moon ({cb['tone']})")
+            for lord in (p.get("dasha") or {}).get("lords", []):
+                line += (f"; {lord['lord']}, their running {lord['level']} lord, "
+                         f"transits house {lord['house_from_moon']} counted from that "
+                         f"Moon — {lord['verdict']}")
+            return line
+
+        day_lines = "\n".join(_day_line(d) for d in days) or "- (none)"
+
+        basis = m.get("personal_basis") or {}
+        personal_header = (f"""
+This search is scored against THIS person's own chart, not just the almanac. Their birth star is {basis.get('birth_star')}, their natal Moon is in {basis.get('birth_moon_sign')} and their lagna is {basis.get('birth_lagna_sign')}. Four personal checks were applied and are quoted in the data below: **Tara Bala** (the day's star counted from their birth star), **Chandra Bala** (the transiting Moon from their natal Moon), the **running Vimsottari lords' gochara** from that Moon, and **lagna shuddhi** (the sign rising during each window, counted from their janma rasi and janma lagna).
+""" if personal else """
+This search is scored from the Panchanga alone — no birth chart was supplied, so the answer is the public almanac's, not this person's. Do not claim it is personalised.
+""")
+
+        personal_ask = ("""
+4. **Why this window is theirs** — name the personal reasons in the tradition's own words and explain each in the same breath: which Tara it is and what that Tara means, where the Moon sits from their natal Moon, what their running dasha lord is doing, and — for the window you recommend — what the lagna shuddhi verdict says. This is the part a public panchang cannot tell them, so do not skip it.
+""" if personal else "")
 
         return f"""You are a warm, practical Vedic muhurta (electional astrology) guide helping someone pick an auspicious time for: **{m.get('activity_label', 'their activity')}**, between {m.get('start_date')} and {m.get('end_date')} at {m.get('place') or 'the chosen place'}.
 
 The engine has already scored each day from its Panchanga (nakshatra, tithi, weekday, yoga) and, avoiding Rahu Kalam / Yamaganda / Gulika, extracted concrete time windows.
-
+{personal_header}
 Top recommended windows (use ONLY these — do not invent times):
 {win_lines}
 
 Strongest days in the range:
 {day_lines}
 
+The data above is the computed truth for this chart and date range. Where it and your own expectations disagree, the data wins — do not "correct" a verdict, a Tara or a house count that is given to you.
+
 Write a friendly ~250-word note:
 1. **Best pick** — recommend the single strongest window (date + clock time) and say plainly WHY (which nakshatra / tithi / hora makes it good).
 2. **Alternatives** — mention 1–2 backup windows.
-3. **What to avoid** — remind them the choppy periods (Rahu Kalam etc.) are already excluded, and to keep the activity within the given window.
-Keep it grounded and encouraging. Do NOT make fated, medical, legal or financial guarantees. Close with one line noting muhurta is a traditional aid to timing, and personal readiness matters too."""
+3. **What to avoid** — remind them the choppy periods (Rahu Kalam etc.) are already excluded, and to keep the activity within the given window. If a window is flagged `avoid` by lagna shuddhi, say so plainly rather than recommending it.
+{personal_ask}Keep it grounded and encouraging. Do NOT make fated, medical, legal or financial guarantees. Close with one line noting muhurta is a traditional aid to timing, and personal readiness matters too."""
 
     def _build_prashna_prompt(self, p: Dict[str, Any]) -> str:
         """A Prashna (horary) reading of the moment-chart for the question asked."""

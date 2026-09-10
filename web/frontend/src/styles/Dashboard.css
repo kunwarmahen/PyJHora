@@ -2161,6 +2161,38 @@
 .muh-day__rating { font-size: 0.8rem; font-weight: 600; margin: 0.1rem 0; }
 .muh-day__limbs { font-size: 0.78rem; }
 
+/* ── The personal half of a muhurta (§68.6) ──────────────────────────────────
+   Tara Bala + Chandra Bala chips under the almanac limbs on each day card, and
+   the per-window lagna-shuddhi badge. Both reuse .muh-badge (the sub-tools
+   palette) on purpose: it is the same verdict vocabulary in both places, and a
+   second set of colours for the same four tones would read as a second system. */
+.muh-day__personal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+.muh-day__personal .muh-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0;
+}
+.muh-personal-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.muh-basis {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+
 /* ── Muhurta sub-tools (Choghadiya / Panchaka / Tarabala / Chandrabala) ───── */
 .muh-sub-columns {
   display: grid;

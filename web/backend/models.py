@@ -381,7 +381,11 @@ class RectifyChatRequest(BaseModel):
     ayanamsa: Optional[str] = None
 
 class MuhurtaAnalysisRequest(BaseModel):
-    # Location-driven (not birth-chart bound).
+    # Location-driven, and — when birth_details is sent — scored against the
+    # native's own chart as well (§68.6).
+    birth_details: Optional[BirthDetails] = None
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
+    person_name: Optional[str] = None
     activity: str = "general"
     start_date: Optional[str] = None
     end_date: Optional[str] = None
@@ -395,6 +399,7 @@ class MuhurtaAnalysisRequest(BaseModel):
     base_url: Optional[str] = None
     api_key: Optional[str] = None
     max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
 
 class PrashnaAnalysisRequest(BaseModel):
     # Horary — cast for the moment (no birth data). All optional → "now + here".

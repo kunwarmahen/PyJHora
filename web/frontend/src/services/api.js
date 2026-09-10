@@ -596,19 +596,28 @@ export const astrologyService = {
 
   // ---- Muhurta / electional astrology (§16) ----
   // Location-driven: find auspicious windows for an activity over a date range.
-  getMuhurta: ({ activity, startDate, endDate, place, latitude, longitude, timezone } = {}) =>
-    api.post("/api/astrology/muhurta", null, {
+  // `birthDetails` is what turns an almanac search into this person's search
+  // (§68.6) — Tara Bala, Chandra Bala, the running dasha lords and per-window
+  // lagna shuddhi. Omit it and the endpoint answers exactly as it always did.
+  getMuhurta: ({ activity, startDate, endDate, place, latitude, longitude, timezone, birthDetails } = {}) =>
+    api.post("/api/astrology/muhurta", birthDetails || null, {
       params: {
         activity, start_date: startDate, end_date: endDate,
         place, latitude, longitude, timezone,
       },
     }),
-  analyzeMuhurtaAI: ({ activity, startDate, endDate, place, latitude, longitude, timezone } = {}, model = {}) =>
+  analyzeMuhurtaAI: (
+    { activity, startDate, endDate, place, latitude, longitude, timezone, birthDetails, profileId, personName } = {},
+    model = {}
+  ) =>
     api.post(
       "/api/astrology/muhurta-analysis",
       {
         activity, start_date: startDate, end_date: endDate,
         place, latitude, longitude, timezone,
+        birth_details: birthDetails || undefined,
+        profile_id: profileId,
+        person_name: personName,
         llm_provider: model.legacyProvider || "qwen",
         provider_type: model.providerType,
         model: model.model,

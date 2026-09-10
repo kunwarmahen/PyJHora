@@ -481,22 +481,32 @@ async def analyze_muhurta(
     """Plain-language rationale for the recommended auspicious windows."""
     _enforce_rate_limit(current_user)
     try:
+        bd = request.birth_details
         result = AstrologyCompute.get_muhurta(
             activity=request.activity, start_date=request.start_date,
             end_date=request.end_date, place=request.place,
-            lat=request.latitude, lon=request.longitude, tz=request.timezone)
+            lat=request.latitude, lon=request.longitude, tz=request.timezone,
+            birth_dob=bd.dob if bd else None, birth_tob=bd.tob if bd else None,
+            birth_lat=bd.latitude if bd else None,
+            birth_lon=bd.longitude if bd else None,
+            birth_tz=bd.timezone if bd else None,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA)
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        if request.person_name:
+            result["person_name"] = request.person_name
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_muhurta(muhurta_data=result, config=cfg)
         await _save_reading(
             current_user, source="muhurta",
             title=f"Muhurta — {request.activity} · {request.start_date or ''}".strip(" ·"),
-            text=ai_analysis, cfg=cfg,
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=(bd.model_dump() if bd else None),
             context={"activity": request.activity, "start_date": request.start_date,
                      "end_date": request.end_date, "place": request.place,
                      "latitude": request.latitude, "longitude": request.longitude,
-                     "timezone": request.timezone},
+                     "timezone": request.timezone,
+                     "personalized": result.get("personalized", False)},
         )
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,
                 "model": cfg.model}

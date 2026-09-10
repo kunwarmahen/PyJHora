@@ -42,6 +42,8 @@ export const HELP_SECTIONS = [
       { id: "retrograde" },
       { id: "conditionalDashas", to: "/dhasa" },
       { id: "whatIsKaalaVela", to: "/muhurta" },
+      { id: "personalMuhurta", to: "/muhurta" },
+      { id: "whatIsLagnaShuddhi", to: "/muhurta" },
     ],
   },
   {

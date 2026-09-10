@@ -719,12 +719,39 @@ def _vedic_clock(bd, ayanamsa, date: Optional[str] = None, **_):
             "current_hora": r.get("current_hora"), "panchanga": r.get("panchanga")}
 
 
+def _muhurta_day_row(d):
+    """One day of a muhurta scan, flattened for a model: the almanac limbs plus
+    the four personal verdicts, with no nesting to walk."""
+    p = d.get("personal") or {}
+    tb = p.get("tarabala") or {}
+    cb = p.get("chandrabala") or {}
+    row = {"date": d["date"], "weekday": d["weekday"], "rating": d["rating"],
+           "score": d["score"], "panchanga_score": d.get("panchanga_score"),
+           "nakshatra": d["nakshatra"]["name"], "tithi": d["tithi"]["name"]}
+    if tb:
+        row["tara_bala"] = f"{tb.get('tara')} ({tb.get('tone')})"
+    if cb:
+        row["chandra_bala"] = (f"the Moon transits house {cb.get('position')} counted "
+                               f"from the natal Moon ({cb.get('tone')})")
+    for lord in (p.get("dasha") or {}).get("lords", []):
+        row[f"{lord['level'].lower()}_lord_gochara"] = (
+            f"{lord['lord']} transits house {lord['house_from_moon']} counted from "
+            f"the natal Moon — {lord['verdict']}")
+    return row
+
+
 def _muhurta(bd, ayanamsa, activity: str = "general",
              start_date: Optional[str] = None, end_date: Optional[str] = None, **_):
     a = _args(bd)
+    # The birth details are already in hand here, so the model always gets the
+    # personalised search (§68.6): Tara Bala, Chandra Bala, the running dasha
+    # lords' gochara and per-window lagna shuddhi, not the bare almanac.
     r = AstrologyCompute.get_muhurta(
         activity=activity, start_date=start_date, end_date=end_date,
-        place=a["place"], lat=a["lat"], lon=a["lon"], tz=a["tz"])
+        place=a["place"], lat=a["lat"], lon=a["lon"], tz=a["tz"],
+        birth_dob=a["dob"], birth_tob=a["tob"],
+        birth_lat=a["lat"], birth_lon=a["lon"], birth_tz=a["tz"],
+        ayanamsa=ayanamsa)
     if r.get("status") != "success":
         return r
     return {
@@ -732,7 +759,14 @@ def _muhurta(bd, ayanamsa, activity: str = "general",
         "activity_label": r.get("activity_label"),
         "start_date": r.get("start_date"),
         "end_date": r.get("end_date"),
+        "personalized": r.get("personalized", False),
+        "personal_basis": r.get("personal_basis"),
         "best_windows": r.get("best_windows", [])[:8],
+        # The day rows carry the Tara Bala / Chandra Bala verdict the model needs
+        # to explain WHY a date is this person's day rather than just a good day.
+        # Flattened and capped: the full `personal` block per day over a month-long
+        # range is several thousand tokens of nesting for four facts each.
+        "days": [_muhurta_day_row(d) for d in r.get("days", [])[:15]],
     }
 
 
@@ -1203,7 +1237,12 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         "Muhurta (electional astrology): auspicious time windows for an activity over "
         "a date range at the birth place. activity ∈ general|marriage|travel|business|"
         "housewarming|education|medical. Returns ranked best windows (date + clock time) "
-        "with the nakshatra/tithi/hora reason, avoiding Rahu Kalam/Yamaganda/Gulika. Use "
+        "with the nakshatra/tithi/hora reason, avoiding Rahu Kalam/Yamaganda/Gulika. "
+        "**Scored against THIS person's chart, not just the almanac**: every day also "
+        "carries their Tara Bala (from the janma star), Chandra Bala (Moon from the "
+        "natal Moon) and the running Vimsottari Mahadasha/Bhukti lords' gochara, and "
+        "every window a lagna-shuddhi verdict (the sign rising at that window counted "
+        "from the janma rasi and lagna; 'avoid' = the classical 8th-house bar). Use "
         "for 'when is a good time to <do X>' questions.",
         {"type": "object", "properties": {
             "activity": {"type": "string",

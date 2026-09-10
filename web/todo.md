@@ -6869,9 +6869,9 @@ per profile, store them, and fire the existing email/push path when one is cross
 digest delivery, the notification prefs UI, the scheduler claim logic and the viewer-timezone layer
 (§57) wholesale. **Highest value per unit of work on this list.**
 
-### 68.6 (P2) 🔴 Muhurta that knows whose muhurta it is
+### 68.6 (P2) ✅ Muhurta that knows whose muhurta it is — **see §71**
 
-- [ ] **Score muhurta windows against the querent's chart, not only the Panchanga.**
+- [x] **Score muhurta windows against the querent's chart, not only the Panchanga.**
 
 `get_muhurta` already scans a date range and returns ranked `best_windows` — so the *reverse search*
 exists. But its own docstring says it plainly: **"Location-driven (not birth-chart bound)"**. It
@@ -6921,7 +6921,7 @@ only genuine evaluation signal this project would have for all the prompt work i
 If two: **§68.5 event alerts** for what a user actually feels, and **§68.1 the claim checker** for
 what keeps biting. §68.2 CI is the cheapest thing on the list and should probably just happen.
 
-> **§68.1 is done — see §69; §68.5 — see §70.** The rest of §68 is still open.
+> **§68.1 is done — see §69; §68.5 — see §70; §68.6 — see §71.** The rest of §68 is still open.
 
 ---
 
@@ -7215,3 +7215,154 @@ running `scheduler._run_event_alerts` sent exactly 1, then 0, then 0 with alerts
 - **No per-event AI reading.** An alert is a fact and a date; the interpretation lives in the app,
   one click away. Generating a narrative per crossing would put the digest's LLM cost on a path that
   currently has none.
+
+---
+
+## 71. Muhurta that knows whose muhurta it is (§68.6) — ✅ SHIPPED 2026-09-10
+
+> *"lets work on 68.6"*
+
+`get_muhurta` scanned a date range, scored each day from its Panchanga — nakshatra, vaara, tithi,
+yoga — and offered the Abhijit muhurta plus the benefic horas that miss Rahu Kalam, Yamaganda and
+Gulika. Its own docstring said what was wrong with it: **"Location-driven (not birth-chart bound)"**.
+Two people in the same city got the identical answer, which is what a printed panchang is for.
+
+The tradition does not stop at the almanac. Before an electional day is accepted it is put through
+the native's own chart, and **every piece of that was already computing somewhere in this repo** —
+Tara Bala and Chandra Bala went into the digests in §56, `get_gochara_phala` reads a graha from the
+natal Moon, `get_dashas` knows which lord is running. This section is the join, not new astrology.
+
+### The four personal checks
+
+| check | what it counts | where it lands |
+|---|---|---|
+| **Tara Bala** | the day's star from the janma star, mod 9 | per day, ±2 |
+| **Chandra Bala** | the transiting Moon's sign from the natal Moon | per day, ±2 |
+| **Running Vimsottari lords' gochara** | the Mahadasha and Bhukti lords' houses from that Moon, with vedha | per day, ±1 **between them** |
+| **Lagna shuddhi** | the sign *rising during the window*, from the janma rasi **and** the janma lagna | **per window** |
+
+Lagna shuddhi is the one that had to be per-window: the rising sign turns over roughly every two
+hours, which is the entire reason a muhurta is a clock time and not a date. The 8th from either
+reference is the classical bar (`avoid`); 6th/12th are `caution`; a kendra/trikona from both is
+`strong`.
+
+The personal score is added to the Panchanga score **before the day is rated and before its windows
+are built**, so a day the almanac liked and this chart does not stops offering times, and a day the
+almanac rated `avoid` can now offer them. `panchanga_score` is kept alongside `score` so the two
+halves stay separable — the UI, the prompt and the tests all read both.
+
+**The dasha lords count as one voice, capped at ±1.** A graha's house from the natal Moon barely
+moves inside a fortnight, so this contribution is near-constant across the very days being compared:
+it shifts the whole window rather than saying which day to pick. Scored at ±1 per lord it dropped the
+owner's chart (Rahu–Rahu, Rahu unfavourable in the 7th from his Moon) to `avoid` on nine days of
+fifteen — technically defensible, useless for the one thing the page is for — and in a Rahu–Rahu
+period it scored the same graha twice for being itself. Capped, the same fortnight reads
+5 avoid / 4 average / 3 good / 3 excellent. **Tara Bala and Chandra Bala are what vary day to day, so
+they stay the discriminators**; this is the §56 backdrop-vs-today discipline applied to a scan.
+
+**Ranking asks the fit first — but only when there is a chart to ask.** Without one the almanac's
+long-standing order is untouched (Abhijit outranks a hora, because the almanac has nothing better to
+separate two equally-rated windows). With one it does, so `fit_score` is asked before the Abhijit
+preference; otherwise a midday Abhijit the native's lagna merely tolerates keeps out-ranking the hora
+their chart actually wants, which is the almanac answering over the person all over again.
+
+### Shown, not silently dropped
+
+A window barred by lagna shuddhi is still listed, flagged, and sorted below everything clear. Same
+philosophy as the kaala-vela flag already on this page: the reader can see *why* their obvious midday
+Abhijit slot is not the recommendation. (For a native with an Aries Moon, September's midday lagna is
+Scorpio — the 8th — for weeks on end. That is the tradition's answer, and hiding it would look like a
+missing feature.)
+
+### Surfaces
+
+- **Compute** — `astrology/compute_muhurta.py`: `_muhurta_natal`, `_muhurta_dasha_on`,
+  `_muhurta_personal_day`, `_muhurta_lagna_shuddhi`, and `get_muhurta` gains
+  `birth_dob/tob/lat/lon/tz` + `ayanamsa`. No birth data → byte-identical behaviour to before, with
+  `personalized: false` saying so.
+- **REST** — `POST /api/astrology/muhurta` keeps its query params and takes the chart as an
+  **optional body**; `MuhurtaAnalysisRequest` gains `birth_details`, `profile_id`, `person_name`,
+  `ayanamsa` (so a muhurta reading now files under its profile in history like every other reading).
+- **AI tool** — `get_muhurta` in `tools.py` always personalises (it has the birth details in hand)
+  and returns flattened, capped day rows; the catalogue description names the four checks so the
+  model knows they are there to be used.
+- **Prompt** — `_build_muhurta_prompt` grew a personal header, per-window lagna lines, per-day Tara/
+  Chandra/dasha lines, an authority clause, and a 4th ask ("why this window is theirs"). The
+  non-personal branch says out loud that the answer is the public almanac's, so a model can't claim
+  a personalisation that didn't happen.
+- **UI** — `MuhurtaPage`: a "Score against *name*'s chart" switch (**on by default**), a basis line
+  naming the birth star/Moon/lagna, Tara + Chandra chips on every day card, a lagna-shuddhi badge on
+  every window. Reuses the sub-tools' `.muh-badge` palette — the same verdict vocabulary in both
+  places should not get a second set of colours.
+- **Search / Help / i18n** — muhurta keywords gain the romanisation variants (`tara bala`/`tarabala`,
+  `chandra bala`/`chandrabala`, `lagna shuddhi`/`suddhi`); two new FAQ entries
+  (`personalMuhurta`, `whatIsLagnaShuddhi`); `muhurta.personalize*`, `muhurta.basis`,
+  `muhurta.shuddhi.*` and the two hint strings in `en.json`.
+
+### The Chennai fallback, removed
+
+Noted in §68.6 and fixed here: `get_muhurta` and `get_muhurta_subtools` used to fall back to
+`lat, lon = 13.0827, 80.2707` when no coordinates arrived. Rahu Kalam, the horas and the rising sign
+are all local, so that was not a worse answer — it was a confident answer for someone else's city.
+Both now return `status: failed` with a message naming what is missing.
+
+### Traps hit on the way
+
+- **`drik.Place` unpacks but does not subscript.** `place_obj[3]` raises `'Place' object is not
+  subscriptable`, and because the personal layer is wrapped best-effort it failed *silently* — the
+  scan returned `personalized: true` with `personal: null` on every day. Read it the way drik does:
+  `_, lat, lon, tz = place`.
+- **`get_dashas` restores `DEFAULT_AYANAMSA` in its own `finally`.** Calling it inside `get_muhurta`
+  resets the mode, so the ayanamsa has to be re-asserted after it and before the day loop.
+- **Dasha boundaries are day-granular and inclusive at both ends**, so a changeover day matches two
+  periods. `_muhurta_dasha_on` keeps the **last** match — on the morning a bhukti turns over, the
+  incoming lord is the one the day is about.
+- **The route snapshot pins query params, not optional bodies.** Adding `ayanamsa` failed
+  `test_routes_inventory.py` (correctly, and it was updated by hand — regenerating the file reflows
+  all 1,100 lines); adding the `birth_details` body did *not* register, because FastAPI emits an
+  `anyOf` rather than a `$ref` for an optional model. Hence the endpoint test below.
+
+### Verified in the browser
+
+Owner's chart, real Ollama (`qwen3.8-64k`). The page names the basis ("Scored for Owner — birth star
+Magha, natal Moon in Leo, lagna Taurus"), the day grid carries a Tara chip and a Moon chip per day
+(the Moon chip says *supportive / weak / neutral*, not a bare house number — "☾ 12" on a chip is
+cryptic, and the count lives in the hover), and every window carries its lagna verdict. Switching
+"Score against Owner's chart" off drops the basis line, the chips and the badges, and the caption
+changes to "Almanac only — the same answer for everyone at this place."
+
+The generated rationale named all four checks and **every claim in it checked out against the
+payload**: Ayushman yoga, Swati nakshatra, Sadhaka tara, Chandra Bala in the 3rd from the natal Moon,
+Rahu Mahadasha unfavourable in the 7th from it, Scorpio rising = the 7th from a Taurus lagna.
+
+### Tests — `tests/test_muhurta_personal.py` (13)
+
+The acceptance property first: **two charts, same city, same fortnight, different taras, different
+day ratings, different top windows.** Then the class of thing rather than instances — every day of a
+personalised scan carries all four checks, every window a verdict in `_MUHURTA_LAGNA_SCORE` with
+`fit_score` equal to its day score plus that verdict's weight, and the verdict *rules* are asserted
+as rules (an `avoid` always has an 8 in one of the two counts, and never otherwise) instead of a
+table of dates that would need rewriting every time the range moves.
+
+Plus: the almanac path is unchanged and says `personalized: false`; the personal layer actually moves
+at least one rating (a layer that never changes a verdict is decoration); `panchanga_score` still
+equals the old score underneath; a barred window never outranks a clear one; scans are deterministic
+across calls (the ayanamsa is set and restored); **the muhurta page's Tara Bala agrees with the day
+sub-tools' Tara Bala for the same native on the same day** — two surfaces, one answer; missing
+coordinates fail on both muhurta entry points; a broken profile degrades to the almanac rather than
+failing the location question; and the endpoint really binds the optional body.
+
+984 backend tests green, 209 frontend.
+
+### Not done, deliberately
+
+- **No "muhurta lagna" chart.** A full electional chart cast for the chosen instant — benefics in
+  kendras, the 8th empty, the Moon unafflicted — is the next layer of the tradition and a much larger
+  compute. The four checks here are the ones the sources agree on and that this repo already had.
+- **Chandra Bala and the dasha gochara are read at the day's noon**, not per window. The Moon holds a
+  sign for ~2¼ days, so a per-window figure would repeat itself; where it *does* cross inside a day
+  the payload says `chandrabala.changes_sign_today` rather than pretending noon holds from sunrise to
+  sunrise.
+- **Tara names are not localised.** They are not in the generated name tables (which cover rasis,
+  nakshatras and grahas), and the existing sub-tools panel prints them raw too — adding a fourth
+  table for nine names belongs with the i18n data layer, not here.

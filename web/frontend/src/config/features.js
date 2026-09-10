@@ -445,7 +445,8 @@ export const FEATURE_ALIASES = {
   almanac: "panchang panchanga calendar festival vratha eclipse hora hijri",
   fortnightlyDigest: "paksha fortnight two week",
   monthlyDigest: "maasa month lunar month",
-  muhurta: "auspicious time electional choghadiya panchaka good time kaala vela gulika yamaganda rahu kalam",
+  muhurta:
+    "auspicious time electional choghadiya panchaka good time kaala vela gulika yamaganda rahu kalam tara bala tarabala chandra bala chandrabala lagna shuddhi suddhi personal muhurta abhijit hora",
   prashna: "horary question kp prashna",
   timeline: "life timeline dasha transit events upcoming what's coming forward calendar alerts",
   strength: "shadbala planetary strength bhava bala vimsopaka",

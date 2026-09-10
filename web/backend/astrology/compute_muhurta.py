@@ -10,6 +10,241 @@ from .engine import *  # noqa: F401,F403  (constants + helpers the bodies use)
 AstrologyCompute = None
 
 
+# ── The personal half of a muhurta (§68.6) ──────────────────────────────────
+# `get_muhurta` scored a day from the Panchanga alone — nakshatra, vaara, tithi,
+# yoga — which is the *almanac*, not the person. Two people in the same city got
+# the identical answer, and the docstring said so out loud ("Location-driven,
+# not birth-chart bound").
+#
+# The tradition does not stop at the almanac. Before an electional day is
+# accepted it is put through the native's own chart, and the three checks below
+# are the ones every muhurta text runs:
+#
+#   * **Tara Bala** — the day's star counted from the janma star (9 taras).
+#   * **Chandra Bala** — the transiting Moon's sign counted from the natal Moon.
+#   * **Lagna shuddhi** — the sign *rising at the chosen moment*, counted from
+#     the janma rasi and the janma lagna. This one is per-window, not per-day:
+#     it is the whole reason a muhurta is a clock time and not a date.
+#
+# To those three we add the running Vimsottari lords' gochara from the natal
+# Moon: the period lord is the graha actually delivering results now, so a day
+# on which it transits badly is a weaker day for that native than the almanac
+# knows. Every one of these is computed elsewhere in this codebase already
+# (§56 digests, `get_gochara_phala`, `get_dashas`) — this is the join, not new
+# astrology. Nothing here invents a verdict the tradition does not give.
+
+# Tara tone → score. The four tones come straight off TARABALA_NAMES.
+_MUHURTA_TARA_SCORE = {"very_good": 2, "good": 1, "caution": -1, "bad": -2}
+
+# Lagna shuddhi, counted from BOTH the janma rasi and the janma lagna:
+#   8th   — the classical bar; nothing is begun in the 8th from janma rasi
+#   6/12  — dusthana, allowed but flagged
+#   kendra/trikona from both — the sought-after muhurta lagna
+_MUHURTA_LAGNA_KENDRA_TRIKONA = {1, 4, 5, 7, 9, 10}
+_MUHURTA_LAGNA_SCORE = {"strong": 1, "clear": 0, "caution": -1, "avoid": -3}
+
+
+def _muhurta_natal(birth_dob, birth_tob, birth_lat, birth_lon, birth_tz,
+                   ayanamsa=None):
+    """The three natal anchors the personal layer counts from: the janma
+    nakshatra (1-27), the natal Moon sign and the natal lagna sign (both 0-based).
+
+    Returns `None` — never raises — if the birth details are missing or unusable;
+    the caller then falls back to the almanac-only muhurta it always produced.
+    """
+    if not birth_dob or not birth_tob:
+        return None
+    try:
+        by, bm, bd = map(int, birth_dob.split("-"))
+        tp = str(birth_tob).split(":")
+        bh = int(tp[0]); bmin = int(tp[1]) if len(tp) > 1 else 0
+        if birth_lat is None or birth_lon is None:
+            return None
+        btz = birth_tz if birth_tz is not None else 5.5
+        _set_ayanamsa(ayanamsa or DEFAULT_AYANAMSA)
+        bplace = drik.Place("", birth_lat, birth_lon, btz)
+        bjd = swe.julday(by, bm, bd, bh + bmin / 60.0)
+        natal = charts.rasi_chart(bjd, bplace)
+        moon_rasi = natal[2][1][0]
+        lagna_rasi = natal[0][1][0]
+        # The star is read off the Moon's longitude, not its sign — count_stars
+        # needs the 1-27 nakshatra, and a sign holds two and a bit of them.
+        moon_long = moon_rasi * 30 + natal[2][1][1]
+        return {
+            "janma_nakshatra": _janma_nakshatra(moon_long),
+            "moon_rasi": moon_rasi,
+            "lagna_rasi": lagna_rasi,
+        }
+    except Exception as e:
+        print(f"Muhurta personal anchors skipped: {e}")
+        return None
+
+
+def _muhurta_dasha_on(dasha_sequence, date_str):
+    """The Vimsottari Mahadasha + Bhukti lords running on `date_str`.
+
+    Read out of the full sequence rather than off `current_dasha`, because a
+    muhurta range is looked at in the *future*: `current_dasha` answers "now",
+    and a bhukti can turn over inside the very fortnight being searched.
+
+    Boundaries: the sequence is day-granular and both ends are inclusive, so the
+    changeover day belongs to **two** periods at once. The one that *starts* that
+    day wins — on the morning a bhukti turns over, the incoming lord is the one
+    the day is asked about — so each scan keeps the last (latest-starting) match
+    rather than the first.
+    """
+    maha_lord = bhukti_lord = None
+    for maha in dasha_sequence or []:
+        if not (maha.get("start_date") <= date_str <= maha.get("end_date")):
+            continue
+        maha_lord = maha.get("lord")
+        bhukti_lord = None
+        for sub in maha.get("sub_periods", []):
+            if sub.get("start_date") <= date_str <= sub.get("end_date"):
+                bhukti_lord = sub.get("lord")
+    return maha_lord, bhukti_lord
+
+
+def _muhurta_personal_day(natal, dasha_sequence, date_str, day_nak_idx, place_obj):
+    """The personal verdict on one day: Tara Bala, Chandra Bala and the running
+    dasha lords' gochara from the natal Moon.
+
+    Returns `(block, score, reasons)`. The score is added to the Panchanga score
+    before the day is rated, so the rating a native sees is *theirs*.
+    """
+    y, m, d = map(int, date_str.split("-"))
+    jd_noon = swe.julday(y, m, d, 12)
+    score = 0
+    reasons = []
+
+    # ── Tara Bala ──────────────────────────────────────────────────────────
+    tara_name, tara_tone = _tarabala(natal["janma_nakshatra"], day_nak_idx)
+    score += _MUHURTA_TARA_SCORE.get(tara_tone, 0)
+    meaning = TARABALA_MEANING.get(tara_name, "")
+    reasons.append(f"Tara Bala {tara_name}"
+                   + (f" — {meaning}" if meaning else "")
+                   + f" (counted from your birth star "
+                     f"{NAKSHATRA_NAMES[natal['janma_nakshatra'] - 1]})")
+    tarabala = {
+        "tara": tara_name, "tone": tara_tone, "meaning": meaning,
+        "birth_star": NAKSHATRA_NAMES[natal["janma_nakshatra"] - 1],
+        "day_star": NAKSHATRA_NAMES[day_nak_idx - 1],
+        "count": utils.count_stars(natal["janma_nakshatra"], day_nak_idx),
+    }
+
+    # ── The day's sky, once: Chandra Bala + the dasha lords' gochara ───────
+    transit = charts.rasi_chart(jd_noon, place_obj)
+    transit_rasi = {PLANET_NAMES[pidx]: rasi
+                    for pidx, (rasi, _deg) in transit[1:] if pidx in PLANET_NAMES}
+    moon_rasi = transit_rasi.get("Moon", 0)
+
+    pos = utils.count_rasis(natal["moon_rasi"] + 1, moon_rasi + 1)
+    cb_tone = ("good" if pos in CHANDRABALA_GOOD
+               else "bad" if pos in CHANDRABALA_BAD else "neutral")
+    score += 2 if cb_tone == "good" else -2 if cb_tone == "bad" else 0
+    reasons.append(
+        f"Chandra Bala: the Moon rides your {_ordinal_word(pos)} from the natal Moon — "
+        + ("supportive" if cb_tone == "good"
+           else "classically weak" if cb_tone == "bad" else "neutral"))
+    # The Moon crosses a sign boundary every ~2¼ days, and it can do it in the
+    # middle of the day being scored. Say so rather than pretending the noon
+    # figure holds from sunrise to sunrise.
+    # drik.Place unpacks but does not subscript — mirror how drik itself reads it.
+    _pname, _plat, _plon, _ptz = place_obj
+    sign_at_dawn = int(drik.lunar_longitude(swe.julday(y, m, d, 0) - _ptz / 24.0) // 30) % 12
+    sign_at_dusk = int(drik.lunar_longitude(swe.julday(y, m, d, 24) - _ptz / 24.0) // 30) % 12
+    chandrabala = {
+        "position": pos, "tone": cb_tone,
+        "birth_moon_sign": ZODIAC_NAMES[natal["moon_rasi"]],
+        "transit_moon_sign": ZODIAC_NAMES[moon_rasi],
+        "changes_sign_today": sign_at_dawn != sign_at_dusk,
+    }
+    if chandrabala["changes_sign_today"]:
+        reasons.append("the Moon changes sign during this day — Chandra Bala "
+                       "differs between morning and evening")
+
+    # ── The running dasha lords, judged by gochara from the natal Moon ─────
+    #
+    # The two lords count as ONE voice, capped at ±1 between them, for two
+    # reasons. A graha's sign — and so its house from the natal Moon — barely
+    # moves inside a muhurta range, so this contribution is near-constant across
+    # the days being compared: it shifts the whole window rather than telling the
+    # reader which day to pick, and letting it shift by ±2 was enough to drop a
+    # native in a hostile dasha to "avoid" on nearly every day, which makes the
+    # page useless for the one thing it is for. And in a Rahu–Rahu period the
+    # same graha would otherwise be scored twice for being itself. Tara Bala and
+    # Chandra Bala are what vary day to day; they stay the discriminators.
+    maha_lord, bhukti_lord = _muhurta_dasha_on(dasha_sequence, date_str)
+    rows = {r["planet"]: r for r in refdata.gochara_phala(natal["moon_rasi"], transit_rasi)}
+    dasha = {"maha_lord": maha_lord, "bhukti_lord": bhukti_lord, "lords": []}
+    seen = set()
+    for label, lord in (("Mahadasha", maha_lord), ("Bhukti", bhukti_lord)):
+        row = rows.get(lord)
+        if not row:
+            continue
+        dasha["lords"].append({
+            "level": label, "lord": lord,
+            "house_from_moon": row["house_from_moon"],
+            "verdict": row["verdict"], "tone": row["tone"],
+            "obstructed_by": row["obstructed_by"],
+        })
+        seen.add(row["tone"])
+        reasons.append(
+            f"{lord} — your {label} lord — transits your "
+            f"{_ordinal_word(row['house_from_moon'])} from the natal Moon: "
+            f"{row['verdict']}")
+    if "good" in seen and "bad" not in seen:
+        score += 1
+    elif "bad" in seen and "good" not in seen:
+        score -= 1
+    dasha["score"] = (1 if "good" in seen and "bad" not in seen
+                      else -1 if "bad" in seen and "good" not in seen else 0)
+
+    return ({"tarabala": tarabala, "chandrabala": chandrabala, "dasha": dasha,
+             "score": score, "reasons": reasons}, score, reasons)
+
+
+def _muhurta_lagna_shuddhi(natal, place_obj, date_str, start_hhmm, end_hhmm):
+    """Lagna shuddhi for one window: the sign rising at its midpoint, counted
+    from the janma rasi and the janma lagna.
+
+    This is the check that makes a muhurta a *time* rather than a date — the
+    rising sign turns over roughly every two hours, so two windows on the same
+    excellent day are not equally usable. Returns `None` if the clock times are
+    unreadable, so a window is never dropped over a formatting problem.
+    """
+    try:
+        y, mo, d = map(int, date_str.split("-"))
+        sh, sm = (int(x) for x in str(start_hhmm).split(":")[:2])
+        eh, em = (int(x) for x in str(end_hhmm).split(":")[:2])
+    except (ValueError, AttributeError):
+        return None
+    mid = ((sh + sm / 60.0) + (eh + em / 60.0)) / 2.0
+    asc = drik.ascendant(swe.julday(y, mo, d, mid), place_obj)[0]
+    from_moon = utils.count_rasis(natal["moon_rasi"] + 1, asc + 1)
+    from_lagna = utils.count_rasis(natal["lagna_rasi"] + 1, asc + 1)
+
+    if 8 in (from_moon, from_lagna):
+        verdict = "avoid"
+        note = ("the rising sign is the 8th from your "
+                + ("janma rasi" if from_moon == 8 else "")
+                + (" and " if from_moon == 8 == from_lagna else "")
+                + ("janma lagna" if from_lagna == 8 else "")
+                + " — the classical bar on beginning anything")
+    elif from_moon in (6, 12) or from_lagna in (6, 12):
+        verdict = "caution"
+        note = "the rising sign falls in a dusthana from your birth chart"
+    elif (from_moon in _MUHURTA_LAGNA_KENDRA_TRIKONA
+          and from_lagna in _MUHURTA_LAGNA_KENDRA_TRIKONA):
+        verdict = "strong"
+        note = "the rising sign is a kendra/trikona from both your Moon and lagna"
+    else:
+        verdict = "clear"
+        note = "the rising sign raises no objection from your birth chart"
+    return {"rising_sign": ZODIAC_NAMES[asc], "from_moon": from_moon,
+            "from_lagna": from_lagna, "verdict": verdict, "note": note}
+
+
 class MuhurtaMixin:
 
     # ── Muhurta (electional astrology, §16) ────────────────────────────────
@@ -17,7 +252,11 @@ class MuhurtaMixin:
     def get_muhurta(activity: str = "general", start_date: Optional[str] = None,
                     end_date: Optional[str] = None, place: str = "",
                     lat: Optional[float] = None, lon: Optional[float] = None,
-                    tz: Optional[float] = None, max_days: int = 31) -> Dict:
+                    tz: Optional[float] = None, max_days: int = 31,
+                    birth_dob: Optional[str] = None, birth_tob: Optional[str] = None,
+                    birth_lat: Optional[float] = None, birth_lon: Optional[float] = None,
+                    birth_tz: Optional[float] = None,
+                    ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """Find auspicious windows for an activity over a date range.
 
         For each day in [start_date, end_date] (capped at `max_days`) the day is
@@ -27,8 +266,24 @@ class MuhurtaMixin:
         time windows: the Abhijit muhurta and the benefic planetary horas
         (Moon/Mercury/Jupiter/Venus) that do NOT overlap Rahu Kalam, Yamaganda or
         Gulika. Returns the per-day summaries plus a ranked `best_windows` list.
-        Location-driven (not birth-chart bound); reuses `get_panchanga` and
-        `get_planetary_hours`."""
+        Reuses `get_panchanga` and `get_planetary_hours`.
+
+        **Pass birth details and the search becomes personal (§68.6).** With
+        `birth_dob`/`birth_tob`/`birth_lat`/`birth_lon` each day is additionally
+        put through the native's own chart — Tara Bala from the janma star,
+        Chandra Bala from the natal Moon, and the running Vimsottari Mahadasha /
+        Bhukti lords' gochara from that Moon — and every window through **lagna
+        shuddhi**, the sign rising at the window's own midpoint counted from the
+        janma rasi and janma lagna. Those verdicts move the day's rating and the
+        ranking, so two people in the same city no longer get the same answer.
+        Without birth details the result is the almanac-only muhurta it has
+        always been (`personalized: false`).
+
+        Chandra Bala and the gochara are read from the day's noon sky; the Moon
+        can cross a sign inside a single day, and when it does the day carries
+        `chandrabala.changes_sign_today` rather than pretending noon holds from
+        sunrise to sunrise.
+        """
         if not ENGINE_AVAILABLE:
             return {"error": "Jyotir AI engine not available"}
         try:
@@ -40,8 +295,14 @@ class MuhurtaMixin:
             good_days = act["weekdays"]
 
             tz_offset = tz if tz is not None else 5.5
-            if not lat or not lon:
-                lat, lon = 13.0827, 80.2707
+            # A muhurta is sunrise-to-sunrise at ONE place: Rahu Kalam, the horas
+            # and the rising sign are all local. The old fallback here answered
+            # for Chennai when coordinates were missing, which is not a worse
+            # answer — it is a confidently wrong one for whoever asked. (§68.6)
+            if lat is None or lon is None:
+                return {"error": "Muhurta needs a location — pass lat/lon for the "
+                                 "place the activity happens at",
+                        "status": "failed"}
 
             # Default range: today .. +14 days, in the place's local time.
             local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
@@ -58,6 +319,28 @@ class MuhurtaMixin:
             if end < start:
                 end = start
             n_days = min((end - start).days + 1, max_days)
+
+            # ── The personal half (§68.6) ─────────────────────────────────
+            # Both halves have to be resolved before the day loop: the natal
+            # anchors are fixed, and the dasha ladder is read once for the whole
+            # range (a bhukti can turn over inside a fortnight, so each day looks
+            # its own lords up out of the sequence rather than reusing "now").
+            dasha_sequence = []
+            natal = _muhurta_natal(birth_dob, birth_tob, birth_lat, birth_lon,
+                                   birth_tz, ayanamsa)
+            if natal:
+                try:
+                    dashas = AstrologyCompute.get_dashas(
+                        dob=birth_dob, tob=birth_tob, place="",
+                        lat=birth_lat, lon=birth_lon, tz=birth_tz,
+                        ayanamsa=ayanamsa)
+                    dasha_sequence = dashas.get("dasha_sequence") or []
+                except Exception as e:
+                    print(f"Muhurta dasha layer skipped: {e}")
+            # get_dashas restores the default ayanamsa in its own `finally`, so
+            # the mode has to be re-asserted here — after it, before the loop.
+            _set_ayanamsa(ayanamsa)
+            place_obj = drik.Place(place or "", lat, lon, tz_offset)
 
             def _to_min(hhmm):
                 try:
@@ -86,6 +369,7 @@ class MuhurtaMixin:
                     continue
 
                 nak_name = panch["nakshatra"]["name"]
+                nak_idx = panch["nakshatra"]["index"]
                 tithi_idx = panch["tithi"]["index"]
                 yoga_name = panch["yoga"]["name"]
                 weekday = panch["vaara"]["index"]
@@ -126,6 +410,21 @@ class MuhurtaMixin:
                     score -= 1
                     reasons.append("Vishti (Bhadra) karana — avoid")
 
+                # ── …then through the native's own chart ───────────────────
+                # This runs BEFORE the rating so the rating is the personal one,
+                # and before the windows are built so a day the almanac liked and
+                # this chart does not stops offering times (and vice versa).
+                panchanga_score = score
+                personal = None
+                if natal:
+                    try:
+                        personal, p_score, p_reasons = _muhurta_personal_day(
+                            natal, dasha_sequence, date_str, nak_idx, place_obj)
+                        score += p_score
+                        reasons.extend(p_reasons)
+                    except Exception as e:
+                        print(f"Muhurta personal day {date_str} skipped: {e}")
+
                 rating = ("excellent" if score >= 5 else "good" if score >= 3
                           else "average" if score >= 1 else "avoid")
 
@@ -152,19 +451,37 @@ class MuhurtaMixin:
                                 if s is not None and e is not None and w1 < e and s < w2]
                         return ", ".join(hits) if hits else None
 
+                    def _with_lagna_shuddhi(w):
+                        """Attach the window's own rising-sign verdict + fit score.
+
+                        Same philosophy as the kaala-vela above: a window whose
+                        lagna the chart objects to is still *shown* — flagged, and
+                        ranked below everything clear — rather than silently
+                        dropped, so the reader can see why their otherwise perfect
+                        Thursday noon is not being recommended."""
+                        w["fit_score"] = w["day_score"]
+                        if not natal:
+                            return w
+                        ls = _muhurta_lagna_shuddhi(natal, place_obj, date_str,
+                                                    w["start"], w["end"])
+                        if ls:
+                            w["lagna_shuddhi"] = ls
+                            w["fit_score"] += _MUHURTA_LAGNA_SCORE.get(ls["verdict"], 0)
+                        return w
+
                     # Abhijit muhurta (midday) — strong for most activities
                     # except marriage/travel where tradition is cautious.
                     abh = panch.get("abhijit")
                     if abh and act_key not in ("marriage", "travel"):
                         a1, a2 = _to_min(abh["start"]), _to_min(abh["end"])
                         if a1 is not None and not _overlaps(a1, a2, bad_periods):
-                            windows.append({
+                            windows.append(_with_lagna_shuddhi({
                                 "date": date_str, "start": abh["start"], "end": abh["end"],
                                 "label": "Abhijit Muhurta", "quality": "excellent",
                                 "reason": "Abhijit — the auspicious midday muhurta",
                                 "day_score": score,
                                 "kaala_vela": _kaala_vela_caution(a1, a2),
-                            })
+                            }))
 
                     # Benefic daytime horas clear of the inauspicious periods.
                     hrs = AstrologyCompute.get_planetary_hours(
@@ -175,14 +492,14 @@ class MuhurtaMixin:
                         h1, h2 = _to_min(h["start"]), _to_min(h["end"])
                         if h1 is None or _overlaps(h1, h2, bad_periods):
                             continue
-                        windows.append({
+                        windows.append(_with_lagna_shuddhi({
                             "date": date_str, "start": h["start"], "end": h["end"],
                             "label": f"{h['planet']} hora",
                             "quality": rating,
                             "reason": f"{h['planet']} (benefic) planetary hour",
                             "day_score": score,
                             "kaala_vela": _kaala_vela_caution(h1, h2),
-                        })
+                        }))
 
                     all_windows.extend(windows)
 
@@ -190,6 +507,8 @@ class MuhurtaMixin:
                     "date": date_str,
                     "weekday": WEEKDAY_NAMES[weekday],
                     "score": score,
+                    "panchanga_score": panchanga_score,
+                    "personal": personal,
                     "rating": rating,
                     "tithi": panch["tithi"],
                     "nakshatra": panch["nakshatra"],
@@ -203,15 +522,31 @@ class MuhurtaMixin:
                     "windows": windows,
                 })
 
-            # Rank the best windows: Abhijit first, then clear of any kaala-vela,
-            # then higher day-score, then date. The kaala-vela is a tie-breaker
-            # rather than a filter — see _kaala_vela_caution above.
+            # Rank the best windows. Both the kaala-vela and a barred lagna are
+            # tie-breakers rather than filters — see _kaala_vela_caution and
+            # _with_lagna_shuddhi above; a flagged window is shown, just last.
+            #
+            # The two orders differ in ONE place, deliberately. Without a chart
+            # this keeps the almanac's long-standing ranking exactly as it was:
+            # Abhijit outranks a hora, because the almanac has nothing better to
+            # separate two equally-rated windows with. With a chart it does — the
+            # personal fit — so the fit is asked first and Abhijit falls back to a
+            # tie-breaker. Otherwise a midday Abhijit the native's own lagna only
+            # tolerates would keep out-ranking the hora their chart actually wants,
+            # which is the almanac answering over the person again.
             _q = {"excellent": 0, "good": 1, "average": 2, "avoid": 3}
-            all_windows.sort(key=lambda w: (
-                _q.get(w["quality"], 4),
-                0 if w["label"] == "Abhijit Muhurta" else 1,
-                1 if w.get("kaala_vela") else 0,
-                -w["day_score"], w["date"], w["start"]))
+
+            def _rank(w):
+                barred = 1 if (w.get("lagna_shuddhi") or {}).get("verdict") == "avoid" else 0
+                quality = _q.get(w["quality"], 4)
+                abhijit = 0 if w["label"] == "Abhijit Muhurta" else 1
+                kv = 1 if w.get("kaala_vela") else 0
+                fit = -w.get("fit_score", w["day_score"])
+                if natal:
+                    return (barred, quality, fit, abhijit, kv, w["date"], w["start"])
+                return (barred, quality, abhijit, kv, fit, w["date"], w["start"])
+
+            all_windows.sort(key=_rank)
 
             return {
                 "status": "success",
@@ -220,6 +555,14 @@ class MuhurtaMixin:
                 "start_date": f"{start.year:04d}-{start.month:02d}-{start.day:02d}",
                 "end_date": days_out[-1]["date"] if days_out else None,
                 "place": place,
+                "personalized": bool(natal),
+                "personal_basis": {
+                    "birth_star": NAKSHATRA_NAMES[natal["janma_nakshatra"] - 1],
+                    "birth_moon_sign": ZODIAC_NAMES[natal["moon_rasi"]],
+                    "birth_lagna_sign": ZODIAC_NAMES[natal["lagna_rasi"]],
+                    "checks": ["Tara Bala", "Chandra Bala",
+                               "running Vimsottari lords' gochara", "lagna shuddhi"],
+                } if natal else None,
                 "days": days_out,
                 "best_windows": all_windows[:12],
             }
@@ -227,6 +570,9 @@ class MuhurtaMixin:
             import traceback
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
+        finally:
+            if ENGINE_AVAILABLE:
+                _set_ayanamsa(DEFAULT_AYANAMSA)
 
     # ── Muhurta sub-tools: Tarabala, Chandrabala, Panchaka, Choghadiya ──────
     @staticmethod
@@ -250,8 +596,12 @@ class MuhurtaMixin:
             from datetime import datetime, timezone as _utc, timedelta
 
             tz_offset = tz if tz is not None else 5.5
-            if not lat or not lon:
-                lat, lon = 13.0827, 80.2707
+            # Same reasoning as get_muhurta (§68.6): the Choghadiya and Panchaka
+            # are sunrise-derived and local, so a missing place is a question we
+            # cannot answer — not one to answer for Chennai.
+            if lat is None or lon is None:
+                return {"error": "The day sub-tools need a location — pass lat/lon",
+                        "status": "failed"}
             if date:
                 year, month, day = map(int, date.split("-"))
             else:

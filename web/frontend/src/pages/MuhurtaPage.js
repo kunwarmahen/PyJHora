@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CalendarCheck, Sparkles, MapPin, Clock, Star, Compass, Moon, AlertTriangle } from "lucide-react";
+import { CalendarCheck, Sparkles, MapPin, Clock, Star, Compass, Moon, AlertTriangle, User } from "lucide-react";
 import Markdown from "../components/Markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useRestoreReading } from "../hooks/useRestoreReading";
@@ -57,6 +57,25 @@ const QUALITY_CLASS = {
   avoid: "muh-q--avoid",
 };
 
+// Lagna shuddhi verdict → badge tone. `avoid` is the classical 8th-house bar and
+// is the only one that reads as a warning; the window is still shown (ranked
+// last) so the reader can see why their otherwise perfect midday is not the pick.
+const SHUDDHI_CLASS = {
+  strong: "muh-badge--good",
+  clear: "muh-badge--neutral",
+  caution: "muh-badge--neutral",
+  avoid: "muh-badge--bad",
+};
+
+// Tara Bala / Chandra Bala tones share the sub-tools badge palette.
+const TONE_CLASS = {
+  very_good: "muh-badge--very_good",
+  good: "muh-badge--good",
+  neutral: "muh-badge--neutral",
+  caution: "muh-badge--caution",
+  bad: "muh-badge--bad",
+};
+
 const formatDate = (dateStr, locale = "en-US") => {
   if (!dateStr) return "—";
   try {
@@ -77,9 +96,32 @@ export const MuhurtaPage = () => {
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
 
+  // The natal half of every request on this page. Shared by the window search,
+  // the day sub-tools and the AI rationale so they can never disagree about
+  // whose chart is being scored.
+  const birthDetails = useMemo(
+    () =>
+      selectedProfile
+        ? {
+            name: selectedProfile.birth_details.name,
+            dob: selectedProfile.birth_details.dob,
+            tob: selectedProfile.birth_details.tob,
+            place: selectedProfile.birth_details.place,
+            latitude: selectedProfile.birth_details.latitude,
+            longitude: selectedProfile.birth_details.longitude,
+            timezone: selectedProfile.birth_details.timezone,
+          }
+        : undefined,
+    [selectedProfile]
+  );
+
   const [activity, setActivity] = useState("general");
   const [startDate, setStartDate] = useState(todayISO);
   const [endDate, setEndDate] = useState(() => addDaysISO(todayISO(), 14));
+  // §68.6: on by default. The whole point of the feature is that this page used
+  // to give two people in the same city the identical answer; the toggle exists
+  // so a reader can still see the plain almanac it was scored against.
+  const [personalize, setPersonalize] = useState(true);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -95,6 +137,7 @@ export const MuhurtaPage = () => {
     if (r.context?.activity) setActivity(r.context.activity);
     if (r.context?.start_date) setStartDate(r.context.start_date);
     if (r.context?.end_date) setEndDate(r.context.end_date);
+    if (r.context?.personalized !== undefined) setPersonalize(!!r.context.personalized);
     setPendingReading({ reading: r.reading, model: r.model, context: r.context });
   });
   useEffect(() => {
@@ -113,12 +156,13 @@ export const MuhurtaPage = () => {
           latitude: c.latitude,
           longitude: c.longitude,
           timezone: c.timezone,
+          birthDetails: c.personalized ? birthDetails : undefined,
         })
         .then((res) => setResult(res.data))
         .catch(() => {});
       setPendingReading(null);
     }
-  }, [pendingReading, loading]);
+  }, [pendingReading, loading, birthDetails]);
 
   // Day sub-tools (Choghadiya / Panchaka / Tarabala / Chandrabala).
   const [subDate, setSubDate] = useState(todayISO);
@@ -147,31 +191,26 @@ export const MuhurtaPage = () => {
     setAiAnalysis("");
     setAiError("");
     try {
-      const res = await astrologyService.getMuhurta({ activity, startDate, endDate, ...loc });
+      const res = await astrologyService.getMuhurta({
+        activity,
+        startDate,
+        endDate,
+        ...loc,
+        birthDetails: personalize ? birthDetails : undefined,
+      });
       setResult(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || t("muhurta.calcError"));
     } finally {
       setLoading(false);
     }
-  }, [loc, activity, startDate, endDate, t]);
+  }, [loc, activity, startDate, endDate, personalize, birthDetails, t]);
 
   const runSubtools = useCallback(async () => {
     if (!loc) return;
     setSubLoading(true);
     setSubError("");
     try {
-      const birthDetails = selectedProfile
-        ? {
-            name: selectedProfile.birth_details.name,
-            dob: selectedProfile.birth_details.dob,
-            tob: selectedProfile.birth_details.tob,
-            place: selectedProfile.birth_details.place,
-            latitude: selectedProfile.birth_details.latitude,
-            longitude: selectedProfile.birth_details.longitude,
-            timezone: selectedProfile.birth_details.timezone,
-          }
-        : undefined;
       const res = await astrologyService.getMuhurtaSubtools({
         date: subDate,
         ...loc,
@@ -183,7 +222,7 @@ export const MuhurtaPage = () => {
     } finally {
       setSubLoading(false);
     }
-  }, [loc, subDate, selectedProfile, t]);
+  }, [loc, subDate, birthDetails, t]);
 
   const handleAi = async () => {
     if (!loc) return;
@@ -191,7 +230,15 @@ export const MuhurtaPage = () => {
     setAiError("");
     try {
       const res = await astrologyService.analyzeMuhurtaAI(
-        { activity, startDate, endDate, ...loc },
+        {
+          activity,
+          startDate,
+          endDate,
+          ...loc,
+          birthDetails: personalize ? birthDetails : undefined,
+          profileId: personalize ? selectedProfile?._id : undefined,
+          personName: personalize ? selectedProfile?.birth_details?.name : undefined,
+        },
         readModelConfig()
       );
       setAiAnalysis(res.data.ai_analysis || "");
@@ -211,6 +258,8 @@ export const MuhurtaPage = () => {
 
   const windows = result?.best_windows || [];
   const days = result?.days || [];
+  const personName = selectedProfile?.birth_details?.name || t("muhurta.you");
+  const basis = result?.personal_basis;
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -261,8 +310,22 @@ export const MuhurtaPage = () => {
           </div>
         </div>
 
+        <div className="page-controls">
+          <div className="controls-group">
+            <label className="learn-switch muh-personal-switch">
+              <input
+                type="checkbox"
+                checked={personalize}
+                onChange={(e) => setPersonalize(e.target.checked)}
+              />
+              <User size={14} /> {t("muhurta.personalize", { name: personName })}
+            </label>
+          </div>
+        </div>
+
         <p className="card-note">
-          <MapPin size={13} /> {t("muhurta.locationNote", { place: loc.place || "—" })}
+          <MapPin size={13} /> {t("muhurta.locationNote", { place: loc.place || "—" })}{" "}
+          {personalize ? t("muhurta.personalizeOn") : t("muhurta.personalizeOff")}
         </p>
 
         {/* Day sub-tools: Choghadiya / Panchaka / Tarabala / Chandrabala */}
@@ -388,6 +451,20 @@ export const MuhurtaPage = () => {
           </Card>
         ) : result ? (
           <div className="fade-in">
+            {/* What the days were scored against — the four personal checks, named,
+                so the reader can see this is their chart and not a public panchang. */}
+            {result.personalized && basis && (
+              <p className="card-note muh-basis">
+                <User size={13} />{" "}
+                {t("muhurta.basis", {
+                  name: personName,
+                  star: ln(basis.birth_star, "nakshatra"),
+                  moon: ln(basis.birth_moon_sign, "rasi"),
+                  lagna: ln(basis.birth_lagna_sign, "rasi"),
+                })}
+              </p>
+            )}
+
             {/* Best windows */}
             <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush">
               <h3 className="ui-card-header ui-card-header--sm">
@@ -414,6 +491,22 @@ export const MuhurtaPage = () => {
                           <AlertTriangle size={13} /> {w.kaala_vela}
                         </span>
                       )}
+                      {/* Lagna shuddhi — the sign rising during THIS window read
+                          from the native's janma rasi and lagna. It is what makes
+                          a muhurta a clock time rather than a date, so it belongs
+                          on the window and not on the day. */}
+                      {w.lagna_shuddhi && (
+                        <span
+                          className={`muh-badge ${SHUDDHI_CLASS[w.lagna_shuddhi.verdict] || ""}`}
+                          title={t("muhurta.shuddhiHint", {
+                            sign: ln(w.lagna_shuddhi.rising_sign, "rasi"),
+                            fromMoon: w.lagna_shuddhi.from_moon,
+                            fromLagna: w.lagna_shuddhi.from_lagna,
+                          })}
+                        >
+                          {t(`muhurta.shuddhi.${w.lagna_shuddhi.verdict}`)}
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -433,6 +526,32 @@ export const MuhurtaPage = () => {
                     <div className="muh-day__limbs text-secondary">
                       {ln(d.nakshatra?.name, "nakshatra")} · {d.tithi?.name}
                     </div>
+                    {/* The personal half of the day's rating, named. Without these
+                        two chips the rating silently disagrees with the almanac
+                        limbs printed right above them and looks like a bug. */}
+                    {d.personal && (
+                      <div className="muh-day__personal">
+                        <span
+                          className={`muh-badge ${TONE_CLASS[d.personal.tarabala?.tone] || ""}`}
+                          title={d.personal.tarabala?.meaning}
+                        >
+                          {d.personal.tarabala?.tara}
+                        </span>
+                        <span
+                          className={`muh-badge ${TONE_CLASS[d.personal.chandrabala?.tone] || ""}`}
+                          title={t("muhurta.chandraHint", {
+                            n: d.personal.chandrabala?.position,
+                            sign: ln(d.personal.chandrabala?.transit_moon_sign, "rasi"),
+                          })}
+                        >
+                          {/* The count alone ("12") is cryptic on a chip; the tone
+                              is the thing a reader can act on, and the count is
+                              one hover away in the title above. */}
+                          <Moon size={11} />{" "}
+                          {t(`muhurta.chandraChip.${d.personal.chandrabala?.tone}`, "")}
+                        </span>
+                      </div>
+                    )}
                     {(d.kaala_velas || []).length > 0 && (
                       <div className="muh-day__kv">
                         <span className="muh-day__kv-label">{t("muhurta.kaalaVelas")}</span>

@@ -26,8 +26,9 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   an Almanac (planetary hours, eclipses, festival/vratha dates, a Drik ⇄ Surya-Siddhanta
   engine toggle, the Hijri date, and an AI day-guide),
   Pancha Pakshi Sastra (bird-cycle day timing, with AI day-guide),
-  Muhurta / electional astrology (auspicious windows for an activity, with AI rationale,
-  plus day sub-tools: Choghadiya, Panchaka, Tarabala & Chandrabala),
+  Muhurta / electional astrology (auspicious windows for an activity, **scored against your own
+  chart** — Tara Bala, Chandra Bala, your running dasha lords and per-window lagna shuddhi — with AI
+  rationale, plus day sub-tools: Choghadiya, Panchaka, Tarabala & Chandrabala),
   Prashna / horary (a chart for the moment you ask, with a horary AI reading),
   personalized daily / fortnightly / monthly readings, each anchored to a real progressed (pravesha)
   chart on the solar (Tajaka) or lunar (tithi) ladder — "Today", "This Fortnight" (Paksha Pravesha) and
@@ -1308,10 +1309,21 @@ Three approaches, chosen with a mode toggle:
   housewarming, education, medical) over a date range, computed at your profile's place
 - Each day is scored from its Panchanga — per-activity favourable **nakshatra**, **weekday**,
   **tithi** (Rikta/Amavasya penalised) and **yoga** (the nine inauspicious yogas penalised)
+- …and then from **your own chart** (on by default; the "Score against my chart" switch turns it
+  off to show the plain almanac underneath). Four classical personal checks: **Tara Bala** (the
+  day's star counted from your birth star), **Chandra Bala** (the transiting Moon from your natal
+  Moon), your running Vimsottari **Mahadasha and Bhukti lords' gochara** from that Moon, and —
+  per window, because the rising sign turns over every ~2 hours — **lagna shuddhi**, the sign rising
+  during that window counted from your janma rasi and janma lagna. Two people in the same city no
+  longer get the same answer
 - Qualifying days yield concrete **windows**: the Abhijit muhurta + the benefic planetary **horas**
   (Moon/Mercury/Jupiter/Venus) that avoid Rahu-Kalam / Yamaganda / Gulika
-- Ranked best-windows list + a day-by-day rating grid + an **AI rationale**, and a smart-lookup
-  **tool** (`get_muhurta`) so the astrologer can answer "when is a good time to…"
+- A window barred by lagna shuddhi (the classical 8th-from-janma bar) is **flagged and ranked last,
+  not hidden** — same treatment as the kaala-vela flag, so you can see why the obvious midday slot
+  isn't the pick
+- Ranked best-windows list + a day-by-day rating grid (with Tara / Chandra chips) + an **AI
+  rationale** that names the personal reasons, and a smart-lookup **tool** (`get_muhurta`) so the
+  astrologer can answer "when is a good time to…" from *this* chart
 - **Day sub-tools** (a "Day tools" section, pick any day): the **Choghadiya** table (8 day + 8
   night parts, each good/neutral/bad with a "now" marker), the **Panchaka** status, and — using
   your profile's natal Moon — your personal **Tarabala** (the tara from your birth star to the

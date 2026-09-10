@@ -673,6 +673,7 @@
   "body": "",
   "params": [
    "query:activity",
+   "query:ayanamsa",
    "query:end_date",
    "query:latitude",
    "query:longitude",
