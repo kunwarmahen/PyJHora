@@ -26,6 +26,32 @@ Legend: **P0** = correctness/blocking, **P1** = high value, **P2** = nice to hav
 
 ---
 
+## Standing rule — a change isn't done until the Help/FAQ says so
+
+**Every implementation ends with a pass over the Help / FAQ.** Not only new pages:
+a renamed tab, a moved control, a changed default, a capability that now answers a
+question it couldn't before — each one dates an answer that a beginner is still
+reading as current. A stale FAQ is worse than a missing one, because it is trusted.
+
+The mechanics (also row 9 of the `wire-a-feature` skill, which the checklist walks
+in full):
+
+- `frontend/src/config/help.js` — the outline: one `{ id }` in the right section,
+  with `to: "/where"` when the answer has somewhere to send the reader.
+- `en.json` — `help.q.<id>` + `help.a.<id>`. hi/sa fall back to English until
+  translated, so English alone is enough to ship.
+- `help.test.js` fails on a half-added entry, so a blank accordion row can't reach
+  the user — but nothing fails when an *existing* answer quietly goes out of date.
+  That part is the author's job, and it is the part that actually rots.
+- A new **page** also needs its `feat*` tour entry, or its "?" lands nowhere.
+
+Write it for someone who has never read a chart: no assumed jargon, and every term
+that has to appear explained where it appears. If a change genuinely needs no FAQ
+edit, say so in that change's todo section ("Help/FAQ: n/a — <reason>") rather than
+leaving it unmentioned; an unstated skip and a forgotten one look identical later.
+
+---
+
 ## 1. Bugs & correctness (P0 — fix first)
 
 - [x] **(P1) Notifications — digest email "never came" & push shows "unavailable"** (owner report
@@ -1923,6 +1949,9 @@ Plan:
       "log out other devices" covers the practical case.)
 
 ## 14. Layman FAQ / Help page (P1, owner ask 2026-07-03) — SHIPPED 2026-07-18
+
+> Shipping it was the easy half. Keeping it true is the standing rule at the top of
+> this file: **every implementation ends with a pass over the Help / FAQ.**
 
 A friendly, jargon-light FAQ so a non-astrologer understands what the app does.
 Owner framing: **"think that a person is not an expert and we have to help him"** —
