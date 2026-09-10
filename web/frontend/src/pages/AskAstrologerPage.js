@@ -1250,9 +1250,7 @@ export const AskAstrologerPage = () => {
                 {personal && (
                   <p
                     className={`ask-sources ${
-                      personal.settled_outcomes || personal.journal_entries
-                        ? "is-on"
-                        : "is-off"
+                      personal.settled_outcomes || personal.journal_entries ? "is-on" : "is-off"
                     }`}
                   >
                     {!personal.settled_outcomes && !personal.journal_entries
