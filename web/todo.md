@@ -7517,6 +7517,33 @@ one `deps.attach_user_feedback`, which is also what stops this feature from arri
   verdicts stay out of the rate, and partial hits stay at half. `frontend/src/config/outcomes.test.js`
   holds the frontend vocabulary to the same list. 1010 backend + 212 frontend green.
 
+### Making it visible: the Ask page's "your record" line
+
+Asked after the fact — *"does the tool show on UI under context section under ask ai"* — and the
+honest answer was **no**. `get_reading_outcomes` is in `ALWAYS_TOOLS`, and the Ask page's Context
+sections picker is built from `CONTEXT_SECTIONS`, which mirrors the *chart's* sections. So the AI
+could read your journal and your verdicts and there was nothing anywhere in that panel saying so —
+the same hole `get_journal_entries` had had since §5.9.
+
+The precedent was already sitting next to it: the classical-citations line, which exists because the
+RAG corpus is not a section of the chart either but the reader still has to know the capability is
+there. So there is now a second line under it, fed by `GET /api/ai/personal-context` (counts only,
+per profile), and it distinguishes what the two halves actually do — because they differ:
+
+| | Full context | Smart lookup |
+|---|---|---|
+| **Recorded outcomes** | sent with the chart (the `track_record` block) | sent with the chart **and** callable |
+| **Journal entries** | **not read** — Full context sends no tools | fetched on demand |
+
+Saying "the AI knows your journal" in Full context would simply be false, so the copy doesn't.
+
+With nothing recorded the line becomes the how-to: *"You have none yet: add one from the Journal
+page, or judge a reading from AI History."* That is the discoverability answer — it sits exactly
+where someone wonders what the model can see.
+
+The tool itself has always appeared on **/ai-tools** under **Your data**, since that page is
+rendered straight from `/api/ai/tools`; catalog-driven, nothing to wire.
+
 ### Deliberately not done: the digests
 
 The daily/fortnightly/monthly digests do **not** get the track record, and that

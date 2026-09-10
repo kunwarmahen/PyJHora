@@ -316,6 +316,23 @@ export const AskAstrologerPage = () => {
     };
   }, []);
 
+  // What the AI can read about this person that is not in their chart: the
+  // astro-journal and the "did this land?" verdicts on past readings (§72).
+  // Neither is a section of the chart, so neither gets a row above — but a
+  // reader still has to be able to see that they are being read, and what to do
+  // to fill them. Re-fetched per profile: both are per-profile.
+  const [personal, setPersonal] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    astrologyService
+      .getPersonalContext(selectedProfile?._id)
+      .then((r) => !cancelled && setPersonal(r.data))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProfile]);
+
   // Divisional charts to include in the AI context (D1 is always the natal base)
   const [selectedVargas, setSelectedVargas] = useState(() => {
     try {
@@ -1222,6 +1239,33 @@ export const AskAstrologerPage = () => {
                       : mode === "tools"
                         ? t("ask.citationsOn", { count: sources.passages })
                         : t("ask.citationsNeedTools", { count: sources.passages })}
+                  </p>
+                )}
+
+                {/* Your own data — same reasoning as the line above. The two
+                    halves reach the model differently and the copy says so:
+                    outcomes ride in the context block (both answer modes), the
+                    journal is tool-only (Smart lookup). Saying "the AI knows
+                    your journal" in Full context would be a lie. */}
+                {personal && (
+                  <p
+                    className={`ask-sources ${
+                      personal.settled_outcomes || personal.journal_entries
+                        ? "is-on"
+                        : "is-off"
+                    }`}
+                  >
+                    {!personal.settled_outcomes && !personal.journal_entries
+                      ? t("ask.yourDataEmpty")
+                      : mode === "tools"
+                        ? t("ask.yourDataTools", {
+                            journal: personal.journal_entries,
+                            outcomes: personal.settled_outcomes,
+                          })
+                        : t("ask.yourDataSeed", {
+                            journal: personal.journal_entries,
+                            outcomes: personal.settled_outcomes,
+                          })}
                   </p>
                 )}
               </div>

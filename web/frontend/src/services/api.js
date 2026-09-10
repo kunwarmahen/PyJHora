@@ -1360,6 +1360,10 @@ export const astrologyService = {
   clearReadingOutcome: (readingId) => api.delete(`/api/ai/conversations/${readingId}/outcome`),
   listOutcomes: (profileId = null) =>
     api.get("/api/ai/outcomes", { params: { profile_id: profileId || undefined } }),
+  // Counts of what the AI can read about this person beyond their chart — the
+  // journal and the recorded outcomes. Backs the Ask page's "your data" line.
+  getPersonalContext: (profileId = null) =>
+    api.get("/api/ai/personal-context", { params: { profile_id: profileId || undefined } }),
 
   // System health / diagnostics
   getHealth: () => api.get("/health"),

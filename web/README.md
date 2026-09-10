@@ -149,7 +149,10 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   see which of your chart's indications you confirmed and which you told it were wrong. The History
   page tallies them into a **track record** (hit rate over settled outcomes; "too early to tell" is
   excluded, a partial counts as half). Verdicts outlive the readings they judge, so the tally is not
-  reset when older readings age out
+  reset when older readings age out. The Ask page's **Context sections** card carries a "your own
+  record" line showing how many outcomes and journal entries the AI can see for this profile —
+  outcomes go up with the chart in **both** answer modes, journal entries need **Smart lookup**
+  (Full context sends no tools). Neither is a section of the chart, so neither has a toggle row
 - **Answer affordances**: copy, **regenerate** (with the same model, or pick a
   _different_ provider/model from the split-button menu), thumbs up/down, and
   **export the whole conversation to Markdown or PDF**
@@ -1832,6 +1835,7 @@ masked, and used ahead of any global env key for that user's requests.
 - `POST /api/ai/conversations/{id}/feedback` - Thumbs up/down on an answer
 - `PUT /api/ai/conversations/{id}/outcome` - Record "did this land?" on a saved reading or delivered digest (`ReadingOutcomeRequest`: `verdict` = `happened`|`partly`|`not_yet`|`didnt`, `note`, `outcome_date`; an optional `journal` block writes the matching astro-journal entry **in the same request** and links it). Snapshots what it judged, and the Vimsottari period running on the outcome date. Re-recording replaces the verdict — one answer per reading
 - `DELETE /api/ai/conversations/{id}/outcome` - Un-judge a reading (a linked journal entry is left alone — it is a record of a life, not of an opinion about a reading)
+- `GET /api/ai/personal-context?profile_id=` - Counts of what the AI can read about this person **beyond their chart**: `journal_entries` and `settled_outcomes`. Backs the "your own record" line in the Ask page's Context sections card, so the capability is visible rather than silent
 - `GET /api/ai/outcomes?profile_id=` - Every recorded verdict plus the track-record `summary` (counts per verdict, `hit_rate` over **settled** outcomes only — `not_yet` excluded, `partly` counts as half — and a per-tool breakdown). Rows whose reading has since been pruned by `AI_HISTORY_MAX` are still here: each carries its own snapshot
 - `POST /api/astrology/predict` - Generate AI-powered predictions (general, health, career, relationships)
 - `POST /api/astrology/compatibility-analysis` - Get detailed AI compatibility analysis

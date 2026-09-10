@@ -147,6 +147,12 @@
    "query:profile_id"
   ]
  },
+ "GET /api/ai/personal-context": {
+  "body": "",
+  "params": [
+   "query:profile_id"
+  ]
+ },
  "GET /api/ai/sources": {
   "body": "",
   "params": []

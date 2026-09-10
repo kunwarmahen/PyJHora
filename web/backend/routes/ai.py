@@ -82,6 +82,30 @@ async def ai_sources_status():
         return {"available": False, "passages": 0, "error": str(e)}
 
 
+@router.get("/api/ai/personal-context")
+async def ai_personal_context(
+    profile_id: Optional[str] = None,
+    current_user: str = Depends(get_current_user)
+):
+    """What the AI can read about this person that is **not** in their chart: the
+    astro-journal (§5.9) and the outcomes recorded on past readings (§68.7).
+
+    Counts only. It exists so the capability is visible in the Ask UI rather than
+    something the model silently knows: neither is a section of the chart, so
+    neither has a row in the context picker, and a reader who has never opened
+    /journal has no way to learn that either is being read. Same reasoning as the
+    classical-citations line beside it. Best-effort — a failure hides the note."""
+    try:
+        entries = await journal.entries_for_ai(current_user, profile_id)
+    except Exception:
+        entries = []
+    try:
+        settled = await outcome_store.for_ai(current_user, profile_id)
+    except Exception:
+        settled = []
+    return {"journal_entries": len(entries), "settled_outcomes": len(settled)}
+
+
 @router.get("/api/ai/conversations")
 async def list_ai_conversations(
     profile_id: Optional[str] = None,

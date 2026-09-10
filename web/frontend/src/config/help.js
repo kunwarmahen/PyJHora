@@ -113,6 +113,7 @@ export const HELP_SECTIONS = [
       // control lives on /history, which aiHistory already claims.
       { id: "aiDidThisLand" },
       { id: "aiTrackRecord" },
+      { id: "aiYourData", to: "/journal" },
       { id: "digestCautions", to: "/daily-digest" },
       { id: "digestTaraBala" },
       { id: "digestWindowOverlap" },
