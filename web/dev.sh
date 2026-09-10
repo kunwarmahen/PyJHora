@@ -17,6 +17,8 @@
 #
 #   ./dev.sh test             # backend golden-value + endpoint tests (§3.2)
 #   ./dev.sh test web         # frontend jest + prettier --check + eslint (a11y)
+#                             #   + npm ci --dry-run under the image's own npm
+#                             #   (SKIP_LOCKFILE_CHECK=1 to skip that one)
 #   ./dev.sh test all         # backend + frontend
 #   ./dev.sh test engine      # also smoke-run PyJHora's own ~1,500 tests
 #
@@ -110,12 +112,13 @@ NAS_ASKPASS=""                        # helper script ssh calls instead of promp
 
 # --- colours ------------------------------------------------------------
 if [ -t 1 ]; then
-  C_OK="\033[0;32m"; C_ERR="\033[0;31m"; C_INFO="\033[0;36m"; C_RST="\033[0m"
+  C_OK="\033[0;32m"; C_ERR="\033[0;31m"; C_INFO="\033[0;36m"; C_WARN="\033[0;33m"; C_RST="\033[0m"
 else
-  C_OK=""; C_ERR=""; C_INFO=""; C_RST=""
+  C_OK=""; C_ERR=""; C_INFO=""; C_WARN=""; C_RST=""
 fi
 info() { echo -e "${C_INFO}==>${C_RST} $*"; }
 ok()   { echo -e "${C_OK}✓${C_RST} $*"; }
+warn() { echo -e "${C_WARN}!${C_RST} $*" >&2; }
 err()  { echo -e "${C_ERR}✗${C_RST} $*" >&2; }
 
 # --- helpers ------------------------------------------------------------
@@ -543,6 +546,8 @@ build_backend_image() {  # context = repo root, so the image can vendor the jhor
 }
 
 build_web_image() {
+  # Fail in two seconds rather than at the end of a cold `npm run build`.
+  check_web_lockfile || return 1
   # Same-origin build (REACT_APP_API_URL=""); pull branding from .env when present.
   local wargs=(--build-arg "REACT_APP_API_URL=")
   local v
@@ -769,6 +774,53 @@ run_tests() {
   info "running backend golden + endpoint tests ..."
   ( cd "$BACKEND_DIR" && "$py" -m pytest tests/ -q "$@" )
 }
+# The lockfile must satisfy `npm ci` under the *image's* npm, not the host's.
+#
+# This has now broken a NAS build twice, both times the same way: a host npm
+# (11.x/12.x) prunes nested lockfile entries that node:18-alpine's npm 10.8.2
+# still requires — it dropped `tailwindcss/node_modules/yaml` — so an install
+# that worked locally left a lockfile `npm ci` refuses. The failure surfaced at
+# the end of a multi-minute image build, which is the worst place for it.
+#
+# Two seconds here instead. Only package.json + the lockfile are mounted, into a
+# scratch dir: nothing can write into the repo, and the image never sees
+# node_modules. The node tag is read out of the Dockerfile so this cannot drift
+# from what actually builds.
+check_web_lockfile() {
+  local engine=""
+  if command -v podman >/dev/null 2>&1; then engine="podman"
+  elif command -v docker >/dev/null 2>&1; then engine="docker"
+  else
+    warn "no podman/docker — skipping the npm ci lockfile check"
+    return 0
+  fi
+  [ "${SKIP_LOCKFILE_CHECK:-0}" = "1" ] && { info "lockfile check skipped (SKIP_LOCKFILE_CHECK=1)"; return 0; }
+
+  local node_img
+  node_img="$(sed -nE 's/^FROM (node:[^ ]+) AS build.*/\1/p' "$FRONTEND_DIR/Dockerfile.nas" | head -1)"
+  [ -n "$node_img" ] || node_img="node:18-alpine"
+
+  local tmp; tmp="$(mktemp -d)"
+  cp "$FRONTEND_DIR/package.json" "$FRONTEND_DIR/package-lock.json" "$tmp/" 2>/dev/null || {
+    rm -rf "$tmp"; warn "no package-lock.json to check"; return 0; }
+
+  local vol="$tmp:/app"
+  [ "$engine" = "podman" ] && vol="$tmp:/app:Z"
+
+  info "checking package-lock.json against $node_img's npm ..."
+  local out rc=0
+  out="$($engine run --rm -v "$vol" -w /app "$node_img" npm ci --dry-run 2>&1)" || rc=$?
+  rm -rf "$tmp"
+  if [ "$rc" -ne 0 ]; then
+    err "package-lock.json is not installable by $node_img (npm ci would fail):"
+    printf '%s\n' "$out" | grep -E "npm error|Missing:" | head -n 8 >&2
+    err "regenerate it with the SAME npm, never the host's:"
+    err "  cd web/frontend && $engine run --rm -v \"\$PWD\":/app${vol##*:/app} -w /app $node_img npm install --package-lock-only"
+    return 1
+  fi
+  ok "lockfile installs cleanly under $node_img"
+}
+
 run_web_tests() {
   # The frontend suites, the formatter and the lint rules — including the
   # jsx-a11y set turned on in §68.8, which is the only thing standing between
@@ -779,6 +831,7 @@ run_web_tests() {
       && CI=true npx react-scripts test --watchAll=false \
       && npm run --silent format:check \
       && npm run --silent lint )
+  check_web_lockfile
 }
 run_engine_tests() {
   local py; py="$(backend_py)"
@@ -879,7 +932,7 @@ case "$ACTION" in
     esac
     ;;
   ""|-h|--help|help)
-    sed -n '2,55p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,57p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     ;;
   *)
     err "unknown action '$ACTION'"

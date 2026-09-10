@@ -581,8 +581,10 @@ charts) that catches drift from a PyJHora bump or an `astrology.py` refactor:
 ```
 
 `test web` is the guard on everything the compiler cannot see: the `jsx-a11y` rules (§73) that
-stop another icon-only control shipping without a name, and the formatter. It must report
-**0 problems** — a warning left standing is how the rule set becomes decoration.
+stop another icon-only control shipping without a name, the formatter, and `npm ci --dry-run`
+under the build image's own npm (see *Adding a dependency* below — a host npm writes lockfiles
+that `npm ci` refuses). It must report **0 problems** — a warning left standing is how the rule
+set becomes decoration.
 
 Still open (todo.md §68.2/§68.3): none of this runs in CI, and no page has ever been *rendered*
 in a test — every frontend suite covers a pure config or util module.
@@ -1985,11 +1987,19 @@ The frontend uses React with:
     npm install --package-lock-only <pkg>
   ```
 
-  Verify before deploying — this catches it in ~20s instead of at the end of a NAS build:
+  **This is now checked for you** — it had bitten twice, and a paragraph in a README is
+  not a guard. `./dev.sh test web` and `build_web_image` (so `./dev.sh nas deploy` and
+  `./dev.sh build`) both run the equivalent of
 
   ```bash
   podman run --rm -v "$PWD":/app:Z -w /app node:18-alpine npm ci --dry-run
   ```
+
+  in ~2s, on a scratch copy of `package.json` + `package-lock.json` only, so nothing can
+  write into the repo. The node tag is read out of `Dockerfile.nas` rather than hardcoded,
+  so it cannot drift from what actually builds. With no podman/docker on the machine it
+  warns and skips; `SKIP_LOCKFILE_CHECK=1` skips it deliberately. A failure prints the
+  regenerate command above.
 
 - **Tooling**: `npm run lint` (ESLint) and `npm run format` / `format:check` (Prettier).
   When `REACT_APP_API_URL` is unset, `src/services/api.js` defaults to the **same host** the

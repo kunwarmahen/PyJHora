@@ -7705,7 +7705,16 @@ announced itself as "Rasi Chart, image" and stopped.
   target failed on arrival. Formatting them fixed it and broke `styles/tokens.test.js`, whose
   boundary sentinel was a literal selector string that Prettier legitimately split across lines. The
   guard now matches a pattern.
-- **`react-icons` really was dead weight** — zero importers, removed with `npm uninstall`.
+- **`react-icons` really was dead weight** — zero importers, removed with `npm uninstall`… on the
+  host, which is the one way you must not do it. Host npm (11.x/12.x) prunes nested lockfile
+  entries that `node:18-alpine`'s npm 10.8.2 still requires — it dropped
+  `tailwindcss/node_modules/yaml` — so the install worked locally and the **NAS web image died at
+  `RUN npm ci`** with *"Missing: yaml@2.9.0 from lock file"*. This is written down in
+  `README.md`, has now happened twice, and a paragraph in a README is not a guard. So
+  `check_web_lockfile()` runs `npm ci --dry-run` under the tag read out of `Dockerfile.nas`
+  itself — from `./dev.sh test web` **and** as a pre-flight in `build_web_image`, where it costs
+  two seconds instead of the whole build. It was verified by feeding it the actual broken
+  lockfile from this branch and watching it reproduce the deploy's error verbatim.
 
 ### Tests
 
