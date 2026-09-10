@@ -55,3 +55,28 @@ def test_v1_unknown_tool_400(client):
 def test_v1_missing_birth_data_400(client):
     r = client.post("/api/v1/tools/get_natal_chart", json={})
     assert r.status_code == 400, r.text
+
+
+# ── profile_id resolution (§72) ─────────────────────────────────────────────
+
+def test_profile_id_resolution_can_actually_build_an_objectid():
+    """`_resolve_birth_details` wraps `ObjectId(profile_id)` in a bare
+    `except Exception` and reports the failure as "Invalid profile_id".
+
+    `ObjectId` was not imported into `deps.py` after the §4 split, so that line
+    raised NameError for *every* caller and the public API rejected every saved
+    profile — with a message that blamed the caller's input. The convenience the
+    whole `profile_id` parameter exists for (don't paste birth data into an MCP
+    client) was gone, and nothing failed.
+
+    A bare `except` around a name lookup can only be pinned from outside, so this
+    checks the name resolves and that a well-formed id survives the call.
+    """
+    import deps
+    from bson import ObjectId
+
+    assert hasattr(deps, "ObjectId"), \
+        "deps.ObjectId is missing — every profile_id resolves to 'Invalid profile_id'"
+    assert deps.ObjectId is ObjectId
+    # A real 24-hex id must construct without raising.
+    assert str(deps.ObjectId("6aa2ebf3ec73ec3936f48e5b")) == "6aa2ebf3ec73ec3936f48e5b"

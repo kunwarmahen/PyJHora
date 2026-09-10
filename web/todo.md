@@ -7481,6 +7481,23 @@ one `deps.attach_user_feedback`, which is also what stops this feature from arri
   verdicts stay out of the rate, and partial hits stay at half. `frontend/src/config/outcomes.test.js`
   holds the frontend vocabulary to the same list. 1010 backend + 212 frontend green.
 
+### Deliberately not done: the digests
+
+The daily/fortnightly/monthly digests do **not** get the track record, and that
+was asked and answered rather than overlooked — *"no keep it separate"*.
+
+Two reasons. The digest prompts are the most heavily tuned in the app (§56's
+backdrop-vs-today discipline, §68.5's event alerts, the last-narrative feedback
+that stops consecutive sends reading alike); dropping eight rows of unrelated
+history into that budget is exactly the kind of well-meant addition that makes a
+digest generic. And a digest is a **push** — it arrives unasked, about today.
+"How your last reading turned out" is a thing to reason about when someone sits
+down to ask a question, which is the Ask surface, where it is wired.
+
+If this is ever revisited, the join to make is narrower than "add the block":
+a digest could mention an outcome only when the period that delivered it is the
+one running now.
+
 ### Traps hit on the way
 
 - **`{{count}}` in an i18n string is not a variable.** i18next treats `count` as the plural selector
@@ -7491,3 +7508,28 @@ one `deps.attach_user_feedback`, which is also what stops this feature from arri
   it is also the better home, since three separate things render it.
 - **`.history-item__main` had no `flex: 1`**, so the editor rendered as a half-width panel floating
   in the middle of the row. Fixed there rather than worked around in the new stylesheet.
+
+### Two silent failures found by trying to use it
+
+Both are the same shape — a bare `except` or a missing call turning a broken path into a *plausible
+empty answer* — and neither had a failing test, a log line or a user-visible error.
+
+**1. `profile_id` had never worked on the public API or the MCP server.** `deps._resolve_birth_details`
+does `ObjectId(req.profile_id)` inside `try: … except Exception: raise HTTPException("Invalid
+profile_id")`, and **`ObjectId` was never imported into `deps.py`** in the §4 split. So every call
+raised `NameError`, was caught, and came back as a 400 blaming the caller's id. The entire reason
+`profile_id` exists — don't paste your birth data into an MCP client — has been dead since §4
+shipped, for every tool, not just the new ones. One import; pinned by
+`test_api_v1.py::test_profile_id_resolution_can_actually_build_an_objectid`, which asserts the *name
+resolves*, since a bare `except` around a name lookup can only be caught from outside.
+
+**2. The "Your data" tools answered empty over `/api/v1`.** `tools.dispatch` is synchronous, so
+`get_journal_entries` / `get_reading_outcomes` are served from rows the *route* pre-hangs on
+`birth_details`. `routes/v1.py` never did it, so both returned `{"count": 0}` to the public API and
+every MCP client — a 200, indistinguishable from "you have nothing recorded". Now calls the same
+`attach_user_feedback`, and `test_reading_outcomes.py` greps every route module that runs a tool for
+that call, so the *next* path to forget fails instead of shipping.
+
+The convention itself is now written down in
+[docs/AI_TOOL_CALLING_DESIGN.md §4.1c](docs/AI_TOOL_CALLING_DESIGN.md) — it existed only as two
+inline comments, which is why it was possible to add a second tool to the same trap.

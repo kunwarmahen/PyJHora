@@ -109,6 +109,14 @@ async def api_v1_run_tool(tool_name: str, req: ToolRunRequest,
     birth_details = await _resolve_birth_details(req, current_user)
     if not birth_details.get("dob") or not birth_details.get("tob"):
         raise HTTPException(status_code=400, detail="birth data missing dob/tob")
+    # The "Your data" tools (get_journal_entries, get_reading_outcomes) read the
+    # caller's own rows, which `dispatch` — being synchronous — cannot fetch. The
+    # Ask routes pre-hang them on birth_details; without the same call here those
+    # two tools answer 200 with an empty list over the public API and MCP, which
+    # is indistinguishable from "you have nothing recorded". See §4.1c of
+    # docs/AI_TOOL_CALLING_DESIGN.md.
+    await attach_user_feedback(current_user, birth_details=birth_details,
+                               profile_id=req.profile_id)
     try:
         result = tool_registry.dispatch(
             tool_name, req.args or {}, birth_details,

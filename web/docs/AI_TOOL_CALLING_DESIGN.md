@@ -171,6 +171,50 @@ Prashna, Varshaphal, Tithi Pravesha) never see `tools.py`, and the now-chart one
 was printing the Kundali's sign cell as the bhava until §63. Any prompt that
 prints "house N" from a chart payload must go through `chart_positions` first.
 
+### 4.1c Tools whose data is not in the chart ("Your data")
+
+Most handlers call `AstrologyCompute` and are pure. Two are not:
+`get_journal_entries` (§5.9) and `get_reading_outcomes` (§68.7/§72) serve **the
+user's own reported life** — dated life events, and their verdicts on earlier
+readings — which lives in Mongo, not the ephemeris.
+
+`dispatch` is **synchronous**, so a handler cannot await a database. The
+convention instead is: the *endpoint* pre-fetches the rows and hangs them on
+`birth_details` under an underscore key, and the handler just filters and
+returns what it finds there.
+
+```python
+# routes/astrology.py, both /ask and /ask/stream, tool-mode branch
+bd = request.birth_details.model_dump()
+await attach_user_feedback(current_user, birth_details=bd,
+                           profile_id=request.profile_id)   # sets _journal, _outcomes
+```
+
+**The trap this has already sprung once.** The injection lived inline in
+`/api/astrology/ask/stream` and nowhere else, so the non-streaming
+`/api/astrology/ask` never set `_journal` — and `get_journal_entries` returned
+`{"count": 0, "entries": []}` on that path from the day it shipped. A tool that
+answers *successfully* with nothing in it is invisible: no error, no log, no
+failing test. That is why the fetch is now one shared `deps.attach_user_feedback`
+called from every path that can run the loop, and why a DB-backed handler should
+say out loud when it has nothing rather than returning an empty list:
+
+```python
+return {"count": 0, "outcomes": [],
+        "note": "This person has not yet told us how any past reading turned "
+                "out. Do not claim a track record."}
+```
+
+That note does double duty — it distinguishes "nothing recorded" from "feature
+broken" for us, and stops the model narrating a track record it cannot see.
+
+**These results are testimony, not computation**, and the prompt has to say so.
+Settled outcomes also ride into the pass-all context block under a header that
+names them as the user's own report and forbids citing them as proof of
+accuracy; a model handed a list of its own past hits will otherwise advertise
+them, which is exactly what the §69 claim checker exists to catch. See
+[todo.md §72](../todo.md).
+
 ### 4.2 Tool loop (`llm_service`)
 A provider-agnostic `run_tool_loop(messages, cfg, tools, on_event)`:
 1. Send messages (+ tools) to the provider.

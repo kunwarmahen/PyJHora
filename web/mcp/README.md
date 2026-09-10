@@ -13,6 +13,14 @@ up here automatically — nothing to update in this server.
 Everything is **read-only compute**. The public API exposes no account or profile
 mutation, so nothing here can change your data.
 
+Two of the tools read **your own recorded data** rather than the ephemeris:
+`get_journal_entries` (your dated life events, each stamped with the dasha that
+was running) and `get_reading_outcomes` (your "did this land?" verdicts on past
+readings — see [todo.md §72](../todo.md)). They are scoped to the token's owner,
+and honest when empty: with nothing recorded, `get_reading_outcomes` returns a
+note saying so rather than an empty list, so a client can't narrate a track
+record that doesn't exist.
+
 ## How it works
 
 ```

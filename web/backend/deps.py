@@ -18,6 +18,11 @@ from typing import Optional, List, Dict, Any
 import json
 import re
 from pydantic import BaseModel
+# `_resolve_birth_details` turns a caller's profile_id into an ObjectId. Without
+# this import that line raised NameError, which its own `except Exception` then
+# reported as "Invalid profile_id" — so *every* profile_id was rejected on the
+# public API and the MCP server. Lost in the §4 split; found in §72.
+from bson import ObjectId
 
 from config import settings
 from database import connect_to_mongo, close_mongo_connection

@@ -189,3 +189,35 @@ def test_tool_is_discoverable_by_the_model():
     assert "get_reading_outcomes" in tool_registry.ALWAYS_TOOLS
     names = [t["name"] for t in tool_registry.tool_catalog()]
     assert "get_reading_outcomes" in names
+
+
+# ── The injection every tool path must do ───────────────────────────────────
+
+def test_every_tool_running_path_hangs_the_user_rows_on_birth_details():
+    """The "Your data" tools (`get_journal_entries`, `get_reading_outcomes`) read
+    Mongo, and `tools.dispatch` is synchronous — so the *route* has to pre-fetch
+    the rows onto `birth_details` before running the loop.
+
+    A route that forgets returns `{"count": 0, "entries": []}`: a 200, no log, no
+    failing test, and a tool that has been dead since the day it shipped. That is
+    exactly what happened to `get_journal_entries` on the non-streaming
+    `/api/astrology/ask` — the injection was inline in the streaming handler and
+    nowhere else. This pins the class rather than those two routes: any module
+    that runs a tool must also call the shared fetch.
+    """
+    import os
+    import re
+
+    routes_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "routes")
+    RUNS_TOOLS = re.compile(r"\b(?:tool_registry\.dispatch|run_tool_loop)\s*\(")
+    offenders = []
+    for fname in sorted(os.listdir(routes_dir)):
+        if not fname.endswith(".py"):
+            continue
+        src = open(os.path.join(routes_dir, fname)).read()
+        if RUNS_TOOLS.search(src) and "attach_user_feedback" not in src:
+            offenders.append(fname)
+    assert not offenders, (
+        "route modules that run AI tools without pre-fetching the user's own rows "
+        "(the Your-data tools answer empty there): " + ", ".join(offenders))

@@ -388,7 +388,10 @@ where they were born.
   automation. `GET /api/v1/tools` lists the full astrology tool catalog (schemas included);
   `POST /api/v1/tools/{name}` runs any tool against one of your saved profiles (`profile_id`)
   or inline `birth_details`; `GET /api/v1/profiles` lists your charts. Rate-limited like the
-  AI endpoints; no account/profile mutation is exposed.
+  AI endpoints; no account/profile mutation is exposed. Two tools in the catalog read **your own
+  recorded data** rather than the ephemeris — `get_journal_entries` and `get_reading_outcomes` —
+  scoped to the token's owner, and explicit when you have nothing recorded rather than answering
+  with an empty list.
 - **Personal API tokens**: create/revoke long-lived tokens under **Settings → API access**
   (shown once, stored hashed, prefixed `jyd_`). Authenticate with `Authorization: Bearer jyd_…`.
 - **MCP server** (`web/mcp/`): a standalone [Model Context Protocol](https://modelcontextprotocol.io)
@@ -1806,6 +1809,9 @@ masked, and used ahead of any global env key for that user's requests.
 - `GET /api/ai/conversations/{id}` - Fetch a full conversation thread (a `dg_`-prefixed id returns a delivered digest in the same one-turn shape)
 - `DELETE /api/ai/conversations/{id}` - Delete a conversation (or a delivered digest)
 - `POST /api/ai/conversations/{id}/feedback` - Thumbs up/down on an answer
+- `PUT /api/ai/conversations/{id}/outcome` - Record "did this land?" on a saved reading or delivered digest (`ReadingOutcomeRequest`: `verdict` = `happened`|`partly`|`not_yet`|`didnt`, `note`, `outcome_date`; an optional `journal` block writes the matching astro-journal entry **in the same request** and links it). Snapshots what it judged, and the Vimsottari period running on the outcome date. Re-recording replaces the verdict — one answer per reading
+- `DELETE /api/ai/conversations/{id}/outcome` - Un-judge a reading (a linked journal entry is left alone — it is a record of a life, not of an opinion about a reading)
+- `GET /api/ai/outcomes?profile_id=` - Every recorded verdict plus the track-record `summary` (counts per verdict, `hit_rate` over **settled** outcomes only — `not_yet` excluded, `partly` counts as half — and a per-tool breakdown). Rows whose reading has since been pruned by `AI_HISTORY_MAX` are still here: each carries its own snapshot
 - `POST /api/astrology/predict` - Generate AI-powered predictions (general, health, career, relationships)
 - `POST /api/astrology/compatibility-analysis` - Get detailed AI compatibility analysis
 - `POST /api/astrology/compare-analysis` - Get a neutral AI comparison of two charts (not marriage matching)
