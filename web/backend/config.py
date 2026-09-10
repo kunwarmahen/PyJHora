@@ -93,6 +93,26 @@ class Settings(BaseSettings):
     # a reading everyone dislikes is one click and not a redeploy.
     DIGEST_NARRATIVE_STYLE: str = "focused"
 
+    # ── Claim checking (§68.1) ─────────────────────────────────────────────
+    # Every reading is checked against the chart it was generated from before it
+    # is shown, because four of the bugs this app has shipped were the model
+    # asserting something the chart contradicts (§63/§64/§65/§67) and every one
+    # was caught by a human, after the fact.
+    #
+    #   "verify"   — check, regenerate once naming the error, annotate whatever
+    #                survives the retry. The default.
+    #   "annotate" — check and annotate, never regenerate (no second call, so no
+    #                extra tokens or latency).
+    #   "log"      — check and record for the admin report; the reader sees
+    #                nothing.
+    #   "off"      — do not check at all.
+    #
+    # The deployed default; the admin console overrides it at runtime.
+    CLAIM_CHECK_MODE: str = "verify"
+    # How long a *triaged* claim-check row is kept. Open ones are never pruned:
+    # an unread work item ageing out is how a bug gets forgotten.
+    CLAIM_CHECK_RETENTION_DAYS: int = 90
+
     # ── Admin console (§44) ────────────────────────────────────────────────
     # Deployer-controlled superuser access. This env var is the SOURCE OF TRUTH
     # for who is an admin — the app reconciles the `is_admin` flag on `users`

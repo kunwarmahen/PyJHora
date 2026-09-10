@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 import admin as admin_service
+import claim_reports
 import runtime_config
 from deps import get_admin_user, require_content_access, get_current_user
 
@@ -31,6 +32,7 @@ class RuntimeConfigRequest(BaseModel):
     digest_scheduler_interval_minutes: Optional[int] = None
     digest_ai_max_delay_minutes: Optional[int] = None
     digest_narrative_style: Optional[str] = None
+    claim_check_mode: Optional[str] = None
     # Which of the above the caller means to clear (JSON null is indistinguishable
     # from "absent" once parsed, so clearing is requested explicitly).
     clear: Optional[list] = None
@@ -166,6 +168,7 @@ async def admin_get_config(admin: str = Depends(get_admin_user)):
         # Served rather than hard-coded in the console, so adding a third
         # narrative style is a backend-only change.
         "narrative_styles": list(runtime_config.NARRATIVE_STYLES),
+        "claim_check_modes": list(runtime_config.CLAIM_CHECK_MODES),
     }
 
 
@@ -189,4 +192,63 @@ async def admin_set_config(req: RuntimeConfigRequest, request: Request,
         # the operator would otherwise have to derive to sanity-check the setting.
         "max_deferrals": runtime_config.max_deferrals(values),
         "narrative_styles": list(runtime_config.NARRATIVE_STYLES),
+        "claim_check_modes": list(runtime_config.CLAIM_CHECK_MODES),
     }
+
+
+# ── Claim checks (§68.1) ────────────────────────────────────────────────────
+# The report an admin works from: what share of readings contradicted their own
+# chart, which kinds of claim go wrong, and a triage queue for the ones that did.
+
+
+class ClaimTriageRequest(BaseModel):
+    """One row's triage. `status` moves it through the queue; `verdict` records
+    what was actually at fault, which is the field that makes the queue worth
+    keeping — a run of "code" verdicts means a payload is lying to the model
+    again, and a run of "checker" means these rules need tuning, not the app."""
+    status: Optional[str] = None
+    verdict: Optional[str] = None
+    note: Optional[str] = None
+
+
+@router.get("/api/admin/claim-checks/summary")
+async def admin_claim_summary(days: int = 30, admin: str = Depends(get_admin_user)):
+    """Counts only — no reading text, no chart facts — so this is readable
+    without ADMIN_CONTENT_ACCESS, like the rest of the overview."""
+    return await claim_reports.summary(days=max(1, min(days, 365)))
+
+
+@router.get("/api/admin/claim-checks")
+async def admin_claim_list(limit: int = 100, status: str = "", kind: str = "",
+                           source: str = "", request: Request = None,
+                           admin: str = Depends(get_admin_user)):
+    """The triage queue. Each row quotes the model's own sentence and the chart
+    fact that contradicts it — that is one identifiable person's chart, so the
+    quotes are redacted to bare claim *kinds* unless ADMIN_CONTENT_ACCESS is on.
+    The rate, the triage and the verdicts all work either way; only the evidence
+    is gated, and reading it is audit-logged like any other content view."""
+    unredacted = admin_service.content_access_enabled()
+    rows = await claim_reports.listing(limit=limit, status=status, kind=kind,
+                                       source=source, redact=not unredacted)
+    if unredacted and rows:
+        await admin_service.audit(
+            admin, "view_claim_checks", detail=f"{len(rows)} rows",
+            ip=_client_ip(request) if request else None)
+    return {"entries": rows, "redacted": not unredacted,
+            "statuses": list(claim_reports.STATUSES),
+            "verdicts": list(claim_reports.VERDICTS)}
+
+
+@router.patch("/api/admin/claim-checks/{entry_id}")
+async def admin_claim_triage(entry_id: str, req: ClaimTriageRequest,
+                             request: Request,
+                             admin: str = Depends(get_admin_user)):
+    ok = await claim_reports.triage(entry_id, status=req.status,
+                                    verdict=req.verdict, note=req.note,
+                                    admin=admin)
+    if not ok:
+        raise HTTPException(status_code=404, detail="No such claim-check entry")
+    await admin_service.audit(admin, "triage_claim_check", target=entry_id,
+                              detail=f"status={req.status} verdict={req.verdict}",
+                              ip=_client_ip(request))
+    return {"ok": True}

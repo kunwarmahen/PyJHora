@@ -83,6 +83,18 @@ def _one_of(*allowed: str):
 NARRATIVE_STYLES = ("classic", "focused")
 DEFAULT_STYLE = "focused"
 
+# What the claim checker does when a reading contradicts the chart (§68.1).
+# Ordered weakest → strongest, which is the order the console renders them.
+CLAIM_CHECK_MODES = ("off", "log", "annotate", "verify")
+DEFAULT_CLAIM_CHECK_MODE = "verify"
+
+
+def _default_claim_check_mode() -> str:
+    """As with the narrative style: an unrecognised env value falls back rather
+    than raising, so a typo in a deploy secret cannot stop the app booting."""
+    mode = str(settings.CLAIM_CHECK_MODE or "").strip().lower()
+    return mode if mode in CLAIM_CHECK_MODES else DEFAULT_CLAIM_CHECK_MODE
+
 
 FIELDS = {
     # Master switch. Env sets the default; the console can flip it either way at
@@ -105,6 +117,13 @@ FIELDS = {
     "digest_narrative_style": (
         _default_narrative_style,
         _one_of(*NARRATIVE_STYLES)),
+    # Whether a reading is checked against its own chart before it is shown, and
+    # how hard the check pushes back. Runtime-switchable because the strongest
+    # mode costs a second model call on a miss: an operator watching a slow local
+    # GPU should be able to drop to "annotate" (or "log") without a redeploy, and
+    # put it back afterwards.
+    "claim_check_mode": (
+        _default_claim_check_mode, _one_of(*CLAIM_CHECK_MODES)),
 }
 
 

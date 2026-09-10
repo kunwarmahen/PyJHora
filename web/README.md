@@ -863,6 +863,24 @@ DIGEST_NARRATIVE_STYLE=focused
 # daily send across several profiles can never evict AI_HISTORY_MAX conversations.
 DIGEST_HISTORY_MAX=120
 
+# Claim checking (§69). Before a reading is shown it is checked against the chart
+# it was generated from: placements, house lords, signs, nakshatras, retrogression
+# and exaltation are extracted from the finished text and compared with the very
+# context the model was handed. Four shipped bugs were the model contradicting its
+# own chart and a human catching it afterwards, so this is on by default.
+#   verify   — check, re-ask once naming the error, annotate only what survives
+#              the retry. Costs a second call when a reading is wrong.
+#   annotate — check and annotate; never a second call.
+#   log      — record for Admin › Claim checks; the reader sees nothing.
+#   off      — no checking.
+# Like the digest knobs above this is only the *default*: Admin › Settings switches
+# a live deployment without a redeploy. An unrecognised value falls back to verify
+# rather than raising, so a typo here cannot stop the app booting.
+CLAIM_CHECK_MODE=verify
+# How long a *triaged* claim-check row is kept. Open ones are never pruned — an
+# unread work item ageing out is how a bug gets forgotten.
+CLAIM_CHECK_RETENTION_DAYS=90
+
 # Admin console (deployer-only /admin page: all accounts, usage, moderation).
 # ADMIN_USERNAMES is the source of truth — comma-separated usernames/emails; the
 # app reconciles each user's is_admin flag from it at startup, so you grant/revoke
@@ -1570,9 +1588,21 @@ console's existence is not confirmed to them.
   A quiet log here is the *good* outcome — for ordinary use, read Activity instead
 - **Settings** — the runtime knobs, stored in the database and re-read by the scheduler every tick,
   so a change takes effect within one cycle with **no redeploy and no pod shell**: the digest
-  scheduler switch, its tick interval, and how many **minutes** a digest may be held back waiting
-  for a busy model. Env vars remain the defaults; **Reset** clears an override and returns a field
-  to its deployed value
+  scheduler switch, its tick interval, how many **minutes** a digest may be held back waiting for a
+  busy model, which prompt writes the narrative, and the **claim-checking mode** (§69: verify /
+  annotate / log / off). Env vars remain the defaults; **Reset** clears an override and returns a
+  field to its deployed value
+- **Claim checks** (§69) — the reading-quality report. Every AI reading is checked against the chart
+  it was generated from before it is shown; this tab is what you act on afterwards. Two rates,
+  because they answer different questions: **model got it wrong** counts the *first* answer (how
+  often the model contradicts its own chart — what prompt work has to move), and **reached the
+  reader** counts what survived the retry. Below them, a breakdown by claim kind and by model, and a
+  **triage queue**: one row per reading that still disagreed, each closed with a verdict naming what
+  was actually at fault — the *prompt*, the *code*, the *model*, or the *checker* itself. A run of
+  "code" verdicts means a payload is lying to the model again; a run of "checker" means the rules
+  need tuning, not the app. The evidence quotes one identifiable person's chart, so it is redacted to
+  bare claim kinds without `ADMIN_CONTENT_ACCESS` (the rate and the triage still work), and reading
+  it is audit-logged
 - **Content drill-down** into a user's actual readings/chats/journal/birth data is gated behind
   `ADMIN_CONTENT_ACCESS` (default **false** — metadata and counts only). It is a deliberate
   "break glass" step, and every such view is audit-logged regardless
@@ -1781,6 +1811,9 @@ masked, and used ahead of any global env key for that user's requests.
 - `GET /api/admin/audit?category=&action=&actor=&target=&since_days=&limit=` - Audit events + summary
 - `GET /api/admin/config` - Runtime settings: effective values, deployed defaults, which are overridden
 - `PUT /api/admin/config` - Update runtime settings (`clear: [...]` returns a field to its default)
+- `GET /api/admin/claim-checks/summary?days=` - Claim-check rates, and the breakdown by kind and model
+- `GET /api/admin/claim-checks?status=&kind=&source=&limit=` - The triage queue (redacted without `ADMIN_CONTENT_ACCESS`)
+- `PATCH /api/admin/claim-checks/{id}` - Triage one row (`status`, `verdict`, `note`)
 
 ### Health
 

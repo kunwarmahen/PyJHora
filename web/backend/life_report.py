@@ -24,6 +24,7 @@ from bson import ObjectId
 
 import conversations as convo
 from chart_context import build_chart_context
+import claim_reports
 from database import get_database
 from llm_service import llm_service
 
@@ -242,6 +243,11 @@ async def run_job(job_id: str, user_id: str, cfg) -> None:
     # older build still resolves its titles/focus correctly.
     focus_by_key = {k: (title, focus) for (k, title, focus) in llm_service.LIFE_REPORT_CHAPTERS}
 
+    # Resolved once for the whole job rather than per chapter: a report is one
+    # sitting, and an admin flipping the knob halfway through should not produce
+    # a document whose chapters were held to different standards.
+    check_mode = await claim_reports.mode()
+
     for index, ch in enumerate(chapters):
         if not await _still_running(oid):
             return  # cancelled between chapters
@@ -251,10 +257,11 @@ async def run_job(job_id: str, user_id: str, cfg) -> None:
         key = ch.get("key")
         title, focus = focus_by_key.get(key, (ch.get("title") or key, ""))
         await _set_chapter(oid, index, "active")
+        check: Dict[str, Any] = {}
         try:
             text = await llm_service.generate_life_report_chapter(
                 chart_data=chart_data, title=title, focus=focus,
-                name=person, config=cfg)
+                name=person, config=cfg, check=check, mode=check_mode)
         except Exception as e:
             await _set_chapter(oid, index, STATUS_ERROR)
             await db[COLLECTION].update_one(
@@ -263,6 +270,11 @@ async def run_job(job_id: str, user_id: str, cfg) -> None:
             )
             return
         await _set_chapter(oid, index, STATUS_DONE, text or "")
+        await claim_reports.record(
+            check, username=user_id, source="life_report", mode=check_mode,
+            provider=getattr(getattr(cfg, "provider_type", None), "value", None),
+            model=getattr(cfg, "model", None),
+            profile_id=doc.get("profile_id"), question=title)
 
     if not await _still_running(oid):
         return

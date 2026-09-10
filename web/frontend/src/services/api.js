@@ -227,6 +227,13 @@ export const adminService = {
     api.get("/api/admin/activity", { params: { limit: 200, ...params } }),
   getConfig: () => api.get("/api/admin/config"),
   setConfig: (updates) => api.put("/api/admin/config", updates),
+  // Claim checks (§68.1): how often a reading contradicted the chart it was
+  // generated from, and the queue of the ones that still did after the retry.
+  claimSummary: (days = 30) =>
+    api.get("/api/admin/claim-checks/summary", { params: { days } }),
+  claimChecks: (params = {}) =>
+    api.get("/api/admin/claim-checks", { params: { limit: 100, ...params } }),
+  triageClaim: (id, patch) => api.patch(`/api/admin/claim-checks/${id}`, patch),
 };
 
 // Daily-digest notification preferences + Web Push (§16).

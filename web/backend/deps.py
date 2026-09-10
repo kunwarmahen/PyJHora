@@ -209,6 +209,28 @@ def _enforce_rate_limit(current_user: str):
             headers={"Retry-After": str(retry_after)},
         )
 
+def _claim_summary(check: Optional[dict]) -> Optional[dict]:
+    """The client-facing shape of a claim-check report (§68.1).
+
+    The reader is entitled to the detail — it is their chart, and the correction
+    is already written under the answer — so the contradictions travel in full.
+    What stays behind is the bookkeeping the admin report wants (which mode ran,
+    how many claims were parsed), which would only be noise in the UI.
+    """
+    if not check:
+        return None
+    contradictions = check.get("contradictions") or []
+    if not contradictions and not check.get("regenerated"):
+        return None
+    return {
+        "contradictions": contradictions,
+        "checked": check.get("checked", 0),
+        # True when the first answer was wrong and the retry fixed it — the
+        # reader sees a clean answer and never learns it took two goes.
+        "corrected": bool(check.get("fixed_by_retry")) and not contradictions,
+    }
+
+
 def _resolve_mode(request: "AskQuestionRequest", conv: Optional[dict]) -> str:
     """The effective answer mode. A conversation's mode is fixed on its first turn,
     so follow-ups inherit it; a brand-new conversation takes the request's mode."""

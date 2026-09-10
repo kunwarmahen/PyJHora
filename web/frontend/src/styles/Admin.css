@@ -241,3 +241,25 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* Claim checks (§68.1) — the evidence panel under a queue row. The model's own
+   sentence and the chart fact that contradicts it sit side by side, because the
+   triage decision is exactly "which of these two is wrong". */
+.admin-claim-detail {
+  padding: var(--space-sm) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.admin-claim-item {
+  border-left: 2px solid var(--danger-border);
+  padding-left: var(--space-sm);
+}
+.admin-claim-said { color: var(--danger); font-size: 0.85rem; }
+.admin-claim-truth { color: var(--text-primary); font-size: 0.85rem; font-weight: 600; }
+.admin-claim-quote {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-style: italic;
+  margin-top: 2px;
+}

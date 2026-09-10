@@ -6776,9 +6776,11 @@ Three small threads are genuinely still loose. None blocks anything:
 | i18n leftovers | §5 | Kendra-Trikona raja yoga labels, panchanga limb values and Ashtakoot koota names stay English **by design** (owner decision 2026-07-19). Still undecided: the upstream `म्रृगशीर्षा` typo in `list_values_hi.txt` (unreported to PyJHora), and whether new-page UI strings stay English-only. |
 | Gemini **native** tool-calling | line ~785 | The converters are unit-tested against the verified v1beta REST shape, but the **live round-trip has still never been run** — §50 verified Gemini *availability* in-browser, which is a different thing. One real key and one tool-using question closes it. |
 
-### 68.1 (P0) 🔴 The claim checker — stop shipping the §63/§64/§65/§67 bug class
+### 68.1 (P0) ✅ The claim checker — stop shipping the §63/§64/§65/§67 bug class
 
-- [ ] **Validate the model's factual claims against the computed chart before the reading is shown.**
+- [x] **Validate the model's factual claims against the computed chart before the reading is shown.**
+      SHIPPED 2026-09-10 — see **§69** for what was built, the runtime switch, the admin report and
+      the fourteen false-positive shapes that only a live model produced.
 
 Four of the last five sections in this file are the same failure wearing different clothes:
 
@@ -6917,3 +6919,174 @@ only genuine evaluation signal this project would have for all the prompt work i
 
 If two: **§68.5 event alerts** for what a user actually feels, and **§68.1 the claim checker** for
 what keeps biting. §68.2 CI is the cheapest thing on the list and should probably just happen.
+
+> **§68.1 is done — see §69.** The rest of §68 is still open.
+
+---
+
+## 69. The claim checker — every reading is checked against its own chart (§68.1) — ✅ SHIPPED 2026-09-10
+
+> *"lets work on 68.1"* — plus, mid-build: *"I should be able to disable or enable this
+> capability through .env or admin console"* and *"create a report for admin to verify and fix it
+> later through fixing the code or prompt"*.
+
+§63, §64, §65 and §67 were one bug wearing four coats: the model asserted something the chart
+contradicts, **the owner caught it in a finished reading**, and the fix was a better prompt. §67's
+prompt now names Saturn as the 9th lord — which helps that chart and no other. This is the
+mechanical version.
+
+### What it does
+
+Between generation and display, `claim_check.py` extracts the checkable assertions from the finished
+text — `<planet> in the Nth house`, `<planet> in <sign>`, `the Nth lord is <planet>`, `the Nth house
+is <sign>`, `<planet> in <nakshatra>`, exalted/debilitated, retrograde/combust — and tests each
+against the context **the model was given**. So a contradiction is genuinely internal: it denied
+something it had been told, in the same prompt.
+
+Facts need no new compute. `planetary_positions` carries house/sign/nakshatra, `house_rulers` is
+seeded unconditionally (§67), dignity is derived from the sign via `EXALTATION_SIGN`, and
+combust/retrograde come from `conditions.flagged`.
+
+On a contradiction, in the default mode: **re-ask once**, naming the wrong sentence and the right
+fact, and keep the retry **only if it comes back with strictly fewer** contradictions — a model
+having a bad day can answer worse the second time, and trading a known set of errors for a larger
+unknown one is not an improvement. Whatever survives is **annotated** under the reading, prose
+untouched. The very first live question regenerated and came back correct; the reader never saw the
+slip.
+
+### The switch (owner ask)
+
+`CLAIM_CHECK_MODE` in `.env` sets the default; the admin console overrides it at runtime through the
+existing `runtime_config` document, exactly like `digest_narrative_style`.
+
+| mode | what happens |
+|---|---|
+| `verify` (default) | check → regenerate once → annotate what survives |
+| `annotate` | check → annotate. No second call, so no extra tokens or latency |
+| `log` | check → record for the admin report; the reader sees nothing |
+| `off` | no checking at all |
+
+`tests/test_claim_reports.py` pins that `runtime_config.CLAIM_CHECK_MODES` and `claim_check.MODES`
+agree — two lists that must agree is the §52 failure, and a dead option in a dropdown is how it
+shows up.
+
+### The report (owner ask)
+
+Two collections, for two different questions:
+
+- **`claim_check_stats`** — one counter document per UTC day, written for *every* checked reading
+  including the clean ones. A contradiction count with no denominator says nothing.
+- **`claim_checks`** — the work queue: one row per reading that still contradicted after the retry,
+  carrying a triage state (`open` → `fixed` / `false_positive` / `wont_fix`) and a **verdict** naming
+  what was at fault: `prompt`, `code`, `model` or `checker`.
+
+The verdict is the point. A run of `code` verdicts means a payload is lying to the model again —
+which is what §63/§64/§65 each turned out to be. A run of `checker` verdicts means these rules need
+tuning, not the app. Console: Admin → **Claim checks** (summary, kind/model breakdown, queue with an
+inline triage form). Evidence quotes one person's chart, so they are redacted to bare claim kinds
+without `ADMIN_CONTENT_ACCESS`, and reading them is audit-logged; the rate and the triage work
+either way.
+
+**Two rates, deliberately.** `flagged_rate` counts the **first** answer — how often the model
+contradicts its own chart, the number prompt work has to move. `unresolved_rate` counts what reached
+a reader. Counting only survivors would have reported a flawless 0% for a model that gets it wrong
+every time and is rescued every time — which is exactly what the first live run did.
+
+### Where it runs
+
+`/ask` (both modes), `/ask/stream`, `/predict`, single Life Report chapters and the background Life
+Report job. **Streaming cannot regenerate** — the reader has already watched the first answer arrive
+word by word — so `guard()` with no `regenerate` callable degrades `verify` to `annotate`, and the
+correction is streamed as the answer's last tokens, which is also what gets persisted. Reopening the
+thread from history still shows it. The tool loop is annotated, never regenerated: its answer is
+assembled from a conversation, not from one prompt, so there is nothing single to re-ask.
+
+The retry's tokens are deliberately **not** added to `usage` — that number is shown to the reader as
+the cost of their answer, and they did not ask for the model to be wrong the first time. It is
+counted in the admin report instead, where the cost of the checker is the thing being measured.
+
+### A false alarm is worse than a miss
+
+A contradiction costs a regeneration and puts a warning under someone's reading, so every rule
+refuses to guess. Sentences that change the frame of reference — a varga, a transit, an annual
+chart, "from the Moon", a hypothetical, a generic textbook statement — are skipped outright rather
+than checked against D1 facts they were never about.
+
+### The traps — all found by running it against a live model, none by reasoning
+
+The rules were tuned over ~20 real readings from `gemma4:12b` on the owner's chart. Every one of
+these produced a **false** contradiction first:
+
+| what the model wrote | what the naive rule made of it |
+|---|---|
+| `the 1st Lord (Venus) and 2nd Lord (Mercury) are both placed in the 1st house` | "Venus is in the 2nd house" |
+| `Jupiter (11th Lord) and Ketu are in the 12th house` | "the 11th lord is Ketu" — the consumed lord word was still in the next gap |
+| `Mercury (2nd & 5th lord)` / `Jupiter is the 8th and 11th lord` | a placement in the 2nd / the 8th — the lord word sat behind a *list* of ordinals |
+| `Saturn is the 9th (fortune) and 10th (career) lord` | a placement in the 9th — a gloss sat between the ordinals and the lord word |
+| `Venus is the Lagna Lord (1st)` | "the 1st lord is Lagna" — the Lagna is not a graha and rules nothing |
+| `are in Kendra houses (1st, 10th, 11th)` | Venus in the 10th *and* the 11th — later list items bound to a subject the first had refused |
+| `As the 4th lord … in the 1st, the Sun …` | "the 1st lord is Sun" — a later house stole the pending slot |
+| `your 6th lord in the 1st` | "Rahu is in the 1st" — the unnamed lord is the subject, not the planet before it |
+| `the Rahu Mahadasha and the Debilitated 7th Lord` | "the 7th lord is Rahu" — the dignity word between them hid the distance |
+| `the Taurus Lagna, the Leo Moon` | "the Lagna is in Leo" — the sign bound backwards instead of forwards |
+| `Your Lagna Lord (Venus), the 9th/10th Lord (Saturn)` | "the 9th lord is Venus" — the bridge stepped over a *closing* bracket |
+| `The 1st lord is Mars, and the 1st house is Aries` | "Mars is in the 1st" — a comma-plus-conjunction starts a new clause |
+| `Jupiter gives good results in the 5th house` | "Jupiter is in the 5th" — a textbook aside, not a claim |
+| `in the first half of 2027` | a placement in the 1st |
+
+The general lessons, worth more than the list:
+
+- **A relation binds to the nearest anchor, not to the sentence's subject.** "Jupiter, lord of the
+  8th and 11th, aspects the 4th house" must not make Jupiter the 4th lord.
+- **A subject inside parentheses is an aside.** No placement claim may cross a `)`. This costs a few
+  true claims and removes a whole family of false ones.
+- **The gap gets two tests, not one**: no blocker anywhere in it (a negation, an aspect, a
+  comparison, a verb like *gives*/*indicates*), and the last three words must all be pure connector.
+  Free prose may sit further back ("Saturn, the karaka of longevity, is in the 3rd"); a live verb
+  immediately before the number may not.
+- **Nakshatra spellings are a family, not a list.** Enumerating variants kept missing one
+  (`Satabhisha`, `Dhanishtha`, `Poorva`); making each letter tolerant — optional aspiration, doubled
+  vowels — covers the family. A name we cannot parse is a claim we do not check: a *silent* hole.
+- **`conditions` is toggleable, so `flags is None` must not mean "no flags"** — or every combust
+  claim is contradicted for free the moment someone switches a section off. Retrogression is checked
+  only for the five tara-grahas: Rahu and Ketu are Mean nodes and thus deliberately unflagged, and
+  checking a Rahu claim against that manufactures a contradiction out of a convention.
+
+### Tests (954 backend, up from 768)
+
+- `tests/test_claim_check.py` — the truth table against an independent compute; a precision corpus
+  where every line is true-or-neutral for CHART1 and **none** may be flagged, including all fourteen
+  live sentences above; recall for every claim kind; the four historical slips verbatim; and the
+  guard's four modes, including *a worse retry is discarded* and *a failed retry still annotates*.
+- `tests/test_golden_prompts.py` — **the golden-prompt suite §68.1 asked for**. One date, twelve
+  birth times, one per ascending sign. For each: the ruler table matches `get_friendships`, the
+  rendered prompt states every lordship in English, every planet's house is the whole-sign count
+  from *that* chart's lagna, a reading built from the true facts passes (~30 claims each, ~360 across
+  the sweep), and **a reading written for the next lagna is caught**. That last one is the
+  Aries-table bug generalized: wrong-looking-plausible for exactly one lagna in twelve, and
+  structurally invisible to a single-chart test.
+- `tests/test_claim_reports.py` — the env default, the bad-value fallback, `off` reachable from the
+  env, the two-list agreement, and that recording never raises without a database (it runs on the
+  path about to return a real answer).
+
+### Verified in the browser, not only in tests
+
+Real Ollama calls on the owner's chart. The first question regenerated and returned correct. With
+the mode switched to `annotate` from the console, a fact-dense question produced 4 contradictions out
+of 39 checkable claims, the correction block rendered under the answer, and it was still there on
+reopening the thread from history. The admin console showed the rate, the kind breakdown and the
+queue; a triage to `fixed` / `prompt` moved "still open" from 1 to 0. After the rule fixes above,
+**six consecutive live readings came back with zero false positives** while the checker still tested
+845 claims across 20 readings.
+
+### Not done, deliberately
+
+- **The annotation is English-only.** It is app chrome generated in the backend and embedded in the
+  answer text, like the digests' rule-based highlights. Localizing it means either rendering it in
+  the frontend (and losing it from the saved text) or translating in the prompt layer; neither is
+  worth doing before someone asks.
+- **Digests, chakra readings and the other `analyze_*` paths are not checked.** Their payloads are
+  not natal chart contexts, so `build_facts` has nothing to work with. Adding them means giving each
+  its own fact table, which is a separate piece of work.
+- **No LLM is used to extract claims.** The vocabulary is 9 grahas × 12 houses × 12 signs and a
+  regex pass is enough. Using a model to check a model would double the cost and inherit the failure.

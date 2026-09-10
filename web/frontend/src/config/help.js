@@ -97,6 +97,7 @@ export const HELP_SECTIONS = [
       { id: "aiWhichModel", to: "/settings" },
       { id: "aiUnavailable", to: "/settings" },
       { id: "aiAccurate" },
+      { id: "aiCorrectionNote" },
       { id: "aiHistory", to: "/history" },
       // No `to` on this one on purpose: `aiHistory` above already resolves
       // /history, and a second entry claiming the same path makes the match

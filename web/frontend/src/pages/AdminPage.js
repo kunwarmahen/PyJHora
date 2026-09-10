@@ -13,6 +13,7 @@ import {
   SlidersHorizontal,
   Save,
   RotateCcw,
+  ScanSearch,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { adminService } from "../services/api";
@@ -71,6 +72,7 @@ export const AdminPage = () => {
       { key: "users", label: "Users", icon: <Users size={15} /> },
       { key: "activity", label: "Activity", icon: <Waves size={15} /> },
       { key: "audit", label: "Audit log", icon: <ScrollText size={15} /> },
+      { key: "claims", label: "Claim checks", icon: <ScanSearch size={15} /> },
       { key: "settings", label: "Settings", icon: <SlidersHorizontal size={15} /> },
     ],
     []
@@ -96,6 +98,7 @@ export const AdminPage = () => {
       <div className="dashboard-content">
         <Tabs tabs={tabs} active={tab} onChange={setTab} ariaLabel="Admin console" />
 
+        {tab === "claims" && <ClaimChecksTab />}
         {tab === "overview" && <OverviewTab />}
         {tab === "users" && <UsersTab />}
         {tab === "activity" && <ActivityTab />}
@@ -745,6 +748,19 @@ const CONFIG_FIELDS = [
     },
     help: "Which prompt writes the reading. Focused leads on the single strongest signal of the day, reads the birth chart to name the area of life it touches, and avoids repeating the note before it. Classic covers every signal in the order the data lists them. Both stay in the app — switch back any time and the next digest is written the old way.",
   },
+  {
+    key: "claim_check_mode",
+    label: "Claim checking",
+    type: "choice",
+    optionsKey: "claim_check_modes",
+    labels: {
+      verify: "Verify (regenerate, then annotate)",
+      annotate: "Annotate only",
+      log: "Log only",
+      off: "Off",
+    },
+    help: "Before a reading is shown, its factual claims — placements, house lords, signs, nakshatras, retrogression — are checked against the chart it was generated from. Verify re-asks the model once, naming the error, and only annotates what survives the retry; that costs a second call when a reading is wrong, so drop to Annotate if the model is slow or busy. Log records for this report without changing what the reader sees. Off disables the check entirely.",
+  },
 ];
 
 /**
@@ -886,6 +902,287 @@ function SettingsTab() {
             <Save size={13} style={{ verticalAlign: "-2px" }} /> Save changes
           </button>
         </div>
+      </Card>
+    </>
+  );
+}
+
+// ── Claim checks (§68.1) ────────────────────────────────────────────────────
+// The report the reading-quality work is driven from. The rate answers "is this
+// getting better?"; the queue answers "what do I fix next?" — which is why every
+// row carries a verdict naming what was actually at fault.
+
+const CLAIM_KIND_LABELS = {
+  lordship: "House lord",
+  placement_house: "House placement",
+  placement_sign: "Sign placement",
+  house_sign: "Sign on a house",
+  nakshatra: "Nakshatra",
+  dignity: "Exaltation",
+  condition: "Retrograde / combust",
+};
+
+const VERDICT_LABELS = {
+  prompt: "Prompt wording",
+  code: "Bad data reached the model",
+  model: "Model just got it wrong",
+  checker: "False alarm — fix the checker",
+};
+
+const STATUS_LABELS = {
+  open: "Open",
+  fixed: "Fixed",
+  false_positive: "False alarm",
+  wont_fix: "Won't fix",
+};
+
+const pct = (n) => `${(Number(n || 0) * 100).toFixed(1)}%`;
+
+function ClaimRow({ entry, redacted, onTriage }) {
+  const [open, setOpen] = useState(false);
+  const [status, setStatus] = useState(entry.status || "open");
+  const [verdict, setVerdict] = useState(entry.verdict || "");
+  const [note, setNote] = useState(entry.note || "");
+  const [saving, setSaving] = useState(false);
+  const kinds = [...new Set((entry.contradictions || []).map((c) => c.kind))];
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await onTriage(entry.id, { status, verdict, note });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <tr>
+        <td>{fmtDateTime(entry.at)}</td>
+        <td>{entry.username || "—"}</td>
+        <td>
+          <span className="admin-badge">{entry.source}</span>
+        </td>
+        <td className="admin-cell-clip">{entry.model || "—"}</td>
+        <td className="admin-cell-wrap">
+          {kinds.map((k) => (
+            <span key={k} className="admin-badge">
+              {CLAIM_KIND_LABELS[k] || k}
+            </span>
+          ))}
+          {entry.regenerated && (
+            <span
+              className="admin-badge"
+              title="The model was re-asked and this survived the retry"
+            >
+              retried
+            </span>
+          )}
+        </td>
+        <td>
+          <span
+            className={`admin-badge${entry.status === "open" ? " admin-badge--suspended" : ""}`}
+          >
+            {STATUS_LABELS[entry.status] || entry.status}
+          </span>
+        </td>
+        <td>
+          <button className="admin-btn" onClick={() => setOpen((v) => !v)}>
+            <Eye size={13} style={{ verticalAlign: "-2px" }} /> {open ? "Hide" : "Triage"}
+          </button>
+        </td>
+      </tr>
+      {open && (
+        <tr>
+          <td colSpan={7}>
+            <div className="admin-claim-detail">
+              {redacted ? (
+                <p className="admin-content-note">
+                  Evidence hidden. The model's sentence and the chart fact behind it belong to one
+                  identifiable person's chart, so they need ADMIN_CONTENT_ACCESS. The rate, the
+                  kinds and the triage all work without it.
+                </p>
+              ) : (
+                (entry.contradictions || []).map((c, i) => (
+                  <div key={i} className="admin-claim-item">
+                    <div className="admin-claim-said">Said: “{c.said}”</div>
+                    <div className="admin-claim-truth">Chart: {c.truth}</div>
+                    {c.quote && <div className="admin-claim-quote">{c.quote}</div>}
+                  </div>
+                ))
+              )}
+              <div className="admin-filters">
+                <select
+                  className="admin-input"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  aria-label="Status"
+                >
+                  {Object.keys(STATUS_LABELS).map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_LABELS[s]}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="admin-input"
+                  value={verdict}
+                  onChange={(e) => setVerdict(e.target.value)}
+                  aria-label="What was at fault"
+                >
+                  <option value="">What was at fault?</option>
+                  {Object.keys(VERDICT_LABELS).map((v) => (
+                    <option key={v} value={v}>
+                      {VERDICT_LABELS[v]}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="admin-input"
+                  placeholder="Note for later (optional)"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+                <button className="admin-btn admin-btn--primary" disabled={saving} onClick={save}>
+                  <Save size={13} style={{ verticalAlign: "-2px" }} /> Save
+                </button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+function ClaimChecksTab() {
+  const [summary, setSummary] = useState(null);
+  const [entries, setEntries] = useState([]);
+  const [redacted, setRedacted] = useState(false);
+  const [status, setStatus] = useState("open");
+  const [kind, setKind] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setError("");
+    Promise.all([adminService.claimSummary(30), adminService.claimChecks({ status, kind })])
+      .then(([s, l]) => {
+        setSummary(s.data);
+        setEntries(l.data.entries || []);
+        setRedacted(!!l.data.redacted);
+      })
+      .catch((e) => setError(errMsg(e)))
+      .finally(() => setLoading(false));
+  }, [status, kind]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const triage = async (id, patch) => {
+    await adminService.triageClaim(id, patch);
+    load();
+  };
+
+  if (loading && !summary) return <LoadingState />;
+  const t = summary?.totals || {};
+
+  return (
+    <>
+      {error && <ErrorBanner message={error} />}
+      <Card title="Readings checked against their own chart — last 30 days">
+        <div className="admin-stat-grid">
+          <StatCard label="Readings checked" value={t.readings ?? 0} />
+          <StatCard label="Model got it wrong" value={pct(summary?.flagged_rate)} />
+          <StatCard label="Reached the reader" value={pct(summary?.unresolved_rate)} />
+          <StatCard label="Claims tested" value={t.checked ?? 0} />
+          <StatCard label="Fixed by the retry" value={t.fixed_by_retry ?? 0} />
+          <StatCard label="Still open" value={summary?.open ?? 0} />
+        </div>
+        <p className="admin-setting__help">
+          Two rates, because they answer different questions.{" "}
+          <strong>Model got it wrong</strong> is how often a reading contradicted the chart it was
+          generated from, measured on the first attempt — that is the number prompt work has to
+          move. <strong>Reached the reader</strong> is how often it survived the retry and had to be
+          annotated. The gap between them is what the checker is buying you.
+        </p>
+      </Card>
+
+      <Card title="What goes wrong">
+        <div className="admin-chips">
+          <button
+            className={`admin-chip${kind === "" ? " is-active" : ""}`}
+            onClick={() => setKind("")}
+          >
+            All kinds
+          </button>
+          {Object.entries(summary?.by_kind || {}).map(([k, n]) => (
+            <button
+              key={k}
+              className={`admin-chip${kind === k ? " is-active" : ""}`}
+              onClick={() => setKind(k)}
+            >
+              {CLAIM_KIND_LABELS[k] || k} · {n}
+            </button>
+          ))}
+          {!Object.keys(summary?.by_kind || {}).length && (
+            <span className="admin-empty">Nothing flagged yet.</span>
+          )}
+        </div>
+        {!!Object.keys(summary?.by_model || {}).length && (
+          <p className="admin-setting__help">
+            By model:{" "}
+            {Object.entries(summary.by_model)
+              .map(([m, n]) => `${m} (${n})`)
+              .join(" · ")}
+          </p>
+        )}
+      </Card>
+
+      <Card title="Triage queue">
+        <div className="admin-chips">
+          {["open", "", "fixed", "false_positive", "wont_fix"].map((s) => (
+            <button
+              key={s || "all"}
+              className={`admin-chip${status === s ? " is-active" : ""}`}
+              onClick={() => setStatus(s)}
+            >
+              {s ? STATUS_LABELS[s] : "All"}
+            </button>
+          ))}
+          <button className="admin-chip" onClick={load}>
+            <RefreshCw size={12} style={{ verticalAlign: "-2px" }} /> Refresh
+          </button>
+        </div>
+        {!entries.length ? (
+          <div className="admin-empty">
+            Nothing here. Either no reading has contradicted its chart, or they have all been
+            triaged.
+          </div>
+        ) : (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>User</th>
+                  <th>Source</th>
+                  <th>Model</th>
+                  <th>What was wrong</th>
+                  <th>Status</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((e) => (
+                  <ClaimRow key={e.id} entry={e} redacted={redacted} onTriage={triage} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </>
   );

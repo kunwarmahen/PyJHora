@@ -7,6 +7,7 @@ so the import surface is unchanged (`from llm_service import llm_service, LLMPro
 AND there is exactly one definition of each enum — importing them twice would create
 distinct classes and silently break isinstance checks across the mixins.
 """
+import claim_check
 from llm.base import *  # noqa: F401,F403  (constants, enums, ModelConfig, stdlib deps)
 from llm.base import __all__ as _base_all
 from llm.gate import gate
@@ -185,11 +186,16 @@ class LLMService(PromptsMixin, OllamaMixin, OpenAIMixin, GeminiMixin):
                           provider: LLMProvider = LLMProvider.QWEN,
                           config: Optional[ModelConfig] = None,
                           history: Optional[List[Dict[str, str]]] = None,
-                          usage: Optional[Dict[str, Any]] = None) -> str:
+                          usage: Optional[Dict[str, Any]] = None,
+                          check: Optional[Dict[str, Any]] = None,
+                          mode: str = "verify") -> str:
         """Ask a question about the chart. Pass either a ModelConfig or a legacy
         provider. `history` (prior {role, content} turns) enables multi-turn. If a
         mutable `usage` dict is supplied it is filled with the provider's reported
-        token counts once the call completes (parity with the streaming path)."""
+        token counts once the call completes (parity with the streaming path).
+        Supplying a mutable `check` dict turns on claim checking (§68.1): it is
+        filled with the report, and `mode` decides how hard the check pushes
+        back."""
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
         if history:
             convo_text = "\n\n=== PRIOR CONVERSATION ===\n" + "\n".join(
@@ -203,16 +209,30 @@ class LLMService(PromptsMixin, OllamaMixin, OpenAIMixin, GeminiMixin):
             )
         else:
             prompt = self._build_chart_analysis_prompt(chart_data, question)
+        if check is not None:
+            answer, report = await self._complete_verified(
+                prompt, cfg, claim_check.build_facts(chart_data),
+                mode=mode, usage=usage)
+            check.update(report)
+            return answer
         return await self._complete(prompt, cfg, usage=usage)
 
     async def generate_prediction(self,
                                  chart_data: Dict[str, Any],
                                  prediction_type: str = "general",
                                  provider: LLMProvider = LLMProvider.QWEN,
-                                 config: Optional[ModelConfig] = None) -> str:
-        """Generate predictions based on chart data."""
+                                 config: Optional[ModelConfig] = None,
+                                 check: Optional[Dict[str, Any]] = None,
+                                 mode: str = "verify") -> str:
+        """Generate predictions based on chart data. `check`/`mode` as in
+        `ask_question`."""
         prompt = self._build_prediction_prompt(chart_data, prediction_type)
         cfg = config or self.resolve_config(legacy_provider=provider.value if isinstance(provider, LLMProvider) else provider)
+        if check is not None:
+            text, report = await self._complete_verified(
+                prompt, cfg, claim_check.build_facts(chart_data), mode=mode)
+            check.update(report)
+            return text
         return await self._complete(prompt, cfg)
 
     async def analyze_compatibility(self,
@@ -1050,6 +1070,29 @@ Reply with STRICT JSON only, exactly this shape:
 
         return await self._guarded_call(cfg, _run, usage=usage)
 
+    async def _complete_verified(self, prompt: str, cfg: ModelConfig,
+                                 facts: "claim_check.Facts",
+                                 mode: str = "verify",
+                                 max_tokens: Optional[int] = None,
+                                 system: Optional[str] = None,
+                                 usage: Optional[Dict[str, Any]] = None) -> tuple:
+        """`_complete`, then checked against the chart it was generated from (§68.1).
+
+        Returns `(text, report)`. On a contradiction in "verify" mode this costs a
+        second completion — the retry names the wrong sentence and the right fact,
+        and is kept only if it comes back with fewer contradictions. The retry's
+        tokens are deliberately *not* added to `usage`: that number is shown to
+        the reader as the cost of their answer, and the reader did not ask for the
+        model to be wrong the first time. The retry is counted in the admin report
+        instead, where the cost of the checker is what is actually being measured.
+        """
+        text = await self._complete(prompt, cfg, max_tokens, system, usage)
+
+        async def _again(instruction: str) -> str:
+            return await self._complete(prompt + instruction, cfg, max_tokens, system)
+
+        return await claim_check.guard(text, facts, mode, _again)
+
     @staticmethod
     def _fill_usage(usage: Optional[Dict[str, Any]],
                     prompt_tokens, completion_tokens, total_tokens=None) -> None:
@@ -1155,9 +1198,19 @@ Reply with STRICT JSON only, exactly this shape:
 
     async def generate_life_report_chapter(self, chart_data: Dict[str, Any],
                                            title: str, focus: str, name: str,
-                                           config: Optional[ModelConfig] = None) -> str:
+                                           config: Optional[ModelConfig] = None,
+                                           check: Optional[Dict[str, Any]] = None,
+                                           mode: str = "verify") -> str:
+        """One chapter of the Life Report. `check`/`mode` as in `ask_question` —
+        the chapter that told the owner the 9th lord was Jupiter (§67) came from
+        here, so this path is checked like any other."""
         prompt = self._build_life_report_chapter_prompt(chart_data, title, focus, name)
         cfg = config or self.resolve_config()
+        if check is not None:
+            text, report = await self._complete_verified(
+                prompt, cfg, claim_check.build_facts(chart_data), mode=mode)
+            check.update(report)
+            return text
         return await self._complete(prompt, cfg)
 
     def build_chat_messages(self, chart_data: Dict[str, Any], question: str,

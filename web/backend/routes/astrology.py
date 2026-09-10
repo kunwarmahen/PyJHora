@@ -21,6 +21,8 @@ from auth import create_access_token, decode_token, get_password_hash, verify_pa
 from database import User, BirthDetails, ChartData
 from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, SUPPORTED_VARGAS, SUPPORTED_DASHAS
 from chart_context import build_chart_context
+import claim_check
+import claim_reports
 from llm_service import llm_service, LLMProvider
 import tools as tool_registry
 import conversations as convo
@@ -1049,6 +1051,11 @@ async def ask_question(
         started = datetime.now(timezone.utc)
         usage: dict = {}
         tool_trace: list = []
+        # Every answer is checked against the chart it was generated from before
+        # it is returned (§68.1). The mode is a runtime knob, so an operator can
+        # drop the regeneration — or the whole check — without a redeploy.
+        check_mode = await claim_reports.mode()
+        check: dict = {}
         if mode == "tools":
             # Drain the tool loop, collecting the final answer + the call trace.
             seed_block = llm_service._render_context_block(chart_data, tool_mode=True)
@@ -1071,6 +1078,11 @@ async def ask_question(
                             tr["result"] = ev.get("result")
                             break
             answer = "".join(parts)
+            # The tool loop's answer is assembled from a conversation with the
+            # model, not from one prompt, so there is no single prompt to re-ask:
+            # it is checked and annotated, never regenerated.
+            answer, check = await claim_check.guard(
+                answer, claim_check.build_facts(chart_data), check_mode)
         else:
             answer = await llm_service.ask_question(
                 chart_data=chart_data,
@@ -1078,8 +1090,14 @@ async def ask_question(
                 config=cfg,
                 history=history,
                 usage=usage,
+                check=check,
+                mode=check_mode,
             )
         elapsed_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
+        await claim_reports.record(
+            check, username=current_user, source="ask", mode=check_mode,
+            provider=cfg.provider_type.value, model=cfg.model,
+            profile_id=request.profile_id, question=request.question)
 
         # Persist the turn (create the conversation on first message)
         conv_id = await _save_turn(current_user, request, cfg, chart_data, answer,
@@ -1098,6 +1116,7 @@ async def ask_question(
             "sections": chart_data.get("_sections", {}),
             "vargas": chart_data.get("_vargas", []),
             "tool_trace": tool_trace,
+            "claim_check": _claim_summary(check),
             "context": chart_data,  # full structured context (for the "what was sent" view)
             "chart_summary": {
                 "lagna": chart_data.get("lagna", {}),
@@ -1132,6 +1151,7 @@ async def ask_question_stream(
         if request.conversation_id else None
     history = convo.history_for_model(conv)
     mode = _resolve_mode(request, conv)
+    check_mode = await claim_reports.mode()
 
     async def event_gen():
         # Tell the client which conversation + model + mode up front.
@@ -1189,6 +1209,22 @@ async def ask_question_stream(
             return
 
         answer = "".join(parts)
+        # Streaming cannot regenerate: the reader has already watched the first
+        # answer arrive word by word, so re-asking would replace text in front of
+        # them. `guard` with no `regenerate` degrades "verify" to "annotate", and
+        # the correction is streamed as the last tokens of the answer — which is
+        # also what gets persisted, so reopening the thread still shows it.
+        answer, check = await claim_check.guard(
+            answer, claim_check.build_facts(chart_data), check_mode)
+        note = answer[len("".join(parts)):]
+        if note:
+            yield f"data: {json.dumps({'type': 'token', 'text': note})}\n\n"
+        if check.get("contradictions"):
+            yield f"data: {json.dumps({'type': 'claim_check', **_claim_summary(check)})}\n\n"
+        await claim_reports.record(
+            check, username=current_user, source="ask_stream", mode=check_mode,
+            provider=cfg.provider_type.value, model=cfg.model,
+            profile_id=request.profile_id, question=request.question)
         elapsed_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
         usage = usage or None
         try:
@@ -1235,11 +1271,19 @@ async def generate_prediction(
         cfg = await _resolve_cfg(current_user, request)
 
         # Generate prediction
+        check_mode = await claim_reports.mode()
+        check: dict = {}
         prediction = await llm_service.generate_prediction(
             chart_data=chart_data,
             prediction_type=request.prediction_type,
             config=cfg,
+            check=check,
+            mode=check_mode,
         )
+        await claim_reports.record(
+            check, username=current_user, source="prediction", mode=check_mode,
+            provider=cfg.provider_type.value, model=cfg.model,
+            profile_id=request.profile_id)
 
         await _save_reading(
             current_user, source="prediction",
@@ -1254,6 +1298,7 @@ async def generate_prediction(
             "prediction": prediction,
             "provider": cfg.provider_type.value,
             "model": cfg.model,
+            "claim_check": _claim_summary(check),
             "chart_data": chart_data,
         }
     except Exception as e:
@@ -1815,11 +1860,18 @@ async def life_report_chapter(
             current_tz=await viewer_tz(
                 current_user, fallback=request.birth_details.timezone))
         cfg = await _resolve_cfg(current_user, request)
+        check_mode = await claim_reports.mode()
+        check: dict = {}
         text = await llm_service.generate_life_report_chapter(
             chart_data=chart_data, title=title, focus=focus,
             name=request.person_name or request.birth_details.name or "this person",
-            config=cfg)
+            config=cfg, check=check, mode=check_mode)
+        await claim_reports.record(
+            check, username=current_user, source="life_report_chapter",
+            mode=check_mode, provider=cfg.provider_type.value, model=cfg.model,
+            profile_id=request.profile_id, question=title)
         return {"key": _key, "title": title, "text": text,
+                "claim_check": _claim_summary(check),
                 "provider": cfg.provider_type.value, "model": cfg.model}
     except HTTPException:
         raise
