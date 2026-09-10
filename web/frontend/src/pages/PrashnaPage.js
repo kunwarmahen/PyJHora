@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { HelpCircle, Sparkles, MapPin, Moon, Sunrise } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
+import { useCurrentLocation } from "../contexts/LocationContext";
+import { momentPlace } from "../config/currentLocation";
 import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
@@ -36,9 +38,20 @@ export const PrashnaPage = () => {
   const { t } = useTranslation();
   const ln = useLocalizeName();
   const { selectedProfile } = useProfile();
+  const { location, loaded: locationLoaded } = useCurrentLocation();
   const { settings } = useSettings();
   const ayanamsa = settings.ayanamsa;
   const chartStyle = settings.chartStyle;
+
+  // Prashna is cast for the moment AND the place the querent is standing in, so
+  // this resolves the same way every other "here" in the app does: the location
+  // they confirmed once, else their birth place. It used to raise a browser GPS
+  // prompt mid-cast and silently fall back to the birth place when refused —
+  // which is a different chart, not a rounder one, and said so nowhere.
+  const loc = useMemo(
+    () => (locationLoaded ? momentPlace(location, selectedProfile?.birth_details) : null),
+    [locationLoaded, location, selectedProfile]
+  );
 
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
@@ -81,39 +94,16 @@ export const PrashnaPage = () => {
     return null;
   }
 
-  // Prashna is cast for the moment + current location. We use the querent's
-  // browser geolocation when granted, else fall back to the profile's place.
-  const getLocation = () =>
-    new Promise((resolve) => {
-      const fallback = {
-        place: selectedProfile.birth_details.place,
-        latitude: selectedProfile.birth_details.latitude,
-        longitude: selectedProfile.birth_details.longitude,
-        timezone: selectedProfile.birth_details.timezone,
-      };
-      if (!navigator.geolocation) return resolve(fallback);
-      navigator.geolocation.getCurrentPosition(
-        (pos) =>
-          resolve({
-            place: t("prashna.currentLocation"),
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            timezone: -new Date().getTimezoneOffset() / 60,
-          }),
-        () => resolve(fallback),
-        { timeout: 6000 }
-      );
-    });
-
   const cast = async () => {
+    if (!loc) return;
     setLoading(true);
     setError("");
     setChart(null);
     setReading("");
     try {
-      const loc = await getLocation();
       const res = await astrologyService.analyzePrashnaAI(
-        { question, ...loc },
+        { question, place: loc.place, latitude: loc.latitude,
+          longitude: loc.longitude, timezone: loc.timezone },
         { ...readModelConfig(), ayanamsa }
       );
       setChart(res.data.chart || null);
@@ -158,8 +148,17 @@ export const PrashnaPage = () => {
               <Sparkles size={18} /> {t("prashna.cast")}
             </button>
           </div>
+          {/* Name the place rather than describing the mechanism: the old copy
+              promised "your current location (with your permission)", which was
+              a browser GPS prompt that no longer happens and never said where
+              the chart actually landed when it was refused. */}
           <p className="card-note">
-            <MapPin size={13} /> {t("prashna.locationNote")}
+            <MapPin size={13} />{" "}
+            {loc
+              ? t(loc.source === "birth" ? "prashna.locationNoteBirth" : "prashna.locationNoteAt", {
+                  place: loc.place,
+                })
+              : t("prashna.locationNote")}
           </p>
         </Card>
 

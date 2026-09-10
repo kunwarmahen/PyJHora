@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Sun, Sunrise, Sunset, MapPin } from "lucide-react";
 import { astrologyService } from "../services/api";
 import { useSettings } from "../contexts/SettingsContext";
+import { useCurrentLocation } from "../contexts/LocationContext";
+import { momentPlace } from "../config/currentLocation";
 import { useLocalizeName } from "../i18n/localizeName";
 import { todayISO } from "../utils/format";
 
@@ -53,6 +55,7 @@ export const PanchangaPanel = ({
 
   // Ephemeris engine ('drik' | 'surya_siddhanta') is a global setting now.
   const { settings } = useSettings();
+  const { location } = useCurrentLocation();
   const system = settings.panchangaSystem;
 
   const birthLoc = { place, latitude, longitude, timezone };
@@ -89,9 +92,26 @@ export const PanchangaPanel = ({
     );
   }, [t]);
 
+  // "Use my current location" asks the STORE first, and the browser only if the
+  // store has nothing. The user already confirmed where they are once (Settings
+  // → Location, or the detect-and-confirm prompt); re-raising a GPS permission
+  // dialog to learn it again is asking twice for one answer. The button stays —
+  // it is the way to answer when nothing is stored.
   const useCurrent = () => {
-    if (currentLoc) setSource("current");
-    else requestCurrentLocation();
+    if (currentLoc) return setSource("current");
+    const stored = momentPlace(location, null);
+    if (stored) {
+      setCurrentLoc({
+        place: stored.place,
+        latitude: stored.latitude,
+        longitude: stored.longitude,
+        timezone: stored.timezone,
+      });
+      setSource("current");
+      setGeoError("");
+      return;
+    }
+    requestCurrentLocation();
   };
 
   const load = useCallback(() => {

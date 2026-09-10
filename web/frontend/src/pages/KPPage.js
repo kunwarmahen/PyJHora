@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import { Compass, Sparkles, Star, HelpCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
+import { useCurrentLocation } from "../contexts/LocationContext";
+import { momentPlace } from "../config/currentLocation";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
 import { RecentReadings } from "../components/RecentReadings";
@@ -32,30 +34,24 @@ const readModelConfig = () => {
   };
 };
 
-// Browser geolocation → {latitude, longitude, timezone} (best-effort, for horary).
-const currentLocation = () =>
-  new Promise((resolve) => {
-    if (!navigator.geolocation) return resolve(null);
-    navigator.geolocation.getCurrentPosition(
-      (pos) =>
-        resolve({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          timezone: -new Date().getTimezoneOffset() / 60,
-        }),
-      () => resolve(null),
-      { timeout: 8000 }
-    );
-  });
-
 export const KPPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const ln = useLocalizeName();
   const { selectedProfile } = useProfile();
+  const { location, loaded: locationLoaded } = useCurrentLocation();
   const { settings } = useSettings();
   const chartStyle = settings.chartStyle;
   const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
+
+  // A horary chart is cast for the moment the querent asks AND where they ask
+  // from, so "here" resolves the way it does everywhere else: the location they
+  // confirmed once, else the birth place. This used to raise a browser GPS
+  // prompt on every cast and fall back to the birth place in silence.
+  const horaryPlace = useMemo(
+    () => (locationLoaded ? momentPlace(location, selectedProfile?.birth_details) : null),
+    [locationLoaded, location, selectedProfile]
+  );
 
   const KP_TABS = useMemo(
     () => [
@@ -177,11 +173,7 @@ export const KPPage = () => {
     setHorError("");
     setHorReading("");
     try {
-      const loc = (await currentLocation()) || {
-        latitude: birthDetails?.latitude,
-        longitude: birthDetails?.longitude,
-        timezone: birthDetails?.timezone,
-      };
+      const loc = horaryPlace || {};
       const res = await astrologyService.getKpHorary({ number: n, ...loc });
       setHorData(res.data);
     } catch (err) {
@@ -197,11 +189,7 @@ export const KPPage = () => {
     setHorLoading(true);
     setHorError("");
     try {
-      const loc = (await currentLocation()) || {
-        latitude: birthDetails?.latitude,
-        longitude: birthDetails?.longitude,
-        timezone: birthDetails?.timezone,
-      };
+      const loc = horaryPlace || {};
       const res = await astrologyService.analyzeKpHoraryAI(
         { number: n, question: horQuestion, ...loc },
         readModelConfig()

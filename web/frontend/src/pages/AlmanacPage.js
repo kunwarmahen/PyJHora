@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useProfile } from "../contexts/ProfileContext";
+import { useCurrentLocation } from "../contexts/LocationContext";
+import { momentPlace } from "../config/currentLocation";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
 import { RecentReadings } from "../components/RecentReadings";
@@ -499,6 +501,7 @@ export const AlmanacPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { selectedProfile } = useProfile();
+  const { location } = useCurrentLocation();
 
   const [source, setSource] = useState("birth");
   const [currentLoc, setCurrentLoc] = useState(null);
@@ -538,9 +541,26 @@ export const AlmanacPage = () => {
     );
   }, [t]);
 
+  // "Use my current location" asks the STORE first, and the browser only if the
+  // store has nothing. The user already confirmed where they are once (Settings
+  // → Location, or the detect-and-confirm prompt); re-raising a GPS permission
+  // dialog to learn it again is asking twice for one answer. The button stays —
+  // it is the way to answer when nothing is stored.
   const useCurrent = () => {
-    if (currentLoc) setSource("current");
-    else requestCurrentLocation();
+    if (currentLoc) return setSource("current");
+    const stored = momentPlace(location, null);
+    if (stored) {
+      setCurrentLoc({
+        place: stored.place,
+        latitude: stored.latitude,
+        longitude: stored.longitude,
+        timezone: stored.timezone,
+      });
+      setSource("current");
+      setGeoError("");
+      return;
+    }
+    requestCurrentLocation();
   };
 
   if (!selectedProfile) return null;

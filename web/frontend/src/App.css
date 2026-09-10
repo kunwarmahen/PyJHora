@@ -191,7 +191,7 @@
   --banner-mb: 16px;
   --avatar-size: 52px;
   --banner-name-size: 1.2rem;
-  --now-chart-size: 118px;
+  --now-chart-size: 150px;
 }
 
 /* The roomier scale the app used before §15, kept as a preference (Settings →
@@ -215,7 +215,7 @@
   --banner-mb: var(--space-3xl);
   --avatar-size: 80px;
   --banner-name-size: 1.75rem;
-  --now-chart-size: 160px;
+  --now-chart-size: 190px;
 }
 
 /* ==================================================================== *

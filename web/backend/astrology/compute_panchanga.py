@@ -10,6 +10,46 @@ from .engine import *  # noqa: F401,F403  (constants + helpers the bodies use)
 AstrologyCompute = None
 
 
+
+def running_hora_index(spans, now_minutes):
+    """Which of the day's 24 horas contains `now_minutes`, or None.
+
+    `spans` is [(start_minutes, end_minutes)] in the order shubha_hora returns
+    them — 12 daytime from sunrise, then 12 nighttime to the next sunrise.
+
+    The night block crosses midnight, so its clock times stop increasing: one
+    hora reads "23:50 -> 00:55", its end numerically BELOW its start, and every
+    hora after it falls on the NEXT calendar day. This used to give up on the
+    whole night block rather than deal with that, reporting no running hora from
+    sunset onwards — half of every day, and no hora at all on the Dashboard's
+    chart of the moment every evening.
+
+    So the crossing is tracked. Before it, clock times compare normally. The
+    straddling hora runs from its start to midnight. After it, nothing is
+    current *for this date*: a caller asking at 01:30 is inside the PREVIOUS
+    date's night block, which this list does not hold, so None is returned
+    rather than a hora from the wrong night being flagged a day early.
+
+    Kept a module-level function, not an inline loop, so the rule is directly
+    testable — the caller reads `now` off the real clock, which a test can't
+    steer. See tests/test_planetary_hours.py.
+    """
+    if now_minutes is None:
+        return None
+    prev_start = None
+    for i, (start, end) in enumerate(spans):
+        if start is None or end is None:
+            continue
+        if prev_start is not None and start < prev_start:
+            return None  # past midnight: the rest belongs to the next date
+        prev_start = start
+        # A normal span is a half-open range; the straddling one runs to midnight.
+        hit = (start <= now_minutes < end) if end > start else (now_minutes >= start)
+        if hit:
+            return i
+    return None
+
+
 class PanchangaMixin:
 
     @staticmethod
@@ -194,15 +234,14 @@ class PanchangaMixin:
                 except Exception:
                     return None
 
+            running = running_hora_index(
+                [(_to_min(start), _to_min(end)) for _, start, end in horas],
+                now_minutes)
+
             out = []
             for i, (pidx, start, end) in enumerate(horas):
                 name = HORA_PLANETS[pidx] if 0 <= pidx < len(HORA_PLANETS) else str(pidx)
-                sm, em = _to_min(start), _to_min(end)
-                # Night horas after midnight wrap past 24h; the string is still the
-                # clock time, so only flag "current" for the daytime block reliably.
-                current = False
-                if now_minutes is not None and sm is not None and em is not None and i < 12:
-                    current = sm <= now_minutes < em
+                current = i == running
                 out.append({
                     "index": i + 1,
                     "planet": name,

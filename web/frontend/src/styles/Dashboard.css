@@ -2515,8 +2515,8 @@
 /* ── Chart-of-the-moment dashboard widget (§16) ───────────────────────────── */
 .now-widget {
   display: flex;
-  gap: var(--space-lg);
-  align-items: center;
+  gap: var(--space-xl);
+  align-items: stretch;
   padding: var(--banner-pad);
   margin-bottom: var(--card-gap);
   background: var(--card-bg);
@@ -2535,38 +2535,101 @@
   width: var(--now-chart-size);
   min-width: var(--now-chart-size);
   max-width: var(--now-chart-size);
+  align-self: center;
 }
+/* The Kundali renders itself as a full .chart-card — its own surface, saffron
+   border-top, shadow and --space-xl padding. At this size that chrome was the
+   element: a card inside a card whose heading crowded the diagram down to 54px,
+   illegible and unlike anything else on the Dashboard. Flatten it here (the
+   component is shared and correct on its own pages) and give the whole box to
+   the chart; the widget's own heading beside it already names the thing. */
+.now-widget__chart .chart-card {
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+}
+.now-widget__chart .chart-card-head {
+  display: none;
+}
+/* The body owns the rest of the width and spreads its three rows down the
+   height of the chart beside it, so the card has no dead quarter. */
 .now-widget__body {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-sm);
 }
 .now-widget__head {
   display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.now-widget__title {
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   font-weight: 700;
   font-size: 1.05rem;
   color: var(--text-primary);
 }
-.now-widget__moment {
-  margin: 0.25rem 0 0.5rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-.now-widget__pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-bottom: 0.6rem;
-}
 .now-widget__cta {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  flex-shrink: 0;
   font-weight: 600;
   font-size: 0.9rem;
   color: var(--saffron);
 }
+.now-widget__moment {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.now-widget__place {
+  color: var(--text-muted);
+}
+/* Which place a moment was cast for is a separate clause from when it was, so
+   it gets a separator rather than running on — and drops to its own line when
+   the two together no longer fit. */
+.now-widget__place::before {
+  content: " · ";
+}
+
+/* A wrapping flex row, NOT an auto-fit grid: this sits in a flex parent with no
+   definite width, and auto-fit needs one to decide how many columns it can
+   afford — given none it resolves to a single column and stacks all five facts
+   vertically down the edge. `flex: 1 1 <basis>` spreads them instead, and wraps
+   once the basis no longer fits. */
+.now-widget__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+  margin: 0;
+}
+.now-fact {
+  flex: 1 1 116px;
+  min-width: 0;
+}
+.now-fact__label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.now-fact__value {
+  margin: 2px 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 @media (max-width: 640px) {
   .now-widget {
     flex-direction: column;
@@ -2579,8 +2642,12 @@
     max-width: 100%;
     margin: 0 auto;
   }
-  .now-widget__head,
-  .now-widget__pills {
+  .now-widget__head {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+  .now-widget__facts {
     justify-content: center;
   }
 }

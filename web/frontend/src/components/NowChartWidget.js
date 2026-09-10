@@ -83,6 +83,14 @@ export const NowChartWidget = () => {
 
   const panch = data.panchanga || {};
 
+  const facts = [
+    [t("panchanga.vaara"), panch.vaara?.name],
+    [t("panchanga.tithi"), panch.tithi?.name],
+    [t("common.nakshatra"), panch.nakshatra?.name && ln(panch.nakshatra.name, "nakshatra")],
+    [t("panchanga.yoga"), panch.yoga?.name],
+    [t("now.horaLabel"), data.hora_lord],
+  ].filter(([, value]) => value);
+
   return (
     <Link to="/now" className="now-widget fade-in">
       <div className="now-widget__chart">
@@ -93,31 +101,42 @@ export const NowChartWidget = () => {
           subtitle=""
         />
       </div>
+
       <div className="now-widget__body">
         <div className="now-widget__head">
-          <Globe size={18} />
-          <span>{t("now.widgetTitle")}</span>
+          <span className="now-widget__title">
+            <Globe size={18} />
+            {t("now.widgetTitle")}
+          </span>
+          <span className="now-widget__cta">
+            {t("now.widgetCta")} <ChevronRight size={16} />
+          </span>
         </div>
-        {data.moment && (
-          <p className="now-widget__moment">
-            {t("now.asOf", { date: data.moment.date, time: data.moment.time })}
-            {here.place
-              ? ` · ${t(here.source === "birth" ? "now.castForBirth" : "now.castFor", {
-                  place: here.place,
-                })}`
-              : ""}
-          </p>
-        )}
-        <div className="now-widget__pills">
-          {panch.vaara?.name && <span className="info-pill">{panch.vaara.name}</span>}
-          {panch.tithi?.name && <span className="info-pill">{panch.tithi.name}</span>}
-          {panch.nakshatra?.name && (
-            <span className="info-pill">{ln(panch.nakshatra.name, "nakshatra")}</span>
+
+        <p className="now-widget__moment">
+          {data.moment &&
+            t("now.asOf", { date: data.moment.date, time: data.moment.time })}
+          {here.place && (
+            <span className="now-widget__place">
+              {t(here.source === "birth" ? "now.castForBirth" : "now.castFor", {
+                place: here.place,
+              })}
+            </span>
           )}
-        </div>
-        <span className="now-widget__cta">
-          {t("now.widgetCta")} <ChevronRight size={16} />
-        </span>
+        </p>
+
+        {/* The panchanga as named facts spread across the body, rather than a
+            huddle of unlabelled pills leaving two thirds of a page-wide card
+            empty. Yoga and the hora lord were already in the payload and simply
+            weren't being shown. */}
+        <dl className="now-widget__facts">
+          {facts.map(([label, value]) => (
+            <div className="now-fact" key={label}>
+              <dt className="now-fact__label">{label}</dt>
+              <dd className="now-fact__value">{value}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </Link>
   );
