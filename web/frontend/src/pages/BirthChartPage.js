@@ -40,6 +40,7 @@ import { BirthTimeBanner } from "../components/BirthTimeBanner";
 import { VARGAS, DEFAULT_VARGA } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { returnHere } from "../utils/returnTo";
 
 export const BirthChartPage = () => {
   const navigate = useNavigate();
@@ -153,7 +154,7 @@ export const BirthChartPage = () => {
   // Redirect if no profile selected; (re)calculate when profile or ayanamsa changes
   useEffect(() => {
     if (!selectedProfile) {
-      navigate("/profile-selection");
+      navigate("/profile-selection", returnHere());
       return;
     }
 

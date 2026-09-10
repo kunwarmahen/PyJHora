@@ -23,6 +23,7 @@ import { Button } from "../components/Button";
 import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Learn.css";
+import { returnHere } from "../utils/returnTo";
 
 const TOPICS = ["planets", "yogas", "dashas", "vargas"];
 const LEVELS = ["beginner", "intermediate", "advanced"];
@@ -106,7 +107,7 @@ export const LearnChartPage = () => {
 
   useEffect(() => {
     if (!selectedProfile) {
-      navigate("/profile-selection");
+      navigate("/profile-selection", returnHere());
       return;
     }
     loadStats();

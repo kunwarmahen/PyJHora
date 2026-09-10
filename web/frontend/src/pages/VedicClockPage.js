@@ -15,6 +15,7 @@ import { LoadingState } from "../components/LoadingState";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import { useLocalizeName } from "../i18n/localizeName";
+import { returnHere } from "../utils/returnTo";
 
 const RETRO_PLANETS = ["Mars", "Mercury", "Jupiter", "Venus", "Saturn"];
 
@@ -214,7 +215,7 @@ export const VedicClockPage = () => {
 
   useEffect(() => {
     if (!selectedProfile) {
-      navigate("/profile-selection");
+      navigate("/profile-selection", returnHere());
       return;
     }
     load();

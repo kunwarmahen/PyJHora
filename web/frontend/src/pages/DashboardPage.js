@@ -21,6 +21,7 @@ import {
 } from "../config/features";
 import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
+import { returnHere } from "../utils/returnTo";
 
 export const DashboardPage = () => {
   const { user, logout } = useAuth();
@@ -37,7 +38,7 @@ export const DashboardPage = () => {
 
   const handleChangeProfile = () => {
     clearProfile();
-    navigate("/profile-selection");
+    navigate("/profile-selection", returnHere());
   };
 
   // Tiles come from the feature registry (config/features.js) filtered by the

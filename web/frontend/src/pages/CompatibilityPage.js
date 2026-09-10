@@ -32,6 +32,7 @@ import { Tabs, useTabs } from "../components/Tabs";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import { useLocalizeName } from "../i18n/localizeName";
+import { returnHere } from "../utils/returnTo";
 
 // Read the model config the user already picked in "Ask Astrologer". The server
 // resolves the actual API key (per-user stored key → env key), so we only need
@@ -257,7 +258,7 @@ export const CompatibilityPage = () => {
   // Redirect if no profile selected
   useEffect(() => {
     if (!selectedProfile) {
-      navigate("/profile-selection");
+      navigate("/profile-selection", returnHere());
       return;
     }
 

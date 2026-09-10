@@ -29,6 +29,7 @@ import { Card } from "../components/Card";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import { useLocalizeName } from "../i18n/localizeName";
+import { returnHere } from "../utils/returnTo";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -146,7 +147,7 @@ const PeriodDigestPage = ({ period }) => {
 
   useEffect(() => {
     if (!selectedProfile) {
-      navigate("/profile-selection");
+      navigate("/profile-selection", returnHere());
       return;
     }
     load();

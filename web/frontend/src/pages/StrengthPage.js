@@ -17,6 +17,7 @@ import { Tabs, useTabs } from "../components/Tabs";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Strength.css";
+import { returnHere } from "../utils/returnTo";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -128,7 +129,7 @@ export const StrengthPage = () => {
 
   useEffect(() => {
     if (!selectedProfile) {
-      navigate("/profile-selection");
+      navigate("/profile-selection", returnHere());
       return;
     }
     load();

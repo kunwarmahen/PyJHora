@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash } from "../utils/format";
@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import LocationSearch from "../components/LocationSearch";
 import MapPicker from "../components/MapPicker";
+import { returnTarget } from "../utils/returnTo";
 import "../styles/ProfileSelection.css";
 
 // One source of truth for a blank form, so every reset stays in sync (the
@@ -45,6 +46,7 @@ const EMPTY_FORM = {
 
 export const ProfileSelectionPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
   const {
     profiles,
@@ -208,7 +210,10 @@ export const ProfileSelectionPage = () => {
       return;
     }
     selectProfile(profile);
-    navigate("/dashboard");
+    // Back to whatever page sent you here — "Change chart" from the transits
+    // page belongs on the transits page, not the dashboard. Arrivals that carry
+    // no origin (sign-in, a bookmark) still land on the dashboard.
+    navigate(returnTarget(location.state));
   };
 
   const toggleSelected = (profileId) => {

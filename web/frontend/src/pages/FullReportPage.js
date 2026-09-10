@@ -18,6 +18,7 @@ import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Report.css";
 import { useLocalizeName } from "../i18n/localizeName";
+import { returnHere } from "../utils/returnTo";
 
 const PLANET_ORDER = [
   "Sun",
@@ -103,7 +104,7 @@ export const FullReportPage = () => {
 
   useEffect(() => {
     if (!selectedProfile) {
-      navigate("/profile-selection");
+      navigate("/profile-selection", returnHere());
       return;
     }
     load();

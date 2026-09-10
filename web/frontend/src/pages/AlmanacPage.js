@@ -27,6 +27,7 @@ import { LoadingState } from "../components/LoadingState";
 import { parseLocalDate, todayISO } from "../utils/format";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { returnHere } from "../utils/returnTo";
 
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
@@ -509,7 +510,7 @@ export const AlmanacPage = () => {
   const [geoError, setGeoError] = useState("");
 
   useEffect(() => {
-    if (!selectedProfile) navigate("/profile-selection");
+    if (!selectedProfile) navigate("/profile-selection", returnHere());
   }, [selectedProfile, navigate]);
 
   const requestCurrentLocation = useCallback(() => {

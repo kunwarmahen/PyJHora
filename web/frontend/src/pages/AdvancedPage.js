@@ -27,6 +27,7 @@ import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import { RASI_NAMES } from "../constants/jyotish";
 import { useLocalizeName } from "../i18n/localizeName";
+import { returnHere } from "../utils/returnTo";
 
 // Flag tone → chip colour (benefic green / challenging vermillion / neutral gray).
 const TONE_COLOR = { benefic: "#2E9E5B", challenging: "#e34234", neutral: "#8b8fa8" };
@@ -107,7 +108,7 @@ export const AdvancedPage = () => {
 
   useEffect(() => {
     if (!selectedProfile) {
-      navigate("/profile-selection");
+      navigate("/profile-selection", returnHere());
       return;
     }
     // Each section loads independently so one failure won't blank the others.

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { User, Star } from "lucide-react";
 import { formatDate, orDash } from "../utils/format";
+import { returnHere } from "../utils/returnTo";
 
 /**
  * Shared profile banner shown under the navbar on every chart page.
@@ -18,7 +19,7 @@ export const ProfileBanner = ({ profile, onChangeProfile, changeIcon, actions })
   const { t } = useTranslation();
   if (!profile) return null;
 
-  const handleChange = onChangeProfile || (() => navigate("/profile-selection"));
+  const handleChange = onChangeProfile || (() => navigate("/profile-selection", returnHere()));
   const details = profile.birth_details || {};
 
   return (

@@ -10,6 +10,7 @@ import { UiModeToggle } from "./UiModeToggle";
 import { BrandLogo } from "./BrandLogo";
 import { SITE_TITLE } from "../config/branding";
 import "../styles/NavDrawer.css";
+import { returnHere } from "../utils/returnTo";
 
 /** Hamburger button + slide-in feature drawer. Shown on every screen size so
  * you can jump between features from any page without returning to the
@@ -43,7 +44,7 @@ export const NavDrawer = () => {
   const handleChangeChart = () => {
     setOpen(false);
     clearProfile();
-    navigate("/profile-selection");
+    navigate("/profile-selection", returnHere());
   };
 
   return (

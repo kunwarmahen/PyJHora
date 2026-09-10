@@ -14,6 +14,7 @@ import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/LifeReport.css";
+import { returnHere } from "../utils/returnTo";
 
 // How often to ask the server how the run is going. Chapters take tens of
 // seconds each, so this is about keeping the progress honest, not low latency.
@@ -91,7 +92,7 @@ export const LifeReportPage = () => {
 
   useEffect(() => {
     if (!selectedProfile) {
-      navigate("/profile-selection");
+      navigate("/profile-selection", returnHere());
       return;
     }
     loadChapters();

@@ -16,6 +16,7 @@ import { Card } from "../components/Card";
 import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
+import { returnHere } from "../utils/returnTo";
 
 // This page got the local-calendar date right on its own; it now shares the
 // helper so there is one place to be right.
@@ -115,7 +116,7 @@ export const PanchaPakshiPage = () => {
 
   useEffect(() => {
     if (!selectedProfile) {
-      navigate("/profile-selection");
+      navigate("/profile-selection", returnHere());
       return;
     }
     load();

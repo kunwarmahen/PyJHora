@@ -16,6 +16,7 @@ import { AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import { useLocalizeName } from "../i18n/localizeName";
+import { returnHere } from "../utils/returnTo";
 
 // House systems the UI offers (mirrors backend AstrologyCompute.BHAVA_METHODS).
 const METHODS = [
@@ -86,7 +87,7 @@ export const BhavaChartPage = () => {
 
   useEffect(() => {
     if (!selectedProfile) {
-      navigate("/profile-selection");
+      navigate("/profile-selection", returnHere());
       return;
     }
     loadChart();

@@ -22,6 +22,7 @@ import { Tabs, useTabs } from "../components/Tabs";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import { useLocalizeName } from "../i18n/localizeName";
+import { returnHere } from "../utils/returnTo";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 const dateISO = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -209,7 +210,7 @@ export const SarvatobhadraPage = () => {
 
   useEffect(() => {
     if (!selectedProfile) {
-      navigate("/profile-selection");
+      navigate("/profile-selection", returnHere());
       return;
     }
     loadChakra();

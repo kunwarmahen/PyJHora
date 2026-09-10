@@ -33,6 +33,7 @@ import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Chat.css";
 import { useLocalizeName } from "../i18n/localizeName";
+import { returnHere } from "../utils/returnTo";
 
 // The three BV Raman suddhi methods the backend exposes. `needsGender` gates the
 // gender selector (janma suddhi is the only one that needs it).
@@ -219,7 +220,7 @@ export const BirthTimeRectificationPage = () => {
 
   useEffect(() => {
     if (!selectedProfile) {
-      navigate("/profile-selection");
+      navigate("/profile-selection", returnHere());
       return;
     }
     if (mode === "rule") rectifyByRule();

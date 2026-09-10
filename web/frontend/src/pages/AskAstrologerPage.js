@@ -40,6 +40,7 @@ import { StreamingMarkdown } from "../components/chat/StreamingMarkdown";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Chat.css";
+import { returnHere } from "../utils/returnTo";
 
 // Toggleable context sections (must mirror the backend's DEFAULT_SECTIONS). In
 // "Full context" mode each is On (seeded) or Off; in "Smart lookup" mode each is
@@ -424,7 +425,7 @@ export const AskAstrologerPage = () => {
   // Redirect if no profile selected
   useEffect(() => {
     if (!selectedProfile) {
-      navigate("/profile-selection");
+      navigate("/profile-selection", returnHere());
       return;
     }
 
@@ -978,7 +979,7 @@ export const AskAstrologerPage = () => {
                   <span>{t("ask.pdf")}</span>
                 </button>
               </PortalMenu>
-              <button onClick={() => navigate("/profile-selection")} className="change-profile-btn">
+              <button onClick={() => navigate("/profile-selection", returnHere())} className="change-profile-btn">
                 <Star size={16} />
                 <span>{t("common.changeChart")}</span>
               </button>

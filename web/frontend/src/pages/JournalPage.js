@@ -14,6 +14,7 @@ import { intlLocale, todayISO } from "../utils/format";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Journal.css";
+import { returnHere } from "../utils/returnTo";
 
 const fmt = (dateStr, locale) => {
   try {
@@ -96,7 +97,7 @@ export const JournalPage = () => {
 
   useEffect(() => {
     if (!selectedProfile) {
-      navigate("/profile-selection");
+      navigate("/profile-selection", returnHere());
       return;
     }
     load();
