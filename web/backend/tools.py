@@ -804,6 +804,18 @@ def _journal_entries(bd, ayanamsa, category: Optional[str] = None, **_):
     return {"count": len(entries), "entries": entries}
 
 
+def _reading_outcomes(bd, ayanamsa, **_):
+    # Like the journal, this is DB-backed (async) and pre-fetched by the endpoint
+    # onto birth_details as `_outcomes`. Only *settled* verdicts are ever put
+    # there — a prediction whose window hasn't closed says nothing yet.
+    rows = bd.get("_outcomes") or []
+    if not rows:
+        return {"count": 0, "outcomes": [],
+                "note": "This person has not yet told us how any past reading "
+                        "turned out. Do not claim a track record."}
+    return {"count": len(rows), "outcomes": rows}
+
+
 def _nakshatra_profile(bd, ayanamsa, current_date: Optional[str] = None, **_):
     r = AstrologyCompute.get_nakshatra_profile(
         ayanamsa=ayanamsa, current_date=current_date, **_args(bd))
@@ -1329,6 +1341,19 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _journal_entries,
     ),
     _Tool(
+        "get_reading_outcomes",
+        "How earlier readings for this person actually turned out, in their own "
+        "words: for each judged reading, what it was, when it was written, "
+        "whether the person reported it happened / partly happened / did not "
+        "happen, what they said about it, and which Vimsottari period was "
+        "running when it landed. This is FEEDBACK on past predictions, not "
+        "chart data — use it to see which of this chart's significations have "
+        "already been confirmed or contradicted before predicting more of the "
+        "same, and never to flatter the reading.",
+        {"type": "object", "properties": {}, "required": []},
+        _reading_outcomes,
+    ),
+    _Tool(
         "get_sarvatobhadra_chakra",
         "Sarvatobhadra Chakra: the transiting grahas mapped onto the all-directions "
         "star grid, reporting which of the native's sensitive points (birth star, "
@@ -1479,7 +1504,7 @@ ALWAYS_TOOLS: List[str] = [
     "get_saturn_transits", "get_upcoming_events",
     # get_nakshatra_profile / get_gochara_phala are section-toggled (SECTION_TOOL),
     # not always-on, so their Ask context chips can turn them off.
-    "get_journal_entries", "search_classical_texts",
+    "get_journal_entries", "get_reading_outcomes", "search_classical_texts",
 ]
 
 
@@ -1570,6 +1595,7 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_kp":               {"label": "KP sub-lords & significators", "category": "Systems"},
     "get_jaimini":          {"label": "Jaimini (Karakamsa)",     "category": "Systems"},
     "get_journal_entries":  {"label": "Astro-journal (your logged life events)", "category": "Your data"},
+    "get_reading_outcomes": {"label": "Did this land? (how past readings turned out)", "category": "Your data"},
     "search_classical_texts": {"label": "Classical texts (cited shlokas)", "category": "Sources"},
 }
 

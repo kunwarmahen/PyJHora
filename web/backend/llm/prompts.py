@@ -2648,6 +2648,38 @@ Planetary Positions (All 9 Grahas) — house counted from the Lagna:"""
                     f"obstructed by {by}"
                 )
 
+        # ── Track record (§68.7) — how earlier readings actually turned out ──
+        # This is the only thing in the whole context block that is not derived
+        # from the ephemeris: it is the reader's own report. Labelled as such,
+        # and capped, because it is testimony rather than data — and because a
+        # model handed a list of past hits will otherwise start advertising them.
+        track = chart_data.get("track_record") or []
+        if track:
+            chart_description += (
+                "\n\nHOW EARLIER READINGS TURNED OUT (this person's own report — "
+                "feedback, NOT chart data):")
+            for r in track[:8]:
+                line = f"\n- \"{r.get('reading')}\""
+                if r.get("read_on"):
+                    line += f" (written {r['read_on']})"
+                line += f" — the user {r.get('user_reported')}"
+                if r.get("happened_on"):
+                    line += f" around {r['happened_on']}"
+                if r.get("running_then"):
+                    line += f", during {r['running_then']}"
+                if r.get("in_their_words"):
+                    # Ends on the closing quote — a trailing period after it
+                    # renders as `June.".` in the prompt.
+                    words = r["in_their_words"].rstrip(". ")
+                    chart_description += line + f". They wrote: \"{words}.\""
+                else:
+                    chart_description += line + "."
+            chart_description += (
+                "\nUse this: a signification this chart has already delivered on is "
+                "worth leaning into, and one the user says did NOT happen must not be "
+                "repeated in the same words. Never cite it as proof that you are "
+                "accurate, and never claim an outcome the user has not reported.")
+
         header = ("Below is birth chart data for this person, calculated using precise "
                   f"astronomical calculations from the {SITE_NAME} Vedic astrology software. "
                   "This is REAL, VERIFIED CHART DATA - not hypothetical."

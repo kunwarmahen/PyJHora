@@ -1,16 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { History, Trash2, MessageCircle, Sparkles, User, Mail } from "lucide-react";
+import { History, Trash2, MessageCircle, Sparkles, User, Mail, Target } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
+import { OutcomeControl } from "../components/OutcomeControl";
+import { VERDICTS } from "../config/outcomes";
 import { intlLocale } from "../utils/format";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Chat.css";
+import "../styles/Outcome.css";
 
 // A digest that was delivered by email or push is a third kind alongside chats and
 // one-shot readings — it wasn't asked for, it arrived. It gets its own icon and
@@ -34,6 +37,11 @@ export const HistoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("all"); // all | chat | reading | digest
+  // The track record (§68.7). Fetched separately rather than derived from
+  // `items`, because an outcome outlives the reading it judges: once
+  // AI_HISTORY_MAX prunes the reading away, the verdict is still here and still
+  // counts — deriving the summary from the visible list would quietly forget it.
+  const [track, setTrack] = useState(null);
 
   const fmt = (iso) => {
     if (!iso) return "";
@@ -55,6 +63,12 @@ export const HistoryPage = () => {
     try {
       const resp = await astrologyService.listHistory();
       setItems(resp.data.conversations || []);
+      try {
+        const tr = await astrologyService.listOutcomes();
+        setTrack(tr.data.summary || null);
+      } catch (e) {
+        /* the track record is a bonus panel — a failure just hides it */
+      }
     } catch (err) {
       setError(err.response?.data?.detail || t("history.loadError"));
     } finally {
@@ -101,6 +115,21 @@ export const HistoryPage = () => {
     }
   };
 
+  // Applying the saved verdict in place keeps the row from flickering through a
+  // full reload; the summary is refetched because a hit rate cannot be updated
+  // locally without re-deriving the same rule the backend already owns.
+  const onOutcome = useCallback(async (id, outcome) => {
+    setItems((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, outcome: outcome || undefined } : c))
+    );
+    try {
+      const tr = await astrologyService.listOutcomes();
+      setTrack(tr.data.summary || null);
+    } catch (e) {
+      /* ignore */
+    }
+  }, []);
+
   const visible = useMemo(
     () => items.filter((c) => filter === "all" || (c.kind || "reading") === filter),
     [items, filter]
@@ -134,6 +163,31 @@ export const HistoryPage = () => {
 
       <div className="dashboard-content">
         <ErrorBanner message={error} />
+
+        {track && track.total > 0 && (
+          <div className="ui-card ui-card--pad-lg mb-xl">
+            <h3 className="ui-card-header ui-card-header--sm">
+              <Target size={18} />
+              {t("outcome.trackTitle")}
+            </h3>
+            <div className="track-record">
+              {track.hit_rate !== null && track.hit_rate !== undefined && (
+                <div className="track-record__rate">
+                  <b>{track.hit_rate}%</b>
+                  <span>{t("outcome.trackRate", { n: track.settled })}</span>
+                </div>
+              )}
+              <div className="track-record__counts">
+                {VERDICTS.filter((v) => track.counts?.[v]).map((v) => (
+                  <span key={v} className={`outcome-chip outcome-chip--${v}`}>
+                    {track.counts[v]} {t(`outcome.verdict.${v}`)}
+                  </span>
+                ))}
+              </div>
+              <p className="track-record__note">{t("outcome.trackNote")}</p>
+            </div>
+          </div>
+        )}
 
         <div className="history-filters" style={{ marginBottom: "1rem" }}>
           {["all", "chat", "reading", "digest"].map((f) => (
@@ -188,6 +242,7 @@ export const HistoryPage = () => {
                         {c.last_model ? `${c.last_model} · ` : ""}
                         {fmt(c.updated_at)}
                       </div>
+                      <OutcomeControl item={c} profileId={c.profile_id} onSaved={onOutcome} />
                     </div>
                     <button
                       className="history-item__delete"

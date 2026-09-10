@@ -444,6 +444,7 @@ const ACTIVITY_KINDS = [
   { key: "ai", label: "AI readings & chats" },
   { key: "digest", label: "Digests" },
   { key: "journal", label: "Journal" },
+  { key: "outcome", label: "Reading outcomes" },
   { key: "quiz", label: "Quiz" },
   { key: "share", label: "Shares" },
   { key: "profile", label: "Profiles" },

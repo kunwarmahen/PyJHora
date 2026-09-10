@@ -11,6 +11,12 @@
    "path:conversation_id*"
   ]
  },
+ "DELETE /api/ai/conversations/{conversation_id}/outcome": {
+  "body": "",
+  "params": [
+   "path:conversation_id*"
+  ]
+ },
  "DELETE /api/astrology/quiz/{session_id}": {
   "body": "",
   "params": [
@@ -133,6 +139,12 @@
   "params": [
    "path:conversation_id*",
    "path:trace_id*"
+  ]
+ },
+ "GET /api/ai/outcomes": {
+  "body": "",
+  "params": [
+   "query:profile_id"
   ]
  },
  "GET /api/ai/sources": {
@@ -1061,6 +1073,12 @@
  "PUT /api/admin/config": {
   "body": "RuntimeConfigRequest",
   "params": []
+ },
+ "PUT /api/ai/conversations/{conversation_id}/outcome": {
+  "body": "ReadingOutcomeRequest",
+  "params": [
+   "path:conversation_id*"
+  ]
  },
  "PUT /api/auth/email": {
   "body": "UpdateEmailRequest",

@@ -1197,6 +1197,17 @@ export const astrologyService = {
       rating,
     }),
 
+  // ---- "Did this land?" — outcomes on saved readings (§68.7) ----
+  // Thumbs up/down (above) rates the answer; these rate the prediction, later,
+  // against what actually happened. `payload.journal` optionally creates the
+  // matching astro-journal entry in the same call.
+  setReadingOutcome: (readingId, payload) =>
+    api.put(`/api/ai/conversations/${readingId}/outcome`, payload),
+  clearReadingOutcome: (readingId) =>
+    api.delete(`/api/ai/conversations/${readingId}/outcome`),
+  listOutcomes: (profileId = null) =>
+    api.get("/api/ai/outcomes", { params: { profile_id: profileId || undefined } }),
+
   // System health / diagnostics
   getHealth: () => api.get("/health"),
 

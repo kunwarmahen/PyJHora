@@ -955,6 +955,10 @@
 }
 .history-item__main {
   min-width: 0;
+  /* Fills the row rather than shrinking to its text: the "did this land?"
+     editor (§68.7) lives in here, and a content-sized parent renders it as a
+     half-width panel floating mid-row. */
+  flex: 1;
 }
 .history-item__title {
   font-weight: 600;

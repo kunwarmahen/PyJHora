@@ -105,6 +105,10 @@ export const HELP_SECTIONS = [
       // /history, and a second entry claiming the same path makes the match
       // ambiguous — which would leave the History page's "?" with nowhere to go.
       { id: "aiDigestHistory" },
+      // "Did this land?" (§68.7) — no `to`, same reason as aiDigestHistory: the
+      // control lives on /history, which aiHistory already claims.
+      { id: "aiDidThisLand" },
+      { id: "aiTrackRecord" },
       { id: "digestCautions", to: "/daily-digest" },
       { id: "digestTaraBala" },
       { id: "digestWindowOverlap" },

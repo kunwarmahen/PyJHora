@@ -434,7 +434,8 @@ export const FEATURE_ALIASES = {
     + " padas bhava arudha",
   remedies: "gemstone gem stone mantra upaya parihara donation deity",
   lifeReport: "report full life story chapters narrative",
-  history: "saved readings past previous history",
+  history:
+    "saved readings past previous history outcome outcomes did this land track record accuracy hit rate came true verdict",
   gochara: "transit phala moon vedha",
   nakshatra: "star birth star janma tarabala constellation",
   ephemeris: "planet positions longitude tables ephemeris",

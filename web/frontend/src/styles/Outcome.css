@@ -1,0 +1,265 @@
+/* "Did this land?" — outcomes on saved readings, and the track record (§68.7).
+ *
+ * The four verdicts get the app's existing semantic colours rather than a fifth
+ * private palette: happened = success, partly = warning, didn't = danger, not
+ * yet = plain muted text, because "too early to tell" is not a result and must
+ * not read like one. */
+
+.outcome-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+  font-size: 0.72rem;
+  font-family: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.outcome-trigger:hover {
+  color: var(--accent-strong);
+  border-color: var(--accent);
+}
+/* Once a verdict is recorded the chip carries its own colour — the dashed
+   "nothing here yet" outline around it would read as an empty slot. */
+.outcome-trigger:has(.outcome-chip) {
+  border-color: transparent;
+  padding: 0;
+}
+
+/* The row centres its delete button against the title; with the editor open it
+   should sit at the top instead of floating halfway down a tall panel. */
+.history-item:has(.outcome-editor) {
+  align-items: flex-start;
+}
+
+.outcome-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--radius-pill);
+  padding: 1px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.outcome-chip--happened {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.outcome-chip--partly {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+.outcome-chip--didnt {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.outcome-chip--not_yet {
+  background: rgba(var(--text-muted-rgb), 0.14);
+  color: var(--text-secondary);
+}
+
+/* ── The editor ───────────────────────────────────────────────────────── */
+
+.outcome-editor {
+  margin-top: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  cursor: default;
+}
+.outcome-editor__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+.outcome-x {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  line-height: 0;
+}
+.outcome-x:hover {
+  color: var(--danger);
+}
+
+.outcome-verdicts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.outcome-verdict {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-secondary);
+  border-radius: var(--radius-pill);
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.outcome-verdict:hover {
+  border-color: var(--accent);
+}
+.outcome-verdict--happened.is-active {
+  background: var(--success-bg);
+  border-color: var(--success);
+  color: var(--success);
+  font-weight: 700;
+}
+.outcome-verdict--partly.is-active {
+  background: var(--warning-bg);
+  border-color: var(--warning);
+  color: var(--warning);
+  font-weight: 700;
+}
+.outcome-verdict--didnt.is-active {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--danger);
+  font-weight: 700;
+}
+.outcome-verdict--not_yet.is-active {
+  background: var(--surface-sunken);
+  border-color: var(--text-muted);
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.outcome-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.outcome-field--row {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.outcome-field > span {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+.outcome-field input,
+.outcome-field select,
+.outcome-field textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+.outcome-field textarea {
+  resize: vertical;
+}
+
+.outcome-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.outcome-journal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-left: var(--space-md);
+  border-left: 2px solid var(--border);
+}
+.outcome-hint,
+.outcome-error {
+  margin: 0;
+  font-size: 0.78rem;
+}
+.outcome-hint {
+  color: var(--text-muted);
+}
+.outcome-error {
+  color: var(--danger);
+}
+
+.outcome-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+.outcome-save {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 8px 18px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.outcome-save:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.outcome-clear {
+  background: none;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* ── The track record ─────────────────────────────────────────────────── */
+
+.track-record {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-lg);
+  row-gap: var(--space-sm);
+}
+.track-record__rate {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+.track-record__rate b {
+  font-size: 2rem;
+  color: var(--accent-strong);
+}
+.track-record__rate span {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.track-record__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.track-record__note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  flex-basis: 100%;
+}

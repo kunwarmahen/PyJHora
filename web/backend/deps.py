@@ -29,6 +29,7 @@ from llm_service import llm_service, LLMProvider
 import tools as tool_registry
 import conversations as convo
 import journal
+import outcomes
 import ical
 import tool_traces
 import user_settings
@@ -328,6 +329,40 @@ async def _save_reading(user_id: str, *, source: str, title: str, text: str,
         )
     except Exception as e:  # pragma: no cover - defensive
         print(f"Failed to persist reading ({source}): {e}")
+
+
+async def attach_user_feedback(user_id: str, *,
+                               birth_details: Optional[dict] = None,
+                               chart_data: Optional[dict] = None,
+                               profile_id: Optional[str] = None) -> None:
+    """Hang this person's own reported life onto an AI request.
+
+    Two things the chart cannot tell the model and only the user can: the
+    astro-journal (§5.9 — what actually happened, and when) and the outcomes of
+    earlier readings (§68.7 — which of those readings landed). Both are DB-backed
+    and async, so they are fetched here and handed to the sync tool dispatch on
+    `birth_details` (the `_journal` / `_outcomes` convention), while the settled
+    outcomes also go into `chart_data` so a pass-all reading sees them without
+    having to ask.
+
+    Best-effort throughout: a reading that loses its feedback is a slightly worse
+    reading, not a failed request."""
+    try:
+        entries = await journal.entries_for_ai(user_id, profile_id)
+    except Exception as e:  # pragma: no cover - defensive
+        print(f"Failed to load journal for AI: {e}")
+        entries = []
+    try:
+        track = await outcomes.for_ai(user_id, profile_id)
+    except Exception as e:  # pragma: no cover - defensive
+        print(f"Failed to load reading outcomes for AI: {e}")
+        track = []
+    if birth_details is not None:
+        birth_details["_journal"] = entries
+        birth_details["_outcomes"] = track
+    if chart_data is not None and track:
+        chart_data["track_record"] = track
+
 
 _LUNAR_RUNGS = ("tithi", "paksha", "month", "annual")
 

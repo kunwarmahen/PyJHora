@@ -25,6 +25,7 @@ import tools as tool_registry
 import conversations as convo
 import digest_history
 import journal
+import outcomes as outcome_store
 import ical
 import tool_traces
 import user_settings
@@ -99,6 +100,17 @@ async def list_ai_conversations(
         if digests:
             items += await digest_history.list_for_user(current_user, profile_id)
             items.sort(key=lambda c: c.get("updated_at") or "", reverse=True)
+        # "Did this land?" verdicts (§68.7), attached in one query so the list can
+        # show its chips without a round trip per row. Best-effort: a history that
+        # loses its verdict chips is still a history.
+        try:
+            marks = await outcome_store.by_reading_id(current_user,
+                                                      [i["id"] for i in items])
+            for i in items:
+                if i["id"] in marks:
+                    i["outcome"] = marks[i["id"]]
+        except Exception as e:  # pragma: no cover - defensive
+            print(f"Failed to attach reading outcomes: {e}")
         return {"conversations": items}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -145,11 +157,15 @@ async def delete_ai_conversation(
     if digest_history.is_digest_id(conversation_id):
         if not await digest_history.delete(current_user, conversation_id):
             raise HTTPException(status_code=404, detail="Conversation not found")
+        await outcome_store.delete_for_reading(current_user, conversation_id)
         return {"success": True}
     ok = await convo.delete_conversation(current_user, conversation_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Conversation not found")
     await tool_traces.delete_for_conversation(current_user, conversation_id)
+    # Deleting a reading by hand takes its verdict too. Automatic retention
+    # pruning does NOT — see outcomes.py for why the two differ.
+    await outcome_store.delete_for_reading(current_user, conversation_id)
     return {"success": True}
 
 
@@ -167,3 +183,98 @@ async def submit_feedback(
     if not ok:
         raise HTTPException(status_code=404, detail="Message not found")
     return {"success": True}
+
+
+# ============= DID THIS LAND? — OUTCOMES ON SAVED READINGS (§68.7) =============
+# The join between a reading and what actually happened. Thumbs up/down (above)
+# rates the *answer*; this rates the *prediction*, months later, against a life.
+
+
+async def _reading_for_outcome(user_id: str, reading_id: str) -> Dict[str, Any]:
+    """The serialized reading an outcome is being recorded against — conversation
+    or delivered digest, both already in one shape. 404 if it isn't theirs."""
+    if digest_history.is_digest_id(reading_id):
+        item = digest_history.serialize(
+            await digest_history.get(user_id, reading_id))
+    else:
+        item = convo.serialize_conversation(
+            await convo.get_conversation(user_id, reading_id))
+    if not item:
+        raise HTTPException(status_code=404, detail="Reading not found")
+    return item
+
+
+@router.put("/api/ai/conversations/{conversation_id}/outcome")
+async def set_reading_outcome(
+    conversation_id: str,
+    request: ReadingOutcomeRequest,
+    current_user: str = Depends(get_current_user)
+):
+    """Record (or re-record) "did this land?" on one saved reading, optionally
+    logging what happened to the astro-journal in the same call."""
+    verdict = outcome_store.normalize_verdict(request.verdict)
+    if not verdict:
+        raise HTTPException(
+            status_code=400,
+            detail="verdict must be one of: " + ", ".join(outcome_store.VERDICTS))
+    item = await _reading_for_outcome(current_user, conversation_id)
+    profile_id = request.profile_id or item.get("profile_id")
+
+    # The chart to date the outcome against: whatever the caller sent, else the
+    # one the reading itself was made for (readings carry their birth details).
+    bd = request.birth_details
+    if bd is None and item.get("birth_details"):
+        try:
+            bd = BirthDetails(**item["birth_details"])
+        except Exception:
+            bd = None
+
+    # "And log what happened" — one call, so the entry and the verdict cannot be
+    # half-written against each other.
+    journal_entry_id = None
+    j = request.journal
+    if j and j.title.strip():
+        entry = await journal.create_entry(
+            current_user, profile_id or j.profile_id, j.date, j.title,
+            j.category, j.notes,
+            _dasha_snapshot(j.birth_details or bd, j.date,
+                            j.ayanamsa or request.ayanamsa))
+        journal_entry_id = entry["id"]
+
+    # Which period was running when it landed — the whole point of feeding this
+    # back ("in the previous Jupiter/Saturn period the user reported …").
+    on = request.outcome_date or (j.date if j else None) \
+        or (item.get("created_at") or "")[:10]
+    dasha = _dasha_snapshot(bd, on, request.ayanamsa) if on else None
+
+    saved = await outcome_store.record(
+        current_user, conversation_id, verdict=verdict, note=request.note,
+        outcome_date=request.outcome_date or (j.date if j else None),
+        profile_id=profile_id, journal_entry_id=journal_entry_id, dasha=dasha,
+        snapshot=outcome_store.snapshot_of(item))
+    return saved
+
+
+@router.delete("/api/ai/conversations/{conversation_id}/outcome")
+async def clear_reading_outcome(
+    conversation_id: str,
+    current_user: str = Depends(get_current_user)
+):
+    """Un-judge a reading. A linked journal entry is left alone — it is a record
+    of the user's life, not of their opinion of a reading."""
+    await outcome_store.clear(current_user, conversation_id)
+    return {"success": True}
+
+
+@router.get("/api/ai/outcomes")
+async def list_reading_outcomes(
+    profile_id: Optional[str] = None,
+    current_user: str = Depends(get_current_user)
+):
+    """Every verdict this user has recorded, plus the track-record summary.
+
+    Rows whose reading has since been pruned by `AI_HISTORY_MAX` are still here —
+    each carries its own snapshot of what it judged."""
+    rows = await outcome_store.list_for_user(current_user, profile_id)
+    return {"outcomes": rows, "summary": outcome_store.summarize(rows),
+            "verdicts": list(outcome_store.VERDICTS)}

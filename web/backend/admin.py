@@ -60,6 +60,9 @@ USER_COLLECTIONS: Dict[str, str] = {
     # The forward calendar of a chart's events (§70) and the claim-check queue
     # (§69). Both hold rows about one person and must go when they do.
     "chart_events": "user_id",
+    # "Did this land?" verdicts on saved readings (§68.7). Deliberately outlive
+    # the readings they judge (retention pruning), so they must be deleted here.
+    "reading_outcomes": "user_id",
     # Found by the registry guard in tests/test_admin.py: Life Report jobs carry
     # the whole generated report and had never been cascade-deleted.
     "life_report_jobs": "user_id",
@@ -464,6 +467,8 @@ _ACTIVITY_SOURCES = [
      "summary": lambda d: f"{d.get('cadence') or 'daily'} digest for {_clip(d.get('subject'), 40)}"},
     {"kind": "journal", "collection": "journal_entries", "ts": "created_at", "user": "user_id",
      "summary": lambda d: "journal entry saved"},
+    {"kind": "outcome", "collection": "reading_outcomes", "ts": "updated_at", "user": "user_id",
+     "summary": lambda d: f"reading marked {d.get('verdict') or 'judged'}"},
     {"kind": "quiz", "collection": "quiz_sessions", "ts": "created_at", "user": "user_id",
      "summary": lambda d: "quiz · " + (_clip(", ".join(d.get("topics") or []), 40)
                                        or str(d.get("level") or "session"))},

@@ -135,6 +135,13 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   control (filtered to that tool) for reopening a past reading in place. Readings pile up; each is
   individually deletable. Retention is capped by `AI_HISTORY_MAX` (default 100, pruned on write).
   (The Learn-the-Chart quiz keeps its own dedicated history and is not stored here.)
+- **"Did this land?"**: every saved reading takes an **outcome** — it happened / partly / too early
+  to tell / it didn't — with what actually came about in your own words, optionally logged to your
+  astro-journal in the same step. Settled verdicts are fed back into later readings, so the AI can
+  see which of your chart's indications you confirmed and which you told it were wrong. The History
+  page tallies them into a **track record** (hit rate over settled outcomes; "too early to tell" is
+  excluded, a partial counts as half). Verdicts outlive the readings they judge, so the tally is not
+  reset when older readings age out
 - **Answer affordances**: copy, **regenerate** (with the same model, or pick a
   _different_ provider/model from the split-button menu), thumbs up/down, and
   **export the whole conversation to Markdown or PDF**
@@ -454,6 +461,7 @@ pyjhora-web/
 │   ├── tools.py             # Tool registry for agentic mode (wraps AstrologyCompute) + GET /api/ai/tools catalog
 │   ├── tool_traces.py       # Lazy side-storage for smart-lookup tool results
 │   ├── conversations.py     # Unified AI history: chat threads + one-shot readings (source registry, save_reading, retention cap)
+│   ├── outcomes.py          # "Did this land?" verdicts on saved readings — snapshot, track record, fed back to the prompt
 │   ├── life_report.py       # Server-side Life Report job: runs the 7 chapters in the background so a sleeping phone can't interrupt it
 │   ├── user_settings.py     # Per-user encrypted API keys
 │   ├── ratelimit.py         # Per-user rate limiting for AI endpoints
@@ -1581,6 +1589,13 @@ the Daily / Period digests). Exposed to Ask-Astrologer as the `get_tithi_pravesh
 - **Per-page "Recent readings"** control on each tool page for reopening a past reading in place
 - Readings pile up (each generation is its own item); retention capped by `AI_HISTORY_MAX`
   (default 100, pruned on write). The Learn-the-Chart quiz keeps its own separate history
+- **Outcomes** — a "did this land?" verdict on any item (reading or delivered digest), on the
+  History page and in each tool page's own "Recent readings" panel. Optionally writes the matching
+  astro-journal entry in the same request, and snapshots the Vimsottari period that was running when
+  it landed. Stored in their own `reading_outcomes` collection with a copy of what they judged, so a
+  verdict **survives its reading being pruned** by `AI_HISTORY_MAX` — deleting a reading by hand
+  does take its verdict, the retention cap does not. Settled verdicts reach later readings through
+  the prompt context and the `get_reading_outcomes` tool
 
 ### 23. Admin console (`/admin`) — deployer only
 
@@ -1594,7 +1609,7 @@ console's existence is not confirmed to them.
 - **Users** — every account with headline counts; suspend (blocks login, Google sign-in and token
   refresh) and cascade-delete. You cannot touch yourself or another admin
 - **Activity** — what the deployment has been doing: signups, AI readings and chats, delivered
-  digests, journal entries, quizzes, shares. **Derived on read** from the collections themselves
+  digests, journal entries, reading outcomes, quizzes, shares. **Derived on read** from the collections themselves
   rather than logged, which is why it covers everything that ever happened, including data written
   long before any of this existed. Metadata only (titles, kinds, counts — never what someone wrote),
   so it stays readable without `ADMIN_CONTENT_ACCESS`. Filter by kind and by username
@@ -1888,7 +1903,7 @@ concern in §4 — pure file moves, no behaviour change):
 - **llm_service.py** + **llm/**: unified LLM service (Ollama / OpenAI-compatible /
   Gemini / OpenAI) — the tool loop stays in `llm_service.py`; provider adapters are
   `llm/providers/*`, prompt builders + the context renderer are `llm/prompts.py`
-- **tools.py**: the AI tool registry (48 tools) — also what `/api/v1/tools` and the
+- **tools.py**: the AI tool registry (49 tools) — also what `/api/v1/tools` and the
   MCP server publish
 - **events.py**: the forward calendar of a chart's own events (§70) — dasha
   changes, Saturn's phases, ingresses, retrograde stations, eclipses — stored per

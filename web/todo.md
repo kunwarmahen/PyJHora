@@ -6887,9 +6887,9 @@ personal one. Both halves exist; this is the join.
 13.0827, 80.2707`. Harmless given the location layer always supplies a place now, but it should
 probably fail loudly rather than silently answer for someone else's city.)*
 
-### 68.7 (P2) 🔴 Close the loop on predictions
+### 68.7 (P2) ✅ Close the loop on predictions — **see §72**
 
-- [ ] **"Did this land?" on saved readings, linked to the journal.**
+- [x] **"Did this land?" on saved readings, linked to the journal.**
 
 The app has unified AI history (§17), a journal (`journal.py`) and a life timeline — and **no thread
 connecting a reading to what actually happened**. Add an outcome control on a saved reading, let it
@@ -6921,7 +6921,8 @@ only genuine evaluation signal this project would have for all the prompt work i
 If two: **§68.5 event alerts** for what a user actually feels, and **§68.1 the claim checker** for
 what keeps biting. §68.2 CI is the cheapest thing on the list and should probably just happen.
 
-> **§68.1 is done — see §69; §68.5 — see §70; §68.6 — see §71.** The rest of §68 is still open.
+> **§68.1 is done — see §69; §68.5 — see §70; §68.6 — see §71; §68.7 — see §72.** §68.2, §68.3,
+> §68.4 and §68.8 are still open.
 
 ---
 
@@ -7373,3 +7374,120 @@ failing the location question; and the endpoint really binds the optional body.
 - **Tara names are not localised.** They are not in the generated name tables (which cover rasis,
   nakshatras and grahas), and the existing sub-tools panel prints them raw too — adding a fourth
   table for nine names belongs with the i18n data layer, not here.
+
+---
+
+## 72. Did this land? — the loop from a prediction back to a life (§68.7) — ✅ SHIPPED 2026-09-10
+
+> *"can we work on 68.7"*
+
+Three things already existed and none of them touched: the unified AI history (§17) knew every
+reading ever generated, the astro-journal (§5.9) knew what had actually happened, and the prompts
+knew the chart. **Nothing joined a prediction to its outcome** — so the app could produce a thousand
+readings and never learn, and neither could its owner.
+
+That is the whole feature. The widget is small; what it buys is that this project finally has an
+evaluation signal at all — for §51–§67, for §68.1's claim checker, for every prompt decision made on
+taste since. It is also the one thing on the §68 list that no other jyotish app ships.
+
+### The four answers
+
+| verdict | counts as | why |
+|---|---|---|
+| **It happened** | a hit | |
+| **Partly** | half a hit | promoting a partial to a full one is the flattering direction; half is the one that can't be accused of it |
+| **Too early to tell** | **nothing** | not a result — see below |
+| **It didn't** | a miss | |
+
+**"Too early to tell" is a first-class answer, and it is excluded from everything.** It is the honest
+state of most predictions most of the time; offering only hit/miss forces a judgement the reader
+cannot yet make, and they will either guess or skip the control entirely. So it is recordable, it is
+kept out of the hit rate, and it is **withheld from the model** — a prediction whose window has not
+closed says nothing about whether the reading was any good, and showing it to the AI as feedback
+would be showing it noise.
+
+### An outcome is not stored on the reading
+
+`outcomes.py` owns its own collection, and each row carries a **snapshot** of what it judged: source,
+title, an excerpt of the text, the date it was written.
+
+That is not tidiness. `AI_HISTORY_MAX` prunes readings continuously (default 100), so a verdict
+stored inside the conversation document would evaporate on the user's 101st reading — taking the only
+evaluation signal this project has with it, silently, exactly when the user had generated enough
+readings for the track record to mean something.
+
+The corollary, and the rule worth remembering: **deleting a reading by hand deletes its verdict;
+automatic pruning does not.** A verdict outliving the thing it judged would be a surprise when the
+user asked for the reading to go, and is the entire point when the retention cap did it for them.
+`reading_outcomes` is registered in `admin.USER_COLLECTIONS`, so a cascade delete still takes it —
+it is the only place that can, now that it no longer hangs off the conversation.
+
+### Fed back as testimony, not as data
+
+Settled outcomes reach the model two ways: in the pass-all context block, and through a new
+`get_reading_outcomes` tool in smart-lookup mode. Both are labelled the same way —
+
+```
+HOW EARLIER READINGS TURNED OUT (this person's own report — feedback, NOT chart data):
+- "Ask Astrologer: Career in 2025" (written 2025-01-04) — the user confirmed this happened
+  around 2025-06-01, during Mars/Sun. They wrote: "Moved to Pune for a new role in June."
+Use this: a signification this chart has already delivered on is worth leaning into, and one the
+user says did NOT happen must not be repeated in the same words. Never cite it as proof that you
+are accurate, and never claim an outcome the user has not reported.
+```
+
+The label matters for the same reason §71's authority clause did: a line sitting among the ephemeris
+lines gets read as computed fact. And the last sentence is there because a model handed a list of its
+own past hits will otherwise start advertising them — which is precisely the failure mode §68.1
+exists to catch. The empty case says so too: `get_reading_outcomes` with nothing recorded returns
+*"Do not claim a track record"* rather than an empty list, because "success with nothing in it" is
+the shape both a dead feature and an invented track record take.
+
+Each row also carries **which Vimsottari period was running when it landed** (`_dasha_snapshot` at
+the outcome date, the same helper the journal uses) — that is what turns the feedback from a score
+into something a reading can reason from.
+
+### The journal half, in the same request
+
+The control's "also add this to my journal" writes the astro-journal entry and links it to the
+verdict in **one call**. Two calls would mean an entry with no verdict, or a verdict pointing at an
+entry that was never written, whenever a request failed between them.
+
+### A bug found on the way: the journal never reached the non-streaming Ask
+
+`bd["_journal"]` was injected only in `/api/astrology/ask/stream`. The plain `/api/astrology/ask`
+never set it, so `get_journal_entries` had been quietly returning `{"count": 0, "entries": []}` on
+that path since §5.9 shipped — a tool that succeeds with nothing in it, again. Both paths now call
+one `deps.attach_user_feedback`, which is also what stops this feature from arriving half-wired.
+
+### Surfaces
+
+- **Store** — `backend/outcomes.py`: `record` (upsert — one verdict per reading), `clear`,
+  `by_reading_id` (one query for the whole history list), `list_for_user`, `summarize`, `for_ai`.
+- **REST** — `PUT`/`DELETE /api/ai/conversations/{id}/outcome`, `GET /api/ai/outcomes`. Works on a
+  delivered digest as well as a conversation: both already serialize to one shape, so
+  `_reading_for_outcome` needs no special case.
+- **AI tool** — `get_reading_outcomes` in `ALWAYS_TOOLS`, category "Your data".
+- **Prompt** — the track-record block in `_render_context_block`, capped at 8 rows.
+- **UI** — `components/OutcomeControl.js` (verdict chips + note + date + the journal half),
+  `config/outcomes.js` (the vocabulary, importable without the API client so the tests can sweep it),
+  `styles/Outcome.css`. On **/history** with a track-record card, and — because `RecentReadings` is
+  one shared component — on **every tool page's own reading list** from a single edit.
+- **Admin** — `reading_outcomes` in `USER_COLLECTIONS` + a new `outcome` activity kind.
+- **Help / search / i18n** — FAQ `aiDidThisLand` + `aiTrackRecord`; history keywords gain
+  *did this land / track record / hit rate / came true / verdict*; `outcome.*` in `en.json`.
+- **Tests** — `backend/tests/test_reading_outcomes.py` (21) sweeps the verdict vocabulary rather than
+  spot-checking it, and pins the two rules that would corrupt the signal without failing: unsettled
+  verdicts stay out of the rate, and partial hits stay at half. `frontend/src/config/outcomes.test.js`
+  holds the frontend vocabulary to the same list. 1010 backend + 212 frontend green.
+
+### Traps hit on the way
+
+- **`{{count}}` in an i18n string is not a variable.** i18next treats `count` as the plural selector
+  and looks for `trackRate_one` / `trackRate_other`, so the interpolation silently renders nothing.
+  Renamed to `{{n}}`.
+- **A component that imports `services/api` cannot be imported by a Jest test** — axios ships ESM and
+  the CRA transform doesn't cover it. That is why the verdict list lives in `config/outcomes.js`;
+  it is also the better home, since three separate things render it.
+- **`.history-item__main` had no `flex: 1`**, so the editor rendered as a half-width panel floating
+  in the middle of the row. Fixed there rather than worked around in the new stylesheet.

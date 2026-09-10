@@ -756,6 +756,21 @@ class FeedbackRequest(BaseModel):
     rating: Optional[str] = None  # "up" | "down" | null to clear
 
 
+class ReadingOutcomeRequest(BaseModel):
+    """"Did this land?" — the reader's verdict on one saved reading (§68.7).
+
+    `journal` is the optional "and log what happened" half: when present a
+    journal entry is created from it in the same call and linked to the outcome,
+    so the two halves of the loop can never drift apart."""
+    verdict: str  # happened | partly | not_yet | didnt
+    note: str = ""
+    outcome_date: Optional[str] = None  # YYYY-MM-DD the user says it happened
+    profile_id: Optional[str] = None
+    birth_details: Optional[BirthDetails] = None  # to snapshot the running dasha
+    ayanamsa: Optional[str] = None
+    journal: Optional[JournalEntryRequest] = None
+
+
 # ============= PER-USER API KEYS =============
 
 class ApiKeyRequest(BaseModel):

@@ -1038,6 +1038,12 @@ async def ask_question(
             current_tz=tz_now,
         )
 
+        # The user's own reported life: the astro-journal and how earlier
+        # readings landed. Only the streaming path used to do this, so
+        # `get_journal_entries` returned nothing at all on this one.
+        await attach_user_feedback(current_user, chart_data=chart_data,
+                                   profile_id=request.profile_id)
+
         # Resolve the model config (request key → user's stored key → env key)
         cfg = await _resolve_cfg(current_user, request)
 
@@ -1060,6 +1066,8 @@ async def ask_question(
             # Drain the tool loop, collecting the final answer + the call trace.
             seed_block = llm_service._render_context_block(chart_data, tool_mode=True)
             bd = request.birth_details.model_dump()
+            await attach_user_feedback(current_user, birth_details=bd,
+                                       profile_id=request.profile_id)
             parts = []
             async for ev in llm_service.run_tool_loop(
                     seed_block, request.question, history, cfg, bd,
@@ -1146,6 +1154,10 @@ async def ask_question_stream(
         vargas=request.vargas,
         current_tz=tz_now,
     )
+    # Settled "did this land?" verdicts ride along in the context block too, so a
+    # pass-all answer sees the track record without having to ask for it (§68.7).
+    await attach_user_feedback(current_user, chart_data=chart_data,
+                               profile_id=request.profile_id)
     cfg = await _resolve_cfg(current_user, request)
     conv = await convo.get_conversation(current_user, request.conversation_id) \
         if request.conversation_id else None
@@ -1176,12 +1188,11 @@ async def ask_question_stream(
                 # Seed = the toggled-on sections; the model fetches the rest via tools.
                 seed_block = llm_service._render_context_block(chart_data, tool_mode=True)
                 bd = request.birth_details.model_dump()
-                # Inject the user's journal so get_journal_entries can serve it
-                # synchronously inside the (sync) tool dispatch. Best-effort.
-                try:
-                    bd["_journal"] = await journal.entries_for_ai(current_user, request.profile_id)
-                except Exception:
-                    bd["_journal"] = []
+                # The user's own reported life — journal + how earlier readings
+                # landed — so get_journal_entries / get_reading_outcomes can serve
+                # them synchronously inside the (sync) tool dispatch.
+                await attach_user_feedback(current_user, birth_details=bd,
+                                           profile_id=request.profile_id)
                 async for ev in llm_service.run_tool_loop(
                         seed_block, request.question, history, cfg, bd,
                         request.ayanamsa or DEFAULT_AYANAMSA,

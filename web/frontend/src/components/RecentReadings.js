@@ -5,7 +5,9 @@ import { History, ChevronDown, Trash2, User } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { intlLocale } from "../utils/format";
+import { OutcomeControl } from "./OutcomeControl";
 import "../styles/Chat.css";
+import "../styles/Outcome.css";
 
 // A compact, collapsible "Recent readings" panel for a single tool page. It lists
 // this tool's own saved AI readings (all profiles — a profile-bound tool's history
@@ -96,6 +98,11 @@ export const RecentReadings = ({ source, profileId, limit = 8 }) => {
     }
   };
 
+  const applyOutcome = (id, outcome) =>
+    setItems((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, outcome: outcome || undefined } : c))
+    );
+
   if (items.length === 0) return null;
   const shown = items.slice(0, limit);
 
@@ -131,6 +138,9 @@ export const RecentReadings = ({ source, profileId, limit = 8 }) => {
                     {c.last_model ? `${c.last_model} · ` : ""}
                     {fmt(c.updated_at)}
                   </div>
+                  {/* "Did this land?" right where the reading is reopened — the
+                      shared panel means every tool page gets it from one file. */}
+                  <OutcomeControl item={c} profileId={c.profile_id} onSaved={applyOutcome} />
                 </div>
                 <button
                   className="history-item__delete"
