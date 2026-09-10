@@ -107,6 +107,7 @@ export const HELP_SECTIONS = [
       { id: "digestTaraBala" },
       { id: "digestWindowOverlap" },
       { id: "digestReadingShape" },
+      { id: "eventAlerts", to: "/timeline?tab=upcoming" },
     ],
   },
   {

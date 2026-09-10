@@ -38,6 +38,7 @@ from typing import Optional
 from config import settings
 from database import get_database
 import digest
+import events
 import notifications
 import runtime_config
 import timezones
@@ -247,9 +248,45 @@ async def _run_cadence(db, spec: dict, max_deferrals: int) -> int:
     return sent_count
 
 
+async def _run_event_alerts(db) -> int:
+    """One pass over users who enabled event alerts (§70).
+
+    Unlike a digest cadence there is no window to claim: an alert belongs to a
+    *crossing*, and `events.claim` locks that event individually. So this pass
+    only decides *when it is polite to send* — at or after the user's chosen
+    local hour — and lets the per-event claim keep it to once.
+
+    The calendar is refreshed on the way past, which is why this is a scheduler
+    job at all: it keeps the stored horizon rolling forward without the user ever
+    opening the page.
+    """
+    sent_count = 0
+    cursor = db[notifications.SETTINGS_COLLECTION].find(
+        {"notifications.event_alerts": True})
+    async for doc in cursor:
+        user_id = doc.get("user_id")
+        if not user_id:
+            continue
+        prefs = {**notifications.DEFAULT_PREFS, **(doc.get("notifications") or {})}
+        try:
+            local = await _user_local_now(user_id, prefs)
+            if local.hour < int(prefs.get("event_hour", 8)):
+                continue
+            today = local.strftime("%Y-%m-%d")
+            await events.refresh_user(user_id, prefs, today=today)
+            result = await events.send_alerts_for_user(user_id, prefs, today=today)
+            sent_count += int(result.get("sent") or 0)
+            if result.get("sent"):
+                print(f"[scheduler] {result['sent']} event alert(s) for {user_id}")
+        except Exception as e:  # never let one user break the loop
+            print(f"[scheduler] event alerts error for {user_id}: {e}")
+    return sent_count
+
+
 async def _tick(max_deferrals: Optional[int] = None) -> int:
     """One pass over all digest-enabled users, across every cadence
-    (daily/weekly/monthly). Returns how many digests were sent."""
+    (daily/fortnightly/monthly), then the event alerts (§70). Returns how many
+    messages were sent."""
     db = get_database()
     if max_deferrals is None:
         max_deferrals = runtime_config.max_deferrals(await runtime_config.get())
@@ -259,6 +296,10 @@ async def _tick(max_deferrals: Optional[int] = None) -> int:
             sent_count += await _run_cadence(db, spec, max_deferrals)
         except Exception as e:
             print(f"[scheduler] {spec['cadence']} pass failed: {e}")
+    try:
+        sent_count += await _run_event_alerts(db)
+    except Exception as e:
+        print(f"[scheduler] event-alert pass failed: {e}")
     return sent_count
 
 

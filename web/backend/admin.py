@@ -57,6 +57,13 @@ USER_COLLECTIONS: Dict[str, str] = {
     "digest_recipients": "user_id",
     "digest_signals": "user_id",
     "digest_readings": "user_id",
+    # The forward calendar of a chart's events (§70) and the claim-check queue
+    # (§69). Both hold rows about one person and must go when they do.
+    "chart_events": "user_id",
+    # Found by the registry guard in tests/test_admin.py: Life Report jobs carry
+    # the whole generated report and had never been cascade-deleted.
+    "life_report_jobs": "user_id",
+    "claim_checks": "username",
     "api_tokens": "username",
     "refresh_tokens": "username",
     "password_reset_tokens": "username",

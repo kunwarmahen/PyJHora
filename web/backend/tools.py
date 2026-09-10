@@ -544,6 +544,28 @@ def _strength(bd, ayanamsa, **_):
     }
 
 
+def _upcoming_events(bd, ayanamsa, months: int = 12,
+                     current_tz: Optional[float] = None, **_):
+    """The dated things this chart has coming (§70).
+
+    `get_life_timeline` answers "what is running"; this answers "what changes,
+    and when" — which is the question a reader actually asks and the one the app
+    could not answer at all before. "Today" is the *reader's* date, so a calendar
+    never opens on yesterday.
+    """
+    import timezones
+    r = AstrologyCompute.get_upcoming_events(
+        months=months, from_date=timezones.today_at_offset(current_tz),
+        ayanamsa=ayanamsa, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    return {"from_date": r["from_date"], "to_date": r["to_date"],
+            "counts": r["counts"],
+            # Capped: a three-year horizon is ~80 events, and the model needs the
+            # next ones, not all of them.
+            "events": r["events"][:40]}
+
+
 def _life_timeline(bd, ayanamsa, target_date: Optional[str] = None, **_):
     # A specific date → the "what's running" window context (maha/bhukti, Saturn
     # phase, nearby ingresses/eclipses). No date → a compact overview: the current
@@ -1007,6 +1029,23 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _life_timeline,
     ),
     _Tool(
+        "get_upcoming_events",
+        "The chart's forward calendar: every dated thing coming up, soonest "
+        "first — Mahadasha/Antardasha changes, Sade Sati / Ashtama / Kantaka "
+        "phases beginning and ending, Jupiter/Saturn/Mars sign changes and the "
+        "nodal axis shifting, retrograde stations, and eclipses (flagged when "
+        "one falls on a natal nakshatra). Each event names the house it falls in "
+        "counted from the Lagna, the Moon and the Arudha Lagna. Use for 'what is "
+        "coming up', 'when does my dasha change', 'when does Sade Sati end', "
+        "'what should I watch for this year'. `get_life_timeline` says what is "
+        "running NOW; this one says what CHANGES and when.",
+        {"type": "object", "properties": {
+            "months": {"type": "integer", "default": 12,
+                       "description": "How far ahead to look, in months (1-60)."}},
+         "required": []},
+        _upcoming_events,
+    ),
+    _Tool(
         "get_saturn_transits",
         "Sade Sati and Saturn's transits from the natal Moon: the ~7½-year Sade "
         "Sati cycles (rising/peak/setting phases with dates), Ashtama (8th) and "
@@ -1398,7 +1437,7 @@ ALWAYS_TOOLS: List[str] = [
     "get_dasha_periods", "get_applicable_dashas",
     "get_sarvatobhadra_chakra", "get_kota_chakra",
     "get_kaala_chakra", "get_tripataki_chakra",
-    "get_saturn_transits",
+    "get_saturn_transits", "get_upcoming_events",
     # get_nakshatra_profile / get_gochara_phala are section-toggled (SECTION_TOOL),
     # not always-on, so their Ask context chips can turn them off.
     "get_journal_entries", "search_classical_texts",
@@ -1454,6 +1493,7 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_nakshatra_profile": {"label": "Nakshatra (birth star) profile + tarabala", "category": "Core chart"},
     "get_divisional_chart": {"label": "Divisional (varga) charts", "category": "Core chart"},
     "get_life_timeline":    {"label": "Life timeline (dasha + transits)", "category": "Timing"},
+    "get_upcoming_events":  {"label": "What's coming (forward calendar)", "category": "Timing"},
     "get_saturn_transits":  {"label": "Sade Sati & Saturn transits", "category": "Timing"},
     "get_dasha_chain":      {"label": "Running dasha periods",  "category": "Timing"},
     "get_dasha_children":   {"label": "Dasha sub-periods",      "category": "Timing"},

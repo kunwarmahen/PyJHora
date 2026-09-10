@@ -731,6 +731,12 @@ class NotificationPrefsRequest(BaseModel):
     monthly_hour: Optional[int] = None
     # Pravesha ladder for the delivered readings: "solar" (Tajaka) or "lunar" (tithi).
     basis: Optional[str] = None
+    # Event alerts (§70). Not a cadence — these fire on a crossing, so the hour
+    # only bounds *when* it is polite to deliver, not what is delivered.
+    event_alerts: Optional[bool] = None
+    event_hour: Optional[int] = None
+    event_lead_days: Optional[int] = None
+    event_kinds: Optional[List[str]] = None
 
 class PushSubscribeRequest(BaseModel):
     # A browser PushSubscription JSON (endpoint + keys).

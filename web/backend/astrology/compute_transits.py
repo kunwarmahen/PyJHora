@@ -769,3 +769,241 @@ class TransitsMixin:
             print(f"[digest] window-event scan failed: {e}")
         events.sort(key=lambda x: x["date"])
         return events
+
+    # ── Forward calendar of a chart's own events (§70) ───────────────────────
+    # Ingress alerts are limited to grahas that stay in a sign long enough for
+    # the crossing to mean something. The Sun changes sign every 30 days, Mercury
+    # and Venus faster still; alerting on those is a monthly almanac, not news
+    # about your chart. Mars (~45 days) is the quickest one kept.
+    _SLOW_INGRESS = ("Mars", "Jupiter", "Saturn")
+
+    @staticmethod
+    def get_upcoming_events(dob: str, tob: str, place: str,
+                            lat: Optional[float] = None, lon: Optional[float] = None,
+                            tz: Optional[float] = None, months: int = 12,
+                            from_date: Optional[str] = None,
+                            ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """The dated things this chart has coming, as one sorted list (§70).
+
+        Every layer already existed and was drawn, narrated or thrown away rather
+        than *dated and named*: `get_life_timeline` composes the dasha bands,
+        the Saturn phases and the eclipses; `_transit_events_in_window` finds the
+        exact ingress and station instants by bisection. What was missing is the
+        join — counting each of those from **this** chart's Lagna, Moon and
+        Arudha Lagna, so an event reads "Saturn leaves your 8th" rather than
+        "Saturn enters Aries", which is the difference between an almanac and a
+        thing worth telling someone about.
+
+        `from_date` is the *reader's* today (their stored zone, never the
+        server's): an event calendar that starts yesterday is a bug on a
+        boundary, and the caller is the only layer that knows where they are.
+
+        Each event carries a stable `key`, so recomputing this list — which
+        happens on every refresh — never re-alerts on something already sent.
+        """
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            from datetime import datetime, timedelta
+            _set_ayanamsa(ayanamsa)
+
+            months = max(1, min(int(months or 12), 60))
+            if from_date:
+                start = datetime.strptime(from_date, "%Y-%m-%d")
+            else:
+                start = datetime.now()
+            end = start + timedelta(days=int(months * 30.44))
+            start_iso, end_iso = start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
+
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place, lat, lon, tz_offset)
+
+            # ── Natal reference frames ──────────────────────────────────────
+            natal_jd = swe.julday(year, month, day, hour + minute / 60.0)
+            natal = charts.rasi_chart(natal_jd, place_obj)
+            lagna_rasi = natal[0][1][0]
+            moon_rasi = natal[2][1][0]
+            try:
+                padas = _format_arudha_padas(
+                    arudhas.bhava_arudhas_from_planet_positions(natal))
+                al_rasi = next((p["sign"] - 1 for p in padas if p["short"] == "AL"), None)
+            except Exception as ae:
+                print(f"[events] arudha join failed: {ae}")
+                al_rasi = None
+
+            def houses_of(sign_name):
+                """Where a sign falls, counted from each reference this app reads."""
+                if sign_name not in ZODIAC_NAMES:
+                    return {}
+                r = ZODIAC_NAMES.index(sign_name)
+                out = {"house_from_lagna": ((r - lagna_rasi) % 12) + 1,
+                       "house_from_moon": ((r - moon_rasi) % 12) + 1}
+                if al_rasi is not None:
+                    out["house_from_al"] = ((r - al_rasi) % 12) + 1
+                return out
+
+            events: List[Dict] = []
+
+            def add(date, kind, title, detail="", tone="neutral", key="", **extra):
+                if not (start_iso <= date <= end_iso):
+                    return
+                events.append({"date": date, "kind": kind, "title": title,
+                               "detail": detail, "tone": tone,
+                               "key": key or f"{kind}:{date}:{title}", **extra})
+
+            # ── Dasha changes ───────────────────────────────────────────────
+            # Level 2 is the Antardasha (Bhukti); never "Antara", which collides
+            # with it and makes a reader place a level-3 lord one rung too high.
+            timeline = AstrologyCompute.get_life_timeline(
+                dob, tob, place, lat=lat, lon=lon, tz=tz,
+                years_before=1, years_after=max(2, (months // 12) + 1),
+                ayanamsa=ayanamsa)
+            if timeline.get("status") == "success":
+                for band in timeline.get("maha_bands", []):
+                    add(band.get("start_date", ""), "dasha",
+                        f"{band['lord']} Mahadasha begins",
+                        f"A new major period opens and runs to {band.get('end_date')}.",
+                        tone="neutral", planet=band["lord"], level=1,
+                        key=f"dasha:1:{band['lord']}:{band.get('start_date')}")
+                for band in timeline.get("bhukti_bands", []):
+                    add(band.get("start_date", ""), "dasha",
+                        f"{band['maha_lord']}–{band['lord']} Antardasha (Bhukti) begins",
+                        f"The sub-period within the {band['maha_lord']} Mahadasha "
+                        f"runs to {band.get('end_date')}.",
+                        tone="neutral", planet=band["lord"], level=2,
+                        key=f"dasha:2:{band['maha_lord']}:{band['lord']}:"
+                            f"{band.get('start_date')}")
+
+                # ── Saturn's dated phases (Sade Sati / Ashtama / Kantaka) ───
+                for ph in timeline.get("saturn_phases", []):
+                    label = ph.get("description") or ph.get("phase") or "Saturn phase"
+                    add(ph.get("start_date", ""), "saturn",
+                        f"{label} begins",
+                        f"Saturn enters {ph.get('sign_name')}, the "
+                        f"{_ordinal_word(ph.get('house_from_moon'))} from your Moon, "
+                        f"until {ph.get('end_date')}.",
+                        tone="challenging", planet="Saturn",
+                        phase=ph.get("phase") or ph.get("kind"),
+                        key=f"saturn:{ph.get('kind')}:start:{ph.get('start_date')}",
+                        **houses_of(ph.get("sign_name")))
+                    add(ph.get("end_date", ""), "saturn",
+                        f"{label} ends",
+                        f"Saturn leaves {ph.get('sign_name')}, the "
+                        f"{_ordinal_word(ph.get('house_from_moon'))} from your Moon.",
+                        tone="benefic", planet="Saturn",
+                        phase=ph.get("phase") or ph.get("kind"),
+                        key=f"saturn:{ph.get('kind')}:end:{ph.get('end_date')}",
+                        **houses_of(ph.get("sign_name")))
+
+                # ── Eclipses, personal only when they land on a natal star ──
+                for ec in timeline.get("eclipses", []):
+                    on_natal = ec.get("on_natal_nakshatra")
+                    who = ", ".join(ec.get("natal_planets") or [])
+                    add(ec.get("date", ""), "eclipse",
+                        f"{(ec.get('kind') or 'solar').title()} eclipse"
+                        + (f" on your {who}'s nakshatra" if on_natal and who else ""),
+                        f"In {ec.get('nakshatra')}."
+                        + (" It falls on a nakshatra your chart occupies, so it is "
+                           "personal rather than merely astronomical." if on_natal
+                           else " No natal planet shares this nakshatra."),
+                        tone="challenging" if on_natal else "neutral",
+                        on_natal=bool(on_natal),
+                        key=f"eclipse:{ec.get('kind')}:{ec.get('date')}")
+
+                # Rahu/Ketu ingresses — the scanner below excludes the nodes, so
+                # the axis comes from the timeline, which does track Rahu.
+                for ing in timeline.get("ingresses", []):
+                    if ing.get("planet") != "Rahu":
+                        continue
+                    to_sign = ing.get("to_sign")
+                    opp = (ZODIAC_NAMES[(ZODIAC_NAMES.index(to_sign) + 6) % 12]
+                           if to_sign in ZODIAC_NAMES else "?")
+                    h = houses_of(to_sign)
+                    add(ing.get("date", ""), "ingress",
+                        f"The nodal axis shifts: Rahu enters {to_sign}"
+                        + (f", your {_ordinal_word(h.get('house_from_lagna'))} house"
+                           if h else ""),
+                        f"Ketu moves to {opp} at the same time — the axis always "
+                        "moves as a pair.",
+                        tone="neutral", planet="Rahu",
+                        key=f"ingress:Rahu:{to_sign}:{ing.get('date')}", **h)
+
+            # ── Ingresses + retrograde stations, to the exact day ───────────
+            end_jd = swe.julday(end.year, end.month, end.day, 12.0)
+            scanned = AstrologyCompute._transit_events_in_window(
+                place, lat, lon, tz_offset, start_iso, end_jd)
+            for ev in scanned:
+                planet, kind = ev.get("planet"), ev.get("type")
+                if kind == "ingress":
+                    if planet not in AstrologyCompute._SLOW_INGRESS:
+                        continue
+                    to_sign = (ev.get("text") or "").rsplit(" ", 1)[-1]
+                    h = houses_of(to_sign)
+                    where = (f"your {_ordinal_word(h['house_from_lagna'])} house"
+                             if h else to_sign)
+                    add(ev["date"], "ingress",
+                        f"{planet} enters {where}",
+                        f"{planet} moves into {to_sign}"
+                        + (f", the {_ordinal_word(h['house_from_moon'])} from your "
+                           f"Moon." if h else "."),
+                        tone="neutral", planet=planet,
+                        key=f"ingress:{planet}:{to_sign}:{ev['date']}", **h)
+                elif kind == "station":
+                    direct = "direct" in (ev.get("text") or "")
+                    sign_now = AstrologyCompute._sign_of(planet, ev["date"], place_obj)
+                    h = houses_of(sign_now) if sign_now else {}
+                    where = (f" in your {_ordinal_word(h['house_from_lagna'])} house"
+                             if h else "")
+                    add(ev["date"], "station",
+                        f"{planet} turns {'direct' if direct else 'retrograde'}{where}",
+                        (f"{planet} resumes forward motion"
+                         if direct else
+                         f"{planet} appears to move backwards for a while")
+                        + (f", in {sign_now}." if sign_now else "."),
+                        tone="benefic" if direct else "challenging", planet=planet,
+                        direction="direct" if direct else "retrograde",
+                        key=f"station:{planet}:{'D' if direct else 'R'}:{ev['date']}",
+                        **h)
+
+            # Two sources can date the same crossing; the key is what makes the
+            # de-duplication reliable rather than the title, which is prose.
+            seen, unique = set(), []
+            for e in sorted(events, key=lambda x: (x["date"], x["kind"])):
+                if e["key"] in seen:
+                    continue
+                seen.add(e["key"])
+                unique.append(e)
+
+            return {
+                "status": "success",
+                "from_date": start_iso,
+                "to_date": end_iso,
+                "months": months,
+                "lagna_sign": ZODIAC_NAMES[lagna_rasi],
+                "moon_sign": ZODIAC_NAMES[moon_rasi],
+                "events": unique,
+                "counts": {k: sum(1 for e in unique if e["kind"] == k)
+                           for k in EVENT_KINDS},
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+
+    @staticmethod
+    def _sign_of(planet: str, date: str, place_obj) -> Optional[str]:
+        """Which sign a graha stands in on a given day (local noon)."""
+        try:
+            pidx = PLANET_INDICES.get(planet)
+            if pidx is None:
+                return None
+            y, m, d = map(int, date.split("-"))
+            cht = charts.rasi_chart(swe.julday(y, m, d, 12.0), place_obj)
+            return ZODIAC_NAMES[cht[pidx + 1][1][0]]
+        except Exception:
+            return None

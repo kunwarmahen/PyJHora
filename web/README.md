@@ -36,7 +36,10 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   a Life Timeline (`/timeline`) — one clickable SVG axis around today with the Vimsottari
   maha/bhukti bands, the Sade Sati / Ashtama / Kantaka Saturn phases, the Jupiter/Saturn/Rahu
   ingresses and the eclipses (flagged on natal nakshatras); click any point for a "what's
-  running" panel + on-demand AI reading,
+  running" panel + on-demand AI reading, and a **"What's coming"** tab — the same layers read as a
+  dated list of what *changes* (period changes, Saturn phases beginning and ending, sign changes,
+  retrograde stations, eclipses), each counted from your own Lagna, Moon and Arudha Lagna, with
+  optional **event alerts** by email/push when one arrives (§70),
   Bhrigu / Nadi-style yearly markers (the Moon-based annual progression + Bhrigu Bindu
   activations, with AI reading),
   Planetary Conditions — the classical point-flags (combustion, vargottama, pushkara, mrityu
@@ -446,6 +449,7 @@ pyjhora-web/
 │   ├── chart_context.py     # Builds the structured chart context sent to the AI
 │   ├── claim_check.py       # Checks a finished reading against the chart it came from (§69) — extract, verify, regenerate once, annotate
 │   ├── claim_reports.py     # Daily claim-check counters + the admin triage queue
+│   ├── events.py            # The chart's forward calendar (§70): store, refresh, claim, deliver
 │   ├── tools.py             # Tool registry for agentic mode (wraps AstrologyCompute) + GET /api/ai/tools catalog
 │   ├── tool_traces.py       # Lazy side-storage for smart-lookup tool results
 │   ├── conversations.py     # Unified AI history: chat threads + one-shot readings (source registry, save_reading, retention cap)
@@ -1813,6 +1817,8 @@ masked, and used ahead of any global env key for that user's requests.
 - `GET /api/admin/audit?category=&action=&actor=&target=&since_days=&limit=` - Audit events + summary
 - `GET /api/admin/config` - Runtime settings: effective values, deployed defaults, which are overridden
 - `PUT /api/admin/config` - Update runtime settings (`clear: [...]` returns a field to its default)
+- `GET /api/notifications/events?profile_id=&kinds=&refresh=` - The chart's forward calendar (§70)
+- `POST /api/notifications/events/send` - Deliver any due event alerts now (claims real events)
 - `GET /api/admin/claim-checks/summary?days=` - Claim-check rates, and the breakdown by kind and model
 - `GET /api/admin/claim-checks?status=&kind=&source=&limit=` - The triage queue (redacted without `ADMIN_CONTENT_ACCESS`)
 - `PATCH /api/admin/claim-checks/{id}` - Triage one row (`status`, `verdict`, `note`)
@@ -1869,6 +1875,11 @@ concern in §4 — pure file moves, no behaviour change):
   `llm/providers/*`, prompt builders + the context renderer are `llm/prompts.py`
 - **tools.py**: the AI tool registry (43 tools) — also what `/api/v1/tools` and the
   MCP server publish
+- **events.py**: the forward calendar of a chart's own events (§70) — dasha
+  changes, Saturn's phases, ingresses, retrograde stations, eclipses — stored per
+  (user, profile, stable key) so it can be recomputed freely without ever
+  re-alerting. Claiming is per *event*, not per window, which is what makes the
+  alerts idempotent across ticks and workers
 - **claim_check.py** + **claim_reports.py**: the claim checker (§69). `claim_check`
   is pure and database-free — it extracts the checkable assertions from a finished
   reading and tests them against the same context the model was given, then

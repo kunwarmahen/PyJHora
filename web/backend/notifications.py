@@ -19,6 +19,7 @@ into the environment.
 import json
 from typing import Any, Dict, List, Optional
 
+from astrology import EVENT_KINDS
 from config import settings
 from database import get_database
 
@@ -47,6 +48,15 @@ DEFAULT_PREFS: Dict[str, Any] = {
     # "solar" (Tajaka: Maasa Pravesha) or "lunar" (tithi: birth-tithi return).
     # The fortnight rung is lunar-only regardless.
     "basis": "solar",
+
+    # ── Event alerts (§70) ────────────────────────────────────────────────
+    # Not a cadence: these fire on a *crossing*, not on a clock. The hour only
+    # decides what time of day the message is allowed to go out; the schedule is
+    # the sky. Each event is claimed individually, so nobody is told twice.
+    "event_alerts": False,
+    "event_hour": 8,          # earliest local hour an alert may be delivered
+    "event_lead_days": 3,     # how far ahead of the crossing to tell you
+    "event_kinds": list(EVENT_KINDS),
 }
 
 
@@ -94,6 +104,24 @@ async def set_prefs(user_id: str, prefs: Dict[str, Any]) -> Dict[str, Any]:
             pass
     if "basis" in prefs:
         clean["basis"] = "lunar" if str(prefs["basis"]).lower() == "lunar" else "solar"
+    if "event_alerts" in prefs:
+        clean["event_alerts"] = bool(prefs["event_alerts"])
+    if "event_hour" in prefs:
+        try:
+            clean["event_hour"] = max(0, min(23, int(prefs["event_hour"])))
+        except (TypeError, ValueError):
+            pass
+    if "event_lead_days" in prefs:
+        try:
+            clean["event_lead_days"] = max(0, min(60, int(prefs["event_lead_days"])))
+        except (TypeError, ValueError):
+            pass
+    if "event_kinds" in prefs:
+        # Filtered against the engine's registry rather than stored as sent: an
+        # unknown kind here would be a filter that silently matches nothing.
+        wanted = prefs["event_kinds"] or []
+        clean["event_kinds"] = ([k for k in wanted if k in EVENT_KINDS]
+                                if isinstance(wanted, list) else list(EVENT_KINDS))
     await get_database()[SETTINGS_COLLECTION].update_one(
         {"user_id": user_id},
         {"$set": {f"notifications.{k}": v for k, v in clean.items()}},

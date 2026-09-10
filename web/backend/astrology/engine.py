@@ -1545,5 +1545,26 @@ def _saham_points(jd, place_obj, table, lagna_sign):
     return items
 
 
+# ── Forward-calendar events (§70) ───────────────────────────────────────────
+# The kinds of dated thing a chart has coming. One list, because it is the
+# registry three separate surfaces read from: the compute's per-kind counts, the
+# notification preferences (which kinds a user wants alerting on) and the UI's
+# filter chips. A kind that exists in one and not the others is a dead chip.
+EVENT_KINDS = ("dasha", "saturn", "ingress", "station", "eclipse")
+
+
+def _ordinal_word(n):
+    """1 -> "1st". Returns the input unchanged when it isn't a number, so a
+    missing house degrades to something readable rather than raising inside a
+    sentence that is being built for a person to read."""
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return str(n)
+    if 10 <= n % 100 <= 20:
+        return f"{n}th"
+    return f"{n}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th') }"
+
+
 # Export everything (including _single_underscore helpers) to the mixins.
 __all__ = [_n for _n in dir() if not _n.startswith('__')]

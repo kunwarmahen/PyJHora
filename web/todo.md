@@ -6849,9 +6849,10 @@ Credit where due: `jspdf` and `html2canvas` are **already** dynamically imported
 (`utils/exportChart.js`, `utils/exportConversation.js`) — that is the 400 KB chunk, correctly
 deferred. This is the same trick, applied to routes.
 
-### 68.5 (P1) 🔴 Event alerts — the hole in the notification layer
+### 68.5 (P1) ✅ Event alerts — the hole in the notification layer
 
-- [ ] **A per-user forward calendar of chart events, delivered on the crossing.**
+- [x] **A per-user forward calendar of chart events, delivered on the crossing.**
+      SHIPPED 2026-09-10 — see **§70**, which also fixes lunar eclipses never having worked.
 
 `scheduler.py` sends **digests and nothing else**. Nothing in the app ever tells you:
 
@@ -6920,7 +6921,7 @@ only genuine evaluation signal this project would have for all the prompt work i
 If two: **§68.5 event alerts** for what a user actually feels, and **§68.1 the claim checker** for
 what keeps biting. §68.2 CI is the cheapest thing on the list and should probably just happen.
 
-> **§68.1 is done — see §69.** The rest of §68 is still open.
+> **§68.1 is done — see §69; §68.5 — see §70.** The rest of §68 is still open.
 
 ---
 
@@ -7090,3 +7091,127 @@ queue; a triage to `fixed` / `prompt` moved "still open" from 1 to 0. After the 
   its own fact table, which is a separate piece of work.
 - **No LLM is used to extract claims.** The vocabulary is 9 grahas × 12 houses × 12 signs and a
   regex pass is enough. Using a model to check a model would double the cost and inherit the failure.
+
+---
+
+## 70. Event alerts — the forward calendar, and being told when it arrives (§68.5) — ✅ SHIPPED 2026-09-10
+
+> *"lets work on 68.5 (P1)"* — with the surface chosen as **a tab on Life Timeline**.
+
+`scheduler.py` sent digests and nothing else, so the app never told you your dasha changes next
+month, that Saturn leaves your 8th on a named date, or that Mercury stations retrograde in your
+10th. Every one of those was already computable — §67 worked out a Saturn phase boundary *in
+passing*, to answer a question, and threw the date away.
+
+### The compute: `AstrologyCompute.get_upcoming_events`
+
+One sorted list, composed from layers that already existed:
+
+| layer | source | becomes |
+|---|---|---|
+| Mahadasha / Antardasha starts | `get_life_timeline` bands | "Rahu–Jupiter Antardasha (Bhukti) begins" |
+| Sade Sati / Ashtama / Kantaka | `get_life_timeline` saturn_phases | "Ashtama Shani (8th from Moon) ends" |
+| Jupiter / Saturn / Mars ingresses, retrograde stations | `_transit_events_in_window` (exact, by bisection) | "Saturn enters your 12th house" |
+| The nodal axis | the timeline's Rahu ingresses (the scanner excludes the nodes) | "Rahu enters Capricorn, your 9th — Ketu moves to Cancer" |
+| Eclipses | `get_life_timeline` eclipses | "Lunar eclipse on your Moon's nakshatra" |
+
+**The join is the feature.** "Saturn enters Aries" is an almanac; "Saturn enters your 12th" is a
+reading. Every moving-planet event carries `house_from_lagna`, `house_from_moon` **and**
+`house_from_al` — the third reference §60 added.
+
+Fast planets are deliberately excluded from ingress alerts: the Sun changes sign every 30 days and
+Mercury faster still, so alerting on those is a monthly almanac, not news about your chart. Mars
+(~45 days) is the quickest one kept. Stations are kept for all five.
+
+`from_date` is the **reader's** today, passed in by the caller — a calendar that opens on yesterday
+is a bug for a third of the globe (§57).
+
+### Storage and delivery (`events.py`)
+
+Events are stored per `(user_id, profile_id, key)`, where `key` is stable across recomputations
+(`ingress:Saturn:Aries:2027-06-03`). That one fact is what the whole module is built around: the
+calendar can be refreshed as often as we like and nobody is ever told twice. The upsert deliberately
+omits `notified_at` from its `$set`.
+
+**Claiming is per event, not per window.** The digest cadences claim a *window* (today's date, this
+paksha) because they send one thing per window. An alert belongs to a specific crossing, so the claim
+is a conditional update on that event's own `notified_at` — idempotent across ticks and across
+workers by construction, with no new claim field on `user_settings`. It also means a profile added
+mid-week gets its alerts without waiting for a window to roll over.
+
+Events are **claimed before the send, not after**. A claimed event that then fails to mail is one
+alert someone misses; an unclaimed event that mails twice is an alert someone receives every fifteen
+minutes until the tick interval changes.
+
+A recompute prunes un-alerted events it no longer produces (an ingress date refined by a day) but
+**keeps the alerted ones** — we told someone about them, and the record should say so.
+
+### Preferences and surfaces
+
+- Settings › Notifications: **Event alerts** switch, which kinds (checkboxes served from the backend
+  registry), how far ahead (0–30 days, default 3), and the earliest local hour to deliver.
+  The hour only bounds *when it is polite to send*; the schedule is the sky.
+- Life Timeline gains a tab bar: **Timeline | What's coming**. Same page because they are the same
+  data asked two ways — the chart says what is *running*, the list says what *changes*.
+  Deep-linkable at `/timeline?tab=upcoming`, which is what the alert email links to.
+- `GET /api/notifications/events` (refreshes a stale calendar on read, so someone who never enables
+  alerts still sees a current list) and `POST /api/notifications/events/send` (the "send test now"
+  of this feature — it claims and sends *real* events, so what arrives is exactly what the scheduler
+  would have sent).
+- AI tool **`get_upcoming_events`**, in `ALWAYS_TOOLS`. `get_life_timeline` says what is running
+  now; this says what changes and when, which is the question people actually ask.
+
+### The bug found on the way: lunar eclipses had never worked
+
+`get_eclipses` returned `-4713-11-24` — Julian day zero — for every lunar eclipse. The engine fills
+the phases an eclipse *lacks* with a JD-zero sentinel rather than `None`, and a **penumbral** lunar
+eclipse has no partial phase, so `par_begin or pen_begin` took the sentinel (a non-empty tuple is
+truthy). The Life Timeline then dropped those rows for having four dash-separated parts instead of
+three — silently, with no error anywhere. **Lunar eclipses have been missing from the timeline for
+as long as it has existed.** Fixed by treating a year ≤ 1 as "this phase does not occur"; verified
+against the real ephemeris (2027-02-20 penumbral, 2028-12-31 total, and four more).
+
+This is the §64 shape again: a fallback that turns a failure into an empty result nobody notices.
+
+### Traps worth keeping
+
+- **`notified_at` is the one field a refresh must not touch.** Everything else about an event may be
+  recomputed freely; that field is the difference between a calendar and a spam cannon.
+- **Two lists that must agree**: `EVENT_KINDS` (in `engine.py`) feeds the compute's per-kind counts,
+  the notification preference whitelist and the UI's filter chips. The prefs endpoint *serves* the
+  list rather than the frontend hard-coding it, and a test pins that they are the same object.
+- **A per-user collection must be registered for cascade delete.** `chart_events` is; writing the
+  test for it found that **`claim_checks` (§69) and `life_report_jobs` never were** — a deleted
+  account left its Life Reports behind. `tests/test_admin.py` now walks every module's `COLLECTION`
+  constant instead of trusting a hand-kept list, so the next one fails loudly.
+- **A hard-coded hex in a stylesheet fails the theme guard** (§37) — including one used only as a
+  `var(--token, #fallback)` fallback. Use the real token.
+- Digest-only controls (pravesha basis, the AI narrative) are hidden for a user who has enabled
+  alerts but no digest; the profile picker is shared, because it decides which charts are *watched*
+  as well as which are read.
+
+### Tests (972 backend, up from 954)
+
+`tests/test_events.py`: the calendar computes and is sorted inside its window; keys are unique and
+**stable across runs** (the property the whole no-double-alert design rests on); every kind is one
+`EVENT_KINDS` knows; every mover carries all three house counts; fast planets are absent; **both**
+kinds of eclipse are present (the regression above); a dasha change is named at the right level
+(Antardasha, never "Antara"); the horizon is clamped; the due-window arithmetic turns a lead time
+into the right date range and drops an unknown kind; alerts off means nothing sent.
+
+### Verified in the browser
+
+Real profile, real Ollama-free path. The calendar returned 31 events over 24 months; the tab renders
+them with filter chips that actually filter (Saturn phase → 1 row, the §67 event); "send now"
+delivered 2 alerts by email and returned `sent: 0` on the second call; releasing one event and
+running `scheduler._run_event_alerts` sent exactly 1, then 0, then 0 with alerts switched off.
+
+### Not done, deliberately
+
+- **Degree-exact sensitive-point hits.** §68.5 mentions a transit crossing a natal sensitive point.
+  Ingresses and stations are sign-level events, and a Saham or upagraha is a *degree*, so catching
+  those needs a longitude scan rather than the daily sign scan reused here. The arudha half of that
+  bullet **is** done — every event carries `house_from_al`.
+- **No per-event AI reading.** An alert is a fact and a date; the interpretation lives in the app,
+  one click away. Generating a narrative per crossing would put the digest's LLM cost on a path that
+  currently has none.

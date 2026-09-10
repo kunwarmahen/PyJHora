@@ -447,7 +447,7 @@ export const FEATURE_ALIASES = {
   monthlyDigest: "maasa month lunar month",
   muhurta: "auspicious time electional choghadiya panchaka good time kaala vela gulika yamaganda rahu kalam",
   prashna: "horary question kp prashna",
-  timeline: "life timeline dasha transit events",
+  timeline: "life timeline dasha transit events upcoming what's coming forward calendar alerts",
   strength: "shadbala planetary strength bhava bala vimsopaka",
   sadeSati: "saturn shani seven and half sade sati kantaka ashtama",
   bhrigu: "nadi bhrigu bindu markers yearly progression",
@@ -506,6 +506,8 @@ export const FEATURE_SUBITEMS = [
   { label: "Kota Chakra", parent: "sarvatobhadra", to: "/chakras?tab=kota", keywords: "kota fort protection siege" },
   { label: "Kaala Chakra", parent: "sarvatobhadra", to: "/chakras?tab=kaala", keywords: "kaala kala directions wheel" },
   { label: "Tripataki Chakra", parent: "sarvatobhadra", to: "/chakras?tab=tripataki", keywords: "tripataki vedha moon lagna" },
+  // ── Life Timeline: the forward calendar (§70), a tab deep-link ──
+  { label: "What's coming (forward calendar)", parent: "timeline", to: "/timeline?tab=upcoming", keywords: "upcoming coming next events alerts forecast calendar when does my dasha change sade sati end ingress station retrograde eclipse reminders notify" },
   // ── Sensitive Points page: the three sub-tools (tab deep-links) ──
   { label: "Special Points", parent: "sensitivePoints", to: "/sensitive-points?tab=special", keywords: "special lagna upagraha hora lagna ghati lagna bhava lagna vighati varnada gulika maandi kaala mrityu artha prahara yama ghantaka dhuma vyatipata parivesha indrachapa upaketu sree indu bhrigu bindu pranapada kunda" },
   { label: "Sahams", parent: "sensitivePoints", to: "/sensitive-points?tab=sahams", keywords: "sahams 36 arabic parts lots" },

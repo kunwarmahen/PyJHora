@@ -295,6 +295,16 @@
   "body": "",
   "params": []
  },
+ "GET /api/notifications/events": {
+  "body": "",
+  "params": [
+   "query:kinds",
+   "query:limit",
+   "query:months",
+   "query:profile_id",
+   "query:refresh"
+  ]
+ },
  "GET /api/notifications/prefs": {
   "body": "",
   "params": []
@@ -1016,6 +1026,10 @@
   "params": [
    "query:cadence"
   ]
+ },
+ "POST /api/notifications/events/send": {
+  "body": "",
+  "params": []
  },
  "POST /api/notifications/push/subscribe": {
   "body": "PushSubscribeRequest",

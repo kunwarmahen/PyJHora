@@ -246,6 +246,10 @@ export const notificationsService = {
     api.post("/api/notifications/push/unsubscribe", { endpoint }),
   sendDigestNow: (cadence = "daily") =>
     api.post("/api/notifications/digest/send", null, { params: { cadence } }),
+  // The chart's forward calendar (§70) — what the alerts are sent from, and what
+  // the Life Timeline's "Upcoming" tab reads.
+  events: (params = {}) => api.get("/api/notifications/events", { params }),
+  sendEventAlertsNow: () => api.post("/api/notifications/events/send"),
   // Public recipient opt-in / opt-out, reached from an emailed link (no auth).
   confirmDigest: (token) => api.get("/api/digest/confirm", { params: { token } }),
   unsubscribeDigest: (token) => api.get("/api/digest/unsubscribe", { params: { token } }),

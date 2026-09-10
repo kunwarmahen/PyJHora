@@ -330,10 +330,25 @@ class PanchangaMixin:
                 })
                 jd = swe.julday(maximum[0], maximum[1], maximum[2], 0) + 1
 
+            def _real(t):
+                """An instant, or None for a phase that does not occur.
+
+                The engine returns [penumbral_begin, partial_begin, max,
+                partial_end, penumbral_end] and fills the phases an eclipse
+                *lacks* with a JD-zero sentinel — (-4713, 11, 24, 17.5) — rather
+                than with None. A **penumbral** lunar eclipse has no partial
+                phase, so `par_begin or pen_begin` took the sentinel (a non-empty
+                tuple is truthy) and every such eclipse came out dated
+                -4713-11-24. The Life Timeline then dropped it for having four
+                dash-separated parts instead of three, which is why it has been
+                showing solar eclipses only, with no error anywhere (§70).
+                """
+                return t if t and t[0] > 1 else None
+
             # Lunar: the engine returns [penumbral_begin, partial_begin, max,
             # partial_end, penumbral_end]; its `max` instant omits the tz offset
             # the others carry, so we derive the maximum as the midpoint of the
-            # (correctly localized) partial phases, falling back to penumbral.
+            # (correctly localized) outermost phases we actually have.
             lunar = []
             jd = swe.julday(year, month, day, 0)
             for _ in range(count):
@@ -342,9 +357,13 @@ class PanchangaMixin:
                 if not r:
                     break
                 etype, (pen_begin, par_begin, _bad_max, par_end, pen_end) = r
+                pen_begin, par_begin = _real(pen_begin), _real(par_begin)
+                par_end, pen_end = _real(par_end), _real(pen_end)
                 begin = par_begin or pen_begin
                 end = par_end or pen_end
-                maximum = _midpoint(par_begin or pen_begin, par_end or pen_end)
+                if not (begin and end):
+                    break          # nothing datable — stop rather than emit junk
+                maximum = _midpoint(begin, end)
                 lunar.append({
                     "type": etype,
                     "date": (_fmt_instant(maximum) or {}).get("date"),
@@ -354,7 +373,8 @@ class PanchangaMixin:
                     "partial_end": _fmt_instant(par_end),
                     "end": _fmt_instant(pen_end),
                 })
-                jd = swe.julday(begin[0], begin[1], begin[2], 0) + 1
+                jd = swe.julday(pen_end[0], pen_end[1], pen_end[2], 0) + 1 \
+                    if pen_end else swe.julday(end[0], end[1], end[2], 0) + 1
             return {
                 "status": "success",
                 "place": place,

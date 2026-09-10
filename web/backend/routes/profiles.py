@@ -42,6 +42,7 @@ import uuid
 from fastapi import APIRouter
 from config import settings
 from models import *  # noqa: F401,F403
+import events
 from deps import *  # noqa: F401,F403
 import deps as _deps
 
@@ -384,6 +385,14 @@ async def delete_profile(profile_id: str, current_user: str = Depends(get_curren
 
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Profile not found")
+
+        # The deleted chart's forward calendar goes with it (§70). Without this,
+        # an alert for a profile the user removed still fires — the event rows
+        # carry everything the send needs and would never be refreshed away.
+        try:
+            await events.delete_for_profile(current_user, profile_id)
+        except Exception as e:  # the profile is already gone; don't fail the call
+            print(f"[events] cleanup after profile delete failed: {e}")
 
         return {"success": True, "message": "Profile deleted"}
     except Exception as e:

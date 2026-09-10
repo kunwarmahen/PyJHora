@@ -18,7 +18,7 @@ from config import settings
 from database import connect_to_mongo, close_mongo_connection
 from auth import create_access_token, decode_token, get_password_hash, verify_password, Token
 from database import User, BirthDetails, ChartData
-from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, SUPPORTED_VARGAS, SUPPORTED_DASHAS
+from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, SUPPORTED_VARGAS, SUPPORTED_DASHAS, EVENT_KINDS
 from chart_context import build_chart_context
 from llm_service import llm_service, LLMProvider
 import tools as tool_registry
@@ -37,7 +37,9 @@ import email_service
 import notifications
 import digest as digest_service
 import digest_recipients
+import events
 import scheduler
+import timezones
 import uuid
 from fastapi import APIRouter
 from models import *  # noqa: F401,F403
@@ -54,6 +56,10 @@ async def get_notification_prefs(current_user: str = Depends(get_current_user)):
     prefs = await notifications.get_prefs(current_user)
     return {"prefs": prefs, "push_available": notifications.push_enabled(),
             "email_available": email_service.is_configured(),
+            # Served rather than hard-coded in the UI: the kinds a user may pick
+            # from and the kinds the compute emits have to be the same list, and
+            # two lists that must agree are a bug waiting to happen (§52).
+            "event_kinds": list(EVENT_KINDS),
             "vapid_public_key": notifications.vapid_public_key()}
 
 @router.put("/api/notifications/prefs")
@@ -64,6 +70,47 @@ async def set_notification_prefs(
     prefs = await notifications.set_prefs(
         current_user, {k: v for k, v in req.model_dump().items() if v is not None})
     return {"prefs": prefs}
+
+@router.get("/api/notifications/events")
+async def get_upcoming_events(
+    profile_id: str = "",
+    kinds: str = "",
+    months: int = 12,
+    refresh: bool = False,
+    limit: int = 200,
+    current_user: str = Depends(get_current_user),
+):
+    """The stored forward calendar for this user (§70).
+
+    `refresh=true` recomputes first; otherwise a calendar older than the refresh
+    horizon is rebuilt anyway, so a user who never enables alerts still sees a
+    current list when they open the tab. "Today" is the reader's own date — a
+    calendar that begins yesterday is a bug for a third of the globe."""
+    prefs = await notifications.get_prefs(current_user)
+    tz_now = await viewer_tz(current_user)
+    today = timezones.today_at_offset(tz_now)
+    try:
+        await events.refresh_user(current_user, prefs, today=today, force=refresh)
+    except Exception as e:  # a stale calendar still beats an error page
+        print(f"[events] refresh failed for {current_user}: {e}")
+    wanted = [k.strip() for k in kinds.split(",") if k.strip()] or None
+    rows = await events.upcoming(current_user, profile_id=profile_id or None,
+                                 kinds=wanted, limit=limit, today=today)
+    return {"events": rows, "today": today, "kinds": list(EVENT_KINDS),
+            "months": months, "alerts_enabled": bool(prefs.get("event_alerts"))}
+
+
+@router.post("/api/notifications/events/send")
+async def send_event_alerts_now(current_user: str = Depends(get_current_user)):
+    """Deliver any due alerts immediately — the "send test now" of this feature.
+
+    It claims and sends real events rather than a fake one, so what arrives is
+    exactly what the scheduler would have sent."""
+    prefs = await notifications.get_prefs(current_user)
+    today = timezones.today_at_offset(await viewer_tz(current_user))
+    await events.refresh_user(current_user, prefs, today=today)
+    return await events.send_alerts_for_user(current_user, prefs, today=today)
+
 
 @router.post("/api/notifications/push/subscribe")
 async def push_subscribe(

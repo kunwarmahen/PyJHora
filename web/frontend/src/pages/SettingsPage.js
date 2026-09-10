@@ -320,6 +320,9 @@ export const SettingsPage = () => {
         setNotifMeta({
           push_available: !!r.data?.push_available,
           email_available: !!r.data?.email_available,
+          // The event kinds come from the backend registry, so a kind added to
+          // the compute cannot leave a dead checkbox (or a missing one) here.
+          event_kinds: r.data?.event_kinds || [],
           vapid_public_key: r.data?.vapid_public_key || "",
         });
       })
@@ -1169,6 +1172,7 @@ export const SettingsPage = () => {
             {/* Cadence switches: daily / fortnightly / monthly, each with its own
                 schedule. The delivery channels + profile picks below are shared. */}
             {(() => {
+              const eventKindKeys = notifMeta?.event_kinds || [];
               const hourOptions = Array.from({ length: 24 }, (_, h) => (
                 <option key={h} value={h}>
                   {String(h).padStart(2, "0")}:00
@@ -1284,7 +1288,82 @@ export const SettingsPage = () => {
                     </>
                   )}
 
-                  {!anyDigest ? null : (
+                  {/* Event alerts (§70). Deliberately below the cadences and
+                      visually separate: these are not a schedule. A digest
+                      arrives because it is 7am; an alert arrives because
+                      something in your chart actually changed. */}
+                  <div className="settings-row">
+                    <label className="settings-label">
+                      {t("settings.notifications.eventAlerts")}
+                    </label>
+                    <label className="settings-switch">
+                      <input
+                        type="checkbox"
+                        checked={!!notif?.event_alerts}
+                        onChange={(e) => saveNotif({ event_alerts: e.target.checked })}
+                      />
+                      <span />
+                    </label>
+                  </div>
+                  <p className="settings-hint">{t("settings.notifications.eventAlertsHint")}</p>
+                  {notif?.event_alerts && (
+                    <>
+                      <div className="settings-row settings-row--stack">
+                        <label className="settings-label">
+                          {t("settings.notifications.eventKinds")}
+                        </label>
+                        {eventKindKeys.map((k) => {
+                          const on = (notif?.event_kinds || eventKindKeys).includes(k);
+                          return (
+                            <label className="settings-check" key={k}>
+                              <input
+                                type="checkbox"
+                                checked={on}
+                                onChange={(e) => {
+                                  const current = notif?.event_kinds || eventKindKeys;
+                                  const next = e.target.checked
+                                    ? [...new Set([...current, k])]
+                                    : current.filter((x) => x !== k);
+                                  saveNotif({ event_kinds: next });
+                                }}
+                              />
+                              <span>{t(`timeline.upcoming.kind.${k}`)}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <div className="settings-row">
+                        <label className="settings-label">
+                          {t("settings.notifications.eventLead")}
+                        </label>
+                        <select
+                          className="form-select"
+                          value={notif?.event_lead_days ?? 3}
+                          onChange={(e) =>
+                            saveNotif({ event_lead_days: parseInt(e.target.value, 10) })
+                          }
+                        >
+                          {[0, 1, 2, 3, 5, 7, 14, 30].map((d) => (
+                            <option key={d} value={d}>
+                              {t("settings.notifications.eventLeadOption", { count: d })}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="settings-row">
+                        <label className="settings-label">{t("settings.notifications.hour")}</label>
+                        <select
+                          className="form-select"
+                          value={notif?.event_hour ?? 8}
+                          onChange={(e) => saveNotif({ event_hour: parseInt(e.target.value, 10) })}
+                        >
+                          {hourOptions}
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {!anyDigest && !notif?.event_alerts ? null : (
                     <>
                       {/* Which profiles — an "all" shortcut plus a per-profile pick list.
                     Falls back to the legacy single profile_id when neither is set. */}
@@ -1335,6 +1414,13 @@ export const SettingsPage = () => {
                         )}
                       </div>
 
+                      {/* Below here is digest-only. The profile picker above is
+                          shared — it decides which charts are *watched* as well
+                          as which are read — but a pravesha ladder and an AI
+                          narrative belong to a delivered reading, and an alert
+                          is neither. */}
+                      {!anyDigest ? null : (
+                        <>
                       {/* Which pravesha ladder the delivered readings are cast on. */}
                       <div className="settings-row settings-row--stack">
                         <label className="settings-label">
@@ -1365,6 +1451,9 @@ export const SettingsPage = () => {
                           <span />
                         </label>
                       </div>
+
+                        </>
+                      )}
 
                       {/* Email channel */}
                       <div className="settings-row">
