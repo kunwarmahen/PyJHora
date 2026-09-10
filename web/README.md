@@ -1962,7 +1962,19 @@ The frontend uses React with:
   styled in `src/styles/Shared.css`
 - **Mobile/PWA**: responsive rules in `src/styles/Responsive.css`; installable PWA via
   `public/manifest.json` + icons + `public/sw.js` (registered in production only; the
-  service worker never caches `/api`)
+  service worker never caches `/api`). Navigations are network-first with the cached shell as
+  the fallback — fixed in §74.4, where it turned out `fetch(request, { cache: "reload" })` on a
+  navigation request is a synchronous `TypeError`, so that branch had never run and the app
+  could not be opened offline at all
+- **Code splitting** (§74): `App.js` loads every page through `React.lazy` — nothing but the
+  shell, the contexts and the shared chrome is in the initial bundle (166 KB gzipped, down
+  from 487 KB). `leaflet` lives in `components/MapCanvas.js` and arrives when the map picker
+  is opened; `react-markdown` in `components/Markdown.js`; only `en.json` is bundled, with
+  `hi`/`sa` fetched by `i18n/index.js`'s `ensureLanguage()` on selection. Consequences worth
+  knowing: a page must be opened once online before it is available offline (four core routes
+  are warmed at idle), and `RouteErrorBoundary` covers a chunk that fails — reloading once for
+  a stale tab after a deploy, and explaining itself when offline. `src/bundleSplit.test.js`
+  guards all of it; **do not add a static `import` of a page or a heavy library to `App.js`**
 - **Offline reading** (§73): the shell alone was useless, since every number is computed
   server-side. `src/services/offlineCache.js` keeps each **deterministic** API response in
   IndexedDB — keyed on a hash of *user + method + path + params + body*, because the core

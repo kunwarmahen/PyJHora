@@ -9,7 +9,7 @@
  */
 // Bumping this name drops the previous shell on activate — do it whenever the
 // cached shell could be stale in a way that matters (see the navigation note).
-const CACHE = "jyotir-ai-v2";
+const CACHE = "jyotir-ai-v3";
 const SHELL = ["./", "./index.html", "./manifest.json", "./icon-192.png"];
 
 self.addEventListener("install", (event) => {
@@ -43,11 +43,45 @@ self.addEventListener("fetch", (event) => {
   // across new tabs, for as long as heuristic freshness lasts. An old bundle
   // against the current API does not error; it renders something plausible and
   // wrong (todo.md §66). So always revalidate the shell against the network.
+  //
+  // It has to be re-fetched **by URL**, not by passing the navigation Request
+  // with an init: `fetch(request, { cache: "reload" })` on a request whose mode
+  // is "navigate" is a synchronous TypeError, and it threw before
+  // `event.respondWith` was ever called — so this whole branch silently did
+  // nothing. Online the browser just did the navigation itself (which is why
+  // nobody saw it, and why the §66 revalidation above was never actually in
+  // force); offline the navigation simply failed, which is why the app could
+  // not be opened or reloaded without a network even though its shell was
+  // sitting in the cache. Found while splitting the routes (§68.4), which is
+  // what made the offline path worth trusting.
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request, { cache: "reload" })
-        .catch(() => fetch(request))
-        .catch(() => caches.match("./index.html"))
+      (async () => {
+        try {
+          return await fetch(request.url, { cache: "reload", credentials: "same-origin" });
+        } catch (e) {
+          /* offline, or the server is down — fall through */
+        }
+        try {
+          return await fetch(request);
+        } catch (e) {
+          /* still nothing; serve the shell we cached at install */
+        }
+        // "./" before "./index.html": depending on the static server, the
+        // shell may have been cached as the *result of a redirect*
+        // (`serve`, for one, sends /index.html -> /), and the browser refuses
+        // a redirected response for a navigation — the request fails as if
+        // nothing had been cached at all. Re-wrap it when that is what we
+        // have, so the navigation always gets a plain 200.
+        const shell = (await caches.match("./")) || (await caches.match("./index.html"));
+        if (!shell) return Response.error();
+        if (!shell.redirected) return shell;
+        return new Response(shell.body, {
+          status: 200,
+          statusText: "OK",
+          headers: shell.headers,
+        });
+      })()
     );
     return;
   }

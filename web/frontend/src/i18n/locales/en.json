@@ -2835,5 +2835,11 @@
     "empty": "{{place}}: empty.",
     "planetIn": "{{planet}} in {{place}}",
     "house": "House {{house}} ({{sign}})"
+  },
+  "route": {
+    "failedTitle": "This page didn't load.",
+    "offlineBody": "You're offline, and this page hasn't been saved on this device yet. Open it once while online and it will be available offline afterwards.",
+    "onlineBody": "The page couldn't be fetched. If the app was updated while this tab was open, reloading will pick up the new version.",
+    "retry": "Reload"
   }
 }

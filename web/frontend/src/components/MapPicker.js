@@ -1,9 +1,11 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import React, { Suspense, lazy, useState, useRef, useCallback, useMemo, useEffect } from "react";
 import "./MapPicker.css";
 import { API_URL } from "../services/api";
+
+// Leaflet lives behind this boundary, not in the initial bundle (§68.4). The
+// map is collapsed until "Pick on map" is pressed, so the chunk is fetched at
+// the moment it is first needed and cached for the rest of the session.
+const MapCanvas = lazy(() => import("./MapCanvas"));
 
 // Whether the interactive map picker is enabled. Defaults to ON; set
 // REACT_APP_ENABLE_MAP_PICKER=false to hide it for production deployments
@@ -15,29 +17,6 @@ export const MAP_PICKER_ENABLED =
 const DEFAULT_CENTER = [20.5937, 78.9629];
 const DEFAULT_ZOOM = 4;
 const PICKED_ZOOM = 9;
-
-// CRA/webpack breaks Leaflet's default marker image paths; point them at the
-// CDN-free copies bundled inside the leaflet package instead.
-const markerIcon = L.icon({
-  iconUrl: require("leaflet/dist/images/marker-icon.png"),
-  iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
-  shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-// Re-centres the map imperatively when a coordinate is set from outside the map
-// (e.g. the "use my location" button) without remounting the MapContainer.
-function ClickCapture({ onPick }) {
-  useMapEvents({
-    click(e) {
-      onPick(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
 
 /**
  * MapPicker
@@ -164,32 +143,15 @@ const MapPicker = ({ onLocationSelect, latitude, longitude }) => {
           </div>
 
           <div className="map-picker-canvas">
-            <MapContainer
-              center={center}
-              zoom={marker ? PICKED_ZOOM : DEFAULT_ZOOM}
-              scrollWheelZoom
-              style={{ height: "320px", width: "100%" }}
-              ref={mapRef}
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            <Suspense fallback={<div className="map-picker-status">Loading map…</div>}>
+              <MapCanvas
+                center={center}
+                zoom={marker ? PICKED_ZOOM : DEFAULT_ZOOM}
+                marker={marker}
+                onPick={pick}
+                mapRef={mapRef}
               />
-              <ClickCapture onPick={pick} />
-              {marker && (
-                <Marker
-                  position={marker}
-                  icon={markerIcon}
-                  draggable
-                  eventHandlers={{
-                    dragend: (e) => {
-                      const { lat, lng } = e.target.getLatLng();
-                      pick(lat, lng);
-                    },
-                  }}
-                />
-              )}
-            </MapContainer>
+            </Suspense>
           </div>
 
           {resolving && <div className="map-picker-status">Resolving location…</div>}

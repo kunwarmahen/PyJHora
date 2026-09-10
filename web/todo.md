@@ -6863,9 +6863,11 @@ Two pieces:
 - a chart-renderer test that asserts a known chart's planets land in the **right cells** of both
   chart styles. That one test is the guard §65/§66 wanted.
 
-### 68.4 (P1) 🔴 406 KB gzipped before the first chart draws
+### 68.4 (P1) ✅ 406 KB gzipped before the first chart draws — **see §74**
 
-- [ ] **Route-level `React.lazy` + a lazy MapPicker.**
+- [x] **Route-level `React.lazy` + a lazy MapPicker.** SHIPPED 2026-09-10 — 487 KB → 166 KB gzipped
+      on the initial load, and it turned up a service worker whose navigation handler had never run
+      (offline could not open the app at all). See **§74**.
 
 Measured on the current build: `main.*.js` is **1,672,219 bytes raw / 415,961 gzipped**, and
 [`App.js`](frontend/src/App.js) statically imports **all 51 pages** — there is not one `React.lazy`
@@ -6936,7 +6938,8 @@ only genuine evaluation signal this project would have for all the prompt work i
       aloud, drawer/tab keyboard behaviour, and a lint guard. See **§73**.
 - [x] **`react-icons` is a dependency imported by zero files** (all 75 icon consumers use
       `lucide-react`). Dropped 2026-09-10.
-- [ ] **`react-scripts` 5.0.1 is unmaintained.** A Vite migration would also make §68.4 nearly free.
+- [ ] **`react-scripts` 5.0.1 is unmaintained.** A Vite migration would also make §68.4 nearly free
+      — though §68.4 is now done on CRA (§74), so that is no longer a reason to take it on.
       Optional, and a bigger bite than it looks. **Deliberately left open** — asked and answered
       2026-09-10: it touches the build, the service worker, `REACT_APP_*` → `import.meta.env`, 21
       test suites and the PWA setup, and §68.3 means no component test would catch the regression.
@@ -6948,9 +6951,10 @@ only genuine evaluation signal this project would have for all the prompt work i
 If two: **§68.5 event alerts** for what a user actually feels, and **§68.1 the claim checker** for
 what keeps biting. §68.2 CI is the cheapest thing on the list and should probably just happen.
 
-> **§68.1 is done — see §69; §68.5 — see §70; §68.6 — see §71; §68.7 — see §72; §68.8 — see §73.**
-> §68.2 (CI), §68.3 (frontend never renders a page in a test) and §68.4 (route-level `React.lazy`)
-> are still open, and so is the Vite migration inside §68.8.
+> **§68.1 is done — see §69; §68.5 — see §70; §68.6 — see §71; §68.7 — see §72; §68.8 — see §73;
+> §68.4 — see §74.** §68.2 (CI) and §68.3 (the frontend has never rendered a page in a test) are
+> still open, and so is the Vite migration inside §68.8 — though §74 shipped the code splitting that
+> was its main draw.
 
 ---
 
@@ -7822,3 +7826,116 @@ and `src/utils/a11y.test.js` (5) hold the text alternative and the keyboard cont
 `src/services/offlineCache.test.js` (9) pins the two rules that could do damage quietly — an AI
 reading must never be replayed as if it were today's, and the key must separate two profiles and two
 users. **1029 backend + 232 frontend green.**
+
+---
+
+## 74. 406 KB before the first chart draws (§68.4) — ✅ SHIPPED 2026-09-10
+
+> *"lets work on it"* — §68.4, the last of the three P1s that were still open.
+
+Measured on `main` before touching anything (the 415,961 in §68.4 was an older build):
+
+| | raw | gzipped |
+|---|---|---|
+| `main.js` | 1,769,986 | **443,262** |
+| `main.css` | 234,935 | **43,811** |
+| **initial download** | | **487,073** |
+
+After: **`main.js` 514,232 / 159,554** and **`main.css` 27,952 / 6,798** — **166 KB gzipped, a 66%
+cut**, split across 65 JS and 54 CSS chunks that arrive when the page that needs them does.
+
+### 74.1 The routes
+
+[`App.js`](frontend/src/App.js) statically imported all 51 pages; there was not one `React.lazy` in
+the app. Each is now `page(() => import("./pages/X"), "X")` behind a single `<Suspense>` — one helper
+because pages export by name and only 30 of the 51 also have a default export. `RootRoute` got the
+same treatment for `LandingPage`: marketing copy that only a signed-out visitor should pay for.
+
+Two things came free with it, and they are most of the win:
+
+- **`react-markdown` + `micromark`.** `components/Markdown.js` is their only importer and 29 pages
+  use it — so once those pages are lazy, webpack puts the parser in a shared async chunk by itself.
+  The dashboard, which uses no markdown at all, stops paying for it.
+- **The CSS.** Every page's stylesheet rode in `main.css` for the same reason. 235 KB raw → 28 KB.
+
+`leaflet` + `react-leaflet` needed a hand: the map was collapsed behind a "Pick on map" toggle but
+imported at module scope, so the Leaflet half moved to [`MapCanvas.js`](frontend/src/components/MapCanvas.js)
+and is fetched on the press. ~45 KB gzipped for one dialog on the profile form.
+
+`jspdf`/`html2canvas` were **already** dynamic (§68.4 credited this correctly) — the 406 KB raw chunk
+in the build listing is them, and it stays deferred.
+
+### 74.2 The locales, which were not in the plan
+
+`i18n/index.js` bundled all three languages: `hi.json` and `sa.json` are **164 KB of JSON** every
+visitor downloaded to read a UI in one language. English stays in the bundle; the other two are
+fetched by `ensureLanguage()` when selected, and `index.js` awaits it before the first render so a
+Hindi user never sees a flash of English. Verified in the browser: switching to हिन्दी pulls exactly
+one new chunk (`src_i18n_locales_hi_json.chunk.js`), and after a reload the paint at 600 ms is
+already Devanagari. Nothing about the **data** layer moves —
+[`docs/I18N_DATA_LAYER_DESIGN.md`](docs/I18N_DATA_LAYER_DESIGN.md) still describes who owns which
+strings; this is only when they arrive.
+
+### 74.3 What splitting costs, and what was refused
+
+A page you have never opened is not in the cache, so it cannot be shown offline — `sw.js` caches
+static assets stale-while-revalidate, which means the chunks you actually fetched and no others.
+
+**Precaching all 51 chunks at install was refused**: it hands the entire download back to every
+visitor on every deploy, which is the thing this change exists to stop. Instead `warmCoreRoutes()`
+fetches four chunks (dashboard, birth chart, daily digest, ask) at `requestIdleCallback` after the
+first paint, and the rest are cached as they are opened. That is the honest trade, and the Help/FAQ
+answer for "Does the app work without a signal?" already describes exactly this behaviour — *"a page
+you have never opened cannot be shown offline"* — so it needed no edit. It is more true now than
+when it was written (see below).
+
+The other new failure mode is a **stale tab after a deploy**: a chunk whose hashed name no longer
+exists. [`RouteErrorBoundary`](frontend/src/components/RouteErrorBoundary.js) catches both, reloads
+**once** for a chunk error while online (with a 30-second cooldown so a page broken for any other
+reason cannot loop), and otherwise says which of the two happened. Before this, a failed chunk was a
+white screen.
+
+### 74.4 The service worker's navigation handler had never run
+
+Found while testing the offline path, and it is the most valuable thing in this section.
+
+`sw.js` answered navigations network-first with a cached-shell fallback:
+
+```js
+fetch(request, { cache: "reload" }).catch(() => fetch(request)).catch(() => caches.match("./index.html"))
+```
+
+**`fetch(request, { … })` where `request.mode === "navigate"` is a synchronous `TypeError`.** It
+threw before `event.respondWith` was ever called, so the browser fell through to a normal navigation
+and the whole branch was dead code. Two consequences, both live in production until now:
+
+- **Offline, the app could not be opened or reloaded at all** — ERR_FAILED, with its shell sitting in
+  the cache. Only in-session SPA navigation ever worked, which is why §73's offline work looked fine:
+  it was tested from an already-open tab.
+- **The §66 stale-bundle guard was never in force.** The `cache: "reload"` that the comment calls
+  "load-bearing" — there to stop a tab pinning itself to a previous build's JavaScript — never ran.
+
+Fixed by re-fetching **by URL** (`fetch(request.url, { cache: "reload", credentials: "same-origin" })`),
+which is a legal construction. That exposed a second one immediately: the shell can be cached as the
+*result of a redirect* (a static server that sends `/index.html` → `/`), and **a redirected response
+cannot answer a navigation** — the request fails as though nothing were cached. So the fallback now
+prefers `"./"`, and re-wraps a redirected response as a plain 200. `CACHE` is bumped to
+`jyotir-ai-v3`.
+
+Verified by killing the static server under a live production build: reloading a page that had been
+visited now renders from cache (it did not before), and navigating to one that had not shows the
+boundary's offline copy rather than a dead tab.
+
+### 74.5 The guard
+
+`src/bundleSplit.test.js` (8 tests) is source-level on purpose, so it runs in the normal suite: no
+static `./pages/` import in `App.js`, every rendered page declared through the lazy helper, the
+Suspense and error boundaries present, and `leaflet` / `react-markdown` / `remark-gfm` / `jspdf` /
+`html2canvas` / the non-English locales each confined to the one place allowed to import them. A
+gzip budget on `main.js` (200 KB) runs too when a build happens to be on disk — it caught the stale
+pre-change build the first time it ran, which is the right kind of noisy.
+
+The bundle grew to 406 KB one honest static import at a time and nothing in the repo noticed; the
+test is there so the next one fails loudly.
+
+**240 frontend tests green** (232 + 8). Backend untouched.
