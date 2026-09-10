@@ -1040,6 +1040,12 @@ Reply with STRICT JSON only, exactly this shape:
                                              sys_prompt, usage)
             if classify_error_text(text):
                 raise LLMUnavailable.from_error_text(text, active)
+            if not (text or "").strip():
+                # Silence is a failure too. Adapters that report it as error text
+                # are caught above; this covers the ones that just return "".
+                raise LLMUnavailable.from_error_text(
+                    f"Error from {active.model or 'the model'}: the model returned "
+                    "an empty response.", active)
             return text
 
         return await self._guarded_call(cfg, _run, usage=usage)
@@ -1114,10 +1120,22 @@ Reply with STRICT JSON only, exactly this shape:
         chain = self.config_chain(cfg)
         idx = 0
         retries = 0
+        produced = False   # any text at all reached the client?
         while idx < len(chain):
             try:
                 async for chunk in _attempt(chain[idx]):
+                    produced = True
                     yield chunk
+                if not produced:
+                    # A clean 200 that carried no text: a reasoning model that
+                    # spent its whole output budget deliberating, or a provider
+                    # that simply said nothing. Blank is not an answer — it used
+                    # to render as an empty bubble and save to AI history as a
+                    # question with no answer, so name the failure instead.
+                    yield (f"Error from {chain[idx].model or 'the model'}: it "
+                           "finished without writing an answer (its output budget "
+                           "may have gone on internal reasoning). Raise the answer "
+                           "length in Settings, or pick another model.")
                 return
             except LLMUnavailable as e:
                 if usage is not None:

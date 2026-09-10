@@ -10,7 +10,7 @@ from typing import Optional, List, Dict, Any
 
 from bson import ObjectId
 
-from database import get_database
+from database import bson_safe, get_database
 
 COLLECTION = "ai_conversations"
 
@@ -88,7 +88,15 @@ async def create_conversation(user_id: str, profile_id: Optional[str],
                               birth_details: Optional[Dict[str, Any]] = None,
                               mode: str = "pass_all",
                               source: str = "astrologer",
-                              context: Optional[Dict[str, Any]] = None) -> str:
+                              context: Optional[Dict[str, Any]] = None,
+                              messages: Optional[List[Dict[str, Any]]] = None) -> str:
+    """Create a thread, optionally with its first turn already in it.
+
+    Passing `messages` matters: creating an empty thread and appending to it is
+    two round trips, and anything that goes wrong between them (a failed write, a
+    cancelled request when the reader closes the tab) leaves a conversation that
+    lists under its question and opens with nothing in it. One insert cannot half
+    happen."""
     db = get_database()
     meta = source_meta(source)
     doc = {
@@ -108,7 +116,7 @@ async def create_conversation(user_id: str, profile_id: Optional[str],
         # Inputs needed to restore that page to exactly this reading (tool params,
         # date/year/place/…). Snapshot: the page reuses these instead of guessing.
         "context": context or None,
-        "messages": [],
+        "messages": bson_safe(messages or []),
         "created_at": _now_iso(),
         "updated_at": _now_iso(),
     }
@@ -144,8 +152,8 @@ async def save_reading(user_id: str, *, source: str, title: str, text: str,
         "source": source,
         "kind": "reading",
         "route": meta["route"],
-        "context": context or None,
-        "messages": [user_msg, ai_msg],
+        "context": bson_safe(context) if context else None,
+        "messages": [user_msg, bson_safe(ai_msg)],
         "created_at": now,
         "updated_at": now,
     }
@@ -187,7 +195,7 @@ async def append_messages(user_id: str, conv_id: str,
         return
     await db[COLLECTION].update_one(
         {"_id": oid, "user_id": user_id},
-        {"$push": {"messages": {"$each": messages}},
+        {"$push": {"messages": {"$each": bson_safe(messages)}},
          "$set": {"updated_at": _now_iso()}},
     )
 
@@ -205,6 +213,7 @@ async def replace_last_assistant(user_id: str, conv_id: str,
     if not conv:
         return
     msgs = conv.get("messages", [])
+    assistant_msg = bson_safe(assistant_msg)
     for i in range(len(msgs) - 1, -1, -1):
         if msgs[i].get("role") == "assistant":
             msgs[i] = assistant_msg

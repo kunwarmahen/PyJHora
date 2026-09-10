@@ -117,34 +117,65 @@ class OllamaMixin:
             "model": model,
             "messages": messages,
             "stream": True,
+            # Explicitly off, not merely unset — same reason as `_call_ollama`:
+            # `num_predict` caps thinking + answer together, so a thinking model
+            # can spend the whole budget deliberating and end a perfectly healthy
+            # 200 stream having emitted no `content` at all. That blank then got
+            # rendered as an empty answer bubble and saved to AI history as a
+            # question with no answer.
+            "think": False,
             "options": {"temperature": 0.7, **output_cap(max_tokens, "num_predict")},
         }
         try:
             async with httpx.AsyncClient(timeout=300.0) as client:
-                async with client.stream("POST", f"{url}/api/chat", json=payload) as r:
-                    if r.status_code != 200:
-                        body = (await r.aread()).decode("utf-8", "ignore")
-                        yield f"Error from Ollama ({model}): {r.status_code} - {body}"
-                        return
-                    async for line in r.aiter_lines():
-                        if not line.strip():
-                            continue
-                        try:
-                            obj = json.loads(line)
-                        except json.JSONDecodeError:
-                            continue
-                        chunk = obj.get("message", {}).get("content", "")
-                        if chunk:
-                            yield chunk
-                        if obj.get("done"):
-                            if usage is not None:
-                                pt = obj.get("prompt_eval_count")
-                                ct = obj.get("eval_count")
-                                if pt is not None or ct is not None:
-                                    usage["prompt_tokens"] = pt
-                                    usage["completion_tokens"] = ct
-                                    usage["total_tokens"] = (pt or 0) + (ct or 0)
-                            break
+                # Two attempts at most: the second drops `think` for a model whose
+                # daemon rejects the key outright.
+                for _ in range(2):
+                    retry_plain = False
+                    answered = False        # any real content chunk seen?
+                    thinking = ""           # deliberation, for the diagnostic
+                    tail: Dict[str, Any] = {}
+                    async with client.stream("POST", f"{url}/api/chat", json=payload) as r:
+                        if r.status_code != 200:
+                            body = (await r.aread()).decode("utf-8", "ignore")
+                            if "think" in payload and _rejects_think(body):
+                                # Not a thinking model — it wants the key gone.
+                                payload.pop("think", None)
+                                retry_plain = True
+                            else:
+                                yield f"Error from Ollama ({model}): {r.status_code} - {body}"
+                                return
+                        else:
+                            async for line in r.aiter_lines():
+                                if not line.strip():
+                                    continue
+                                try:
+                                    obj = json.loads(line)
+                                except json.JSONDecodeError:
+                                    continue
+                                msg = obj.get("message") or {}
+                                chunk = msg.get("content", "")
+                                if chunk:
+                                    answered = True
+                                    yield chunk
+                                thinking += msg.get("thinking") or ""
+                                if obj.get("done"):
+                                    tail = obj
+                                    if usage is not None:
+                                        pt = obj.get("prompt_eval_count")
+                                        ct = obj.get("eval_count")
+                                        if pt is not None or ct is not None:
+                                            usage["prompt_tokens"] = pt
+                                            usage["completion_tokens"] = ct
+                                            usage["total_tokens"] = (pt or 0) + (ct or 0)
+                                    break
+                    if retry_plain:
+                        continue
+                    if not answered:
+                        # A 200 that carried nothing. Say so — an empty answer is a
+                        # failure, and the chain above can still fall back on it.
+                        yield _empty_response_error(model, {**tail, "thinking": thinking})
+                    return
         except httpx.ConnectError:
             yield (f"Error: Cannot connect to Ollama. Ensure it is running and the "
                    f"model is installed ('ollama pull {model}').")

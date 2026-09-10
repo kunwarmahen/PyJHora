@@ -221,18 +221,20 @@ def _resolve_mode(request: "AskQuestionRequest", conv: Optional[dict]) -> str:
 async def _save_turn(user_id: str, request: "AskQuestionRequest", cfg, chart_data: dict,
                      answer: str, elapsed_ms: Optional[int] = None,
                      usage: Optional[dict] = None, mode: str = "pass_all",
-                     tool_trace: Optional[list] = None) -> str:
+                     tool_trace: Optional[list] = None) -> Optional[str]:
     """Persist a user question + assistant answer, creating the conversation if new.
 
     When `request.regenerate` is set and a conversation exists, the previous
-    assistant answer is replaced in place (no duplicate question/answer turn)."""
-    conv_id = request.conversation_id
-    if not conv_id:
-        conv_id = await convo.create_conversation(
-            user_id, request.profile_id, request.question,
-            request.birth_details.model_dump(), mode=mode,
-            source=request.source or "astrologer",
-        )
+    assistant answer is replaced in place (no duplicate question/answer turn).
+
+    A blank answer is never persisted: history items whose question is present and
+    whose answer is empty are useless to reopen, and on a regenerate a blank would
+    overwrite a good answer with nothing. `save_reading` has always refused empty
+    text; this is the same rule for the chat path."""
+    if not (answer or "").strip():
+        print("Refusing to persist a blank answer "
+              f"(source={request.source or 'astrologer'}, mode={mode})")
+        return request.conversation_id
     now = datetime.now(timezone.utc).isoformat()
     ai_msg = {
         "role": "assistant", "content": answer, "ts": now,
@@ -243,24 +245,44 @@ async def _save_turn(user_id: str, request: "AskQuestionRequest", cfg, chart_dat
     }
     if usage:
         ai_msg["usage"] = usage
+    full_trace = None
     if tool_trace:
         # Keep only the light trace (name/args/ok) on the message so listing/loading
         # stays fast; stash the full per-call results in the side collection keyed by
         # an opaque trace_id, fetched lazily when the user opens "Behind the scenes".
-        trace_id = uuid.uuid4().hex
-        ai_msg["trace_id"] = trace_id
+        ai_msg["trace_id"] = uuid.uuid4().hex
         ai_msg["tool_trace"] = [
             {"name": e.get("name"), "args": e.get("args", {}), "ok": e.get("ok")}
             for e in tool_trace
         ]
-        full = [e for e in tool_trace if e.get("result") is not None]
-        if full:
-            await tool_traces.save_trace(user_id, conv_id, trace_id, full)
-    if request.regenerate and request.conversation_id:
+        full_trace = [e for e in tool_trace if e.get("result") is not None]
+
+    # The answer goes in first and on its own. The trace below is a debugging
+    # extra; it used to be written *before* this, so one un-storable tool result
+    # (the engine keys several maps by house number, which Mongo rejects) took the
+    # whole turn down with it and left an empty thread behind — while the reader
+    # had already watched the answer stream in.
+    conv_id = request.conversation_id
+    if request.regenerate and conv_id:
         await convo.replace_last_assistant(user_id, conv_id, ai_msg)
-    else:
+    elif conv_id:
         user_msg = {"role": "user", "content": request.question, "ts": now}
         await convo.append_messages(user_id, conv_id, [user_msg, ai_msg])
+    else:
+        user_msg = {"role": "user", "content": request.question, "ts": now}
+        conv_id = await convo.create_conversation(
+            user_id, request.profile_id, request.question,
+            request.birth_details.model_dump(), mode=mode,
+            source=request.source or "astrologer",
+            messages=[user_msg, ai_msg],
+        )
+
+    if full_trace and conv_id:
+        try:
+            await tool_traces.save_trace(user_id, conv_id, ai_msg["trace_id"],
+                                         full_trace)
+        except Exception as e:  # pragma: no cover - defensive
+            print(f"Failed to persist tool trace for {conv_id}: {e}")
     return conv_id
 
 

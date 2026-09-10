@@ -33,6 +33,32 @@ def get_database():
         raise RuntimeError("Database not initialized. Call connect_to_mongo() first.")
     return database
 
+
+def bson_safe(value: Any) -> Any:
+    """Coerce arbitrary Python data into something Mongo will actually accept.
+
+    BSON documents may only have *string* keys, and the astrology engine returns
+    plenty of maps keyed by int — `get_transits`, for one, keys its arudha
+    significations by house number. Storing such a result raises InvalidDocument,
+    which is how a whole AI answer once went missing: the tool trace was written
+    before the messages were, so the write blew up and left behind a conversation
+    with a title and no content at all.
+
+    So anything on its way into the database goes through here first: int keys
+    become strings, tuples become lists, and anything BSON has no encoding for
+    (numpy scalars, dates, objects) becomes its `str()`. Lossy on purpose — a
+    readable trace beats a lost answer.
+    """
+    if isinstance(value, dict):
+        return {str(k): bson_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [bson_safe(v) for v in value]
+    if isinstance(value, bool) or value is None:
+        return value
+    if isinstance(value, (str, int, float, datetime)):
+        return value
+    return str(value)
+
 # Pydantic Models
 class PyObjectId(ObjectId):
     @classmethod

@@ -18,6 +18,7 @@ These tests pin the *class* of that bug (no adapter's error text may become an
 answer) rather than the three call sites that first showed it.
 """
 import asyncio
+import json
 
 import pytest
 
@@ -502,3 +503,115 @@ def test_deferral_is_bounded_so_the_digest_eventually_goes_out():
                              {"key": "k", "count": settings.DIGEST_AI_MAX_DEFERRALS}}}
     reached = scheduler._deferrals_so_far(doc, "last_sent_date", "k")
     assert not (reached < settings.DIGEST_AI_MAX_DEFERRALS)  # allow_defer is False
+
+
+# --------------------------------------------------------------------------- #
+# A blank answer is a failure, not an answer
+#
+# Reported from the live site: an Ask AI history item whose question was there
+# and whose answer was empty. Ollama's /api/chat was never told `think: False`
+# (only /api/generate was), so a thinking model could spend the whole
+# `num_predict` budget deliberating and finish a healthy 200 stream having
+# emitted no `content` — which the route joined into "" and saved verbatim.
+# --------------------------------------------------------------------------- #
+class _FakeStream:
+    """Stands in for httpx's streaming response context manager."""
+
+    def __init__(self, lines, status_code=200, body=""):
+        self._lines = lines
+        self.status_code = status_code
+        self._body = body
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def aiter_lines(self):
+        for line in self._lines:
+            yield line
+
+    async def aread(self):
+        return self._body.encode()
+
+
+def _ollama_chat_stream(monkeypatch, *responses):
+    """Serve the given fake responses to successive /api/chat stream calls and
+    record the payload each one was sent."""
+    sent = []
+    queue = list(responses)
+
+    def _stream(self, method, url, **kw):
+        # A copy: the adapter mutates one payload dict across attempts.
+        sent.append(dict(kw.get("json") or {}))
+        return queue.pop(0)
+
+    monkeypatch.setattr("httpx.AsyncClient.stream", _stream)
+    return sent
+
+
+def test_the_chat_stream_asks_a_thinking_model_not_to_think(monkeypatch):
+    """`num_predict` caps thinking + answer together, so deliberation can eat the
+    entire output budget — exactly what /api/generate already guards against."""
+    sent = _ollama_chat_stream(monkeypatch, _FakeStream([
+        json.dumps({"message": {"content": "Jupiter "}}),
+        json.dumps({"message": {"content": "aspects."}, "done": True}),
+    ]))
+
+    out = _drain(llm_service._stream_ollama([], _cfg(), 1024))
+    assert out == ["Jupiter ", "aspects."]
+    assert sent[0]["think"] is False
+
+
+def test_a_model_with_no_thinking_mode_is_retried_without_the_key(monkeypatch):
+    """Ollama rejects `think` outright on models that don't support it; dropping
+    the key must not cost the user their answer."""
+    sent = _ollama_chat_stream(
+        monkeypatch,
+        _FakeStream([], status_code=400, body="model does not support thinking"),
+        _FakeStream([json.dumps({"message": {"content": "Venus."}, "done": True})]),
+    )
+
+    assert _drain(llm_service._stream_ollama([], _cfg(), 1024)) == ["Venus."]
+    assert sent[0]["think"] is False and "think" not in sent[1]
+
+
+def test_a_stream_that_only_thinks_reports_a_failure_instead_of_nothing(monkeypatch):
+    """The reported bug: a 200 carrying no content at all. Silence was saved to
+    AI history as a question with an empty answer; now it is named."""
+    _ollama_chat_stream(monkeypatch, _FakeStream([
+        json.dumps({"message": {"thinking": "Let me weigh the dashas..."}}),
+        json.dumps({"message": {"content": ""}, "done": True,
+                    "done_reason": "length", "eval_count": 2048}),
+    ]))
+
+    out = _drain(llm_service._stream_ollama([], _cfg(), 1024))
+    assert len(out) == 1
+    # ...and it is an error string, so the chain above can fall back on it.
+    assert classify_error_text(out[0]) is not None
+    assert "thinking" in out[0]
+
+
+def test_a_chain_that_produces_no_text_at_all_still_says_why(monkeypatch,
+                                                             _clean_gate):
+    """Provider-agnostic backstop: any adapter that ends a clean stream having
+    yielded nothing must not reach the route as an empty answer."""
+    async def _silent(*a, **k):
+        return
+        yield  # pragma: no cover - makes this an async generator
+
+    monkeypatch.setattr(llm_service, "_stream_ollama", _silent)
+    out = _drain(llm_service.stream_answer({}, "q", None, _cfg()))
+    assert len(out) == 1 and "without writing an answer" in out[0]
+
+
+def test_a_blank_completion_is_raised_not_returned(monkeypatch, _clean_gate):
+    """The one-shot path: "" is not a reading. Readings, digests and life-report
+    chapters all funnel through _complete."""
+    async def _nothing(*a, **k):
+        return "   "
+
+    monkeypatch.setattr(llm_service, "_complete_once", _nothing)
+    with pytest.raises(LLMUnavailable):
+        asyncio.run(llm_service._complete("p", _cfg()))

@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse, Response
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any
+import asyncio
 import json
 import re
 from pydantic import BaseModel
@@ -1191,9 +1192,13 @@ async def ask_question_stream(
         elapsed_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
         usage = usage or None
         try:
-            conv_id = await _save_turn(current_user, request, cfg, chart_data, answer,
-                                       elapsed_ms=elapsed_ms, usage=usage, mode=mode,
-                                       tool_trace=tool_trace or None)
+            # Shielded: the reader closing the tab the moment the last token lands
+            # cancels this generator, and a half-finished save is how a thread ends
+            # up with a question and no answer. The write is short; let it finish.
+            conv_id = await asyncio.shield(asyncio.ensure_future(
+                _save_turn(current_user, request, cfg, chart_data, answer,
+                           elapsed_ms=elapsed_ms, usage=usage, mode=mode,
+                           tool_trace=tool_trace or None)))
         except Exception as e:
             conv_id = request.conversation_id
             print(f"Failed to persist conversation: {e}")
