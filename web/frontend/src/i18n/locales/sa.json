@@ -572,7 +572,13 @@
     "sectionKaala": "कालचक्रम् (दिशः)",
     "sectionTripataki": "त्रिपताकीचक्रम् (वेधः)",
     "advancedControls": "उत्तरविधिः, सन्दर्भः, परामर्शचक्राणि च",
-    "sectionSpecialPoints": "विशेष लग्न"
+    "sectionSpecialPoints": "विशेष लग्न",
+    "citationsOn": "📚 शास्त्रप्रमाणानि सक्रियाणि — {{count}} अंशाः सस्रोतं सप्रमाणं उद्धर्तुं शक्यन्ते।",
+    "citationsNeedTools": "📚 {{count}} शास्त्रांशाः अनुक्रमिताः, किन्तु प्रमाणार्थं Smart lookup आवश्यकम् — Full context मध्ये साधनानि न प्रेष्यन्ते।",
+    "citationsOff": "शास्त्रप्रमाणानि न उपलब्धानि (संग्रहः न अनुक्रमितः)। उत्तराणि केवलं कुण्डल्याः आधारेण भविष्यन्ति।",
+    "summarySeed": "{{count}} पूर्वं प्रेषिताः",
+    "summaryTool": "{{count}} याचनया",
+    "summaryOff": "{{count}} निवृत्ताः"
   },
   "compat": {
     "title": "गुणमेलनम्",

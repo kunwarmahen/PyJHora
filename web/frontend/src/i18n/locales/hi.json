@@ -572,7 +572,13 @@
     "sectionKaala": "काल चक्र (दिशाएँ)",
     "sectionTripataki": "त्रिपताकी चक्र (वेध)",
     "advancedControls": "उत्तर मोड, संदर्भ और परामर्श हेतु चार्ट",
-    "sectionSpecialPoints": "विशेष लग्न"
+    "sectionSpecialPoints": "विशेष लग्न",
+    "citationsOn": "📚 शास्त्र-उद्धरण चालू — AI {{count}} अनुक्रमित अंश स्रोत और श्लोक-संख्या सहित उद्धृत कर सकता है।",
+    "citationsNeedTools": "📚 {{count}} शास्त्रीय अंश अनुक्रमित हैं, परंतु उद्धरण के लिए Smart lookup आवश्यक है — Full context में कोई टूल नहीं भेजा जाता।",
+    "citationsOff": "शास्त्र-उद्धरण अनुपलब्ध (कोई संग्रह अनुक्रमित नहीं)। उत्तर केवल कुंडली के आधार पर दिए जाएँगे।",
+    "summarySeed": "{{count}} पहले भेजे",
+    "summaryTool": "{{count}} माँग पर",
+    "summaryOff": "{{count}} बंद"
   },
   "compat": {
     "title": "गुण मिलान",

@@ -1,6 +1,15 @@
 /* Vedic Astrology Design System */
 @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Mulish:wght@300;400;500;600;700;800&display=swap");
 
+/* `hidden` must actually hide. The UA rule is `[hidden] { display: none }` at
+ * (0,1,0), so ANY class rule that sets `display` beats it — `.ask-section-list
+ * { display: flex }` left a "collapsed" list fully visible, with the attribute
+ * correctly set and the DOM assertion passing. It only showed up in a
+ * screenshot. One global rule rather than remembering it per component. */
+[hidden] {
+  display: none !important;
+}
+
 :root {
   /* Vedic Color Palette */
   --saffron: #ff9933;

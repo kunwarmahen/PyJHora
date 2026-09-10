@@ -1035,7 +1035,13 @@
     "sectionKaala": "Kaala Chakra (directions)",
     "sectionTripataki": "Tripataki Chakra (vedha)",
     "advancedControls": "Answer mode, context & charts to consult",
-    "sectionSpecialPoints": "Special lagnas"
+    "sectionSpecialPoints": "Special lagnas",
+    "citationsOn": "📚 Classical citations are on — the AI can quote {{count}} indexed passages, with their source and verse.",
+    "citationsNeedTools": "📚 {{count}} classical passages are indexed, but citations need Smart lookup — Full context sends no tools, so no answer can cite a source.",
+    "citationsOff": "Classical citations are unavailable (no corpus indexed). Answers will argue from the chart alone.",
+    "summarySeed": "{{count}} sent up front",
+    "summaryTool": "{{count}} on demand",
+    "summaryOff": "{{count}} off"
   },
   "settings": {
     "title": "Settings",

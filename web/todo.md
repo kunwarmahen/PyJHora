@@ -7716,6 +7716,46 @@ announced itself as "Rasi Chart, image" and stopped.
   two seconds instead of the whole build. It was verified by feeding it the actual broken
   lockfile from this branch and watching it reproduce the deploy's error verbatim.
 
+### 73.4 Follow-up: making the citations reachable, and the card that ate the page
+
+Asked after the fact — *"how do I use this capability in the UI"* — and the honest answer was
+that you largely could not. `search_classical_texts` is an `ALWAYS_TOOLS` entry, so it has no
+Seed/Tool/Off chip (there is nothing to *seed* — it is a search, not a fact about your chart), and
+nothing else on the Ask page said the corpus existed. The capability was on, and invisible.
+
+- **A status line in the Ask page's Context-sections card**, mode-aware, because the real trap is
+  quieter than "is it indexed": tools only run in **Smart lookup**, so in Full context no answer can
+  ever cite anything. It says which of those you are in.
+- **A prompt nudge**, in the tool-mode context block only, and only when the index is already
+  built. The second half of it matters more than the first: telling a model to cite the classics
+  over a deliberately small corpus is an invitation to invent a chapter and verse when the search
+  comes back empty — the exact failure §69 catches and the exact thing the importer refuses to do.
+  So the permission to cite ships with *never invent a quotation, a chapter or a verse number*, and
+  with the explicit expectation that most answers carry none.
+- **The index is warmed at startup** in a daemon thread (`rag.warm()`), so nobody's first question
+  waits on 315 embeddings and the prompt is never one request behind. `rag.is_indexed()` is the
+  non-building check the prompt path uses; `available()` still builds for callers that can afford
+  it. Verified in the log: `[rag] classical-text corpus indexed: 315 passages`.
+- **The Context-sections card collapses.** 18 rows measured **572px**, inside a panel that is
+  itself a disclosure, which pushed the vargas and the Ask button off the screen. Collapsed by
+  default with a summary in its place (*"2 sent up front · 16 on demand"*), and when open the list
+  caps at 264px and scrolls. Deliberately **not** a multi-column grid: the panel is a 315–370px
+  column at every viewport measured (480/900/1280/1920), so those columns would never once have
+  appeared.
+
+Three bugs found by opening a browser, none of which the build or 232 tests caught — which is
+§68.3 restated as a fact rather than a worry:
+
+- **`Cannot access 'sections' before initialization`.** The summary was declared above the state it
+  reads. A temporal-dead-zone error compiles perfectly and blanks the page at runtime.
+- **`hidden` did not hide.** The UA rule is `[hidden] { display: none }` at specificity (0,1,0), so
+  `.ask-section-list { display: flex }` beat it: the "collapsed" list rendered in full while the
+  attribute was correctly set and a DOM assertion on it passed. Only the screenshot showed it.
+  Fixed globally in `App.css` — `[hidden] { display: none !important }` — rather than per component.
+- **Playwright text selectors lie.** `click("text=Smart lookup")` hit the *hint paragraph* that
+  explains Smart lookup, so the mode never changed and the verification quietly checked nothing.
+  The same trap the skill already records for tabs.
+
 ### Tests
 
 `backend/tests/test_rag_corpus.py` (13) holds the corpus to well-formed, unique, furniture-free

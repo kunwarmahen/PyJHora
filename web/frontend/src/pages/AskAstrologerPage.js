@@ -287,6 +287,35 @@ export const AskAstrologerPage = () => {
     localStorage.setItem("ai_mode", mode);
   }, [mode]);
 
+  // Whether the classical-text corpus is indexed (§5.12/§73). The capability was
+  // invisible from here: search_classical_texts is an ALWAYS_TOOLS entry, so it
+  // has no Seed/Tool/Off chip of its own — there is nothing to "seed", it is a
+  // search rather than a fact about this chart — and nothing else on the page
+  // said it existed. Status only; never raises, and simply renders nothing when
+  // the endpoint is unreachable.
+  // The section list is 18 rows in one column, which pushed everything below it
+  // off the screen. Collapsed by default, with a summary line that says what the
+  // states are — so collapsing costs no information, only the ability to change
+  // one. Remembered like the page's other preferences.
+  const [sectionsOpen, setSectionsOpen] = useState(
+    () => localStorage.getItem("ai_sections_open") === "1"
+  );
+  useEffect(() => {
+    localStorage.setItem("ai_sections_open", sectionsOpen ? "1" : "0");
+  }, [sectionsOpen]);
+
+  const [sources, setSources] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    astrologyService
+      .getAiSources()
+      .then((r) => !cancelled && setSources(r.data))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Divisional charts to include in the AI context (D1 is always the natal base)
   const [selectedVargas, setSelectedVargas] = useState(() => {
     try {
@@ -331,6 +360,27 @@ export const AskAstrologerPage = () => {
   useEffect(() => {
     localStorage.setItem("ai_sections", JSON.stringify(sections));
   }, [sections]);
+
+  // Read off the same expression the rows render, so the collapsed summary can
+  // never claim a state the list does not show. Declared HERE, after `sections`:
+  // it reads that state, and sitting above it cost a "Cannot access 'sections'
+  // before initialization" — which compiled cleanly and only appeared in a
+  // browser (§68.3: no page has ever been rendered in a test).
+  const sectionSummary = (() => {
+    const counts = { seed: 0, tool: 0, off: 0 };
+    CONTEXT_SECTIONS.forEach((sec) => {
+      const state =
+        mode === "tools" ? sections[sec.key] : sections[sec.key] === "off" ? "off" : "seed";
+      counts[state] = (counts[state] || 0) + 1;
+    });
+    return [
+      counts.seed && t("ask.summarySeed", { count: counts.seed }),
+      counts.tool && t("ask.summaryTool", { count: counts.tool }),
+      counts.off && t("ask.summaryOff", { count: counts.off }),
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  })();
 
   // In Full-context mode there are no tools, so a section is only On (seed) or
   // Off; map any "tool" value to "seed" before sending so nothing silently drops.
@@ -1102,14 +1152,33 @@ export const AskAstrologerPage = () => {
 
               {/* Context Sections Card */}
               <div className="ask-card">
-                <h3 className="ask-card__header ask-card__header--tight">
+                <button
+                  type="button"
+                  className="ask-card__header ask-card__header--tight ask-card__header--toggle"
+                  aria-expanded={sectionsOpen}
+                  aria-controls="ask-section-list"
+                  onClick={() => setSectionsOpen((v) => !v)}
+                >
                   <Wrench size={20} />
-                  {t("ask.contextSections")}
-                </h3>
+                  <span className="ask-card__title">{t("ask.contextSections")}</span>
+                  <ChevronDown
+                    size={18}
+                    className={`ask-card__chevron${sectionsOpen ? " is-open" : ""}`}
+                    aria-hidden="true"
+                  />
+                </button>
+                {/* The summary stands in for the list while it is closed, and the
+                    hint replaces it once the list is there to explain. Neither
+                    shares the header row: at the ~315px this panel is, three
+                    things on one line just ellipsised the summary away. */}
                 <p className="ask-card__hint">
-                  {mode === "tools" ? t("ask.sectionsHintTools") : t("ask.sectionsHintFull")}
+                  {sectionsOpen
+                    ? mode === "tools"
+                      ? t("ask.sectionsHintTools")
+                      : t("ask.sectionsHintFull")
+                    : sectionSummary}
                 </p>
-                <div className="ask-section-list">
+                <div className="ask-section-list" id="ask-section-list" hidden={!sectionsOpen}>
                   {CONTEXT_SECTIONS.map((s) => {
                     const state =
                       mode === "tools"
@@ -1137,6 +1206,24 @@ export const AskAstrologerPage = () => {
                     );
                   })}
                 </div>
+
+                {/* Classical citations have no row above because they are not a
+                    section of this chart — but the user still has to be able to
+                    see that the capability exists, and that it needs Smart
+                    lookup to do anything. */}
+                {sources && (
+                  <p
+                    className={`ask-sources ${
+                      sources.available && mode === "tools" ? "is-on" : "is-off"
+                    }`}
+                  >
+                    {!sources.available
+                      ? t("ask.citationsOff")
+                      : mode === "tools"
+                        ? t("ask.citationsOn", { count: sources.passages })
+                        : t("ask.citationsNeedTools", { count: sources.passages })}
+                  </p>
+                )}
               </div>
 
               {/* Divisional Charts (Vargas) Card */}

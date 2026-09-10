@@ -1101,10 +1101,84 @@
 }
 
 /* Tri-state context-section rows (Seed / Tool / Off) */
+/* The Context-sections card is 18 rows — 572px of them, measured — which pushed
+ * the vargas, the question box and the Ask button below the fold inside a panel
+ * that is itself a disclosure. Two things fix it, and neither is a grid: the
+ * settings panel is a ~315-370px column at EVERY viewport (measured at 480,
+ * 900, 1280 and 1920), so a multi-column layout would never once fire.
+ *
+ * So: the card collapses (see .ask-card__header--toggle), which covers the
+ * common case of not touching the defaults at all; and when it is open the list
+ * caps its height and scrolls, so opening it can never again push the rest of
+ * the panel off the screen. */
 .ask-section-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
+  max-height: 264px;
+  overflow-y: auto;
+  /* Don't hand the scroll to the page when this list reaches its end. */
+  overscroll-behavior: contain;
+  /* Room for the scrollbar so it never sits on top of a state badge. */
+  padding-right: 2px;
+}
+
+/* The header is a disclosure button now; strip the control chrome so it still
+ * reads as the heading it looks like. */
+.ask-card__header--toggle {
+  width: 100%;
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ask-card__header--toggle:focus-visible {
+  outline: 2px solid var(--saffron);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+/* Title takes the slack so the chevron stays pinned right. */
+.ask-card__title {
+  flex: 1;
+  min-width: 0;
+}
+.ask-card__chevron {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  transition: transform 0.18s ease;
+}
+.ask-card__chevron.is-open {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ask-card__chevron {
+    transition: none;
+  }
+}
+
+/* Classical-text citation status (§73). Not a section row: search_classical_texts
+ * is always-on in Smart lookup and has nothing to "seed", so it has no
+ * tri-state — but it must still be visible that the capability is there. */
+.ask-sources {
+  margin: var(--space-md) 0 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+.ask-sources.is-on {
+  background: rgba(var(--success-rgb), 0.12);
+  color: var(--success);
+}
+.ask-sources.is-off {
+  background: rgba(var(--text-secondary-rgb), 0.1);
+  color: var(--text-secondary);
 }
 .ask-section-row {
   display: flex;

@@ -2697,6 +2697,40 @@ Planetary Positions (All 9 Grahas) — house counted from the Lagna:"""
             "Give practical, actionable guidance. Do NOT ask for more information — you "
             "have the complete chart and today's date.")
 
+        # The classical corpus (§5.12/§73) is only reachable through a tool, and
+        # nothing was telling the model to reach for it — so a feature that can
+        # quote Varaha Mihira went unused unless the user asked for a citation by
+        # name. This says when to use it.
+        #
+        # The second half matters more than the first. Telling a model to "cite
+        # the classics" over a deliberately small corpus is an invitation to
+        # invent a chapter and verse when the search comes back empty, which is
+        # precisely the failure §69 exists to catch and precisely what the
+        # importer's dropped-rather-than-guessed rule refuses to do. So the
+        # permission to cite arrives with the instruction not to fabricate, and
+        # with the explicit expectation that most answers carry no citation.
+        #
+        # `is_indexed()` never builds — a cold process simply omits this rather
+        # than making someone's question wait on embeddings (see rag.warm()).
+        citations = ""
+        if tool_mode:
+            try:
+                import rag
+                if rag.is_indexed():
+                    citations = (
+                        "\n5. A corpus of classical texts is indexed. When you state a "
+                        "doctrinal rule — what a placement, yoga or period signifies in "
+                        "the shastra, as opposed to what THIS chart shows — call "
+                        "`search_classical_texts` and quote what it returns with its "
+                        "source and reference. If it returns nothing relevant, make the "
+                        "point from chart logic and say nothing about sources: NEVER "
+                        "invent a quotation, a chapter or a verse number, and never "
+                        "attach a reference to a passage the tool did not return. The "
+                        "corpus is small, so most answers will carry no citation, and "
+                        "that is correct.")
+            except Exception:       # rag unimportable — no citations, no nudge
+                citations = ""
+
         context_block = f"""{header}
 
 {title}
@@ -2709,6 +2743,6 @@ IMPORTANT INSTRUCTIONS:
 1. TODAY'S DATE is {current_date} - use it to determine which Dasha/sub-period is CURRENTLY active.
 2. The planetary positions, signs, houses, nakshatras, divisional charts (vargas) and Dasha periods above were calculated accurately from the exact birth time and location.
 3. Be specific to THIS chart: cite the placements/dashas/yogas behind your reasoning rather than giving generic horoscope text.
-4. {closing}"""
+4. {closing}{citations}"""
 
         return context_block

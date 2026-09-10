@@ -173,10 +173,35 @@ def build_index(force: bool = False) -> int:
 
 
 def available() -> bool:
-    """True when there is a usable, embedded corpus."""
+    """True when there is a usable, embedded corpus. Builds one if none is
+    loaded yet, so the first caller pays for the embeddings."""
     if _INDEX is None:
         build_index()
     return bool(_INDEX)
+
+
+def is_indexed() -> bool:
+    """True when an index is ALREADY in memory — never builds one.
+
+    For callers on a user's critical path. `available()` embeds the whole corpus
+    on a cold process, and a first question should not wait on that; a prompt
+    that mentions citations one request late is a far smaller problem than a
+    question that hangs. `warm()` is what makes this true in practice."""
+    return bool(_INDEX)
+
+
+def warm() -> int:
+    """Build the index if it isn't built, swallowing every failure.
+
+    Called once at startup so `is_indexed()` is true by the time anyone asks a
+    question. A failure here is not an error: Ollama may simply not be up yet,
+    and the next caller retries (a failed build resets the corpus hash rather
+    than caching the failure)."""
+    try:
+        return build_index()
+    except Exception as e:          # noqa: BLE001 - startup must never fail here
+        logger.info("rag: index not warmed (%s)", e)
+        return 0
 
 
 def _unit_matrix():

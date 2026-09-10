@@ -18,6 +18,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any
 import json
 import re
+import threading
 from pydantic import BaseModel
 
 from config import settings
@@ -64,6 +65,20 @@ async def lifespan(app: FastAPI):
             print(f"[admin] reconciled admins: {result}")
     except Exception as e:
         print(f"[admin] reconcile skipped: {e}")
+    # Warm the classical-text index (§5.12/§73) off the request path. Embedding
+    # 300+ passages takes a moment, and the alternative is the first person to
+    # ask a question paying for it — or, worse, the prompt not knowing citations
+    # are available because nothing had built the index yet. A thread, because
+    # rag is synchronous and this must not hold up the event loop or the boot.
+    def _warm_rag():
+        try:
+            import rag
+            n = rag.warm()
+            if n:
+                print(f"[rag] classical-text corpus indexed: {n} passages")
+        except Exception as e:                       # never block startup
+            print(f"[rag] corpus not indexed: {e}")
+    threading.Thread(target=_warm_rag, name="rag-warm", daemon=True).start()
     scheduler.start()  # daily-digest scheduler (no-op unless DIGEST_SCHEDULER_ENABLED)
     yield
     # Shutdown
