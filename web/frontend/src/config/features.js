@@ -428,10 +428,12 @@ export const FEATURE_ALIASES = {
   birthChart: "kundali rasi natal horoscope lagna ascendant d1 d9 navamsa planets",
   ask: "chat question ai astrologer talk advice",
   dailyDigest: "today daily forecast horoscope of the day",
-  compatibility: "marriage match matching guna milan ashtakoot dashakoota partner spouse relationship love porutham mangal dosha",
+  compatibility:
+    "marriage match matching guna milan ashtakoot dashakoota partner spouse relationship love porutham mangal dosha",
   dhasa: "dasha vimshottari vimsottari mahadasha bhukti antardasha period timing",
-  transit: "gochara current planets movement now arudha arudh aroodha lagna al upapada ul pada"
-    + " padas bhava arudha",
+  transit:
+    "gochara current planets movement now arudha arudh aroodha lagna al upapada ul pada" +
+    " padas bhava arudha",
   remedies: "gemstone gem stone mantra upaya parihara donation deity",
   lifeReport: "report full life story chapters narrative",
   history:
@@ -456,7 +458,8 @@ export const FEATURE_ALIASES = {
   nadi: "karaka significator nadi timing conjunction",
   panchaPakshi: "bird timing five birds pancha pakshi",
   sarvatobhadra: "chakra kota kaala tripataki vedha sarvatobhadra",
-  sensitivePoints: "sphuta saham argala sensitive points special lagna upagraha hora ghati bhava vighati varnada gulika maandi kaala mrityu dhuma vyatipata parivesha indrachapa upaketu sree indu bhrigu bindu pranapada kunda",
+  sensitivePoints:
+    "sphuta saham argala sensitive points special lagna upagraha hora ghati bhava vighati varnada gulika maandi kaala mrityu dhuma vyatipata parivesha indrachapa upaketu sree indu bhrigu bindu pranapada kunda",
   vedicClock: "clock ghati hora retrograde vakra vedic clock",
   kp: "krishnamurti sub lord significator ruling planets horary kp system",
   jaimini: "chara karaka karakamsa swamsa argala jaimini arudha pada upapada",
@@ -486,35 +489,162 @@ export const FEATURE_ALIASES = {
  */
 export const FEATURE_SUBITEMS = [
   // ── Dhasa picker: the conditional / rasi dasha systems ──
-  { label: "Sudarshana Chakra Dasha", parent: "dhasa", to: "/dhasa?system=sudharsana_chakra", keywords: "sudarshana sudarsana chakra wheel three charts" },
-  { label: "Ashtottari Dasha", parent: "dhasa", to: "/dhasa?system=ashtottari", keywords: "ashtottari 108" },
+  {
+    label: "Sudarshana Chakra Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=sudharsana_chakra",
+    keywords: "sudarshana sudarsana chakra wheel three charts",
+  },
+  {
+    label: "Ashtottari Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=ashtottari",
+    keywords: "ashtottari 108",
+  },
   { label: "Yogini Dasha", parent: "dhasa", to: "/dhasa?system=yogini", keywords: "yogini" },
-  { label: "Kalachakra Dasha", parent: "dhasa", to: "/dhasa?system=kalachakra", keywords: "kalachakra kaalachakra wheel of time" },
-  { label: "Narayana Dasha", parent: "dhasa", to: "/dhasa?system=narayana", keywords: "narayana pada rasi jaimini" },
-  { label: "Chara Dasha", parent: "dhasa", to: "/dhasa?system=chara", keywords: "chara jaimini rasi movable" },
-  { label: "Sthira Dasha", parent: "dhasa", to: "/dhasa?system=sthira", keywords: "sthira fixed rasi" },
-  { label: "Trikona Dasha", parent: "dhasa", to: "/dhasa?system=trikona", keywords: "trikona trine rasi" },
-  { label: "Drig Dasha", parent: "dhasa", to: "/dhasa?system=drig", keywords: "drig aspectual rasi jaimini" },
-  { label: "Sudasa Dasha", parent: "dhasa", to: "/dhasa?system=sudasa", keywords: "sudasa sree lagna rasi" },
-  { label: "Kendradhi Rasi Dasha", parent: "dhasa", to: "/dhasa?system=kendradhi_rasi", keywords: "kendradhi rasi kendra" },
-  { label: "Shodasottari Dasha", parent: "dhasa", to: "/dhasa?system=shodasottari", keywords: "shodasottari 116" },
-  { label: "Dwadasottari Dasha", parent: "dhasa", to: "/dhasa?system=dwadasottari", keywords: "dwadasottari 112" },
-  { label: "Panchottari Dasha", parent: "dhasa", to: "/dhasa?system=panchottari", keywords: "panchottari 105" },
-  { label: "Shatabdika Dasha", parent: "dhasa", to: "/dhasa?system=shatabdika", keywords: "shatabdika 100" },
-  { label: "Shashtihayani Dasha", parent: "dhasa", to: "/dhasa?system=shashtihayani", keywords: "shashtihayani shastihayani shashti sama shasti 60 sun in lagna" },
-  { label: "Chaturaaseeti Sama Dasha", parent: "dhasa", to: "/dhasa?system=chaturaaseeti_sama", keywords: "chaturaaseeti chathuraaseethi sama 84" },
-  { label: "Dwisatpathi Dasha", parent: "dhasa", to: "/dhasa?system=dwisatpathi", keywords: "dwisatpathi dvisaptati sama 112" },
+  {
+    label: "Kalachakra Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=kalachakra",
+    keywords: "kalachakra kaalachakra wheel of time",
+  },
+  {
+    label: "Narayana Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=narayana",
+    keywords: "narayana pada rasi jaimini",
+  },
+  {
+    label: "Chara Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=chara",
+    keywords: "chara jaimini rasi movable",
+  },
+  {
+    label: "Sthira Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=sthira",
+    keywords: "sthira fixed rasi",
+  },
+  {
+    label: "Trikona Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=trikona",
+    keywords: "trikona trine rasi",
+  },
+  {
+    label: "Drig Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=drig",
+    keywords: "drig aspectual rasi jaimini",
+  },
+  {
+    label: "Sudasa Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=sudasa",
+    keywords: "sudasa sree lagna rasi",
+  },
+  {
+    label: "Kendradhi Rasi Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=kendradhi_rasi",
+    keywords: "kendradhi rasi kendra",
+  },
+  {
+    label: "Shodasottari Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=shodasottari",
+    keywords: "shodasottari 116",
+  },
+  {
+    label: "Dwadasottari Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=dwadasottari",
+    keywords: "dwadasottari 112",
+  },
+  {
+    label: "Panchottari Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=panchottari",
+    keywords: "panchottari 105",
+  },
+  {
+    label: "Shatabdika Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=shatabdika",
+    keywords: "shatabdika 100",
+  },
+  {
+    label: "Shashtihayani Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=shashtihayani",
+    keywords: "shashtihayani shastihayani shashti sama shasti 60 sun in lagna",
+  },
+  {
+    label: "Chaturaaseeti Sama Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=chaturaaseeti_sama",
+    keywords: "chaturaaseeti chathuraaseethi sama 84",
+  },
+  {
+    label: "Dwisatpathi Dasha",
+    parent: "dhasa",
+    to: "/dhasa?system=dwisatpathi",
+    keywords: "dwisatpathi dvisaptati sama 112",
+  },
   // ── Chakras page: the individual chakras (tab deep-links via useTabs) ──
-  { label: "Kota Chakra", parent: "sarvatobhadra", to: "/chakras?tab=kota", keywords: "kota fort protection siege" },
-  { label: "Kaala Chakra", parent: "sarvatobhadra", to: "/chakras?tab=kaala", keywords: "kaala kala directions wheel" },
-  { label: "Tripataki Chakra", parent: "sarvatobhadra", to: "/chakras?tab=tripataki", keywords: "tripataki vedha moon lagna" },
+  {
+    label: "Kota Chakra",
+    parent: "sarvatobhadra",
+    to: "/chakras?tab=kota",
+    keywords: "kota fort protection siege",
+  },
+  {
+    label: "Kaala Chakra",
+    parent: "sarvatobhadra",
+    to: "/chakras?tab=kaala",
+    keywords: "kaala kala directions wheel",
+  },
+  {
+    label: "Tripataki Chakra",
+    parent: "sarvatobhadra",
+    to: "/chakras?tab=tripataki",
+    keywords: "tripataki vedha moon lagna",
+  },
   // ── Life Timeline: the forward calendar (§70), a tab deep-link ──
-  { label: "What's coming (forward calendar)", parent: "timeline", to: "/timeline?tab=upcoming", keywords: "upcoming coming next events alerts forecast calendar when does my dasha change sade sati end ingress station retrograde eclipse reminders notify" },
+  {
+    label: "What's coming (forward calendar)",
+    parent: "timeline",
+    to: "/timeline?tab=upcoming",
+    keywords:
+      "upcoming coming next events alerts forecast calendar when does my dasha change sade sati end ingress station retrograde eclipse reminders notify",
+  },
   // ── Sensitive Points page: the three sub-tools (tab deep-links) ──
-  { label: "Special Points", parent: "sensitivePoints", to: "/sensitive-points?tab=special", keywords: "special lagna upagraha hora lagna ghati lagna bhava lagna vighati varnada gulika maandi kaala mrityu artha prahara yama ghantaka dhuma vyatipata parivesha indrachapa upaketu sree indu bhrigu bindu pranapada kunda" },
-  { label: "Sahams", parent: "sensitivePoints", to: "/sensitive-points?tab=sahams", keywords: "sahams 36 arabic parts lots" },
-  { label: "Argala", parent: "sensitivePoints", to: "/sensitive-points?tab=argala", keywords: "argala intervention obstruction" },
-  { label: "Sphutas", parent: "sensitivePoints", to: "/sensitive-points?tab=sphuta", keywords: "sphuta sensitive longitudes beeja kshetra" },
+  {
+    label: "Special Points",
+    parent: "sensitivePoints",
+    to: "/sensitive-points?tab=special",
+    keywords:
+      "special lagna upagraha hora lagna ghati lagna bhava lagna vighati varnada gulika maandi kaala mrityu artha prahara yama ghantaka dhuma vyatipata parivesha indrachapa upaketu sree indu bhrigu bindu pranapada kunda",
+  },
+  {
+    label: "Sahams",
+    parent: "sensitivePoints",
+    to: "/sensitive-points?tab=sahams",
+    keywords: "sahams 36 arabic parts lots",
+  },
+  {
+    label: "Argala",
+    parent: "sensitivePoints",
+    to: "/sensitive-points?tab=argala",
+    keywords: "argala intervention obstruction",
+  },
+  {
+    label: "Sphutas",
+    parent: "sensitivePoints",
+    to: "/sensitive-points?tab=sphuta",
+    keywords: "sphuta sensitive longitudes beeja kshetra",
+  },
 ];
 
 /** Features to advertise for a ui mode. "advanced" mode shows everything. */

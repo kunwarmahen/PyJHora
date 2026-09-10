@@ -1,9 +1,4 @@
-import {
-  visibleTabs,
-  resolveActiveTab,
-  shouldWriteTab,
-  TAB_PARAM,
-} from "./tabs";
+import { visibleTabs, resolveActiveTab, shouldWriteTab, TAB_PARAM } from "./tabs";
 
 const TABS = [
   { key: "chart", label: "Chart" },
@@ -23,24 +18,16 @@ describe("visibleTabs", () => {
   });
 
   test("Essentials mode hides advanced tabs", () => {
-    expect(visibleTabs(TABS, "simple").map((t) => t.key)).toEqual([
-      "chart",
-      "nakshatra",
-      "yogas",
-    ]);
+    expect(visibleTabs(TABS, "simple").map((t) => t.key)).toEqual(["chart", "nakshatra", "yogas"]);
   });
 
   test("a deep-link to an advanced tab reveals it in Essentials mode", () => {
     // Deep-links must never dead-end — the whole point of rule 2.
-    expect(visibleTabs(TABS, "simple", "advanced").map((t) => t.key)).toContain(
-      "advanced"
-    );
+    expect(visibleTabs(TABS, "simple", "advanced").map((t) => t.key)).toContain("advanced");
   });
 
   test("requesting a normal tab does not reveal advanced ones", () => {
-    expect(visibleTabs(TABS, "simple", "yogas").map((t) => t.key)).not.toContain(
-      "advanced"
-    );
+    expect(visibleTabs(TABS, "simple", "yogas").map((t) => t.key)).not.toContain("advanced");
   });
 
   test("tolerates a missing or non-array tab list", () => {

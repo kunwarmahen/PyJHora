@@ -73,8 +73,7 @@ export function useRestoreReading(onRestore) {
 // loading its factual data (some pages — e.g. Vedic Clock's retrograde epicycle —
 // take a few seconds and only mount the reading card afterwards), so watch the DOM
 // with a MutationObserver rather than a short poll, and give up after 15s.
-const READING_SELECTOR =
-  ".ai-panel__reading, .sbc-ai-markdown, .transit-chat__messages";
+const READING_SELECTOR = ".ai-panel__reading, .sbc-ai-markdown, .transit-chat__messages";
 
 function revealReading() {
   const scroll = (el) => el.scrollIntoView({ behavior: "smooth", block: "center" });

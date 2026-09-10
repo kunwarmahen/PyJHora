@@ -56,8 +56,5 @@ export function localizeName(name, kind, lang, opts = {}) {
 export function useLocalizeName() {
   const { i18n } = useTranslation();
   const lang = i18n.language;
-  return useCallback(
-    (name, kind, opts) => localizeName(name, kind, lang, opts),
-    [lang]
-  );
+  return useCallback((name, kind, opts) => localizeName(name, kind, lang, opts), [lang]);
 }

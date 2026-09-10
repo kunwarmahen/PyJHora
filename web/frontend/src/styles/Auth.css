@@ -252,7 +252,9 @@
   position: absolute;
   inset: 0;
   border-radius: 3px;
-  transition: width 0.25s ease, background 0.25s ease;
+  transition:
+    width 0.25s ease,
+    background 0.25s ease;
 }
 
 .pw-strength-label {
@@ -276,9 +278,15 @@
 }
 
 .pw-strength--short .pw-strength-label,
-.pw-strength--weak .pw-strength-label { color: var(--danger); }
-.pw-strength--fair .pw-strength-label { color: var(--warning); }
-.pw-strength--strong .pw-strength-label { color: var(--success); }
+.pw-strength--weak .pw-strength-label {
+  color: var(--danger);
+}
+.pw-strength--fair .pw-strength-label {
+  color: var(--warning);
+}
+.pw-strength--strong .pw-strength-label {
+  color: var(--success);
+}
 
 /* Forgot / reset password extras */
 .auth-note {
@@ -335,6 +343,12 @@
   display: block;
   margin: 10px auto 0;
 }
-.digest-consent-icon--ok { color: var(--success-bright); }
-.digest-consent-icon--muted { color: var(--text-secondary); }
-.digest-consent-icon--warn { color: var(--saffron); }
+.digest-consent-icon--ok {
+  color: var(--success-bright);
+}
+.digest-consent-icon--muted {
+  color: var(--text-secondary);
+}
+.digest-consent-icon--warn {
+  color: var(--saffron);
+}

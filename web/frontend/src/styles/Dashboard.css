@@ -229,7 +229,10 @@
   border: 1px solid var(--border-color);
   border-radius: 999px;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 .dashboard-search-toggle:hover {
   color: var(--saffron);
@@ -256,9 +259,13 @@
   border: 1px solid var(--border-color);
   border-radius: 12px;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
-.dashboard-search__input::placeholder { color: var(--text-secondary); }
+.dashboard-search__input::placeholder {
+  color: var(--text-secondary);
+}
 .dashboard-search__input:focus {
   border-color: var(--saffron);
   box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.25);
@@ -276,7 +283,9 @@
   border-radius: 50%;
   cursor: pointer;
 }
-.dashboard-search__clear:hover { color: var(--text-primary); }
+.dashboard-search__clear:hover {
+  color: var(--text-primary);
+}
 .dashboard-search__empty {
   color: var(--text-secondary);
   font-size: 1rem;
@@ -308,7 +317,9 @@
   background: var(--surface);
   text-decoration: none;
   color: var(--text-primary);
-  transition: border-color 0.15s ease, transform 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
 }
 .dashboard-subresult:hover {
   border-color: var(--saffron);
@@ -324,7 +335,9 @@
   color: var(--text-on-accent);
   flex-shrink: 0;
 }
-.dashboard-subresult__label { font-weight: 600; }
+.dashboard-subresult__label {
+  font-weight: 600;
+}
 .dashboard-subresult__parent {
   margin-left: auto;
   font-size: 0.85rem;
@@ -1168,7 +1181,11 @@
   border: 2px solid var(--saffron);
 }
 .compat-person--b {
-  background: linear-gradient(135deg, rgba(var(--vermillion-rgb), 0.05) 0%, rgba(var(--vermillion-rgb), 0.15) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--vermillion-rgb), 0.05) 0%,
+    rgba(var(--vermillion-rgb), 0.15) 100%
+  );
   border: 2px solid var(--vermillion);
 }
 .compat-person__head {
@@ -1211,7 +1228,11 @@
 
 .score-box {
   padding: var(--space-xl);
-  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1) 0%, rgba(var(--vermillion-rgb), 0.1) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--accent-rgb), 0.1) 0%,
+    rgba(var(--vermillion-rgb), 0.1) 100%
+  );
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-xl);
   text-align: center;
@@ -1334,7 +1355,11 @@
 }
 
 .current-period {
-  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1) 0%, rgba(var(--terracotta-rgb), 0.1) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--accent-rgb), 0.1) 0%,
+    rgba(var(--terracotta-rgb), 0.1) 100%
+  );
   border: 3px solid var(--saffron);
   border-radius: var(--radius-xl);
   padding: var(--space-xl);
@@ -1671,11 +1696,26 @@
   white-space: nowrap;
 }
 /* Effect scale: 0 very-bad … 4 very-good (text pills) */
-.pp-eff-0 { background: rgba(var(--vermillion-rgb), 0.16); color: var(--danger); }
-.pp-eff-1 { background: rgba(var(--terracotta-rgb), 0.18); color: var(--accent-deep); }
-.pp-eff-2 { background: rgba(var(--gold-rgb), 0.2); color: var(--warning); }
-.pp-eff-3 { background: rgba(var(--emerald-rgb), 0.16); color: var(--success); }
-.pp-eff-4 { background: rgba(var(--emerald-rgb), 0.28); color: var(--success); }
+.pp-eff-0 {
+  background: rgba(var(--vermillion-rgb), 0.16);
+  color: var(--danger);
+}
+.pp-eff-1 {
+  background: rgba(var(--terracotta-rgb), 0.18);
+  color: var(--accent-deep);
+}
+.pp-eff-2 {
+  background: rgba(var(--gold-rgb), 0.2);
+  color: var(--warning);
+}
+.pp-eff-3 {
+  background: rgba(var(--emerald-rgb), 0.16);
+  color: var(--success);
+}
+.pp-eff-4 {
+  background: rgba(var(--emerald-rgb), 0.28);
+  color: var(--success);
+}
 
 /* Timeline */
 .pp-timeline {
@@ -1741,11 +1781,21 @@
   color: var(--text-secondary);
 }
 /* Effect scale backgrounds for the timeline cells */
-.pp-eff-bg-0 { background: rgba(var(--vermillion-rgb), 0.22); }
-.pp-eff-bg-1 { background: rgba(var(--terracotta-rgb), 0.24); }
-.pp-eff-bg-2 { background: rgba(var(--gold-rgb), 0.26); }
-.pp-eff-bg-3 { background: rgba(var(--emerald-rgb), 0.2); }
-.pp-eff-bg-4 { background: rgba(var(--emerald-rgb), 0.34); }
+.pp-eff-bg-0 {
+  background: rgba(var(--vermillion-rgb), 0.22);
+}
+.pp-eff-bg-1 {
+  background: rgba(var(--terracotta-rgb), 0.24);
+}
+.pp-eff-bg-2 {
+  background: rgba(var(--gold-rgb), 0.26);
+}
+.pp-eff-bg-3 {
+  background: rgba(var(--emerald-rgb), 0.2);
+}
+.pp-eff-bg-4 {
+  background: rgba(var(--emerald-rgb), 0.34);
+}
 
 .pp-legend {
   display: flex;
@@ -1779,11 +1829,26 @@
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
 }
-.raja-yoga-strength--strong { background: rgba(var(--emerald-rgb), 0.2); color: var(--success); }
-.raja-yoga-strength--good { background: rgba(var(--gold-rgb), 0.24); color: var(--warning); }
-.raja-yoga-strength--neutral { background: rgba(var(--text-secondary-rgb), 0.14); color: var(--text-secondary); }
-.raja-yoga-strength--weak { background: rgba(var(--terracotta-rgb), 0.2); color: var(--accent-deep); }
-.raja-yoga-strength--special { background: rgba(var(--accent-rgb), 0.18); color: var(--saffron-dark); }
+.raja-yoga-strength--strong {
+  background: rgba(var(--emerald-rgb), 0.2);
+  color: var(--success);
+}
+.raja-yoga-strength--good {
+  background: rgba(var(--gold-rgb), 0.24);
+  color: var(--warning);
+}
+.raja-yoga-strength--neutral {
+  background: rgba(var(--text-secondary-rgb), 0.14);
+  color: var(--text-secondary);
+}
+.raja-yoga-strength--weak {
+  background: rgba(var(--terracotta-rgb), 0.2);
+  color: var(--accent-deep);
+}
+.raja-yoga-strength--special {
+  background: rgba(var(--accent-rgb), 0.18);
+  color: var(--saffron-dark);
+}
 
 /* ── Sudarsana Chakra (§9.4) ─────────────────────────────────────────────── */
 .sudarsana-wheels {
@@ -1939,7 +2004,9 @@
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease;
 }
 .dasha-reco__chip:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -2092,9 +2159,17 @@
   border-radius: 10px;
   background: var(--card-bg);
 }
-.muh-window__date { font-weight: 700; }
-.muh-window__time { font-variant-numeric: tabular-nums; color: var(--saffron); font-weight: 600; }
-.muh-window__reason { font-size: 0.85rem; }
+.muh-window__date {
+  font-weight: 700;
+}
+.muh-window__time {
+  font-variant-numeric: tabular-nums;
+  color: var(--saffron);
+  font-weight: 600;
+}
+.muh-window__reason {
+  font-size: 0.85rem;
+}
 /* Kaala-vela caution on a candidate window. Deliberately a soft warning, not an
    error: the window is still offered (see compute_muhurta — these overlap Rahu
    Kalam/Yamaganda/Gulika so often that barring them would rule out most of the
@@ -2119,7 +2194,10 @@
   gap: 0.3rem;
   font-size: 0.72rem;
 }
-.muh-day__kv-label { color: var(--text-secondary); font-weight: 600; }
+.muh-day__kv-label {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
 .muh-day__kv-item {
   color: var(--warning);
   background: var(--warning-bg);
@@ -2135,10 +2213,22 @@
   font-weight: 600;
   white-space: nowrap;
 }
-.muh-q--excellent { background: var(--success-bg); color: var(--success); }
-.muh-q--good { background: var(--success-bg); color: var(--success); }
-.muh-q--average { background: var(--surface-sunken); color: var(--warning); }
-.muh-q--avoid { background: var(--danger-bg); color: var(--danger); }
+.muh-q--excellent {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.muh-q--good {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.muh-q--average {
+  background: var(--surface-sunken);
+  color: var(--warning);
+}
+.muh-q--avoid {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
 
 .muh-day-grid {
   display: grid;
@@ -2153,13 +2243,30 @@
   padding: 0.55rem 0.7rem;
   background: var(--card-bg);
 }
-.muh-day.muh-q--excellent { border-left-color: var(--success); }
-.muh-day.muh-q--good { border-left-color: var(--success); }
-.muh-day.muh-q--average { border-left-color: var(--warning-bright); }
-.muh-day.muh-q--avoid { border-left-color: var(--danger); }
-.muh-day__date { font-weight: 700; font-size: 0.9rem; }
-.muh-day__rating { font-size: 0.8rem; font-weight: 600; margin: 0.1rem 0; }
-.muh-day__limbs { font-size: 0.78rem; }
+.muh-day.muh-q--excellent {
+  border-left-color: var(--success);
+}
+.muh-day.muh-q--good {
+  border-left-color: var(--success);
+}
+.muh-day.muh-q--average {
+  border-left-color: var(--warning-bright);
+}
+.muh-day.muh-q--avoid {
+  border-left-color: var(--danger);
+}
+.muh-day__date {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.muh-day__rating {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 0.1rem 0;
+}
+.muh-day__limbs {
+  font-size: 0.78rem;
+}
 
 /* ── The personal half of a muhurta (§68.6) ──────────────────────────────────
    Tara Bala + Chandra Bala chips under the almanac limbs on each day card, and
@@ -2208,7 +2315,14 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.muh-chog-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.muh-chog-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
 .muh-chog {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -2221,12 +2335,25 @@
   background: var(--card-bg);
   font-size: 0.85rem;
 }
-.muh-chog--good { border-left-color: var(--success); }
-.muh-chog--bad { border-left-color: var(--danger); }
-.muh-chog--neutral { border-left-color: var(--warning-bright); }
-.muh-chog--current { box-shadow: 0 0 0 2px var(--saffron) inset; }
-.muh-chog__name { font-weight: 600; }
-.muh-chog__time { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+.muh-chog--good {
+  border-left-color: var(--success);
+}
+.muh-chog--bad {
+  border-left-color: var(--danger);
+}
+.muh-chog--neutral {
+  border-left-color: var(--warning-bright);
+}
+.muh-chog--current {
+  box-shadow: 0 0 0 2px var(--saffron) inset;
+}
+.muh-chog__name {
+  font-weight: 600;
+}
+.muh-chog__time {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
 .muh-chog__now {
   font-size: 0.68rem;
   font-weight: 700;
@@ -2252,8 +2379,14 @@
   letter-spacing: 0.04em;
   color: var(--text-secondary);
 }
-.muh-status__value { font-weight: 700; margin: 0.15rem 0; }
-.muh-status__note { font-size: 0.82rem; color: var(--text-secondary); }
+.muh-status__value {
+  font-weight: 700;
+  margin: 0.15rem 0;
+}
+.muh-status__note {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
 .muh-badge {
   display: inline-block;
   padding: 0.12rem 0.5rem;
@@ -2262,9 +2395,20 @@
   font-weight: 700;
   margin-left: 0.35rem;
 }
-.muh-badge--good, .muh-badge--very_good { background: var(--success-bg); color: var(--success); }
-.muh-badge--bad, .muh-badge--caution { background: var(--danger-bg); color: var(--danger); }
-.muh-badge--neutral { background: var(--surface-sunken); color: var(--warning); }
+.muh-badge--good,
+.muh-badge--very_good {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.muh-badge--bad,
+.muh-badge--caution {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.muh-badge--neutral {
+  background: var(--surface-sunken);
+  color: var(--warning);
+}
 
 /* ── Bhrigu / Nadi yearly markers ─────────────────────────────────────────── */
 .bhrigu-prog-grid {
@@ -2281,12 +2425,30 @@
   padding: 0.55rem 0.7rem;
   background: var(--card-bg);
 }
-.bhrigu-prog--active { border-left-color: var(--saffron); }
-.bhrigu-prog--moon { border-left-color: var(--text-secondary); }
-.bhrigu-prog--bb { border-left-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
-.bhrigu-prog__year { font-weight: 800; font-size: 0.9rem; }
-.bhrigu-prog__sign { font-weight: 600; font-size: 0.9rem; margin: 0.1rem 0; }
-.bhrigu-prog__planets { font-size: 0.82rem; color: var(--saffron); font-weight: 600; }
+.bhrigu-prog--active {
+  border-left-color: var(--saffron);
+}
+.bhrigu-prog--moon {
+  border-left-color: var(--text-secondary);
+}
+.bhrigu-prog--bb {
+  border-left-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold) inset;
+}
+.bhrigu-prog__year {
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+.bhrigu-prog__sign {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin: 0.1rem 0;
+}
+.bhrigu-prog__planets {
+  font-size: 0.82rem;
+  color: var(--saffron);
+  font-weight: 600;
+}
 .bhrigu-prog__tag {
   margin-top: 0.3rem;
   font-size: 0.68rem;
@@ -2320,7 +2482,9 @@
   min-width: 96px;
   color: var(--text-primary);
 }
-.bhrigu-activation__text { font-size: 0.9rem; }
+.bhrigu-activation__text {
+  font-size: 0.9rem;
+}
 
 /* ── Nadi karakas ──────────────────────────────────────────────────────────── */
 .nadi-karaka-grid {
@@ -2343,8 +2507,15 @@
   justify-content: space-between;
   gap: 0.3rem 0.6rem;
 }
-.nadi-karaka__planet { font-weight: 800; font-size: 0.95rem; color: var(--text-primary); }
-.nadi-karaka__sign { font-weight: 600; font-size: 0.88rem; }
+.nadi-karaka__planet {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+.nadi-karaka__sign {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
 .nadi-karaka__signifies {
   font-size: 0.82rem;
   color: var(--saffron);
@@ -2379,7 +2550,11 @@
   border-radius: 8px;
   background: var(--card-bg);
 }
-.nadi-theme__area { font-weight: 700; font-size: 0.9rem; color: var(--text-primary); }
+.nadi-theme__area {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
 .nadi-theme__karakas {
   display: flex;
   flex-wrap: wrap;
@@ -2387,7 +2562,9 @@
   margin-top: 0.2rem;
   font-size: 0.85rem;
 }
-.nadi-theme__karaka { font-weight: 600; }
+.nadi-theme__karaka {
+  font-weight: 600;
+}
 
 /* ── Remedies ─────────────────────────────────────────────────────────────── */
 .rem-grid {
@@ -2411,10 +2588,26 @@
   padding-bottom: 0.5rem;
   border-bottom: 1px dashed var(--border-color);
 }
-.rem-card__planet { font-weight: 800; font-size: 1.05rem; color: var(--terracotta); }
-.rem-card__reason { font-size: 0.8rem; color: var(--text-secondary); }
-.rem-card__body { margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
-.rem-card__body > div { display: flex; flex-direction: column; gap: 0.05rem; }
+.rem-card__planet {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--terracotta);
+}
+.rem-card__reason {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.rem-card__body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.rem-card__body > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
 .rem-card__body dt {
   font-size: 0.72rem;
   font-weight: 700;
@@ -2422,8 +2615,14 @@
   letter-spacing: 0.03em;
   color: var(--text-secondary);
 }
-.rem-card__body dd { margin: 0; font-size: 0.9rem; }
-.rem-row--weak { background: var(--surface-sunken); font-weight: 600; }
+.rem-card__body dd {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.rem-row--weak {
+  background: var(--surface-sunken);
+  font-weight: 600;
+}
 
 /* ── Prashna (horary) ───────────────────────────────────────────────────── */
 .prashna-composer {
@@ -2544,7 +2743,9 @@
   box-shadow: 0 2px 12px rgba(var(--indigo-rgb), 0.06);
   text-decoration: none;
   color: inherit;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 .now-widget:hover {
   box-shadow: 0 6px 20px rgba(var(--indigo-rgb), 0.12);
@@ -2685,17 +2886,28 @@
   background: var(--surface-page);
 }
 /* Deeper enclosures read hotter — reaching Sthamba is the classical alarm. */
-.kota-ring--baahya { border-left: 4px solid rgba(var(--text-muted-rgb), 0.5); }
-.kota-ring--praakaara { border-left: 4px solid var(--gold); }
-.kota-ring--durgantara { border-left: 4px solid var(--saffron); }
-.kota-ring--sthamba { border-left: 4px solid var(--vermillion); }
+.kota-ring--baahya {
+  border-left: 4px solid rgba(var(--text-muted-rgb), 0.5);
+}
+.kota-ring--praakaara {
+  border-left: 4px solid var(--gold);
+}
+.kota-ring--durgantara {
+  border-left: 4px solid var(--saffron);
+}
+.kota-ring--sthamba {
+  border-left: 4px solid var(--vermillion);
+}
 .kota-ring__head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-sm);
 }
-.kota-ring__name { font-weight: 700; color: var(--text-primary); }
+.kota-ring__name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
 .kota-ring__depth {
   font-size: 0.6875rem;
   text-transform: uppercase;
@@ -2722,9 +2934,19 @@
   gap: 2px;
   background: var(--cream);
 }
-.kota-cell.is-occupied { border-color: var(--saffron); background: rgba(var(--accent-rgb), 0.07); }
-.kota-cell__star { font-size: 0.6875rem; color: var(--text-secondary); }
-.kota-cell__planets { display: flex; flex-wrap: wrap; gap: 3px; }
+.kota-cell.is-occupied {
+  border-color: var(--saffron);
+  background: rgba(var(--accent-rgb), 0.07);
+}
+.kota-cell__star {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+}
+.kota-cell__planets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
 .kota-graha {
   font-size: 0.6875rem;
   font-weight: 700;
@@ -2732,18 +2954,46 @@
   border-radius: var(--radius-sm);
   color: var(--text-on-accent);
 }
-.kota-graha.is-malefic { background: var(--vermillion); }
-.kota-graha.is-benefic { background: var(--success); }
-.kota-cell__natal { font-size: 0.625rem; color: var(--text-muted); }
-.kota-finding { display: flex; align-items: center; gap: 6px; }
-.kota-finding--stressful { color: var(--vermillion); font-weight: 600; }
-.kota-finding--watch { color: var(--saffron); }
-.kota-finding--supportive { color: var(--success); }
-.kota-finding--note { color: var(--text-secondary); }
+.kota-graha.is-malefic {
+  background: var(--vermillion);
+}
+.kota-graha.is-benefic {
+  background: var(--success);
+}
+.kota-cell__natal {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+}
+.kota-finding {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.kota-finding--stressful {
+  color: var(--vermillion);
+  font-weight: 600;
+}
+.kota-finding--watch {
+  color: var(--saffron);
+}
+.kota-finding--supportive {
+  color: var(--success);
+}
+.kota-finding--note {
+  color: var(--text-secondary);
+}
 
 /* ── Tripataki Chakra (§2.7) ───────────────────────────────────────────── */
-.tripataki-wrap { display: flex; justify-content: center; margin: var(--space-md) 0; }
-.tripataki-svg { width: 100%; max-width: 560px; height: auto; }
+.tripataki-wrap {
+  display: flex;
+  justify-content: center;
+  margin: var(--space-md) 0;
+}
+.tripataki-svg {
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+}
 /* The three pataki (banner) lines ARE the chakra — they must read clearly.
    (--sandalwood #f4e4c1 is a pale cream and vanished against the page.) */
 .tripataki-line {
@@ -2757,47 +3007,150 @@
   stroke: var(--text-secondary);
   stroke-width: 1.5;
 }
-.tripataki-cell.is-lagna .tripataki-node { stroke: var(--saffron); stroke-width: 2.5; }
-.tripataki-rasi { font-size: 13px; font-weight: 700; fill: var(--text-primary); }
-.tripataki-house { font-size: 9px; fill: var(--text-secondary); }
-.tripataki-grahas { font-size: 11px; font-weight: 700; fill: var(--indigo-accent); }
-.tripataki-natal { font-size: 9px; fill: var(--text-muted); }
+.tripataki-cell.is-lagna .tripataki-node {
+  stroke: var(--saffron);
+  stroke-width: 2.5;
+}
+.tripataki-rasi {
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--text-primary);
+}
+.tripataki-house {
+  font-size: 9px;
+  fill: var(--text-secondary);
+}
+.tripataki-grahas {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--indigo-accent);
+}
+.tripataki-natal {
+  font-size: 9px;
+  fill: var(--text-muted);
+}
 
 /* Tripataki — vedha readout + sign-role marks (§2.7) */
-.tripataki-cell.is-moon .tripataki-node { stroke: var(--indigo-accent); stroke-width: 2.5; }
-.tripataki-cell.casts-vedha .tripataki-node { fill: rgba(var(--vermillion-rgb), 0.10); }
+.tripataki-cell.is-moon .tripataki-node {
+  stroke: var(--indigo-accent);
+  stroke-width: 2.5;
+}
+.tripataki-cell.casts-vedha .tripataki-node {
+  fill: rgba(var(--vermillion-rgb), 0.1);
+}
 .trip-vedha {
   border-left: 3px solid var(--sandalwood);
   padding: var(--space-sm) var(--space-md);
   margin-top: var(--space-sm);
 }
-.trip-vedha--stressful { border-left-color: var(--vermillion); }
-.trip-vedha--supportive { border-left-color: var(--success); }
-.trip-vedha--clear { border-left-color: var(--text-secondary); }
-.trip-vedha__head { margin-bottom: 2px; }
-.trip-vedha__clear { color: var(--success); font-size: 0.875rem; }
-.trip-vedha .detail-list li.is-malefic { color: var(--vermillion); }
-.trip-vedha .detail-list li.is-benefic { color: var(--success); }
+.trip-vedha--stressful {
+  border-left-color: var(--vermillion);
+}
+.trip-vedha--supportive {
+  border-left-color: var(--success);
+}
+.trip-vedha--clear {
+  border-left-color: var(--text-secondary);
+}
+.trip-vedha__head {
+  margin-bottom: 2px;
+}
+.trip-vedha__clear {
+  color: var(--success);
+  font-size: 0.875rem;
+}
+.trip-vedha .detail-list li.is-malefic {
+  color: var(--vermillion);
+}
+.trip-vedha .detail-list li.is-benefic {
+  color: var(--success);
+}
 
 /* ── Kaala Chakra — the wheel of directions (§2.7) ─────────────────────── */
-.kaala-wrap { display: flex; justify-content: center; margin: var(--space-md) 0; }
-.kaala-svg { width: 100%; max-width: 520px; height: auto; }
-.kaala-hub { fill: var(--cream); stroke: var(--saffron); stroke-width: 2; }
-.kaala-spoke { stroke: var(--text-secondary); stroke-width: 1.5; opacity: 0.45; }
-.kaala-cell { fill: var(--sacred-white); stroke: var(--sandalwood); stroke-width: 1.2; }
-.kaala-dir--supportive .kaala-spoke { stroke: var(--success); opacity: 0.85; stroke-width: 2.5; }
-.kaala-dir--stressful .kaala-spoke { stroke: var(--vermillion); opacity: 0.85; stroke-width: 2.5; }
-.kaala-dir--mixed .kaala-spoke { stroke: var(--saffron); opacity: 0.85; stroke-width: 2.5; }
-.kaala-dir--supportive .kaala-cell { stroke: var(--success); }
-.kaala-dir--stressful .kaala-cell { stroke: var(--vermillion); }
-.kaala-graha { font-size: 10px; font-weight: 700; fill: var(--text-primary); }
-.kaala-inner { font-size: 11px; font-weight: 700; fill: var(--saffron); }
-.kaala-dirlabel { font-size: 12px; font-weight: 700; fill: var(--text-secondary); }
-.kaala-good { color: var(--success); }
-.kaala-bad { color: var(--vermillion); }
-.kaala-tone--supportive { color: var(--success); font-weight: 600; }
-.kaala-tone--stressful { color: var(--vermillion); font-weight: 600; }
-.kaala-tone--mixed { color: var(--saffron); }
-.kaala-tone--clear { color: var(--text-secondary); }
-.kaala-row--stressful td { background: rgba(var(--vermillion-rgb), 0.05); }
-.kaala-row--supportive td { background: rgba(var(--success-rgb), 0.05); }
+.kaala-wrap {
+  display: flex;
+  justify-content: center;
+  margin: var(--space-md) 0;
+}
+.kaala-svg {
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+}
+.kaala-hub {
+  fill: var(--cream);
+  stroke: var(--saffron);
+  stroke-width: 2;
+}
+.kaala-spoke {
+  stroke: var(--text-secondary);
+  stroke-width: 1.5;
+  opacity: 0.45;
+}
+.kaala-cell {
+  fill: var(--sacred-white);
+  stroke: var(--sandalwood);
+  stroke-width: 1.2;
+}
+.kaala-dir--supportive .kaala-spoke {
+  stroke: var(--success);
+  opacity: 0.85;
+  stroke-width: 2.5;
+}
+.kaala-dir--stressful .kaala-spoke {
+  stroke: var(--vermillion);
+  opacity: 0.85;
+  stroke-width: 2.5;
+}
+.kaala-dir--mixed .kaala-spoke {
+  stroke: var(--saffron);
+  opacity: 0.85;
+  stroke-width: 2.5;
+}
+.kaala-dir--supportive .kaala-cell {
+  stroke: var(--success);
+}
+.kaala-dir--stressful .kaala-cell {
+  stroke: var(--vermillion);
+}
+.kaala-graha {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--text-primary);
+}
+.kaala-inner {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--saffron);
+}
+.kaala-dirlabel {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--text-secondary);
+}
+.kaala-good {
+  color: var(--success);
+}
+.kaala-bad {
+  color: var(--vermillion);
+}
+.kaala-tone--supportive {
+  color: var(--success);
+  font-weight: 600;
+}
+.kaala-tone--stressful {
+  color: var(--vermillion);
+  font-weight: 600;
+}
+.kaala-tone--mixed {
+  color: var(--saffron);
+}
+.kaala-tone--clear {
+  color: var(--text-secondary);
+}
+.kaala-row--stressful td {
+  background: rgba(var(--vermillion-rgb), 0.05);
+}
+.kaala-row--supportive td {
+  background: rgba(var(--success-rgb), 0.05);
+}

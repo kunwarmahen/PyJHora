@@ -125,12 +125,30 @@
   background: rgba(var(--text-secondary-rgb), 0.12);
   color: var(--text-primary);
 }
-.jrn-cat--career { background: rgba(var(--indigo-rgb), 0.14); color: var(--text-primary); }
-.jrn-cat--relationship { background: rgba(var(--terracotta-rgb), 0.16); color: var(--accent-deep); }
-.jrn-cat--health { background: rgba(var(--success-rgb), 0.16); color: var(--success); }
-.jrn-cat--finance { background: rgba(var(--gold-rgb), 0.2); color: var(--warning); }
-.jrn-cat--loss { background: rgba(var(--danger-rgb), 0.14); color: var(--danger-alt); }
-.jrn-cat--milestone { background: rgba(var(--accent-rgb), 0.18); color: var(--accent-deep); }
+.jrn-cat--career {
+  background: rgba(var(--indigo-rgb), 0.14);
+  color: var(--text-primary);
+}
+.jrn-cat--relationship {
+  background: rgba(var(--terracotta-rgb), 0.16);
+  color: var(--accent-deep);
+}
+.jrn-cat--health {
+  background: rgba(var(--success-rgb), 0.16);
+  color: var(--success);
+}
+.jrn-cat--finance {
+  background: rgba(var(--gold-rgb), 0.2);
+  color: var(--warning);
+}
+.jrn-cat--loss {
+  background: rgba(var(--danger-rgb), 0.14);
+  color: var(--danger-alt);
+}
+.jrn-cat--milestone {
+  background: rgba(var(--accent-rgb), 0.18);
+  color: var(--accent-deep);
+}
 
 @media (max-width: 540px) {
   .jrn-entry {

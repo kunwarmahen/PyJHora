@@ -114,8 +114,7 @@ export const NowChartWidget = () => {
         </div>
 
         <p className="now-widget__moment">
-          {data.moment &&
-            t("now.asOf", { date: data.moment.date, time: data.moment.time })}
+          {data.moment && t("now.asOf", { date: data.moment.date, time: data.moment.time })}
           {here.place && (
             <span className="now-widget__place">
               {t(here.source === "birth" ? "now.castForBirth" : "now.castFor", {

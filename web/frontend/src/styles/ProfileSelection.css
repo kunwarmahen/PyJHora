@@ -317,12 +317,20 @@
   justify-content: center;
   text-align: center;
   min-height: 280px;
-  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.05) 0%, rgba(var(--terracotta-rgb), 0.05) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--accent-rgb), 0.05) 0%,
+    rgba(var(--terracotta-rgb), 0.05) 100%
+  );
   border: 2px dashed var(--saffron);
 }
 
 .create-new-card:hover {
-  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1) 0%, rgba(var(--terracotta-rgb), 0.1) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--accent-rgb), 0.1) 0%,
+    rgba(var(--terracotta-rgb), 0.1) 100%
+  );
   border-style: solid;
 }
 

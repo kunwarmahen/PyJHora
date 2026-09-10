@@ -155,7 +155,10 @@
    A list, not a chart. The timeline above answers "what is running"; this
    answers "what changes, and when", and a date read as text is easier to act
    on than a band read off an axis. */
-.ev-filters { flex-wrap: wrap; gap: var(--space-xs); }
+.ev-filters {
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
 /* Same shape as the arudha chips on the Transit page — a filter is a filter,
    and a second dialect of "selectable pill" is how a UI stops looking like one
    thing. */
@@ -169,16 +172,28 @@
   font: inherit;
   font-size: 0.82rem;
   line-height: 1.2;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
-.ev-chip:hover:not(:disabled) { border-color: var(--saffron); }
-.ev-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+.ev-chip:hover:not(:disabled) {
+  border-color: var(--saffron);
+}
+.ev-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .ev-chip.is-active {
   background: rgba(var(--accent-rgb), 0.12);
   border-color: var(--saffron);
   color: var(--text-primary);
 }
-.ev-list { list-style: none; margin: 0; padding: 0; }
+.ev-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
 .ev-row {
   display: flex;
   gap: var(--space-md);
@@ -186,17 +201,51 @@
   border-left: 3px solid var(--border);
   border-bottom: 1px solid var(--border-subtle, var(--border));
 }
-.ev-row:last-child { border-bottom: none; }
-.ev-row--challenging { border-left-color: var(--danger); }
-.ev-row--benefic { border-left-color: var(--success); }
-.ev-row--neutral { border-left-color: var(--accent); }
-.ev-row__when { min-width: 130px; display: flex; flex-direction: column; }
-.ev-row__date { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
-.ev-row__kind { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; }
-.ev-row__title { color: var(--text-primary); font-weight: 600; }
-.ev-row__detail { color: var(--text-muted); font-size: 0.85rem; margin-top: 2px; }
+.ev-row:last-child {
+  border-bottom: none;
+}
+.ev-row--challenging {
+  border-left-color: var(--danger);
+}
+.ev-row--benefic {
+  border-left-color: var(--success);
+}
+.ev-row--neutral {
+  border-left-color: var(--accent);
+}
+.ev-row__when {
+  min-width: 130px;
+  display: flex;
+  flex-direction: column;
+}
+.ev-row__date {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+.ev-row__kind {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+.ev-row__title {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.ev-row__detail {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 2px;
+}
 
 @media (max-width: 560px) {
-  .ev-row { flex-direction: column; gap: 2px; }
-  .ev-row__when { flex-direction: row; gap: var(--space-sm); align-items: baseline; }
+  .ev-row {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .ev-row__when {
+    flex-direction: row;
+    gap: var(--space-sm);
+    align-items: baseline;
+  }
 }

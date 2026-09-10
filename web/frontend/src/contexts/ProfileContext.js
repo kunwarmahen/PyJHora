@@ -50,8 +50,13 @@ export const ProfileProvider = ({ children }) => {
   };
 
   // Save a new profile
-  const saveProfile = async (profileName, birthDetails, notifyEmail = null,
-                             digestFrequency = null, currentLocation = null) => {
+  const saveProfile = async (
+    profileName,
+    birthDetails,
+    notifyEmail = null,
+    digestFrequency = null,
+    currentLocation = null
+  ) => {
     try {
       const response = await fetch(`${API_URL}/api/profiles/save`, {
         method: "POST",
@@ -82,9 +87,14 @@ export const ProfileProvider = ({ children }) => {
   // Update a profile. `notifyEmail` is only sent when explicitly passed
   // (undefined = leave the stored value untouched), so callers that just tweak
   // birth details — e.g. the rectification page — never wipe the digest email.
-  const updateProfile = async (profileId, profileName, birthDetails,
-                               notifyEmail = undefined, digestFrequency = undefined,
-                               currentLocation = undefined) => {
+  const updateProfile = async (
+    profileId,
+    profileName,
+    birthDetails,
+    notifyEmail = undefined,
+    digestFrequency = undefined,
+    currentLocation = undefined
+  ) => {
     try {
       const body = {
         profile_name: profileName,
@@ -113,12 +123,8 @@ export const ProfileProvider = ({ children }) => {
             profile_name: profileName,
             birth_details: birthDetails,
             ...(notifyEmail !== undefined ? { notify_email: notifyEmail || null } : {}),
-            ...(digestFrequency !== undefined
-              ? { digest_frequency: digestFrequency || null }
-              : {}),
-            ...(currentLocation !== undefined
-              ? { current_location: currentLocation || null }
-              : {}),
+            ...(digestFrequency !== undefined ? { digest_frequency: digestFrequency || null } : {}),
+            ...(currentLocation !== undefined ? { current_location: currentLocation || null } : {}),
           };
           setSelectedProfile(updatedProfile);
           localStorage.setItem("selectedProfile", JSON.stringify(updatedProfile));

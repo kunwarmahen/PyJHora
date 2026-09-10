@@ -8,16 +8,19 @@ import {
   zoneLabel,
 } from "./currentLocation";
 
-const chicago = { place: "Chicago", latitude: 41.88, longitude: -87.63, timezone: "America/Chicago" };
+const chicago = {
+  place: "Chicago",
+  latitude: 41.88,
+  longitude: -87.63,
+  timezone: "America/Chicago",
+};
 
 describe("locationPrompt", () => {
   afterEach(() => localStorage.clear());
 
   describe("with a location already set", () => {
     it("says nothing when the browser agrees with it", () => {
-      expect(
-        locationPrompt({ location: chicago, zone: "America/Chicago", offset: -6 })
-      ).toBeNull();
+      expect(locationPrompt({ location: chicago, zone: "America/Chicago", offset: -6 })).toBeNull();
     });
 
     it("suggests an update when the browser is somewhere else", () => {
@@ -37,9 +40,7 @@ describe("locationPrompt", () => {
     it("says nothing across a DST shift, because the zone is unchanged", () => {
       // The whole reason we store a zone: Chicago in July is -5, not -6, and
       // that must not read as "you moved".
-      expect(
-        locationPrompt({ location: chicago, zone: "America/Chicago", offset: -5 })
-      ).toBeNull();
+      expect(locationPrompt({ location: chicago, zone: "America/Chicago", offset: -5 })).toBeNull();
     });
   });
 
@@ -53,9 +54,7 @@ describe("locationPrompt", () => {
     });
 
     it("says nothing to someone who still lives where they were born", () => {
-      expect(
-        locationPrompt({ birthOffset: 5.5, zone: "Asia/Kolkata", offset: 5.5 })
-      ).toBeNull();
+      expect(locationPrompt({ birthOffset: 5.5, zone: "Asia/Kolkata", offset: 5.5 })).toBeNull();
     });
 
     it("says nothing when there is no birth offset to compare against", () => {

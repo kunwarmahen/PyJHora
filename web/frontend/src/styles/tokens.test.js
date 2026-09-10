@@ -116,9 +116,12 @@ describe("theme tokens", () => {
     // through a token. This is what stops the night sections from drifting back
     // into a private cream per section, which is how they were found.
     const src = decolour(fs.readFileSync(LANDING_CSS, "utf8"));
-    // The token layer runs from the top to the first non-token rule.
-    const end = src.indexOf(".landing *, .landing *::before");
-    expect(end).toBeGreaterThan(-1);
+    // The token layer runs from the top to the first non-token rule. Matched as
+    // a pattern, not a literal string: a formatter is free to put each selector
+    // in the list on its own line, and this guard must survive that.
+    const boundary = /\.landing\s*\*\s*,\s*\.landing\s*\*::before/.exec(src);
+    expect(boundary).not.toBeNull();
+    const end = boundary.index;
     const rules = src.slice(end);
     expect(rules.match(LITERAL)).toBeNull();
   });

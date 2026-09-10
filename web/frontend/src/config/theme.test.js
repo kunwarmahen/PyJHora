@@ -103,10 +103,7 @@ describe("the pre-paint script in index.html", () => {
   // runs early enough), so the two can drift apart silently. Pin the contract.
   const fs = require("fs");
   const path = require("path");
-  const html = fs.readFileSync(
-    path.join(__dirname, "..", "..", "public", "index.html"),
-    "utf8",
-  );
+  const html = fs.readFileSync(path.join(__dirname, "..", "..", "public", "index.html"), "utf8");
 
   it("uses the same storage key and query as this module", () => {
     expect(html).toContain(`localStorage.getItem("${THEME_STORAGE_KEY}")`);

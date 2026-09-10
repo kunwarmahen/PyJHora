@@ -405,7 +405,11 @@
   height: 24px;
   flex: 0 0 auto;
 }
-.settings-switch input { opacity: 0; width: 0; height: 0; }
+.settings-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
 .settings-switch span {
   position: absolute;
   cursor: pointer;
@@ -425,9 +429,16 @@
   border-radius: 50%;
   transition: transform 0.2s;
 }
-.settings-switch input:checked + span { background: var(--saffron); }
-.settings-switch input:checked + span::before { transform: translateX(20px); }
-.settings-switch input:disabled + span { opacity: 0.45; cursor: not-allowed; }
+.settings-switch input:checked + span {
+  background: var(--saffron);
+}
+.settings-switch input:checked + span::before {
+  transform: translateX(20px);
+}
+.settings-switch input:disabled + span {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 
 .settings-badge {
   margin-left: 0.5rem;
@@ -445,8 +456,14 @@
   font-size: 0.9rem;
   margin: 0.5rem 0;
 }
-.settings-msg--ok { background: var(--success-bg); color: var(--success); }
-.settings-msg--error { background: var(--danger-bg); color: var(--danger); }
+.settings-msg--ok {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.settings-msg--error {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
 
 /* iCal feed subscription (§5.10) */
 .settings-cal-url {

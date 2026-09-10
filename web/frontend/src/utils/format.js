@@ -21,8 +21,7 @@ export const formatDate = (dob) => {
  * so date-only strings get anchored to local midnight. Strings that already
  * carry a time are left alone — those the constructor reads as local anyway.
  */
-export const parseLocalDate = (s) =>
-  new Date(/^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s}T00:00:00` : s);
+export const parseLocalDate = (s) => new Date(/^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s}T00:00:00` : s);
 
 /**
  * Today's date on the viewer's calendar, as `YYYY-MM-DD`.
