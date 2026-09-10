@@ -1,0 +1,28 @@
+/* "Showing a saved copy" strip (§68.8). Pinned to the top of the viewport so it
+ * is visible from any page without every page having to render it. */
+.offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  text-align: center;
+  background: rgba(var(--terracotta-rgb), 0.95);
+  color: var(--text-on-accent);
+  box-shadow: 0 1px 6px rgba(var(--shadow-rgb), 0.25);
+}
+.offline-banner__icon {
+  flex-shrink: 0;
+}
+@media print {
+  .offline-banner {
+    display: none;
+  }
+}

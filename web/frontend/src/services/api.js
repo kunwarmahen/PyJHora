@@ -1,6 +1,8 @@
 import axios from "axios";
 import { DEFAULT_AYANAMSA } from "../constants/jyotish";
 import i18n from "../i18n";
+import * as offlineCache from "./offlineCache";
+import { PREFS_OWNER_STORAGE_KEY } from "../config/prefsOwner";
 
 // Endpoints whose *data* PyJHora can localize (yoga/raja-yoga names + descriptions)
 // take a `lang`. Read at call time so it follows the switcher without a reload.
@@ -57,6 +59,8 @@ export const getRefreshToken = () => localStorage.getItem(REFRESH_KEY);
 export const clearTokens = () => {
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(REFRESH_KEY);
+  // Saved computations are per-user; this browser may belong to a household.
+  offlineCache.clearAll();
 };
 
 // Add token to requests
@@ -136,12 +140,61 @@ const doRefresh = async () => {
   return resp.data.access_token;
 };
 
+// --- Offline readability (§68.8) -------------------------------------------
+// Every deterministic computation is kept in IndexedDB as it comes back, and
+// replayed from there when the network is gone — so opening the app on a plane
+// or in a metro shows the chart you were last looking at instead of an empty
+// shell. See services/offlineCache.js for what is cached and what never is.
+//
+// The key is namespaced by user so two people sharing a browser cannot read
+// each other's charts; `clearTokens` drops the store on logout.
+const cacheOwner = () => {
+  try {
+    // The same stamp SettingsContext trusts for "whose cached state is this" —
+    // see config/prefsOwner.js.
+    return localStorage.getItem(PREFS_OWNER_STORAGE_KEY) || "anon";
+  } catch (e) {
+    return "anon";
+  }
+};
+
+api.interceptors.response.use((response) => {
+  const config = response.config || {};
+  if (response.status === 200 && offlineCache.isCacheable(config.method, config.url)) {
+    // Fire and forget: a full disk must never fail a request that succeeded.
+    offlineCache.put(offlineCache.cacheKey(config, cacheOwner()), response.data);
+  }
+  return response;
+});
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config || {};
     const status = error.response?.status;
     const isAuthCall = (original.url || "").includes("/api/auth/");
+
+    // No response at all means the network failed (not the server saying no),
+    // so a saved copy is the honest answer rather than an error page.
+    if (!error.response && offlineCache.isCacheable(original.method, original.url)) {
+      const hit = await offlineCache.get(offlineCache.cacheKey(original, cacheOwner()));
+      if (hit) {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("jyotir:served-offline", { detail: { savedAt: hit.savedAt } })
+          );
+        }
+        return {
+          data: hit.data,
+          status: 200,
+          statusText: "OK (offline copy)",
+          headers: {},
+          config: original,
+          fromOfflineCache: true,
+          savedAt: hit.savedAt,
+        };
+      }
+    }
 
     if (status !== 401 || isAuthCall) {
       return Promise.reject(error);
@@ -189,12 +242,10 @@ export const authService = {
   updateEmail: (email) => api.put("/api/auth/email", { email }),
   updateName: (name) => api.put("/api/auth/name", { name }),
   logoutOtherDevices: () => api.post("/api/auth/logout-all"),
-  deleteAccount: (password) =>
-    api.delete("/api/auth/account", { data: { password } }),
+  deleteAccount: (password) => api.delete("/api/auth/account", { data: { password } }),
   getProfile: () => api.get("/api/user/profile"),
   // Forgot / reset password (email link). `identifier` = username or email.
-  forgotPassword: (identifier) =>
-    api.post("/api/auth/forgot-password", { identifier }),
+  forgotPassword: (identifier) => api.post("/api/auth/forgot-password", { identifier }),
   resetPassword: (token, newPassword) =>
     api.post("/api/auth/reset-password", { token, new_password: newPassword }),
   // Public-API / MCP tokens (§2.3). createApiToken returns the raw token ONCE.
@@ -208,29 +259,25 @@ export const authService = {
 export const adminService = {
   me: () => api.get("/api/admin/me"),
   stats: () => api.get("/api/admin/stats"),
-  listUsers: (q = "", limit = 200) =>
-    api.get("/api/admin/users", { params: { q, limit } }),
+  listUsers: (q = "", limit = 200) => api.get("/api/admin/users", { params: { q, limit } }),
   userDetail: (username) => api.get(`/api/admin/users/${encodeURIComponent(username)}`),
   userContent: (username, kind) =>
     api.get(`/api/admin/users/${encodeURIComponent(username)}/content/${kind}`),
   suspend: (username, suspended) =>
     api.post(`/api/admin/users/${encodeURIComponent(username)}/suspend`, { suspended }),
-  deleteUser: (username) =>
-    api.delete(`/api/admin/users/${encodeURIComponent(username)}`),
+  deleteUser: (username) => api.delete(`/api/admin/users/${encodeURIComponent(username)}`),
   // The audit log records *events* (moderation + security). Filters are all
   // optional; empty strings are dropped server-side.
   audit: (params = {}) => api.get("/api/admin/audit", { params: { limit: 200, ...params } }),
   // The activity feed is derived on read from existing collections, so it covers
   // everything that ever happened — not only what has been logged since logging
   // was added. That distinction is why these are two separate views.
-  activity: (params = {}) =>
-    api.get("/api/admin/activity", { params: { limit: 200, ...params } }),
+  activity: (params = {}) => api.get("/api/admin/activity", { params: { limit: 200, ...params } }),
   getConfig: () => api.get("/api/admin/config"),
   setConfig: (updates) => api.put("/api/admin/config", updates),
   // Claim checks (§68.1): how often a reading contradicted the chart it was
   // generated from, and the queue of the ones that still did after the retry.
-  claimSummary: (days = 30) =>
-    api.get("/api/admin/claim-checks/summary", { params: { days } }),
+  claimSummary: (days = 30) => api.get("/api/admin/claim-checks/summary", { params: { days } }),
   claimChecks: (params = {}) =>
     api.get("/api/admin/claim-checks", { params: { limit: 100, ...params } }),
   triageClaim: (id, patch) => api.patch(`/api/admin/claim-checks/${id}`, patch),
@@ -240,10 +287,8 @@ export const adminService = {
 export const notificationsService = {
   getPrefs: () => api.get("/api/notifications/prefs"),
   setPrefs: (prefs) => api.put("/api/notifications/prefs", prefs),
-  subscribePush: (subscription) =>
-    api.post("/api/notifications/push/subscribe", { subscription }),
-  unsubscribePush: (endpoint) =>
-    api.post("/api/notifications/push/unsubscribe", { endpoint }),
+  subscribePush: (subscription) => api.post("/api/notifications/push/subscribe", { subscription }),
+  unsubscribePush: (endpoint) => api.post("/api/notifications/push/unsubscribe", { endpoint }),
   sendDigestNow: (cadence = "daily") =>
     api.post("/api/notifications/digest/send", null, { params: { cadence } }),
   // The chart's forward calendar (§70) — what the alerts are sent from, and what
@@ -263,8 +308,7 @@ export const astrologyService = {
     api.post("/api/astrology/divisional-chart", birthDetails, {
       params: { varga, ayanamsa },
     }),
-  getHoroscope: (birthDetails) =>
-    api.post("/api/astrology/horoscope", birthDetails),
+  getHoroscope: (birthDetails) => api.post("/api/astrology/horoscope", birthDetails),
   getPanchanga: ({ place, latitude, longitude, timezone, date, system } = {}) =>
     api.get("/api/astrology/panchanga", {
       params: { place, latitude, longitude, timezone, date, system },
@@ -281,7 +325,12 @@ export const astrologyService = {
   getFestivals: ({ place, latitude, longitude, timezone, start, end, types } = {}) =>
     api.get("/api/astrology/almanac/festivals", {
       params: {
-        place, latitude, longitude, timezone, start, end,
+        place,
+        latitude,
+        longitude,
+        timezone,
+        start,
+        end,
         types: Array.isArray(types) ? types.join(",") : types,
       },
     }),
@@ -347,7 +396,15 @@ export const astrologyService = {
       params: { method, ayanamsa },
     }),
   // Sidereal ephemeris + ingress calendar over a date window.
-  getEphemeris: ({ startDate, days = 30, place, latitude, longitude, timezone, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+  getEphemeris: ({
+    startDate,
+    days = 30,
+    place,
+    latitude,
+    longitude,
+    timezone,
+    ayanamsa = DEFAULT_AYANAMSA,
+  } = {}) =>
     api.get("/api/astrology/ephemeris", {
       params: {
         start_date: startDate,
@@ -488,7 +545,12 @@ export const astrologyService = {
       { timeout: 300000 }
     ),
   // EXPERIMENTAL birth-time rectification (BV Raman suddhi methods).
-  rectifyBirthTime: (birthDetails, method = "nakshatra", gender = null, ayanamsa = DEFAULT_AYANAMSA) =>
+  rectifyBirthTime: (
+    birthDetails,
+    method = "nakshatra",
+    gender = null,
+    ayanamsa = DEFAULT_AYANAMSA
+  ) =>
     api.post("/api/astrology/rectify-birth-time", birthDetails, {
       params: { method, ...(gender != null ? { gender } : {}), ayanamsa },
     }),
@@ -599,22 +661,55 @@ export const astrologyService = {
   // `birthDetails` is what turns an almanac search into this person's search
   // (§68.6) — Tara Bala, Chandra Bala, the running dasha lords and per-window
   // lagna shuddhi. Omit it and the endpoint answers exactly as it always did.
-  getMuhurta: ({ activity, startDate, endDate, place, latitude, longitude, timezone, birthDetails, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+  getMuhurta: ({
+    activity,
+    startDate,
+    endDate,
+    place,
+    latitude,
+    longitude,
+    timezone,
+    birthDetails,
+    ayanamsa = DEFAULT_AYANAMSA,
+  } = {}) =>
     api.post("/api/astrology/muhurta", birthDetails || null, {
       params: {
-        activity, start_date: startDate, end_date: endDate,
-        place, latitude, longitude, timezone, ayanamsa,
+        activity,
+        start_date: startDate,
+        end_date: endDate,
+        place,
+        latitude,
+        longitude,
+        timezone,
+        ayanamsa,
       },
     }),
   analyzeMuhurtaAI: (
-    { activity, startDate, endDate, place, latitude, longitude, timezone, birthDetails, profileId, personName, ayanamsa = DEFAULT_AYANAMSA } = {},
+    {
+      activity,
+      startDate,
+      endDate,
+      place,
+      latitude,
+      longitude,
+      timezone,
+      birthDetails,
+      profileId,
+      personName,
+      ayanamsa = DEFAULT_AYANAMSA,
+    } = {},
     model = {}
   ) =>
     api.post(
       "/api/astrology/muhurta-analysis",
       {
-        activity, start_date: startDate, end_date: endDate,
-        place, latitude, longitude, timezone,
+        activity,
+        start_date: startDate,
+        end_date: endDate,
+        place,
+        latitude,
+        longitude,
+        timezone,
         birth_details: birthDetails || undefined,
         profile_id: profileId,
         person_name: personName,
@@ -636,11 +731,20 @@ export const astrologyService = {
     api.post("/api/astrology/prashna", null, {
       params: { question, date, time, place, latitude, longitude, timezone, ayanamsa },
     }),
-  analyzePrashnaAI: ({ question, date, time, place, latitude, longitude, timezone } = {}, model = {}) =>
+  analyzePrashnaAI: (
+    { question, date, time, place, latitude, longitude, timezone } = {},
+    model = {}
+  ) =>
     api.post(
       "/api/astrology/prashna-analysis",
       {
-        question, date, time, place, latitude, longitude, timezone,
+        question,
+        date,
+        time,
+        place,
+        latitude,
+        longitude,
+        timezone,
         llm_provider: model.legacyProvider || "qwen",
         provider_type: model.providerType,
         model: model.model,
@@ -715,7 +819,10 @@ export const astrologyService = {
    *  "month" (~29.5d) or "annual" (the TP chart proper). `year` targets an annual
    *  window; `date` selects whichever window contains it — which is how the ±
    *  stepper walks the ladder. */
-  getLunarPravesha: (birthDetails, { rung = "annual", year, date, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+  getLunarPravesha: (
+    birthDetails,
+    { rung = "annual", year, date, ayanamsa = DEFAULT_AYANAMSA } = {}
+  ) =>
     api.post("/api/astrology/lunar-pravesha", birthDetails, {
       params: { rung, year, date, ayanamsa },
     }),
@@ -746,9 +853,21 @@ export const astrologyService = {
 
   // ---- Muhurta sub-tools: Choghadiya / Panchaka / Tarabala / Chandrabala ----
   // Location-driven; pass birthDetails to personalize Tarabala + Chandrabala.
-  getMuhurtaSubtools: ({ date, place, latitude, longitude, timezone, birthDetails, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+  getMuhurtaSubtools: ({
+    date,
+    place,
+    latitude,
+    longitude,
+    timezone,
+    birthDetails,
+    ayanamsa = DEFAULT_AYANAMSA,
+  } = {}) =>
     api.post("/api/astrology/muhurta/subtools", {
-      date, place, latitude, longitude, timezone,
+      date,
+      place,
+      latitude,
+      longitude,
+      timezone,
       birth_details: birthDetails || undefined,
       ayanamsa,
     }),
@@ -912,7 +1031,12 @@ export const astrologyService = {
     ),
 
   // ---- Gochara-phala (Moon-referenced transits with vedha) ----
-  getGocharaPhala: (birthDetails, currentDate = null, currentTz = null, ayanamsa = DEFAULT_AYANAMSA) =>
+  getGocharaPhala: (
+    birthDetails,
+    currentDate = null,
+    currentTz = null,
+    ayanamsa = DEFAULT_AYANAMSA
+  ) =>
     api.post("/api/astrology/gochara-phala", birthDetails, {
       params: {
         current_date: currentDate || undefined,
@@ -1065,8 +1189,7 @@ export const astrologyService = {
 
   // ---- KP (Krishnamurti Paddhati) (§16) ----
   // KP always reads on the KP ayanamsa (forced server-side).
-  getKpDetails: (birthDetails) =>
-    api.post("/api/astrology/kp", birthDetails),
+  getKpDetails: (birthDetails) => api.post("/api/astrology/kp", birthDetails),
   analyzeKpAI: (birthDetails, opts = {}, model = {}) =>
     api.post(
       "/api/astrology/kp-analysis",
@@ -1088,11 +1211,21 @@ export const astrologyService = {
     api.post("/api/astrology/kp-horary", null, {
       params: { number, date, time, place, latitude, longitude, timezone },
     }),
-  analyzeKpHoraryAI: ({ number, question, date, time, place, latitude, longitude, timezone } = {}, model = {}) =>
+  analyzeKpHoraryAI: (
+    { number, question, date, time, place, latitude, longitude, timezone } = {},
+    model = {}
+  ) =>
     api.post(
       "/api/astrology/kp-horary-analysis",
       {
-        number, question, date, time, place, latitude, longitude, timezone,
+        number,
+        question,
+        date,
+        time,
+        place,
+        latitude,
+        longitude,
+        timezone,
         llm_provider: model.legacyProvider || "qwen",
         provider_type: model.providerType,
         model: model.model,
@@ -1125,19 +1258,39 @@ export const astrologyService = {
     ),
 
   // ---- Chart of the moment / "now" chart (§16) ----
-  getNowChart: ({ place, latitude, longitude, timezone, currentTime, currentTz, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
+  getNowChart: ({
+    place,
+    latitude,
+    longitude,
+    timezone,
+    currentTime,
+    currentTz,
+    ayanamsa = DEFAULT_AYANAMSA,
+  } = {}) =>
     api.post("/api/astrology/now-chart", null, {
       params: {
-        place, latitude, longitude, timezone,
-        current_time: currentTime, current_tz: currentTz, ayanamsa,
+        place,
+        latitude,
+        longitude,
+        timezone,
+        current_time: currentTime,
+        current_tz: currentTz,
+        ayanamsa,
       },
     }),
-  analyzeNowChartAI: ({ place, latitude, longitude, timezone, currentTime, currentTz } = {}, model = {}) =>
+  analyzeNowChartAI: (
+    { place, latitude, longitude, timezone, currentTime, currentTz } = {},
+    model = {}
+  ) =>
     api.post(
       "/api/astrology/now-chart-analysis",
       {
-        place, latitude, longitude, timezone,
-        current_time: currentTime, current_tz: currentTz,
+        place,
+        latitude,
+        longitude,
+        timezone,
+        current_time: currentTime,
+        current_tz: currentTz,
         llm_provider: model.legacyProvider || "qwen",
         provider_type: model.providerType,
         model: model.model,
@@ -1185,8 +1338,7 @@ export const astrologyService = {
   // `digests: true` also folds in the digests that were actually delivered (email
   // / push). They're stored separately under their own retention, so they're
   // opt-in here — only the History page asks for them.
-  listHistory: (digests = true) =>
-    api.get("/api/ai/conversations", { params: { digests } }),
+  listHistory: (digests = true) => api.get("/api/ai/conversations", { params: { digests } }),
   getConversation: (id) => api.get(`/api/ai/conversations/${id}`),
   // Lazy-load the full "Behind the scenes" tool results for one saved answer.
   getConversationTrace: (conversationId, traceId) =>
@@ -1205,8 +1357,7 @@ export const astrologyService = {
   // matching astro-journal entry in the same call.
   setReadingOutcome: (readingId, payload) =>
     api.put(`/api/ai/conversations/${readingId}/outcome`, payload),
-  clearReadingOutcome: (readingId) =>
-    api.delete(`/api/ai/conversations/${readingId}/outcome`),
+  clearReadingOutcome: (readingId) => api.delete(`/api/ai/conversations/${readingId}/outcome`),
   listOutcomes: (profileId = null) =>
     api.get("/api/ai/outcomes", { params: { profile_id: profileId || undefined } }),
 
@@ -1232,8 +1383,7 @@ export const astrologyService = {
   // One-click set from the browser's zone: the server geocodes the zone's
   // representative city and verifies it lands back in that zone, so a wrong
   // "Chicago" is a 422 rather than a silently stored wrong answer.
-  setCurrentLocationFromZone: (timezone) =>
-    api.post("/api/user/location/from-zone", { timezone }),
+  setCurrentLocationFromZone: (timezone) => api.post("/api/user/location/from-zone", { timezone }),
   deleteCurrentLocation: () => api.delete("/api/user/location"),
 
   generatePrediction: (birthDetails, predictionType = "general", model = {}) =>

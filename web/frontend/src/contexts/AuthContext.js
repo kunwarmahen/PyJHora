@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { authService, setTokens, clearTokens, getRefreshToken } from "../services/api";
 import { claimPrefsOwner, purgeCachedUserState } from "../config/prefsOwner";
+import { clearAll as clearOfflineCache } from "../services/offlineCache";
 
 const AuthContext = createContext(null);
 
@@ -26,7 +27,12 @@ export const AuthProvider = ({ children }) => {
       // before any context reads it. Keyed on signing IN, not on the previous
       // person signing out: nobody should have to log out to keep their settings
       // to themselves. See config/prefsOwner.js.
-      if (claimPrefsOwner(response.data?.username)) purgeCachedUserState();
+      if (claimPrefsOwner(response.data?.username)) {
+        purgeCachedUserState();
+        // localStorage only; the offline response cache (§68.8) lives in
+        // IndexedDB and has to be dropped by name.
+        clearOfflineCache();
+      }
       setUser(response.data);
       setError(null);
     } catch (err) {
@@ -114,7 +120,16 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, error, login, loginWithGoogle, register, logout, reloadUser: loadUserProfile }}
+      value={{
+        user,
+        isLoading,
+        error,
+        login,
+        loginWithGoogle,
+        register,
+        logout,
+        reloadUser: loadUserProfile,
+      }}
     >
       {children}
     </AuthContext.Provider>
