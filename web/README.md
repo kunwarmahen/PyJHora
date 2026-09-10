@@ -669,8 +669,12 @@ sudo password for admin@nas.local [Enter = same as the SSH password]:
 
 If they turn out to differ, you're told so and re-prompted (three attempts) —
 not left to discover it after the transfer. Nothing is asked at all when the NAS
-grants passwordless sudo, and the SSH prompt is skipped when key auth already
-works; `dev.sh` probes for that first.
+grants passwordless sudo. An empty answer to the SSH prompt is fine too: it just
+means "authenticate however you normally would", so key users can hit Enter — and
+once a key has worked, `dev.sh` records that in `web/.run/nas-auth` and stops
+asking. It deliberately does **not** probe key auth live: a probe that fails is a
+failed login attempt on every `nas` command, and a NAS that auto-blacklists will
+ban this machine after a handful of them (see the troubleshooting note below).
 
 Mechanically: `ssh` has no "read the password from here" flag, so `dev.sh` hands
 it a tiny **askpass helper** (`SSH_ASKPASS_REQUIRE=force`, OpenSSH 8.4+). The
@@ -686,6 +690,14 @@ back to your terminal.
 `./dev.sh nas shell` is the one exception: an interactive shell needs its own
 PTY, and sudo's `tty_tickets` means a credential primed on a ttyless session
 doesn't count for it, so sudo still prompts there.
+
+**"Connection reset by peer" / `kex_exchange_identification` on connect** is not
+a bad password — the NAS is closing the connection *before* authentication, and
+`dev.sh` says so rather than blaming the password. On ASUSTOR ADM the usual cause
+is **ADM Defender's auto-blacklist** after repeated failed logins; `ssh -v` shows
+the giveaway banner `Not allowed at this time`. Clear it in the ADM web UI
+(`http://<NAS_HOST>:8000`) → **Settings → ADM Defender → Black List**, and remove
+this machine's IP.
 
 For a fully unattended run, `export NAS_SSH_PASSWORD=…` and/or
 `NAS_SUDO_PASSWORD=…` in your shell. They are deliberately **not** read from

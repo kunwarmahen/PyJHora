@@ -2646,6 +2646,20 @@ account — they usually *are* the same, so the second prompt should be a bare E
   prompting on the tty, and failed after a single attempt. Trap for a future harness: `nas_read_pw`
   is called inside `$( )`, so a fake-keystroke counter kept in a shell variable is lost every call
   — queue the answers in a file.
+- **BUG in the above, found on the owner's first real deploy — and caused by it.** `nas_ssh_key_works`
+  probed key auth with `BatchMode=yes`, which on a password-only NAS is a **failed login attempt on
+  every single `nas` command**. ASUSTOR's ADM Defender auto-blacklisted the dev box: sshd started
+  answering with the banner `Not allowed at this time` and closing the connection, which `dev.sh`
+  then reported as "SSH password rejected". Two fixes:
+  - [x] **Probe deleted.** Replaced with remembered state in `web/.run/nas-auth` (`<user>@<host> key`,
+        written only after a *successful* passwordless connect, erased the moment one fails), plus an
+        empty answer being a legitimate "use whatever auth you normally would". Zero extra
+        connections, and a key user still gets asked nothing after the first run.
+  - [x] **`nas_ssh_open` reports what ssh actually said** instead of assuming a rejected password —
+        separate messages for permission-denied, pre-auth close (with the ADM Defender → Black List
+        fix spelled out), unreachable host, and anything else, with ssh's own stderr above them.
+  - Lesson worth keeping: **a connectivity probe that authenticates is not free.** Anything that
+    fails auth counts as a failed login somewhere, and NAS/appliance firmware bans on that.
 
 ## 21. Export / import birth profiles (owner ask 2026-07-08)
 

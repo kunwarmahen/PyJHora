@@ -376,18 +376,39 @@ ASKPASS
 }
 nas_ssh_open() {
   info "connecting to ${NAS_USER}@${NAS_HOST} ..."
+  local out rc=0
   if [ -n "$NAS_SSH_PW" ]; then
     nas_askpass_setup
     # SSH_ASKPASS_REQUIRE=force (OpenSSH 8.4+) makes ssh use the helper even
     # though it has a terminal; NumberOfPasswordPrompts=1 turns a bad password
     # into an immediate failure instead of three silent retries.
-    if JYOTIRAI_SSH_PW="$NAS_SSH_PW" SSH_ASKPASS="$NAS_ASKPASS" SSH_ASKPASS_REQUIRE=force \
-       ssh $(ssh_opts) -o ControlMaster=yes -o NumberOfPasswordPrompts=1 -fN "${NAS_USER}@${NAS_HOST}"; then
-      return 0
-    fi
-    err "SSH password rejected by ${NAS_HOST}"; exit 1
+    out="$(JYOTIRAI_SSH_PW="$NAS_SSH_PW" SSH_ASKPASS="$NAS_ASKPASS" SSH_ASKPASS_REQUIRE=force \
+           ssh $(ssh_opts) -o ControlMaster=yes -o NumberOfPasswordPrompts=1 -fN "${NAS_USER}@${NAS_HOST}" 2>&1)" || rc=$?
+  else
+    out="$(ssh $(ssh_opts) -o ControlMaster=yes -fN "${NAS_USER}@${NAS_HOST}" 2>&1)" || rc=$?
   fi
-  ssh $(ssh_opts) -o ControlMaster=yes -fN "${NAS_USER}@${NAS_HOST}"
+  [ -n "$out" ] && printf '%s\n' "$out" >&2
+  if [ "$rc" -eq 0 ]; then
+    [ -z "$NAS_SSH_PW" ] && nas_auth_remember key
+    return 0
+  fi
+  # Report what ssh actually said. "Rejected" is only one of the ways this
+  # fails, and calling a server-side block a bad password sends you looking in
+  # entirely the wrong place.
+  nas_auth_remember password
+  case "$out" in
+    *"Permission denied"*)
+      err "SSH auth failed for ${NAS_USER}@${NAS_HOST} — wrong password, or the account can't log in over SSH" ;;
+    *"Not allowed at this time"*|*"kex_exchange_identification"*|*"Connection reset"*|*"Connection closed by"*)
+      err "${NAS_HOST} closed the connection before authentication — the NAS is refusing this machine, not rejecting a password."
+      err "On ASUSTOR ADM that is usually ADM Defender's auto-blacklist after repeated failed logins:"
+      err "  ADM web UI (http://${NAS_HOST}:8000) → Settings → ADM Defender → Black List → remove this machine's IP" ;;
+    *"Connection refused"*|*"No route to host"*|*"Name or service not known"*|*"timed out"*)
+      err "cannot reach ${NAS_HOST}:${NAS_SSH_PORT} — check the NAS is up and NAS_HOST/NAS_SSH_PORT are right" ;;
+    *)
+      err "SSH to ${NAS_USER}@${NAS_HOST} failed (see the message above)" ;;
+  esac
+  exit 1
 }
 nas_ssh_close() { ssh -O exit -o "ControlPath=${NAS_SSH_CTL}" "${NAS_USER}@${NAS_HOST}" 2>/dev/null || true; rm -f "$NAS_SSH_CTL" ${NAS_ASKPASS:+"$NAS_ASKPASS"}; }
 nas_ssh() {  # nas_ssh [-t] <cmd...>   (-t forces a PTY so sudo can prompt)
@@ -408,15 +429,21 @@ nas_scp() {  # nas_scp <local> <remote>
 # one account they are almost always the same password, so the sudo prompt
 # defaults to the SSH one: bare Enter accepts it, typing gives a different one.
 
-nas_ssh_key_works() {  # does key/agent auth already get us in? then ask nothing
-  local o="-p ${NAS_SSH_PORT} -o StrictHostKeyChecking=no -o ConnectTimeout=10"
-  # ControlPath=none on purpose: this probe must not open (or reuse) the master.
-  o="$o -o BatchMode=yes -o ControlPath=none"
-  [ -n "$NAS_SSH_KEY" ] && o="$o -i $NAS_SSH_KEY"
-  # shellcheck disable=SC2086
-  ssh $o "${NAS_USER}@${NAS_HOST}" true >/dev/null 2>&1
+# Remembering how we got in last time, so a key user isn't asked for a password
+# they don't have. Deliberately NOT a live probe: a probe that fails auth is a
+# failed login attempt on EVERY `nas` command, and a NAS that auto-blacklists
+# (ASUSTOR's ADM Defender does, by default) will ban this machine after a
+# handful of them — which is exactly what happened the first time this was
+# written that way.
+NAS_AUTH_STATE="$RUN_DIR/nas-auth"
+nas_auth_is_key() { [ -f "$NAS_AUTH_STATE" ] && grep -qxF "${NAS_USER}@${NAS_HOST} key" "$NAS_AUTH_STATE"; }
+nas_auth_remember() {  # nas_auth_remember key|password
+  local line="${NAS_USER}@${NAS_HOST} $1" tmp
+  tmp="$(mktemp "${RUN_DIR}/.nas-auth.XXXXXX")"
+  [ -f "$NAS_AUTH_STATE" ] && grep -vxF "${NAS_USER}@${NAS_HOST} key" "$NAS_AUTH_STATE" >"$tmp" 2>/dev/null
+  [ "$1" = key ] && printf '%s\n' "$line" >>"$tmp"
+  mv -f "$tmp" "$NAS_AUTH_STATE"
 }
-
 nas_read_pw() {  # nas_read_pw <prompt> — echo a password read from the terminal
   local pw=""
   [ -r /dev/tty ] || return 1
@@ -427,18 +454,20 @@ nas_read_pw() {  # nas_read_pw <prompt> — echo a password read from the termin
 }
 
 # Capture the SSH password (if one is needed at all) BEFORE opening the master,
-# so `ssh` never has to stop and prompt on its own.
+# so `ssh` never has to stop and prompt on its own — that is what lets the sudo
+# prompt below offer it as a default. Costs no extra connection: an empty answer
+# just means "let ssh authenticate however it normally would".
 nas_ssh_prime() {
   [ -n "$NAS_SSH_PW" ] && return 0
-  if nas_ssh_key_works; then
-    info "SSH: key accepted — no password needed"
-    return 0
-  fi
   if [ -n "${NAS_SSH_PASSWORD:-}" ]; then
     NAS_SSH_PW="$NAS_SSH_PASSWORD"
     return 0
   fi
-  NAS_SSH_PW="$(nas_read_pw "SSH password for ${NAS_USER}@${NAS_HOST}: " || true)"
+  if [ -n "$NAS_SSH_KEY" ] || nas_auth_is_key; then
+    info "SSH: key auth — no password needed"
+    return 0
+  fi
+  NAS_SSH_PW="$(nas_read_pw "SSH password for ${NAS_USER}@${NAS_HOST} (empty if a key gets you in): " || true)"
 }
 
 nas_sudo_prime() {
