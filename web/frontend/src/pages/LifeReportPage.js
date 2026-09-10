@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ScrollText, Sparkles, Printer, Check, Loader2 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import Markdown from "../components/Markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
@@ -242,7 +242,7 @@ export const LifeReportPage = () => {
 
             {restored ? (
               <div className="lr-chapter sbc-ai-markdown">
-                <ReactMarkdown>{restored.text}</ReactMarkdown>
+                <Markdown>{restored.text}</Markdown>
               </div>
             ) : (
               rows.map((c) =>
@@ -250,7 +250,7 @@ export const LifeReportPage = () => {
                   <div className="lr-chapter" key={c.key}>
                     <h2>{c.title}</h2>
                     <div className="sbc-ai-markdown">
-                      <ReactMarkdown>{c.text}</ReactMarkdown>
+                      <Markdown>{c.text}</Markdown>
                     </div>
                   </div>
                 ) : null

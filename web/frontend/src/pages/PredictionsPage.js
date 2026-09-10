@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import ReactMarkdown from "react-markdown";
+import Markdown from "../components/Markdown";
 import { AlertCircle, CheckCircle, MapPin } from "lucide-react";
 import { astrologyService } from "../services/api";
 import LocationSearch from "../components/LocationSearch";
@@ -313,7 +313,7 @@ export const PredictionsPage = () => {
                 <div className="ai-prediction">
                   <h3>{t("predictions.astrological")}</h3>
                   <div className="sbc-ai-markdown">
-                    <ReactMarkdown>{aiReading}</ReactMarkdown>
+                    <Markdown>{aiReading}</Markdown>
                   </div>
                   {aiModel && (
                     <p className="subtitle" style={{ marginTop: 8 }}>

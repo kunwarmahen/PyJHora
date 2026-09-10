@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { HelpCircle, Sparkles, MapPin, Moon, Sunrise } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import Markdown from "../components/Markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useCurrentLocation } from "../contexts/LocationContext";
 import { momentPlace } from "../config/currentLocation";
@@ -204,7 +204,7 @@ export const PrashnaPage = () => {
               <Card title={t("prashna.readingTitle")} icon={<Sparkles size={22} />} accent="indigo">
                 {reading ? (
                   <div className="sbc-ai-markdown ai-panel__reading">
-                    <ReactMarkdown>{reading}</ReactMarkdown>
+                    <Markdown>{reading}</Markdown>
                     {model && (
                       <div className="ai-panel__meta">{t("prashna.aiModel", { model })}</div>
                     )}

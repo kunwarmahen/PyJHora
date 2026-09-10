@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { CalendarCheck, Sparkles, MapPin, Clock, Star, Compass, Moon, AlertTriangle } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import Markdown from "../components/Markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useRestoreReading } from "../hooks/useRestoreReading";
 import { RecentReadings } from "../components/RecentReadings";
@@ -458,7 +458,7 @@ export const MuhurtaPage = () => {
                 {aiLoading && <LoadingState message={t("muhurta.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
-                    <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
+                    <Markdown>{aiAnalysis}</Markdown>
                     {aiModel && (
                       <div className="ai-panel__meta">
                         {t("muhurta.aiModel", { model: aiModel })}

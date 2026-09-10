@@ -14,7 +14,7 @@ import {
   ShieldAlert,
   Sprout,
 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import Markdown from "../components/Markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
@@ -483,7 +483,7 @@ const PeriodDigestPage = ({ period }) => {
                 {aiLoading && <LoadingState message={t("periodDigest.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
-                    <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
+                    <Markdown>{aiAnalysis}</Markdown>
                     {aiModel && (
                       <div className="ai-panel__meta">
                         {t("periodDigest.aiModel", { model: aiModel })}

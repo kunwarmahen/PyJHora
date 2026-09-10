@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Globe, Sparkles, RefreshCw, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
-import ReactMarkdown from "react-markdown";
+import Markdown from "../components/Markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useCurrentLocation } from "../contexts/LocationContext";
 import { momentPlace } from "../config/currentLocation";
@@ -217,7 +217,7 @@ export const NowChartPage = () => {
                 {aiLoading && <LoadingState message={t("now.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
-                    <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
+                    <Markdown>{aiAnalysis}</Markdown>
                     {aiModel && (
                       <div className="ai-panel__meta">{t("now.aiModel", { model: aiModel })}</div>
                     )}

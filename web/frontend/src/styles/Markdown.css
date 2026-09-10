@@ -1,0 +1,93 @@
+/**
+ * Styling for the GFM constructs `components/Markdown.js` added — chiefly
+ * tables, which the app had no rules for because nothing could produce one
+ * until remark-gfm was wired in.
+ *
+ * Scoped to `.md-table` rather than to a container class: AI prose renders
+ * inside `.message-content`, `.ai-analysis`, chat bubbles and half a dozen
+ * page-specific panels, and a table should look the same in all of them.
+ * Borrowed from `.aspects-table` so a model-written table reads as a sibling
+ * of the tables the app computes itself.
+ */
+
+.md-table-wrap {
+  overflow-x: auto;
+  margin: var(--space-md) 0;
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-sm);
+}
+
+.md-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  /* Keeps a many-column timeline readable: the wrapper scrolls instead of the
+     cells crushing down to one word per line. */
+  min-width: max-content;
+}
+
+.md-table th,
+.md-table td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--sandalwood);
+}
+
+.md-table tr:last-child td {
+  border-bottom: none;
+}
+
+.md-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+  background: var(--surface-sunken);
+  white-space: nowrap;
+}
+
+/* Markdown's `:---:` / `---:` alignment arrives as an inline style attribute,
+   so nothing to do there — but numeric columns still want tabular figures. */
+.md-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Task lists (`- [ ]`), the other GFM construct a model reaches for when it
+   lays out remedies or a checklist of steps. */
+.md-task-list,
+.message-content ul.contains-task-list,
+.ai-analysis ul.contains-task-list {
+  list-style: none;
+  padding-left: var(--space-sm);
+}
+
+.contains-task-list input[type="checkbox"] {
+  margin-right: var(--space-sm);
+}
+
+/* A table inside a dark chat bubble inherits its text colour; the header tint
+   needs to step back so it does not glow against the bubble. */
+.chat-bubble--ai .md-table th {
+  background: var(--surface-raised);
+}
+
+/* On paper there is nothing to scroll: let a wide table wrap down to the sheet
+   width instead of being clipped at the wrapper's edge, and keep rows whole
+   across a page break. */
+@media print {
+  .md-table-wrap {
+    overflow-x: visible;
+  }
+  .md-table {
+    min-width: 0;
+    width: 100%;
+  }
+  .md-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .md-table thead {
+    display: table-header-group;
+  }
+}

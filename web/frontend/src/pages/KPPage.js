@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Compass, Sparkles, Star, HelpCircle } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import Markdown from "../components/Markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useCurrentLocation } from "../contexts/LocationContext";
 import { momentPlace } from "../config/currentLocation";
@@ -372,7 +372,7 @@ export const KPPage = () => {
                     {aiLoading && <LoadingState message={t("kp.aiLoading")} />}
                     {aiAnalysis && !aiLoading && (
                       <div className="sbc-ai-markdown ai-panel__reading">
-                        <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
+                        <Markdown>{aiAnalysis}</Markdown>
                         {aiModel && (
                           <div className="ai-panel__meta">
                             {t("kp.aiModel", { model: aiModel })}
@@ -490,7 +490,7 @@ export const KPPage = () => {
                   accent="indigo"
                 >
                   <div className="sbc-ai-markdown ai-panel__reading">
-                    <ReactMarkdown>{horReading}</ReactMarkdown>
+                    <Markdown>{horReading}</Markdown>
                     {horModel && (
                       <div className="ai-panel__meta">{t("kp.aiModel", { model: horModel })}</div>
                     )}

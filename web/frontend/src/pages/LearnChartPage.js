@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import ReactMarkdown from "react-markdown";
+import Markdown from "../components/Markdown";
 import {
   GraduationCap,
   CheckCircle2,
@@ -543,7 +543,7 @@ export const LearnChartPage = () => {
 
             {r.reasoning && (
               <div className="learn-reasoning">
-                <ReactMarkdown>{r.reasoning}</ReactMarkdown>
+                <Markdown>{r.reasoning}</Markdown>
               </div>
             )}
           </Card>

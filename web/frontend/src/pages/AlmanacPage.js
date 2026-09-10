@@ -11,7 +11,7 @@ import {
   Swords,
   Sparkles,
 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import Markdown from "../components/Markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useCurrentLocation } from "../contexts/LocationContext";
 import { momentPlace } from "../config/currentLocation";
@@ -98,7 +98,7 @@ const AlmanacReading = ({ loc }) => {
       {loading && <LoadingState message={t("almanac.aiLoading")} />}
       {analysis && !loading && (
         <div className="sbc-ai-markdown ai-panel__reading">
-          <ReactMarkdown>{analysis}</ReactMarkdown>
+          <Markdown>{analysis}</Markdown>
           {model && <div className="ai-panel__meta">{t("almanac.aiModel", { model })}</div>}
         </div>
       )}

@@ -1,5 +1,5 @@
 import React from "react";
-import ReactMarkdown from "react-markdown";
+import Markdown from "../Markdown";
 
 /**
  * Renders an assistant message body: markdown content, a blinking stream cursor
@@ -13,7 +13,7 @@ export const StreamingMarkdown = ({ content, streaming, thinkingLabel }) => {
   }
   return (
     <>
-      <ReactMarkdown>{content}</ReactMarkdown>
+      <Markdown>{content}</Markdown>
       {streaming && <span className="stream-cursor">▍</span>}
     </>
   );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import ReactMarkdown from "react-markdown";
+import Markdown from "../components/Markdown";
 import {
   Heart,
   User,
@@ -757,7 +757,7 @@ export const CompatibilityPage = () => {
 
               {aiAnalysis && !aiLoading && (
                 <div className="sbc-ai-markdown ai-panel__reading">
-                  <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
+                  <Markdown>{aiAnalysis}</Markdown>
                   {aiModel && (
                     <div className="ai-panel__meta">{t("compat.aiModel", { model: aiModel })}</div>
                   )}

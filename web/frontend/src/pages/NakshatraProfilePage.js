@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Star, Sparkles } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import Markdown from "../components/Markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
@@ -347,7 +347,7 @@ export const NakshatraProfilePage = () => {
                   {pnLoading && <LoadingState message={t("nakshatra.aiLoading")} />}
                   {pnAnalysis && !pnLoading && (
                     <div className="sbc-ai-markdown ai-panel__reading">
-                      <ReactMarkdown>{pnAnalysis}</ReactMarkdown>
+                      <Markdown>{pnAnalysis}</Markdown>
                       {pnModel && (
                         <div className="ai-panel__meta">
                           {t("nakshatra.aiModel", { model: pnModel })}
@@ -375,7 +375,7 @@ export const NakshatraProfilePage = () => {
                 {aiLoading && <LoadingState message={t("nakshatra.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
-                    <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
+                    <Markdown>{aiAnalysis}</Markdown>
                     {aiModel && (
                       <div className="ai-panel__meta">
                         {t("nakshatra.aiModel", { model: aiModel })}

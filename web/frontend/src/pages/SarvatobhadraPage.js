@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import ReactMarkdown from "react-markdown";
+import Markdown from "../components/Markdown";
 import { Grid3x3, Calendar, RotateCcw, Sparkles, Crosshair } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -655,7 +655,7 @@ export const SarvatobhadraPage = () => {
                 {aiLoading && <LoadingState message={t("sbc.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
-                    <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
+                    <Markdown>{aiAnalysis}</Markdown>
                     {aiModel && (
                       <div className="ai-panel__meta">{t("sbc.aiModel", { model: aiModel })}</div>
                     )}

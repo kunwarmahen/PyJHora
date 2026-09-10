@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Clock, Sparkles, RotateCcw, Sunrise, Sunset } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import Markdown from "../components/Markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
@@ -424,7 +424,7 @@ export const VedicClockPage = () => {
                 {aiLoading && <LoadingState message={t("vedicClock.aiLoading")} />}
                 {aiAnalysis && !aiLoading && (
                   <div className="sbc-ai-markdown ai-panel__reading">
-                    <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
+                    <Markdown>{aiAnalysis}</Markdown>
                     {aiModel && (
                       <div className="ai-panel__meta">
                         {t("vedicClock.aiModel", { model: aiModel })}

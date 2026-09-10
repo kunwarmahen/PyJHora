@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import ReactMarkdown from "react-markdown";
+import Markdown from "./Markdown";
 import { Sparkles } from "lucide-react";
 import { astrologyService } from "../services/api";
 import { errorMessage } from "../utils/format";
@@ -80,7 +80,7 @@ export const ChakraAiPanel = ({
 
       {analysis && !loading && (
         <div className="sbc-ai-markdown ai-panel__reading">
-          <ReactMarkdown>{analysis}</ReactMarkdown>
+          <Markdown>{analysis}</Markdown>
           {model && <div className="ai-panel__meta">{t("chakraAi.model", { model })}</div>}
         </div>
       )}

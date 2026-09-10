@@ -11,7 +11,7 @@ import {
   Hourglass,
   Users,
 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import Markdown from "../components/Markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { astrologyService } from "../services/api";
 import { PageHeader } from "../components/PageHeader";
@@ -524,7 +524,7 @@ export const AdvancedPage = () => {
                   {pcAiLoading && <LoadingState message={t("conditions.aiLoading")} />}
                   {pcAi && !pcAiLoading && (
                     <div className="sbc-ai-markdown ai-panel__reading">
-                      <ReactMarkdown>{pcAi}</ReactMarkdown>
+                      <Markdown>{pcAi}</Markdown>
                       {pcAiModel && (
                         <div className="ai-panel__meta">
                           {t("conditions.aiModel", { model: pcAiModel })}
@@ -600,7 +600,7 @@ export const AdvancedPage = () => {
                   {avAiLoading && <LoadingState message={t("avasthas.aiLoading")} />}
                   {avAi && !avAiLoading && (
                     <div className="sbc-ai-markdown ai-panel__reading">
-                      <ReactMarkdown>{avAi}</ReactMarkdown>
+                      <Markdown>{avAi}</Markdown>
                       {avAiModel && (
                         <div className="ai-panel__meta">
                           {t("avasthas.aiModel", { model: avAiModel })}
@@ -729,7 +729,7 @@ export const AdvancedPage = () => {
                   {frAiLoading && <LoadingState message={t("friendships.aiLoading")} />}
                   {frAi && !frAiLoading && (
                     <div className="sbc-ai-markdown ai-panel__reading">
-                      <ReactMarkdown>{frAi}</ReactMarkdown>
+                      <Markdown>{frAi}</Markdown>
                       {frAiModel && (
                         <div className="ai-panel__meta">
                           {t("friendships.aiModel", { model: frAiModel })}
