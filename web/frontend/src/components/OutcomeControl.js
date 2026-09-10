@@ -6,10 +6,18 @@ import { todayISO } from "../utils/format";
 import { VERDICTS } from "../config/outcomes";
 import "../styles/Outcome.css";
 
-
 const CATEGORIES = [
-  "career", "relationship", "family", "health", "finance",
-  "move", "education", "spiritual", "loss", "milestone", "other",
+  "career",
+  "relationship",
+  "family",
+  "health",
+  "finance",
+  "move",
+  "education",
+  "spiritual",
+  "loss",
+  "milestone",
+  "other",
 ];
 
 export const VerdictChip = ({ verdict }) => {
@@ -17,8 +25,7 @@ export const VerdictChip = ({ verdict }) => {
   if (!verdict) return null;
   return (
     <span className={`outcome-chip outcome-chip--${verdict}`}>
-      <Target size={11} style={{ verticalAlign: "-1px" }} />{" "}
-      {t(`outcome.verdict.${verdict}`)}
+      <Target size={11} style={{ verticalAlign: "-1px" }} /> {t(`outcome.verdict.${verdict}`)}
     </span>
   );
 };
@@ -67,7 +74,12 @@ export const OutcomeControl = ({ item, profileId, onSaved }) => {
     setSaving(true);
     setError("");
     try {
-      const payload = { verdict, note, outcome_date: jDate, profile_id: profileId || item.profile_id };
+      const payload = {
+        verdict,
+        note,
+        outcome_date: jDate,
+        profile_id: profileId || item.profile_id,
+      };
       // Only send the journal half when the user asked for it AND gave it a
       // title — an untitled entry is rejected by the journal itself.
       if (withJournal && jTitle.trim()) {
@@ -118,11 +130,20 @@ export const OutcomeControl = ({ item, profileId, onSaved }) => {
   }
 
   return (
+    // Swallowing a click so it doesn't reach the card underneath is not an
+    // interaction of the popover's own (§68.8).
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
     <div className="outcome-editor" onClick={stop}>
       <div className="outcome-editor__head">
         <strong>{t("outcome.ask")}</strong>
-        <button className="outcome-x" onClick={(e) => { stop(e); setOpen(false); }}
-                title={t("outcome.cancel")}>
+        <button
+          className="outcome-x"
+          onClick={(e) => {
+            stop(e);
+            setOpen(false);
+          }}
+          title={t("outcome.cancel")}
+        >
           <X size={14} />
         </button>
       </div>
@@ -133,7 +154,10 @@ export const OutcomeControl = ({ item, profileId, onSaved }) => {
             key={v}
             type="button"
             className={`outcome-verdict outcome-verdict--${v}${verdict === v ? " is-active" : ""}`}
-            onClick={(e) => { stop(e); setVerdict(v); }}
+            onClick={(e) => {
+              stop(e);
+              setVerdict(v);
+            }}
             aria-pressed={verdict === v}
           >
             {verdict === v ? <Check size={12} style={{ verticalAlign: "-1px" }} /> : null}{" "}
@@ -180,7 +204,9 @@ export const OutcomeControl = ({ item, profileId, onSaved }) => {
             <span>{t("outcome.journalCategory")}</span>
             <select value={jCategory} onChange={(e) => setJCategory(e.target.value)}>
               {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{t(`journal.cat.${c}`)}</option>
+                <option key={c} value={c}>
+                  {t(`journal.cat.${c}`)}
+                </option>
               ))}
             </select>
           </label>

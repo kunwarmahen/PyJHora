@@ -131,251 +131,254 @@ export const FullReportPage = () => {
         subtitle={t("report.subtitle")}
         accent="gold"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          {/* Print toolbar — hidden on paper */}
+          <div className="report-toolbar no-print">
+            <button
+              className="control-btn report-print-btn"
+              onClick={() => window.print()}
+              disabled={loading || !chart}
+            >
+              <Printer size={16} /> {t("report.print")}
+            </button>
+            <span className="text-muted">{t("report.printHint")}</span>
+          </div>
 
-      <div className="dashboard-content">
-        {/* Print toolbar — hidden on paper */}
-        <div className="report-toolbar no-print">
-          <button
-            className="control-btn report-print-btn"
-            onClick={() => window.print()}
-            disabled={loading || !chart}
-          >
-            <Printer size={16} /> {t("report.print")}
-          </button>
-          <span className="text-muted">{t("report.printHint")}</span>
-        </div>
+          <ErrorBanner message={error} />
 
-        <ErrorBanner message={error} />
-
-        {loading ? (
-          <Card>
-            <LoadingState message={t("report.loading")} />
-          </Card>
-        ) : chart ? (
-          <div className="report-sheet fade-in">
-            {/* Masthead */}
-            <header className="report-masthead">
-              <h1 className="report-name">{orDash(bd.name)}</h1>
-              <p className="report-tagline">{t("report.tagline")}</p>
-              <div className="report-meta">
-                <span>
-                  <strong>{t("report.born")}:</strong> {formatDate(bd.dob, locale)}
-                  {bd.tob ? `, ${bd.tob}` : ""}
-                </span>
-                <span>
-                  <strong>{t("report.place")}:</strong> {orDash(bd.place)}
-                </span>
-                <span>
-                  <strong>{t("report.ayanamsa")}:</strong> {ayanamsaLabel}
-                </span>
-                <span>
-                  <strong>{t("report.generated")}:</strong>{" "}
-                  {formatDate(todayISO(), locale)}
-                </span>
-              </div>
-            </header>
-
-            {/* Vitals */}
-            <section className="report-section">
-              <h2 className="report-h2">{t("report.vitals")}</h2>
-              <div className="report-vitals">
-                <div className="report-vital">
-                  <span className="report-vital__label">{t("report.lagna")}</span>
-                  <span className="report-vital__value">
-                    {ln(chart.lagna?.sign_name, "rasi")}
-                    <em>
-                      {chart.lagna?.nakshatra ? ` · ${ln(chart.lagna.nakshatra, "nakshatra")}` : ""}
-                    </em>
+          {loading ? (
+            <Card>
+              <LoadingState message={t("report.loading")} />
+            </Card>
+          ) : chart ? (
+            <div className="report-sheet fade-in">
+              {/* Masthead */}
+              <header className="report-masthead">
+                <h1 className="report-name">{orDash(bd.name)}</h1>
+                <p className="report-tagline">{t("report.tagline")}</p>
+                <div className="report-meta">
+                  <span>
+                    <strong>{t("report.born")}:</strong> {formatDate(bd.dob, locale)}
+                    {bd.tob ? `, ${bd.tob}` : ""}
+                  </span>
+                  <span>
+                    <strong>{t("report.place")}:</strong> {orDash(bd.place)}
+                  </span>
+                  <span>
+                    <strong>{t("report.ayanamsa")}:</strong> {ayanamsaLabel}
+                  </span>
+                  <span>
+                    <strong>{t("report.generated")}:</strong> {formatDate(todayISO(), locale)}
                   </span>
                 </div>
-                <div className="report-vital">
-                  <span className="report-vital__label">{t("report.moonSign")}</span>
-                  <span className="report-vital__value">
-                    {ln(d1Planets.Moon?.sign_name, "rasi") || "—"}
-                  </span>
-                </div>
-                <div className="report-vital">
-                  <span className="report-vital__label">{t("report.nakshatra")}</span>
-                  <span className="report-vital__value">
-                    {ln(d1Planets.Moon?.nakshatra, "nakshatra") || "—"}
-                    {d1Planets.Moon?.nakshatra_pada ? ` (${d1Planets.Moon.nakshatra_pada})` : ""}
-                  </span>
-                </div>
-                <div className="report-vital">
-                  <span className="report-vital__label">{t("report.sunSign")}</span>
-                  <span className="report-vital__value">
-                    {ln(d1Planets.Sun?.sign_name, "rasi") || "—"}
-                  </span>
-                </div>
-              </div>
-            </section>
+              </header>
 
-            {/* Charts */}
-            <section className="report-section report-charts">
-              <h2 className="report-h2">{t("report.charts")}</h2>
-              <div className="report-chart-grid">
-                <Kundali
-                  planets={chart.planets}
-                  lagna={chart.lagna}
-                  title={t("report.rasi")}
-                  subtitle="D1"
-                />
-                <Kundali
-                  planets={chart.d9_chart}
-                  lagna={chart.d9_lagna}
-                  title={t("report.navamsa")}
-                  subtitle="D9"
-                />
-              </div>
-            </section>
-
-            {/* Planetary positions */}
-            <section className="report-section">
-              <h2 className="report-h2">{t("report.positions")}</h2>
-              <table className="data-table report-table">
-                <thead>
-                  <tr>
-                    <th>{t("report.graha")}</th>
-                    <th>{t("report.sign")}</th>
-                    <th>{t("report.degree")}</th>
-                    <th>{t("report.nakshatraPada")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orderedPlanets.map(([name, p]) => (
-                    <tr key={name}>
-                      <td className="fw-700">
-                        {ln(name, "graha", { abbr: true })}{" "}
-                        <span className="text-secondary">{ln(name, "graha")}</span>
-                      </td>
-                      <td>{ln(p.sign_name, "rasi")}</td>
-                      <td className="text-secondary">
-                        {p.degrees != null ? `${p.degrees.toFixed(2)}°` : "—"}
-                      </td>
-                      <td className="text-secondary">
-                        {ln(p.nakshatra, "nakshatra")}
-                        {p.nakshatra_pada ? ` (${p.nakshatra_pada})` : ""}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </section>
-
-            {/* Dasha timeline (guarded — may be unavailable) */}
-            {dhasaList.length > 0 && (
+              {/* Vitals */}
               <section className="report-section">
-                <h2 className="report-h2">{t("report.dasha")}</h2>
+                <h2 className="report-h2">{t("report.vitals")}</h2>
+                <div className="report-vitals">
+                  <div className="report-vital">
+                    <span className="report-vital__label">{t("report.lagna")}</span>
+                    <span className="report-vital__value">
+                      {ln(chart.lagna?.sign_name, "rasi")}
+                      <em>
+                        {chart.lagna?.nakshatra
+                          ? ` · ${ln(chart.lagna.nakshatra, "nakshatra")}`
+                          : ""}
+                      </em>
+                    </span>
+                  </div>
+                  <div className="report-vital">
+                    <span className="report-vital__label">{t("report.moonSign")}</span>
+                    <span className="report-vital__value">
+                      {ln(d1Planets.Moon?.sign_name, "rasi") || "—"}
+                    </span>
+                  </div>
+                  <div className="report-vital">
+                    <span className="report-vital__label">{t("report.nakshatra")}</span>
+                    <span className="report-vital__value">
+                      {ln(d1Planets.Moon?.nakshatra, "nakshatra") || "—"}
+                      {d1Planets.Moon?.nakshatra_pada ? ` (${d1Planets.Moon.nakshatra_pada})` : ""}
+                    </span>
+                  </div>
+                  <div className="report-vital">
+                    <span className="report-vital__label">{t("report.sunSign")}</span>
+                    <span className="report-vital__value">
+                      {ln(d1Planets.Sun?.sign_name, "rasi") || "—"}
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              {/* Charts */}
+              <section className="report-section report-charts">
+                <h2 className="report-h2">{t("report.charts")}</h2>
+                <div className="report-chart-grid">
+                  <Kundali
+                    planets={chart.planets}
+                    lagna={chart.lagna}
+                    title={t("report.rasi")}
+                    subtitle="D1"
+                  />
+                  <Kundali
+                    planets={chart.d9_chart}
+                    lagna={chart.d9_lagna}
+                    title={t("report.navamsa")}
+                    subtitle="D9"
+                  />
+                </div>
+              </section>
+
+              {/* Planetary positions */}
+              <section className="report-section">
+                <h2 className="report-h2">{t("report.positions")}</h2>
                 <table className="data-table report-table">
                   <thead>
                     <tr>
-                      <th>{t("report.mahadasha")}</th>
-                      <th>{t("report.start")}</th>
-                      <th>{t("report.end")}</th>
+                      <th>{t("report.graha")}</th>
+                      <th>{t("report.sign")}</th>
+                      <th>{t("report.degree")}</th>
+                      <th>{t("report.nakshatraPada")}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {dhasaList.map((d, i) => (
-                      <tr key={i}>
-                        <td className="fw-600">{d.lord || d.planet || d.name || d.dhasa_lord}</td>
+                    {orderedPlanets.map(([name, p]) => (
+                      <tr key={name}>
+                        <td className="fw-700">
+                          {ln(name, "graha", { abbr: true })}{" "}
+                          <span className="text-secondary">{ln(name, "graha")}</span>
+                        </td>
+                        <td>{ln(p.sign_name, "rasi")}</td>
                         <td className="text-secondary">
-                          {formatDate(d.start || d.start_date, locale)}
+                          {p.degrees != null ? `${p.degrees.toFixed(2)}°` : "—"}
                         </td>
                         <td className="text-secondary">
-                          {formatDate(d.end || d.end_date, locale)}
+                          {ln(p.nakshatra, "nakshatra")}
+                          {p.nakshatra_pada ? ` (${p.nakshatra_pada})` : ""}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </section>
-            )}
 
-            {/* Yogas */}
-            {yogasPresent.length > 0 && (
-              <section className="report-section">
-                <h2 className="report-h2">
-                  {t("report.yogas")} <span className="report-count">({yogasPresent.length})</span>
-                </h2>
-                <ul className="report-list">
-                  {yogasPresent.map((y) => (
-                    <li key={y.key}>
-                      <strong>{y.name}</strong>
-                      {y.benefits ? (
-                        <span className="report-list__note"> — {y.benefits}</span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+              {/* Dasha timeline (guarded — may be unavailable) */}
+              {dhasaList.length > 0 && (
+                <section className="report-section">
+                  <h2 className="report-h2">{t("report.dasha")}</h2>
+                  <table className="data-table report-table">
+                    <thead>
+                      <tr>
+                        <th>{t("report.mahadasha")}</th>
+                        <th>{t("report.start")}</th>
+                        <th>{t("report.end")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dhasaList.map((d, i) => (
+                        <tr key={i}>
+                          <td className="fw-600">{d.lord || d.planet || d.name || d.dhasa_lord}</td>
+                          <td className="text-secondary">
+                            {formatDate(d.start || d.start_date, locale)}
+                          </td>
+                          <td className="text-secondary">
+                            {formatDate(d.end || d.end_date, locale)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
+              )}
 
-            {/* Doshas */}
-            {data?.doshas?.doshas && (
-              <section className="report-section">
-                <h2 className="report-h2">{t("report.doshas")}</h2>
-                {doshasPresent.length > 0 ? (
+              {/* Yogas */}
+              {yogasPresent.length > 0 && (
+                <section className="report-section">
+                  <h2 className="report-h2">
+                    {t("report.yogas")}{" "}
+                    <span className="report-count">({yogasPresent.length})</span>
+                  </h2>
                   <ul className="report-list">
-                    {doshasPresent.map((d) => (
-                      <li key={d.key}>
-                        <strong>{d.name}</strong>
-                        {d.description ? (
-                          <span className="report-list__note"> — {d.description}</span>
+                    {yogasPresent.map((y) => (
+                      <li key={y.key}>
+                        <strong>{y.name}</strong>
+                        {y.benefits ? (
+                          <span className="report-list__note"> — {y.benefits}</span>
                         ) : null}
                       </li>
                     ))}
                   </ul>
-                ) : (
-                  <p className="text-secondary">{t("report.noDoshas")}</p>
-                )}
-              </section>
-            )}
+                </section>
+              )}
 
-            {/* Current transits */}
-            {data?.transits?.planets && (
-              <section className="report-section">
-                <h2 className="report-h2">
-                  {t("report.transits")}{" "}
-                  <span className="report-count">
-                    {data.transits.transit_date
-                      ? `· ${formatDate(data.transits.transit_date, locale)}`
-                      : ""}
-                  </span>
-                </h2>
-                <table className="data-table report-table">
-                  <thead>
-                    <tr>
-                      <th>{t("report.graha")}</th>
-                      <th>{t("report.sign")}</th>
-                      <th className="text-center">{t("report.fromMoon")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {PLANET_ORDER.filter((p) => data.transits.planets[p]).map((name) => {
-                      const p = data.transits.planets[name];
-                      return (
-                        <tr key={name}>
-                          <td className="fw-600">
-                            {ln(name, "graha", { abbr: true })}{" "}
-                            <span className="text-secondary">{ln(name, "graha")}</span>
-                            {p.retrograde ? " ℞" : ""}
-                          </td>
-                          <td>{ln(p.sign_name, "rasi")}</td>
-                          <td className="text-center">{ordinal(p.house_from_moon)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </section>
-            )}
+              {/* Doshas */}
+              {data?.doshas?.doshas && (
+                <section className="report-section">
+                  <h2 className="report-h2">{t("report.doshas")}</h2>
+                  {doshasPresent.length > 0 ? (
+                    <ul className="report-list">
+                      {doshasPresent.map((d) => (
+                        <li key={d.key}>
+                          <strong>{d.name}</strong>
+                          {d.description ? (
+                            <span className="report-list__note"> — {d.description}</span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-secondary">{t("report.noDoshas")}</p>
+                  )}
+                </section>
+              )}
 
-            <footer className="report-footer">
-              <span>{t("report.footer", { brand: SITE_TITLE })}</span>
-            </footer>
-          </div>
-        ) : null}
-      </div>
+              {/* Current transits */}
+              {data?.transits?.planets && (
+                <section className="report-section">
+                  <h2 className="report-h2">
+                    {t("report.transits")}{" "}
+                    <span className="report-count">
+                      {data.transits.transit_date
+                        ? `· ${formatDate(data.transits.transit_date, locale)}`
+                        : ""}
+                    </span>
+                  </h2>
+                  <table className="data-table report-table">
+                    <thead>
+                      <tr>
+                        <th>{t("report.graha")}</th>
+                        <th>{t("report.sign")}</th>
+                        <th className="text-center">{t("report.fromMoon")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {PLANET_ORDER.filter((p) => data.transits.planets[p]).map((name) => {
+                        const p = data.transits.planets[name];
+                        return (
+                          <tr key={name}>
+                            <td className="fw-600">
+                              {ln(name, "graha", { abbr: true })}{" "}
+                              <span className="text-secondary">{ln(name, "graha")}</span>
+                              {p.retrograde ? " ℞" : ""}
+                            </td>
+                            <td>{ln(p.sign_name, "rasi")}</td>
+                            <td className="text-center">{ordinal(p.house_from_moon)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </section>
+              )}
+
+              <footer className="report-footer">
+                <span>{t("report.footer", { brand: SITE_TITLE })}</span>
+              </footer>
+            </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

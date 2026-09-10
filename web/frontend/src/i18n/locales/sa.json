@@ -16,7 +16,8 @@
     "loading": "आरोप्यते…",
     "lagna": "लग्नम्",
     "planet": "ग्रहः",
-    "dismiss": "अपनयतु"
+    "dismiss": "अपनयतु",
+    "skipToContent": "विषयं प्रति गच्छतु"
   },
   "transit": {
     "title": "गोचरः",
@@ -237,7 +238,9 @@
       "relationshipsHint": "द्वयोः कुण्डल्योः मेलनम्",
       "practice": "उपायाः अभ्यासश्च",
       "practiceHint": "किं करणीयम् — स्वकर्मणश्च लेखा"
-    }
+    },
+    "menu": "सूची",
+    "features": "साधनानि"
   },
   "dashboard": {
     "welcome": "स्वागतम्,",
@@ -974,5 +977,20 @@
     "avoidHint": "Classically kept clear for anything newly begun.",
     "supports": "Working in your favour",
     "supportsHint": "What the classical texts count as favourable — an ongoing transit is marked as such."
+  },
+  "offline": {
+    "title": "भवान् अन्तर्जालात् विच्छिन्नः।",
+    "savedAt": "{{when}} इति समये रक्षिता प्रतिः दृश्यते।",
+    "noCopy": "पूर्वं उद्घाटितानि पृष्ठानि स्वरक्षितां प्रतिं दर्शयिष्यन्ति।"
+  },
+  "chartA11y": {
+    "ascendant": "लग्नं {{place}} इति राशौ।",
+    "cell": "{{place}}: {{occupants}}।",
+    "empty": "{{place}}: रिक्तम्।",
+    "planetIn": "{{planet}} {{place}} इति स्थाने",
+    "house": "भावः {{house}} ({{sign}})"
+  },
+  "learn": {
+    "levelLabel": "कठिनता"
   }
 }

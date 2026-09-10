@@ -266,356 +266,310 @@ export const BirthChartPage = () => {
         subtitle={t("birthChart.subtitle")}
         accent="saffron"
       />
+      <main id="page-content" className="page-main">
+        {/* Content */}
+        <div className="dashboard-content">
+          <ProfileBanner profile={selectedProfile} />
 
-      {/* Content */}
-      <div className="dashboard-content">
-        <ProfileBanner profile={selectedProfile} />
+          <ErrorBanner message={error} />
 
-        <ErrorBanner message={error} />
+          {/* Loading State */}
+          {loading ? (
+            <Card>
+              <LoadingState message={t("birthChart.loading")} />
+            </Card>
+          ) : result ? (
+            <div className="fade-in">
+              <Tabs
+                tabs={visibleTabs}
+                active={tab}
+                onChange={setTab}
+                ariaLabel={t("birthChart.title")}
+              />
 
-        {/* Loading State */}
-        {loading ? (
-          <Card>
-            <LoadingState message={t("birthChart.loading")} />
-          </Card>
-        ) : result ? (
-          <div className="fade-in">
-            <Tabs
-              tabs={visibleTabs}
-              active={tab}
-              onChange={setTab}
-              ariaLabel={t("birthChart.title")}
-            />
-
-            {tab === "chart" && (
-              <>
-                {/* Chart Details Card */}
-                <Card
-                  title={t("birthChart.chartDetails")}
-                  icon={<Star size={24} />}
-                  actions={
-                    <button
-                      className="chart-export-btn chart-export-btn--inline"
-                      onClick={handleShare}
-                      disabled={shareBusy}
-                      title={t("birthChart.shareTitle")}
-                    >
-                      {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
-                      <span>
-                        {shareBusy
-                          ? "…"
-                          : shareCopied
-                            ? t("birthChart.linkCopied")
-                            : t("birthChart.share")}
-                      </span>
-                    </button>
-                  }
-                >
-                  <div className="ui-field-grid">
-                    <DataField
-                      label={t("common.name")}
-                      icon={<User size={16} />}
-                      value={selectedProfile.birth_details.name || selectedProfile.profile_name}
-                    />
-                    <DataField
-                      label={t("common.dateOfBirth")}
-                      icon={<Calendar size={16} />}
-                      value={formatDate(selectedProfile.birth_details.dob)}
-                    />
-                    <DataField
-                      label={t("common.timeOfBirth")}
-                      icon={<Clock size={16} />}
-                      value={orDash(selectedProfile.birth_details.tob)}
-                    />
-                    <DataField
-                      label={t("common.place")}
-                      icon={<MapPin size={16} />}
-                      value={orDash(selectedProfile.birth_details.place)}
-                    />
-                  </div>
-                  {shareUrl && (
-                    <div className="share-row">
-                      <Copy size={14} style={{ color: "var(--saffron)", flexShrink: 0 }} />
-                      <input
-                        readOnly
-                        className="share-url-input"
-                        value={shareUrl}
-                        onFocus={(e) => e.target.select()}
+              {tab === "chart" && (
+                <>
+                  {/* Chart Details Card */}
+                  <Card
+                    title={t("birthChart.chartDetails")}
+                    icon={<Star size={24} />}
+                    actions={
+                      <button
+                        className="chart-export-btn chart-export-btn--inline"
+                        onClick={handleShare}
+                        disabled={shareBusy}
+                        title={t("birthChart.shareTitle")}
+                      >
+                        {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
+                        <span>
+                          {shareBusy
+                            ? "…"
+                            : shareCopied
+                              ? t("birthChart.linkCopied")
+                              : t("birthChart.share")}
+                        </span>
+                      </button>
+                    }
+                  >
+                    <div className="ui-field-grid">
+                      <DataField
+                        label={t("common.name")}
+                        icon={<User size={16} />}
+                        value={selectedProfile.birth_details.name || selectedProfile.profile_name}
+                      />
+                      <DataField
+                        label={t("common.dateOfBirth")}
+                        icon={<Calendar size={16} />}
+                        value={formatDate(selectedProfile.birth_details.dob)}
+                      />
+                      <DataField
+                        label={t("common.timeOfBirth")}
+                        icon={<Clock size={16} />}
+                        value={orDash(selectedProfile.birth_details.tob)}
+                      />
+                      <DataField
+                        label={t("common.place")}
+                        icon={<MapPin size={16} />}
+                        value={orDash(selectedProfile.birth_details.place)}
                       />
                     </div>
-                  )}
-                </Card>
-
-                <BirthTimeBanner accuracy={selectedProfile.birth_details.time_accuracy} />
-
-                {/* Chart style toggle: North / South Indian */}
-                {(() => {
-                  // Birth time unknown → present the D1 from the Moon (Chandra Lagna),
-                  // since the real Ascendant can't be trusted.
-                  const unknownTime =
-                    (selectedProfile.birth_details.time_accuracy || "exact") === "unknown";
-                  const moon = result.planets?.Moon;
-                  const chandraLagna =
-                    unknownTime && moon
-                      ? { sign_num: moon.sign_num, degrees: 0, sign_name: moon.sign_name }
-                      : null;
-                  return (
-                    <>
-                      <div className="aspect-controls">
-                        {aspects && aspects.length > 0 && (
-                          <button
-                            type="button"
-                            className={`aspect-toggle${showAspects ? " is-active" : ""}`}
-                            onClick={() => {
-                              const next = !showAspects;
-                              setShowAspects(next);
-                              localStorage.setItem("showAspects", next ? "1" : "0");
-                            }}
-                          >
-                            <Eye size={16} />
-                            {showAspects ? t("aspects.hideOnChart") : t("aspects.showOnChart")}
-                          </button>
-                        )}
-                        {arudhas && arudhas.length > 0 && (
-                          <button
-                            type="button"
-                            className={`aspect-toggle${showArudhas ? " is-active" : ""}`}
-                            onClick={() => {
-                              const next = !showArudhas;
-                              setShowArudhas(next);
-                              localStorage.setItem("showArudhas", next ? "1" : "0");
-                            }}
-                          >
-                            <Landmark size={16} />
-                            {showArudhas ? t("arudhas.hideOnChart") : t("arudhas.showOnChart")}
-                          </button>
-                        )}
-                        {conditions && conditions.length > 0 && (
-                          <button
-                            type="button"
-                            className={`aspect-toggle${showConditions ? " is-active" : ""}`}
-                            onClick={() => {
-                              const next = !showConditions;
-                              setShowConditions(next);
-                              localStorage.setItem("showConditions", next ? "1" : "0");
-                            }}
-                          >
-                            <ShieldAlert size={16} />
-                            {showConditions
-                              ? t("conditions.hideOnChart")
-                              : t("conditions.showOnChart")}
-                          </button>
-                        )}
-                        {showAspects && aspects && aspects.length > 0 && (
-                          <span className="aspect-controls__hint">{t("aspects.hoverHint")}</span>
-                        )}
-                        {showConditions && conditions && conditions.length > 0 && (
-                          <span className="aspect-controls__hint">{t("conditions.hoverHint")}</span>
-                        )}
+                    {shareUrl && (
+                      <div className="share-row">
+                        <Copy size={14} style={{ color: "var(--saffron)", flexShrink: 0 }} />
+                        <input
+                          readOnly
+                          className="share-url-input"
+                          value={shareUrl}
+                          onFocus={(e) => e.target.select()}
+                        />
                       </div>
+                    )}
+                  </Card>
 
-                      <Kundali
-                        chartData={result}
-                        lagna={chandraLagna || undefined}
-                        title={t("birthChart.rasiChart")}
-                        subtitle={
-                          chandraLagna
-                            ? `D1 · ${t("birthTime.chandraLagna")} · ${styleLabel}`
-                            : `D1 · ${styleLabel}`
-                        }
-                        exportable
-                        aspects={aspects}
-                        showAspects={showAspects}
-                        focusPlanet={focusPlanet}
-                        arudhas={arudhas}
-                        showArudhas={showArudhas}
-                        conditions={showConditions ? conditions : null}
-                        onSelectPlanet={setExplorerPlanet}
-                      />
+                  <BirthTimeBanner accuracy={selectedProfile.birth_details.time_accuracy} />
 
-                      {/* §5.5 Interactive explorer: click a graha (in the chart or the
-                      chip strip) for its full picture */}
-                      <PlanetExplorer
-                        chart={result}
-                        aspects={aspects}
-                        conditions={conditions}
-                        personName={selectedProfile.birth_details.name}
-                        selected={explorerPlanet}
-                        onSelect={setExplorerPlanet}
-                      />
-
-                      {/* Arudha reading — shown once the arudhas are actually on the
-                      chart, so the AL/UL chips refer to labels the user can see. */}
-                      {showArudhas && (
-                        <div className="mt-xl">
-                          <RecentReadings source="arudha" profileId={selectedProfile?._id} />
-                          <ArudhaAiPanel
-                            arudhas={arudhas}
-                            birthDetails={selectedProfile.birth_details}
-                            profile={selectedProfile}
-                            ayanamsa={ayanamsa}
-                            restored={restoredArudha}
-                          />
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </>
-            )}
-
-            {tab === "nakshatra" && (
-              <>
-                {/* Nakshatra Information Section */}
-                {result.lagna || result.d1_chart ? (
-                  <div className="ui-card ui-card--accent ui-card--flush mt-xl">
-                    <h3 className="ui-card-header">
-                      <Star size={24} />
-                      {t("birthChart.nakshatraInfo")}
-                    </h3>
-
-                    {/* Lagna Nakshatra */}
-                    {result.lagna && result.lagna.nakshatra && (
-                      <div className="lagna-highlight">
-                        <h4>{t("birthChart.lagnaAscendant")}</h4>
-                        <div className="lagna-grid">
-                          <div>
-                            <span className="kv-label">{t("common.sign")}: </span>
-                            <span className="kv-value">{ln(result.lagna.sign_name, "rasi")}</span>
-                          </div>
-                          <div>
-                            <span className="kv-label">{t("common.nakshatra")}: </span>
-                            <span className="kv-value">
-                              {ln(result.lagna.nakshatra, "nakshatra")}
+                  {/* Chart style toggle: North / South Indian */}
+                  {(() => {
+                    // Birth time unknown → present the D1 from the Moon (Chandra Lagna),
+                    // since the real Ascendant can't be trusted.
+                    const unknownTime =
+                      (selectedProfile.birth_details.time_accuracy || "exact") === "unknown";
+                    const moon = result.planets?.Moon;
+                    const chandraLagna =
+                      unknownTime && moon
+                        ? { sign_num: moon.sign_num, degrees: 0, sign_name: moon.sign_name }
+                        : null;
+                    return (
+                      <>
+                        <div className="aspect-controls">
+                          {aspects && aspects.length > 0 && (
+                            <button
+                              type="button"
+                              className={`aspect-toggle${showAspects ? " is-active" : ""}`}
+                              onClick={() => {
+                                const next = !showAspects;
+                                setShowAspects(next);
+                                localStorage.setItem("showAspects", next ? "1" : "0");
+                              }}
+                            >
+                              <Eye size={16} />
+                              {showAspects ? t("aspects.hideOnChart") : t("aspects.showOnChart")}
+                            </button>
+                          )}
+                          {arudhas && arudhas.length > 0 && (
+                            <button
+                              type="button"
+                              className={`aspect-toggle${showArudhas ? " is-active" : ""}`}
+                              onClick={() => {
+                                const next = !showArudhas;
+                                setShowArudhas(next);
+                                localStorage.setItem("showArudhas", next ? "1" : "0");
+                              }}
+                            >
+                              <Landmark size={16} />
+                              {showArudhas ? t("arudhas.hideOnChart") : t("arudhas.showOnChart")}
+                            </button>
+                          )}
+                          {conditions && conditions.length > 0 && (
+                            <button
+                              type="button"
+                              className={`aspect-toggle${showConditions ? " is-active" : ""}`}
+                              onClick={() => {
+                                const next = !showConditions;
+                                setShowConditions(next);
+                                localStorage.setItem("showConditions", next ? "1" : "0");
+                              }}
+                            >
+                              <ShieldAlert size={16} />
+                              {showConditions
+                                ? t("conditions.hideOnChart")
+                                : t("conditions.showOnChart")}
+                            </button>
+                          )}
+                          {showAspects && aspects && aspects.length > 0 && (
+                            <span className="aspect-controls__hint">{t("aspects.hoverHint")}</span>
+                          )}
+                          {showConditions && conditions && conditions.length > 0 && (
+                            <span className="aspect-controls__hint">
+                              {t("conditions.hoverHint")}
                             </span>
-                          </div>
-                          <div>
-                            <span className="kv-label">{t("common.pada")}: </span>
-                            <span className="kv-value">{result.lagna.nakshatra_pada}</span>
-                          </div>
-                          <div>
-                            <span className="kv-label">{t("common.degrees")}: </span>
-                            <span className="kv-value">{result.lagna.degrees}°</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Planetary Nakshatras */}
-                    {result.d1_chart && (
-                      <div className="nakshatra-grid">
-                        {Object.entries(result.d1_chart).map(([planet, data]) => (
-                          <div key={planet} className="nakshatra-card">
-                            <h5>{ln(planet, "graha")}</h5>
-                            <div className="nakshatra-card__body">
-                              <div>
-                                <span className="kv-label">{t("common.sign")}: </span>
-                                <span className="kv-value">{ln(data.sign_name, "rasi")}</span>
-                              </div>
-                              {data.nakshatra && (
-                                <>
-                                  <div>
-                                    <span className="kv-label">{t("common.nakshatra")}: </span>
-                                    <span className="kv-value">
-                                      {ln(data.nakshatra, "nakshatra")}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="kv-label">{t("common.pada")}: </span>
-                                    <span className="kv-value">{data.nakshatra_pada}</span>
-                                  </div>
-                                </>
-                              )}
-                              <div>
-                                <span className="kv-label">{t("common.degrees")}: </span>
-                                <span className="kv-value">{data.degrees}°</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : null}
-              </>
-            )}
-
-            {tab === "panchanga" && (
-              <>
-                {/* Panchanga (daily almanac) for the profile's location */}
-                <PanchangaPanel
-                  place={selectedProfile.birth_details.place}
-                  latitude={parseFloat(selectedProfile.birth_details.latitude)}
-                  longitude={parseFloat(selectedProfile.birth_details.longitude)}
-                  timezone={parseFloat(selectedProfile.birth_details.timezone)}
-                />
-              </>
-            )}
-
-            {tab === "yogas" && (
-              <>
-                {/* Yogas */}
-                {yogas && yogas.length > 0 && (
-                  <div className="ui-card ui-card--accent ui-card--flush mt-xl">
-                    <h3 className="ui-card-header">
-                      <Star size={24} />
-                      {t("birthChart.yogas")}
-                      <span className="section-count">
-                        {t("birthChart.yogasFound", { count: yogas.length })}
-                      </span>
-                    </h3>
-                    <div className="yoga-grid">
-                      {yogas.map((y) => (
-                        <div key={y.key} className="yoga-card">
-                          <div className="yoga-name">{y.name}</div>
-                          {y.description && <p className="yoga-desc">{y.description}</p>}
-                          {y.benefits && (
-                            <div className="yoga-benefit">
-                              <span className="yoga-benefit-label">{t("birthChart.effects")}</span>
-                              {y.benefits}
-                            </div>
                           )}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
-                {/* Raja Yogas (dedicated) */}
-                {rajaYogas && (
-                  <div className="ui-card ui-card--accent-gold ui-card--flush mt-xl">
-                    <h3 className="ui-card-header">
-                      <Crown size={24} />
-                      {t("birthChart.rajaYogas")}
-                      {rajaYogas.length > 0 && (
-                        <span className="section-count">
-                          {t("birthChart.rajaYogasFound", { count: rajaYogas.length })}
-                        </span>
-                      )}
-                    </h3>
-                    {rajaYogas.length > 0 ? (
-                      <div className="yoga-grid">
-                        {rajaYogas.map((y, i) => (
-                          <div key={i} className="yoga-card raja-yoga-card">
-                            <div className="yoga-name">
-                              {y.name}
-                              <span
-                                className={`raja-yoga-strength raja-yoga-strength--${y.strength}`}
-                                style={{ marginLeft: "0.5rem" }}
-                              >
-                                {t(`birthChart.rajaYogaStrength.${y.strength}`)}
+                        <Kundali
+                          chartData={result}
+                          lagna={chandraLagna || undefined}
+                          title={t("birthChart.rasiChart")}
+                          subtitle={
+                            chandraLagna
+                              ? `D1 · ${t("birthTime.chandraLagna")} · ${styleLabel}`
+                              : `D1 · ${styleLabel}`
+                          }
+                          exportable
+                          aspects={aspects}
+                          showAspects={showAspects}
+                          focusPlanet={focusPlanet}
+                          arudhas={arudhas}
+                          showArudhas={showArudhas}
+                          conditions={showConditions ? conditions : null}
+                          onSelectPlanet={setExplorerPlanet}
+                        />
+
+                        {/* §5.5 Interactive explorer: click a graha (in the chart or the
+                      chip strip) for its full picture */}
+                        <PlanetExplorer
+                          chart={result}
+                          aspects={aspects}
+                          conditions={conditions}
+                          personName={selectedProfile.birth_details.name}
+                          selected={explorerPlanet}
+                          onSelect={setExplorerPlanet}
+                        />
+
+                        {/* Arudha reading — shown once the arudhas are actually on the
+                      chart, so the AL/UL chips refer to labels the user can see. */}
+                        {showArudhas && (
+                          <div className="mt-xl">
+                            <RecentReadings source="arudha" profileId={selectedProfile?._id} />
+                            <ArudhaAiPanel
+                              arudhas={arudhas}
+                              birthDetails={selectedProfile.birth_details}
+                              profile={selectedProfile}
+                              ayanamsa={ayanamsa}
+                              restored={restoredArudha}
+                            />
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </>
+              )}
+
+              {tab === "nakshatra" && (
+                <>
+                  {/* Nakshatra Information Section */}
+                  {result.lagna || result.d1_chart ? (
+                    <div className="ui-card ui-card--accent ui-card--flush mt-xl">
+                      <h3 className="ui-card-header">
+                        <Star size={24} />
+                        {t("birthChart.nakshatraInfo")}
+                      </h3>
+
+                      {/* Lagna Nakshatra */}
+                      {result.lagna && result.lagna.nakshatra && (
+                        <div className="lagna-highlight">
+                          <h4>{t("birthChart.lagnaAscendant")}</h4>
+                          <div className="lagna-grid">
+                            <div>
+                              <span className="kv-label">{t("common.sign")}: </span>
+                              <span className="kv-value">{ln(result.lagna.sign_name, "rasi")}</span>
+                            </div>
+                            <div>
+                              <span className="kv-label">{t("common.nakshatra")}: </span>
+                              <span className="kv-value">
+                                {ln(result.lagna.nakshatra, "nakshatra")}
                               </span>
                             </div>
-                            {y.planets && y.planets.length > 0 && (
-                              <div className="text-saffron fw-600" style={{ fontSize: "0.85rem" }}>
-                                {y.planets.join(" – ")}
+                            <div>
+                              <span className="kv-label">{t("common.pada")}: </span>
+                              <span className="kv-value">{result.lagna.nakshatra_pada}</span>
+                            </div>
+                            <div>
+                              <span className="kv-label">{t("common.degrees")}: </span>
+                              <span className="kv-value">{result.lagna.degrees}°</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Planetary Nakshatras */}
+                      {result.d1_chart && (
+                        <div className="nakshatra-grid">
+                          {Object.entries(result.d1_chart).map(([planet, data]) => (
+                            <div key={planet} className="nakshatra-card">
+                              <h5>{ln(planet, "graha")}</h5>
+                              <div className="nakshatra-card__body">
+                                <div>
+                                  <span className="kv-label">{t("common.sign")}: </span>
+                                  <span className="kv-value">{ln(data.sign_name, "rasi")}</span>
+                                </div>
+                                {data.nakshatra && (
+                                  <>
+                                    <div>
+                                      <span className="kv-label">{t("common.nakshatra")}: </span>
+                                      <span className="kv-value">
+                                        {ln(data.nakshatra, "nakshatra")}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="kv-label">{t("common.pada")}: </span>
+                                      <span className="kv-value">{data.nakshatra_pada}</span>
+                                    </div>
+                                  </>
+                                )}
+                                <div>
+                                  <span className="kv-label">{t("common.degrees")}: </span>
+                                  <span className="kv-value">{data.degrees}°</span>
+                                </div>
                               </div>
-                            )}
-                            {y.pairs_label && (
-                              <div className="text-secondary" style={{ fontSize: "0.8rem" }}>
-                                {y.pairs_label}
-                              </div>
-                            )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </>
+              )}
+
+              {tab === "panchanga" && (
+                <>
+                  {/* Panchanga (daily almanac) for the profile's location */}
+                  <PanchangaPanel
+                    place={selectedProfile.birth_details.place}
+                    latitude={parseFloat(selectedProfile.birth_details.latitude)}
+                    longitude={parseFloat(selectedProfile.birth_details.longitude)}
+                    timezone={parseFloat(selectedProfile.birth_details.timezone)}
+                  />
+                </>
+              )}
+
+              {tab === "yogas" && (
+                <>
+                  {/* Yogas */}
+                  {yogas && yogas.length > 0 && (
+                    <div className="ui-card ui-card--accent ui-card--flush mt-xl">
+                      <h3 className="ui-card-header">
+                        <Star size={24} />
+                        {t("birthChart.yogas")}
+                        <span className="section-count">
+                          {t("birthChart.yogasFound", { count: yogas.length })}
+                        </span>
+                      </h3>
+                      <div className="yoga-grid">
+                        {yogas.map((y) => (
+                          <div key={y.key} className="yoga-card">
+                            <div className="yoga-name">{y.name}</div>
                             {y.description && <p className="yoga-desc">{y.description}</p>}
                             {y.benefits && (
                               <div className="yoga-benefit">
@@ -628,94 +582,153 @@ export const BirthChartPage = () => {
                           </div>
                         ))}
                       </div>
-                    ) : (
-                      <p className="card-note">{t("birthChart.rajaYogasNone")}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Doshas */}
-                {doshas && doshas.length > 0 && (
-                  <div className="ui-card ui-card--accent ui-card--flush mt-xl">
-                    <h3 className="ui-card-header">
-                      <Star size={24} />
-                      {t("birthChart.doshas")}
-                    </h3>
-                    <div className="dosha-grid">
-                      {doshas.map((d) => (
-                        <div key={d.key} className={`dosha-card${d.present ? " present" : ""}`}>
-                          <div className="dosha-head">
-                            <span className="dosha-name">{d.name}</span>
-                            <span className={`dosha-badge ${d.present ? "yes" : "no"}`}>
-                              {d.present ? t("birthChart.present") : t("birthChart.absent")}
-                            </span>
-                          </div>
-                          <p className="dosha-desc">{d.description}</p>
-                        </div>
-                      ))}
                     </div>
-                  </div>
-                )}
-              </>
-            )}
+                  )}
 
-            {tab === "aspects" && (
-              <>
-                {/* Graha Drishti (aspects) */}
-                <AdvancedOnly title={t("birthChart.aspectsAdvanced")}>
-                  <AspectsCard
-                    aspects={aspects}
-                    onFocus={setFocusPlanet}
-                    focusPlanet={focusPlanet}
-                  />
-                </AdvancedOnly>
-              </>
-            )}
-
-            {tab === "advanced" && (
-              <>
-                {(() => {
-                  const vargaMeta = VARGAS.find((v) => v.value === varga) || VARGAS[0];
-                  return (
-                    <div className="varga-section">
-                      <label className="ayanamsa-select varga-picker">
-                        <span>{t("birthChart.divisionalChart")}</span>
-                        <select value={varga} onChange={(e) => changeVarga(Number(e.target.value))}>
-                          {VARGAS.map((v) => (
-                            <option key={v.value} value={v.value}>
-                              {v.code} · {v.name}
-                            </option>
+                  {/* Raja Yogas (dedicated) */}
+                  {rajaYogas && (
+                    <div className="ui-card ui-card--accent-gold ui-card--flush mt-xl">
+                      <h3 className="ui-card-header">
+                        <Crown size={24} />
+                        {t("birthChart.rajaYogas")}
+                        {rajaYogas.length > 0 && (
+                          <span className="section-count">
+                            {t("birthChart.rajaYogasFound", { count: rajaYogas.length })}
+                          </span>
+                        )}
+                      </h3>
+                      {rajaYogas.length > 0 ? (
+                        <div className="yoga-grid">
+                          {rajaYogas.map((y, i) => (
+                            <div key={i} className="yoga-card raja-yoga-card">
+                              <div className="yoga-name">
+                                {y.name}
+                                <span
+                                  className={`raja-yoga-strength raja-yoga-strength--${y.strength}`}
+                                  style={{ marginLeft: "0.5rem" }}
+                                >
+                                  {t(`birthChart.rajaYogaStrength.${y.strength}`)}
+                                </span>
+                              </div>
+                              {y.planets && y.planets.length > 0 && (
+                                <div
+                                  className="text-saffron fw-600"
+                                  style={{ fontSize: "0.85rem" }}
+                                >
+                                  {y.planets.join(" – ")}
+                                </div>
+                              )}
+                              {y.pairs_label && (
+                                <div className="text-secondary" style={{ fontSize: "0.8rem" }}>
+                                  {y.pairs_label}
+                                </div>
+                              )}
+                              {y.description && <p className="yoga-desc">{y.description}</p>}
+                              {y.benefits && (
+                                <div className="yoga-benefit">
+                                  <span className="yoga-benefit-label">
+                                    {t("birthChart.effects")}
+                                  </span>
+                                  {y.benefits}
+                                </div>
+                              )}
+                            </div>
                           ))}
-                        </select>
-                        <span className="varga-significance">{vargaMeta.significance}</span>
-                      </label>
-
-                      {vargaLoading ? (
-                        <div className="varga-loading">
-                          <div className="spinner"></div>
-                          <span>{t("birthChart.calculatingChart", { code: vargaMeta.code })}</span>
                         </div>
-                      ) : vargaChart && vargaChart.planets ? (
-                        <Kundali
-                          planets={vargaChart.planets}
-                          lagna={vargaChart.lagna}
-                          title={t("birthChart.nameChart", { name: vargaMeta.name })}
-                          subtitle={`${vargaMeta.code} · ${styleLabel}`}
-                          exportable
-                          arudhas={vargaChart.arudha_padas}
-                          showArudhas={showArudhas}
-                        />
                       ) : (
-                        <div className="varga-empty">{t("birthChart.chartUnavailable")}</div>
+                        <p className="card-note">{t("birthChart.rajaYogasNone")}</p>
                       )}
                     </div>
-                  );
-                })()}
-              </>
-            )}
-          </div>
-        ) : null}
-      </div>
+                  )}
+
+                  {/* Doshas */}
+                  {doshas && doshas.length > 0 && (
+                    <div className="ui-card ui-card--accent ui-card--flush mt-xl">
+                      <h3 className="ui-card-header">
+                        <Star size={24} />
+                        {t("birthChart.doshas")}
+                      </h3>
+                      <div className="dosha-grid">
+                        {doshas.map((d) => (
+                          <div key={d.key} className={`dosha-card${d.present ? " present" : ""}`}>
+                            <div className="dosha-head">
+                              <span className="dosha-name">{d.name}</span>
+                              <span className={`dosha-badge ${d.present ? "yes" : "no"}`}>
+                                {d.present ? t("birthChart.present") : t("birthChart.absent")}
+                              </span>
+                            </div>
+                            <p className="dosha-desc">{d.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {tab === "aspects" && (
+                <>
+                  {/* Graha Drishti (aspects) */}
+                  <AdvancedOnly title={t("birthChart.aspectsAdvanced")}>
+                    <AspectsCard
+                      aspects={aspects}
+                      onFocus={setFocusPlanet}
+                      focusPlanet={focusPlanet}
+                    />
+                  </AdvancedOnly>
+                </>
+              )}
+
+              {tab === "advanced" && (
+                <>
+                  {(() => {
+                    const vargaMeta = VARGAS.find((v) => v.value === varga) || VARGAS[0];
+                    return (
+                      <div className="varga-section">
+                        <label className="ayanamsa-select varga-picker">
+                          <span>{t("birthChart.divisionalChart")}</span>
+                          <select
+                            value={varga}
+                            onChange={(e) => changeVarga(Number(e.target.value))}
+                          >
+                            {VARGAS.map((v) => (
+                              <option key={v.value} value={v.value}>
+                                {v.code} · {v.name}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="varga-significance">{vargaMeta.significance}</span>
+                        </label>
+
+                        {vargaLoading ? (
+                          <div className="varga-loading">
+                            <div className="spinner"></div>
+                            <span>
+                              {t("birthChart.calculatingChart", { code: vargaMeta.code })}
+                            </span>
+                          </div>
+                        ) : vargaChart && vargaChart.planets ? (
+                          <Kundali
+                            planets={vargaChart.planets}
+                            lagna={vargaChart.lagna}
+                            title={t("birthChart.nameChart", { name: vargaMeta.name })}
+                            subtitle={`${vargaMeta.code} · ${styleLabel}`}
+                            exportable
+                            arudhas={vargaChart.arudha_padas}
+                            showArudhas={showArudhas}
+                          />
+                        ) : (
+                          <div className="varga-empty">{t("birthChart.chartUnavailable")}</div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

@@ -16,7 +16,8 @@
     "loading": "लोड हो रहा है…",
     "lagna": "लग्न",
     "planet": "ग्रह",
-    "dismiss": "हटाएँ"
+    "dismiss": "हटाएँ",
+    "skipToContent": "सामग्री पर जाएँ"
   },
   "transit": {
     "title": "गोचर",
@@ -237,7 +238,9 @@
       "relationshipsHint": "दो कुंडलियों का मिलान, आमने-सामने",
       "practice": "उपाय और अभ्यास",
       "practiceHint": "अब क्या करें — और आपके अपने कार्य का लेखा"
-    }
+    },
+    "menu": "मेन्यू",
+    "features": "विशेषताएँ"
   },
   "dashboard": {
     "welcome": "स्वागत है,",
@@ -974,5 +977,20 @@
     "avoidHint": "Classically kept clear for anything newly begun.",
     "supports": "Working in your favour",
     "supportsHint": "What the classical texts count as favourable — an ongoing transit is marked as such."
+  },
+  "offline": {
+    "title": "आप ऑफ़लाइन हैं।",
+    "savedAt": "{{when}} को सहेजी गई प्रति दिखाई जा रही है।",
+    "noCopy": "पहले खोले गए पृष्ठ अपनी सहेजी गई प्रति दिखाएँगे।"
+  },
+  "chartA11y": {
+    "ascendant": "लग्न {{place}} में।",
+    "cell": "{{place}}: {{occupants}}।",
+    "empty": "{{place}}: रिक्त।",
+    "planetIn": "{{planet}} {{place}} में",
+    "house": "भाव {{house}} ({{sign}})"
+  },
+  "learn": {
+    "levelLabel": "कठिनाई"
   }
 }

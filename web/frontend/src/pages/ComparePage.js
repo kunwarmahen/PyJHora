@@ -210,118 +210,123 @@ export const ComparePage = () => {
         subtitle={t("compare.subtitle")}
         accent="indigo"
       />
-
-      <div className="dashboard-content">
-        <RecentReadings source="compare" />
-        <Card title={t("compare.selectSecond")} icon={<Users size={24} />} accent="saffron">
-          <div className="ui-field-grid">
-            <div className="ui-datafield">
-              <div className="ui-datafield-label">{t("compare.person1")}</div>
-              <div className="ui-datafield-value">{nameA}</div>
-            </div>
-            <label className="ui-datafield" style={{ cursor: "pointer" }}>
-              <div className="ui-datafield-label">{t("compare.person2")}</div>
-              <select
-                className="form-select"
-                style={{ marginTop: "var(--space-xs)" }}
-                value={secondId}
-                onChange={(e) => setSecondId(e.target.value)}
-              >
-                <option value="">{t("compare.chooseProfile")}</option>
-                {otherProfiles.map((p) => (
-                  <option key={p._id} value={p._id}>
-                    {p.profile_name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          {otherProfiles.length === 0 && (
-            <p className="text-secondary" style={{ marginTop: "var(--space-md)" }}>
-              {t("compare.needTwo")}
-            </p>
-          )}
-        </Card>
-
-        <ErrorBanner message={error} />
-
-        {loading && (
-          <Card>
-            <LoadingState message={t("compare.calcBoth")} />
-          </Card>
-        )}
-
-        {!loading && chartA && chartB && (
-          <>
-            <div className="chart-grid">
-              <Card title={nameA} accent="saffron">
-                <Kundali planets={chartA.planets} lagna={chartA.lagna} title={nameA} exportable />
-              </Card>
-              <Card title={nameB} accent="vermillion">
-                <Kundali planets={chartB.planets} lagna={chartB.lagna} title={nameB} exportable />
-              </Card>
-            </div>
-
-            <Card
-              title={t("compare.placements")}
-              icon={<GitCompareArrows size={24} />}
-              accent="indigo"
-            >
-              <div className="table-scroll">
-                <table className="adv-table">
-                  <thead>
-                    <tr>
-                      <th>{t("compare.body")}</th>
-                      <th>{nameA}</th>
-                      <th>{nameB}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {compareRows(chartA, chartB, ln).map((r) => {
-                      const match = r.a && r.a === r.b ? "is-match" : "";
-                      return (
-                        <tr key={r.label}>
-                          <td className={r.sub ? "fw-400" : "fw-700"}>{r.label}</td>
-                          <td className={match}>{r.a || "—"}</td>
-                          <td className={match}>{r.b || "—"}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="compare" />
+          <Card title={t("compare.selectSecond")} icon={<Users size={24} />} accent="saffron">
+            <div className="ui-field-grid">
+              <div className="ui-datafield">
+                <div className="ui-datafield-label">{t("compare.person1")}</div>
+                <div className="ui-datafield-value">{nameA}</div>
               </div>
-              <p className="card-note" style={{ fontSize: "0.85rem" }}>
-                {t("compare.highlightNote")}
+              <label className="ui-datafield" style={{ cursor: "pointer" }}>
+                <div className="ui-datafield-label">{t("compare.person2")}</div>
+                <select
+                  className="form-select"
+                  style={{ marginTop: "var(--space-xs)" }}
+                  value={secondId}
+                  onChange={(e) => setSecondId(e.target.value)}
+                >
+                  <option value="">{t("compare.chooseProfile")}</option>
+                  {otherProfiles.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.profile_name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {otherProfiles.length === 0 && (
+              <p className="text-secondary" style={{ marginTop: "var(--space-md)" }}>
+                {t("compare.needTwo")}
               </p>
+            )}
+          </Card>
+
+          <ErrorBanner message={error} />
+
+          {loading && (
+            <Card>
+              <LoadingState message={t("compare.calcBoth")} />
             </Card>
+          )}
 
-            {/* AI comparison (on-demand, neutral — not marriage matching) */}
-            <Card title={t("compare.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
-              <ErrorBanner message={aiError} />
+          {!loading && chartA && chartB && (
+            <>
+              <div className="chart-grid">
+                <Card title={nameA} accent="saffron">
+                  <Kundali planets={chartA.planets} lagna={chartA.lagna} title={nameA} exportable />
+                </Card>
+                <Card title={nameB} accent="vermillion">
+                  <Kundali planets={chartB.planets} lagna={chartB.lagna} title={nameB} exportable />
+                </Card>
+              </div>
 
-              {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("compare.aiHint")}</p>}
-
-              {aiLoading && <LoadingState message={t("compare.aiLoading")} />}
-
-              {aiAnalysis && !aiLoading && (
-                <div className="sbc-ai-markdown ai-panel__reading">
-                  <Markdown>{aiAnalysis}</Markdown>
-                  {aiModel && (
-                    <div className="ai-panel__meta">{t("compare.aiModel", { model: aiModel })}</div>
-                  )}
+              <Card
+                title={t("compare.placements")}
+                icon={<GitCompareArrows size={24} />}
+                accent="indigo"
+              >
+                <div className="table-scroll">
+                  <table className="adv-table">
+                    <thead>
+                      <tr>
+                        <th>{t("compare.body")}</th>
+                        <th>{nameA}</th>
+                        <th>{nameB}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {compareRows(chartA, chartB, ln).map((r) => {
+                        const match = r.a && r.a === r.b ? "is-match" : "";
+                        return (
+                          <tr key={r.label}>
+                            <td className={r.sub ? "fw-400" : "fw-700"}>{r.label}</td>
+                            <td className={match}>{r.a || "—"}</td>
+                            <td className={match}>{r.b || "—"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              )}
+                <p className="card-note" style={{ fontSize: "0.85rem" }}>
+                  {t("compare.highlightNote")}
+                </p>
+              </Card>
 
-              {!aiLoading && (
-                <button className="ui-btn ui-btn--ai" onClick={handleAiAnalysis}>
-                  <Sparkles size={18} />
-                  {aiAnalysis ? t("compare.aiRegenerate") : t("compare.aiGenerate")}
-                </button>
-              )}
-            </Card>
-          </>
-        )}
-      </div>
+              {/* AI comparison (on-demand, neutral — not marriage matching) */}
+              <Card title={t("compare.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
+                <ErrorBanner message={aiError} />
+
+                {!aiAnalysis && !aiLoading && (
+                  <p className="ai-panel__hint">{t("compare.aiHint")}</p>
+                )}
+
+                {aiLoading && <LoadingState message={t("compare.aiLoading")} />}
+
+                {aiAnalysis && !aiLoading && (
+                  <div className="sbc-ai-markdown ai-panel__reading">
+                    <Markdown>{aiAnalysis}</Markdown>
+                    {aiModel && (
+                      <div className="ai-panel__meta">
+                        {t("compare.aiModel", { model: aiModel })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!aiLoading && (
+                  <button className="ui-btn ui-btn--ai" onClick={handleAiAnalysis}>
+                    <Sparkles size={18} />
+                    {aiAnalysis ? t("compare.aiRegenerate") : t("compare.aiGenerate")}
+                  </button>
+                )}
+              </Card>
+            </>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

@@ -583,44 +583,45 @@ export const AlmanacPage = () => {
         accent="gold"
         icon={<CalendarDays size={24} />}
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <ProfileBanner profile={selectedProfile} />
 
-      <div className="dashboard-content">
-        <ProfileBanner profile={selectedProfile} />
-
-        {/* Shared location control for every almanac section */}
-        <div className="almanac-locbar">
-          <div
-            className="chart-style-toggle"
-            role="group"
-            aria-label={t("panchanga.almanacLocation")}
-          >
-            <button
-              className={source === "birth" ? "active" : ""}
-              onClick={() => setSource("birth")}
+          {/* Shared location control for every almanac section */}
+          <div className="almanac-locbar">
+            <div
+              className="chart-style-toggle"
+              role="group"
+              aria-label={t("panchanga.almanacLocation")}
             >
-              {t("panchanga.birthPlace")}
-            </button>
-            <button
-              className={source === "current" ? "active" : ""}
-              onClick={useCurrent}
-              disabled={geoLoading}
-            >
-              {geoLoading ? t("panchanga.locating") : t("panchanga.currentLocation")}
-            </button>
+              <button
+                className={source === "birth" ? "active" : ""}
+                onClick={() => setSource("birth")}
+              >
+                {t("panchanga.birthPlace")}
+              </button>
+              <button
+                className={source === "current" ? "active" : ""}
+                onClick={useCurrent}
+                disabled={geoLoading}
+              >
+                {geoLoading ? t("panchanga.locating") : t("panchanga.currentLocation")}
+              </button>
+            </div>
+            <span className="almanac-locname">
+              <MapPin size={14} /> {loc.place || "—"}
+            </span>
           </div>
-          <span className="almanac-locname">
-            <MapPin size={14} /> {loc.place || "—"}
-          </span>
-        </div>
-        {geoError && <div className="panchanga-status">{geoError}</div>}
+          {geoError && <div className="panchanga-status">{geoError}</div>}
 
-        <PanchangaPanel {...loc} hideLocationToggle />
-        <HoraPanel loc={loc} />
-        <EclipsePanel loc={loc} />
-        <FestivalPanel loc={loc} />
-        <ConjunctionPanel loc={loc} />
-        <AlmanacReading loc={loc} />
-      </div>
+          <PanchangaPanel {...loc} hideLocationToggle />
+          <HoraPanel loc={loc} />
+          <EclipsePanel loc={loc} />
+          <FestivalPanel loc={loc} />
+          <ConjunctionPanel loc={loc} />
+          <AlmanacReading loc={loc} />
+        </div>
+      </main>
     </div>
   );
 };

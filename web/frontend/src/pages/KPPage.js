@@ -220,287 +220,288 @@ export const KPPage = () => {
         subtitle={t("kp.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="kp" profileId={selectedProfile?._id} />
+          <ProfileBanner profile={selectedProfile} />
 
-      <div className="dashboard-content">
-        <RecentReadings source="kp" profileId={selectedProfile?._id} />
-        <ProfileBanner profile={selectedProfile} />
+          <Tabs tabs={tabs} active={tab} onChange={setTab} ariaLabel={t("kp.title")} />
 
-        <Tabs tabs={tabs} active={tab} onChange={setTab} ariaLabel={t("kp.title")} />
-
-        {tab === "natal" && (
-          <>
-            <p className="card-note">{t("kp.ayanamsaNote")}</p>
-            <ErrorBanner message={error} />
-            {loading ? (
-              <Card>
-                <LoadingState message={t("kp.loading")} />
-              </Card>
-            ) : data ? (
-              <div className="fade-in">
-                {/* Planet sub-lords */}
-                <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush">
-                  <h3 className="ui-card-header ui-card-header--sm">{t("kp.subLordsHeader")}</h3>
-                  <div className="table-scroll">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>{t("kp.body")}</th>
-                          <th>{t("kp.sign")}</th>
-                          <th>{t("kp.house")}</th>
-                          <th>{t("kp.signLord")}</th>
-                          <th>{t("kp.starLord")}</th>
-                          <th>{t("kp.subLord")}</th>
-                          <th>{t("kp.subSubLord")}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {planets.map((p) => (
-                          <tr key={p.body}>
-                            <td>
-                              <strong>{p.body}</strong>
-                            </td>
-                            <td>
-                              {ln(p.sign_name, "rasi")} {p.degrees}°
-                            </td>
-                            <td>{p.house}</td>
-                            <td>{p.sign_lord}</td>
-                            <td>{p.star_lord}</td>
-                            <td>
-                              <strong>{p.sub_lord}</strong>
-                            </td>
-                            <td className="text-secondary">{p.sub_sub_lord}</td>
+          {tab === "natal" && (
+            <>
+              <p className="card-note">{t("kp.ayanamsaNote")}</p>
+              <ErrorBanner message={error} />
+              {loading ? (
+                <Card>
+                  <LoadingState message={t("kp.loading")} />
+                </Card>
+              ) : data ? (
+                <div className="fade-in">
+                  {/* Planet sub-lords */}
+                  <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush">
+                    <h3 className="ui-card-header ui-card-header--sm">{t("kp.subLordsHeader")}</h3>
+                    <div className="table-scroll">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>{t("kp.body")}</th>
+                            <th>{t("kp.sign")}</th>
+                            <th>{t("kp.house")}</th>
+                            <th>{t("kp.signLord")}</th>
+                            <th>{t("kp.starLord")}</th>
+                            <th>{t("kp.subLord")}</th>
+                            <th>{t("kp.subSubLord")}</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Cuspal sub-lords */}
-                <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush mt-xl">
-                  <h3 className="ui-card-header ui-card-header--sm">{t("kp.cuspsHeader")}</h3>
-                  <div className="table-scroll">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>{t("kp.cusp")}</th>
-                          <th>{t("kp.sign")}</th>
-                          <th>{t("kp.signLord")}</th>
-                          <th>{t("kp.starLord")}</th>
-                          <th>{t("kp.subLord")}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cusps.map((c) => (
-                          <tr key={c.house}>
-                            <td>
-                              <strong>{c.house}</strong>
-                            </td>
-                            <td>
-                              {ln(c.sign_name, "rasi")} {c.degrees}°
-                            </td>
-                            <td>{c.sign_lord}</td>
-                            <td>{c.star_lord}</td>
-                            <td>
-                              <strong>{c.sub_lord}</strong>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* House significators (4-fold) */}
-                <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
-                  <h3 className="ui-card-header ui-card-header--sm">{t("kp.sigHeader")}</h3>
-                  <p className="card-note">{t("kp.sigNote")}</p>
-                  <div className="table-scroll">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>{t("kp.house")}</th>
-                          <th>A</th>
-                          <th>B</th>
-                          <th>C</th>
-                          <th>D</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => {
-                          const s = houseSig[h] || {};
-                          return (
-                            <tr key={h}>
+                        </thead>
+                        <tbody>
+                          {planets.map((p) => (
+                            <tr key={p.body}>
                               <td>
-                                <strong>{h}</strong>
+                                <strong>{p.body}</strong>
                               </td>
-                              <td>{(s.A || []).join(", ") || "—"}</td>
-                              <td>{(s.B || []).join(", ") || "—"}</td>
-                              <td>{(s.C || []).join(", ") || "—"}</td>
-                              <td>{(s.D || []).join(", ") || "—"}</td>
+                              <td>
+                                {ln(p.sign_name, "rasi")} {p.degrees}°
+                              </td>
+                              <td>{p.house}</td>
+                              <td>{p.sign_lord}</td>
+                              <td>{p.star_lord}</td>
+                              <td>
+                                <strong>{p.sub_lord}</strong>
+                              </td>
+                              <td className="text-secondary">{p.sub_sub_lord}</td>
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Cuspal sub-lords */}
+                  <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush mt-xl">
+                    <h3 className="ui-card-header ui-card-header--sm">{t("kp.cuspsHeader")}</h3>
+                    <div className="table-scroll">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>{t("kp.cusp")}</th>
+                            <th>{t("kp.sign")}</th>
+                            <th>{t("kp.signLord")}</th>
+                            <th>{t("kp.starLord")}</th>
+                            <th>{t("kp.subLord")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {cusps.map((c) => (
+                            <tr key={c.house}>
+                              <td>
+                                <strong>{c.house}</strong>
+                              </td>
+                              <td>
+                                {ln(c.sign_name, "rasi")} {c.degrees}°
+                              </td>
+                              <td>{c.sign_lord}</td>
+                              <td>{c.star_lord}</td>
+                              <td>
+                                <strong>{c.sub_lord}</strong>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* House significators (4-fold) */}
+                  <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
+                    <h3 className="ui-card-header ui-card-header--sm">{t("kp.sigHeader")}</h3>
+                    <p className="card-note">{t("kp.sigNote")}</p>
+                    <div className="table-scroll">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>{t("kp.house")}</th>
+                            <th>A</th>
+                            <th>B</th>
+                            <th>C</th>
+                            <th>D</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => {
+                            const s = houseSig[h] || {};
+                            return (
+                              <tr key={h}>
+                                <td>
+                                  <strong>{h}</strong>
+                                </td>
+                                <td>{(s.A || []).join(", ") || "—"}</td>
+                                <td>{(s.B || []).join(", ") || "—"}</td>
+                                <td>{(s.C || []).join(", ") || "—"}</td>
+                                <td>{(s.D || []).join(", ") || "—"}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Ruling planets */}
+                  <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush mt-xl">
+                    <h3 className="ui-card-header ui-card-header--sm">{t("kp.rpHeader")}</h3>
+                    <div className="info-pills">
+                      {(rp.planets || []).map((p) => (
+                        <span key={p} className="info-pill">
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="card-note">
+                      {t("kp.rpAsOf", { time: data.ruling_time })} · {t("kp.rpDayLord")}:{" "}
+                      {rp.day_lord}
+                    </p>
+                  </div>
+
+                  {/* AI reading */}
+                  <div className="mt-xl">
+                    <Card title={t("kp.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
+                      <ErrorBanner message={aiError} />
+                      {!aiAnalysis && !aiLoading && (
+                        <p className="ai-panel__hint">{t("kp.aiHint")}</p>
+                      )}
+                      {aiLoading && <LoadingState message={t("kp.aiLoading")} />}
+                      {aiAnalysis && !aiLoading && (
+                        <div className="sbc-ai-markdown ai-panel__reading">
+                          <Markdown>{aiAnalysis}</Markdown>
+                          {aiModel && (
+                            <div className="ai-panel__meta">
+                              {t("kp.aiModel", { model: aiModel })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {!aiLoading && (
+                        <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                          <Sparkles size={18} />
+                          {aiAnalysis ? t("kp.aiRegenerate") : t("kp.aiGenerate")}
+                        </button>
+                      )}
+                    </Card>
                   </div>
                 </div>
+              ) : null}
+            </>
+          )}
 
-                {/* Ruling planets */}
-                <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush mt-xl">
-                  <h3 className="ui-card-header ui-card-header--sm">{t("kp.rpHeader")}</h3>
-                  <div className="info-pills">
-                    {(rp.planets || []).map((p) => (
+          {tab === "horary" && (
+            <div className="fade-in">
+              <div className="ui-card ui-card--accent ui-card--pad-lg">
+                <h3 className="ui-card-header ui-card-header--sm">{t("kp.horary.title")}</h3>
+                <p className="card-note">{t("kp.horary.intro")}</p>
+                <div className="page-controls">
+                  <div className="controls-group">
+                    <label className="control-label">{t("kp.horary.number")}</label>
+                    <input
+                      className="control-input"
+                      type="number"
+                      min="1"
+                      max="249"
+                      value={horNumber}
+                      onChange={(e) => setHorNumber(e.target.value)}
+                      placeholder="1–249"
+                    />
+                  </div>
+                  <div className="controls-group" style={{ flex: 1 }}>
+                    <label className="control-label">{t("kp.horary.question")}</label>
+                    <input
+                      className="control-input"
+                      type="text"
+                      value={horQuestion}
+                      onChange={(e) => setHorQuestion(e.target.value)}
+                      placeholder={t("kp.horary.questionPlaceholder")}
+                    />
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "var(--space-sm)",
+                    flexWrap: "wrap",
+                    marginTop: "var(--space-md)",
+                  }}
+                >
+                  <button
+                    className="ui-btn ui-btn--primary"
+                    onClick={castHorary}
+                    disabled={horLoading}
+                  >
+                    {horLoading ? t("kp.horary.casting") : t("kp.horary.cast")}
+                  </button>
+                  <button
+                    className="ui-btn ui-btn--ai"
+                    onClick={horaryAi}
+                    disabled={horLoading || !horNumber}
+                  >
+                    <Sparkles size={18} /> {t("kp.horary.judge")}
+                  </button>
+                </div>
+                <ErrorBanner message={horError} />
+              </div>
+
+              {horData && (
+                <div className="ui-card ui-card--accent-indigo ui-card--pad-lg mt-xl">
+                  <h3 className="ui-card-header ui-card-header--sm">
+                    {t("kp.horary.chartHeader", { number: horData.number })}
+                  </h3>
+                  <div className="score-box">
+                    <div className="score-box__label">{t("kp.horary.ascendant")}</div>
+                    <div className="score-box__status">
+                      {ln(horData.ascendant?.sign_name, "rasi")} {horData.ascendant?.degrees}° ·{" "}
+                      {t("kp.subLord")}: <strong>{horData.ascendant?.sub_lord}</strong>
+                    </div>
+                  </div>
+                  {horData.chart && (
+                    <div className="chart-grid" style={{ marginTop: "var(--space-lg)" }}>
+                      <Card title={t("kp.horary.moment")} accent="indigo">
+                        <Kundali
+                          planets={horData.chart.planets}
+                          lagna={horData.chart.lagna}
+                          title={t("kp.horary.moment")}
+                        />
+                      </Card>
+                    </div>
+                  )}
+                  <div className="info-pills" style={{ marginTop: "var(--space-md)" }}>
+                    <span className="text-secondary">{t("kp.rpHeader")}:</span>
+                    {(horData.ruling_planets?.planets || []).map((p) => (
                       <span key={p} className="info-pill">
                         {p}
                       </span>
                     ))}
                   </div>
-                  <p className="card-note">
-                    {t("kp.rpAsOf", { time: data.ruling_time })} · {t("kp.rpDayLord")}:{" "}
-                    {rp.day_lord}
-                  </p>
                 </div>
+              )}
 
-                {/* AI reading */}
+              {horReading && (
                 <div className="mt-xl">
-                  <Card title={t("kp.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
-                    <ErrorBanner message={aiError} />
-                    {!aiAnalysis && !aiLoading && (
-                      <p className="ai-panel__hint">{t("kp.aiHint")}</p>
-                    )}
-                    {aiLoading && <LoadingState message={t("kp.aiLoading")} />}
-                    {aiAnalysis && !aiLoading && (
-                      <div className="sbc-ai-markdown ai-panel__reading">
-                        <Markdown>{aiAnalysis}</Markdown>
-                        {aiModel && (
-                          <div className="ai-panel__meta">
-                            {t("kp.aiModel", { model: aiModel })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {!aiLoading && (
-                      <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                        <Sparkles size={18} />
-                        {aiAnalysis ? t("kp.aiRegenerate") : t("kp.aiGenerate")}
-                      </button>
-                    )}
+                  <Card
+                    title={t("kp.horary.judgement")}
+                    icon={<Sparkles size={24} />}
+                    accent="indigo"
+                  >
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <Markdown>{horReading}</Markdown>
+                      {horModel && (
+                        <div className="ai-panel__meta">{t("kp.aiModel", { model: horModel })}</div>
+                      )}
+                    </div>
                   </Card>
                 </div>
-              </div>
-            ) : null}
-          </>
-        )}
-
-        {tab === "horary" && (
-          <div className="fade-in">
-            <div className="ui-card ui-card--accent ui-card--pad-lg">
-              <h3 className="ui-card-header ui-card-header--sm">{t("kp.horary.title")}</h3>
-              <p className="card-note">{t("kp.horary.intro")}</p>
-              <div className="page-controls">
-                <div className="controls-group">
-                  <label className="control-label">{t("kp.horary.number")}</label>
-                  <input
-                    className="control-input"
-                    type="number"
-                    min="1"
-                    max="249"
-                    value={horNumber}
-                    onChange={(e) => setHorNumber(e.target.value)}
-                    placeholder="1–249"
-                  />
-                </div>
-                <div className="controls-group" style={{ flex: 1 }}>
-                  <label className="control-label">{t("kp.horary.question")}</label>
-                  <input
-                    className="control-input"
-                    type="text"
-                    value={horQuestion}
-                    onChange={(e) => setHorQuestion(e.target.value)}
-                    placeholder={t("kp.horary.questionPlaceholder")}
-                  />
-                </div>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  gap: "var(--space-sm)",
-                  flexWrap: "wrap",
-                  marginTop: "var(--space-md)",
-                }}
-              >
-                <button
-                  className="ui-btn ui-btn--primary"
-                  onClick={castHorary}
-                  disabled={horLoading}
-                >
-                  {horLoading ? t("kp.horary.casting") : t("kp.horary.cast")}
-                </button>
-                <button
-                  className="ui-btn ui-btn--ai"
-                  onClick={horaryAi}
-                  disabled={horLoading || !horNumber}
-                >
-                  <Sparkles size={18} /> {t("kp.horary.judge")}
-                </button>
-              </div>
-              <ErrorBanner message={horError} />
+              )}
             </div>
-
-            {horData && (
-              <div className="ui-card ui-card--accent-indigo ui-card--pad-lg mt-xl">
-                <h3 className="ui-card-header ui-card-header--sm">
-                  {t("kp.horary.chartHeader", { number: horData.number })}
-                </h3>
-                <div className="score-box">
-                  <div className="score-box__label">{t("kp.horary.ascendant")}</div>
-                  <div className="score-box__status">
-                    {ln(horData.ascendant?.sign_name, "rasi")} {horData.ascendant?.degrees}° ·{" "}
-                    {t("kp.subLord")}: <strong>{horData.ascendant?.sub_lord}</strong>
-                  </div>
-                </div>
-                {horData.chart && (
-                  <div className="chart-grid" style={{ marginTop: "var(--space-lg)" }}>
-                    <Card title={t("kp.horary.moment")} accent="indigo">
-                      <Kundali
-                        planets={horData.chart.planets}
-                        lagna={horData.chart.lagna}
-                        title={t("kp.horary.moment")}
-                      />
-                    </Card>
-                  </div>
-                )}
-                <div className="info-pills" style={{ marginTop: "var(--space-md)" }}>
-                  <span className="text-secondary">{t("kp.rpHeader")}:</span>
-                  {(horData.ruling_planets?.planets || []).map((p) => (
-                    <span key={p} className="info-pill">
-                      {p}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {horReading && (
-              <div className="mt-xl">
-                <Card
-                  title={t("kp.horary.judgement")}
-                  icon={<Sparkles size={24} />}
-                  accent="indigo"
-                >
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{horReading}</Markdown>
-                    {horModel && (
-                      <div className="ai-panel__meta">{t("kp.aiModel", { model: horModel })}</div>
-                    )}
-                  </div>
-                </Card>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

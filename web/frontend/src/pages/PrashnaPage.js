@@ -103,8 +103,13 @@ export const PrashnaPage = () => {
     setReading("");
     try {
       const res = await astrologyService.analyzePrashnaAI(
-        { question, place: loc.place, latitude: loc.latitude,
-          longitude: loc.longitude, timezone: loc.timezone },
+        {
+          question,
+          place: loc.place,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          timezone: loc.timezone,
+        },
         { ...readModelConfig(), ayanamsa }
       );
       setChart(res.data.chart || null);
@@ -130,94 +135,104 @@ export const PrashnaPage = () => {
         subtitle={t("prashna.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <ProfileBanner profile={selectedProfile} />
+          <RecentReadings source="prashna" />
 
-      <div className="dashboard-content">
-        <ProfileBanner profile={selectedProfile} />
-        <RecentReadings source="prashna" />
-
-        <Card>
-          <p className="card-intro">{t("prashna.intro")}</p>
-          <div className="prashna-composer">
-            <textarea
-              className="control-input prashna-question"
-              rows={2}
-              placeholder={t("prashna.placeholder")}
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-            />
-            <button className="ui-btn ui-btn--ai" onClick={cast} disabled={loading}>
-              <Sparkles size={18} /> {t("prashna.cast")}
-            </button>
-          </div>
-          {/* Name the place rather than describing the mechanism: the old copy
+          <Card>
+            <p className="card-intro">{t("prashna.intro")}</p>
+            <div className="prashna-composer">
+              <textarea
+                className="control-input prashna-question"
+                rows={2}
+                placeholder={t("prashna.placeholder")}
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+              />
+              <button className="ui-btn ui-btn--ai" onClick={cast} disabled={loading}>
+                <Sparkles size={18} /> {t("prashna.cast")}
+              </button>
+            </div>
+            {/* Name the place rather than describing the mechanism: the old copy
               promised "your current location (with your permission)", which was
               a browser GPS prompt that no longer happens and never said where
               the chart actually landed when it was refused. */}
-          <p className="card-note">
-            <MapPin size={13} />{" "}
-            {loc
-              ? t(loc.source === "birth" ? "prashna.locationNoteBirth" : "prashna.locationNoteAt", {
-                  place: loc.place,
-                })
-              : t("prashna.locationNote")}
-          </p>
-        </Card>
-
-        <ErrorBanner message={error} />
-
-        {loading && (
-          <Card>
-            <LoadingState message={t("prashna.casting")} />
+            <p className="card-note">
+              <MapPin size={13} />{" "}
+              {loc
+                ? t(
+                    loc.source === "birth" ? "prashna.locationNoteBirth" : "prashna.locationNoteAt",
+                    {
+                      place: loc.place,
+                    }
+                  )
+                : t("prashna.locationNote")}
+            </p>
           </Card>
-        )}
 
-        {chart && !loading && (
-          <div className="fade-in mt-xl">
-            {moment && (
-              <div className="info-pills" style={{ marginBottom: "1rem" }}>
-                <span className="info-pill">
-                  {moment.date} {moment.time}
-                </span>
-                <span className="info-pill">
-                  <Sunrise size={14} style={{ color: "var(--saffron)" }} /> {t("prashna.lagna")}:{" "}
-                  {ln(lagna.sign_name, "rasi")}
-                </span>
-                <span className="info-pill">
-                  <Moon size={14} style={{ color: "var(--cosmic-indigo)" }} /> {t("prashna.moon")}:{" "}
-                  {ln(moon.sign_name, "rasi")} ({ln(moon.nakshatra, "nakshatra")})
-                </span>
-                {chart.hora_lord && (
-                  <span className="info-pill">{t("prashna.hora", { lord: chart.hora_lord })}</span>
-                )}
+          <ErrorBanner message={error} />
+
+          {loading && (
+            <Card>
+              <LoadingState message={t("prashna.casting")} />
+            </Card>
+          )}
+
+          {chart && !loading && (
+            <div className="fade-in mt-xl">
+              {moment && (
+                <div className="info-pills" style={{ marginBottom: "1rem" }}>
+                  <span className="info-pill">
+                    {moment.date} {moment.time}
+                  </span>
+                  <span className="info-pill">
+                    <Sunrise size={14} style={{ color: "var(--saffron)" }} /> {t("prashna.lagna")}:{" "}
+                    {ln(lagna.sign_name, "rasi")}
+                  </span>
+                  <span className="info-pill">
+                    <Moon size={14} style={{ color: "var(--cosmic-indigo)" }} /> {t("prashna.moon")}
+                    : {ln(moon.sign_name, "rasi")} ({ln(moon.nakshatra, "nakshatra")})
+                  </span>
+                  {chart.hora_lord && (
+                    <span className="info-pill">
+                      {t("prashna.hora", { lord: chart.hora_lord })}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="chart-grid">
+                <Kundali
+                  planets={chart.planets || {}}
+                  lagna={chart.lagna}
+                  title={t("prashna.chartTitle")}
+                  subtitle={moment ? `${moment.date} ${moment.time}` : ""}
+                  exportable
+                />
+
+                <Card
+                  title={t("prashna.readingTitle")}
+                  icon={<Sparkles size={22} />}
+                  accent="indigo"
+                >
+                  {reading ? (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <Markdown>{reading}</Markdown>
+                      {model && (
+                        <div className="ai-panel__meta">{t("prashna.aiModel", { model })}</div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="ai-panel__hint">{t("prashna.noReading")}</p>
+                  )}
+                  <p className="card-note">{t("prashna.disclaimer")}</p>
+                </Card>
               </div>
-            )}
-
-            <div className="chart-grid">
-              <Kundali
-                planets={chart.planets || {}}
-                lagna={chart.lagna}
-                title={t("prashna.chartTitle")}
-                subtitle={moment ? `${moment.date} ${moment.time}` : ""}
-                exportable
-              />
-
-              <Card title={t("prashna.readingTitle")} icon={<Sparkles size={22} />} accent="indigo">
-                {reading ? (
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{reading}</Markdown>
-                    {model && (
-                      <div className="ai-panel__meta">{t("prashna.aiModel", { model })}</div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="ai-panel__hint">{t("prashna.noReading")}</p>
-                )}
-                <p className="card-note">{t("prashna.disclaimer")}</p>
-              </Card>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

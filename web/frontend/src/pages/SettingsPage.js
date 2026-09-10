@@ -1,3 +1,8 @@
+/* The notification switches are the `<label><input type="checkbox"/><span/></label>`
+ * pattern: the label is the click target and the visible text sits in the row
+ * beside it, so the label itself carries no text. Each input names itself with
+ * aria-label instead (§68.8) — which is what the rule is really asking for. */
+/* eslint-disable jsx-a11y/label-has-associated-control */
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -592,1274 +597,1311 @@ export const SettingsPage = () => {
         subtitle={t("settings.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          {savedFlash && (
+            <div className="settings-flash">
+              <Check size={14} /> {savedFlash}
+            </div>
+          )}
 
-      <div className="dashboard-content">
-        {savedFlash && (
-          <div className="settings-flash">
-            <Check size={14} /> {savedFlash}
-          </div>
-        )}
+          <Tabs tabs={visibleTabs} active={tab} onChange={setTab} ariaLabel={t("settings.title")} />
 
-        <Tabs tabs={visibleTabs} active={tab} onChange={setTab} ariaLabel={t("settings.title")} />
-
-        {/* GENERAL */}
-        {tab === "general" && (
-          <div className="ui-card settings-panel">
-            <div className="settings-row">
-              <label className="settings-label">{t("uiMode.label")}</label>
-              <div className="settings-segment">
-                {[
-                  { v: "simple", l: t("uiMode.essentials") },
-                  { v: "advanced", l: t("uiMode.everything") },
-                ].map((o) => (
-                  <button
-                    key={o.v}
-                    className={`settings-seg-btn${settings.uiMode === o.v ? " is-active" : ""}`}
-                    onClick={() => set("uiMode", o.v)}
-                  >
-                    {o.l}
-                  </button>
-                ))}
+          {/* GENERAL */}
+          {tab === "general" && (
+            <div className="ui-card settings-panel">
+              <div className="settings-row">
+                <label className="settings-label">{t("uiMode.label")}</label>
+                <div className="settings-segment">
+                  {[
+                    { v: "simple", l: t("uiMode.essentials") },
+                    { v: "advanced", l: t("uiMode.everything") },
+                  ].map((o) => (
+                    <button
+                      key={o.v}
+                      className={`settings-seg-btn${settings.uiMode === o.v ? " is-active" : ""}`}
+                      onClick={() => set("uiMode", o.v)}
+                    >
+                      {o.l}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <p className="settings-hint">
-              {t(settings.uiMode === "simple" ? "uiMode.hintSimple" : "uiMode.hintAdvanced")}
-            </p>
+              <p className="settings-hint">
+                {t(settings.uiMode === "simple" ? "uiMode.hintSimple" : "uiMode.hintAdvanced")}
+              </p>
 
-            <div className="settings-row">
-              <label className="settings-label">{t("settings.general.theme")}</label>
-              <div className="settings-segment">
-                {[
-                  { v: "light", l: t("settings.theme_light") },
-                  { v: "dark", l: t("settings.theme_dark") },
-                  { v: "system", l: t("settings.theme_system") },
-                ].map((o) => (
-                  <button
-                    key={o.v}
-                    className={`settings-seg-btn${settings.theme === o.v ? " is-active" : ""}`}
-                    onClick={() => set("theme", o.v)}
-                  >
-                    {o.l}
-                  </button>
-                ))}
+              <div className="settings-row">
+                <label className="settings-label">{t("settings.general.theme")}</label>
+                <div className="settings-segment">
+                  {[
+                    { v: "light", l: t("settings.theme_light") },
+                    { v: "dark", l: t("settings.theme_dark") },
+                    { v: "system", l: t("settings.theme_system") },
+                  ].map((o) => (
+                    <button
+                      key={o.v}
+                      className={`settings-seg-btn${settings.theme === o.v ? " is-active" : ""}`}
+                      onClick={() => set("theme", o.v)}
+                    >
+                      {o.l}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <p className="settings-hint">{t("settings.general.themeHint")}</p>
+              <p className="settings-hint">{t("settings.general.themeHint")}</p>
 
-            <div className="settings-row">
-              <label className="settings-label">{t("settings.general.density")}</label>
-              <div className="settings-segment">
-                {DENSITIES.map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    className={`settings-seg-btn${settings.density === v ? " is-active" : ""}`}
-                    onClick={() => set("density", v)}
-                  >
-                    {t(`settings.general.densityOpt.${v}`)}
-                  </button>
-                ))}
+              <div className="settings-row">
+                <label className="settings-label">{t("settings.general.density")}</label>
+                <div className="settings-segment">
+                  {DENSITIES.map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={`settings-seg-btn${settings.density === v ? " is-active" : ""}`}
+                      onClick={() => set("density", v)}
+                    >
+                      {t(`settings.general.densityOpt.${v}`)}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <p className="settings-hint">{t("settings.general.densityHint")}</p>
+              <p className="settings-hint">{t("settings.general.densityHint")}</p>
 
-            <div className="settings-row">
-              <label className="settings-label">{t("settings.general.startupProfile")}</label>
-              <div className="settings-segment">
-                {STARTUP_PROFILE_MODES.map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    className={`settings-seg-btn${settings.startupProfile === v ? " is-active" : ""}`}
-                    onClick={() => set("startupProfile", v)}
-                  >
-                    {t(`settings.general.startupProfileOpt.${v}`)}
-                  </button>
-                ))}
+              <div className="settings-row">
+                <label className="settings-label">{t("settings.general.startupProfile")}</label>
+                <div className="settings-segment">
+                  {STARTUP_PROFILE_MODES.map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={`settings-seg-btn${settings.startupProfile === v ? " is-active" : ""}`}
+                      onClick={() => set("startupProfile", v)}
+                    >
+                      {t(`settings.general.startupProfileOpt.${v}`)}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <p className="settings-hint">{t("settings.general.startupProfileHint")}</p>
+              <p className="settings-hint">{t("settings.general.startupProfileHint")}</p>
 
-            <div className="settings-row">
-              <label className="settings-label">{t("settings.general.language")}</label>
-              <select
-                className="form-select"
-                value={settings.language}
-                onChange={(e) => set("language", e.target.value)}
-              >
-                {LANGUAGES.map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.native}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {/* Sanskrit is hand-authored and has not been checked by a Sanskrit
-                reader, and anything the engine translates falls back to Hindi.
-                Say so rather than presenting it with the same confidence as the
-                reviewed languages (owner decision, 2026-07-19). */}
-            {settings.language === "sa" && (
-              <p className="settings-hint">{t("settings.general.sanskritUnreviewed")}</p>
-            )}
-
-            <div className="settings-row">
-              <label className="settings-label">{t("settings.general.chartStyle")}</label>
-              <div className="settings-segment">
-                {[
-                  { v: "north", l: t("settings.general.north") },
-                  { v: "south", l: t("settings.general.south") },
-                ].map((o) => (
-                  <button
-                    key={o.v}
-                    type="button"
-                    className={`settings-seg-btn${settings.chartStyle === o.v ? " is-active" : ""}`}
-                    onClick={() => set("chartStyle", o.v)}
-                  >
-                    {o.l}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="settings-row">
-              <label className="settings-label">{t("settings.general.signLabel")}</label>
-              <div className="settings-segment">
-                {SIGN_LABEL_MODES.map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    className={`settings-seg-btn${settings.signLabel === v ? " is-active" : ""}`}
-                    onClick={() => set("signLabel", v)}
-                  >
-                    {t(`settings.general.signLabelOpt.${v}`)}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* The hint is a sibling of the row, not a third child: .settings-row
-                is a two-child flex, so a hint inside it lands BESIDE the control
-                and squeezes it. */}
-            <p className="settings-hint">{t("settings.general.signLabelHint")}</p>
-
-            <div className="settings-row">
-              <label className="settings-label">{t("settings.general.ayanamsa")}</label>
-              <select
-                className="form-select"
-                value={settings.ayanamsa}
-                onChange={(e) => set("ayanamsa", e.target.value)}
-              >
-                {AYANAMSAS.map((a) => (
-                  <option key={a.value} value={a.value}>
-                    {a.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Default pravesha ladder for the period readings. Individual pages
-                (Monthly, Varshaphal) can override it locally. */}
-            <div className="settings-row settings-row--stack">
-              <label className="settings-label">{t("settings.general.praveshaBasis")}</label>
-              <div className="settings-segment">
-                {[
-                  { v: "solar", l: t("settings.general.basisSolar") },
-                  { v: "lunar", l: t("settings.general.basisLunar") },
-                ].map((o) => (
-                  <button
-                    key={o.v}
-                    type="button"
-                    className={`settings-seg-btn${settings.praveshaBasis === o.v ? " is-active" : ""}`}
-                    onClick={() => set("praveshaBasis", o.v)}
-                  >
-                    {o.l}
-                  </button>
-                ))}
-              </div>
-              <p className="settings-hint">{t("settings.general.praveshaBasisHint")}</p>
-            </div>
-          </div>
-        )}
-
-        {/* AI */}
-        {tab === "ai" && (
-          <div className="ui-card settings-panel">
-            <div className="settings-row">
-              <label className="settings-label">{t("settings.ai.provider")}</label>
-              <select
-                className="form-select"
-                value={settings.aiProviderType}
-                onChange={(e) => set("aiProviderType", e.target.value)}
-              >
-                {(providers.length
-                  ? providers
-                  : [{ type: settings.aiProviderType, label: settings.aiProviderType }]
-                ).map((p) => (
-                  <option key={p.type} value={p.type}>
-                    {p.label || p.type}
-                    {p.available === false ? ` — ${t("settings.ai.unavailable")}` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {activeProvider && activeProvider.available === false && activeProvider.reason && (
-              <p className="settings-hint settings-hint--warn">{activeProvider.reason}</p>
-            )}
-
-            <div className="settings-row">
-              <label className="settings-label">{t("settings.ai.model")}</label>
-              {models.length ? (
+              <div className="settings-row">
+                <label className="settings-label">{t("settings.general.language")}</label>
                 <select
                   className="form-select"
-                  value={settings.aiModel}
-                  onChange={(e) => set("aiModel", e.target.value)}
+                  value={settings.language}
+                  onChange={(e) => set("language", e.target.value)}
                 >
-                  <option value="">
-                    {activeProvider?.default_model || t("settings.ai.defaultModel")}
-                  </option>
-                  {models.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
+                  {LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code}>
+                      {l.native}
                     </option>
                   ))}
                 </select>
-              ) : (
-                <input
-                  className="control-input"
-                  type="text"
-                  value={settings.aiModel}
-                  placeholder={activeProvider?.default_model || t("settings.ai.modelPlaceholder")}
-                  onChange={(e) => set("aiModel", e.target.value)}
-                />
+              </div>
+              {/* Sanskrit is hand-authored and has not been checked by a Sanskrit
+                reader, and anything the engine translates falls back to Hindi.
+                Say so rather than presenting it with the same confidence as the
+                reviewed languages (owner decision, 2026-07-19). */}
+              {settings.language === "sa" && (
+                <p className="settings-hint">{t("settings.general.sanskritUnreviewed")}</p>
               )}
+
+              <div className="settings-row">
+                <label className="settings-label">{t("settings.general.chartStyle")}</label>
+                <div className="settings-segment">
+                  {[
+                    { v: "north", l: t("settings.general.north") },
+                    { v: "south", l: t("settings.general.south") },
+                  ].map((o) => (
+                    <button
+                      key={o.v}
+                      type="button"
+                      className={`settings-seg-btn${settings.chartStyle === o.v ? " is-active" : ""}`}
+                      onClick={() => set("chartStyle", o.v)}
+                    >
+                      {o.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="settings-row">
+                <label className="settings-label">{t("settings.general.signLabel")}</label>
+                <div className="settings-segment">
+                  {SIGN_LABEL_MODES.map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={`settings-seg-btn${settings.signLabel === v ? " is-active" : ""}`}
+                      onClick={() => set("signLabel", v)}
+                    >
+                      {t(`settings.general.signLabelOpt.${v}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* The hint is a sibling of the row, not a third child: .settings-row
+                is a two-child flex, so a hint inside it lands BESIDE the control
+                and squeezes it. */}
+              <p className="settings-hint">{t("settings.general.signLabelHint")}</p>
+
+              <div className="settings-row">
+                <label className="settings-label">{t("settings.general.ayanamsa")}</label>
+                <select
+                  className="form-select"
+                  value={settings.ayanamsa}
+                  onChange={(e) => set("ayanamsa", e.target.value)}
+                >
+                  {AYANAMSAS.map((a) => (
+                    <option key={a.value} value={a.value}>
+                      {a.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Default pravesha ladder for the period readings. Individual pages
+                (Monthly, Varshaphal) can override it locally. */}
+              <div className="settings-row settings-row--stack">
+                <label className="settings-label">{t("settings.general.praveshaBasis")}</label>
+                <div className="settings-segment">
+                  {[
+                    { v: "solar", l: t("settings.general.basisSolar") },
+                    { v: "lunar", l: t("settings.general.basisLunar") },
+                  ].map((o) => (
+                    <button
+                      key={o.v}
+                      type="button"
+                      className={`settings-seg-btn${settings.praveshaBasis === o.v ? " is-active" : ""}`}
+                      onClick={() => set("praveshaBasis", o.v)}
+                    >
+                      {o.l}
+                    </button>
+                  ))}
+                </div>
+                <p className="settings-hint">{t("settings.general.praveshaBasisHint")}</p>
+              </div>
             </div>
-            {/* When left blank the server falls back to its configured default
+          )}
+
+          {/* AI */}
+          {tab === "ai" && (
+            <div className="ui-card settings-panel">
+              <div className="settings-row">
+                <label className="settings-label">{t("settings.ai.provider")}</label>
+                <select
+                  className="form-select"
+                  value={settings.aiProviderType}
+                  onChange={(e) => set("aiProviderType", e.target.value)}
+                >
+                  {(providers.length
+                    ? providers
+                    : [{ type: settings.aiProviderType, label: settings.aiProviderType }]
+                  ).map((p) => (
+                    <option key={p.type} value={p.type}>
+                      {p.label || p.type}
+                      {p.available === false ? ` — ${t("settings.ai.unavailable")}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {activeProvider && activeProvider.available === false && activeProvider.reason && (
+                <p className="settings-hint settings-hint--warn">{activeProvider.reason}</p>
+              )}
+
+              <div className="settings-row">
+                <label className="settings-label">{t("settings.ai.model")}</label>
+                {models.length ? (
+                  <select
+                    className="form-select"
+                    value={settings.aiModel}
+                    onChange={(e) => set("aiModel", e.target.value)}
+                  >
+                    <option value="">
+                      {activeProvider?.default_model || t("settings.ai.defaultModel")}
+                    </option>
+                    {models.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    className="control-input"
+                    type="text"
+                    value={settings.aiModel}
+                    placeholder={activeProvider?.default_model || t("settings.ai.modelPlaceholder")}
+                    onChange={(e) => set("aiModel", e.target.value)}
+                  />
+                )}
+              </div>
+              {/* When left blank the server falls back to its configured default
                 (OLLAMA_DEFAULT_MODEL), so surface it rather than making the user
                 retype it — this survives redeploys since it lives server-side. */}
-            {!settings.aiModel && activeProvider?.default_model && (
-              <p className="settings-hint">
-                {t("settings.ai.serverDefault", { model: activeProvider.default_model })}
-              </p>
-            )}
+              {!settings.aiModel && activeProvider?.default_model && (
+                <p className="settings-hint">
+                  {t("settings.ai.serverDefault", { model: activeProvider.default_model })}
+                </p>
+              )}
 
-            {isLocalProvider && (
+              {isLocalProvider && (
+                <div className="settings-row">
+                  <label className="settings-label">{t("settings.ai.endpoint")}</label>
+                  <input
+                    className="control-input"
+                    type="text"
+                    value={settings.aiBaseUrl}
+                    placeholder="http://localhost:11434"
+                    onChange={(e) => set("aiBaseUrl", e.target.value)}
+                  />
+                </div>
+              )}
+
               <div className="settings-row">
-                <label className="settings-label">{t("settings.ai.endpoint")}</label>
-                <input
-                  className="control-input"
-                  type="text"
-                  value={settings.aiBaseUrl}
-                  placeholder="http://localhost:11434"
-                  onChange={(e) => set("aiBaseUrl", e.target.value)}
-                />
+                <label className="settings-label">{t("settings.ai.answerMode")}</label>
+                <div className="settings-segment">
+                  {[
+                    { v: "pass_all", l: t("settings.ai.modeFull") },
+                    { v: "tools", l: t("settings.ai.modeSmart") },
+                  ].map((o) => (
+                    <button
+                      key={o.v}
+                      type="button"
+                      className={`settings-seg-btn${settings.aiMode === o.v ? " is-active" : ""}`}
+                      onClick={() => set("aiMode", o.v)}
+                    >
+                      {o.l}
+                    </button>
+                  ))}
+                </div>
               </div>
-            )}
 
-            <div className="settings-row">
-              <label className="settings-label">{t("settings.ai.answerMode")}</label>
-              <div className="settings-segment">
-                {[
-                  { v: "pass_all", l: t("settings.ai.modeFull") },
-                  { v: "tools", l: t("settings.ai.modeSmart") },
-                ].map((o) => (
-                  <button
-                    key={o.v}
-                    type="button"
-                    className={`settings-seg-btn${settings.aiMode === o.v ? " is-active" : ""}`}
-                    onClick={() => set("aiMode", o.v)}
-                  >
-                    {o.l}
-                  </button>
-                ))}
+              {/* Max response length */}
+              <div className="settings-row settings-row--stack">
+                <label className="settings-label">
+                  {t("settings.ai.maxTokens")}
+                  <span className="settings-mt-value">
+                    {mtOn ? settings.aiMaxTokens : t("settings.ai.mtDefault")}
+                  </span>
+                </label>
+                <label className="settings-check">
+                  <input
+                    type="checkbox"
+                    checked={!mtOn}
+                    onChange={(e) => set("aiMaxTokens", e.target.checked ? 0 : 2048)}
+                  />
+                  <span>{t("settings.ai.mtUseDefault")}</span>
+                </label>
+                <input
+                  className="settings-slider"
+                  type="range"
+                  min={MT_MIN}
+                  max={MT_MAX}
+                  step={MT_STEP}
+                  value={mtOn ? settings.aiMaxTokens : 2048}
+                  disabled={!mtOn}
+                  onChange={(e) => set("aiMaxTokens", parseInt(e.target.value, 10))}
+                />
+                <p className="settings-hint">{t("settings.ai.maxTokensHint")}</p>
+              </div>
+
+              <div className="settings-links">
+                <button type="button" className="settings-link" onClick={() => setTab("apiKeys")}>
+                  <Key size={14} /> {t("settings.ai.manageKeys")}
+                </button>
+                <button
+                  type="button"
+                  className="settings-link"
+                  onClick={() => navigate("/ai-tools")}
+                >
+                  <Sparkles size={14} /> {t("settings.ai.viewCapabilities")}
+                </button>
               </div>
             </div>
+          )}
 
-            {/* Max response length */}
-            <div className="settings-row settings-row--stack">
-              <label className="settings-label">
-                {t("settings.ai.maxTokens")}
-                <span className="settings-mt-value">
-                  {mtOn ? settings.aiMaxTokens : t("settings.ai.mtDefault")}
-                </span>
-              </label>
-              <label className="settings-check">
-                <input
-                  type="checkbox"
-                  checked={!mtOn}
-                  onChange={(e) => set("aiMaxTokens", e.target.checked ? 0 : 2048)}
-                />
-                <span>{t("settings.ai.mtUseDefault")}</span>
-              </label>
-              <input
-                className="settings-slider"
-                type="range"
-                min={MT_MIN}
-                max={MT_MAX}
-                step={MT_STEP}
-                value={mtOn ? settings.aiMaxTokens : 2048}
-                disabled={!mtOn}
-                onChange={(e) => set("aiMaxTokens", parseInt(e.target.value, 10))}
-              />
-              <p className="settings-hint">{t("settings.ai.maxTokensHint")}</p>
-            </div>
-
-            <div className="settings-links">
-              <button type="button" className="settings-link" onClick={() => setTab("apiKeys")}>
-                <Key size={14} /> {t("settings.ai.manageKeys")}
-              </button>
-              <button type="button" className="settings-link" onClick={() => navigate("/ai-tools")}>
-                <Sparkles size={14} /> {t("settings.ai.viewCapabilities")}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* API KEYS */}
-        {tab === "apiKeys" && (
-          <div className="ui-card settings-panel">
-            <p className="settings-hint">{t("settings.apiKeys.hint")}</p>
-            {KEYED_PROVIDERS.map((prov) => {
-              const status = keyStatus[prov];
-              const masked = status?.masked || status?.status;
-              return (
-                <div key={prov} className="settings-key-row">
-                  <div className="settings-key-head">
-                    {/* The provider's own label ("OpenRouter", "OpenAI (ChatGPT)")
+          {/* API KEYS */}
+          {tab === "apiKeys" && (
+            <div className="ui-card settings-panel">
+              <p className="settings-hint">{t("settings.apiKeys.hint")}</p>
+              {KEYED_PROVIDERS.map((prov) => {
+                const status = keyStatus[prov];
+                const masked = status?.masked || status?.status;
+                return (
+                  <div key={prov} className="settings-key-row">
+                    <div className="settings-key-head">
+                      {/* The provider's own label ("OpenRouter", "OpenAI (ChatGPT)")
                         rather than the raw type, which capitalizes into
                         "Openrouter" / "Openai-Compatible". */}
-                    <span className="settings-key-name">
-                      {providers.find((p) => p.type === prov)?.label || prov}
-                    </span>
-                    <span className={`settings-key-status${masked ? " is-set" : ""}`}>
-                      {masked || t("settings.apiKeys.notSet")}
-                    </span>
-                  </div>
-                  <div className="settings-key-controls">
-                    <input
-                      className="control-input"
-                      type="password"
-                      value={keyInputs[prov] || ""}
-                      placeholder={t("settings.apiKeys.placeholder")}
-                      onChange={(e) => setKeyInputs((p) => ({ ...p, [prov]: e.target.value }))}
-                    />
-                    <button type="button" className="control-btn" onClick={() => saveKey(prov)}>
-                      {t("settings.apiKeys.save")}
-                    </button>
-                    {masked && (
-                      <button
-                        type="button"
-                        className="control-btn control-btn--ghost"
-                        onClick={() => removeKey(prov)}
-                      >
-                        {t("settings.apiKeys.remove")}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* API ACCESS — public API + MCP tokens (§2.3) */}
-        {tab === "apiAccess" && (
-          <div className="ui-card settings-panel">
-            <h3 className="settings-section-title">{t("settings.apiAccess.title")}</h3>
-            <p className="settings-hint">{t("settings.apiAccess.intro")}</p>
-
-            {apiTokError && <div className="settings-msg settings-msg--error">{apiTokError}</div>}
-
-            {/* Freshly-created token — shown once */}
-            {newApiToken && (
-              <div className="settings-token-new">
-                <p className="settings-token-new__label">{t("settings.apiAccess.newTokenLabel")}</p>
-                <div className="settings-cal-url">
-                  <input
-                    type="text"
-                    readOnly
-                    value={newApiToken}
-                    onFocus={(e) => e.target.select()}
-                  />
-                  <button type="button" className="ui-btn ui-btn--ghost" onClick={copyNewApiToken}>
-                    {apiTokCopied ? <Check size={16} /> : <Copy size={16} />}
-                    {apiTokCopied ? t("settings.apiAccess.copied") : t("settings.apiAccess.copy")}
-                  </button>
-                </div>
-                <p className="settings-hint settings-token-new__warn">
-                  {t("settings.apiAccess.newTokenWarn")}
-                </p>
-              </div>
-            )}
-
-            {/* Create */}
-            <div className="settings-row settings-token-create">
-              <input
-                className="settings-input"
-                type="text"
-                value={apiTokLabel}
-                placeholder={t("settings.apiAccess.labelPlaceholder")}
-                maxLength={80}
-                onChange={(e) => setApiTokLabel(e.target.value)}
-              />
-              <button
-                type="button"
-                className="ui-btn ui-btn--primary"
-                onClick={createApiToken}
-                disabled={apiTokBusy}
-              >
-                <Plus size={16} />
-                {apiTokBusy ? t("settings.apiAccess.creating") : t("settings.apiAccess.create")}
-              </button>
-            </div>
-
-            {/* Existing tokens */}
-            {apiTokens.length === 0 ? (
-              <p className="settings-hint">{t("settings.apiAccess.empty")}</p>
-            ) : (
-              <div className="settings-token-list">
-                {apiTokens.map((tk) => (
-                  <div key={tk.id} className="settings-key-row settings-token-row">
-                    <div className="settings-key-head">
-                      <span className="settings-key-name">{tk.label}</span>
-                      <span className="settings-token-preview">{tk.preview}</span>
-                    </div>
-                    <div className="settings-token-meta">
-                      <span className="settings-hint">
-                        {t("settings.apiAccess.lastUsed")}:{" "}
-                        {tk.last_used_at
-                          ? formatDate(tk.last_used_at)
-                          : t("settings.apiAccess.never")}
+                      <span className="settings-key-name">
+                        {providers.find((p) => p.type === prov)?.label || prov}
                       </span>
-                      <button
-                        type="button"
-                        className="control-btn control-btn--ghost"
-                        onClick={() => revokeApiToken(tk.id)}
-                      >
-                        {t("settings.apiAccess.revoke")}
+                      <span className={`settings-key-status${masked ? " is-set" : ""}`}>
+                        {masked || t("settings.apiKeys.notSet")}
+                      </span>
+                    </div>
+                    <div className="settings-key-controls">
+                      <input
+                        className="control-input"
+                        type="password"
+                        value={keyInputs[prov] || ""}
+                        placeholder={t("settings.apiKeys.placeholder")}
+                        onChange={(e) => setKeyInputs((p) => ({ ...p, [prov]: e.target.value }))}
+                      />
+                      <button type="button" className="control-btn" onClick={() => saveKey(prov)}>
+                        {t("settings.apiKeys.save")}
                       </button>
+                      {masked && (
+                        <button
+                          type="button"
+                          className="control-btn control-btn--ghost"
+                          onClick={() => removeKey(prov)}
+                        >
+                          {t("settings.apiKeys.remove")}
+                        </button>
+                      )}
                     </div>
                   </div>
-                ))}
+                );
+              })}
+            </div>
+          )}
+
+          {/* API ACCESS — public API + MCP tokens (§2.3) */}
+          {tab === "apiAccess" && (
+            <div className="ui-card settings-panel">
+              <h3 className="settings-section-title">{t("settings.apiAccess.title")}</h3>
+              <p className="settings-hint">{t("settings.apiAccess.intro")}</p>
+
+              {apiTokError && <div className="settings-msg settings-msg--error">{apiTokError}</div>}
+
+              {/* Freshly-created token — shown once */}
+              {newApiToken && (
+                <div className="settings-token-new">
+                  <p className="settings-token-new__label">
+                    {t("settings.apiAccess.newTokenLabel")}
+                  </p>
+                  <div className="settings-cal-url">
+                    <input
+                      type="text"
+                      readOnly
+                      value={newApiToken}
+                      onFocus={(e) => e.target.select()}
+                    />
+                    <button
+                      type="button"
+                      className="ui-btn ui-btn--ghost"
+                      onClick={copyNewApiToken}
+                    >
+                      {apiTokCopied ? <Check size={16} /> : <Copy size={16} />}
+                      {apiTokCopied ? t("settings.apiAccess.copied") : t("settings.apiAccess.copy")}
+                    </button>
+                  </div>
+                  <p className="settings-hint settings-token-new__warn">
+                    {t("settings.apiAccess.newTokenWarn")}
+                  </p>
+                </div>
+              )}
+
+              {/* Create */}
+              <div className="settings-row settings-token-create">
+                <input
+                  className="settings-input"
+                  type="text"
+                  value={apiTokLabel}
+                  placeholder={t("settings.apiAccess.labelPlaceholder")}
+                  maxLength={80}
+                  onChange={(e) => setApiTokLabel(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="ui-btn ui-btn--primary"
+                  onClick={createApiToken}
+                  disabled={apiTokBusy}
+                >
+                  <Plus size={16} />
+                  {apiTokBusy ? t("settings.apiAccess.creating") : t("settings.apiAccess.create")}
+                </button>
               </div>
-            )}
 
-            <p className="settings-hint settings-token-docs">{t("settings.apiAccess.docs")}</p>
-          </div>
-        )}
+              {/* Existing tokens */}
+              {apiTokens.length === 0 ? (
+                <p className="settings-hint">{t("settings.apiAccess.empty")}</p>
+              ) : (
+                <div className="settings-token-list">
+                  {apiTokens.map((tk) => (
+                    <div key={tk.id} className="settings-key-row settings-token-row">
+                      <div className="settings-key-head">
+                        <span className="settings-key-name">{tk.label}</span>
+                        <span className="settings-token-preview">{tk.preview}</span>
+                      </div>
+                      <div className="settings-token-meta">
+                        <span className="settings-hint">
+                          {t("settings.apiAccess.lastUsed")}:{" "}
+                          {tk.last_used_at
+                            ? formatDate(tk.last_used_at)
+                            : t("settings.apiAccess.never")}
+                        </span>
+                        <button
+                          type="button"
+                          className="control-btn control-btn--ghost"
+                          onClick={() => revokeApiToken(tk.id)}
+                        >
+                          {t("settings.apiAccess.revoke")}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-        {/* ALMANAC */}
-        {/* LOCATION — where you are NOW. Never birth data. */}
-        {tab === "location" && (
-          <div className="ui-card settings-panel">
-            <p className="settings-hint" style={{ marginTop: 0 }}>
-              {t("settings.location.intro")}
-            </p>
+              <p className="settings-hint settings-token-docs">{t("settings.apiAccess.docs")}</p>
+            </div>
+          )}
 
-            <div className="settings-row">
-              <label className="settings-label">{t("settings.location.current")}</label>
-              <div className="settings-location-current">
-                {location ? (
-                  <>
-                    {/* The TIMEZONE leads — it's what the user actually chose and
+          {/* ALMANAC */}
+          {/* LOCATION — where you are NOW. Never birth data. */}
+          {tab === "location" && (
+            <div className="ui-card settings-panel">
+              <p className="settings-hint" style={{ marginTop: 0 }}>
+                {t("settings.location.intro")}
+              </p>
+
+              <div className="settings-row">
+                <label className="settings-label">{t("settings.location.current")}</label>
+                <div className="settings-location-current">
+                  {location ? (
+                    <>
+                      {/* The TIMEZONE leads — it's what the user actually chose and
                         what "now" runs on. "Central Time (UTC−5)", not
                         "America/Chicago": the IANA name is a developer
                         identifier and reads as a city. Raw zone in the title. */}
-                    <strong title={location.timezone}>
-                      {zoneLabel(location.timezone, location.utc_offset, i18n.language)}
-                    </strong>
-                    {/* The place is secondary, and honest about itself. Set from
+                      <strong title={location.timezone}>
+                        {zoneLabel(location.timezone, location.utc_offset, i18n.language)}
+                      </strong>
+                      {/* The place is secondary, and honest about itself. Set from
                         the browser's zone, it's the city that DEFINES the zone,
                         not one the user ever claimed to be in — so it's marked
                         approximate rather than asserted back at them. */}
-                    <span className="settings-location-zone">
-                      {location.source === "zone"
-                        ? t("settings.location.approxPlace", { place: location.place })
-                        : location.place}
-                    </span>
-                  </>
-                ) : (
-                  <span className="settings-location-zone">{t("settings.location.unset")}</span>
-                )}
+                      <span className="settings-location-zone">
+                        {location.source === "zone"
+                          ? t("settings.location.approxPlace", { place: location.place })
+                          : location.place}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="settings-location-zone">{t("settings.location.unset")}</span>
+                  )}
+                </div>
               </div>
+
+              <LocationSearch
+                onLocationSelect={saveHere}
+                placeholder={t("settings.location.searchPlaceholder")}
+              />
+
+              {locMsg && (
+                <p className={`settings-hint${locMsg.type === "error" ? " is-error" : ""}`}>
+                  {locMsg.text}
+                </p>
+              )}
+
+              {location && (
+                <button
+                  type="button"
+                  className="control-btn control-btn--ghost"
+                  onClick={clearHere}
+                  disabled={busy === "location"}
+                >
+                  {t("settings.location.clear")}
+                </button>
+              )}
+              <p className="settings-hint">{t("settings.location.hint")}</p>
             </div>
+          )}
 
-            <LocationSearch
-              onLocationSelect={saveHere}
-              placeholder={t("settings.location.searchPlaceholder")}
-            />
-
-            {locMsg && (
-              <p className={`settings-hint${locMsg.type === "error" ? " is-error" : ""}`}>
-                {locMsg.text}
-              </p>
-            )}
-
-            {location && (
-              <button
-                type="button"
-                className="control-btn control-btn--ghost"
-                onClick={clearHere}
-                disabled={busy === "location"}
-              >
-                {t("settings.location.clear")}
-              </button>
-            )}
-            <p className="settings-hint">{t("settings.location.hint")}</p>
-          </div>
-        )}
-
-        {tab === "almanac" && (
-          <div className="ui-card settings-panel">
-            <div className="settings-row">
-              <label className="settings-label">{t("settings.almanac.engine")}</label>
-              <div className="settings-segment">
-                {[
-                  { v: "drik", l: t("settings.almanac.drik") },
-                  { v: "surya_siddhanta", l: t("settings.almanac.surya") },
-                ].map((o) => (
-                  <button
-                    key={o.v}
-                    type="button"
-                    className={`settings-seg-btn${settings.panchangaSystem === o.v ? " is-active" : ""}`}
-                    onClick={() => set("panchangaSystem", o.v)}
-                  >
-                    {o.l}
-                  </button>
-                ))}
+          {tab === "almanac" && (
+            <div className="ui-card settings-panel">
+              <div className="settings-row">
+                <label className="settings-label">{t("settings.almanac.engine")}</label>
+                <div className="settings-segment">
+                  {[
+                    { v: "drik", l: t("settings.almanac.drik") },
+                    { v: "surya_siddhanta", l: t("settings.almanac.surya") },
+                  ].map((o) => (
+                    <button
+                      key={o.v}
+                      type="button"
+                      className={`settings-seg-btn${settings.panchangaSystem === o.v ? " is-active" : ""}`}
+                      onClick={() => set("panchangaSystem", o.v)}
+                    >
+                      {o.l}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <p className="settings-hint">{t("settings.almanac.hint")}</p>
+              <p className="settings-hint">{t("settings.almanac.hint")}</p>
 
-            {/* Varnada lagna derivation. The four published methods genuinely
+              {/* Varnada lagna derivation. The four published methods genuinely
                 disagree, so this is a real choice rather than a preference.
                 Method 1 (Sanjay Rath) is the default because it is the one that
                 reproduces Jagannatha Hora's V1..V12 exactly. */}
-            <div className="settings-row">
-              <label className="settings-label">{t("settings.almanac.varnada")}</label>
-              <div className="settings-segment">
-                {[
-                  { v: "1", l: t("settings.almanac.varnadaRath") },
-                  { v: "2", l: t("settings.almanac.varnadaJha") },
-                  { v: "3", l: t("settings.almanac.varnadaRaman") },
-                  { v: "4", l: t("settings.almanac.varnadaSanthanam") },
-                ].map((o) => (
-                  <button
-                    key={o.v}
-                    type="button"
-                    className={`settings-seg-btn${
-                      String(settings.varnadaMethod) === o.v ? " is-active" : ""
-                    }`}
-                    onClick={() => set("varnadaMethod", o.v)}
-                  >
-                    {o.l}
-                  </button>
-                ))}
+              <div className="settings-row">
+                <label className="settings-label">{t("settings.almanac.varnada")}</label>
+                <div className="settings-segment">
+                  {[
+                    { v: "1", l: t("settings.almanac.varnadaRath") },
+                    { v: "2", l: t("settings.almanac.varnadaJha") },
+                    { v: "3", l: t("settings.almanac.varnadaRaman") },
+                    { v: "4", l: t("settings.almanac.varnadaSanthanam") },
+                  ].map((o) => (
+                    <button
+                      key={o.v}
+                      type="button"
+                      className={`settings-seg-btn${
+                        String(settings.varnadaMethod) === o.v ? " is-active" : ""
+                      }`}
+                      onClick={() => set("varnadaMethod", o.v)}
+                    >
+                      {o.l}
+                    </button>
+                  ))}
+                </div>
               </div>
+              <p className="settings-hint">{t("settings.almanac.varnadaHint")}</p>
             </div>
-            <p className="settings-hint">{t("settings.almanac.varnadaHint")}</p>
-          </div>
-        )}
+          )}
 
-        {/* NOTIFICATIONS */}
-        {tab === "notifications" && (
-          <div className="ui-card settings-panel">
-            <h3 className="settings-section-title">{t("settings.notifications.title")}</h3>
-            <p className="settings-hint">{t("settings.notifications.intro")}</p>
+          {/* NOTIFICATIONS */}
+          {tab === "notifications" && (
+            <div className="ui-card settings-panel">
+              <h3 className="settings-section-title">{t("settings.notifications.title")}</h3>
+              <p className="settings-hint">{t("settings.notifications.intro")}</p>
 
-            {notifMsg.text && (
-              <div className={`settings-msg settings-msg--${notifMsg.type}`}>{notifMsg.text}</div>
-            )}
+              {notifMsg.text && (
+                <div className={`settings-msg settings-msg--${notifMsg.type}`}>{notifMsg.text}</div>
+              )}
 
-            {/* Cadence switches: daily / fortnightly / monthly, each with its own
+              {/* Cadence switches: daily / fortnightly / monthly, each with its own
                 schedule. The delivery channels + profile picks below are shared. */}
-            {(() => {
-              const eventKindKeys = notifMeta?.event_kinds || [];
-              const hourOptions = Array.from({ length: 24 }, (_, h) => (
-                <option key={h} value={h}>
-                  {String(h).padStart(2, "0")}:00
-                </option>
-              ));
-              const anyDigest = !!(notif?.daily_digest || notif?.fortnightly || notif?.monthly);
-              return (
-                <>
-                  {/* Daily */}
-                  <div className="settings-row">
-                    <label className="settings-label">
-                      {t("settings.notifications.dailyDigest")}
-                    </label>
-                    <label className="settings-switch">
-                      <input
-                        type="checkbox"
-                        checked={!!notif?.daily_digest}
-                        onChange={(e) => saveNotif({ daily_digest: e.target.checked })}
-                      />
-                      <span />
-                    </label>
-                  </div>
-                  {notif?.daily_digest && (
+              {(() => {
+                const eventKindKeys = notifMeta?.event_kinds || [];
+                const hourOptions = Array.from({ length: 24 }, (_, h) => (
+                  <option key={h} value={h}>
+                    {String(h).padStart(2, "0")}:00
+                  </option>
+                ));
+                const anyDigest = !!(notif?.daily_digest || notif?.fortnightly || notif?.monthly);
+                return (
+                  <>
+                    {/* Daily */}
                     <div className="settings-row">
-                      <label className="settings-label">{t("settings.notifications.hour")}</label>
-                      <select
-                        className="form-select"
-                        value={notif?.hour ?? 7}
-                        onChange={(e) => saveNotif({ hour: parseInt(e.target.value, 10) })}
-                      >
-                        {hourOptions}
-                      </select>
+                      <label className="settings-label">
+                        {t("settings.notifications.dailyDigest")}
+                      </label>
+                      <label className="settings-switch">
+                        <input
+                          type="checkbox"
+                          aria-label={t("settings.notifications.dailyDigest")}
+                          checked={!!notif?.daily_digest}
+                          onChange={(e) => saveNotif({ daily_digest: e.target.checked })}
+                        />
+                        <span />
+                      </label>
                     </div>
-                  )}
+                    {notif?.daily_digest && (
+                      <div className="settings-row">
+                        <label className="settings-label">{t("settings.notifications.hour")}</label>
+                        <select
+                          className="form-select"
+                          value={notif?.hour ?? 7}
+                          onChange={(e) => saveNotif({ hour: parseInt(e.target.value, 10) })}
+                        >
+                          {hourOptions}
+                        </select>
+                      </div>
+                    )}
 
-                  {/* Fortnightly — the paksha boundary IS the schedule, so there's
+                    {/* Fortnightly — the paksha boundary IS the schedule, so there's
                       no day picker: it fires when a new lunar fortnight opens. */}
-                  <div className="settings-row">
-                    <label className="settings-label">
-                      {t("settings.notifications.fortnightlyDigest")}
-                    </label>
-                    <label className="settings-switch">
-                      <input
-                        type="checkbox"
-                        checked={!!notif?.fortnightly}
-                        onChange={(e) => saveNotif({ fortnightly: e.target.checked })}
-                      />
-                      <span />
-                    </label>
-                  </div>
-                  {notif?.fortnightly && (
-                    <>
-                      <div className="settings-row">
-                        <label className="settings-label">{t("settings.notifications.hour")}</label>
-                        <select
-                          className="form-select"
-                          value={notif?.fortnightly_hour ?? 7}
-                          onChange={(e) =>
-                            saveNotif({ fortnightly_hour: parseInt(e.target.value, 10) })
-                          }
-                        >
-                          {hourOptions}
-                        </select>
-                      </div>
-                      <p className="settings-hint">{t("settings.notifications.fortnightlyNote")}</p>
-                    </>
-                  )}
+                    <div className="settings-row">
+                      <label className="settings-label">
+                        {t("settings.notifications.fortnightlyDigest")}
+                      </label>
+                      <label className="settings-switch">
+                        <input
+                          type="checkbox"
+                          aria-label={t("settings.notifications.fortnightlyDigest")}
+                          checked={!!notif?.fortnightly}
+                          onChange={(e) => saveNotif({ fortnightly: e.target.checked })}
+                        />
+                        <span />
+                      </label>
+                    </div>
+                    {notif?.fortnightly && (
+                      <>
+                        <div className="settings-row">
+                          <label className="settings-label">
+                            {t("settings.notifications.hour")}
+                          </label>
+                          <select
+                            className="form-select"
+                            value={notif?.fortnightly_hour ?? 7}
+                            onChange={(e) =>
+                              saveNotif({ fortnightly_hour: parseInt(e.target.value, 10) })
+                            }
+                          >
+                            {hourOptions}
+                          </select>
+                        </div>
+                        <p className="settings-hint">
+                          {t("settings.notifications.fortnightlyNote")}
+                        </p>
+                      </>
+                    )}
 
-                  {/* Monthly */}
-                  <div className="settings-row">
-                    <label className="settings-label">
-                      {t("settings.notifications.monthlyDigest")}
-                    </label>
-                    <label className="settings-switch">
-                      <input
-                        type="checkbox"
-                        checked={!!notif?.monthly}
-                        onChange={(e) => saveNotif({ monthly: e.target.checked })}
-                      />
-                      <span />
-                    </label>
-                  </div>
-                  {notif?.monthly && (
-                    <>
-                      <div className="settings-row">
-                        <label className="settings-label">
-                          {t("settings.notifications.dayOfMonth")}
-                        </label>
-                        <select
-                          className="form-select"
-                          value={notif?.monthly_dom ?? 1}
-                          onChange={(e) => saveNotif({ monthly_dom: parseInt(e.target.value, 10) })}
-                        >
-                          {Array.from({ length: 28 }, (_, i) => (
-                            <option key={i + 1} value={i + 1}>
-                              {i + 1}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="settings-row">
-                        <label className="settings-label">{t("settings.notifications.hour")}</label>
-                        <select
-                          className="form-select"
-                          value={notif?.monthly_hour ?? 7}
-                          onChange={(e) =>
-                            saveNotif({ monthly_hour: parseInt(e.target.value, 10) })
-                          }
-                        >
-                          {hourOptions}
-                        </select>
-                      </div>
-                    </>
-                  )}
+                    {/* Monthly */}
+                    <div className="settings-row">
+                      <label className="settings-label">
+                        {t("settings.notifications.monthlyDigest")}
+                      </label>
+                      <label className="settings-switch">
+                        <input
+                          type="checkbox"
+                          aria-label={t("settings.notifications.monthlyDigest")}
+                          checked={!!notif?.monthly}
+                          onChange={(e) => saveNotif({ monthly: e.target.checked })}
+                        />
+                        <span />
+                      </label>
+                    </div>
+                    {notif?.monthly && (
+                      <>
+                        <div className="settings-row">
+                          <label className="settings-label">
+                            {t("settings.notifications.dayOfMonth")}
+                          </label>
+                          <select
+                            className="form-select"
+                            value={notif?.monthly_dom ?? 1}
+                            onChange={(e) =>
+                              saveNotif({ monthly_dom: parseInt(e.target.value, 10) })
+                            }
+                          >
+                            {Array.from({ length: 28 }, (_, i) => (
+                              <option key={i + 1} value={i + 1}>
+                                {i + 1}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="settings-row">
+                          <label className="settings-label">
+                            {t("settings.notifications.hour")}
+                          </label>
+                          <select
+                            className="form-select"
+                            value={notif?.monthly_hour ?? 7}
+                            onChange={(e) =>
+                              saveNotif({ monthly_hour: parseInt(e.target.value, 10) })
+                            }
+                          >
+                            {hourOptions}
+                          </select>
+                        </div>
+                      </>
+                    )}
 
-                  {/* Event alerts (§70). Deliberately below the cadences and
+                    {/* Event alerts (§70). Deliberately below the cadences and
                       visually separate: these are not a schedule. A digest
                       arrives because it is 7am; an alert arrives because
                       something in your chart actually changed. */}
-                  <div className="settings-row">
-                    <label className="settings-label">
-                      {t("settings.notifications.eventAlerts")}
-                    </label>
-                    <label className="settings-switch">
-                      <input
-                        type="checkbox"
-                        checked={!!notif?.event_alerts}
-                        onChange={(e) => saveNotif({ event_alerts: e.target.checked })}
-                      />
-                      <span />
-                    </label>
-                  </div>
-                  <p className="settings-hint">{t("settings.notifications.eventAlertsHint")}</p>
-                  {notif?.event_alerts && (
-                    <>
-                      <div className="settings-row settings-row--stack">
-                        <label className="settings-label">
-                          {t("settings.notifications.eventKinds")}
-                        </label>
-                        {eventKindKeys.map((k) => {
-                          const on = (notif?.event_kinds || eventKindKeys).includes(k);
-                          return (
-                            <label className="settings-check" key={k}>
-                              <input
-                                type="checkbox"
-                                checked={on}
-                                onChange={(e) => {
-                                  const current = notif?.event_kinds || eventKindKeys;
-                                  const next = e.target.checked
-                                    ? [...new Set([...current, k])]
-                                    : current.filter((x) => x !== k);
-                                  saveNotif({ event_kinds: next });
-                                }}
-                              />
-                              <span>{t(`timeline.upcoming.kind.${k}`)}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                      <div className="settings-row">
-                        <label className="settings-label">
-                          {t("settings.notifications.eventLead")}
-                        </label>
-                        <select
-                          className="form-select"
-                          value={notif?.event_lead_days ?? 3}
-                          onChange={(e) =>
-                            saveNotif({ event_lead_days: parseInt(e.target.value, 10) })
-                          }
-                        >
-                          {[0, 1, 2, 3, 5, 7, 14, 30].map((d) => (
-                            <option key={d} value={d}>
-                              {t("settings.notifications.eventLeadOption", { count: d })}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="settings-row">
-                        <label className="settings-label">{t("settings.notifications.hour")}</label>
-                        <select
-                          className="form-select"
-                          value={notif?.event_hour ?? 8}
-                          onChange={(e) => saveNotif({ event_hour: parseInt(e.target.value, 10) })}
-                        >
-                          {hourOptions}
-                        </select>
-                      </div>
-                    </>
-                  )}
+                    <div className="settings-row">
+                      <label className="settings-label">
+                        {t("settings.notifications.eventAlerts")}
+                      </label>
+                      <label className="settings-switch">
+                        <input
+                          type="checkbox"
+                          aria-label={t("settings.notifications.eventAlerts")}
+                          checked={!!notif?.event_alerts}
+                          onChange={(e) => saveNotif({ event_alerts: e.target.checked })}
+                        />
+                        <span />
+                      </label>
+                    </div>
+                    <p className="settings-hint">{t("settings.notifications.eventAlertsHint")}</p>
+                    {notif?.event_alerts && (
+                      <>
+                        <div className="settings-row settings-row--stack">
+                          <label className="settings-label">
+                            {t("settings.notifications.eventKinds")}
+                          </label>
+                          {eventKindKeys.map((k) => {
+                            const on = (notif?.event_kinds || eventKindKeys).includes(k);
+                            return (
+                              <label className="settings-check" key={k}>
+                                <input
+                                  type="checkbox"
+                                  checked={on}
+                                  onChange={(e) => {
+                                    const current = notif?.event_kinds || eventKindKeys;
+                                    const next = e.target.checked
+                                      ? [...new Set([...current, k])]
+                                      : current.filter((x) => x !== k);
+                                    saveNotif({ event_kinds: next });
+                                  }}
+                                />
+                                <span>{t(`timeline.upcoming.kind.${k}`)}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <div className="settings-row">
+                          <label className="settings-label">
+                            {t("settings.notifications.eventLead")}
+                          </label>
+                          <select
+                            className="form-select"
+                            value={notif?.event_lead_days ?? 3}
+                            onChange={(e) =>
+                              saveNotif({ event_lead_days: parseInt(e.target.value, 10) })
+                            }
+                          >
+                            {[0, 1, 2, 3, 5, 7, 14, 30].map((d) => (
+                              <option key={d} value={d}>
+                                {t("settings.notifications.eventLeadOption", { count: d })}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="settings-row">
+                          <label className="settings-label">
+                            {t("settings.notifications.hour")}
+                          </label>
+                          <select
+                            className="form-select"
+                            value={notif?.event_hour ?? 8}
+                            onChange={(e) =>
+                              saveNotif({ event_hour: parseInt(e.target.value, 10) })
+                            }
+                          >
+                            {hourOptions}
+                          </select>
+                        </div>
+                      </>
+                    )}
 
-                  {!anyDigest && !notif?.event_alerts ? null : (
-                    <>
-                      {/* Which profiles — an "all" shortcut plus a per-profile pick list.
+                    {!anyDigest && !notif?.event_alerts ? null : (
+                      <>
+                        {/* Which profiles — an "all" shortcut plus a per-profile pick list.
                     Falls back to the legacy single profile_id when neither is set. */}
-                      <div className="settings-row settings-row--stack">
-                        <label className="settings-label">
-                          {t("settings.notifications.profiles")}
-                        </label>
-                        <label className="settings-check">
-                          <input
-                            type="checkbox"
-                            checked={!!notif?.all_profiles}
-                            onChange={(e) => saveNotif({ all_profiles: e.target.checked })}
-                          />
-                          <span>{t("settings.notifications.allProfiles")}</span>
-                        </label>
-                        {!notif?.all_profiles && (
-                          <div className="settings-checklist">
-                            {(profiles || []).map((p) => {
-                              const selected = notif?.profile_ids || [];
-                              const legacyOnly = selected.length === 0 && notif?.profile_id;
-                              const isOn = selected.includes(p._id) || legacyOnly === p._id;
-                              return (
-                                <label key={p._id} className="settings-check">
-                                  <input
-                                    type="checkbox"
-                                    checked={!!isOn}
-                                    onChange={(e) => {
-                                      const base =
-                                        selected.length === 0 && notif?.profile_id
-                                          ? [notif.profile_id]
-                                          : selected;
-                                      const next = e.target.checked
-                                        ? [...new Set([...base, p._id])]
-                                        : base.filter((id) => id !== p._id);
-                                      saveNotif({ profile_ids: next, profile_id: null });
-                                    }}
-                                  />
-                                  <span>{p.profile_name || p.birth_details?.name}</span>
-                                </label>
-                              );
-                            })}
-                            {(profiles || []).length === 0 && (
-                              <p className="settings-hint">
-                                {t("settings.notifications.noProfiles")}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                        <div className="settings-row settings-row--stack">
+                          <label className="settings-label">
+                            {t("settings.notifications.profiles")}
+                          </label>
+                          <label className="settings-check">
+                            <input
+                              type="checkbox"
+                              checked={!!notif?.all_profiles}
+                              onChange={(e) => saveNotif({ all_profiles: e.target.checked })}
+                            />
+                            <span>{t("settings.notifications.allProfiles")}</span>
+                          </label>
+                          {!notif?.all_profiles && (
+                            <div className="settings-checklist">
+                              {(profiles || []).map((p) => {
+                                const selected = notif?.profile_ids || [];
+                                const legacyOnly = selected.length === 0 && notif?.profile_id;
+                                const isOn = selected.includes(p._id) || legacyOnly === p._id;
+                                return (
+                                  <label key={p._id} className="settings-check">
+                                    <input
+                                      type="checkbox"
+                                      checked={!!isOn}
+                                      onChange={(e) => {
+                                        const base =
+                                          selected.length === 0 && notif?.profile_id
+                                            ? [notif.profile_id]
+                                            : selected;
+                                        const next = e.target.checked
+                                          ? [...new Set([...base, p._id])]
+                                          : base.filter((id) => id !== p._id);
+                                        saveNotif({ profile_ids: next, profile_id: null });
+                                      }}
+                                    />
+                                    <span>{p.profile_name || p.birth_details?.name}</span>
+                                  </label>
+                                );
+                              })}
+                              {(profiles || []).length === 0 && (
+                                <p className="settings-hint">
+                                  {t("settings.notifications.noProfiles")}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
 
-                      {/* Below here is digest-only. The profile picker above is
+                        {/* Below here is digest-only. The profile picker above is
                           shared — it decides which charts are *watched* as well
                           as which are read — but a pravesha ladder and an AI
                           narrative belong to a delivered reading, and an alert
                           is neither. */}
-                      {!anyDigest ? null : (
-                        <>
-                      {/* Which pravesha ladder the delivered readings are cast on. */}
-                      <div className="settings-row settings-row--stack">
-                        <label className="settings-label">
-                          {t("settings.notifications.basis")}
-                        </label>
-                        <select
-                          className="form-select"
-                          value={notif?.basis || "solar"}
-                          onChange={(e) => saveNotif({ basis: e.target.value })}
-                        >
-                          <option value="solar">{t("settings.notifications.basisSolar")}</option>
-                          <option value="lunar">{t("settings.notifications.basisLunar")}</option>
-                        </select>
-                        <p className="settings-hint">{t("settings.notifications.basisHint")}</p>
-                      </div>
-
-                      {/* AI "how the day/fortnight/month looks" narrative */}
-                      <div className="settings-row">
-                        <label className="settings-label">
-                          {t("settings.notifications.includeAi")}
-                        </label>
-                        <label className="settings-switch">
-                          <input
-                            type="checkbox"
-                            checked={notif?.include_ai !== false}
-                            onChange={(e) => saveNotif({ include_ai: e.target.checked })}
-                          />
-                          <span />
-                        </label>
-                      </div>
-
-                        </>
-                      )}
-
-                      {/* Email channel */}
-                      <div className="settings-row">
-                        <label className="settings-label">
-                          {t("settings.notifications.email")}
-                          {!notifMeta.email_available && (
-                            <span className="settings-badge">
-                              {t("settings.notifications.emailUnavailable")}
-                            </span>
-                          )}
-                        </label>
-                        <label className="settings-switch">
-                          <input
-                            type="checkbox"
-                            disabled={!notifMeta.email_available}
-                            checked={!!notif?.email}
-                            onChange={(e) => saveNotif({ email: e.target.checked })}
-                          />
-                          <span />
-                        </label>
-                      </div>
-
-                      {/* Push channel. Reason precedence: server not configured →
-                    insecure page (needs HTTPS/localhost) → old browser. */}
-                      {(() => {
-                        const pushReason = !notifMeta.push_available
-                          ? "server"
-                          : pushUnavailableReason() || (!pushSupported() ? "unsupported" : "");
-                        const pushBlocked = !!pushReason;
-                        const reasonText = t(
-                          `settings.notifications.pushReason.${pushReason || "unsupported"}`,
-                          { brand: SITE_TITLE }
-                        );
-                        return (
+                        {!anyDigest ? null : (
                           <>
+                            {/* Which pravesha ladder the delivered readings are cast on. */}
+                            <div className="settings-row settings-row--stack">
+                              <label className="settings-label">
+                                {t("settings.notifications.basis")}
+                              </label>
+                              <select
+                                className="form-select"
+                                value={notif?.basis || "solar"}
+                                onChange={(e) => saveNotif({ basis: e.target.value })}
+                              >
+                                <option value="solar">
+                                  {t("settings.notifications.basisSolar")}
+                                </option>
+                                <option value="lunar">
+                                  {t("settings.notifications.basisLunar")}
+                                </option>
+                              </select>
+                              <p className="settings-hint">
+                                {t("settings.notifications.basisHint")}
+                              </p>
+                            </div>
+
+                            {/* AI "how the day/fortnight/month looks" narrative */}
                             <div className="settings-row">
                               <label className="settings-label">
-                                {t("settings.notifications.push")}
-                                {pushBlocked && (
-                                  <span className="settings-badge" title={reasonText}>
-                                    {t("settings.notifications.pushUnavailable")}
-                                  </span>
-                                )}
+                                {t("settings.notifications.includeAi")}
                               </label>
                               <label className="settings-switch">
                                 <input
                                   type="checkbox"
-                                  disabled={pushBlocked}
-                                  checked={!!notif?.push}
-                                  onChange={(e) => togglePush(e.target.checked)}
+                                  aria-label={t("settings.notifications.includeAi")}
+                                  checked={notif?.include_ai !== false}
+                                  onChange={(e) => saveNotif({ include_ai: e.target.checked })}
                                 />
                                 <span />
                               </label>
                             </div>
-                            {pushBlocked && <p className="settings-hint">{reasonText}</p>}
                           </>
-                        );
-                      })()}
-
-                      {/* Per-cadence "send me one now" tests, only for enabled cadences. */}
-                      <div className="settings-test-row">
-                        {notif?.daily_digest && (
-                          <button
-                            type="button"
-                            className="settings-link"
-                            onClick={() => sendTestDigest("daily")}
-                          >
-                            {t("settings.notifications.sendTestDaily")}
-                          </button>
                         )}
-                        {notif?.fortnightly && (
-                          <button
-                            type="button"
-                            className="settings-link"
-                            onClick={() => sendTestDigest("fortnightly")}
-                          >
-                            {t("settings.notifications.sendTestFortnightly")}
-                          </button>
-                        )}
-                        {notif?.monthly && (
-                          <button
-                            type="button"
-                            className="settings-link"
-                            onClick={() => sendTestDigest("monthly")}
-                          >
-                            {t("settings.notifications.sendTestMonthly")}
-                          </button>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </>
-              );
-            })()}
-            <p className="settings-hint">{t("settings.notifications.note")}</p>
-          </div>
-        )}
 
-        {/* SYSTEM HEALTH */}
-        {/* CALENDAR (iCal feed) */}
-        {tab === "calendar" && (
-          <div className="ui-card settings-panel">
-            <h3 className="settings-section-title">{t("settings.calendar.title")}</h3>
-            <p className="settings-hint">{t("settings.calendar.intro")}</p>
+                        {/* Email channel */}
+                        <div className="settings-row">
+                          <label className="settings-label">
+                            {t("settings.notifications.email")}
+                            {!notifMeta.email_available && (
+                              <span className="settings-badge">
+                                {t("settings.notifications.emailUnavailable")}
+                              </span>
+                            )}
+                          </label>
+                          <label className="settings-switch">
+                            <input
+                              type="checkbox"
+                              disabled={!notifMeta.email_available}
+                              aria-label={t("settings.notifications.email")}
+                              checked={!!notif?.email}
+                              onChange={(e) => saveNotif({ email: e.target.checked })}
+                            />
+                            <span />
+                          </label>
+                        </div>
 
-            {calError && <div className="settings-msg settings-msg--error">{calError}</div>}
+                        {/* Push channel. Reason precedence: server not configured →
+                    insecure page (needs HTTPS/localhost) → old browser. */}
+                        {(() => {
+                          const pushReason = !notifMeta.push_available
+                            ? "server"
+                            : pushUnavailableReason() || (!pushSupported() ? "unsupported" : "");
+                          const pushBlocked = !!pushReason;
+                          const reasonText = t(
+                            `settings.notifications.pushReason.${pushReason || "unsupported"}`,
+                            { brand: SITE_TITLE }
+                          );
+                          return (
+                            <>
+                              <div className="settings-row">
+                                <label className="settings-label">
+                                  {t("settings.notifications.push")}
+                                  {pushBlocked && (
+                                    <span className="settings-badge" title={reasonText}>
+                                      {t("settings.notifications.pushUnavailable")}
+                                    </span>
+                                  )}
+                                </label>
+                                <label className="settings-switch">
+                                  <input
+                                    type="checkbox"
+                                    disabled={pushBlocked}
+                                    aria-label={t("settings.notifications.push")}
+                                    checked={!!notif?.push}
+                                    onChange={(e) => togglePush(e.target.checked)}
+                                  />
+                                  <span />
+                                </label>
+                              </div>
+                              {pushBlocked && <p className="settings-hint">{reasonText}</p>}
+                            </>
+                          );
+                        })()}
 
-            {profiles?.length > 1 && (
-              <div className="settings-row">
-                <label className="settings-label">{t("settings.calendar.profile")}</label>
-                <select
-                  className="settings-input"
-                  value={calProfileId}
-                  onChange={(e) => setCalProfileId(e.target.value)}
-                >
-                  {profiles.map((p) => (
-                    <option key={p._id} value={p._id}>
-                      {p.profile_name || p.birth_details?.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <label className="settings-label">{t("settings.calendar.url")}</label>
-            <div className="settings-cal-url">
-              <input
-                type="text"
-                readOnly
-                value={calBusy ? t("settings.calendar.loading") : calUrl}
-                onFocus={(e) => e.target.select()}
-              />
-              <button
-                type="button"
-                className="ui-btn ui-btn--ghost"
-                onClick={copyCalUrl}
-                disabled={!calUrl}
-              >
-                {calCopied ? <Check size={16} /> : <Copy size={16} />}
-                {calCopied ? t("settings.calendar.copied") : t("settings.calendar.copy")}
-              </button>
+                        {/* Per-cadence "send me one now" tests, only for enabled cadences. */}
+                        <div className="settings-test-row">
+                          {notif?.daily_digest && (
+                            <button
+                              type="button"
+                              className="settings-link"
+                              onClick={() => sendTestDigest("daily")}
+                            >
+                              {t("settings.notifications.sendTestDaily")}
+                            </button>
+                          )}
+                          {notif?.fortnightly && (
+                            <button
+                              type="button"
+                              className="settings-link"
+                              onClick={() => sendTestDigest("fortnightly")}
+                            >
+                              {t("settings.notifications.sendTestFortnightly")}
+                            </button>
+                          )}
+                          {notif?.monthly && (
+                            <button
+                              type="button"
+                              className="settings-link"
+                              onClick={() => sendTestDigest("monthly")}
+                            >
+                              {t("settings.notifications.sendTestMonthly")}
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </>
+                );
+              })()}
+              <p className="settings-hint">{t("settings.notifications.note")}</p>
             </div>
-            <p className="settings-hint">{t("settings.calendar.help")}</p>
-            <p className="settings-hint">{t("settings.calendar.privacy")}</p>
-          </div>
-        )}
+          )}
 
-        {tab === "system" && (
-          <div className="ui-card settings-panel">
-            <div className="settings-key-head" style={{ marginBottom: 12 }}>
-              <h3 className="settings-section-title" style={{ margin: 0 }}>
-                {t("settings.system.title")}
-              </h3>
-              <button
-                type="button"
-                className="settings-link"
-                onClick={loadHealth}
-                disabled={healthLoading}
-              >
-                {healthLoading ? t("settings.system.checking") : t("settings.system.recheck")}
-              </button>
-            </div>
+          {/* SYSTEM HEALTH */}
+          {/* CALENDAR (iCal feed) */}
+          {tab === "calendar" && (
+            <div className="ui-card settings-panel">
+              <h3 className="settings-section-title">{t("settings.calendar.title")}</h3>
+              <p className="settings-hint">{t("settings.calendar.intro")}</p>
 
-            {healthErr && (
-              <p className="settings-hint settings-hint--warn">
-                <AlertTriangle size={14} style={{ verticalAlign: "-2px", marginRight: 4 }} />
-                {t("settings.system.unreachable")}
-              </p>
-            )}
+              {calError && <div className="settings-msg settings-msg--error">{calError}</div>}
 
-            {!healthErr &&
-              healthChecks.map((c) => (
-                <div className="settings-health-row" key={c.key}>
-                  <span className="settings-health-name">
-                    {c.label}
-                    {c.value && <span className="settings-health-value">{c.value}</span>}
-                    {c.hint && <span className="settings-health-value">{c.hint}</span>}
-                  </span>
-                  <span
-                    className={`settings-health-badge${
-                      c.busy ? " is-busy" : c.ok ? " is-ok" : c.optional ? " is-off" : " is-bad"
-                    }`}
+              {profiles?.length > 1 && (
+                <div className="settings-row">
+                  <label className="settings-label">{t("settings.calendar.profile")}</label>
+                  <select
+                    className="settings-input"
+                    value={calProfileId}
+                    onChange={(e) => setCalProfileId(e.target.value)}
                   >
-                    {c.busy
-                      ? t("settings.system.busy")
-                      : c.ok
-                        ? t("settings.system.ok")
-                        : c.optional
-                          ? t("settings.system.disabled")
-                          : t("settings.system.down")}
-                  </span>
+                    {profiles.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.profile_name || p.birth_details?.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ))}
-
-            <p className="settings-hint">{t("settings.system.note")}</p>
-          </div>
-        )}
-
-        {/* ACCOUNT */}
-        {tab === "account" && (
-          <div className="ui-card settings-panel">
-            {/* Account overview */}
-            <h3 className="settings-section-title">{t("settings.account.title")}</h3>
-            <dl className="settings-account-info">
-              <div>
-                <dt>{t("settings.account.name")}</dt>
-                <dd>{user?.name || "—"}</dd>
-              </div>
-              <div>
-                <dt>{t("settings.account.username")}</dt>
-                <dd>{user?.username || "—"}</dd>
-              </div>
-              <div>
-                <dt>{t("settings.account.memberSince")}</dt>
-                <dd>{formatDate(user?.created_at)}</dd>
-              </div>
-            </dl>
-
-            {/* Name */}
-            <hr className="settings-divider" />
-            <h3 className="settings-section-title">{t("settings.account.name")}</h3>
-            {nameMsg.text && (
-              <div className={`settings-pw-msg settings-pw-msg--${nameMsg.type}`}>
-                {nameMsg.text}
-              </div>
-            )}
-            <form onSubmit={submitName} className="settings-pw-form">
-              <input
-                className="control-input"
-                type="text"
-                autoComplete="name"
-                placeholder={t("settings.account.namePlaceholder")}
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                required
-              />
-              <button
-                type="submit"
-                className="ui-btn ui-btn--primary settings-form-btn"
-                disabled={
-                  busy === "name" || !nameInput.trim() || nameInput.trim() === (user?.name || "")
-                }
-              >
-                <User size={14} /> {t("settings.account.updateName")}
-              </button>
-            </form>
-
-            {/* Email */}
-            <hr className="settings-divider" />
-            <h3 className="settings-section-title">{t("settings.account.email")}</h3>
-            {emailMsg.text && (
-              <div className={`settings-pw-msg settings-pw-msg--${emailMsg.type}`}>
-                {emailMsg.text}
-              </div>
-            )}
-            <form onSubmit={submitEmail} className="settings-pw-form">
-              <input
-                className="control-input"
-                type="email"
-                autoComplete="email"
-                placeholder={t("settings.account.emailPlaceholder")}
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                required
-              />
-              <button
-                type="submit"
-                className="ui-btn ui-btn--primary settings-form-btn"
-                disabled={
-                  busy === "email" || !emailInput.trim() || emailInput.trim() === user?.email
-                }
-              >
-                <Mail size={14} /> {t("settings.account.updateEmail")}
-              </button>
-            </form>
-
-            {/* Change / set password */}
-            <hr className="settings-divider" />
-            <h3 className="settings-section-title">
-              {t(hasPassword ? "settings.account.changePassword" : "settings.account.setPassword")}
-            </h3>
-            {pwMsg.text && (
-              <div className={`settings-pw-msg settings-pw-msg--${pwMsg.type}`}>{pwMsg.text}</div>
-            )}
-            <form onSubmit={submitPassword} className="settings-pw-form">
-              {hasPassword && (
-                <input
-                  className="control-input"
-                  type="password"
-                  autoComplete="current-password"
-                  placeholder={t("settings.account.current")}
-                  value={pw.current}
-                  onChange={(e) => setPw((p) => ({ ...p, current: e.target.value }))}
-                  required
-                />
               )}
-              <input
-                className="control-input"
-                type="password"
-                autoComplete="new-password"
-                placeholder={t("settings.account.new")}
-                value={pw.next}
-                onChange={(e) => setPw((p) => ({ ...p, next: e.target.value }))}
-                required
-              />
-              <input
-                className="control-input"
-                type="password"
-                autoComplete="new-password"
-                placeholder={t("settings.account.confirm")}
-                value={pw.confirm}
-                onChange={(e) => setPw((p) => ({ ...p, confirm: e.target.value }))}
-                required
-              />
-              <button type="submit" className="ui-btn ui-btn--primary settings-form-btn">
-                <Key size={14} />{" "}
-                {t(hasPassword ? "settings.account.changeBtn" : "settings.account.setBtn")}
-              </button>
-            </form>
-            <p className="settings-hint">
-              {t(hasPassword ? "settings.account.changeNote" : "settings.account.setNote")}
-            </p>
 
-            {/* Sessions */}
-            <hr className="settings-divider" />
-            <h3 className="settings-section-title">{t("settings.account.sessions")}</h3>
-            {acctMsg.text && (
-              <div className={`settings-pw-msg settings-pw-msg--${acctMsg.type}`}>
-                {acctMsg.text}
-              </div>
-            )}
-            <div className="settings-account-actions">
-              <button
-                type="button"
-                className="ui-btn ui-btn--secondary"
-                onClick={handleLogoutOthers}
-                disabled={busy === "logoutOthers"}
-              >
-                <ShieldOff size={14} /> {t("settings.account.logoutOthers")}
-              </button>
-              <button
-                type="button"
-                className="ui-btn ui-btn--secondary"
-                onClick={async () => {
-                  await logout();
-                  navigate("/login");
-                }}
-              >
-                <LogOut size={14} /> {t("settings.account.logout")}
-              </button>
-            </div>
-            <p className="settings-hint">{t("settings.account.logoutOthersNote")}</p>
-
-            {/* Danger zone: delete account */}
-            <hr className="settings-divider" />
-            <div className="settings-danger">
-              <h3 className="settings-section-title settings-danger-title">
-                {t("settings.account.deleteTitle")}
-              </h3>
-              <p className="settings-hint settings-hint--warn">
-                {t("settings.account.deleteWarn")}
-              </p>
-              {!delConfirm.open ? (
+              <label className="settings-label">{t("settings.calendar.url")}</label>
+              <div className="settings-cal-url">
+                <input
+                  type="text"
+                  readOnly
+                  value={calBusy ? t("settings.calendar.loading") : calUrl}
+                  onFocus={(e) => e.target.select()}
+                />
                 <button
                   type="button"
-                  className="ui-btn ui-btn--danger"
-                  onClick={() => {
-                    setAcctMsg({ type: "", text: "" });
-                    setDelConfirm({ open: true, password: "" });
-                  }}
+                  className="ui-btn ui-btn--ghost"
+                  onClick={copyCalUrl}
+                  disabled={!calUrl}
                 >
-                  <Trash2 size={14} /> {t("settings.account.deleteBtn")}
+                  {calCopied ? <Check size={16} /> : <Copy size={16} />}
+                  {calCopied ? t("settings.calendar.copied") : t("settings.calendar.copy")}
                 </button>
-              ) : (
-                <form onSubmit={handleDeleteAccount} className="settings-pw-form">
+              </div>
+              <p className="settings-hint">{t("settings.calendar.help")}</p>
+              <p className="settings-hint">{t("settings.calendar.privacy")}</p>
+            </div>
+          )}
+
+          {tab === "system" && (
+            <div className="ui-card settings-panel">
+              <div className="settings-key-head" style={{ marginBottom: 12 }}>
+                <h3 className="settings-section-title" style={{ margin: 0 }}>
+                  {t("settings.system.title")}
+                </h3>
+                <button
+                  type="button"
+                  className="settings-link"
+                  onClick={loadHealth}
+                  disabled={healthLoading}
+                >
+                  {healthLoading ? t("settings.system.checking") : t("settings.system.recheck")}
+                </button>
+              </div>
+
+              {healthErr && (
+                <p className="settings-hint settings-hint--warn">
+                  <AlertTriangle size={14} style={{ verticalAlign: "-2px", marginRight: 4 }} />
+                  {t("settings.system.unreachable")}
+                </p>
+              )}
+
+              {!healthErr &&
+                healthChecks.map((c) => (
+                  <div className="settings-health-row" key={c.key}>
+                    <span className="settings-health-name">
+                      {c.label}
+                      {c.value && <span className="settings-health-value">{c.value}</span>}
+                      {c.hint && <span className="settings-health-value">{c.hint}</span>}
+                    </span>
+                    <span
+                      className={`settings-health-badge${
+                        c.busy ? " is-busy" : c.ok ? " is-ok" : c.optional ? " is-off" : " is-bad"
+                      }`}
+                    >
+                      {c.busy
+                        ? t("settings.system.busy")
+                        : c.ok
+                          ? t("settings.system.ok")
+                          : c.optional
+                            ? t("settings.system.disabled")
+                            : t("settings.system.down")}
+                    </span>
+                  </div>
+                ))}
+
+              <p className="settings-hint">{t("settings.system.note")}</p>
+            </div>
+          )}
+
+          {/* ACCOUNT */}
+          {tab === "account" && (
+            <div className="ui-card settings-panel">
+              {/* Account overview */}
+              <h3 className="settings-section-title">{t("settings.account.title")}</h3>
+              <dl className="settings-account-info">
+                <div>
+                  <dt>{t("settings.account.name")}</dt>
+                  <dd>{user?.name || "—"}</dd>
+                </div>
+                <div>
+                  <dt>{t("settings.account.username")}</dt>
+                  <dd>{user?.username || "—"}</dd>
+                </div>
+                <div>
+                  <dt>{t("settings.account.memberSince")}</dt>
+                  <dd>{formatDate(user?.created_at)}</dd>
+                </div>
+              </dl>
+
+              {/* Name */}
+              <hr className="settings-divider" />
+              <h3 className="settings-section-title">{t("settings.account.name")}</h3>
+              {nameMsg.text && (
+                <div className={`settings-pw-msg settings-pw-msg--${nameMsg.type}`}>
+                  {nameMsg.text}
+                </div>
+              )}
+              <form onSubmit={submitName} className="settings-pw-form">
+                <input
+                  className="control-input"
+                  type="text"
+                  autoComplete="name"
+                  placeholder={t("settings.account.namePlaceholder")}
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  required
+                />
+                <button
+                  type="submit"
+                  className="ui-btn ui-btn--primary settings-form-btn"
+                  disabled={
+                    busy === "name" || !nameInput.trim() || nameInput.trim() === (user?.name || "")
+                  }
+                >
+                  <User size={14} /> {t("settings.account.updateName")}
+                </button>
+              </form>
+
+              {/* Email */}
+              <hr className="settings-divider" />
+              <h3 className="settings-section-title">{t("settings.account.email")}</h3>
+              {emailMsg.text && (
+                <div className={`settings-pw-msg settings-pw-msg--${emailMsg.type}`}>
+                  {emailMsg.text}
+                </div>
+              )}
+              <form onSubmit={submitEmail} className="settings-pw-form">
+                <input
+                  className="control-input"
+                  type="email"
+                  autoComplete="email"
+                  placeholder={t("settings.account.emailPlaceholder")}
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  required
+                />
+                <button
+                  type="submit"
+                  className="ui-btn ui-btn--primary settings-form-btn"
+                  disabled={
+                    busy === "email" || !emailInput.trim() || emailInput.trim() === user?.email
+                  }
+                >
+                  <Mail size={14} /> {t("settings.account.updateEmail")}
+                </button>
+              </form>
+
+              {/* Change / set password */}
+              <hr className="settings-divider" />
+              <h3 className="settings-section-title">
+                {t(
+                  hasPassword ? "settings.account.changePassword" : "settings.account.setPassword"
+                )}
+              </h3>
+              {pwMsg.text && (
+                <div className={`settings-pw-msg settings-pw-msg--${pwMsg.type}`}>{pwMsg.text}</div>
+              )}
+              <form onSubmit={submitPassword} className="settings-pw-form">
+                {hasPassword && (
                   <input
                     className="control-input"
                     type="password"
                     autoComplete="current-password"
-                    placeholder={t("settings.account.deleteConfirmPrompt")}
-                    value={delConfirm.password}
-                    onChange={(e) => setDelConfirm((p) => ({ ...p, password: e.target.value }))}
+                    placeholder={t("settings.account.current")}
+                    value={pw.current}
+                    onChange={(e) => setPw((p) => ({ ...p, current: e.target.value }))}
                     required
                   />
-                  <div className="settings-account-actions">
-                    <button
-                      type="submit"
-                      className="ui-btn ui-btn--danger"
-                      disabled={!delConfirm.password || busy === "delete"}
-                    >
-                      <Trash2 size={14} /> {t("settings.account.deleteConfirmBtn")}
-                    </button>
-                    <button
-                      type="button"
-                      className="ui-btn ui-btn--ghost"
-                      onClick={() => setDelConfirm({ open: false, password: "" })}
-                    >
-                      {t("settings.account.deleteCancel")}
-                    </button>
-                  </div>
-                </form>
+                )}
+                <input
+                  className="control-input"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder={t("settings.account.new")}
+                  value={pw.next}
+                  onChange={(e) => setPw((p) => ({ ...p, next: e.target.value }))}
+                  required
+                />
+                <input
+                  className="control-input"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder={t("settings.account.confirm")}
+                  value={pw.confirm}
+                  onChange={(e) => setPw((p) => ({ ...p, confirm: e.target.value }))}
+                  required
+                />
+                <button type="submit" className="ui-btn ui-btn--primary settings-form-btn">
+                  <Key size={14} />{" "}
+                  {t(hasPassword ? "settings.account.changeBtn" : "settings.account.setBtn")}
+                </button>
+              </form>
+              <p className="settings-hint">
+                {t(hasPassword ? "settings.account.changeNote" : "settings.account.setNote")}
+              </p>
+
+              {/* Sessions */}
+              <hr className="settings-divider" />
+              <h3 className="settings-section-title">{t("settings.account.sessions")}</h3>
+              {acctMsg.text && (
+                <div className={`settings-pw-msg settings-pw-msg--${acctMsg.type}`}>
+                  {acctMsg.text}
+                </div>
               )}
+              <div className="settings-account-actions">
+                <button
+                  type="button"
+                  className="ui-btn ui-btn--secondary"
+                  onClick={handleLogoutOthers}
+                  disabled={busy === "logoutOthers"}
+                >
+                  <ShieldOff size={14} /> {t("settings.account.logoutOthers")}
+                </button>
+                <button
+                  type="button"
+                  className="ui-btn ui-btn--secondary"
+                  onClick={async () => {
+                    await logout();
+                    navigate("/login");
+                  }}
+                >
+                  <LogOut size={14} /> {t("settings.account.logout")}
+                </button>
+              </div>
+              <p className="settings-hint">{t("settings.account.logoutOthersNote")}</p>
+
+              {/* Danger zone: delete account */}
+              <hr className="settings-divider" />
+              <div className="settings-danger">
+                <h3 className="settings-section-title settings-danger-title">
+                  {t("settings.account.deleteTitle")}
+                </h3>
+                <p className="settings-hint settings-hint--warn">
+                  {t("settings.account.deleteWarn")}
+                </p>
+                {!delConfirm.open ? (
+                  <button
+                    type="button"
+                    className="ui-btn ui-btn--danger"
+                    onClick={() => {
+                      setAcctMsg({ type: "", text: "" });
+                      setDelConfirm({ open: true, password: "" });
+                    }}
+                  >
+                    <Trash2 size={14} /> {t("settings.account.deleteBtn")}
+                  </button>
+                ) : (
+                  <form onSubmit={handleDeleteAccount} className="settings-pw-form">
+                    <input
+                      className="control-input"
+                      type="password"
+                      autoComplete="current-password"
+                      placeholder={t("settings.account.deleteConfirmPrompt")}
+                      value={delConfirm.password}
+                      onChange={(e) => setDelConfirm((p) => ({ ...p, password: e.target.value }))}
+                      required
+                    />
+                    <div className="settings-account-actions">
+                      <button
+                        type="submit"
+                        className="ui-btn ui-btn--danger"
+                        disabled={!delConfirm.password || busy === "delete"}
+                      >
+                        <Trash2 size={14} /> {t("settings.account.deleteConfirmBtn")}
+                      </button>
+                      <button
+                        type="button"
+                        className="ui-btn ui-btn--ghost"
+                        onClick={() => setDelConfirm({ open: false, password: "" })}
+                      >
+                        {t("settings.account.deleteCancel")}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

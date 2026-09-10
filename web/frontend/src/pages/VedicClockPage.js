@@ -268,182 +268,191 @@ export const VedicClockPage = () => {
         subtitle={t("vedicClock.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="celestial" profileId={selectedProfile?._id} />
+          <ProfileBanner profile={selectedProfile} />
 
-      <div className="dashboard-content">
-        <RecentReadings source="celestial" profileId={selectedProfile?._id} />
-        <ProfileBanner profile={selectedProfile} />
+          {loading && (
+            <Card>
+              <LoadingState message={t("vedicClock.loading")} />
+            </Card>
+          )}
+          <ErrorBanner message={error} />
 
-        {loading && (
-          <Card>
-            <LoadingState message={t("vedicClock.loading")} />
-          </Card>
-        )}
-        <ErrorBanner message={error} />
-
-        {!loading && !error && clock && (
-          <div className="fade-in">
-            <div className="vc-grid">
-              {/* Live Vedic clock */}
-              <Card title={t("vedicClock.clockTitle")} icon={<Clock size={22} />} accent="saffron">
-                <div className="vc-clock-wrap">
-                  <ClockDial liveGhati={liveGhati} dayGhati={dayGhati} />
-                  <div className="vc-readout">
-                    {ghatiInt != null ? (
-                      <div className="vc-ghati">
-                        {ghatiInt}
-                        <small> {t("vedicClock.ghati")} </small>
-                        {vighatiInt}
-                        <small> {t("vedicClock.vighati")}</small>
-                      </div>
-                    ) : (
-                      <div className="text-secondary">{t("vedicClock.notToday")}</div>
-                    )}
-                    {hora && (
-                      <div className={`vc-hora ${hora.benefic ? "benefic" : "malefic"}`}>
-                        {t("vedicClock.horaLord", { planet: hora.planet })}
-                      </div>
-                    )}
-                  </div>
-                  <div className="info-pills">
-                    <span className="info-pill">
-                      <Sunrise size={14} /> {clock.sunrise}
-                    </span>
-                    <span className="info-pill">
-                      <Sunset size={14} /> {clock.sunset}
-                    </span>
-                  </div>
-                  <div className="info-pills">
-                    {panch.tithi && (
+          {!loading && !error && clock && (
+            <div className="fade-in">
+              <div className="vc-grid">
+                {/* Live Vedic clock */}
+                <Card
+                  title={t("vedicClock.clockTitle")}
+                  icon={<Clock size={22} />}
+                  accent="saffron"
+                >
+                  <div className="vc-clock-wrap">
+                    <ClockDial liveGhati={liveGhati} dayGhati={dayGhati} />
+                    <div className="vc-readout">
+                      {ghatiInt != null ? (
+                        <div className="vc-ghati">
+                          {ghatiInt}
+                          <small> {t("vedicClock.ghati")} </small>
+                          {vighatiInt}
+                          <small> {t("vedicClock.vighati")}</small>
+                        </div>
+                      ) : (
+                        <div className="text-secondary">{t("vedicClock.notToday")}</div>
+                      )}
+                      {hora && (
+                        <div className={`vc-hora ${hora.benefic ? "benefic" : "malefic"}`}>
+                          {t("vedicClock.horaLord", { planet: hora.planet })}
+                        </div>
+                      )}
+                    </div>
+                    <div className="info-pills">
                       <span className="info-pill">
-                        {t("panchanga.tithi")}: {panch.tithi}
+                        <Sunrise size={14} /> {clock.sunrise}
                       </span>
-                    )}
-                    {panch.nakshatra && (
                       <span className="info-pill">
-                        {t("common.nakshatra")}: {ln(panch.nakshatra, "nakshatra")}
+                        <Sunset size={14} /> {clock.sunset}
                       </span>
-                    )}
-                    {panch.yoga && (
-                      <span className="info-pill">
-                        {t("panchanga.yoga")}: {panch.yoga}
-                      </span>
-                    )}
+                    </div>
+                    <div className="info-pills">
+                      {panch.tithi && (
+                        <span className="info-pill">
+                          {t("panchanga.tithi")}: {panch.tithi}
+                        </span>
+                      )}
+                      {panch.nakshatra && (
+                        <span className="info-pill">
+                          {t("common.nakshatra")}: {ln(panch.nakshatra, "nakshatra")}
+                        </span>
+                      )}
+                      {panch.yoga && (
+                        <span className="info-pill">
+                          {t("panchanga.yoga")}: {panch.yoga}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
 
-              {/* Retrograde loop */}
-              <Card title={t("vedicClock.retroTitle")} icon={<RotateCcw size={22} />} accent="gold">
-                <div className="vc-planet-toggle">
-                  {RETRO_PLANETS.map((p) => (
-                    <button
-                      key={p}
-                      className={p === planet ? "active" : ""}
-                      onClick={() => setPlanet(p)}
-                    >
-                      {p}
+                {/* Retrograde loop */}
+                <Card
+                  title={t("vedicClock.retroTitle")}
+                  icon={<RotateCcw size={22} />}
+                  accent="gold"
+                >
+                  <div className="vc-planet-toggle">
+                    {RETRO_PLANETS.map((p) => (
+                      <button
+                        key={p}
+                        className={p === planet ? "active" : ""}
+                        onClick={() => setPlanet(p)}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                  {selected && <RetrogradeLoop x={selected.orbit_x} y={selected.orbit_y} />}
+                  {selected && (
+                    <p className="card-note text-center">
+                      <span
+                        className={`vc-retro-badge ${selected.retrograde ? "is-retro" : "is-direct"}`}
+                      >
+                        {selected.retrograde ? t("vedicClock.retrograde") : t("vedicClock.direct")}
+                      </span>{" "}
+                      {selected.next_station &&
+                        t("vedicClock.nextStation", {
+                          becomes: t(`vedicClock.becomes.${selected.next_station.becomes}`),
+                          date: selected.next_station.date,
+                        })}
+                    </p>
+                  )}
+                </Card>
+              </div>
+
+              {/* Retrograde status table */}
+              <div className="mt-xl">
+                <Card title={t("vedicClock.statusTitle")} icon={<RotateCcw size={22} />}>
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>{t("vedicClock.colPlanet")}</th>
+                          <th>{t("vedicClock.colStatus")}</th>
+                          <th>{t("vedicClock.colNextStation")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(retro?.planets || []).map((p) => (
+                          <tr key={p.planet}>
+                            <td className="fw-700">{p.planet}</td>
+                            <td>
+                              <span
+                                className={`vc-retro-badge ${
+                                  p.retrograde ? "is-retro" : "is-direct"
+                                }`}
+                              >
+                                {p.retrograde ? t("vedicClock.retrograde") : t("vedicClock.direct")}
+                              </span>
+                            </td>
+                            <td>
+                              {p.next_station
+                                ? `${p.next_station.date} → ${t(
+                                    `vedicClock.becomes.${p.next_station.becomes}`
+                                  )}`
+                                : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                        {(retro?.nodes || []).map((n) => (
+                          <tr key={n.planet}>
+                            <td className="fw-700">{n.planet}</td>
+                            <td>
+                              <span className="vc-retro-badge is-retro">
+                                {t("vedicClock.retrograde")}
+                              </span>
+                            </td>
+                            <td className="text-secondary">{t("vedicClock.perpetual")}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              </div>
+
+              {/* AI reading */}
+              <div className="mt-xl">
+                <Card title={t("vedicClock.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
+                  <ErrorBanner message={aiError} />
+                  {!aiAnalysis && !aiLoading && (
+                    <p className="ai-panel__hint">{t("vedicClock.aiHint")}</p>
+                  )}
+                  {aiLoading && <LoadingState message={t("vedicClock.aiLoading")} />}
+                  {aiAnalysis && !aiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <Markdown>{aiAnalysis}</Markdown>
+                      {aiModel && (
+                        <div className="ai-panel__meta">
+                          {t("vedicClock.aiModel", { model: aiModel })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!aiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                      <Sparkles size={18} />
+                      {aiAnalysis ? t("vedicClock.aiRegenerate") : t("vedicClock.aiGenerate")}
                     </button>
-                  ))}
-                </div>
-                {selected && <RetrogradeLoop x={selected.orbit_x} y={selected.orbit_y} />}
-                {selected && (
-                  <p className="card-note text-center">
-                    <span
-                      className={`vc-retro-badge ${selected.retrograde ? "is-retro" : "is-direct"}`}
-                    >
-                      {selected.retrograde ? t("vedicClock.retrograde") : t("vedicClock.direct")}
-                    </span>{" "}
-                    {selected.next_station &&
-                      t("vedicClock.nextStation", {
-                        becomes: t(`vedicClock.becomes.${selected.next_station.becomes}`),
-                        date: selected.next_station.date,
-                      })}
-                  </p>
-                )}
-              </Card>
+                  )}
+                  <p className="card-note">{t("vedicClock.disclaimer")}</p>
+                </Card>
+              </div>
             </div>
-
-            {/* Retrograde status table */}
-            <div className="mt-xl">
-              <Card title={t("vedicClock.statusTitle")} icon={<RotateCcw size={22} />}>
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>{t("vedicClock.colPlanet")}</th>
-                        <th>{t("vedicClock.colStatus")}</th>
-                        <th>{t("vedicClock.colNextStation")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(retro?.planets || []).map((p) => (
-                        <tr key={p.planet}>
-                          <td className="fw-700">{p.planet}</td>
-                          <td>
-                            <span
-                              className={`vc-retro-badge ${
-                                p.retrograde ? "is-retro" : "is-direct"
-                              }`}
-                            >
-                              {p.retrograde ? t("vedicClock.retrograde") : t("vedicClock.direct")}
-                            </span>
-                          </td>
-                          <td>
-                            {p.next_station
-                              ? `${p.next_station.date} → ${t(
-                                  `vedicClock.becomes.${p.next_station.becomes}`
-                                )}`
-                              : "—"}
-                          </td>
-                        </tr>
-                      ))}
-                      {(retro?.nodes || []).map((n) => (
-                        <tr key={n.planet}>
-                          <td className="fw-700">{n.planet}</td>
-                          <td>
-                            <span className="vc-retro-badge is-retro">
-                              {t("vedicClock.retrograde")}
-                            </span>
-                          </td>
-                          <td className="text-secondary">{t("vedicClock.perpetual")}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            </div>
-
-            {/* AI reading */}
-            <div className="mt-xl">
-              <Card title={t("vedicClock.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
-                <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && (
-                  <p className="ai-panel__hint">{t("vedicClock.aiHint")}</p>
-                )}
-                {aiLoading && <LoadingState message={t("vedicClock.aiLoading")} />}
-                {aiAnalysis && !aiLoading && (
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{aiAnalysis}</Markdown>
-                    {aiModel && (
-                      <div className="ai-panel__meta">
-                        {t("vedicClock.aiModel", { model: aiModel })}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {!aiLoading && (
-                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                    <Sparkles size={18} />
-                    {aiAnalysis ? t("vedicClock.aiRegenerate") : t("vedicClock.aiGenerate")}
-                  </button>
-                )}
-                <p className="card-note">{t("vedicClock.disclaimer")}</p>
-              </Card>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

@@ -95,16 +95,18 @@ export const AdminPage = () => {
         subtitle="Deployment operations — all actions are audit-logged"
         accent="indigo"
       />
-      <div className="dashboard-content">
-        <Tabs tabs={tabs} active={tab} onChange={setTab} ariaLabel="Admin console" />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <Tabs tabs={tabs} active={tab} onChange={setTab} ariaLabel="Admin console" />
 
-        {tab === "claims" && <ClaimChecksTab />}
-        {tab === "overview" && <OverviewTab />}
-        {tab === "users" && <UsersTab />}
-        {tab === "activity" && <ActivityTab />}
-        {tab === "audit" && <AuditTab />}
-        {tab === "settings" && <SettingsTab />}
-      </div>
+          {tab === "claims" && <ClaimChecksTab />}
+          {tab === "overview" && <OverviewTab />}
+          {tab === "users" && <UsersTab />}
+          {tab === "activity" && <ActivityTab />}
+          {tab === "audit" && <AuditTab />}
+          {tab === "settings" && <SettingsTab />}
+        </div>
+      </main>
     </div>
   );
 };
@@ -335,8 +337,19 @@ function UserDetailModal({ username, onClose }) {
   };
 
   return (
-    <div className="admin-modal-backdrop" onClick={onClose}>
-      <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+    // The backdrop duplicates the dialog's own close button for the mouse, so it
+    // is hidden from assistive tech rather than becoming a second control (§68.8).
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
+    <div className="admin-modal-backdrop" onClick={onClose} aria-hidden="true">
+      {/* Swallowing the backdrop's click is not an interaction of its own. */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events */}
+      <div
+        className="admin-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={username}
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3>{username}</h3>
         <ErrorBanner message={error} />
         {detail && (
@@ -396,8 +409,16 @@ function UserDetailModal({ username, onClose }) {
 function DeleteConfirmModal({ username, onCancel, onConfirm }) {
   const [typed, setTyped] = useState("");
   return (
-    <div className="admin-modal-backdrop" onClick={onCancel}>
-      <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
+    <div className="admin-modal-backdrop" onClick={onCancel} aria-hidden="true">
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events */}
+      <div
+        className="admin-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Delete ${username}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3>Delete {username}?</h3>
         <p style={{ color: "var(--text-secondary)" }}>
           This permanently deletes the account and <strong>every</strong> record it owns — profiles,
@@ -594,10 +615,9 @@ function AuditTab() {
 
       <div className="admin-content-note">
         This log records <strong>events</strong>: moderation actions taken in this console, and
-        security events (sign-ins, failed sign-ins, password resets, API tokens). It is not a
-        record of ordinary use — for signups, readings and digests see the{" "}
-        <strong>Activity</strong> tab, which is derived from the data itself and covers everything
-        that ever happened.
+        security events (sign-ins, failed sign-ins, password resets, API tokens). It is not a record
+        of ordinary use — for signups, readings and digests see the <strong>Activity</strong> tab,
+        which is derived from the data itself and covers everything that ever happened.
         {summary ? (
           <>
             {" "}
@@ -616,18 +636,13 @@ function AuditTab() {
         </select>
         <select className="admin-input" value={filters.action} onChange={set("action")}>
           <option value="">All actions</option>
-          {[
-            ...actions,
-            "view_content",
-            "suspend",
-            "unsuspend",
-            "delete_user",
-            "update_config",
-          ].map((a) => (
-            <option key={a} value={a}>
-              {a}
-            </option>
-          ))}
+          {[...actions, "view_content", "suspend", "unsuspend", "delete_user", "update_config"].map(
+            (a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            )
+          )}
         </select>
         <input
           className="admin-input"
@@ -1103,11 +1118,11 @@ function ClaimChecksTab() {
           <StatCard label="Still open" value={summary?.open ?? 0} />
         </div>
         <p className="admin-setting__help">
-          Two rates, because they answer different questions.{" "}
-          <strong>Model got it wrong</strong> is how often a reading contradicted the chart it was
-          generated from, measured on the first attempt — that is the number prompt work has to
-          move. <strong>Reached the reader</strong> is how often it survived the retry and had to be
-          annotated. The gap between them is what the checker is buying you.
+          Two rates, because they answer different questions. <strong>Model got it wrong</strong> is
+          how often a reading contradicted the chart it was generated from, measured on the first
+          attempt — that is the number prompt work has to move. <strong>Reached the reader</strong>{" "}
+          is how often it survived the retry and had to be annotated. The gap between them is what
+          the checker is buying you.
         </p>
       </Card>
 

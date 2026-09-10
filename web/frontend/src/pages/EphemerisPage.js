@@ -118,143 +118,145 @@ export const EphemerisPage = () => {
         subtitle={t("ephemeris.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <ProfileBanner profile={selectedProfile} />
 
-      <div className="dashboard-content">
-        <ProfileBanner profile={selectedProfile} />
-
-        {/* Controls: window nav + span */}
-        <div className="page-controls">
-          <div className="controls-group">
-            <button className="control-btn" onClick={() => shiftWindow(-1)}>
-              <ChevronLeft size={14} /> {t("ephemeris.prev")}
-            </button>
-            <span className="control-label" style={{ minWidth: 0 }}>
-              {fmtDay(result?.start_date || dateISO(start), locale)}
-              {result?.end_date ? ` – ${fmtDay(result.end_date, locale)}` : ""}
-            </span>
-            <button className="control-btn" onClick={() => shiftWindow(1)}>
-              {t("ephemeris.next")} <ChevronRight size={14} />
-            </button>
-            <button className="control-btn" onClick={jumpToday}>
-              {t("ephemeris.today")}
-            </button>
-          </div>
-          <div className="controls-group">
-            <label className="control-label">{t("ephemeris.span")}</label>
-            <select
-              className="control-input"
-              value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
-            >
-              {WINDOWS.map((w) => (
-                <option key={w} value={w}>
-                  {t("ephemeris.dayCount", { count: w })}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <ErrorBanner message={error} />
-
-        {loading ? (
-          <Card>
-            <LoadingState message={t("ephemeris.loading")} />
-          </Card>
-        ) : result ? (
-          <div className="fade-in">
-            <div className="info-pills">
-              <span className="info-pill">
-                {t("ephemeris.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
+          {/* Controls: window nav + span */}
+          <div className="page-controls">
+            <div className="controls-group">
+              <button className="control-btn" onClick={() => shiftWindow(-1)}>
+                <ChevronLeft size={14} /> {t("ephemeris.prev")}
+              </button>
+              <span className="control-label" style={{ minWidth: 0 }}>
+                {fmtDay(result?.start_date || dateISO(start), locale)}
+                {result?.end_date ? ` – ${fmtDay(result.end_date, locale)}` : ""}
               </span>
-              <span className="info-pill">{t("ephemeris.noonNote")}</span>
+              <button className="control-btn" onClick={() => shiftWindow(1)}>
+                {t("ephemeris.next")} <ChevronRight size={14} />
+              </button>
+              <button className="control-btn" onClick={jumpToday}>
+                {t("ephemeris.today")}
+              </button>
             </div>
-
-            {/* Ingress calendar */}
-            <div className="ui-card ui-card--accent ui-card--flush mb-xl">
-              <h3 className="ui-card-header ui-card-header--sm" style={{ fontSize: "1.25rem" }}>
-                <TrendingUp size={20} />
-                {t("ephemeris.ingresses")}
-              </h3>
-              {ingresses.length ? (
-                <div className="card-grid">
-                  {ingresses.map((u, i) => (
-                    <div key={i} className="ingress-card">
-                      <div className="ingress-card__planet">
-                        {ln(u.planet, "graha", { abbr: true })} {ln(u.planet, "graha")}
-                        {u.retrograde && (
-                          <span className="retro-badge" title={t("ephemeris.retrograde")}>
-                            ℞
-                          </span>
-                        )}
-                      </div>
-                      <div className="ingress-card__signs">
-                        {u.from_sign} → <strong>{u.to_sign}</strong>
-                      </div>
-                      <div className="ingress-card__date">{fmtDay(u.date, locale)}</div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="card-note">{t("ephemeris.noIngress")}</p>
-              )}
+            <div className="controls-group">
+              <label className="control-label">{t("ephemeris.span")}</label>
+              <select
+                className="control-input"
+                value={days}
+                onChange={(e) => setDays(Number(e.target.value))}
+              >
+                {WINDOWS.map((w) => (
+                  <option key={w} value={w}>
+                    {t("ephemeris.dayCount", { count: w })}
+                  </option>
+                ))}
+              </select>
             </div>
+          </div>
 
-            {/* Ephemeris grid */}
-            <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush">
-              <h3 className="ui-card-header ui-card-header--sm">
-                <CalendarRange size={18} />
-                {t("ephemeris.grid")}
-              </h3>
-              <div className="table-scroll">
-                <table className="data-table ephemeris-table">
-                  <thead>
-                    <tr>
-                      <th>{t("ephemeris.date")}</th>
-                      {order.map((p) => (
-                        <th key={p} className="text-center" title={p}>
-                          {ln(p, "graha", { abbr: true })}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.date} className={row.date === todayISO ? "is-today" : ""}>
-                        <td className="fw-600 text-secondary" style={{ whiteSpace: "nowrap" }}>
-                          {fmtDay(row.date, locale)}{" "}
-                          <span className="text-muted">{fmtWeekday(row.date, locale)}</span>
-                        </td>
-                        {order.map((p) => {
-                          const cell = row.planets[p];
-                          if (!cell)
+          <ErrorBanner message={error} />
+
+          {loading ? (
+            <Card>
+              <LoadingState message={t("ephemeris.loading")} />
+            </Card>
+          ) : result ? (
+            <div className="fade-in">
+              <div className="info-pills">
+                <span className="info-pill">
+                  {t("ephemeris.ayanamsa")}:{" "}
+                  <strong className="text-indigo">{ayanamsaLabel}</strong>
+                </span>
+                <span className="info-pill">{t("ephemeris.noonNote")}</span>
+              </div>
+
+              {/* Ingress calendar */}
+              <div className="ui-card ui-card--accent ui-card--flush mb-xl">
+                <h3 className="ui-card-header ui-card-header--sm" style={{ fontSize: "1.25rem" }}>
+                  <TrendingUp size={20} />
+                  {t("ephemeris.ingresses")}
+                </h3>
+                {ingresses.length ? (
+                  <div className="card-grid">
+                    {ingresses.map((u, i) => (
+                      <div key={i} className="ingress-card">
+                        <div className="ingress-card__planet">
+                          {ln(u.planet, "graha", { abbr: true })} {ln(u.planet, "graha")}
+                          {u.retrograde && (
+                            <span className="retro-badge" title={t("ephemeris.retrograde")}>
+                              ℞
+                            </span>
+                          )}
+                        </div>
+                        <div className="ingress-card__signs">
+                          {u.from_sign} → <strong>{u.to_sign}</strong>
+                        </div>
+                        <div className="ingress-card__date">{fmtDay(u.date, locale)}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="card-note">{t("ephemeris.noIngress")}</p>
+                )}
+              </div>
+
+              {/* Ephemeris grid */}
+              <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <CalendarRange size={18} />
+                  {t("ephemeris.grid")}
+                </h3>
+                <div className="table-scroll">
+                  <table className="data-table ephemeris-table">
+                    <thead>
+                      <tr>
+                        <th>{t("ephemeris.date")}</th>
+                        {order.map((p) => (
+                          <th key={p} className="text-center" title={p}>
+                            {ln(p, "graha", { abbr: true })}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row) => (
+                        <tr key={row.date} className={row.date === todayISO ? "is-today" : ""}>
+                          <td className="fw-600 text-secondary" style={{ whiteSpace: "nowrap" }}>
+                            {fmtDay(row.date, locale)}{" "}
+                            <span className="text-muted">{fmtWeekday(row.date, locale)}</span>
+                          </td>
+                          {order.map((p) => {
+                            const cell = row.planets[p];
+                            if (!cell)
+                              return (
+                                <td key={p} className="text-center text-muted">
+                                  —
+                                </td>
+                              );
                             return (
-                              <td key={p} className="text-center text-muted">
-                                —
+                              <td key={p} className="text-center" style={{ whiteSpace: "nowrap" }}>
+                                <span className="fw-600">{Math.floor(cell.degrees)}°</span>{" "}
+                                <span className="text-saffron">
+                                  {ln(cell.sign_name || RASI_NAMES[cell.sign - 1], "rasi", {
+                                    abbr: true,
+                                  })}
+                                </span>
+                                {cell.retrograde && <span className="retro-badge">℞</span>}
                               </td>
                             );
-                          return (
-                            <td key={p} className="text-center" style={{ whiteSpace: "nowrap" }}>
-                              <span className="fw-600">{Math.floor(cell.degrees)}°</span>{" "}
-                              <span className="text-saffron">
-                                {ln(cell.sign_name || RASI_NAMES[cell.sign - 1], "rasi", {
-                                  abbr: true,
-                                })}
-                              </span>
-                              {cell.retrograde && <span className="retro-badge">℞</span>}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="card-note">{t("ephemeris.gridNote")}</p>
               </div>
-              <p className="card-note">{t("ephemeris.gridNote")}</p>
             </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

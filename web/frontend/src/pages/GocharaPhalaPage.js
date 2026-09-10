@@ -135,95 +135,96 @@ export const GocharaPhalaPage = () => {
         subtitle={t("gochara.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="gochara_phala" profileId={selectedProfile?._id} />
+          <ProfileBanner profile={selectedProfile} />
+          <p className="card-note">{t("gochara.intro")}</p>
 
-      <div className="dashboard-content">
-        <RecentReadings source="gochara_phala" profileId={selectedProfile?._id} />
-        <ProfileBanner profile={selectedProfile} />
-        <p className="card-note">{t("gochara.intro")}</p>
+          <ErrorBanner message={error} />
 
-        <ErrorBanner message={error} />
+          {loading ? (
+            <Card>
+              <LoadingState message={t("gochara.loading")} />
+            </Card>
+          ) : data ? (
+            <div className="fade-in">
+              <div className="info-pills">
+                <span className="info-pill">{t("gochara.moonSign", { sign: data.moon_sign })}</span>
+                <span className="info-pill">{t("gochara.asOf", { date: data.transit_date })}</span>
+                <span className="info-pill">
+                  {t("gochara.favourableSummary", {
+                    count: data.favourable_count,
+                    total: data.total,
+                  })}
+                </span>
+              </div>
 
-        {loading ? (
-          <Card>
-            <LoadingState message={t("gochara.loading")} />
-          </Card>
-        ) : data ? (
-          <div className="fade-in">
-            <div className="info-pills">
-              <span className="info-pill">{t("gochara.moonSign", { sign: data.moon_sign })}</span>
-              <span className="info-pill">{t("gochara.asOf", { date: data.transit_date })}</span>
-              <span className="info-pill">
-                {t("gochara.favourableSummary", {
-                  count: data.favourable_count,
-                  total: data.total,
-                })}
-              </span>
-            </div>
-
-            <div className="mt-xl">
-              <Card className="ui-card--flush">
-                <div className="goc-table-wrap">
-                  <table className="data-table goc-table">
-                    <thead>
-                      <tr>
-                        <th>{t("gochara.colPlanet")}</th>
-                        <th>{t("gochara.colHouse")}</th>
-                        <th>{t("gochara.colVerdict")}</th>
-                        <th>{t("gochara.colVedha")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((r) => (
-                        <tr key={r.planet} className={`goc-row goc-row--${r.tone}`}>
-                          <td className="goc-planet">{r.planet}</td>
-                          <td>{t("gochara.houseFromMoon", { n: r.house_from_moon })}</td>
-                          <td className="goc-verdict">
-                            <ToneIcon tone={r.tone} />
-                            <span>{r.verdict}</span>
-                          </td>
-                          <td>
-                            {r.obstructed_by && r.obstructed_by.length
-                              ? t("gochara.vedhaBy", { planets: r.obstructed_by.join(", ") })
-                              : t("gochara.noVedha")}
-                          </td>
+              <div className="mt-xl">
+                <Card className="ui-card--flush">
+                  <div className="goc-table-wrap">
+                    <table className="data-table goc-table">
+                      <thead>
+                        <tr>
+                          <th>{t("gochara.colPlanet")}</th>
+                          <th>{t("gochara.colHouse")}</th>
+                          <th>{t("gochara.colVerdict")}</th>
+                          <th>{t("gochara.colVedha")}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            </div>
-
-            {/* AI reading */}
-            <div className="mt-xl">
-              <Card title={t("gochara.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
-                <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && (
-                  <p className="ai-panel__hint">{t("gochara.aiHint")}</p>
-                )}
-                {aiLoading && <LoadingState message={t("gochara.aiLoading")} />}
-                {aiAnalysis && !aiLoading && (
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{aiAnalysis}</Markdown>
-                    {aiModel && (
-                      <div className="ai-panel__meta">
-                        {t("gochara.aiModel", { model: aiModel })}
-                      </div>
-                    )}
+                      </thead>
+                      <tbody>
+                        {rows.map((r) => (
+                          <tr key={r.planet} className={`goc-row goc-row--${r.tone}`}>
+                            <td className="goc-planet">{r.planet}</td>
+                            <td>{t("gochara.houseFromMoon", { n: r.house_from_moon })}</td>
+                            <td className="goc-verdict">
+                              <ToneIcon tone={r.tone} />
+                              <span>{r.verdict}</span>
+                            </td>
+                            <td>
+                              {r.obstructed_by && r.obstructed_by.length
+                                ? t("gochara.vedhaBy", { planets: r.obstructed_by.join(", ") })
+                                : t("gochara.noVedha")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                )}
-                {!aiLoading && (
-                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                    <Sparkles size={18} />
-                    {aiAnalysis ? t("gochara.aiRegenerate") : t("gochara.aiGenerate")}
-                  </button>
-                )}
-                <p className="card-note">{t("gochara.disclaimer")}</p>
-              </Card>
+                </Card>
+              </div>
+
+              {/* AI reading */}
+              <div className="mt-xl">
+                <Card title={t("gochara.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
+                  <ErrorBanner message={aiError} />
+                  {!aiAnalysis && !aiLoading && (
+                    <p className="ai-panel__hint">{t("gochara.aiHint")}</p>
+                  )}
+                  {aiLoading && <LoadingState message={t("gochara.aiLoading")} />}
+                  {aiAnalysis && !aiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <Markdown>{aiAnalysis}</Markdown>
+                      {aiModel && (
+                        <div className="ai-panel__meta">
+                          {t("gochara.aiModel", { model: aiModel })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!aiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                      <Sparkles size={18} />
+                      {aiAnalysis ? t("gochara.aiRegenerate") : t("gochara.aiGenerate")}
+                    </button>
+                  )}
+                  <p className="card-note">{t("gochara.disclaimer")}</p>
+                </Card>
+              </div>
             </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

@@ -16,6 +16,8 @@
 #   ./dev.sh logs backend     # tail one log
 #
 #   ./dev.sh test             # backend golden-value + endpoint tests (§3.2)
+#   ./dev.sh test web         # frontend jest + prettier --check + eslint (a11y)
+#   ./dev.sh test all         # backend + frontend
 #   ./dev.sh test engine      # also smoke-run PyJHora's own ~1,500 tests
 #
 # Production frontend (optimized static build via `npm run build`):
@@ -767,6 +769,17 @@ run_tests() {
   info "running backend golden + endpoint tests ..."
   ( cd "$BACKEND_DIR" && "$py" -m pytest tests/ -q "$@" )
 }
+run_web_tests() {
+  # The frontend suites, the formatter and the lint rules — including the
+  # jsx-a11y set turned on in §68.8, which is the only thing standing between
+  # the app and another unlabelled icon button. `./dev.sh test` alone stays
+  # backend-only so the common case is still fast.
+  info "running frontend tests, format check and lint ..."
+  ( cd "$FRONTEND_DIR" \
+      && CI=true npx react-scripts test --watchAll=false \
+      && npm run --silent format:check \
+      && npm run --silent lint )
+}
 run_engine_tests() {
   local py; py="$(backend_py)"
   local log="${TMPDIR:-/tmp}/pyjhora-engine-tests.$$.log"
@@ -842,6 +855,8 @@ case "$ACTION" in
     case "${2:-}" in
       engine) run_engine_tests ;;
       "")     run_tests ;;
+      web|frontend) run_web_tests ;;
+      all)    run_tests && run_web_tests ;;
       *)      run_tests "${@:2}" ;;
     esac
     ;;
@@ -864,7 +879,7 @@ case "$ACTION" in
     esac
     ;;
   ""|-h|--help|help)
-    sed -n '2,53p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,55p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     ;;
   *)
     err "unknown action '$ACTION'"

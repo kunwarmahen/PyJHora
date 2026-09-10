@@ -281,264 +281,265 @@ export const TithiPraveshaPage = () => {
         subtitle={t("tp.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <ProfileBanner profile={selectedProfile} />
+          <RecentReadings source="tithi_pravesha" profileId={selectedProfile?._id} />
 
-      <div className="dashboard-content">
-        <ProfileBanner profile={selectedProfile} />
-        <RecentReadings source="tithi_pravesha" profileId={selectedProfile?._id} />
-
-        <div className="page-controls">
-          {/* Which rung of the lunar ladder. */}
-          <div className="controls-group">
-            <label className="control-label">
-              <Moon size={18} style={{ color: "var(--saffron)" }} />
-              {t("tp.window")}
-            </label>
-            <div className="chart-toggle" role="group" aria-label={t("tp.window")}>
-              {RUNGS.map((r) => (
-                <button
-                  key={r.key}
-                  type="button"
-                  className={`chart-toggle__btn${rung === r.key ? " is-active" : ""}`}
-                  aria-pressed={rung === r.key}
-                  onClick={() => changeRung(r.key)}
-                >
-                  {t(r.labelKey)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* ± one whole window of the selected rung. */}
-          <div className="controls-group controls-group--end">
-            <div className="stepper">
-              <button
-                type="button"
-                className="stepper__btn"
-                onClick={() => step(-1)}
-                aria-label={t("tp.prev")}
-                title={t("tp.prev")}
-                disabled={isAnnual && year <= birthYear}
-              >
-                −
-              </button>
-              <span className="stepper__label" style={{ minWidth: "12rem", textAlign: "center" }}>
-                {isAnnual
-                  ? year
-                  : `${formatDate(window_?.start, locale)} → ${formatDate(window_?.end, locale)}`}
-              </span>
-              <button
-                type="button"
-                className="stepper__btn"
-                onClick={() => step(1)}
-                aria-label={t("tp.next")}
-                title={t("tp.next")}
-              >
-                +
-              </button>
-            </div>
-            <button className="control-btn" onClick={() => (isNow ? load() : goNow())}>
-              {isNow ? t("tp.refresh") : t("tp.now")}
-            </button>
-          </div>
-        </div>
-
-        {/* What this window is, and the exact instant the chart is cast at — the
-            pravesha moment is solved in degrees, not rounded to the day. */}
-        {window_ && (
-          <p className="settings-hint">
-            {t("tp.windowLine", {
-              start: window_.start,
-              end: window_.end,
-              days: window_.span_days,
-              label: result?.label || "",
-            })}
-            {window_.start_at && (
-              <>
-                <br />
-                {t("tp.entryAt", { at: window_.start_at.replace("T", " ") })}
-              </>
-            )}
-          </p>
-        )}
-
-        <ErrorBanner message={error} />
-
-        {loading ? (
-          <Card>
-            <LoadingState message={t("tp.loading")} />
-          </Card>
-        ) : result ? (
-          <div className="fade-in">
-            <div className="info-pills">
-              <span className="info-pill">
-                {t("tp.lagna")}:{" "}
-                <strong className="text-indigo">{ln(result.lagna?.sign_name, "rasi")}</strong>
-              </span>
-              <span className="info-pill">
-                {/* Only the annual window is entered *on* the natal tithi; the shorter
-                    rungs are named for what they are (a tithi, a paksha, a return). */}
-                {isAnnual ? t("tp.entryTithi") : t("tp.thisWindow")}:{" "}
-                <strong className="text-vermillion">{result.label || "—"}</strong>
-              </span>
-              {/* Year-reckoned; annual rung only. */}
-              {isAnnual && result.muntha && (
-                <span className="info-pill">
-                  {t("tp.muntha")}:{" "}
-                  <strong className="text-saffron">{ln(result.muntha.sign_name, "rasi")}</strong>
-                  {result.muntha.house
-                    ? ` (${ordinal(result.muntha.house)} ${t("tp.houseWord")})`
-                    : ""}
-                </span>
-              )}
-              {isAnnual && result.year_lord && (
-                <span className="info-pill">
-                  {t("tp.yearLord")}:{" "}
-                  <strong className="text-vermillion">{result.year_lord.planet || "—"}</strong>
-                </span>
-              )}
-              <span className="info-pill">
-                {t("transit.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
-              </span>
-            </div>
-
-            <div className="chart-grid mt-xl">
-              <div className="ui-card ui-card--accent ui-card--pad-lg">
-                <h3 className="ui-card-header ui-card-header--sm">
-                  <Compass size={18} /> {t("tp.chart")}
-                </h3>
-                <Kundali
-                  planets={planets}
-                  lagna={result.lagna}
-                  exportable
-                  title={`${t("tp.title")} — ${result.label || ""}`}
-                />
-              </div>
-
-              <div className="ui-card ui-card--accent-indigo ui-card--pad-lg">
-                <h3 className="ui-card-header ui-card-header--sm">
-                  <Star size={18} /> {t("tp.placements")}
-                </h3>
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>{t("tp.planet")}</th>
-                        <th>{t("tp.sign")}</th>
-                        <th>{t("tp.house")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orderedPlanets.map(([p, v]) => (
-                        <tr key={p}>
-                          <td className="fw-700">
-                            <span className="text-saffron">{ln(p, "graha", { abbr: true })}</span>{" "}
-                            {ln(p, "graha")}
-                          </td>
-                          <td className="text-secondary">
-                            {ln(v.sign_name, "rasi")}{" "}
-                            <span className="text-muted">{v.degrees}°</span>
-                          </td>
-                          <td className="text-indigo">{v.house}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            {/* Sahams + chart aspects — annual rung only (see above). */}
-            {sahams.length > 0 && (
-              <div className="ui-card ui-card--accent-gold ui-card--flush mt-xl">
-                <h3 className="ui-card-header ui-card-header--sm">
-                  <Star size={20} /> {t("tp.sahams")}
-                </h3>
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>{t("tp.saham")}</th>
-                        <th>{t("tp.sign")}</th>
-                        <th>{t("tp.house")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sahams.map((s, i) => (
-                        <tr key={i}>
-                          <td className="fw-700 text-saffron">{s.name}</td>
-                          <td className="text-secondary">
-                            {ln(s.sign_name, "rasi")}{" "}
-                            <span className="text-muted">{s.degrees}°</span>
-                          </td>
-                          <td className="text-indigo">{s.house}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {aspects.length > 0 && (
-              <div className="ui-card ui-card--accent-indigo ui-card--flush mt-xl">
-                <h3 className="ui-card-header ui-card-header--sm">
-                  <Sparkles size={20} /> {t("tp.aspects")}
-                </h3>
-                <p className="card-note">{t("tp.aspectsHint")}</p>
-                <div className="digest-highlights">
-                  {aspects.map((y, i) => (
-                    <div key={i} className="digest-hl">
-                      <strong className="text-saffron">{y.name}</strong>
-                      {y.pair ? ` (${y.pair.join(" / ")})` : ""}
-                      {y.description ? ` — ${y.description}` : ""}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* The window's compressed Tithi Ashtottari — on every rung. */}
-            <div className="ui-card ui-card--accent-indigo ui-card--flush mt-xl">
-              <h3 className="ui-card-header ui-card-header--sm" style={{ fontSize: "1.25rem" }}>
-                <Clock size={20} /> {t("tp.dasha")}
-              </h3>
-              {ta?.periods?.length > 0 ? (
-                <>
-                  <p className="card-intro">{ta.system}</p>
-                  <p className="card-note">{t("tp.dashaHint")}</p>
-                  <TithiAshtottariTree periods={ta.periods} birthDetails={birthDetails} />
-                </>
-              ) : (
-                <p className="card-note">{t("tp.noDasha")}</p>
-              )}
-            </div>
-
-            {/* AI reading of whichever window is on screen. */}
-            <div className="mt-xl">
-              <Card title={t("tp.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
-                <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("tp.aiHint")}</p>}
-                {aiLoading && <LoadingState message={t("tp.aiLoading")} />}
-                {aiAnalysis && !aiLoading && (
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{aiAnalysis}</Markdown>
-                    {aiModel && (
-                      <div className="ai-panel__meta">{t("tp.aiModel", { model: aiModel })}</div>
-                    )}
-                  </div>
-                )}
-                {!aiLoading && (
-                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                    <Sparkles size={18} />
-                    {aiAnalysis ? t("tp.aiRegenerate") : t("tp.aiGenerate")}
+          <div className="page-controls">
+            {/* Which rung of the lunar ladder. */}
+            <div className="controls-group">
+              <label className="control-label">
+                <Moon size={18} style={{ color: "var(--saffron)" }} />
+                {t("tp.window")}
+              </label>
+              <div className="chart-toggle" role="group" aria-label={t("tp.window")}>
+                {RUNGS.map((r) => (
+                  <button
+                    key={r.key}
+                    type="button"
+                    className={`chart-toggle__btn${rung === r.key ? " is-active" : ""}`}
+                    aria-pressed={rung === r.key}
+                    onClick={() => changeRung(r.key)}
+                  >
+                    {t(r.labelKey)}
                   </button>
-                )}
-                <p className="card-note">{t("tp.disclaimer")}</p>
-              </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* ± one whole window of the selected rung. */}
+            <div className="controls-group controls-group--end">
+              <div className="stepper">
+                <button
+                  type="button"
+                  className="stepper__btn"
+                  onClick={() => step(-1)}
+                  aria-label={t("tp.prev")}
+                  title={t("tp.prev")}
+                  disabled={isAnnual && year <= birthYear}
+                >
+                  −
+                </button>
+                <span className="stepper__label" style={{ minWidth: "12rem", textAlign: "center" }}>
+                  {isAnnual
+                    ? year
+                    : `${formatDate(window_?.start, locale)} → ${formatDate(window_?.end, locale)}`}
+                </span>
+                <button
+                  type="button"
+                  className="stepper__btn"
+                  onClick={() => step(1)}
+                  aria-label={t("tp.next")}
+                  title={t("tp.next")}
+                >
+                  +
+                </button>
+              </div>
+              <button className="control-btn" onClick={() => (isNow ? load() : goNow())}>
+                {isNow ? t("tp.refresh") : t("tp.now")}
+              </button>
             </div>
           </div>
-        ) : null}
-      </div>
+
+          {/* What this window is, and the exact instant the chart is cast at — the
+            pravesha moment is solved in degrees, not rounded to the day. */}
+          {window_ && (
+            <p className="settings-hint">
+              {t("tp.windowLine", {
+                start: window_.start,
+                end: window_.end,
+                days: window_.span_days,
+                label: result?.label || "",
+              })}
+              {window_.start_at && (
+                <>
+                  <br />
+                  {t("tp.entryAt", { at: window_.start_at.replace("T", " ") })}
+                </>
+              )}
+            </p>
+          )}
+
+          <ErrorBanner message={error} />
+
+          {loading ? (
+            <Card>
+              <LoadingState message={t("tp.loading")} />
+            </Card>
+          ) : result ? (
+            <div className="fade-in">
+              <div className="info-pills">
+                <span className="info-pill">
+                  {t("tp.lagna")}:{" "}
+                  <strong className="text-indigo">{ln(result.lagna?.sign_name, "rasi")}</strong>
+                </span>
+                <span className="info-pill">
+                  {/* Only the annual window is entered *on* the natal tithi; the shorter
+                    rungs are named for what they are (a tithi, a paksha, a return). */}
+                  {isAnnual ? t("tp.entryTithi") : t("tp.thisWindow")}:{" "}
+                  <strong className="text-vermillion">{result.label || "—"}</strong>
+                </span>
+                {/* Year-reckoned; annual rung only. */}
+                {isAnnual && result.muntha && (
+                  <span className="info-pill">
+                    {t("tp.muntha")}:{" "}
+                    <strong className="text-saffron">{ln(result.muntha.sign_name, "rasi")}</strong>
+                    {result.muntha.house
+                      ? ` (${ordinal(result.muntha.house)} ${t("tp.houseWord")})`
+                      : ""}
+                  </span>
+                )}
+                {isAnnual && result.year_lord && (
+                  <span className="info-pill">
+                    {t("tp.yearLord")}:{" "}
+                    <strong className="text-vermillion">{result.year_lord.planet || "—"}</strong>
+                  </span>
+                )}
+                <span className="info-pill">
+                  {t("transit.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
+                </span>
+              </div>
+
+              <div className="chart-grid mt-xl">
+                <div className="ui-card ui-card--accent ui-card--pad-lg">
+                  <h3 className="ui-card-header ui-card-header--sm">
+                    <Compass size={18} /> {t("tp.chart")}
+                  </h3>
+                  <Kundali
+                    planets={planets}
+                    lagna={result.lagna}
+                    exportable
+                    title={`${t("tp.title")} — ${result.label || ""}`}
+                  />
+                </div>
+
+                <div className="ui-card ui-card--accent-indigo ui-card--pad-lg">
+                  <h3 className="ui-card-header ui-card-header--sm">
+                    <Star size={18} /> {t("tp.placements")}
+                  </h3>
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>{t("tp.planet")}</th>
+                          <th>{t("tp.sign")}</th>
+                          <th>{t("tp.house")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orderedPlanets.map(([p, v]) => (
+                          <tr key={p}>
+                            <td className="fw-700">
+                              <span className="text-saffron">{ln(p, "graha", { abbr: true })}</span>{" "}
+                              {ln(p, "graha")}
+                            </td>
+                            <td className="text-secondary">
+                              {ln(v.sign_name, "rasi")}{" "}
+                              <span className="text-muted">{v.degrees}°</span>
+                            </td>
+                            <td className="text-indigo">{v.house}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sahams + chart aspects — annual rung only (see above). */}
+              {sahams.length > 0 && (
+                <div className="ui-card ui-card--accent-gold ui-card--flush mt-xl">
+                  <h3 className="ui-card-header ui-card-header--sm">
+                    <Star size={20} /> {t("tp.sahams")}
+                  </h3>
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>{t("tp.saham")}</th>
+                          <th>{t("tp.sign")}</th>
+                          <th>{t("tp.house")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sahams.map((s, i) => (
+                          <tr key={i}>
+                            <td className="fw-700 text-saffron">{s.name}</td>
+                            <td className="text-secondary">
+                              {ln(s.sign_name, "rasi")}{" "}
+                              <span className="text-muted">{s.degrees}°</span>
+                            </td>
+                            <td className="text-indigo">{s.house}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {aspects.length > 0 && (
+                <div className="ui-card ui-card--accent-indigo ui-card--flush mt-xl">
+                  <h3 className="ui-card-header ui-card-header--sm">
+                    <Sparkles size={20} /> {t("tp.aspects")}
+                  </h3>
+                  <p className="card-note">{t("tp.aspectsHint")}</p>
+                  <div className="digest-highlights">
+                    {aspects.map((y, i) => (
+                      <div key={i} className="digest-hl">
+                        <strong className="text-saffron">{y.name}</strong>
+                        {y.pair ? ` (${y.pair.join(" / ")})` : ""}
+                        {y.description ? ` — ${y.description}` : ""}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* The window's compressed Tithi Ashtottari — on every rung. */}
+              <div className="ui-card ui-card--accent-indigo ui-card--flush mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm" style={{ fontSize: "1.25rem" }}>
+                  <Clock size={20} /> {t("tp.dasha")}
+                </h3>
+                {ta?.periods?.length > 0 ? (
+                  <>
+                    <p className="card-intro">{ta.system}</p>
+                    <p className="card-note">{t("tp.dashaHint")}</p>
+                    <TithiAshtottariTree periods={ta.periods} birthDetails={birthDetails} />
+                  </>
+                ) : (
+                  <p className="card-note">{t("tp.noDasha")}</p>
+                )}
+              </div>
+
+              {/* AI reading of whichever window is on screen. */}
+              <div className="mt-xl">
+                <Card title={t("tp.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
+                  <ErrorBanner message={aiError} />
+                  {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("tp.aiHint")}</p>}
+                  {aiLoading && <LoadingState message={t("tp.aiLoading")} />}
+                  {aiAnalysis && !aiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <Markdown>{aiAnalysis}</Markdown>
+                      {aiModel && (
+                        <div className="ai-panel__meta">{t("tp.aiModel", { model: aiModel })}</div>
+                      )}
+                    </div>
+                  )}
+                  {!aiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                      <Sparkles size={18} />
+                      {aiAnalysis ? t("tp.aiRegenerate") : t("tp.aiGenerate")}
+                    </button>
+                  )}
+                  <p className="card-note">{t("tp.disclaimer")}</p>
+                </Card>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

@@ -1,3 +1,4 @@
+import { clickable } from "../utils/a11y";
 import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -122,7 +123,11 @@ export const RecentReadings = ({ source, profileId, limit = 8 }) => {
           {shown.map((c) => {
             const pname = profileName(c.profile_id);
             return (
-              <div key={c.id} className="history-item" onClick={() => openReading(c)}>
+              <div
+                key={c.id}
+                className="history-item"
+                {...clickable(() => openReading(c), { label: c.title })}
+              >
                 <div className="history-item__main">
                   <div className="history-item__title">{c.title}</div>
                   {c.preview && <div className="history-item__preview">{c.preview}…</div>}

@@ -59,6 +59,7 @@ import { RootRoute } from "./components/RootRoute";
 import { SITE_TITLE } from "./config/branding";
 import "./App.css";
 import "./styles/Responsive.css";
+import OfflineBanner from "./components/OfflineBanner";
 
 function App() {
   // Reflect the configurable brand name in the browser tab + PWA/meta tags at
@@ -76,6 +77,7 @@ function App() {
 
   return (
     <Router>
+      <OfflineBanner />
       <AuthProvider>
         <ProfileProvider>
           <SettingsProvider>

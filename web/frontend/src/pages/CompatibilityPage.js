@@ -390,390 +390,399 @@ export const CompatibilityPage = () => {
         subtitle={t("compat.subtitle")}
         accent="saffron"
       />
+      <main id="page-content" className="page-main">
+        {/* Content */}
+        <div className="dashboard-content">
+          <RecentReadings source="compatibility" />
+          <ErrorBanner message={error} />
 
-      {/* Content */}
-      <div className="dashboard-content">
-        <RecentReadings source="compatibility" />
-        <ErrorBanner message={error} />
+          {/* Profile Selection Card */}
+          <div className="ui-card ui-card--accent fade-in">
+            <h3 className="ui-card-header">
+              <Users size={24} />
+              {t("compat.selectProfiles")}
+            </h3>
 
-        {/* Profile Selection Card */}
-        <div className="ui-card ui-card--accent fade-in">
-          <h3 className="ui-card-header">
-            <Users size={24} />
-            {t("compat.selectProfiles")}
-          </h3>
-
-          <div className="person-grid">
-            {/* Person 1 - Selected Profile */}
-            <div className="compat-person compat-person--a">
-              <h4 className="compat-person__head">
-                <User size={20} /> {t("compare.person1")}
-              </h4>
-              <div className="compat-person__card">
-                <p className="compat-person__name">{selectedProfile.profile_name}</p>
-                <div className="detail-list">
-                  <div>
-                    <strong>{t("common.name")}:</strong>{" "}
-                    {selectedProfile.birth_details.name || t("common.anonymous")}
-                  </div>
-                  <div>
-                    <strong>{t("common.dateOfBirth")}:</strong>{" "}
-                    {formatDate(selectedProfile.birth_details.dob)}
-                  </div>
-                  <div>
-                    <strong>{t("common.timeOfBirth")}:</strong>{" "}
-                    {orDash(selectedProfile.birth_details.tob)}
-                  </div>
-                  <div>
-                    <strong>{t("common.place")}:</strong>{" "}
-                    {orDash(selectedProfile.birth_details.place)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Person 2 - Select from profiles */}
-            <div className="compat-person compat-person--b">
-              <h4 className="compat-person__head">
-                <User size={20} /> {t("compare.person2")}
-              </h4>
-              <label className="compat-person__select-label">{t("compat.selectToCompare")}</label>
-              <select
-                className="form-select"
-                value={secondProfile?._id || ""}
-                onChange={(e) => {
-                  const profile = profiles.find((p) => p._id === e.target.value);
-                  setSecondProfile(profile || null);
-                  resetResults();
-                }}
-              >
-                <option value="">{t("compat.selectPlaceholder")}</option>
-                {profiles
-                  .filter((p) => p._id !== selectedProfile._id)
-                  .map((profile) => (
-                    <option key={profile._id} value={profile._id}>
-                      {profile.profile_name} ({profile.birth_details.name || t("common.anonymous")})
-                    </option>
-                  ))}
-              </select>
-
-              {secondProfile && (
-                <div className="compat-person__card is-spaced">
-                  <p className="compat-person__name">{secondProfile.profile_name}</p>
+            <div className="person-grid">
+              {/* Person 1 - Selected Profile */}
+              <div className="compat-person compat-person--a">
+                <h4 className="compat-person__head">
+                  <User size={20} /> {t("compare.person1")}
+                </h4>
+                <div className="compat-person__card">
+                  <p className="compat-person__name">{selectedProfile.profile_name}</p>
                   <div className="detail-list">
                     <div>
                       <strong>{t("common.name")}:</strong>{" "}
-                      {secondProfile.birth_details.name || t("common.anonymous")}
+                      {selectedProfile.birth_details.name || t("common.anonymous")}
                     </div>
                     <div>
                       <strong>{t("common.dateOfBirth")}:</strong>{" "}
-                      {formatDate(secondProfile.birth_details.dob)}
+                      {formatDate(selectedProfile.birth_details.dob)}
                     </div>
                     <div>
                       <strong>{t("common.timeOfBirth")}:</strong>{" "}
-                      {orDash(secondProfile.birth_details.tob)}
+                      {orDash(selectedProfile.birth_details.tob)}
                     </div>
                     <div>
                       <strong>{t("common.place")}:</strong>{" "}
-                      {orDash(secondProfile.birth_details.place)}
+                      {orDash(selectedProfile.birth_details.place)}
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
+
+              {/* Person 2 - Select from profiles */}
+              <div className="compat-person compat-person--b">
+                <h4 className="compat-person__head">
+                  <User size={20} /> {t("compare.person2")}
+                </h4>
+                <label className="compat-person__select-label">{t("compat.selectToCompare")}</label>
+                <select
+                  className="form-select"
+                  value={secondProfile?._id || ""}
+                  onChange={(e) => {
+                    const profile = profiles.find((p) => p._id === e.target.value);
+                    setSecondProfile(profile || null);
+                    resetResults();
+                  }}
+                >
+                  <option value="">{t("compat.selectPlaceholder")}</option>
+                  {profiles
+                    .filter((p) => p._id !== selectedProfile._id)
+                    .map((profile) => (
+                      <option key={profile._id} value={profile._id}>
+                        {profile.profile_name} (
+                        {profile.birth_details.name || t("common.anonymous")})
+                      </option>
+                    ))}
+                </select>
+
+                {secondProfile && (
+                  <div className="compat-person__card is-spaced">
+                    <p className="compat-person__name">{secondProfile.profile_name}</p>
+                    <div className="detail-list">
+                      <div>
+                        <strong>{t("common.name")}:</strong>{" "}
+                        {secondProfile.birth_details.name || t("common.anonymous")}
+                      </div>
+                      <div>
+                        <strong>{t("common.dateOfBirth")}:</strong>{" "}
+                        {formatDate(secondProfile.birth_details.dob)}
+                      </div>
+                      <div>
+                        <strong>{t("common.timeOfBirth")}:</strong>{" "}
+                        {orDash(secondProfile.birth_details.tob)}
+                      </div>
+                      <div>
+                        <strong>{t("common.place")}:</strong>{" "}
+                        {orDash(secondProfile.birth_details.place)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Calculate Button */}
+            <button
+              className="ui-btn ui-btn--primary ui-btn--block ui-btn--lg"
+              style={{ marginTop: "var(--space-lg)" }}
+              onClick={handleCalculate}
+              disabled={loading || !secondProfile}
+            >
+              <Heart size={20} />
+              {loading ? t("compat.calculating") : t("compat.check")}
+            </button>
           </div>
 
-          {/* Calculate Button */}
-          <button
-            className="ui-btn ui-btn--primary ui-btn--block ui-btn--lg"
-            style={{ marginTop: "var(--space-lg)" }}
-            onClick={handleCalculate}
-            disabled={loading || !secondProfile}
-          >
-            <Heart size={20} />
-            {loading ? t("compat.calculating") : t("compat.check")}
-          </button>
-        </div>
+          {/* Loading State */}
+          {loading && (
+            <Card>
+              <LoadingState message={t("compat.loading")} />
+            </Card>
+          )}
 
-        {/* Loading State */}
-        {loading && (
-          <Card>
-            <LoadingState message={t("compat.loading")} />
-          </Card>
-        )}
+          {/* Results */}
+          {result && !loading && (
+            <div className="ui-card ui-card--accent fade-in">
+              <h3 className="ui-card-header">
+                <Heart size={24} />
+                {t("compat.results")}
+              </h3>
 
-        {/* Results */}
-        {result && !loading && (
-          <div className="ui-card ui-card--accent fade-in">
-            <h3 className="ui-card-header">
-              <Heart size={24} />
-              {t("compat.results")}
-            </h3>
-
-            {/* Total Score Display */}
-            <div className="score-box">
-              <div className="score-box__label">{t("compat.totalScore")}</div>
-              <div className="score-box__value">
-                {result.total_score}
-                <span className="score-box__value-max">/{result.max_score || 36}</span>
-              </div>
-              <div className="score-box__status">
-                {t("compat.status")}: {result.status}
-              </div>
-              {(result.boy?.nakshatra || result.girl?.nakshatra) && (
-                <div className="score-box__nakshatras">
-                  {nameA}: {ln(result.boy?.nakshatra, "nakshatra")} ({t("compat.pada")}{" "}
-                  {result.boy?.pada}) &nbsp;•&nbsp; {nameB}:{" "}
-                  {ln(result.girl?.nakshatra, "nakshatra")} ({t("compat.pada")} {result.girl?.pada})
+              {/* Total Score Display */}
+              <div className="score-box">
+                <div className="score-box__label">{t("compat.totalScore")}</div>
+                <div className="score-box__value">
+                  {result.total_score}
+                  <span className="score-box__value-max">/{result.max_score || 36}</span>
                 </div>
-              )}
-            </div>
-
-            {/* Workspace tabs: Guna Milan / 7th House / Timeline (§2.6) */}
-            <Tabs tabs={wsTabs} active={wtab} onChange={setWtab} ariaLabel={t("compat.title")} />
-
-            {wtab === "guna" && (
-              <>
-                {/* System tabs: Ashtakoot / Dashakoota / Mangal dosha */}
-                <Tabs
-                  tabs={sysTabs}
-                  active={ctab}
-                  onChange={setCtab}
-                  ariaLabel={t("compat.tabs.ashtakoot")}
-                />
-
-                {/* Ashtakoot Breakdown */}
-                {ctab === "ashtakoot" && (
-                  <>
-                    <h4 className="card-subhead">{t("compat.breakdown")}</h4>
-                    <div className="koota-grid">
-                      {(result.kootas || []).map((koota) => {
-                        const tier =
-                          koota.score >= koota.max * 0.7
-                            ? "good"
-                            : koota.score >= koota.max * 0.4
-                              ? "mid"
-                              : "low";
-                        return (
-                          <div key={koota.key} className="koota-card" title={koota.description}>
-                            <div className="koota-card__name">{koota.name}</div>
-                            <div className={`koota-card__score koota-card__score--${tier}`}>
-                              {koota.score}
-                            </div>
-                            <div className="koota-card__max">
-                              {t("compat.outOf", { max: koota.max })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-
-                {/* Dashakoota (South / Tamil 10-porutham) */}
-                {ctab === "dashakoota" && result.dashakoota && (
-                  <>
-                    <h4 className="card-subhead">
-                      {t("compat.dashakoota.title")} — {result.dashakoota.score}/
-                      {result.dashakoota.max}
-                    </h4>
-                    <p className="card-note">{t("compat.dashakoota.intro")}</p>
-                    <div className="table-scroll">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>{t("compat.dashakoota.porutham")}</th>
-                            <th>{t("compat.dashakoota.status")}</th>
-                            <th>{t("compat.dashakoota.meaning")}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {result.dashakoota.poruthams.map((p) => (
-                            <tr key={p.key} className={p.ok ? "" : "rem-row--weak"}>
-                              <td>
-                                <strong>{p.name}</strong>
-                              </td>
-                              <td>
-                                {p.ok
-                                  ? "✓ " + t("compat.dashakoota.ok")
-                                  : "✕ " + t("compat.dashakoota.no")}
-                              </td>
-                              <td className="text-secondary">{p.description}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                )}
-
-                {/* Mangal (Kuja) dosha */}
-                {ctab === "mangal" && result.mangal_dosha && (
-                  <>
-                    <h4 className="card-subhead">{t("compat.mangal.title")}</h4>
-                    <p className="score-box__status" style={{ marginBottom: "var(--space-md)" }}>
-                      {result.mangal_dosha.verdict}
-                    </p>
-                    <div className="person-grid">
-                      {[
-                        { key: "boy", name: nameA, m: result.mangal_dosha.boy },
-                        { key: "girl", name: nameB, m: result.mangal_dosha.girl },
-                      ].map(({ key, name, m }) => (
-                        <div key={key} className="ui-card ui-card--pad-lg">
-                          <h5 className="compat-person__name">{name}</h5>
-                          <p>
-                            <strong>{t("compat.mangal.status")}:</strong>{" "}
-                            {m.manglik ? t("compat.mangal.manglik") : t("compat.mangal.notManglik")}{" "}
-                            ({t("compat.mangal.marsIn", { sign: m.mars_sign })})
-                          </p>
-                          {Object.keys(m.from || {}).length > 0 && (
-                            <p className="text-secondary">
-                              {t("compat.mangal.from")}:{" "}
-                              {Object.entries(m.from)
-                                .map(([ref, h]) => `${ref} (${h})`)
-                                .join(", ")}
-                            </p>
-                          )}
-                          {(m.cancellations || []).length > 0 && (
-                            <ul className="detail-list">
-                              {m.cancellations.map((c, i) => (
-                                <li key={i}>{c}</li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {/* Side-by-side charts for visual comparison — Rasi (D1) + Navamsa (D9) */}
-                {chartA && chartB && (
-                  <>
-                    <h4 className="card-subhead">
-                      <GitCompareArrows size={20} />
-                      {t("compat.charts")} — {t("varga.rasiD1", "Rasi (D1)")}
-                    </h4>
-                    <div className="chart-grid" style={{ marginBottom: "var(--space-xl)" }}>
-                      <Card title={nameA} accent="saffron">
-                        <Kundali
-                          planets={chartA.planets}
-                          lagna={chartA.lagna}
-                          title={nameA}
-                          exportable
-                        />
-                      </Card>
-                      <Card title={nameB} accent="vermillion">
-                        <Kundali
-                          planets={chartB.planets}
-                          lagna={chartB.lagna}
-                          title={nameB}
-                          exportable
-                        />
-                      </Card>
-                    </div>
-                    {chartA.d9_chart && chartB.d9_chart && (
-                      <>
-                        <h4 className="card-subhead">
-                          <GitCompareArrows size={20} />
-                          {t("compat.charts")} — {t("varga.navamsaD9", "Navamsa (D9) — marriage")}
-                        </h4>
-                        <div className="chart-grid" style={{ marginBottom: "var(--space-xl)" }}>
-                          <Card title={nameA} accent="saffron">
-                            <Kundali
-                              planets={chartA.d9_chart}
-                              lagna={chartA.d9_lagna}
-                              title={`${nameA} · D9`}
-                              exportable
-                            />
-                          </Card>
-                          <Card title={nameB} accent="vermillion">
-                            <Kundali
-                              planets={chartB.d9_chart}
-                              lagna={chartB.d9_lagna}
-                              title={`${nameB} · D9`}
-                              exportable
-                            />
-                          </Card>
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
-              </>
-            )}
-
-            {wtab === "seventh" && (
-              <SeventhHousePanel t={t} marriage={marriage} nameA={nameA} nameB={nameB} />
-            )}
-
-            {wtab === "timeline" && (
-              <div className="fade-in">
-                <h4 className="card-subhead">
-                  <CalendarRange size={20} />
-                  {t("compat.timeline.title")}
-                </h4>
-                <p className="card-note">{t("compat.timeline.intro")}</p>
-                {timelineError && <ErrorBanner message={timelineError} />}
-                {timelineLoading ? (
-                  <LoadingState message={t("compat.timeline.loading")} />
-                ) : (
-                  <>
-                    <MarriageTimeline
-                      t={t}
-                      nameA={nameA}
-                      nameB={nameB}
-                      dashaA={dashaA}
-                      dashaB={dashaB}
-                      sigA={significantLords(marriage?.seventh_house?.male)}
-                      sigB={significantLords(marriage?.seventh_house?.female)}
-                    />
-                    <h4 className="card-subhead" style={{ marginTop: "var(--space-xl)" }}>
-                      <Shield size={20} />
-                      {t("compat.timeline.saturnTitle")}
-                    </h4>
-                    <p className="card-note">{t("compat.timeline.saturnIntro")}</p>
-                    <div className="person-grid">
-                      <SaturnOutlook t={t} name={nameA} data={saturnA} accent="saffron" />
-                      <SaturnOutlook t={t} name={nameB} data={saturnB} accent="vermillion" />
-                    </div>
-                  </>
+                <div className="score-box__status">
+                  {t("compat.status")}: {result.status}
+                </div>
+                {(result.boy?.nakshatra || result.girl?.nakshatra) && (
+                  <div className="score-box__nakshatras">
+                    {nameA}: {ln(result.boy?.nakshatra, "nakshatra")} ({t("compat.pada")}{" "}
+                    {result.boy?.pada}) &nbsp;•&nbsp; {nameB}:{" "}
+                    {ln(result.girl?.nakshatra, "nakshatra")} ({t("compat.pada")}{" "}
+                    {result.girl?.pada})
+                  </div>
                 )}
               </div>
-            )}
 
-            {/* AI Analysis (on-demand) */}
-            <div className="ai-panel">
-              <h4 className="ai-panel__title">
-                <Sparkles size={20} style={{ color: "var(--saffron)" }} />
-                {t("compat.aiAnalysis")}
-              </h4>
+              {/* Workspace tabs: Guna Milan / 7th House / Timeline (§2.6) */}
+              <Tabs tabs={wsTabs} active={wtab} onChange={setWtab} ariaLabel={t("compat.title")} />
 
-              <ErrorBanner message={aiError} />
+              {wtab === "guna" && (
+                <>
+                  {/* System tabs: Ashtakoot / Dashakoota / Mangal dosha */}
+                  <Tabs
+                    tabs={sysTabs}
+                    active={ctab}
+                    onChange={setCtab}
+                    ariaLabel={t("compat.tabs.ashtakoot")}
+                  />
 
-              {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("compat.aiHint")}</p>}
+                  {/* Ashtakoot Breakdown */}
+                  {ctab === "ashtakoot" && (
+                    <>
+                      <h4 className="card-subhead">{t("compat.breakdown")}</h4>
+                      <div className="koota-grid">
+                        {(result.kootas || []).map((koota) => {
+                          const tier =
+                            koota.score >= koota.max * 0.7
+                              ? "good"
+                              : koota.score >= koota.max * 0.4
+                                ? "mid"
+                                : "low";
+                          return (
+                            <div key={koota.key} className="koota-card" title={koota.description}>
+                              <div className="koota-card__name">{koota.name}</div>
+                              <div className={`koota-card__score koota-card__score--${tier}`}>
+                                {koota.score}
+                              </div>
+                              <div className="koota-card__max">
+                                {t("compat.outOf", { max: koota.max })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
 
-              {aiLoading && <LoadingState message={t("compat.aiLoading")} />}
+                  {/* Dashakoota (South / Tamil 10-porutham) */}
+                  {ctab === "dashakoota" && result.dashakoota && (
+                    <>
+                      <h4 className="card-subhead">
+                        {t("compat.dashakoota.title")} — {result.dashakoota.score}/
+                        {result.dashakoota.max}
+                      </h4>
+                      <p className="card-note">{t("compat.dashakoota.intro")}</p>
+                      <div className="table-scroll">
+                        <table className="data-table">
+                          <thead>
+                            <tr>
+                              <th>{t("compat.dashakoota.porutham")}</th>
+                              <th>{t("compat.dashakoota.status")}</th>
+                              <th>{t("compat.dashakoota.meaning")}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {result.dashakoota.poruthams.map((p) => (
+                              <tr key={p.key} className={p.ok ? "" : "rem-row--weak"}>
+                                <td>
+                                  <strong>{p.name}</strong>
+                                </td>
+                                <td>
+                                  {p.ok
+                                    ? "✓ " + t("compat.dashakoota.ok")
+                                    : "✕ " + t("compat.dashakoota.no")}
+                                </td>
+                                <td className="text-secondary">{p.description}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
 
-              {aiAnalysis && !aiLoading && (
-                <div className="sbc-ai-markdown ai-panel__reading">
-                  <Markdown>{aiAnalysis}</Markdown>
-                  {aiModel && (
-                    <div className="ai-panel__meta">{t("compat.aiModel", { model: aiModel })}</div>
+                  {/* Mangal (Kuja) dosha */}
+                  {ctab === "mangal" && result.mangal_dosha && (
+                    <>
+                      <h4 className="card-subhead">{t("compat.mangal.title")}</h4>
+                      <p className="score-box__status" style={{ marginBottom: "var(--space-md)" }}>
+                        {result.mangal_dosha.verdict}
+                      </p>
+                      <div className="person-grid">
+                        {[
+                          { key: "boy", name: nameA, m: result.mangal_dosha.boy },
+                          { key: "girl", name: nameB, m: result.mangal_dosha.girl },
+                        ].map(({ key, name, m }) => (
+                          <div key={key} className="ui-card ui-card--pad-lg">
+                            <h5 className="compat-person__name">{name}</h5>
+                            <p>
+                              <strong>{t("compat.mangal.status")}:</strong>{" "}
+                              {m.manglik
+                                ? t("compat.mangal.manglik")
+                                : t("compat.mangal.notManglik")}{" "}
+                              ({t("compat.mangal.marsIn", { sign: m.mars_sign })})
+                            </p>
+                            {Object.keys(m.from || {}).length > 0 && (
+                              <p className="text-secondary">
+                                {t("compat.mangal.from")}:{" "}
+                                {Object.entries(m.from)
+                                  .map(([ref, h]) => `${ref} (${h})`)
+                                  .join(", ")}
+                              </p>
+                            )}
+                            {(m.cancellations || []).length > 0 && (
+                              <ul className="detail-list">
+                                {m.cancellations.map((c, i) => (
+                                  <li key={i}>{c}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Side-by-side charts for visual comparison — Rasi (D1) + Navamsa (D9) */}
+                  {chartA && chartB && (
+                    <>
+                      <h4 className="card-subhead">
+                        <GitCompareArrows size={20} />
+                        {t("compat.charts")} — {t("varga.rasiD1", "Rasi (D1)")}
+                      </h4>
+                      <div className="chart-grid" style={{ marginBottom: "var(--space-xl)" }}>
+                        <Card title={nameA} accent="saffron">
+                          <Kundali
+                            planets={chartA.planets}
+                            lagna={chartA.lagna}
+                            title={nameA}
+                            exportable
+                          />
+                        </Card>
+                        <Card title={nameB} accent="vermillion">
+                          <Kundali
+                            planets={chartB.planets}
+                            lagna={chartB.lagna}
+                            title={nameB}
+                            exportable
+                          />
+                        </Card>
+                      </div>
+                      {chartA.d9_chart && chartB.d9_chart && (
+                        <>
+                          <h4 className="card-subhead">
+                            <GitCompareArrows size={20} />
+                            {t("compat.charts")} — {t("varga.navamsaD9", "Navamsa (D9) — marriage")}
+                          </h4>
+                          <div className="chart-grid" style={{ marginBottom: "var(--space-xl)" }}>
+                            <Card title={nameA} accent="saffron">
+                              <Kundali
+                                planets={chartA.d9_chart}
+                                lagna={chartA.d9_lagna}
+                                title={`${nameA} · D9`}
+                                exportable
+                              />
+                            </Card>
+                            <Card title={nameB} accent="vermillion">
+                              <Kundali
+                                planets={chartB.d9_chart}
+                                lagna={chartB.d9_lagna}
+                                title={`${nameB} · D9`}
+                                exportable
+                              />
+                            </Card>
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+
+              {wtab === "seventh" && (
+                <SeventhHousePanel t={t} marriage={marriage} nameA={nameA} nameB={nameB} />
+              )}
+
+              {wtab === "timeline" && (
+                <div className="fade-in">
+                  <h4 className="card-subhead">
+                    <CalendarRange size={20} />
+                    {t("compat.timeline.title")}
+                  </h4>
+                  <p className="card-note">{t("compat.timeline.intro")}</p>
+                  {timelineError && <ErrorBanner message={timelineError} />}
+                  {timelineLoading ? (
+                    <LoadingState message={t("compat.timeline.loading")} />
+                  ) : (
+                    <>
+                      <MarriageTimeline
+                        t={t}
+                        nameA={nameA}
+                        nameB={nameB}
+                        dashaA={dashaA}
+                        dashaB={dashaB}
+                        sigA={significantLords(marriage?.seventh_house?.male)}
+                        sigB={significantLords(marriage?.seventh_house?.female)}
+                      />
+                      <h4 className="card-subhead" style={{ marginTop: "var(--space-xl)" }}>
+                        <Shield size={20} />
+                        {t("compat.timeline.saturnTitle")}
+                      </h4>
+                      <p className="card-note">{t("compat.timeline.saturnIntro")}</p>
+                      <div className="person-grid">
+                        <SaturnOutlook t={t} name={nameA} data={saturnA} accent="saffron" />
+                        <SaturnOutlook t={t} name={nameB} data={saturnB} accent="vermillion" />
+                      </div>
+                    </>
                   )}
                 </div>
               )}
 
-              {!aiLoading && (
-                <button className="ui-btn ui-btn--ai" onClick={handleAiAnalysis}>
-                  <Sparkles size={18} />
-                  {aiAnalysis ? t("compat.aiRegenerate") : t("compat.aiGenerate")}
-                </button>
-              )}
+              {/* AI Analysis (on-demand) */}
+              <div className="ai-panel">
+                <h4 className="ai-panel__title">
+                  <Sparkles size={20} style={{ color: "var(--saffron)" }} />
+                  {t("compat.aiAnalysis")}
+                </h4>
+
+                <ErrorBanner message={aiError} />
+
+                {!aiAnalysis && !aiLoading && (
+                  <p className="ai-panel__hint">{t("compat.aiHint")}</p>
+                )}
+
+                {aiLoading && <LoadingState message={t("compat.aiLoading")} />}
+
+                {aiAnalysis && !aiLoading && (
+                  <div className="sbc-ai-markdown ai-panel__reading">
+                    <Markdown>{aiAnalysis}</Markdown>
+                    {aiModel && (
+                      <div className="ai-panel__meta">
+                        {t("compat.aiModel", { model: aiModel })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!aiLoading && (
+                  <button className="ui-btn ui-btn--ai" onClick={handleAiAnalysis}>
+                    <Sparkles size={18} />
+                    {aiAnalysis ? t("compat.aiRegenerate") : t("compat.aiGenerate")}
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

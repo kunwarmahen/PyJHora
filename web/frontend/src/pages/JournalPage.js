@@ -166,130 +166,131 @@ export const JournalPage = () => {
         subtitle={t("journal.subtitle")}
         accent="terracotta"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <ProfileBanner profile={selectedProfile} />
+          <p className="card-note">{t("journal.intro")}</p>
 
-      <div className="dashboard-content">
-        <ProfileBanner profile={selectedProfile} />
-        <p className="card-note">{t("journal.intro")}</p>
+          <ErrorBanner message={error} />
 
-        <ErrorBanner message={error} />
-
-        {/* Editor */}
-        <Card
-          title={form.id ? t("journal.editTitle") : t("journal.addTitle")}
-          icon={<Plus size={22} />}
-          accent="terracotta"
-        >
-          <form className="jrn-form" onSubmit={save}>
-            <div className="jrn-form__row">
+          {/* Editor */}
+          <Card
+            title={form.id ? t("journal.editTitle") : t("journal.addTitle")}
+            icon={<Plus size={22} />}
+            accent="terracotta"
+          >
+            <form className="jrn-form" onSubmit={save}>
+              <div className="jrn-form__row">
+                <label className="jrn-field">
+                  <span>{t("journal.fieldDate")}</span>
+                  <input
+                    type="date"
+                    value={form.date}
+                    onChange={(e) => setForm({ ...form, date: e.target.value })}
+                    required
+                  />
+                </label>
+                <label className="jrn-field">
+                  <span>{t("journal.fieldCategory")}</span>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  >
+                    {CATEGORIES.map((c) => (
+                      <option key={c} value={c}>
+                        {t(`journal.cat.${c}`)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               <label className="jrn-field">
-                <span>{t("journal.fieldDate")}</span>
+                <span>{t("journal.fieldTitle")}</span>
                 <input
-                  type="date"
-                  value={form.date}
-                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  type="text"
+                  value={form.title}
+                  placeholder={t("journal.titlePlaceholder")}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
                   required
                 />
               </label>
               <label className="jrn-field">
-                <span>{t("journal.fieldCategory")}</span>
-                <select
-                  value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {t(`journal.cat.${c}`)}
-                    </option>
-                  ))}
-                </select>
+                <span>{t("journal.fieldNotes")}</span>
+                <textarea
+                  rows={3}
+                  value={form.notes}
+                  placeholder={t("journal.notesPlaceholder")}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                />
               </label>
-            </div>
-            <label className="jrn-field">
-              <span>{t("journal.fieldTitle")}</span>
-              <input
-                type="text"
-                value={form.title}
-                placeholder={t("journal.titlePlaceholder")}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                required
-              />
-            </label>
-            <label className="jrn-field">
-              <span>{t("journal.fieldNotes")}</span>
-              <textarea
-                rows={3}
-                value={form.notes}
-                placeholder={t("journal.notesPlaceholder")}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              />
-            </label>
-            <div className="jrn-form__actions">
-              {form.id && (
-                <button
-                  type="button"
-                  className="ui-btn ui-btn--ghost"
-                  onClick={() => setForm(emptyForm())}
-                >
-                  {t("journal.cancel")}
+              <div className="jrn-form__actions">
+                {form.id && (
+                  <button
+                    type="button"
+                    className="ui-btn ui-btn--ghost"
+                    onClick={() => setForm(emptyForm())}
+                  >
+                    {t("journal.cancel")}
+                  </button>
+                )}
+                <button type="submit" className="ui-btn" disabled={saving}>
+                  {saving ? t("journal.saving") : t("journal.save")}
                 </button>
-              )}
-              <button type="submit" className="ui-btn" disabled={saving}>
-                {saving ? t("journal.saving") : t("journal.save")}
-              </button>
-            </div>
-          </form>
-        </Card>
+              </div>
+            </form>
+          </Card>
 
-        {/* Timeline list */}
-        <div className="mt-xl">
-          {loading ? (
-            <Card>
-              <LoadingState message={t("journal.loading")} />
-            </Card>
-          ) : entries.length === 0 ? (
-            <p className="card-note">{t("journal.empty")}</p>
-          ) : (
-            <div className="jrn-list">
-              {entries.map((e) => (
-                <div className="jrn-entry" key={e.id}>
-                  <div className="jrn-entry__date">{fmt(e.date, locale)}</div>
-                  <div className="jrn-entry__body">
-                    <div className="jrn-entry__top">
-                      <span className={`jrn-cat jrn-cat--${e.category}`}>
-                        {t(`journal.cat.${e.category}`)}
-                      </span>
-                      <span className="jrn-entry__title">{e.title}</span>
-                    </div>
-                    {e.notes && <p className="jrn-entry__notes">{e.notes}</p>}
-                    {dashaText(e.dasha) && (
-                      <div className="jrn-entry__dasha">
-                        <Clock size={14} />
-                        {t("journal.running", { dasha: dashaText(e.dasha) })}
+          {/* Timeline list */}
+          <div className="mt-xl">
+            {loading ? (
+              <Card>
+                <LoadingState message={t("journal.loading")} />
+              </Card>
+            ) : entries.length === 0 ? (
+              <p className="card-note">{t("journal.empty")}</p>
+            ) : (
+              <div className="jrn-list">
+                {entries.map((e) => (
+                  <div className="jrn-entry" key={e.id}>
+                    <div className="jrn-entry__date">{fmt(e.date, locale)}</div>
+                    <div className="jrn-entry__body">
+                      <div className="jrn-entry__top">
+                        <span className={`jrn-cat jrn-cat--${e.category}`}>
+                          {t(`journal.cat.${e.category}`)}
+                        </span>
+                        <span className="jrn-entry__title">{e.title}</span>
                       </div>
-                    )}
+                      {e.notes && <p className="jrn-entry__notes">{e.notes}</p>}
+                      {dashaText(e.dasha) && (
+                        <div className="jrn-entry__dasha">
+                          <Clock size={14} />
+                          {t("journal.running", { dasha: dashaText(e.dasha) })}
+                        </div>
+                      )}
+                    </div>
+                    <div className="jrn-entry__actions">
+                      <button
+                        className="jrn-icon-btn"
+                        onClick={() => edit(e)}
+                        aria-label={t("journal.edit")}
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        className="jrn-icon-btn jrn-icon-btn--danger"
+                        onClick={() => remove(e)}
+                        aria-label={t("journal.delete")}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="jrn-entry__actions">
-                    <button
-                      className="jrn-icon-btn"
-                      onClick={() => edit(e)}
-                      aria-label={t("journal.edit")}
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      className="jrn-icon-btn jrn-icon-btn--danger"
-                      onClick={() => remove(e)}
-                      aria-label={t("journal.delete")}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

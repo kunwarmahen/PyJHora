@@ -361,318 +361,330 @@ export const SarvatobhadraPage = () => {
         subtitle={t("sbc.subtitle")}
         accent="saffron"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="sarvatobhadra" profileId={selectedProfile?._id} />
+          <ProfileBanner profile={selectedProfile} />
 
-      <div className="dashboard-content">
-        <RecentReadings source="sarvatobhadra" profileId={selectedProfile?._id} />
-        <ProfileBanner profile={selectedProfile} />
-
-        {/* Controls */}
-        <div className="controls-group" style={{ marginBottom: "var(--space-lg)" }}>
-          <label className="control-label">
-            <Calendar size={18} style={{ color: "var(--saffron)" }} />
-            {t("sbc.date")}
-          </label>
-          <input
-            type="date"
-            className="control-input"
-            value={transitDate}
-            onChange={(e) => setDatePart(e.target.value)}
-          />
-          <input
-            type="time"
-            className="control-input"
-            value={transitTime}
-            onChange={(e) => setTimePart(e.target.value)}
-          />
-          <button
-            className="control-btn"
-            onClick={() => setMomentMs(Date.now())}
-            title={t("sbc.nowHint")}
-          >
-            <RotateCcw size={14} /> {t("sbc.now")}
-          </button>
-
-          {/* The name-star anchor only applies to the Sarvatobhadra chakra. */}
-          <label
-            className="control-label"
-            style={{ marginLeft: "auto", display: chakra === "sarvatobhadra" ? undefined : "none" }}
-          >
-            {t("sbc.nameStar")}
-          </label>
-          <select
-            className="control-input"
-            value={nameNak}
-            onChange={(e) => setNameNak(e.target.value)}
-            title={t("sbc.nameStarHint")}
-            style={{
-              maxWidth: "260px",
-              display: chakra === "sarvatobhadra" ? undefined : "none",
-            }}
-          >
-            <option value="">{t("sbc.nameStarNone")}</option>
-            {NAAMA_NAKSHATRAS.map((label, i) => (
-              <option key={i} value={String(i + 1)}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Chakra tabs (§2.7) — all three read the transit moment chosen above. */}
-        <Tabs tabs={chakraTabs} active={chakra} onChange={setChakra} ariaLabel={t("sbc.title")} />
-
-        {chakra === "kota" && (
-          <Card>
-            <KotaChakra
-              birthDetails={birthDetails}
-              profile={selectedProfile}
-              transitDate={transitDate}
-              transitTime={transitTime}
-              transitTz={tzOffset(moment)}
-              ayanamsa={ayanamsa}
+          {/* Controls */}
+          <div className="controls-group" style={{ marginBottom: "var(--space-lg)" }}>
+            <label className="control-label">
+              <Calendar size={18} style={{ color: "var(--saffron)" }} />
+              {t("sbc.date")}
+            </label>
+            <input
+              type="date"
+              className="control-input"
+              value={transitDate}
+              onChange={(e) => setDatePart(e.target.value)}
             />
-          </Card>
-        )}
-
-        {chakra === "kaala" && (
-          <Card>
-            <KaalaChakra
-              birthDetails={birthDetails}
-              profile={selectedProfile}
-              transitDate={transitDate}
-              transitTime={transitTime}
-              transitTz={tzOffset(moment)}
-              ayanamsa={ayanamsa}
+            <input
+              type="time"
+              className="control-input"
+              value={transitTime}
+              onChange={(e) => setTimePart(e.target.value)}
             />
-          </Card>
-        )}
+            <button
+              className="control-btn"
+              onClick={() => setMomentMs(Date.now())}
+              title={t("sbc.nowHint")}
+            >
+              <RotateCcw size={14} /> {t("sbc.now")}
+            </button>
 
-        {chakra === "tripataki" && (
-          <Card>
-            <TripatakiChakra
-              birthDetails={birthDetails}
-              profile={selectedProfile}
-              transitDate={transitDate}
-              transitTime={transitTime}
-              transitTz={tzOffset(moment)}
-              ayanamsa={ayanamsa}
-            />
-          </Card>
-        )}
+            {/* The name-star anchor only applies to the Sarvatobhadra chakra. */}
+            <label
+              className="control-label"
+              style={{
+                marginLeft: "auto",
+                display: chakra === "sarvatobhadra" ? undefined : "none",
+              }}
+            >
+              {t("sbc.nameStar")}
+            </label>
+            <select
+              className="control-input"
+              value={nameNak}
+              onChange={(e) => setNameNak(e.target.value)}
+              title={t("sbc.nameStarHint")}
+              style={{
+                maxWidth: "260px",
+                display: chakra === "sarvatobhadra" ? undefined : "none",
+              }}
+            >
+              <option value="">{t("sbc.nameStarNone")}</option>
+              {NAAMA_NAKSHATRAS.map((label, i) => (
+                <option key={i} value={String(i + 1)}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <ErrorBanner message={chakra === "sarvatobhadra" ? error : ""} />
+          {/* Chakra tabs (§2.7) — all three read the transit moment chosen above. */}
+          <Tabs tabs={chakraTabs} active={chakra} onChange={setChakra} ariaLabel={t("sbc.title")} />
 
-        {chakra !== "sarvatobhadra" ? null : loading ? (
-          <Card>
-            <LoadingState message={t("sbc.loading")} />
-          </Card>
-        ) : result ? (
-          <div className="fade-in">
-            {/* Context chips */}
-            <div className="info-pills">
-              <span className="info-pill">
-                {t("sbc.asOf", {
-                  moment: `${formatDate(result.transit_date, locale)}, ${result.transit_time}`,
-                })}
-              </span>
-              <span className="info-pill">
-                {t("sbc.ayanamsa")}: <strong>{ayanamsaLabel}</strong>
-              </span>
-              <span className="info-pill">
-                {result.transit_panchanga?.same_tithi_group
-                  ? t("sbc.tithiMatch", { group: result.transit_panchanga.tithi_group })
-                  : t("sbc.tithiToday", { group: result.transit_panchanga?.tithi_group })}
-              </span>
-              <span className="info-pill">
-                {result.transit_panchanga?.same_weekday
-                  ? t("sbc.weekdayMatch", { day: result.transit_panchanga.weekday })
-                  : t("sbc.weekdayToday", { day: result.transit_panchanga?.weekday })}
-              </span>
-            </div>
+          {chakra === "kota" && (
+            <Card>
+              <KotaChakra
+                birthDetails={birthDetails}
+                profile={selectedProfile}
+                transitDate={transitDate}
+                transitTime={transitTime}
+                transitTz={tzOffset(moment)}
+                ayanamsa={ayanamsa}
+              />
+            </Card>
+          )}
 
-            <div className="sbc-layout">
-              {/* The chakra grid */}
-              <Card title={t("sbc.chakraTitle")} icon={<Grid3x3 size={22} />} accent="saffron">
-                <div style={{ overflowX: "auto" }}>
+          {chakra === "kaala" && (
+            <Card>
+              <KaalaChakra
+                birthDetails={birthDetails}
+                profile={selectedProfile}
+                transitDate={transitDate}
+                transitTime={transitTime}
+                transitTz={tzOffset(moment)}
+                ayanamsa={ayanamsa}
+              />
+            </Card>
+          )}
+
+          {chakra === "tripataki" && (
+            <Card>
+              <TripatakiChakra
+                birthDetails={birthDetails}
+                profile={selectedProfile}
+                transitDate={transitDate}
+                transitTime={transitTime}
+                transitTz={tzOffset(moment)}
+                ayanamsa={ayanamsa}
+              />
+            </Card>
+          )}
+
+          <ErrorBanner message={chakra === "sarvatobhadra" ? error : ""} />
+
+          {chakra !== "sarvatobhadra" ? null : loading ? (
+            <Card>
+              <LoadingState message={t("sbc.loading")} />
+            </Card>
+          ) : result ? (
+            <div className="fade-in">
+              {/* Context chips */}
+              <div className="info-pills">
+                <span className="info-pill">
+                  {t("sbc.asOf", {
+                    moment: `${formatDate(result.transit_date, locale)}, ${result.transit_time}`,
+                  })}
+                </span>
+                <span className="info-pill">
+                  {t("sbc.ayanamsa")}: <strong>{ayanamsaLabel}</strong>
+                </span>
+                <span className="info-pill">
+                  {result.transit_panchanga?.same_tithi_group
+                    ? t("sbc.tithiMatch", { group: result.transit_panchanga.tithi_group })
+                    : t("sbc.tithiToday", { group: result.transit_panchanga?.tithi_group })}
+                </span>
+                <span className="info-pill">
+                  {result.transit_panchanga?.same_weekday
+                    ? t("sbc.weekdayMatch", { day: result.transit_panchanga.weekday })
+                    : t("sbc.weekdayToday", { day: result.transit_panchanga?.weekday })}
+                </span>
+              </div>
+
+              <div className="sbc-layout">
+                {/* The chakra grid */}
+                <Card title={t("sbc.chakraTitle")} icon={<Grid3x3 size={22} />} accent="saffron">
+                  <div style={{ overflowX: "auto" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(9, 1fr)",
+                        gap: "2px",
+                        minWidth: "320px",
+                        maxWidth: "760px",
+                        margin: "0 auto",
+                      }}
+                    >
+                      {result.grid.flat().map(renderCell)}
+                    </div>
+                  </div>
+
+                  {/* Legend */}
                   <div
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(9, 1fr)",
-                      gap: "2px",
-                      minWidth: "320px",
-                      maxWidth: "760px",
-                      margin: "0 auto",
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "var(--space-md)",
+                      marginTop: "var(--space-md)",
+                      fontSize: "0.75rem",
+                      color: "var(--text-secondary)",
                     }}
                   >
-                    {result.grid.flat().map(renderCell)}
+                    <span>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: 12,
+                          height: 12,
+                          background: "rgba(var(--accent-rgb), 0.4)",
+                          border: "2px solid var(--saffron)",
+                          borderRadius: 3,
+                          verticalAlign: "middle",
+                          marginRight: 4,
+                        }}
+                      />
+                      {t("sbc.legendAnchor")}
+                    </span>
+                    <span>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: 12,
+                          height: 12,
+                          border: "2px dashed var(--vermillion)",
+                          borderRadius: 3,
+                          verticalAlign: "middle",
+                          marginRight: 4,
+                        }}
+                      />
+                      {t("sbc.legendVedha")}
+                    </span>
+                    <span>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          padding: "0 3px",
+                          background: "var(--success)",
+                          color: "var(--text-on-accent)",
+                          borderRadius: 3,
+                          fontSize: "0.6rem",
+                          fontWeight: 800,
+                          marginRight: 4,
+                        }}
+                      >
+                        Ju
+                      </span>
+                      {t("sbc.legendBenefic")}
+                    </span>
+                    <span>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          padding: "0 3px",
+                          background: "var(--vermillion)",
+                          color: "var(--text-on-accent)",
+                          borderRadius: 3,
+                          fontSize: "0.6rem",
+                          fontWeight: 800,
+                          marginRight: 4,
+                        }}
+                      >
+                        Sa
+                      </span>
+                      {t("sbc.legendMalefic")}
+                    </span>
                   </div>
-                </div>
-
-                {/* Legend */}
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "var(--space-md)",
-                    marginTop: "var(--space-md)",
-                    fontSize: "0.75rem",
-                    color: "var(--text-secondary)",
-                  }}
-                >
-                  <span>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        width: 12,
-                        height: 12,
-                        background: "rgba(var(--accent-rgb), 0.4)",
-                        border: "2px solid var(--saffron)",
-                        borderRadius: 3,
-                        verticalAlign: "middle",
-                        marginRight: 4,
-                      }}
-                    />
-                    {t("sbc.legendAnchor")}
-                  </span>
-                  <span>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        width: 12,
-                        height: 12,
-                        border: "2px dashed var(--vermillion)",
-                        borderRadius: 3,
-                        verticalAlign: "middle",
-                        marginRight: 4,
-                      }}
-                    />
-                    {t("sbc.legendVedha")}
-                  </span>
-                  <span>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        padding: "0 3px",
-                        background: "var(--success)",
-                        color: "var(--text-on-accent)",
-                        borderRadius: 3,
-                        fontSize: "0.6rem",
-                        fontWeight: 800,
-                        marginRight: 4,
-                      }}
-                    >
-                      Ju
-                    </span>
-                    {t("sbc.legendBenefic")}
-                  </span>
-                  <span>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        padding: "0 3px",
-                        background: "var(--vermillion)",
-                        color: "var(--text-on-accent)",
-                        borderRadius: 3,
-                        fontSize: "0.6rem",
-                        fontWeight: 800,
-                        marginRight: 4,
-                      }}
-                    >
-                      Sa
-                    </span>
-                    {t("sbc.legendMalefic")}
-                  </span>
-                </div>
-              </Card>
-
-              {/* Findings + anchors (compact sidebar) */}
-              <div
-                className="sbc-side"
-                style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}
-              >
-                <Card title={t("sbc.anchorsTitle")} icon={<Crosshair size={18} />} accent="indigo">
-                  <ul style={{ margin: 0, paddingLeft: "1rem" }}>
-                    {Object.values(result.anchors).map((a) => (
-                      <li key={a.label} style={{ color: "var(--text-secondary)" }}>
-                        {a.label}:{" "}
-                        <strong style={{ color: "var(--cosmic-indigo)" }}>{a.name}</strong>
-                      </li>
-                    ))}
-                  </ul>
                 </Card>
 
-                <Card title={t("sbc.findingsTitle")} icon={<Sparkles size={18} />} accent="saffron">
-                  {result.findings.length === 0 ? (
-                    <p style={{ color: "var(--text-secondary)", margin: 0, fontSize: "0.78rem" }}>
-                      {t("sbc.findingsNone")}
-                    </p>
-                  ) : (
-                    <div
-                      style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}
-                    >
-                      {result.findings.map((f, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            padding: "var(--space-xs) var(--space-sm)",
-                            borderRadius: "var(--radius-sm)",
-                            border: "1px solid var(--sandalwood)",
-                            borderLeft: `4px solid ${
-                              f.tone === "supportive" ? "var(--success)" : "var(--vermillion)"
-                            }`,
-                            background: "var(--surface)",
-                            fontSize: "0.75rem",
-                            lineHeight: 1.45,
-                          }}
-                        >
-                          <strong style={{ color: "var(--cosmic-indigo)" }}>{f.planet}</strong>{" "}
-                          <span style={{ color: "var(--text-muted)" }}>({f.planet_nature})</span>{" "}
-                          {f.kind === "occupation" ? t("sbc.findOccupies") : t("sbc.findVedha")}{" "}
-                          <strong style={{ color: "var(--saffron)" }}>{f.anchor_label}</strong> (
-                          {f.anchor_name})
-                        </div>
+                {/* Findings + anchors (compact sidebar) */}
+                <div
+                  className="sbc-side"
+                  style={{ display: "flex", flexDirection: "column", gap: "var(--space-md)" }}
+                >
+                  <Card
+                    title={t("sbc.anchorsTitle")}
+                    icon={<Crosshair size={18} />}
+                    accent="indigo"
+                  >
+                    <ul style={{ margin: 0, paddingLeft: "1rem" }}>
+                      {Object.values(result.anchors).map((a) => (
+                        <li key={a.label} style={{ color: "var(--text-secondary)" }}>
+                          {a.label}:{" "}
+                          <strong style={{ color: "var(--cosmic-indigo)" }}>{a.name}</strong>
+                        </li>
                       ))}
+                    </ul>
+                  </Card>
+
+                  <Card
+                    title={t("sbc.findingsTitle")}
+                    icon={<Sparkles size={18} />}
+                    accent="saffron"
+                  >
+                    {result.findings.length === 0 ? (
+                      <p style={{ color: "var(--text-secondary)", margin: 0, fontSize: "0.78rem" }}>
+                        {t("sbc.findingsNone")}
+                      </p>
+                    ) : (
+                      <div
+                        style={{ display: "flex", flexDirection: "column", gap: "var(--space-xs)" }}
+                      >
+                        {result.findings.map((f, i) => (
+                          <div
+                            key={i}
+                            style={{
+                              padding: "var(--space-xs) var(--space-sm)",
+                              borderRadius: "var(--radius-sm)",
+                              border: "1px solid var(--sandalwood)",
+                              borderLeft: `4px solid ${
+                                f.tone === "supportive" ? "var(--success)" : "var(--vermillion)"
+                              }`,
+                              background: "var(--surface)",
+                              fontSize: "0.75rem",
+                              lineHeight: 1.45,
+                            }}
+                          >
+                            <strong style={{ color: "var(--cosmic-indigo)" }}>{f.planet}</strong>{" "}
+                            <span style={{ color: "var(--text-muted)" }}>({f.planet_nature})</span>{" "}
+                            {f.kind === "occupation" ? t("sbc.findOccupies") : t("sbc.findVedha")}{" "}
+                            <strong style={{ color: "var(--saffron)" }}>{f.anchor_label}</strong> (
+                            {f.anchor_name})
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <p
+                      style={{
+                        margin: "var(--space-sm) 0 0",
+                        fontSize: "0.68rem",
+                        color: "var(--text-muted)",
+                      }}
+                    >
+                      {t("sbc.vedhaNote")}
+                    </p>
+                  </Card>
+                </div>
+              </div>
+
+              {/* AI reading */}
+              <div className="mt-xl">
+                <Card title={t("sbc.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
+                  <ErrorBanner message={aiError} />
+                  {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("sbc.aiHint")}</p>}
+                  {aiLoading && <LoadingState message={t("sbc.aiLoading")} />}
+                  {aiAnalysis && !aiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <Markdown>{aiAnalysis}</Markdown>
+                      {aiModel && (
+                        <div className="ai-panel__meta">{t("sbc.aiModel", { model: aiModel })}</div>
+                      )}
                     </div>
                   )}
-                  <p
-                    style={{
-                      margin: "var(--space-sm) 0 0",
-                      fontSize: "0.68rem",
-                      color: "var(--text-muted)",
-                    }}
-                  >
-                    {t("sbc.vedhaNote")}
-                  </p>
+                  {!aiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                      <Sparkles size={18} />
+                      {aiAnalysis ? t("sbc.aiRegenerate") : t("sbc.aiGenerate")}
+                    </button>
+                  )}
+                  <p className="card-note">{t("sbc.disclaimer")}</p>
                 </Card>
               </div>
             </div>
-
-            {/* AI reading */}
-            <div className="mt-xl">
-              <Card title={t("sbc.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
-                <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("sbc.aiHint")}</p>}
-                {aiLoading && <LoadingState message={t("sbc.aiLoading")} />}
-                {aiAnalysis && !aiLoading && (
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{aiAnalysis}</Markdown>
-                    {aiModel && (
-                      <div className="ai-panel__meta">{t("sbc.aiModel", { model: aiModel })}</div>
-                    )}
-                  </div>
-                )}
-                {!aiLoading && (
-                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                    <Sparkles size={18} />
-                    {aiAnalysis ? t("sbc.aiRegenerate") : t("sbc.aiGenerate")}
-                  </button>
-                )}
-                <p className="card-note">{t("sbc.disclaimer")}</p>
-              </Card>
-            </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

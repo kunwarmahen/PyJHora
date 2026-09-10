@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Menu, X, Sparkles, LogOut, ShieldAlert, HelpCircle } from "lucide-react";
@@ -17,6 +17,8 @@ import { returnHere } from "../utils/returnTo";
  * dashboard. Mounted in PageHeader (all feature pages) and the Dashboard nav. */
 export const NavDrawer = () => {
   const [open, setOpen] = useState(false);
+  const drawerRef = useRef(null);
+  const toggleRef = useRef(null);
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -28,6 +30,29 @@ export const NavDrawer = () => {
   // account-level actions, not places to explore.
   const sections = groupedFeatures(visible.filter((f) => !f.footer));
   const footerLinks = visible.filter((f) => f.footer);
+
+  // The drawer is only translated off-screen when closed, so every one of its
+  // ~40 links stayed in the tab order — a keyboard user tabbed through the whole
+  // invisible menu on every page. `inert` takes the subtree out of focus AND out
+  // of the accessibility tree; it is set on the DOM node because React 18 does
+  // not pass an `inert` prop through. Escape closes, and focus goes back to the
+  // hamburger that opened it (§68.8).
+  useEffect(() => {
+    const node = drawerRef.current;
+    if (node) {
+      if (open) node.removeAttribute("inert");
+      else node.setAttribute("inert", "");
+    }
+    if (!open) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        toggleRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
 
   const go = (to) => {
     setOpen(false);
@@ -50,22 +75,34 @@ export const NavDrawer = () => {
   return (
     <>
       <button
+        type="button"
+        ref={toggleRef}
         className="nav-drawer-toggle"
         aria-label={t("nav.openMenu")}
+        aria-expanded={open}
+        aria-controls="nav-drawer"
         onClick={() => setOpen(true)}
       >
         <Menu size={22} />
       </button>
 
-      {open && <div className="nav-drawer-overlay" onClick={() => setOpen(false)} />}
+      {open && (
+        <div className="nav-drawer-overlay" onClick={() => setOpen(false)} aria-hidden="true" />
+      )}
 
-      <aside className={`nav-drawer ${open ? "open" : ""}`} aria-hidden={!open}>
+      <aside
+        id="nav-drawer"
+        ref={drawerRef}
+        className={`nav-drawer ${open ? "open" : ""}`}
+        aria-label={t("nav.menu")}
+      >
         <div className="nav-drawer-head">
           <div className="nav-drawer-brand">
             <BrandLogo size={26} />
             <span>{SITE_TITLE}</span>
           </div>
           <button
+            type="button"
             className="nav-drawer-close"
             aria-label={t("nav.closeMenu")}
             onClick={() => setOpen(false)}
@@ -76,7 +113,7 @@ export const NavDrawer = () => {
 
         <UiModeToggle />
 
-        <nav className="nav-drawer-links">
+        <nav className="nav-drawer-links" aria-label={t("nav.features")}>
           {/* Same sections, same order as the dashboard tiles — a 38-item flat
               list gave no hint which entries belong to the same reading. */}
           {sections.map((section) => (
@@ -85,6 +122,8 @@ export const NavDrawer = () => {
               {section.features.map(({ key, path, Icon }) => (
                 <button
                   key={path}
+                  type="button"
+                  aria-current={location.pathname === path ? "page" : undefined}
                   className={`nav-drawer-link ${location.pathname === path ? "active" : ""}`}
                   onClick={() => go(path)}
                 >
@@ -105,13 +144,15 @@ export const NavDrawer = () => {
               )}
             </div>
           )}
-          <button className="nav-drawer-link" onClick={handleChangeChart}>
+          <button type="button" className="nav-drawer-link" onClick={handleChangeChart}>
             <Sparkles size={20} />
             <span>{t("common.changeChart")}</span>
           </button>
           {footerLinks.map(({ key, path, Icon }) => (
             <button
               key={path}
+              type="button"
+              aria-current={location.pathname === path ? "page" : undefined}
               className={`nav-drawer-link ${location.pathname === path ? "active" : ""}`}
               onClick={() => go(path)}
             >
@@ -123,6 +164,8 @@ export const NavDrawer = () => {
               rather than in the feature list — it isn't a feature, it's the way
               out when a feature doesn't make sense. */}
           <button
+            type="button"
+            aria-current={location.pathname === "/help" ? "page" : undefined}
             className={`nav-drawer-link ${location.pathname === "/help" ? "active" : ""}`}
             onClick={() => go("/help")}
           >
@@ -133,6 +176,8 @@ export const NavDrawer = () => {
               accounts. The route + every API call are enforced server-side. */}
           {user?.is_admin && (
             <button
+              type="button"
+              aria-current={location.pathname === "/admin" ? "page" : undefined}
               className={`nav-drawer-link ${location.pathname === "/admin" ? "active" : ""}`}
               onClick={() => go("/admin")}
             >
@@ -140,7 +185,7 @@ export const NavDrawer = () => {
               <span>Admin console</span>
             </button>
           )}
-          <button className="nav-drawer-link logout" onClick={handleLogout}>
+          <button type="button" className="nav-drawer-link logout" onClick={handleLogout}>
             <LogOut size={20} />
             <span>{t("common.logout")}</span>
           </button>

@@ -260,6 +260,13 @@ export const LearnChartPage = () => {
                   className={`learn-chip ${topics.includes(tp) ? "is-active" : ""}`}
                   onClick={() => toggleTopic(tp)}
                   role="checkbox"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleTopic(tp);
+                    }
+                  }}
                   aria-checked={topics.includes(tp)}
                 >
                   {topics.includes(tp) ? <CheckCircle2 size={14} /> : <CircleDot size={14} />}
@@ -283,13 +290,20 @@ export const LearnChartPage = () => {
               </span>
             </label>
             {!adaptive && (
-              <div className="learn-chips">
+              <div className="learn-chips" role="radiogroup" aria-label={t("learn.levelLabel")}>
                 {LEVELS.map((lv) => (
                   <span
                     key={lv}
                     className={`learn-chip ${level === lv ? "is-active" : ""}`}
                     onClick={() => setLevel(lv)}
                     role="radio"
+                    tabIndex={level === lv ? 0 : -1}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setLevel(lv);
+                      }
+                    }}
                     aria-checked={level === lv}
                   >
                     {t(`learn.levels.${lv}`)}
@@ -617,29 +631,31 @@ export const LearnChartPage = () => {
         subtitle={t("learn.subtitle")}
         accent="saffron"
       />
-      <div className="dashboard-content">
-        <ProfileBanner profile={selectedProfile} />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <ProfileBanner profile={selectedProfile} />
 
-        {error && <ErrorBanner message={error} />}
+          {error && <ErrorBanner message={error} />}
 
-        {loading && (phase === "setup" || phase === "history") && (
-          <Card>
-            <LoadingState message={t("learn.generating")} />
-          </Card>
-        )}
+          {loading && (phase === "setup" || phase === "history") && (
+            <Card>
+              <LoadingState message={t("learn.generating")} />
+            </Card>
+          )}
 
-        {loading && (phase === "mcq" || phase === "free") && (
-          <Card>
-            <LoadingState message={t("learn.grading")} />
-          </Card>
-        )}
+          {loading && (phase === "mcq" || phase === "free") && (
+            <Card>
+              <LoadingState message={t("learn.grading")} />
+            </Card>
+          )}
 
-        {!loading && phase === "setup" && renderSetup()}
-        {!loading && phase === "mcq" && renderMcq()}
-        {!loading && phase === "free" && renderFree()}
-        {phase === "results" && !loading && renderResults()}
-        {phase === "history" && !loading && renderHistory()}
-      </div>
+          {!loading && phase === "setup" && renderSetup()}
+          {!loading && phase === "mcq" && renderMcq()}
+          {!loading && phase === "free" && renderFree()}
+          {phase === "results" && !loading && renderResults()}
+          {phase === "history" && !loading && renderHistory()}
+        </div>
+      </main>
     </div>
   );
 };

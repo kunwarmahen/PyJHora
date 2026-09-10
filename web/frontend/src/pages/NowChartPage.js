@@ -138,102 +138,103 @@ export const NowChartPage = () => {
         subtitle={t("now.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="now_chart" />
 
-      <div className="dashboard-content">
-        <RecentReadings source="now_chart" />
+          <div
+            style={{ display: "flex", justifyContent: "flex-end", marginBottom: "var(--space-md)" }}
+          >
+            <button className="ui-btn ui-btn--secondary" onClick={load} disabled={loading || !loc}>
+              <RefreshCw size={16} /> {t("now.refresh")}
+            </button>
+          </div>
 
-        <div
-          style={{ display: "flex", justifyContent: "flex-end", marginBottom: "var(--space-md)" }}
-        >
-          <button className="ui-btn ui-btn--secondary" onClick={load} disabled={loading || !loc}>
-            <RefreshCw size={16} /> {t("now.refresh")}
-          </button>
-        </div>
+          <ErrorBanner message={error} />
 
-        <ErrorBanner message={error} />
+          {loading ? (
+            <Card>
+              <LoadingState message={t("now.loading")} />
+            </Card>
+          ) : !loc ? (
+            <Card accent="indigo">
+              <p className="ai-panel__hint">{t("now.noPlace")}</p>
+              <Link to="/settings?tab=location" className="ui-btn ui-btn--secondary">
+                <MapPin size={16} /> {t("now.setLocation")}
+              </Link>
+            </Card>
+          ) : data ? (
+            <div className="fade-in">
+              {data.moment && (
+                <p className="card-note">
+                  {t("now.asOf", { date: data.moment.date, time: data.moment.time })}
+                  {loc.place
+                    ? ` · ${t(loc.source === "birth" ? "now.castForBirth" : "now.castFor", {
+                        place: loc.place,
+                      })}`
+                    : ""}
+                </p>
+              )}
+              {loc.source === "birth" && (
+                <p className="card-note">
+                  {t("now.castForBirthHint")}{" "}
+                  <Link to="/settings?tab=location">{t("now.setLocation")}</Link>
+                </p>
+              )}
 
-        {loading ? (
-          <Card>
-            <LoadingState message={t("now.loading")} />
-          </Card>
-        ) : !loc ? (
-          <Card accent="indigo">
-            <p className="ai-panel__hint">{t("now.noPlace")}</p>
-            <Link to="/settings?tab=location" className="ui-btn ui-btn--secondary">
-              <MapPin size={16} /> {t("now.setLocation")}
-            </Link>
-          </Card>
-        ) : data ? (
-          <div className="fade-in">
-            {data.moment && (
-              <p className="card-note">
-                {t("now.asOf", { date: data.moment.date, time: data.moment.time })}
-                {loc.place
-                  ? ` · ${t(loc.source === "birth" ? "now.castForBirth" : "now.castFor", {
-                      place: loc.place,
-                    })}`
-                  : ""}
-              </p>
-            )}
-            {loc.source === "birth" && (
-              <p className="card-note">
-                {t("now.castForBirthHint")}{" "}
-                <Link to="/settings?tab=location">{t("now.setLocation")}</Link>
-              </p>
-            )}
-
-            <div className="chart-grid">
-              <Card title={t("now.chartTitle")} accent="indigo">
-                <Kundali
-                  planets={data.planets}
-                  lagna={data.lagna}
-                  title={t("now.chartTitle")}
-                  exportable
-                />
-              </Card>
-            </div>
-
-            {panch.tithi && (
-              <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush mt-xl">
-                <h3 className="ui-card-header ui-card-header--sm">{t("now.panchanga")}</h3>
-                <div className="info-pills">
-                  {panch.vaara?.name && <span className="info-pill">{panch.vaara.name}</span>}
-                  {panch.tithi?.name && <span className="info-pill">{panch.tithi.name}</span>}
-                  {panch.nakshatra?.name && (
-                    <span className="info-pill">{ln(panch.nakshatra.name, "nakshatra")}</span>
-                  )}
-                  {panch.yoga?.name && <span className="info-pill">{panch.yoga.name}</span>}
-                  {data.hora_lord && (
-                    <span className="info-pill">{t("now.hora", { lord: data.hora_lord })}</span>
-                  )}
-                </div>
+              <div className="chart-grid">
+                <Card title={t("now.chartTitle")} accent="indigo">
+                  <Kundali
+                    planets={data.planets}
+                    lagna={data.lagna}
+                    title={t("now.chartTitle")}
+                    exportable
+                  />
+                </Card>
               </div>
-            )}
 
-            <div className="mt-xl">
-              <Card title={t("now.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
-                <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("now.aiHint")}</p>}
-                {aiLoading && <LoadingState message={t("now.aiLoading")} />}
-                {aiAnalysis && !aiLoading && (
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{aiAnalysis}</Markdown>
-                    {aiModel && (
-                      <div className="ai-panel__meta">{t("now.aiModel", { model: aiModel })}</div>
+              {panch.tithi && (
+                <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush mt-xl">
+                  <h3 className="ui-card-header ui-card-header--sm">{t("now.panchanga")}</h3>
+                  <div className="info-pills">
+                    {panch.vaara?.name && <span className="info-pill">{panch.vaara.name}</span>}
+                    {panch.tithi?.name && <span className="info-pill">{panch.tithi.name}</span>}
+                    {panch.nakshatra?.name && (
+                      <span className="info-pill">{ln(panch.nakshatra.name, "nakshatra")}</span>
+                    )}
+                    {panch.yoga?.name && <span className="info-pill">{panch.yoga.name}</span>}
+                    {data.hora_lord && (
+                      <span className="info-pill">{t("now.hora", { lord: data.hora_lord })}</span>
                     )}
                   </div>
-                )}
-                {!aiLoading && (
-                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                    <Sparkles size={18} />
-                    {aiAnalysis ? t("now.aiRegenerate") : t("now.aiGenerate")}
-                  </button>
-                )}
-              </Card>
+                </div>
+              )}
+
+              <div className="mt-xl">
+                <Card title={t("now.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
+                  <ErrorBanner message={aiError} />
+                  {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("now.aiHint")}</p>}
+                  {aiLoading && <LoadingState message={t("now.aiLoading")} />}
+                  {aiAnalysis && !aiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <Markdown>{aiAnalysis}</Markdown>
+                      {aiModel && (
+                        <div className="ai-panel__meta">{t("now.aiModel", { model: aiModel })}</div>
+                      )}
+                    </div>
+                  )}
+                  {!aiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                      <Sparkles size={18} />
+                      {aiAnalysis ? t("now.aiRegenerate") : t("now.aiGenerate")}
+                    </button>
+                  )}
+                </Card>
+              </div>
             </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

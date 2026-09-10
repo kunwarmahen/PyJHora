@@ -106,112 +106,114 @@ export const BhavaChartPage = () => {
         subtitle={t("bhava.subtitle")}
         accent="terracotta"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <ProfileBanner profile={selectedProfile} />
 
-      <div className="dashboard-content">
-        <ProfileBanner profile={selectedProfile} />
-
-        {/* Controls: house-system selector */}
-        <div className="page-controls">
-          <div className="controls-group">
-            <label className="control-label">
-              <Grid2x2 size={18} style={{ color: "var(--saffron)" }} />
-              {t("bhava.houseSystem")}
-            </label>
-            <select
-              className="control-input"
-              value={method}
-              onChange={(e) => setMethod(e.target.value)}
-            >
-              {METHODS.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {t(`bhava.methods.${m.key}`)}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <ErrorBanner message={error} />
-
-        {loading ? (
-          <Card>
-            <LoadingState message={t("bhava.loading")} />
-          </Card>
-        ) : result ? (
-          <div className="fade-in">
-            <div className="info-pills">
-              <span className="info-pill">
-                {t("bhava.system")}: <strong className="text-saffron">{result.method_label}</strong>
-              </span>
-              <span className="info-pill">
-                {t("bhava.lagna")}:{" "}
-                <strong className="text-indigo">{ln(result.lagna?.sign_name, "rasi")}</strong>
-              </span>
-              <span className="info-pill">
-                {t("bhava.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
-              </span>
+          {/* Controls: house-system selector */}
+          <div className="page-controls">
+            <div className="controls-group">
+              <label className="control-label">
+                <Grid2x2 size={18} style={{ color: "var(--saffron)" }} />
+                {t("bhava.houseSystem")}
+              </label>
+              <select
+                className="control-input"
+                value={method}
+                onChange={(e) => setMethod(e.target.value)}
+              >
+                {METHODS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {t(`bhava.methods.${m.key}`)}
+                  </option>
+                ))}
+              </select>
             </div>
+          </div>
 
-            <div className="chart-grid">
-              {/* Bhava Chalit chart: grahas placed by house-cusp, not by sign */}
-              <Kundali
-                planets={result.planets}
-                lagna={result.lagna}
-                title={t("bhava.chalit")}
-                subtitle={result.method_label}
-                exportable
-              />
+          <ErrorBanner message={error} />
 
-              {/* House-cusp table */}
-              <div className="ui-card ui-card--accent-gold ui-card--pad-lg ui-card--flush">
-                <h3 className="ui-card-header ui-card-header--sm">
-                  <Home size={18} />
-                  {t("bhava.cuspTable")}
-                </h3>
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th className="text-center">{t("bhava.bhava")}</th>
-                        <th>{t("bhava.sign")}</th>
-                        <th>{t("bhava.cusp")}</th>
-                        <th>{t("bhava.grahas")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {houses.map((h) => (
-                        <tr key={h.bhava}>
-                          <td className="text-center fw-700 text-saffron">{ordinal(h.bhava)}</td>
-                          <td>{ln(h.sign_name, "rasi")}</td>
-                          <td className="text-secondary">
-                            {fmtCusp(h.cusp, ln(h.sign_name, "rasi"))}
-                          </td>
-                          <td>
-                            {h.planets.length ? (
-                              h.planets.map((p) => (
-                                <span
-                                  key={p}
-                                  className="fw-600 text-indigo"
-                                  style={{ marginRight: 6 }}
-                                >
-                                  {ln(p, "graha", { abbr: true })}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-muted">—</span>
-                            )}
-                          </td>
+          {loading ? (
+            <Card>
+              <LoadingState message={t("bhava.loading")} />
+            </Card>
+          ) : result ? (
+            <div className="fade-in">
+              <div className="info-pills">
+                <span className="info-pill">
+                  {t("bhava.system")}:{" "}
+                  <strong className="text-saffron">{result.method_label}</strong>
+                </span>
+                <span className="info-pill">
+                  {t("bhava.lagna")}:{" "}
+                  <strong className="text-indigo">{ln(result.lagna?.sign_name, "rasi")}</strong>
+                </span>
+                <span className="info-pill">
+                  {t("bhava.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
+                </span>
+              </div>
+
+              <div className="chart-grid">
+                {/* Bhava Chalit chart: grahas placed by house-cusp, not by sign */}
+                <Kundali
+                  planets={result.planets}
+                  lagna={result.lagna}
+                  title={t("bhava.chalit")}
+                  subtitle={result.method_label}
+                  exportable
+                />
+
+                {/* House-cusp table */}
+                <div className="ui-card ui-card--accent-gold ui-card--pad-lg ui-card--flush">
+                  <h3 className="ui-card-header ui-card-header--sm">
+                    <Home size={18} />
+                    {t("bhava.cuspTable")}
+                  </h3>
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th className="text-center">{t("bhava.bhava")}</th>
+                          <th>{t("bhava.sign")}</th>
+                          <th>{t("bhava.cusp")}</th>
+                          <th>{t("bhava.grahas")}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {houses.map((h) => (
+                          <tr key={h.bhava}>
+                            <td className="text-center fw-700 text-saffron">{ordinal(h.bhava)}</td>
+                            <td>{ln(h.sign_name, "rasi")}</td>
+                            <td className="text-secondary">
+                              {fmtCusp(h.cusp, ln(h.sign_name, "rasi"))}
+                            </td>
+                            <td>
+                              {h.planets.length ? (
+                                h.planets.map((p) => (
+                                  <span
+                                    key={p}
+                                    className="fw-600 text-indigo"
+                                    style={{ marginRight: 6 }}
+                                  >
+                                    {ln(p, "graha", { abbr: true })}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-muted">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="card-note">{t("bhava.cuspNote")}</p>
                 </div>
-                <p className="card-note">{t("bhava.cuspNote")}</p>
               </div>
             </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

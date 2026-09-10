@@ -74,7 +74,6 @@ const PX0 = 8; // plot left
 const PX1 = W - 8; // plot right
 const PW = PX1 - PX0;
 
-
 // Tone → the accent a row is marked with. Only three, because a forward calendar
 // that colour-codes twelve kinds of event reads as decoration rather than as
 // information.
@@ -395,326 +394,345 @@ export const TimelinePage = () => {
         subtitle={t("timeline.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="timeline" profileId={selectedProfile?._id} />
+          <ProfileBanner profile={selectedProfile} />
 
-      <div className="dashboard-content">
-        <RecentReadings source="timeline" profileId={selectedProfile?._id} />
-        <ProfileBanner profile={selectedProfile} />
+          <Tabs tabs={tabs} active={tab} onChange={setTab} ariaLabel={t("timeline.title")} />
 
-        <Tabs tabs={tabs} active={tab} onChange={setTab} ariaLabel={t("timeline.title")} />
+          {tab === "upcoming" && <UpcomingPanel profileId={selectedProfile?._id} locale={locale} />}
 
-        {tab === "upcoming" && (
-          <UpcomingPanel profileId={selectedProfile?._id} locale={locale} />
-        )}
+          {tab === "timeline" && (
+            <>
+              <p className="card-note">{t("timeline.intro")}</p>
 
-        {tab === "timeline" && (
-          <>
-          <p className="card-note">{t("timeline.intro")}</p>
-
-          <div className="page-controls">
-            <div className="controls-group">
-              <label className="control-label">{t("timeline.spanLabel")}</label>
-              <select
-                className="control-input"
-                value={span}
-                onChange={(e) => setSpan(parseInt(e.target.value, 10))}
-              >
-                {[5, 10, 15, 20].map((y) => (
-                  <option key={y} value={y}>
-                    {t("timeline.spanOption", { count: y })}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <ErrorBanner message={error} />
-
-          {loading ? (
-            <Card>
-              <LoadingState message={t("timeline.loading")} />
-            </Card>
-          ) : data ? (
-            <div className="fade-in">
-              <div className="info-pills">
-                <span className="info-pill">{t("timeline.moonSign", { sign: data.moon_sign })}</span>
-                <span className="info-pill">
-                  {formatDate(win.start_date, locale)} – {formatDate(win.end_date, locale)}
-                </span>
-              </div>
-
-              {/* ── The timeline chart ── */}
-              <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-lg">
-                <p className="card-note">{t("timeline.clickHint")}</p>
-                <div className="tl-scroll">
-                  <svg
-                    ref={svgRef}
-                    className="tl-svg"
-                    viewBox={`0 0 ${W} ${LANES.bottom}`}
-                    preserveAspectRatio="none"
-                    onClick={handleSvgClick}
+              <div className="page-controls">
+                <div className="controls-group">
+                  <label className="control-label">{t("timeline.spanLabel")}</label>
+                  <select
+                    className="control-input"
+                    value={span}
+                    onChange={(e) => setSpan(parseInt(e.target.value, 10))}
                   >
-                    {/* Year gridlines + labels */}
-                    {yearTicks.map((tk) => (
-                      <g key={tk.year}>
-                        <line
-                          x1={tk.x}
-                          y1={LANES.mahaY}
-                          x2={tk.x}
-                          y2={LANES.bottom - 6}
-                          className="tl-grid"
-                        />
-                        <text x={tk.x} y={LANES.axisTop + 12} className="tl-year">
-                          {tk.year}
-                        </text>
-                      </g>
+                    {[5, 10, 15, 20].map((y) => (
+                      <option key={y} value={y}>
+                        {t("timeline.spanOption", { count: y })}
+                      </option>
                     ))}
-
-                    {/* Maha dasha band */}
-                    {maha.map((m, i) => {
-                      const r = segRect(m, LANES.mahaY, LANES.mahaH);
-                      return (
-                        <g key={`m${i}`}>
-                          <rect
-                            {...r}
-                            rx="4"
-                            fill={planetColor(m.lord)}
-                            fillOpacity={m.is_current ? 0.95 : 0.78}
-                            className="tl-seg"
-                          />
-                          {r.width > 40 && (
-                            <text x={r.x + 6} y={r.y + 27} className="tl-seg-label">
-                              {m.lord}
-                            </text>
-                          )}
-                        </g>
-                      );
-                    })}
-
-                    {/* Bhukti band (current maha only) */}
-                    {bhukti.map((b, i) => {
-                      const r = segRect(b, LANES.bhuktiY, LANES.bhuktiH);
-                      return (
-                        <g key={`b${i}`}>
-                          <rect
-                            {...r}
-                            rx="3"
-                            fill={planetColor(b.lord)}
-                            fillOpacity={b.is_current ? 0.9 : 0.5}
-                            stroke="var(--surface)"
-                            strokeOpacity="0.5"
-                            strokeWidth="0.5"
-                          />
-                          {r.width > 26 && (
-                            <text x={r.x + 4} y={r.y + 17} className="tl-seg-label tl-seg-label--sm">
-                              {b.lord.slice(0, 2)}
-                            </text>
-                          )}
-                        </g>
-                      );
-                    })}
-
-                    {/* Saturn phases */}
-                    {phases.map((p, i) => {
-                      const r = segRect(p, LANES.satY, LANES.satH);
-                      return (
-                        <g key={`p${i}`}>
-                          <rect
-                            {...r}
-                            rx="3"
-                            fill={PHASE_COLORS[p.kind] || "#999"}
-                            fillOpacity={p.is_current ? 0.92 : 0.72}
-                          />
-                          {r.width > 46 && (
-                            <text x={r.x + 5} y={r.y + 18} className="tl-seg-label tl-seg-label--sm">
-                              {p.kind === "sade_sati"
-                                ? t(`timeline.phase.${p.phase}`)
-                                : t(`timeline.phase.${p.kind}`)}
-                            </text>
-                          )}
-                        </g>
-                      );
-                    })}
-
-                    {/* Ingress markers */}
-                    {ingresses.map((ig, i) => {
-                      const x = xFor(ig.date);
-                      return (
-                        <g key={`i${i}`}>
-                          <line
-                            x1={x}
-                            y1={LANES.ingY - 6}
-                            x2={x}
-                            y2={LANES.ingY + 8}
-                            stroke={planetColor(ig.planet)}
-                            strokeWidth="2"
-                          />
-                          <circle cx={x} cy={LANES.ingY - 8} r="3.5" fill={planetColor(ig.planet)} />
-                        </g>
-                      );
-                    })}
-
-                    {/* Eclipse markers */}
-                    {eclipses.map((e, i) => {
-                      const x = xFor(e.date);
-                      const hit = e.on_natal_nakshatra;
-                      return (
-                        <circle
-                          key={`e${i}`}
-                          cx={x}
-                          cy={LANES.eclY}
-                          r={hit ? 5.5 : 4}
-                          fill={e.kind === "solar" ? "#E0A020" : "#3A4A66"}
-                          stroke={hit ? "#C0392B" : "#fff"}
-                          strokeWidth={hit ? 2 : 0.6}
-                        />
-                      );
-                    })}
-
-                    {/* Today line */}
-                    <line
-                      x1={xFor(win.today)}
-                      y1={LANES.mahaY - 4}
-                      x2={xFor(win.today)}
-                      y2={LANES.bottom - 2}
-                      className="tl-today"
-                    />
-                    <text x={xFor(win.today)} y={LANES.bottom - 1} className="tl-today-label">
-                      {t("timeline.today")}
-                    </text>
-
-                    {/* Selected marker */}
-                    {selectedDate && (
-                      <line
-                        x1={xFor(selectedDate)}
-                        y1={LANES.mahaY - 4}
-                        x2={xFor(selectedDate)}
-                        y2={LANES.bottom - 2}
-                        className="tl-selected"
-                      />
-                    )}
-                  </svg>
-                </div>
-
-                {/* Lane legend */}
-                <div className="tl-legend">
-                  <span className="tl-legend__row">
-                    <b>{t("timeline.laneMaha")}</b> · <b>{t("timeline.laneBhukti")}</b> ·{" "}
-                    <b>{t("timeline.laneSaturn")}</b> · <b>{t("timeline.laneIngress")}</b> ·{" "}
-                    <b>{t("timeline.laneEclipse")}</b>
-                  </span>
-                  <span className="tl-legend__item">
-                    <span className="tl-dot" style={{ background: "var(--gold)" }} />{" "}
-                    {t("timeline.solar")}
-                  </span>
-                  <span className="tl-legend__item">
-                    <span className="tl-dot" style={{ background: "var(--text-primary)" }} />{" "}
-                    {t("timeline.lunar")}
-                  </span>
-                  <span className="tl-legend__item">
-                    <span className="tl-dot tl-dot--hit" /> {t("timeline.eclipseHit")}
-                  </span>
+                  </select>
                 </div>
               </div>
 
-              {/* ── Selected-window panel ── */}
-              {selection && (
-                <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush mt-xl">
-                  <h3 className="ui-card-header ui-card-header--sm">
-                    {t("timeline.windowTitle", { date: formatDate(selectedDate, locale) })}
-                  </h3>
-                  <div className="tl-window-grid">
-                    <div className="tl-window-item">
-                      <div className="tl-window-item__label">{t("timeline.dashaLabel")}</div>
-                      <div className="tl-window-item__value">
-                        {selection.maha ? (
-                          <>
-                            <span
-                              className="tl-chip"
-                              style={{ background: planetColor(selection.maha.lord) }}
-                            >
-                              {selection.maha.lord}
-                            </span>
-                            {selection.bhukti && (
+              <ErrorBanner message={error} />
+
+              {loading ? (
+                <Card>
+                  <LoadingState message={t("timeline.loading")} />
+                </Card>
+              ) : data ? (
+                <div className="fade-in">
+                  <div className="info-pills">
+                    <span className="info-pill">
+                      {t("timeline.moonSign", { sign: data.moon_sign })}
+                    </span>
+                    <span className="info-pill">
+                      {formatDate(win.start_date, locale)} – {formatDate(win.end_date, locale)}
+                    </span>
+                  </div>
+
+                  {/* ── The timeline chart ── */}
+                  <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-lg">
+                    <p className="card-note">{t("timeline.clickHint")}</p>
+                    <div className="tl-scroll">
+                      <svg
+                        ref={svgRef}
+                        className="tl-svg"
+                        viewBox={`0 0 ${W} ${LANES.bottom}`}
+                        preserveAspectRatio="none"
+                        onClick={handleSvgClick}
+                      >
+                        {/* Year gridlines + labels */}
+                        {yearTicks.map((tk) => (
+                          <g key={tk.year}>
+                            <line
+                              x1={tk.x}
+                              y1={LANES.mahaY}
+                              x2={tk.x}
+                              y2={LANES.bottom - 6}
+                              className="tl-grid"
+                            />
+                            <text x={tk.x} y={LANES.axisTop + 12} className="tl-year">
+                              {tk.year}
+                            </text>
+                          </g>
+                        ))}
+
+                        {/* Maha dasha band */}
+                        {maha.map((m, i) => {
+                          const r = segRect(m, LANES.mahaY, LANES.mahaH);
+                          return (
+                            <g key={`m${i}`}>
+                              <rect
+                                {...r}
+                                rx="4"
+                                fill={planetColor(m.lord)}
+                                fillOpacity={m.is_current ? 0.95 : 0.78}
+                                className="tl-seg"
+                              />
+                              {r.width > 40 && (
+                                <text x={r.x + 6} y={r.y + 27} className="tl-seg-label">
+                                  {m.lord}
+                                </text>
+                              )}
+                            </g>
+                          );
+                        })}
+
+                        {/* Bhukti band (current maha only) */}
+                        {bhukti.map((b, i) => {
+                          const r = segRect(b, LANES.bhuktiY, LANES.bhuktiH);
+                          return (
+                            <g key={`b${i}`}>
+                              <rect
+                                {...r}
+                                rx="3"
+                                fill={planetColor(b.lord)}
+                                fillOpacity={b.is_current ? 0.9 : 0.5}
+                                stroke="var(--surface)"
+                                strokeOpacity="0.5"
+                                strokeWidth="0.5"
+                              />
+                              {r.width > 26 && (
+                                <text
+                                  x={r.x + 4}
+                                  y={r.y + 17}
+                                  className="tl-seg-label tl-seg-label--sm"
+                                >
+                                  {b.lord.slice(0, 2)}
+                                </text>
+                              )}
+                            </g>
+                          );
+                        })}
+
+                        {/* Saturn phases */}
+                        {phases.map((p, i) => {
+                          const r = segRect(p, LANES.satY, LANES.satH);
+                          return (
+                            <g key={`p${i}`}>
+                              <rect
+                                {...r}
+                                rx="3"
+                                fill={PHASE_COLORS[p.kind] || "#999"}
+                                fillOpacity={p.is_current ? 0.92 : 0.72}
+                              />
+                              {r.width > 46 && (
+                                <text
+                                  x={r.x + 5}
+                                  y={r.y + 18}
+                                  className="tl-seg-label tl-seg-label--sm"
+                                >
+                                  {p.kind === "sade_sati"
+                                    ? t(`timeline.phase.${p.phase}`)
+                                    : t(`timeline.phase.${p.kind}`)}
+                                </text>
+                              )}
+                            </g>
+                          );
+                        })}
+
+                        {/* Ingress markers */}
+                        {ingresses.map((ig, i) => {
+                          const x = xFor(ig.date);
+                          return (
+                            <g key={`i${i}`}>
+                              <line
+                                x1={x}
+                                y1={LANES.ingY - 6}
+                                x2={x}
+                                y2={LANES.ingY + 8}
+                                stroke={planetColor(ig.planet)}
+                                strokeWidth="2"
+                              />
+                              <circle
+                                cx={x}
+                                cy={LANES.ingY - 8}
+                                r="3.5"
+                                fill={planetColor(ig.planet)}
+                              />
+                            </g>
+                          );
+                        })}
+
+                        {/* Eclipse markers */}
+                        {eclipses.map((e, i) => {
+                          const x = xFor(e.date);
+                          const hit = e.on_natal_nakshatra;
+                          return (
+                            <circle
+                              key={`e${i}`}
+                              cx={x}
+                              cy={LANES.eclY}
+                              r={hit ? 5.5 : 4}
+                              fill={e.kind === "solar" ? "#E0A020" : "#3A4A66"}
+                              stroke={hit ? "#C0392B" : "#fff"}
+                              strokeWidth={hit ? 2 : 0.6}
+                            />
+                          );
+                        })}
+
+                        {/* Today line */}
+                        <line
+                          x1={xFor(win.today)}
+                          y1={LANES.mahaY - 4}
+                          x2={xFor(win.today)}
+                          y2={LANES.bottom - 2}
+                          className="tl-today"
+                        />
+                        <text x={xFor(win.today)} y={LANES.bottom - 1} className="tl-today-label">
+                          {t("timeline.today")}
+                        </text>
+
+                        {/* Selected marker */}
+                        {selectedDate && (
+                          <line
+                            x1={xFor(selectedDate)}
+                            y1={LANES.mahaY - 4}
+                            x2={xFor(selectedDate)}
+                            y2={LANES.bottom - 2}
+                            className="tl-selected"
+                          />
+                        )}
+                      </svg>
+                    </div>
+
+                    {/* Lane legend */}
+                    <div className="tl-legend">
+                      <span className="tl-legend__row">
+                        <b>{t("timeline.laneMaha")}</b> · <b>{t("timeline.laneBhukti")}</b> ·{" "}
+                        <b>{t("timeline.laneSaturn")}</b> · <b>{t("timeline.laneIngress")}</b> ·{" "}
+                        <b>{t("timeline.laneEclipse")}</b>
+                      </span>
+                      <span className="tl-legend__item">
+                        <span className="tl-dot" style={{ background: "var(--gold)" }} />{" "}
+                        {t("timeline.solar")}
+                      </span>
+                      <span className="tl-legend__item">
+                        <span className="tl-dot" style={{ background: "var(--text-primary)" }} />{" "}
+                        {t("timeline.lunar")}
+                      </span>
+                      <span className="tl-legend__item">
+                        <span className="tl-dot tl-dot--hit" /> {t("timeline.eclipseHit")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ── Selected-window panel ── */}
+                  {selection && (
+                    <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush mt-xl">
+                      <h3 className="ui-card-header ui-card-header--sm">
+                        {t("timeline.windowTitle", { date: formatDate(selectedDate, locale) })}
+                      </h3>
+                      <div className="tl-window-grid">
+                        <div className="tl-window-item">
+                          <div className="tl-window-item__label">{t("timeline.dashaLabel")}</div>
+                          <div className="tl-window-item__value">
+                            {selection.maha ? (
                               <>
-                                {" / "}
                                 <span
                                   className="tl-chip"
-                                  style={{ background: planetColor(selection.bhukti.lord) }}
+                                  style={{ background: planetColor(selection.maha.lord) }}
                                 >
-                                  {selection.bhukti.lord}
+                                  {selection.maha.lord}
                                 </span>
+                                {selection.bhukti && (
+                                  <>
+                                    {" / "}
+                                    <span
+                                      className="tl-chip"
+                                      style={{ background: planetColor(selection.bhukti.lord) }}
+                                    >
+                                      {selection.bhukti.lord}
+                                    </span>
+                                  </>
+                                )}
                               </>
+                            ) : (
+                              "—"
                             )}
-                          </>
-                        ) : (
-                          "—"
+                          </div>
+                        </div>
+                        <div className="tl-window-item">
+                          <div className="tl-window-item__label">{t("timeline.saturnLabel")}</div>
+                          <div className="tl-window-item__value">
+                            {selection.saturn
+                              ? selection.saturn.description
+                              : t("timeline.saturnNone")}
+                          </div>
+                        </div>
+                      </div>
+
+                      {(selection.ingresses.length > 0 || selection.eclipses.length > 0) && (
+                        <div className="tl-events">
+                          {selection.ingresses.map((ig, i) => (
+                            <span key={`wi${i}`} className="tl-event">
+                              <span
+                                className="tl-dot"
+                                style={{ background: planetColor(ig.planet) }}
+                              />
+                              {formatDate(ig.date, locale)} · {ig.planet} → {ig.to_sign}
+                            </span>
+                          ))}
+                          {selection.eclipses.map((e, i) => (
+                            <span key={`we${i}`} className="tl-event">
+                              {e.kind === "solar" ? <Sun size={13} /> : <Moon size={13} />}
+                              {formatDate(e.date, locale)} · {t(`timeline.${e.kind}`)} ·{" "}
+                              {ln(e.nakshatra, "nakshatra")}
+                              {e.on_natal_nakshatra && (
+                                <b className="tl-event__hit">
+                                  {" "}
+                                  {t("timeline.onNatal", { planets: e.natal_planets.join(", ") })}
+                                </b>
+                              )}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* AI reading for the window */}
+                      <div className="mt-lg">
+                        <ErrorBanner message={aiError} />
+                        {!aiAnalysis && !aiLoading && (
+                          <p className="ai-panel__hint">{t("timeline.aiHint")}</p>
                         )}
-                      </div>
-                    </div>
-                    <div className="tl-window-item">
-                      <div className="tl-window-item__label">{t("timeline.saturnLabel")}</div>
-                      <div className="tl-window-item__value">
-                        {selection.saturn ? selection.saturn.description : t("timeline.saturnNone")}
-                      </div>
-                    </div>
-                  </div>
-
-                  {(selection.ingresses.length > 0 || selection.eclipses.length > 0) && (
-                    <div className="tl-events">
-                      {selection.ingresses.map((ig, i) => (
-                        <span key={`wi${i}`} className="tl-event">
-                          <span className="tl-dot" style={{ background: planetColor(ig.planet) }} />
-                          {formatDate(ig.date, locale)} · {ig.planet} → {ig.to_sign}
-                        </span>
-                      ))}
-                      {selection.eclipses.map((e, i) => (
-                        <span key={`we${i}`} className="tl-event">
-                          {e.kind === "solar" ? <Sun size={13} /> : <Moon size={13} />}
-                          {formatDate(e.date, locale)} · {t(`timeline.${e.kind}`)} ·{" "}
-                          {ln(e.nakshatra, "nakshatra")}
-                          {e.on_natal_nakshatra && (
-                            <b className="tl-event__hit">
-                              {" "}
-                              {t("timeline.onNatal", { planets: e.natal_planets.join(", ") })}
-                            </b>
-                          )}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* AI reading for the window */}
-                  <div className="mt-lg">
-                    <ErrorBanner message={aiError} />
-                    {!aiAnalysis && !aiLoading && (
-                      <p className="ai-panel__hint">{t("timeline.aiHint")}</p>
-                    )}
-                    {aiLoading && <LoadingState message={t("timeline.aiLoading")} />}
-                    {aiAnalysis && !aiLoading && (
-                      <div className="sbc-ai-markdown ai-panel__reading">
-                        <Markdown>{aiAnalysis}</Markdown>
-                        {aiModel && (
-                          <div className="ai-panel__meta">
-                            {t("timeline.aiModel", { model: aiModel })}
+                        {aiLoading && <LoadingState message={t("timeline.aiLoading")} />}
+                        {aiAnalysis && !aiLoading && (
+                          <div className="sbc-ai-markdown ai-panel__reading">
+                            <Markdown>{aiAnalysis}</Markdown>
+                            {aiModel && (
+                              <div className="ai-panel__meta">
+                                {t("timeline.aiModel", { model: aiModel })}
+                              </div>
+                            )}
                           </div>
                         )}
+                        {!aiLoading && (
+                          <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                            <Sparkles size={18} />
+                            {aiAnalysis ? t("timeline.aiRegenerate") : t("timeline.aiGenerate")}
+                          </button>
+                        )}
                       </div>
-                    )}
-                    {!aiLoading && (
-                      <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                        <Sparkles size={18} />
-                        {aiAnalysis ? t("timeline.aiRegenerate") : t("timeline.aiGenerate")}
-                      </button>
-                    )}
-                  </div>
-                  <p className="card-note">{t("timeline.disclaimer")}</p>
+                      <p className="card-note">{t("timeline.disclaimer")}</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ) : null}
-          </>
-        )}
-      </div>
+              ) : null}
+            </>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

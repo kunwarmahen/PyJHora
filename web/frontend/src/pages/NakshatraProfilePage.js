@@ -208,193 +208,194 @@ export const NakshatraProfilePage = () => {
         subtitle={t("nakshatra.subtitle")}
         accent="gold"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings
+            source={["nakshatra_profile", "planetary_nakshatras"]}
+            profileId={selectedProfile?._id}
+          />
+          <ProfileBanner profile={selectedProfile} />
+          <p className="card-note">{t("nakshatra.intro")}</p>
 
-      <div className="dashboard-content">
-        <RecentReadings
-          source={["nakshatra_profile", "planetary_nakshatras"]}
-          profileId={selectedProfile?._id}
-        />
-        <ProfileBanner profile={selectedProfile} />
-        <p className="card-note">{t("nakshatra.intro")}</p>
+          <ErrorBanner message={error} />
 
-        <ErrorBanner message={error} />
-
-        {loading ? (
-          <Card>
-            <LoadingState message={t("nakshatra.loading")} />
-          </Card>
-        ) : data ? (
-          <div className="fade-in">
-            {/* Hero */}
-            <div className="nak-hero">
-              <div className="nak-hero__star">
-                <Star size={30} />
-              </div>
-              <div>
-                <div className="nak-hero__name">{p.name}</div>
-                <div className="nak-hero__sub">
-                  {t("nakshatra.pada", { n: p.pada })} ·{" "}
-                  {t("nakshatra.moonSign", { sign: data.moon_sign })}
+          {loading ? (
+            <Card>
+              <LoadingState message={t("nakshatra.loading")} />
+            </Card>
+          ) : data ? (
+            <div className="fade-in">
+              {/* Hero */}
+              <div className="nak-hero">
+                <div className="nak-hero__star">
+                  <Star size={30} />
                 </div>
-                <div className="nak-hero__theme">{p.theme}</div>
-              </div>
-              <div className="nak-hero__syllable" title={t("nakshatra.attrSyllable")}>
-                {p.naming_syllable}
-              </div>
-            </div>
-
-            {/* Attributes */}
-            <div className="mt-xl">
-              <Card title={p.name} icon={<Star size={22} />} accent="gold">
-                <div className="nak-attrs">
-                  {attrs.map(([key, val]) => (
-                    <div className="nak-attr" key={key}>
-                      <span className="nak-attr__label">{t(`nakshatra.${key}`)}</span>
-                      <span className="nak-attr__value">{val}</span>
-                    </div>
-                  ))}
+                <div>
+                  <div className="nak-hero__name">{p.name}</div>
+                  <div className="nak-hero__sub">
+                    {t("nakshatra.pada", { n: p.pada })} ·{" "}
+                    {t("nakshatra.moonSign", { sign: data.moon_sign })}
+                  </div>
+                  <div className="nak-hero__theme">{p.theme}</div>
                 </div>
-                <div className="nak-syllables">
-                  <span className="nak-attr__label">{t("nakshatra.syllablesTitle")}</span>
-                  <div className="nak-syllables__row">
-                    {(p.all_syllables || []).map((s, i) => (
-                      <span
-                        key={i}
-                        className={`nak-syllable${i + 1 === p.pada ? " nak-syllable--active" : ""}`}
-                      >
-                        {s}
-                      </span>
+                <div className="nak-hero__syllable" title={t("nakshatra.attrSyllable")}>
+                  {p.naming_syllable}
+                </div>
+              </div>
+
+              {/* Attributes */}
+              <div className="mt-xl">
+                <Card title={p.name} icon={<Star size={22} />} accent="gold">
+                  <div className="nak-attrs">
+                    {attrs.map(([key, val]) => (
+                      <div className="nak-attr" key={key}>
+                        <span className="nak-attr__label">{t(`nakshatra.${key}`)}</span>
+                        <span className="nak-attr__value">{val}</span>
+                      </div>
                     ))}
                   </div>
-                </div>
-              </Card>
-            </div>
-
-            {/* Tarabala calendar */}
-            <div className="mt-xl">
-              <Card
-                title={t("nakshatra.tarabalaTitle")}
-                icon={<Sparkles size={22} />}
-                accent="saffron"
-              >
-                <p className="card-intro">{t("nakshatra.tarabalaIntro")}</p>
-                <p className="card-note">{t("nakshatra.from", { date: data.calendar_from })}</p>
-                <div className="nak-cal">
-                  {(data.tarabala_calendar || []).map((c) => (
-                    <div
-                      key={c.date}
-                      className={`nak-cal__cell ${TONE_CLASS[c.tone] || "nak-tone--neutral"}`}
-                      title={`${ln(c.nakshatra, "nakshatra")} · ${c.tarabala}`}
-                    >
-                      <span className="nak-cal__date">{fmtDay(c.date, locale)}</span>
-                      <span className="nak-cal__tara">{c.tarabala}</span>
+                  <div className="nak-syllables">
+                    <span className="nak-attr__label">{t("nakshatra.syllablesTitle")}</span>
+                    <div className="nak-syllables__row">
+                      {(p.all_syllables || []).map((s, i) => (
+                        <span
+                          key={i}
+                          className={`nak-syllable${i + 1 === p.pada ? " nak-syllable--active" : ""}`}
+                        >
+                          {s}
+                        </span>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
+                  </div>
+                </Card>
+              </div>
 
-            {/* Every graha's own star — the layer the janma-star profile above
-            never covers. A graha gives its results through its star lord, which
-            is why Vimsottari runs on the star lord and not the sign lord. */}
-            {(data.planetary_nakshatras || []).length > 0 && (
+              {/* Tarabala calendar */}
               <div className="mt-xl">
                 <Card
-                  title={t("nakshatra.planetaryTitle")}
-                  icon={<Star size={22} />}
-                  accent="indigo"
+                  title={t("nakshatra.tarabalaTitle")}
+                  icon={<Sparkles size={22} />}
+                  accent="saffron"
                 >
-                  <p className="card-intro">{t("nakshatra.planetaryIntro")}</p>
-                  <div className="table-scroll">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>{t("nakshatra.colPlanet")}</th>
-                          <th>{t("common.sign")}</th>
-                          <th>{t("common.nakshatra")}</th>
-                          <th>{t("common.pada")}</th>
-                          <th>{t("nakshatra.colStarLord")}</th>
-                          <th>{t("nakshatra.colTheme")}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.planetary_nakshatras.map((r) => (
-                          <tr
-                            key={r.planet}
-                            className={r.is_janma ? "nak-row--janma" : undefined}
-                          >
-                            <td>
-                              {r.planet}
-                              {r.is_janma && (
-                                <span className="nak-janma-tag">{t("nakshatra.janmaTag")}</span>
-                              )}
-                            </td>
-                            <td>{ln(r.sign_name, "rasi")}</td>
-                            <td>{ln(r.nakshatra, "nakshatra")}</td>
-                            <td>{r.pada}</td>
-                            <td>{r.lord}</td>
-                            <td className="nak-theme-cell">{r.theme}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <p className="card-intro">{t("nakshatra.tarabalaIntro")}</p>
+                  <p className="card-note">{t("nakshatra.from", { date: data.calendar_from })}</p>
+                  <div className="nak-cal">
+                    {(data.tarabala_calendar || []).map((c) => (
+                      <div
+                        key={c.date}
+                        className={`nak-cal__cell ${TONE_CLASS[c.tone] || "nak-tone--neutral"}`}
+                        title={`${ln(c.nakshatra, "nakshatra")} · ${c.tarabala}`}
+                      >
+                        <span className="nak-cal__date">{fmtDay(c.date, locale)}</span>
+                        <span className="nak-cal__tara">{c.tarabala}</span>
+                      </div>
+                    ))}
                   </div>
+                </Card>
+              </div>
 
-                  <ErrorBanner message={pnError} />
-                  {!pnAnalysis && !pnLoading && (
-                    <p className="ai-panel__hint">{t("nakshatra.planetaryAiHint")}</p>
+              {/* Every graha's own star — the layer the janma-star profile above
+            never covers. A graha gives its results through its star lord, which
+            is why Vimsottari runs on the star lord and not the sign lord. */}
+              {(data.planetary_nakshatras || []).length > 0 && (
+                <div className="mt-xl">
+                  <Card
+                    title={t("nakshatra.planetaryTitle")}
+                    icon={<Star size={22} />}
+                    accent="indigo"
+                  >
+                    <p className="card-intro">{t("nakshatra.planetaryIntro")}</p>
+                    <div className="table-scroll">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>{t("nakshatra.colPlanet")}</th>
+                            <th>{t("common.sign")}</th>
+                            <th>{t("common.nakshatra")}</th>
+                            <th>{t("common.pada")}</th>
+                            <th>{t("nakshatra.colStarLord")}</th>
+                            <th>{t("nakshatra.colTheme")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {data.planetary_nakshatras.map((r) => (
+                            <tr
+                              key={r.planet}
+                              className={r.is_janma ? "nak-row--janma" : undefined}
+                            >
+                              <td>
+                                {r.planet}
+                                {r.is_janma && (
+                                  <span className="nak-janma-tag">{t("nakshatra.janmaTag")}</span>
+                                )}
+                              </td>
+                              <td>{ln(r.sign_name, "rasi")}</td>
+                              <td>{ln(r.nakshatra, "nakshatra")}</td>
+                              <td>{r.pada}</td>
+                              <td>{r.lord}</td>
+                              <td className="nak-theme-cell">{r.theme}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <ErrorBanner message={pnError} />
+                    {!pnAnalysis && !pnLoading && (
+                      <p className="ai-panel__hint">{t("nakshatra.planetaryAiHint")}</p>
+                    )}
+                    {pnLoading && <LoadingState message={t("nakshatra.aiLoading")} />}
+                    {pnAnalysis && !pnLoading && (
+                      <div className="sbc-ai-markdown ai-panel__reading">
+                        <Markdown>{pnAnalysis}</Markdown>
+                        {pnModel && (
+                          <div className="ai-panel__meta">
+                            {t("nakshatra.aiModel", { model: pnModel })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {!pnLoading && (
+                      <button className="ui-btn ui-btn--ai" onClick={handlePlanetaryAi}>
+                        <Sparkles size={18} />
+                        {pnAnalysis ? t("nakshatra.aiRegenerate") : t("nakshatra.aiGenerate")}
+                      </button>
+                    )}
+                  </Card>
+                </div>
+              )}
+
+              {/* AI reading */}
+              <div className="mt-xl">
+                <Card title={t("nakshatra.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
+                  <ErrorBanner message={aiError} />
+                  {!aiAnalysis && !aiLoading && (
+                    <p className="ai-panel__hint">{t("nakshatra.aiHint")}</p>
                   )}
-                  {pnLoading && <LoadingState message={t("nakshatra.aiLoading")} />}
-                  {pnAnalysis && !pnLoading && (
+                  {aiLoading && <LoadingState message={t("nakshatra.aiLoading")} />}
+                  {aiAnalysis && !aiLoading && (
                     <div className="sbc-ai-markdown ai-panel__reading">
-                      <Markdown>{pnAnalysis}</Markdown>
-                      {pnModel && (
+                      <Markdown>{aiAnalysis}</Markdown>
+                      {aiModel && (
                         <div className="ai-panel__meta">
-                          {t("nakshatra.aiModel", { model: pnModel })}
+                          {t("nakshatra.aiModel", { model: aiModel })}
                         </div>
                       )}
                     </div>
                   )}
-                  {!pnLoading && (
-                    <button className="ui-btn ui-btn--ai" onClick={handlePlanetaryAi}>
+                  {!aiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleAi}>
                       <Sparkles size={18} />
-                      {pnAnalysis ? t("nakshatra.aiRegenerate") : t("nakshatra.aiGenerate")}
+                      {aiAnalysis ? t("nakshatra.aiRegenerate") : t("nakshatra.aiGenerate")}
                     </button>
                   )}
+                  <p className="card-note">{t("nakshatra.disclaimer")}</p>
                 </Card>
               </div>
-            )}
-
-            {/* AI reading */}
-            <div className="mt-xl">
-              <Card title={t("nakshatra.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
-                <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && (
-                  <p className="ai-panel__hint">{t("nakshatra.aiHint")}</p>
-                )}
-                {aiLoading && <LoadingState message={t("nakshatra.aiLoading")} />}
-                {aiAnalysis && !aiLoading && (
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{aiAnalysis}</Markdown>
-                    {aiModel && (
-                      <div className="ai-panel__meta">
-                        {t("nakshatra.aiModel", { model: aiModel })}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {!aiLoading && (
-                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                    <Sparkles size={18} />
-                    {aiAnalysis ? t("nakshatra.aiRegenerate") : t("nakshatra.aiGenerate")}
-                  </button>
-                )}
-                <p className="card-note">{t("nakshatra.disclaimer")}</p>
-              </Card>
             </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

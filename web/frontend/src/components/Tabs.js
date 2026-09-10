@@ -59,9 +59,26 @@ export const useTabs = (tabs, { param = TAB_PARAM } = {}) => {
 export const Tabs = ({ tabs, active, onChange, ariaLabel }) => {
   if (!tabs || tabs.length < 2) return null; // one tab is not a choice
 
+  // A tablist is ONE tab stop, and the arrows move between the tabs inside it
+  // (§68.8). Without this, Tab walked every tab on the way to the panel, and a
+  // screen reader announced a row of buttons that happened to say "tab".
+  const move = (e, index) => {
+    const keys = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 1, ArrowUp: -1 };
+    let next = null;
+    if (keys[e.key]) next = (index + keys[e.key] + tabs.length) % tabs.length;
+    if (e.key === "Home") next = 0;
+    if (e.key === "End") next = tabs.length - 1;
+    if (next === null) return;
+    e.preventDefault();
+    onChange(tabs[next].key);
+    const bar = e.currentTarget.parentElement;
+    const target = bar && bar.querySelectorAll('[role="tab"]')[next];
+    if (target) target.focus();
+  };
+
   return (
     <div className="ui-tabs" role="tablist" aria-label={ariaLabel}>
-      {tabs.map((t) => {
+      {tabs.map((t, index) => {
         const on = t.key === active;
         return (
           <button
@@ -69,6 +86,8 @@ export const Tabs = ({ tabs, active, onChange, ariaLabel }) => {
             type="button"
             role="tab"
             aria-selected={on}
+            tabIndex={on ? 0 : -1}
+            onKeyDown={(e) => move(e, index)}
             className={`ui-tab${on ? " ui-tab--on" : ""}`}
             onClick={() => onChange(t.key)}
           >

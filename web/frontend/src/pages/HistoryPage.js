@@ -1,3 +1,4 @@
+import { clickable } from "../utils/a11y";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -160,104 +161,109 @@ export const HistoryPage = () => {
         subtitle={t("history.subtitle")}
         accent="gold"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <ErrorBanner message={error} />
 
-      <div className="dashboard-content">
-        <ErrorBanner message={error} />
-
-        {track && track.total > 0 && (
-          <div className="ui-card ui-card--pad-lg mb-xl">
-            <h3 className="ui-card-header ui-card-header--sm">
-              <Target size={18} />
-              {t("outcome.trackTitle")}
-            </h3>
-            <div className="track-record">
-              {track.hit_rate !== null && track.hit_rate !== undefined && (
-                <div className="track-record__rate">
-                  <b>{track.hit_rate}%</b>
-                  <span>{t("outcome.trackRate", { n: track.settled })}</span>
-                </div>
-              )}
-              <div className="track-record__counts">
-                {VERDICTS.filter((v) => track.counts?.[v]).map((v) => (
-                  <span key={v} className={`outcome-chip outcome-chip--${v}`}>
-                    {track.counts[v]} {t(`outcome.verdict.${v}`)}
-                  </span>
-                ))}
-              </div>
-              <p className="track-record__note">{t("outcome.trackNote")}</p>
-            </div>
-          </div>
-        )}
-
-        <div className="history-filters" style={{ marginBottom: "1rem" }}>
-          {["all", "chat", "reading", "digest"].map((f) => (
-            <button
-              key={f}
-              className={`history-filter${filter === f ? " is-active" : ""}`}
-              onClick={() => setFilter(f)}
-            >
-              {t(`history.filter.${f}`)}
-            </button>
-          ))}
-        </div>
-
-        {loading ? (
-          <div className="ui-card ui-card--pad-lg">
-            <LoadingState message={t("history.loading")} />
-          </div>
-        ) : visible.length === 0 ? (
-          <div className="ui-card ui-card--pad-lg">
-            <p className="text-secondary" style={{ margin: 0 }}>
-              {t("history.empty")}
-            </p>
-          </div>
-        ) : (
-          groups.map((g) => (
-            <div key={g.key} className="ui-card ui-card--accent ui-card--flush mb-xl">
+          {track && track.total > 0 && (
+            <div className="ui-card ui-card--pad-lg mb-xl">
               <h3 className="ui-card-header ui-card-header--sm">
-                <User size={18} />
-                {g.name}
-                <span className="text-muted" style={{ fontWeight: 400, marginLeft: "0.4rem" }}>
-                  ({g.list.length})
-                </span>
+                <Target size={18} />
+                {t("outcome.trackTitle")}
               </h3>
-              <div className="history-list">
-                {g.list.map((c) => (
-                  <div key={c.id} className="history-item" onClick={() => open(c)}>
-                    <div className="history-item__main">
-                      <div className="history-item__title">
-                        <span className="history-source-badge">
-                          {kindIcon(c.kind)} {c.label || c.source}
-                        </span>
-                        {c.title}
-                      </div>
-                      {c.preview && <div className="history-item__preview">{c.preview}…</div>}
-                      <div className="history-item__meta">
-                        {c.kind === "digest" && c.delivered?.email ? (
-                          <>
-                            <Mail size={11} style={{ verticalAlign: "-1px" }} />{" "}
-                            {t("history.deliveredEmail")} ·{" "}
-                          </>
-                        ) : null}
-                        {c.last_model ? `${c.last_model} · ` : ""}
-                        {fmt(c.updated_at)}
-                      </div>
-                      <OutcomeControl item={c} profileId={c.profile_id} onSaved={onOutcome} />
-                    </div>
-                    <button
-                      className="history-item__delete"
-                      onClick={(e) => remove(c.id, e)}
-                      title={t("history.delete")}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+              <div className="track-record">
+                {track.hit_rate !== null && track.hit_rate !== undefined && (
+                  <div className="track-record__rate">
+                    <b>{track.hit_rate}%</b>
+                    <span>{t("outcome.trackRate", { n: track.settled })}</span>
                   </div>
-                ))}
+                )}
+                <div className="track-record__counts">
+                  {VERDICTS.filter((v) => track.counts?.[v]).map((v) => (
+                    <span key={v} className={`outcome-chip outcome-chip--${v}`}>
+                      {track.counts[v]} {t(`outcome.verdict.${v}`)}
+                    </span>
+                  ))}
+                </div>
+                <p className="track-record__note">{t("outcome.trackNote")}</p>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          )}
+
+          <div className="history-filters" style={{ marginBottom: "1rem" }}>
+            {["all", "chat", "reading", "digest"].map((f) => (
+              <button
+                key={f}
+                className={`history-filter${filter === f ? " is-active" : ""}`}
+                onClick={() => setFilter(f)}
+              >
+                {t(`history.filter.${f}`)}
+              </button>
+            ))}
+          </div>
+
+          {loading ? (
+            <div className="ui-card ui-card--pad-lg">
+              <LoadingState message={t("history.loading")} />
+            </div>
+          ) : visible.length === 0 ? (
+            <div className="ui-card ui-card--pad-lg">
+              <p className="text-secondary" style={{ margin: 0 }}>
+                {t("history.empty")}
+              </p>
+            </div>
+          ) : (
+            groups.map((g) => (
+              <div key={g.key} className="ui-card ui-card--accent ui-card--flush mb-xl">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <User size={18} />
+                  {g.name}
+                  <span className="text-muted" style={{ fontWeight: 400, marginLeft: "0.4rem" }}>
+                    ({g.list.length})
+                  </span>
+                </h3>
+                <div className="history-list">
+                  {g.list.map((c) => (
+                    <div
+                      key={c.id}
+                      className="history-item"
+                      {...clickable(() => open(c), { label: c.title || c.label || c.source })}
+                    >
+                      <div className="history-item__main">
+                        <div className="history-item__title">
+                          <span className="history-source-badge">
+                            {kindIcon(c.kind)} {c.label || c.source}
+                          </span>
+                          {c.title}
+                        </div>
+                        {c.preview && <div className="history-item__preview">{c.preview}…</div>}
+                        <div className="history-item__meta">
+                          {c.kind === "digest" && c.delivered?.email ? (
+                            <>
+                              <Mail size={11} style={{ verticalAlign: "-1px" }} />{" "}
+                              {t("history.deliveredEmail")} ·{" "}
+                            </>
+                          ) : null}
+                          {c.last_model ? `${c.last_model} · ` : ""}
+                          {fmt(c.updated_at)}
+                        </div>
+                        <OutcomeControl item={c} profileId={c.profile_id} onSaved={onOutcome} />
+                      </div>
+                      <button
+                        className="history-item__delete"
+                        onClick={(e) => remove(c.id, e)}
+                        title={t("history.delete")}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </main>
     </div>
   );
 };

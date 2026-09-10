@@ -7,6 +7,7 @@ import { useLocalizeName } from "../i18n/localizeName";
 import { useSettings } from "../contexts/SettingsContext";
 import { signLabelParts } from "../config/signLabel";
 import { signNumOf, signAtVisualHouse } from "../config/chartPosition";
+import { describeChart } from "../config/chartDescription";
 import { ChartExportButtons } from "./ChartExportButtons";
 import "../styles/NorthIndianChart.css";
 
@@ -223,7 +224,28 @@ export const NorthIndianChart = ({
           width="100%"
           style={{ maxWidth: "600px", height: "auto" }}
           role="img"
-          aria-label={`${title} (${subtitle})`}
+          // One object to a screen reader, so the label has to carry the whole
+          // chart — see config/chartDescription.js. Houses are named by number
+          // here (they are what is fixed in this style) with the sign alongside,
+          // which is what the eye reads off the diamond.
+          aria-label={describeChart({
+            title,
+            subtitle,
+            ascendant: lagnaSignNum ? ln(RASI_NAMES[lagnaSignNum - 1], "rasi") : null,
+            cells: houses.map(({ num: houseNum }) => {
+              const sign = getSignForVisualHouse(houseNum);
+              return {
+                label: t("chartA11y.house", {
+                  house: houseNum,
+                  sign: ln(RASI_NAMES[sign - 1], "rasi"),
+                }),
+                items: getPlanetsInHouse(houseNum).map((i) =>
+                  i.type === "planet" ? ln(i.fullName, "graha") : i.name
+                ),
+              };
+            }),
+            t,
+          })}
         >
           <defs>
             <linearGradient id="chartGradient" x1="0%" y1="0%" x2="100%" y2="100%">

@@ -1,3 +1,4 @@
+import { clickable } from "../utils/a11y";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -124,7 +125,10 @@ function DashaNode({ node, level, path, birthDetails, eagerChildren = null }) {
       className={`dasha-node${level === 1 ? " dasha-node--root" : ""}${isCurrent ? " is-current" : ""}`}
       style={{ "--depth": level - 1, "--lvl-accent": meta.accent, "--avatar": `${avatar}px` }}
     >
-      <div onClick={toggle} className={`dasha-node__head${canExpand ? " is-expandable" : ""}`}>
+      <div
+        className={`dasha-node__head${canExpand ? " is-expandable" : ""}`}
+        {...clickable(canExpand ? toggle : null, { expanded: canExpand ? expanded : undefined })}
+      >
         <div className="dasha-node__avatar">{(node.lord || "?").slice(0, 2)}</div>
 
         <div className="dasha-node__body">
@@ -572,126 +576,129 @@ export const DhasaPage = () => {
         subtitle={t("dhasa.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <ProfileBanner profile={selectedProfile} />
 
-      <div className="dashboard-content">
-        <ProfileBanner profile={selectedProfile} />
+          <ErrorBanner message={error} />
 
-        <ErrorBanner message={error} />
-
-        {/* System badge + today */}
-        <div className="dhasa-badges">
-          <div className="dhasa-badge">
-            <Clock size={18} style={{ color: "var(--saffron)" }} />
-            {t("dhasa.vimsottariSystem")}
-            <span className="dhasa-badge__sub">{t("dhasa.cycle120")}</span>
-          </div>
-          <div className="dhasa-today">
-            <Calendar size={16} />
-            {t("dhasa.today")}{" "}
-            {NOW.toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" })}
-          </div>
-        </div>
-
-        {loading ? (
-          <Card>
-            <LoadingState message={t("dhasa.loading")} />
-          </Card>
-        ) : result ? (
-          <div className="fade-in">
-            {/* Current Period Highlight */}
-            {currentMahaDasha && (
-              <div className="current-period">
-                <div className="current-period__head">
-                  <div className="current-period__icon">
-                    <Clock size={20} />
-                  </div>
-                  <h3 style={{ margin: 0, color: "var(--cosmic-indigo)", fontSize: "1.5rem" }}>
-                    {t("dhasa.currentPeriod")}
-                  </h3>
-                </div>
-                <div className="current-period__grid">
-                  <div>
-                    <div className="field-label">{t("dhasa.mahaDasha")}</div>
-                    <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--saffron)" }}>
-                      {currentMahaDasha.lord}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="field-label">{t("dhasa.period")}</div>
-                    <div className="fw-600 text-indigo" style={{ fontSize: "0.875rem" }}>
-                      {formatDate(currentMahaDasha.start_date, locale)} -{" "}
-                      {formatDate(currentMahaDasha.end_date, locale)}
-                    </div>
-                  </div>
-                  {currentSubPeriod && (
-                    <div>
-                      <div className="field-label">{t("dhasa.currentBhukti")}</div>
-                      <div
-                        style={{
-                          fontSize: "1.125rem",
-                          fontWeight: 600,
-                          color: "var(--vermillion)",
-                        }}
-                      >
-                        {currentSubPeriod.lord}
-                      </div>
-                      <div
-                        className="text-secondary"
-                        style={{ fontSize: "0.75rem", marginTop: "var(--space-xs)" }}
-                      >
-                        {formatDate(currentSubPeriod.start_date, locale)} -{" "}
-                        {formatDate(currentSubPeriod.end_date, locale)}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <p
-                  className="text-secondary"
-                  style={{ margin: "var(--space-lg) 0 0", fontSize: "0.8125rem" }}
-                >
-                  {t("dhasa.liveHint")}
-                </p>
-              </div>
-            )}
-
-            {/* Full drill-down tree */}
-            <div className="ui-card ui-card--accent-indigo ui-card--flush">
-              <h3 className="ui-card-header">
-                <Star size={24} />
-                {t("dhasa.allMaha")}
-              </h3>
-
-              {result.dasha_sequence && result.dasha_sequence.length > 0 && (
-                <div className="dasha-tree">
-                  {result.dasha_sequence.map((dasha, index) => (
-                    <DashaNode
-                      key={`${dasha.lord}-${index}`}
-                      node={dasha}
-                      level={1}
-                      path={[dasha.lord]}
-                      birthDetails={birthDetails}
-                      eagerChildren={dasha.sub_periods || null}
-                    />
-                  ))}
-                </div>
-              )}
+          {/* System badge + today */}
+          <div className="dhasa-badges">
+            <div className="dhasa-badge">
+              <Clock size={18} style={{ color: "var(--saffron)" }} />
+              {t("dhasa.vimsottariSystem")}
+              <span className="dhasa-badge__sub">{t("dhasa.cycle120")}</span>
+            </div>
+            <div className="dhasa-today">
+              <Calendar size={16} />
+              {t("dhasa.today")}{" "}
+              {NOW.toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" })}
             </div>
           </div>
-        ) : null}
 
-        {/* Vimsottari above is what "my dasha" means to most people. The other
+          {loading ? (
+            <Card>
+              <LoadingState message={t("dhasa.loading")} />
+            </Card>
+          ) : result ? (
+            <div className="fade-in">
+              {/* Current Period Highlight */}
+              {currentMahaDasha && (
+                <div className="current-period">
+                  <div className="current-period__head">
+                    <div className="current-period__icon">
+                      <Clock size={20} />
+                    </div>
+                    <h3 style={{ margin: 0, color: "var(--cosmic-indigo)", fontSize: "1.5rem" }}>
+                      {t("dhasa.currentPeriod")}
+                    </h3>
+                  </div>
+                  <div className="current-period__grid">
+                    <div>
+                      <div className="field-label">{t("dhasa.mahaDasha")}</div>
+                      <div
+                        style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--saffron)" }}
+                      >
+                        {currentMahaDasha.lord}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="field-label">{t("dhasa.period")}</div>
+                      <div className="fw-600 text-indigo" style={{ fontSize: "0.875rem" }}>
+                        {formatDate(currentMahaDasha.start_date, locale)} -{" "}
+                        {formatDate(currentMahaDasha.end_date, locale)}
+                      </div>
+                    </div>
+                    {currentSubPeriod && (
+                      <div>
+                        <div className="field-label">{t("dhasa.currentBhukti")}</div>
+                        <div
+                          style={{
+                            fontSize: "1.125rem",
+                            fontWeight: 600,
+                            color: "var(--vermillion)",
+                          }}
+                        >
+                          {currentSubPeriod.lord}
+                        </div>
+                        <div
+                          className="text-secondary"
+                          style={{ fontSize: "0.75rem", marginTop: "var(--space-xs)" }}
+                        >
+                          {formatDate(currentSubPeriod.start_date, locale)} -{" "}
+                          {formatDate(currentSubPeriod.end_date, locale)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <p
+                    className="text-secondary"
+                    style={{ margin: "var(--space-lg) 0 0", fontSize: "0.8125rem" }}
+                  >
+                    {t("dhasa.liveHint")}
+                  </p>
+                </div>
+              )}
+
+              {/* Full drill-down tree */}
+              <div className="ui-card ui-card--accent-indigo ui-card--flush">
+                <h3 className="ui-card-header">
+                  <Star size={24} />
+                  {t("dhasa.allMaha")}
+                </h3>
+
+                {result.dasha_sequence && result.dasha_sequence.length > 0 && (
+                  <div className="dasha-tree">
+                    {result.dasha_sequence.map((dasha, index) => (
+                      <DashaNode
+                        key={`${dasha.lord}-${index}`}
+                        node={dasha}
+                        level={1}
+                        path={[dasha.lord]}
+                        birthDetails={birthDetails}
+                        eagerChildren={dasha.sub_periods || null}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {/* Vimsottari above is what "my dasha" means to most people. The other
             17 systems and the three-wheel Sudarshana Chakra are a specialist's
             cross-check — collapsed in Essentials, plain in Everything. */}
-        {!loading && result && (
-          <AdvancedOnly
-            title={t("dhasa.otherSystems")}
-            defaultOpen={!!dhasaSearchParams.get("system")}
-          >
-            <OtherDashaSystems birthDetails={birthDetails} />
-            <SudarsanaChakra birthDetails={birthDetails} />
-          </AdvancedOnly>
-        )}
-      </div>
+          {!loading && result && (
+            <AdvancedOnly
+              title={t("dhasa.otherSystems")}
+              defaultOpen={!!dhasaSearchParams.get("system")}
+            >
+              <OtherDashaSystems birthDetails={birthDetails} />
+              <SudarsanaChakra birthDetails={birthDetails} />
+            </AdvancedOnly>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

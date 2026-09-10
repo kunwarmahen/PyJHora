@@ -129,156 +129,161 @@ export const JaiminiPage = () => {
         subtitle={t("jaimini.subtitle")}
         accent="terracotta"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="jaimini" profileId={selectedProfile?._id} />
+          <ProfileBanner profile={selectedProfile} />
 
-      <div className="dashboard-content">
-        <RecentReadings source="jaimini" profileId={selectedProfile?._id} />
-        <ProfileBanner profile={selectedProfile} />
+          <ErrorBanner message={error} />
 
-        <ErrorBanner message={error} />
-
-        {loading ? (
-          <Card>
-            <LoadingState message={t("jaimini.loading")} />
-          </Card>
-        ) : data ? (
-          <div className="fade-in">
-            {/* Chara Karakas */}
-            <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush">
-              <h3 className="ui-card-header ui-card-header--sm">
-                <Sun size={18} /> {t("jaimini.karakasHeader")}
-              </h3>
-              <p className="card-note">{t("jaimini.karakasNote")}</p>
-              <div className="table-scroll">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>{t("jaimini.karaka")}</th>
-                      <th>{t("jaimini.planet")}</th>
-                      <th>{t("jaimini.sign")}</th>
-                      <th>{t("jaimini.house")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ck.map((k) => (
-                      <tr
-                        key={k.karaka}
-                        className={k.karaka.startsWith("Atma") ? "rem-row--weak" : ""}
-                      >
-                        <td>
-                          <strong>{k.karaka}</strong>
-                        </td>
-                        <td>{k.planet}</td>
-                        <td>{ln(k.sign_name, "rasi")}</td>
-                        <td>{k.house || "—"}</td>
+          {loading ? (
+            <Card>
+              <LoadingState message={t("jaimini.loading")} />
+            </Card>
+          ) : data ? (
+            <div className="fade-in">
+              {/* Chara Karakas */}
+              <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <Sun size={18} /> {t("jaimini.karakasHeader")}
+                </h3>
+                <p className="card-note">{t("jaimini.karakasNote")}</p>
+                <div className="table-scroll">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>{t("jaimini.karaka")}</th>
+                        <th>{t("jaimini.planet")}</th>
+                        <th>{t("jaimini.sign")}</th>
+                        <th>{t("jaimini.house")}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {ck.map((k) => (
+                        <tr
+                          key={k.karaka}
+                          className={k.karaka.startsWith("Atma") ? "rem-row--weak" : ""}
+                        >
+                          <td>
+                            <strong>{k.karaka}</strong>
+                          </td>
+                          <td>{k.planet}</td>
+                          <td>{ln(k.sign_name, "rasi")}</td>
+                          <td>{k.house || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
 
-            {/* Karakamsa + Swamsa */}
-            <div className="card-grid mt-xl">
-              <div className="ui-card ui-card--accent-indigo ui-card--pad-lg">
-                <h3 className="ui-card-header ui-card-header--sm">{t("jaimini.karakamsa")}</h3>
-                <p className="card-intro">
-                  {t("jaimini.karakamsaDesc", {
-                    planet: ln(data.atmakaraka, "graha"),
-                    sign: ln(kk.sign_name, "rasi"),
-                  })}
-                </p>
-                <dl className="detail-list">
-                  <div>
-                    <strong>{t("jaimini.occupants")}:</strong>{" "}
-                    {(kk.occupants || []).join(", ") || t("jaimini.none")}
-                  </div>
-                  <div>
-                    <strong>{t("jaimini.aspects")}:</strong>{" "}
-                    {(kk.aspecting_planets || []).join(", ") || t("jaimini.none")}
-                  </div>
-                </dl>
+              {/* Karakamsa + Swamsa */}
+              <div className="card-grid mt-xl">
+                <div className="ui-card ui-card--accent-indigo ui-card--pad-lg">
+                  <h3 className="ui-card-header ui-card-header--sm">{t("jaimini.karakamsa")}</h3>
+                  <p className="card-intro">
+                    {t("jaimini.karakamsaDesc", {
+                      planet: ln(data.atmakaraka, "graha"),
+                      sign: ln(kk.sign_name, "rasi"),
+                    })}
+                  </p>
+                  <dl className="detail-list">
+                    <div>
+                      <strong>{t("jaimini.occupants")}:</strong>{" "}
+                      {(kk.occupants || []).join(", ") || t("jaimini.none")}
+                    </div>
+                    <div>
+                      <strong>{t("jaimini.aspects")}:</strong>{" "}
+                      {(kk.aspecting_planets || []).join(", ") || t("jaimini.none")}
+                    </div>
+                  </dl>
+                </div>
+                <div className="ui-card ui-card--accent ui-card--pad-lg">
+                  <h3 className="ui-card-header ui-card-header--sm">{t("jaimini.swamsa")}</h3>
+                  <p className="card-intro">
+                    {t("jaimini.swamsaDesc", { sign: ln(sw.sign_name, "rasi") })}
+                  </p>
+                  <dl className="detail-list">
+                    <div>
+                      <strong>{t("jaimini.occupants")}:</strong>{" "}
+                      {(sw.occupants || []).join(", ") || t("jaimini.none")}
+                    </div>
+                    <div>
+                      <strong>{t("jaimini.aspects")}:</strong>{" "}
+                      {(sw.aspecting_planets || []).join(", ") || t("jaimini.none")}
+                    </div>
+                  </dl>
+                </div>
               </div>
-              <div className="ui-card ui-card--accent ui-card--pad-lg">
-                <h3 className="ui-card-header ui-card-header--sm">{t("jaimini.swamsa")}</h3>
-                <p className="card-intro">
-                  {t("jaimini.swamsaDesc", { sign: ln(sw.sign_name, "rasi") })}
-                </p>
-                <dl className="detail-list">
-                  <div>
-                    <strong>{t("jaimini.occupants")}:</strong>{" "}
-                    {(sw.occupants || []).join(", ") || t("jaimini.none")}
-                  </div>
-                  <div>
-                    <strong>{t("jaimini.aspects")}:</strong>{" "}
-                    {(sw.aspecting_planets || []).join(", ") || t("jaimini.none")}
-                  </div>
-                </dl>
-              </div>
-            </div>
 
-            {/* Argala */}
-            <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
-              <h3 className="ui-card-header ui-card-header--sm">
-                <Anchor size={18} /> {t("jaimini.argalaHeader")}
-              </h3>
-              <p className="card-note">{t("jaimini.argalaNote")}</p>
-              <div className="table-scroll">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>{t("jaimini.house")}</th>
-                      <th>{t("jaimini.sign")}</th>
-                      <th>{t("jaimini.argala")}</th>
-                      <th>{t("jaimini.virodhargala")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {argala.map((a) => (
-                      <tr key={a.house}>
-                        <td>
-                          <strong>{a.house}</strong>
-                        </td>
-                        <td>{ln(a.sign_name, "rasi")}</td>
-                        <td>{(a.argala || []).join(", ") || "—"}</td>
-                        <td className="text-secondary">
-                          {(a.virodhargala || []).join(", ") || "—"}
-                        </td>
+              {/* Argala */}
+              <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <Anchor size={18} /> {t("jaimini.argalaHeader")}
+                </h3>
+                <p className="card-note">{t("jaimini.argalaNote")}</p>
+                <div className="table-scroll">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>{t("jaimini.house")}</th>
+                        <th>{t("jaimini.sign")}</th>
+                        <th>{t("jaimini.argala")}</th>
+                        <th>{t("jaimini.virodhargala")}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {argala.map((a) => (
+                        <tr key={a.house}>
+                          <td>
+                            <strong>{a.house}</strong>
+                          </td>
+                          <td>{ln(a.sign_name, "rasi")}</td>
+                          <td>{(a.argala || []).join(", ") || "—"}</td>
+                          <td className="text-secondary">
+                            {(a.virodhargala || []).join(", ") || "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* AI reading */}
+              <div className="mt-xl">
+                <Card
+                  title={t("jaimini.aiTitle")}
+                  icon={<Sparkles size={24} />}
+                  accent="terracotta"
+                >
+                  <ErrorBanner message={aiError} />
+                  {!aiAnalysis && !aiLoading && (
+                    <p className="ai-panel__hint">{t("jaimini.aiHint")}</p>
+                  )}
+                  {aiLoading && <LoadingState message={t("jaimini.aiLoading")} />}
+                  {aiAnalysis && !aiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <Markdown>{aiAnalysis}</Markdown>
+                      {aiModel && (
+                        <div className="ai-panel__meta">
+                          {t("jaimini.aiModel", { model: aiModel })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!aiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                      <Sparkles size={18} />
+                      {aiAnalysis ? t("jaimini.aiRegenerate") : t("jaimini.aiGenerate")}
+                    </button>
+                  )}
+                </Card>
               </div>
             </div>
-
-            {/* AI reading */}
-            <div className="mt-xl">
-              <Card title={t("jaimini.aiTitle")} icon={<Sparkles size={24} />} accent="terracotta">
-                <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && (
-                  <p className="ai-panel__hint">{t("jaimini.aiHint")}</p>
-                )}
-                {aiLoading && <LoadingState message={t("jaimini.aiLoading")} />}
-                {aiAnalysis && !aiLoading && (
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{aiAnalysis}</Markdown>
-                    {aiModel && (
-                      <div className="ai-panel__meta">
-                        {t("jaimini.aiModel", { model: aiModel })}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {!aiLoading && (
-                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                    <Sparkles size={18} />
-                    {aiAnalysis ? t("jaimini.aiRegenerate") : t("jaimini.aiGenerate")}
-                  </button>
-                )}
-              </Card>
-            </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

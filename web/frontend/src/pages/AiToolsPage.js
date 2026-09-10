@@ -113,40 +113,41 @@ export const AiToolsPage = () => {
         subtitle={t("aiTools.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <ErrorBanner message={error} />
 
-      <div className="dashboard-content">
-        <ErrorBanner message={error} />
-
-        {loading ? (
-          <Card>
-            <LoadingState message={t("common.loading")} />
-          </Card>
-        ) : (
-          <>
-            <p className="ai-tools-intro">{t("aiTools.intro")}</p>
-            {sources && (
-              <p className={`ai-tools-sources ${sources.available ? "is-on" : "is-off"}`}>
-                {sources.available
-                  ? t("aiTools.citationsOn", { count: sources.passages })
-                  : t("aiTools.citationsOff")}
-              </p>
-            )}
-            {groups.map((g) => (
-              <Card
-                key={g.category}
-                title={g.category}
-                count={g.items.length}
-                accent="indigo"
-                className="ai-tools-group"
-              >
-                {g.items.map((tool) => (
-                  <ToolCard key={tool.name} tool={tool} />
-                ))}
-              </Card>
-            ))}
-          </>
-        )}
-      </div>
+          {loading ? (
+            <Card>
+              <LoadingState message={t("common.loading")} />
+            </Card>
+          ) : (
+            <>
+              <p className="ai-tools-intro">{t("aiTools.intro")}</p>
+              {sources && (
+                <p className={`ai-tools-sources ${sources.available ? "is-on" : "is-off"}`}>
+                  {sources.available
+                    ? t("aiTools.citationsOn", { count: sources.passages })
+                    : t("aiTools.citationsOff")}
+                </p>
+              )}
+              {groups.map((g) => (
+                <Card
+                  key={g.category}
+                  title={g.category}
+                  count={g.items.length}
+                  accent="indigo"
+                  className="ai-tools-group"
+                >
+                  {g.items.map((tool) => (
+                    <ToolCard key={tool.name} tool={tool} />
+                  ))}
+                </Card>
+              ))}
+            </>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

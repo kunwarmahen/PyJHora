@@ -1,7 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CalendarCheck, Sparkles, MapPin, Clock, Star, Compass, Moon, AlertTriangle, User } from "lucide-react";
+import {
+  CalendarCheck,
+  Sparkles,
+  MapPin,
+  Clock,
+  Star,
+  Compass,
+  Moon,
+  AlertTriangle,
+  User,
+} from "lucide-react";
 import Markdown from "../components/Markdown";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -280,342 +290,344 @@ export const MuhurtaPage = () => {
         subtitle={t("muhurta.subtitle")}
         accent="gold"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <ProfileBanner profile={selectedProfile} />
+          <RecentReadings source="muhurta" />
 
-      <div className="dashboard-content">
-        <ProfileBanner profile={selectedProfile} />
-        <RecentReadings source="muhurta" />
-
-        <div className="page-controls">
-          <div className="controls-group">
-            <label className="control-label">{t("muhurta.activity")}</label>
-            <select
-              className="control-input"
-              value={activity}
-              onChange={(e) => setActivity(e.target.value)}
-            >
-              {ACTIVITIES.map((a) => (
-                <option key={a} value={a}>
-                  {t(`muhurta.activities.${a}`)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="controls-group">
-            <label className="control-label">{t("muhurta.from")}</label>
-            <input
-              type="date"
-              className="control-input"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-            <label className="control-label">{t("muhurta.to")}</label>
-            <input
-              type="date"
-              className="control-input"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-            <button className="control-btn" onClick={run}>
-              <Star size={14} /> {t("muhurta.find")}
-            </button>
-          </div>
-        </div>
-
-        <div className="page-controls">
-          <div className="controls-group">
-            <label className="learn-switch muh-personal-switch">
-              <input
-                type="checkbox"
-                checked={personalize}
-                onChange={(e) => setPersonalize(e.target.checked)}
-              />
-              <User size={14} /> {t("muhurta.personalize", { name: personName })}
-            </label>
-          </div>
-        </div>
-
-        <p className="card-note">
-          <MapPin size={13} /> {t("muhurta.locationNote", { place: loc.place || "—" })}{" "}
-          {personalize ? t("muhurta.personalizeOn") : t("muhurta.personalizeOff")}
-        </p>
-
-        {/* Day sub-tools: Choghadiya / Panchaka / Tarabala / Chandrabala */}
-        <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
-          <h3 className="ui-card-header ui-card-header--sm">
-            <Compass size={18} /> {t("muhurta.subtools.title")}
-          </h3>
-          <p className="card-note">{t("muhurta.subtools.intro")}</p>
           <div className="page-controls">
             <div className="controls-group">
-              <label className="control-label">{t("muhurta.subtools.date")}</label>
+              <label className="control-label">{t("muhurta.activity")}</label>
+              <select
+                className="control-input"
+                value={activity}
+                onChange={(e) => setActivity(e.target.value)}
+              >
+                {ACTIVITIES.map((a) => (
+                  <option key={a} value={a}>
+                    {t(`muhurta.activities.${a}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="controls-group">
+              <label className="control-label">{t("muhurta.from")}</label>
               <input
                 type="date"
                 className="control-input"
-                value={subDate}
-                onChange={(e) => setSubDate(e.target.value)}
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
               />
-              <button className="control-btn" onClick={runSubtools} disabled={subLoading}>
-                <Star size={14} /> {t("muhurta.subtools.check")}
+              <label className="control-label">{t("muhurta.to")}</label>
+              <input
+                type="date"
+                className="control-input"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+              <button className="control-btn" onClick={run}>
+                <Star size={14} /> {t("muhurta.find")}
               </button>
             </div>
           </div>
-          <ErrorBanner message={subError} />
-          {subLoading && <LoadingState message={t("muhurta.subtools.loading")} />}
-          {subData && !subLoading && (
-            <div className="fade-in">
-              {/* Personal status: Panchaka / Tarabala / Chandrabala */}
-              <div className="muh-status-grid">
-                <div className="muh-status">
-                  <div className="muh-status__label">{t("muhurta.subtools.panchaka")}</div>
-                  <div className="muh-status__value">
-                    {subData.panchaka?.active
-                      ? subData.panchaka?.type
-                      : t("muhurta.subtools.panchakaFree")}
-                    <span
-                      className={`muh-badge muh-badge--${subData.panchaka?.active ? "bad" : "good"}`}
-                    >
+
+          <div className="page-controls">
+            <div className="controls-group">
+              <label className="learn-switch muh-personal-switch">
+                <input
+                  type="checkbox"
+                  checked={personalize}
+                  onChange={(e) => setPersonalize(e.target.checked)}
+                />
+                <User size={14} /> {t("muhurta.personalize", { name: personName })}
+              </label>
+            </div>
+          </div>
+
+          <p className="card-note">
+            <MapPin size={13} /> {t("muhurta.locationNote", { place: loc.place || "—" })}{" "}
+            {personalize ? t("muhurta.personalizeOn") : t("muhurta.personalizeOff")}
+          </p>
+
+          {/* Day sub-tools: Choghadiya / Panchaka / Tarabala / Chandrabala */}
+          <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
+            <h3 className="ui-card-header ui-card-header--sm">
+              <Compass size={18} /> {t("muhurta.subtools.title")}
+            </h3>
+            <p className="card-note">{t("muhurta.subtools.intro")}</p>
+            <div className="page-controls">
+              <div className="controls-group">
+                <label className="control-label">{t("muhurta.subtools.date")}</label>
+                <input
+                  type="date"
+                  className="control-input"
+                  value={subDate}
+                  onChange={(e) => setSubDate(e.target.value)}
+                />
+                <button className="control-btn" onClick={runSubtools} disabled={subLoading}>
+                  <Star size={14} /> {t("muhurta.subtools.check")}
+                </button>
+              </div>
+            </div>
+            <ErrorBanner message={subError} />
+            {subLoading && <LoadingState message={t("muhurta.subtools.loading")} />}
+            {subData && !subLoading && (
+              <div className="fade-in">
+                {/* Personal status: Panchaka / Tarabala / Chandrabala */}
+                <div className="muh-status-grid">
+                  <div className="muh-status">
+                    <div className="muh-status__label">{t("muhurta.subtools.panchaka")}</div>
+                    <div className="muh-status__value">
                       {subData.panchaka?.active
-                        ? t("muhurta.subtools.avoid")
-                        : t("muhurta.subtools.clear")}
-                    </span>
+                        ? subData.panchaka?.type
+                        : t("muhurta.subtools.panchakaFree")}
+                      <span
+                        className={`muh-badge muh-badge--${subData.panchaka?.active ? "bad" : "good"}`}
+                      >
+                        {subData.panchaka?.active
+                          ? t("muhurta.subtools.avoid")
+                          : t("muhurta.subtools.clear")}
+                      </span>
+                    </div>
+                    <div className="muh-status__note">{subData.panchaka?.meaning}</div>
                   </div>
-                  <div className="muh-status__note">{subData.panchaka?.meaning}</div>
+
+                  {subData.tarabala && (
+                    <div className="muh-status">
+                      <div className="muh-status__label">{t("muhurta.subtools.tarabala")}</div>
+                      <div className="muh-status__value">
+                        {subData.tarabala.tara}
+                        <span className={`muh-badge muh-badge--${subData.tarabala.quality}`}>
+                          {t(`muhurta.subtools.quality.${subData.tarabala.quality}`)}
+                        </span>
+                      </div>
+                      <div className="muh-status__note">
+                        {t("muhurta.subtools.tarabalaNote", {
+                          birth: subData.tarabala.birth_star,
+                          today: subData.tarabala.today_star,
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {subData.chandrabala && (
+                    <div className="muh-status">
+                      <div className="muh-status__label">
+                        <Moon size={12} /> {t("muhurta.subtools.chandrabala")}
+                      </div>
+                      <div className="muh-status__value">
+                        {/* Ordinal plurals, not "{{n}}th" — that printed "1th position". */}
+                        {t("muhurta.subtools.house", {
+                          count: subData.chandrabala.position,
+                          ordinal: true,
+                        })}
+                        <span className={`muh-badge muh-badge--${subData.chandrabala.quality}`}>
+                          {t(`muhurta.subtools.quality.${subData.chandrabala.quality}`)}
+                        </span>
+                      </div>
+                      <div className="muh-status__note">
+                        {t("muhurta.subtools.chandrabalaNote", {
+                          birth: subData.chandrabala.birth_moon_sign,
+                          transit: subData.chandrabala.transit_moon_sign,
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {subData.tarabala && (
-                  <div className="muh-status">
-                    <div className="muh-status__label">{t("muhurta.subtools.tarabala")}</div>
-                    <div className="muh-status__value">
-                      {subData.tarabala.tara}
-                      <span className={`muh-badge muh-badge--${subData.tarabala.quality}`}>
-                        {t(`muhurta.subtools.quality.${subData.tarabala.quality}`)}
-                      </span>
+                {/* Choghadiya day + night */}
+                <div className="muh-sub-columns mt-xl">
+                  {["day", "night"].map((period) => (
+                    <div key={period} className="muh-chog-col">
+                      <h4>{t(`muhurta.subtools.${period}`)}</h4>
+                      <ul className="muh-chog-list">
+                        {(subData.choghadiya || [])
+                          .filter((c) => c.period === period)
+                          .map((c, i) => (
+                            <li
+                              key={i}
+                              className={`muh-chog muh-chog--${c.nature}${c.current ? " muh-chog--current" : ""}`}
+                            >
+                              <span className="muh-chog__name">
+                                {t(`muhurta.subtools.chog.${c.name}`, c.name)}
+                              </span>
+                              <span className="muh-chog__time">
+                                {c.start}–{c.end}
+                              </span>
+                              {c.current && (
+                                <span className="muh-chog__now">{t("muhurta.subtools.now")}</span>
+                              )}
+                            </li>
+                          ))}
+                      </ul>
                     </div>
-                    <div className="muh-status__note">
-                      {t("muhurta.subtools.tarabalaNote", {
-                        birth: subData.tarabala.birth_star,
-                        today: subData.tarabala.today_star,
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {subData.chandrabala && (
-                  <div className="muh-status">
-                    <div className="muh-status__label">
-                      <Moon size={12} /> {t("muhurta.subtools.chandrabala")}
-                    </div>
-                    <div className="muh-status__value">
-                      {/* Ordinal plurals, not "{{n}}th" — that printed "1th position". */}
-                      {t("muhurta.subtools.house", {
-                        count: subData.chandrabala.position,
-                        ordinal: true,
-                      })}
-                      <span className={`muh-badge muh-badge--${subData.chandrabala.quality}`}>
-                        {t(`muhurta.subtools.quality.${subData.chandrabala.quality}`)}
-                      </span>
-                    </div>
-                    <div className="muh-status__note">
-                      {t("muhurta.subtools.chandrabalaNote", {
-                        birth: subData.chandrabala.birth_moon_sign,
-                        transit: subData.chandrabala.transit_moon_sign,
-                      })}
-                    </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+                <p className="card-note">{t("muhurta.subtools.note")}</p>
               </div>
-
-              {/* Choghadiya day + night */}
-              <div className="muh-sub-columns mt-xl">
-                {["day", "night"].map((period) => (
-                  <div key={period} className="muh-chog-col">
-                    <h4>{t(`muhurta.subtools.${period}`)}</h4>
-                    <ul className="muh-chog-list">
-                      {(subData.choghadiya || [])
-                        .filter((c) => c.period === period)
-                        .map((c, i) => (
-                          <li
-                            key={i}
-                            className={`muh-chog muh-chog--${c.nature}${c.current ? " muh-chog--current" : ""}`}
-                          >
-                            <span className="muh-chog__name">
-                              {t(`muhurta.subtools.chog.${c.name}`, c.name)}
-                            </span>
-                            <span className="muh-chog__time">
-                              {c.start}–{c.end}
-                            </span>
-                            {c.current && (
-                              <span className="muh-chog__now">{t("muhurta.subtools.now")}</span>
-                            )}
-                          </li>
-                        ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-              <p className="card-note">{t("muhurta.subtools.note")}</p>
-            </div>
-          )}
-        </div>
-
-        <ErrorBanner message={error} />
-
-        {loading ? (
-          <Card>
-            <LoadingState message={t("muhurta.loading")} />
-          </Card>
-        ) : result ? (
-          <div className="fade-in">
-            {/* What the days were scored against — the four personal checks, named,
-                so the reader can see this is their chart and not a public panchang. */}
-            {result.personalized && basis && (
-              <p className="card-note muh-basis">
-                <User size={13} />{" "}
-                {t("muhurta.basis", {
-                  name: personName,
-                  star: ln(basis.birth_star, "nakshatra"),
-                  moon: ln(basis.birth_moon_sign, "rasi"),
-                  lagna: ln(basis.birth_lagna_sign, "rasi"),
-                })}
-              </p>
             )}
+          </div>
 
-            {/* Best windows */}
-            <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush">
-              <h3 className="ui-card-header ui-card-header--sm">
-                <Clock size={18} /> {t("muhurta.bestWindows", { activity: result.activity_label })}
-              </h3>
-              {windows.length === 0 ? (
-                <p className="card-note">{t("muhurta.noWindows")}</p>
-              ) : (
-                <ul className="muh-window-list">
-                  {windows.map((w, i) => (
-                    <li key={i} className="muh-window">
-                      <span className="muh-window__date">{formatDate(w.date, locale)}</span>
-                      <span className="muh-window__time">
-                        {w.start}–{w.end}
-                      </span>
-                      <span className={`muh-q ${QUALITY_CLASS[w.quality] || ""}`}>{w.label}</span>
-                      <span className="muh-window__reason text-secondary">{w.reason}</span>
-                      {/* Kaala-vela overlap is a CAUTION, not a bar — these are
+          <ErrorBanner message={error} />
+
+          {loading ? (
+            <Card>
+              <LoadingState message={t("muhurta.loading")} />
+            </Card>
+          ) : result ? (
+            <div className="fade-in">
+              {/* What the days were scored against — the four personal checks, named,
+                so the reader can see this is their chart and not a public panchang. */}
+              {result.personalized && basis && (
+                <p className="card-note muh-basis">
+                  <User size={13} />{" "}
+                  {t("muhurta.basis", {
+                    name: personName,
+                    star: ln(basis.birth_star, "nakshatra"),
+                    moon: ln(basis.birth_moon_sign, "rasi"),
+                    lagna: ln(basis.birth_lagna_sign, "rasi"),
+                  })}
+                </p>
+              )}
+
+              {/* Best windows */}
+              <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <Clock size={18} />{" "}
+                  {t("muhurta.bestWindows", { activity: result.activity_label })}
+                </h3>
+                {windows.length === 0 ? (
+                  <p className="card-note">{t("muhurta.noWindows")}</p>
+                ) : (
+                  <ul className="muh-window-list">
+                    {windows.map((w, i) => (
+                      <li key={i} className="muh-window">
+                        <span className="muh-window__date">{formatDate(w.date, locale)}</span>
+                        <span className="muh-window__time">
+                          {w.start}–{w.end}
+                        </span>
+                        <span className={`muh-q ${QUALITY_CLASS[w.quality] || ""}`}>{w.label}</span>
+                        <span className="muh-window__reason text-secondary">{w.reason}</span>
+                        {/* Kaala-vela overlap is a CAUTION, not a bar — these are
                           eighth-parts of the same day as Rahu Kalam/Yamaganda/
                           Gulika and often coincide with them, so the window is
                           still offered, just flagged and ranked lower. */}
-                      {w.kaala_vela && (
-                        <span className="muh-window__kv" title={t("muhurta.kaalaVelaHint")}>
-                          <AlertTriangle size={13} /> {w.kaala_vela}
-                        </span>
-                      )}
-                      {/* Lagna shuddhi — the sign rising during THIS window read
+                        {w.kaala_vela && (
+                          <span className="muh-window__kv" title={t("muhurta.kaalaVelaHint")}>
+                            <AlertTriangle size={13} /> {w.kaala_vela}
+                          </span>
+                        )}
+                        {/* Lagna shuddhi — the sign rising during THIS window read
                           from the native's janma rasi and lagna. It is what makes
                           a muhurta a clock time rather than a date, so it belongs
                           on the window and not on the day. */}
-                      {w.lagna_shuddhi && (
-                        <span
-                          className={`muh-badge ${SHUDDHI_CLASS[w.lagna_shuddhi.verdict] || ""}`}
-                          title={t("muhurta.shuddhiHint", {
-                            sign: ln(w.lagna_shuddhi.rising_sign, "rasi"),
-                            fromMoon: w.lagna_shuddhi.from_moon,
-                            fromLagna: w.lagna_shuddhi.from_lagna,
-                          })}
-                        >
-                          {t(`muhurta.shuddhi.${w.lagna_shuddhi.verdict}`)}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+                        {w.lagna_shuddhi && (
+                          <span
+                            className={`muh-badge ${SHUDDHI_CLASS[w.lagna_shuddhi.verdict] || ""}`}
+                            title={t("muhurta.shuddhiHint", {
+                              sign: ln(w.lagna_shuddhi.rising_sign, "rasi"),
+                              fromMoon: w.lagna_shuddhi.from_moon,
+                              fromLagna: w.lagna_shuddhi.from_lagna,
+                            })}
+                          >
+                            {t(`muhurta.shuddhi.${w.lagna_shuddhi.verdict}`)}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
-            {/* Day-by-day ratings */}
-            <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
-              <h3 className="ui-card-header ui-card-header--sm">
-                <CalendarCheck size={18} /> {t("muhurta.dayRatings")}
-              </h3>
-              <div className="muh-day-grid">
-                {days.map((d) => (
-                  <div key={d.date} className={`muh-day ${QUALITY_CLASS[d.rating] || ""}`}>
-                    <div className="muh-day__date">{formatDate(d.date, locale)}</div>
-                    <div className={`muh-day__rating`}>{t(`muhurta.ratings.${d.rating}`)}</div>
-                    <div className="muh-day__limbs text-secondary">
-                      {ln(d.nakshatra?.name, "nakshatra")} · {d.tithi?.name}
-                    </div>
-                    {/* The personal half of the day's rating, named. Without these
+              {/* Day-by-day ratings */}
+              <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <CalendarCheck size={18} /> {t("muhurta.dayRatings")}
+                </h3>
+                <div className="muh-day-grid">
+                  {days.map((d) => (
+                    <div key={d.date} className={`muh-day ${QUALITY_CLASS[d.rating] || ""}`}>
+                      <div className="muh-day__date">{formatDate(d.date, locale)}</div>
+                      <div className={`muh-day__rating`}>{t(`muhurta.ratings.${d.rating}`)}</div>
+                      <div className="muh-day__limbs text-secondary">
+                        {ln(d.nakshatra?.name, "nakshatra")} · {d.tithi?.name}
+                      </div>
+                      {/* The personal half of the day's rating, named. Without these
                         two chips the rating silently disagrees with the almanac
                         limbs printed right above them and looks like a bug. */}
-                    {d.personal && (
-                      <div className="muh-day__personal">
-                        <span
-                          className={`muh-badge ${TONE_CLASS[d.personal.tarabala?.tone] || ""}`}
-                          title={d.personal.tarabala?.meaning}
-                        >
-                          {d.personal.tarabala?.tara}
-                        </span>
-                        <span
-                          className={`muh-badge ${TONE_CLASS[d.personal.chandrabala?.tone] || ""}`}
-                          title={t("muhurta.chandraHint", {
-                            n: d.personal.chandrabala?.position,
-                            sign: ln(d.personal.chandrabala?.transit_moon_sign, "rasi"),
-                          })}
-                        >
-                          {/* The count alone ("12") is cryptic on a chip; the tone
+                      {d.personal && (
+                        <div className="muh-day__personal">
+                          <span
+                            className={`muh-badge ${TONE_CLASS[d.personal.tarabala?.tone] || ""}`}
+                            title={d.personal.tarabala?.meaning}
+                          >
+                            {d.personal.tarabala?.tara}
+                          </span>
+                          <span
+                            className={`muh-badge ${TONE_CLASS[d.personal.chandrabala?.tone] || ""}`}
+                            title={t("muhurta.chandraHint", {
+                              n: d.personal.chandrabala?.position,
+                              sign: ln(d.personal.chandrabala?.transit_moon_sign, "rasi"),
+                            })}
+                          >
+                            {/* The count alone ("12") is cryptic on a chip; the tone
                               is the thing a reader can act on, and the count is
                               one hover away in the title above. */}
-                          <Moon size={11} />{" "}
-                          {t(`muhurta.chandraChip.${d.personal.chandrabala?.tone}`, "")}
-                        </span>
-                      </div>
-                    )}
-                    {(d.kaala_velas || []).length > 0 && (
-                      <div className="muh-day__kv">
-                        <span className="muh-day__kv-label">{t("muhurta.kaalaVelas")}</span>
-                        {d.kaala_velas.map((kv) => (
-                          <span key={kv.name} className="muh-day__kv-item">
-                            {kv.name} {kv.start}–{kv.end}
+                            <Moon size={11} />{" "}
+                            {t(`muhurta.chandraChip.${d.personal.chandrabala?.tone}`, "")}
                           </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                        </div>
+                      )}
+                      {(d.kaala_velas || []).length > 0 && (
+                        <div className="muh-day__kv">
+                          <span className="muh-day__kv-label">{t("muhurta.kaalaVelas")}</span>
+                          {d.kaala_velas.map((kv) => (
+                            <span key={kv.name} className="muh-day__kv-item">
+                              {kv.name} {kv.start}–{kv.end}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* AI rationale */}
+              <div className="mt-xl">
+                <Card title={t("muhurta.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
+                  <ErrorBanner message={aiError} />
+                  {!aiAnalysis && !aiLoading && (
+                    <p className="ai-panel__hint">{t("muhurta.aiHint")}</p>
+                  )}
+                  {aiLoading && <LoadingState message={t("muhurta.aiLoading")} />}
+                  {aiAnalysis && !aiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <Markdown>{aiAnalysis}</Markdown>
+                      {aiModel && (
+                        <div className="ai-panel__meta">
+                          {t("muhurta.aiModel", { model: aiModel })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!aiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                      <Sparkles size={18} />
+                      {aiAnalysis ? t("muhurta.aiRegenerate") : t("muhurta.aiGenerate")}
+                    </button>
+                  )}
+                  <p className="card-note">{t("muhurta.disclaimer")}</p>
+                </Card>
               </div>
             </div>
-
-            {/* AI rationale */}
-            <div className="mt-xl">
-              <Card title={t("muhurta.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
-                <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && (
-                  <p className="ai-panel__hint">{t("muhurta.aiHint")}</p>
-                )}
-                {aiLoading && <LoadingState message={t("muhurta.aiLoading")} />}
-                {aiAnalysis && !aiLoading && (
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{aiAnalysis}</Markdown>
-                    {aiModel && (
-                      <div className="ai-panel__meta">
-                        {t("muhurta.aiModel", { model: aiModel })}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {!aiLoading && (
-                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                    <Sparkles size={18} />
-                    {aiAnalysis ? t("muhurta.aiRegenerate") : t("muhurta.aiGenerate")}
-                  </button>
-                )}
-                <p className="card-note">{t("muhurta.disclaimer")}</p>
-              </Card>
-            </div>
-          </div>
-        ) : (
-          <Card>
-            <p className="card-intro">{t("muhurta.intro")}</p>
-          </Card>
-        )}
-      </div>
+          ) : (
+            <Card>
+              <p className="card-intro">{t("muhurta.intro")}</p>
+            </Card>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

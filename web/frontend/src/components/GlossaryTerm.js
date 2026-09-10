@@ -24,6 +24,12 @@ export const GlossaryTerm = ({ term, children }) => {
       role="button"
       aria-label={`${typeof label === "string" ? label : term}: ${def}`}
       onClick={() => setOpen((o) => !o)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setOpen((o) => !o);
+        }
+      }}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
       onFocus={() => setOpen(true)}

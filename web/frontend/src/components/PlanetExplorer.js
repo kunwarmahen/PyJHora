@@ -92,6 +92,7 @@ export const PlanetExplorer = ({
           <button
             key={g}
             className={`pex-chip${selected === g ? " pex-chip--active" : ""}`}
+            aria-pressed={selected === g}
             onClick={() => setSelected(selected === g ? null : g)}
           >
             {g}
@@ -101,7 +102,9 @@ export const PlanetExplorer = ({
 
       {info && (
         <>
-          <div className="pex-overlay" onClick={() => setSelected(null)} />
+          {/* Mouse convenience that duplicates the panel's close button. */}
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
+          <div className="pex-overlay" onClick={() => setSelected(null)} aria-hidden="true" />
           <aside className="pex-panel" role="dialog" aria-label={info.name}>
             <div className="pex-panel__head">
               <h3>{info.name}</h3>

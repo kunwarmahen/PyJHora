@@ -225,325 +225,326 @@ export const TransitPage = () => {
         subtitle={t("transit.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <ProfileBanner profile={selectedProfile} />
+          <RecentReadings source="transit" profileId={selectedProfile?._id} />
 
-      <div className="dashboard-content">
-        <ProfileBanner profile={selectedProfile} />
-        <RecentReadings source="transit" profileId={selectedProfile?._id} />
-
-        {/* Controls */}
-        <div className="page-controls">
-          <div className="controls-group">
-            <label className="control-label">
-              <Calendar size={18} style={{ color: "var(--saffron)" }} />
-              {t("transit.transitDate")}
-            </label>
-            <input
-              type="date"
-              className="control-input"
-              value={transitDate}
-              onChange={(e) => setDatePart(e.target.value)}
-            />
-            <input
-              type="time"
-              className="control-input"
-              value={transitTime}
-              onChange={(e) => setTimePart(e.target.value)}
-            />
-            <button
-              className="control-btn"
-              onClick={() => setMomentMs(Date.now())}
-              title={t("transit.nowHint")}
-            >
-              <RotateCcw size={14} /> {t("transit.now")}
-            </button>
-          </div>
-
-          {/* ± steppers: nudge the moment by a minute / hour / day / year */}
-          <div className="controls-group">
-            {stepUnits.map(({ field, label }) => (
-              <div key={field} className="stepper">
-                <button
-                  type="button"
-                  className="stepper__btn"
-                  onClick={() => shift(field, -1)}
-                  aria-label={`-1 ${label}`}
-                >
-                  −
-                </button>
-                <span className="stepper__label">{label}</span>
-                <button
-                  type="button"
-                  className="stepper__btn"
-                  onClick={() => shift(field, 1)}
-                  aria-label={`+1 ${label}`}
-                >
-                  +
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <ErrorBanner message={error} />
-
-        {loading ? (
-          <Card>
-            <LoadingState message={t("transit.loading")} />
-          </Card>
-        ) : result ? (
-          <div className="fade-in">
-            {/* Natal reference */}
-            <div className="info-pills">
-              <span className="info-pill">{t("transit.asOf", { moment: transitMoment })}</span>
-              <span className="info-pill">
-                {t("transit.natalLagna")}:{" "}
-                <strong className="text-saffron">
-                  {ln(result.natal?.lagna?.sign_name, "rasi")}
-                </strong>
-              </span>
-              <span className="info-pill">
-                {t("transit.natalMoon")}:{" "}
-                <strong className="text-indigo">{ln(result.natal?.moon?.sign_name, "rasi")}</strong>
-              </span>
-              <span className="info-pill">
-                {t("transit.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
-              </span>
+          {/* Controls */}
+          <div className="page-controls">
+            <div className="controls-group">
+              <label className="control-label">
+                <Calendar size={18} style={{ color: "var(--saffron)" }} />
+                {t("transit.transitDate")}
+              </label>
+              <input
+                type="date"
+                className="control-input"
+                value={transitDate}
+                onChange={(e) => setDatePart(e.target.value)}
+              />
+              <input
+                type="time"
+                className="control-input"
+                value={transitTime}
+                onChange={(e) => setTimePart(e.target.value)}
+              />
+              <button
+                className="control-btn"
+                onClick={() => setMomentMs(Date.now())}
+                title={t("transit.nowHint")}
+              >
+                <RotateCcw size={14} /> {t("transit.now")}
+              </button>
             </div>
 
-            <div className="chart-grid">
-              {/* Transit chart over natal lagna */}
-              <div>
-                <Kundali
-                  planets={planets}
-                  lagna={result.lagna}
-                  title={t("transit.gochara")}
-                  subtitle={t("transit.transitsOn", {
-                    date: formatDate(result.transit_date, locale),
-                  })}
-                  arudhas={chartPadas}
-                  showArudhas={showArudhas && chartPadas.length > 0}
-                  exportable
-                />
-                {chartPadas.length > 0 && (
+            {/* ± steppers: nudge the moment by a minute / hour / day / year */}
+            <div className="controls-group">
+              {stepUnits.map(({ field, label }) => (
+                <div key={field} className="stepper">
                   <button
                     type="button"
-                    className={`aspect-toggle${showArudhas ? " is-active" : ""}`}
-                    onClick={() => {
-                      const next = !showArudhas;
-                      setShowArudhas(next);
-                      localStorage.setItem("showTransitArudhas", next ? "1" : "0");
-                    }}
+                    className="stepper__btn"
+                    onClick={() => shift(field, -1)}
+                    aria-label={`-1 ${label}`}
                   >
-                    <Landmark size={16} />
-                    {showArudhas ? t("arudhas.hideOnChart") : t("transit.showArudhasOnChart")}
+                    −
                   </button>
-                )}
+                  <span className="stepper__label">{label}</span>
+                  <button
+                    type="button"
+                    className="stepper__btn"
+                    onClick={() => shift(field, 1)}
+                    aria-label={`+1 ${label}`}
+                  >
+                    +
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <ErrorBanner message={error} />
+
+          {loading ? (
+            <Card>
+              <LoadingState message={t("transit.loading")} />
+            </Card>
+          ) : result ? (
+            <div className="fade-in">
+              {/* Natal reference */}
+              <div className="info-pills">
+                <span className="info-pill">{t("transit.asOf", { moment: transitMoment })}</span>
+                <span className="info-pill">
+                  {t("transit.natalLagna")}:{" "}
+                  <strong className="text-saffron">
+                    {ln(result.natal?.lagna?.sign_name, "rasi")}
+                  </strong>
+                </span>
+                <span className="info-pill">
+                  {t("transit.natalMoon")}:{" "}
+                  <strong className="text-indigo">
+                    {ln(result.natal?.moon?.sign_name, "rasi")}
+                  </strong>
+                </span>
+                <span className="info-pill">
+                  {t("transit.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
+                </span>
               </div>
 
-              {/* Transit table */}
-              <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush">
-                <h3 className="ui-card-header ui-card-header--sm">
-                  <Orbit size={18} />
-                  {t("transit.transitingGrahas")}
-                </h3>
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>{t("common.planet")}</th>
-                        <th>{t("common.sign")}</th>
-                        <th>{t("common.nakshatra")}</th>
-                        <th className="text-center">{t("transit.fromLagna")}</th>
-                        <th className="text-center">{t("transit.fromMoon")}</th>
-                        {padas.length > 0 && (
-                          <>
-                            <th className="text-center" title={t("transit.fromAlTitle")}>
-                              {t("transit.fromAl")}
-                            </th>
-                            <th className="text-center" title={t("transit.fromUlTitle")}>
-                              {t("transit.fromUl")}
-                            </th>
-                          </>
-                        )}
-                        {showBindus && <th className="text-center">{t("transit.support")}</th>}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orderedPlanets.map(([name, p]) => (
-                        <tr key={name}>
-                          <td className="fw-700 text-indigo">
-                            {ln(name, "graha", { abbr: true })}{" "}
-                            <span style={{ fontWeight: 400 }} className="text-secondary">
-                              {name}
-                            </span>
-                            {p.retrograde && (
-                              <span className="retro-badge" title={t("transit.retrograde")}>
-                                ℞
-                              </span>
-                            )}
-                          </td>
-                          <td>
-                            {ln(p.sign_name, "rasi")}{" "}
-                            <span className="text-muted">
-                              {p.degrees != null ? `${p.degrees.toFixed(1)}°` : ""}
-                            </span>
-                          </td>
-                          <td className="text-secondary">
-                            {ln(p.nakshatra, "nakshatra")}
-                            {p.nakshatra_pada ? ` (${p.nakshatra_pada})` : ""}
-                          </td>
-                          <td className="text-center fw-600 text-saffron">
-                            {ordinal(p.house_from_lagna)}
-                          </td>
-                          <td className="text-center fw-600 text-vermillion">
-                            {ordinal(p.house_from_moon)}
-                          </td>
+              <div className="chart-grid">
+                {/* Transit chart over natal lagna */}
+                <div>
+                  <Kundali
+                    planets={planets}
+                    lagna={result.lagna}
+                    title={t("transit.gochara")}
+                    subtitle={t("transit.transitsOn", {
+                      date: formatDate(result.transit_date, locale),
+                    })}
+                    arudhas={chartPadas}
+                    showArudhas={showArudhas && chartPadas.length > 0}
+                    exportable
+                  />
+                  {chartPadas.length > 0 && (
+                    <button
+                      type="button"
+                      className={`aspect-toggle${showArudhas ? " is-active" : ""}`}
+                      onClick={() => {
+                        const next = !showArudhas;
+                        setShowArudhas(next);
+                        localStorage.setItem("showTransitArudhas", next ? "1" : "0");
+                      }}
+                    >
+                      <Landmark size={16} />
+                      {showArudhas ? t("arudhas.hideOnChart") : t("transit.showArudhasOnChart")}
+                    </button>
+                  )}
+                </div>
+
+                {/* Transit table */}
+                <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush">
+                  <h3 className="ui-card-header ui-card-header--sm">
+                    <Orbit size={18} />
+                    {t("transit.transitingGrahas")}
+                  </h3>
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>{t("common.planet")}</th>
+                          <th>{t("common.sign")}</th>
+                          <th>{t("common.nakshatra")}</th>
+                          <th className="text-center">{t("transit.fromLagna")}</th>
+                          <th className="text-center">{t("transit.fromMoon")}</th>
                           {padas.length > 0 && (
                             <>
-                              {/* House 1 = the graha is ON the arudha, the one
-                                  position worth spotting at a glance. */}
-                              <td
-                                className={`text-center${
-                                  p.house_from_al === 1 ? " fw-700 text-saffron" : ""
-                                }`}
-                              >
-                                {ordinal(p.house_from_al)}
-                              </td>
-                              <td
-                                className={`text-center${
-                                  p.house_from_ul === 1 ? " fw-700 text-saffron" : ""
-                                }`}
-                              >
-                                {ordinal(p.house_from_ul)}
-                              </td>
+                              <th className="text-center" title={t("transit.fromAlTitle")}>
+                                {t("transit.fromAl")}
+                              </th>
+                              <th className="text-center" title={t("transit.fromUlTitle")}>
+                                {t("transit.fromUl")}
+                              </th>
                             </>
                           )}
-                          {showBindus && (
-                            <td className="text-center">
-                              {p.bindu_strength ? (
-                                <span
-                                  className={`bindu-chip bindu-chip--${p.bindu_strength}`}
-                                  title={
-                                    p.bav_bindus != null
-                                      ? t("transit.binduTitle", {
-                                          bav: p.bav_bindus,
-                                          sav: p.sav_bindus,
-                                        })
-                                      : t("transit.binduTitleSav", { sav: p.sav_bindus })
-                                  }
-                                >
-                                  {p.bav_bindus != null ? p.bav_bindus : p.sav_bindus}
-                                  <span className="bindu-chip__label">
-                                    {t(STRENGTH_LABEL_KEY[p.bindu_strength])}
-                                  </span>
+                          {showBindus && <th className="text-center">{t("transit.support")}</th>}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orderedPlanets.map(([name, p]) => (
+                          <tr key={name}>
+                            <td className="fw-700 text-indigo">
+                              {ln(name, "graha", { abbr: true })}{" "}
+                              <span style={{ fontWeight: 400 }} className="text-secondary">
+                                {name}
+                              </span>
+                              {p.retrograde && (
+                                <span className="retro-badge" title={t("transit.retrograde")}>
+                                  ℞
                                 </span>
-                              ) : (
-                                <span className="text-muted">—</span>
                               )}
                             </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            <td>
+                              {ln(p.sign_name, "rasi")}{" "}
+                              <span className="text-muted">
+                                {p.degrees != null ? `${p.degrees.toFixed(1)}°` : ""}
+                              </span>
+                            </td>
+                            <td className="text-secondary">
+                              {ln(p.nakshatra, "nakshatra")}
+                              {p.nakshatra_pada ? ` (${p.nakshatra_pada})` : ""}
+                            </td>
+                            <td className="text-center fw-600 text-saffron">
+                              {ordinal(p.house_from_lagna)}
+                            </td>
+                            <td className="text-center fw-600 text-vermillion">
+                              {ordinal(p.house_from_moon)}
+                            </td>
+                            {padas.length > 0 && (
+                              <>
+                                {/* House 1 = the graha is ON the arudha, the one
+                                  position worth spotting at a glance. */}
+                                <td
+                                  className={`text-center${
+                                    p.house_from_al === 1 ? " fw-700 text-saffron" : ""
+                                  }`}
+                                >
+                                  {ordinal(p.house_from_al)}
+                                </td>
+                                <td
+                                  className={`text-center${
+                                    p.house_from_ul === 1 ? " fw-700 text-saffron" : ""
+                                  }`}
+                                >
+                                  {ordinal(p.house_from_ul)}
+                                </td>
+                              </>
+                            )}
+                            {showBindus && (
+                              <td className="text-center">
+                                {p.bindu_strength ? (
+                                  <span
+                                    className={`bindu-chip bindu-chip--${p.bindu_strength}`}
+                                    title={
+                                      p.bav_bindus != null
+                                        ? t("transit.binduTitle", {
+                                            bav: p.bav_bindus,
+                                            sav: p.sav_bindus,
+                                          })
+                                        : t("transit.binduTitleSav", { sav: p.sav_bindus })
+                                    }
+                                  >
+                                    {p.bav_bindus != null ? p.bav_bindus : p.sav_bindus}
+                                    <span className="bindu-chip__label">
+                                      {t(STRENGTH_LABEL_KEY[p.bindu_strength])}
+                                    </span>
+                                  </span>
+                                ) : (
+                                  <span className="text-muted">—</span>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="card-note">{t("transit.houseNote")}</p>
+                  {padas.length > 0 && (
+                    <p className="card-note">
+                      {t("transit.arudhaNote", { al: ln(alSign, "rasi"), ul: ln(ulSign, "rasi") })}
+                    </p>
+                  )}
+                  {showBindus && <p className="card-note">{t("transit.supportNote")}</p>}
                 </div>
-                <p className="card-note">{t("transit.houseNote")}</p>
-                {padas.length > 0 && (
-                  <p className="card-note">
-                    {t("transit.arudhaNote", { al: ln(alSign, "rasi"), ul: ln(ulSign, "rasi") })}
-                  </p>
-                )}
-                {showBindus && <p className="card-note">{t("transit.supportNote")}</p>}
               </div>
-            </div>
 
-            {/* Every bhava arudha as a reference frame. The two named ones are
+              {/* Every bhava arudha as a reference frame. The two named ones are
                 columns above; the rest only make sense as a grid, so they get
                 their own card rather than ten more columns. */}
-            {padas.length > 0 && (
-              <div className="ui-card ui-card--accent-indigo ui-card--flush mt-xl">
-                <h3 className="ui-card-header ui-card-header--sm">
-                  <Landmark size={18} />
-                  {t("transit.padaMatrix")}
-                </h3>
-                <div className="table-scroll">
-                  <table className="data-table data-table--compact">
-                    <thead>
-                      <tr>
-                        <th>{t("transit.pada")}</th>
-                        <th>{t("common.sign")}</th>
-                        {orderedPlanets.map(([name]) => (
-                          <th key={name} className="text-center" title={name}>
-                            {ln(name, "graha", { abbr: true })}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {padas.map((pada) => (
-                        <tr key={pada.short}>
-                          <td className="fw-700 text-indigo" title={pada.label}>
-                            {pada.short}
-                          </td>
-                          <td className="text-secondary">{ln(pada.sign_name, "rasi")}</td>
-                          {orderedPlanets.map(([name, p]) => {
-                            const h = p.house_from_padas?.[pada.short];
-                            return (
-                              <td
-                                key={name}
-                                className={`text-center${h === 1 ? " fw-700 text-saffron" : ""}`}
-                              >
-                                {h == null ? "—" : h}
-                              </td>
-                            );
-                          })}
+              {padas.length > 0 && (
+                <div className="ui-card ui-card--accent-indigo ui-card--flush mt-xl">
+                  <h3 className="ui-card-header ui-card-header--sm">
+                    <Landmark size={18} />
+                    {t("transit.padaMatrix")}
+                  </h3>
+                  <div className="table-scroll">
+                    <table className="data-table data-table--compact">
+                      <thead>
+                        <tr>
+                          <th>{t("transit.pada")}</th>
+                          <th>{t("common.sign")}</th>
+                          {orderedPlanets.map(([name]) => (
+                            <th key={name} className="text-center" title={name}>
+                              {ln(name, "graha", { abbr: true })}
+                            </th>
+                          ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {padas.map((pada) => (
+                          <tr key={pada.short}>
+                            <td className="fw-700 text-indigo" title={pada.label}>
+                              {pada.short}
+                            </td>
+                            <td className="text-secondary">{ln(pada.sign_name, "rasi")}</td>
+                            {orderedPlanets.map(([name, p]) => {
+                              const h = p.house_from_padas?.[pada.short];
+                              return (
+                                <td
+                                  key={name}
+                                  className={`text-center${h === 1 ? " fw-700 text-saffron" : ""}`}
+                                >
+                                  {h == null ? "—" : h}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="card-note">{t("transit.padaMatrixNote")}</p>
                 </div>
-                <p className="card-note">{t("transit.padaMatrixNote")}</p>
-              </div>
-            )}
+              )}
 
-            {/* Upcoming ingresses */}
-            {result.upcoming && result.upcoming.length > 0 && (
-              <div className="ui-card ui-card--accent ui-card--flush mt-xl">
-                <h3 className="ui-card-header ui-card-header--sm" style={{ fontSize: "1.25rem" }}>
-                  <TrendingUp size={20} />
-                  {t("transit.upcoming")}
-                </h3>
-                <div className="card-grid">
-                  {result.upcoming.map((u, i) => (
-                    <div key={i} className="ingress-card">
-                      <div className="ingress-card__planet">{ln(u.planet, "graha")}</div>
-                      <div className="ingress-card__signs">
-                        {ln(u.from_sign, "rasi")} → <strong>{ln(u.to_sign, "rasi")}</strong>
-                      </div>
-                      <div className="ingress-card__date">{formatDate(u.date, locale)}</div>
-                      {/* A backward step is the graha turning back into the sign it
-                          just left — say so, rather than let it read as progress. */}
-                      {u.retrograde_reentry && (
-                        <div className="ingress-card__note">
-                          ℞ {t("transit.retroReentry")}
+              {/* Upcoming ingresses */}
+              {result.upcoming && result.upcoming.length > 0 && (
+                <div className="ui-card ui-card--accent ui-card--flush mt-xl">
+                  <h3 className="ui-card-header ui-card-header--sm" style={{ fontSize: "1.25rem" }}>
+                    <TrendingUp size={20} />
+                    {t("transit.upcoming")}
+                  </h3>
+                  <div className="card-grid">
+                    {result.upcoming.map((u, i) => (
+                      <div key={i} className="ingress-card">
+                        <div className="ingress-card__planet">{ln(u.planet, "graha")}</div>
+                        <div className="ingress-card__signs">
+                          {ln(u.from_sign, "rasi")} → <strong>{ln(u.to_sign, "rasi")}</strong>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        <div className="ingress-card__date">{formatDate(u.date, locale)}</div>
+                        {/* A backward step is the graha turning back into the sign it
+                          just left — say so, rather than let it read as progress. */}
+                        {u.retrograde_reentry && (
+                          <div className="ingress-card__note">℞ {t("transit.retroReentry")}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Interpret these transits with the AI astrologer (transit-scoped) */}
-            <TransitChat
-              birthDetails={birthDetails}
-              profile={selectedProfile}
-              result={result}
-              ayanamsa={ayanamsa}
-            />
-          </div>
-        ) : null}
-      </div>
+              {/* Interpret these transits with the AI astrologer (transit-scoped) */}
+              <TransitChat
+                birthDetails={birthDetails}
+                profile={selectedProfile}
+                result={result}
+                ayanamsa={ayanamsa}
+              />
+            </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

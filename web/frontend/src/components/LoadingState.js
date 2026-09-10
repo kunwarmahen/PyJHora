@@ -8,8 +8,9 @@ export const LoadingState = ({ message }) => {
   const { t } = useTranslation();
   const text = message ?? t("common.loading");
   return (
-    <div className="loading-state">
-      <div className="loading-spinner" />
+    // A spinner that says nothing is a blank page to a screen reader (§68.8).
+    <div className="loading-state" role="status" aria-live="polite">
+      <div className="loading-spinner" aria-hidden="true" />
       {text && <p>{text}</p>}
     </div>
   );

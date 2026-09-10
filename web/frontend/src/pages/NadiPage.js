@@ -154,169 +154,177 @@ export const NadiPage = () => {
         subtitle={t("nadi.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="nadi" profileId={selectedProfile?._id} />
+          <ProfileBanner profile={selectedProfile} />
 
-      <div className="dashboard-content">
-        <RecentReadings source="nadi" profileId={selectedProfile?._id} />
-        <ProfileBanner profile={selectedProfile} />
+          <p className="card-note">{t("nadi.intro")}</p>
 
-        <p className="card-note">{t("nadi.intro")}</p>
-
-        <div className="page-controls">
-          <div className="controls-group">
-            <label className="control-label">{t("nadi.spouseKaraka")}</label>
-            <select
-              className="control-input"
-              value={gender}
-              onChange={(e) => setGender(e.target.value)}
-            >
-              <option value="">{t("nadi.genderUnset")}</option>
-              <option value="0">{t("nadi.genderMale")}</option>
-              <option value="1">{t("nadi.genderFemale")}</option>
-            </select>
+          <div className="page-controls">
+            <div className="controls-group">
+              <label className="control-label">{t("nadi.spouseKaraka")}</label>
+              <select
+                className="control-input"
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+              >
+                <option value="">{t("nadi.genderUnset")}</option>
+                <option value="0">{t("nadi.genderMale")}</option>
+                <option value="1">{t("nadi.genderFemale")}</option>
+              </select>
+            </div>
           </div>
-        </div>
 
-        <ErrorBanner message={error} />
+          <ErrorBanner message={error} />
 
-        {loading ? (
-          <Card>
-            <LoadingState message={t("nadi.loading")} />
-          </Card>
-        ) : data ? (
-          <div className="fade-in">
-            {/* Chart summary pills */}
-            <div className="info-pills">
-              <span className="info-pill">
-                <Compass size={14} />{" "}
-                {t("nadi.ascendant", {
-                  sign: ln(data.ascendant?.sign_name, "rasi"),
-                  lord: ln(data.ascendant?.sign_lord, "graha"),
-                })}
-              </span>
-              <span className="info-pill">
-                {t("nadi.moonSign", { sign: ln(data.moon_sign, "rasi") })}
-              </span>
-              <span className="info-pill">
-                {t("nadi.spouseKarakaIs", { planet: ln(data.spouse_karaka, "graha") })}
-              </span>
-            </div>
-
-            {/* Karakas & significators */}
-            <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
-              <h3 className="ui-card-header ui-card-header--sm">
-                <Compass size={18} /> {t("nadi.karakasTitle")}
-              </h3>
-              <p className="card-note">{t("nadi.karakasIntro")}</p>
-              <div className="nadi-karaka-grid">
-                {karakas.map((k) => (
-                  <div key={k.planet} className="nadi-karaka">
-                    <div className="nadi-karaka__head">
-                      <span className="nadi-karaka__planet">{ln(k.planet, "graha")}</span>
-                      <span className="nadi-karaka__sign">
-                        {ln(k.sign_name, "rasi")}{" "}
-                        <span className="text-secondary">({ln(k.sign_lord, "graha")})</span>
-                      </span>
-                    </div>
-                    <div className="nadi-karaka__signifies">
-                      {k.significations.slice(0, 3).join(" · ")}
-                    </div>
-                    <div className="nadi-karaka__meta">
-                      <span>{t("nadi.star", { nak: k.nakshatra, lord: ln(k.star_lord, "graha") })}</span>
-                      {k.conjunct.length > 0 && (
-                        <span className="nadi-karaka__conj">
-                          <Users size={12} />{" "}
-                          {k.conjunct.map((c) => ln(c, "graha")).join(", ")}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+          {loading ? (
+            <Card>
+              <LoadingState message={t("nadi.loading")} />
+            </Card>
+          ) : data ? (
+            <div className="fade-in">
+              {/* Chart summary pills */}
+              <div className="info-pills">
+                <span className="info-pill">
+                  <Compass size={14} />{" "}
+                  {t("nadi.ascendant", {
+                    sign: ln(data.ascendant?.sign_name, "rasi"),
+                    lord: ln(data.ascendant?.sign_lord, "graha"),
+                  })}
+                </span>
+                <span className="info-pill">
+                  {t("nadi.moonSign", { sign: ln(data.moon_sign, "rasi") })}
+                </span>
+                <span className="info-pill">
+                  {t("nadi.spouseKarakaIs", { planet: ln(data.spouse_karaka, "graha") })}
+                </span>
               </div>
-            </div>
 
-            {/* Life themes */}
-            <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush mt-xl">
-              <h3 className="ui-card-header ui-card-header--sm">
-                <ScrollText size={18} /> {t("nadi.themesTitle")}
-              </h3>
-              <p className="card-note">{t("nadi.themesIntro")}</p>
-              <ul className="nadi-theme-list">
-                {themes.map((th, i) => (
-                  <li key={i} className="nadi-theme">
-                    <div className="nadi-theme__area">{th.area}</div>
-                    <div className="nadi-theme__karakas">
-                      {th.karakas.map((kk, j) => (
-                        <span key={j} className="nadi-theme__karaka">
-                          {ln(kk.planet, "graha")}{" "}
-                          <span className="text-secondary">
-                            {t("nadi.inSign", { sign: ln(kk.sign_name, "rasi") })}
-                          </span>
-                          {kk.conjunct.length > 0 && (
-                            <span className="text-secondary">
-                              {" "}
-                              · {kk.conjunct.map((c) => ln(c, "graha")).join(", ")}
-                            </span>
-                          )}
+              {/* Karakas & significators */}
+              <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <Compass size={18} /> {t("nadi.karakasTitle")}
+                </h3>
+                <p className="card-note">{t("nadi.karakasIntro")}</p>
+                <div className="nadi-karaka-grid">
+                  {karakas.map((k) => (
+                    <div key={k.planet} className="nadi-karaka">
+                      <div className="nadi-karaka__head">
+                        <span className="nadi-karaka__planet">{ln(k.planet, "graha")}</span>
+                        <span className="nadi-karaka__sign">
+                          {ln(k.sign_name, "rasi")}{" "}
+                          <span className="text-secondary">({ln(k.sign_lord, "graha")})</span>
                         </span>
-                      ))}
+                      </div>
+                      <div className="nadi-karaka__signifies">
+                        {k.significations.slice(0, 3).join(" · ")}
+                      </div>
+                      <div className="nadi-karaka__meta">
+                        <span>
+                          {t("nadi.star", { nak: k.nakshatra, lord: ln(k.star_lord, "graha") })}
+                        </span>
+                        {k.conjunct.length > 0 && (
+                          <span className="nadi-karaka__conj">
+                            <Users size={12} /> {k.conjunct.map((c) => ln(c, "graha")).join(", ")}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                  ))}
+                </div>
+              </div>
 
-            {/* Transit triggers */}
-            <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush mt-xl">
-              <h3 className="ui-card-header ui-card-header--sm">
-                <CalendarClock size={18} /> {t("nadi.triggersTitle")}
-              </h3>
-              <p className="card-note">{t("nadi.triggersIntro")}</p>
-              {triggers.length === 0 ? (
-                <p className="card-note">{t("nadi.noTriggers")}</p>
-              ) : (
-                <ul className="bhrigu-activation-list">
-                  {triggers.map((a, i) => (
-                    <li key={i} className="bhrigu-activation">
-                      <span className="bhrigu-activation__date">{formatDate(a.date, locale)}</span>
-                      <span className="bhrigu-activation__text">
-                        {t("nadi.triggerRow", {
-                          planet: ln(a.planet, "graha"),
-                          sign: ln(a.sign_name, "rasi"),
-                          karaka: a.karaka,
-                        })}
-                      </span>
+              {/* Life themes */}
+              <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <ScrollText size={18} /> {t("nadi.themesTitle")}
+                </h3>
+                <p className="card-note">{t("nadi.themesIntro")}</p>
+                <ul className="nadi-theme-list">
+                  {themes.map((th, i) => (
+                    <li key={i} className="nadi-theme">
+                      <div className="nadi-theme__area">{th.area}</div>
+                      <div className="nadi-theme__karakas">
+                        {th.karakas.map((kk, j) => (
+                          <span key={j} className="nadi-theme__karaka">
+                            {ln(kk.planet, "graha")}{" "}
+                            <span className="text-secondary">
+                              {t("nadi.inSign", { sign: ln(kk.sign_name, "rasi") })}
+                            </span>
+                            {kk.conjunct.length > 0 && (
+                              <span className="text-secondary">
+                                {" "}
+                                · {kk.conjunct.map((c) => ln(c, "graha")).join(", ")}
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
                     </li>
                   ))}
                 </ul>
-              )}
-            </div>
+              </div>
 
-            {/* AI reading */}
-            <div className="mt-xl">
-              <Card title={t("nadi.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
-                <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && <p className="ai-panel__hint">{t("nadi.aiHint")}</p>}
-                {aiLoading && <LoadingState message={t("nadi.aiLoading")} />}
-                {aiAnalysis && !aiLoading && (
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{aiAnalysis}</Markdown>
-                    {aiModel && (
-                      <div className="ai-panel__meta">{t("nadi.aiModel", { model: aiModel })}</div>
-                    )}
-                  </div>
+              {/* Transit triggers */}
+              <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <CalendarClock size={18} /> {t("nadi.triggersTitle")}
+                </h3>
+                <p className="card-note">{t("nadi.triggersIntro")}</p>
+                {triggers.length === 0 ? (
+                  <p className="card-note">{t("nadi.noTriggers")}</p>
+                ) : (
+                  <ul className="bhrigu-activation-list">
+                    {triggers.map((a, i) => (
+                      <li key={i} className="bhrigu-activation">
+                        <span className="bhrigu-activation__date">
+                          {formatDate(a.date, locale)}
+                        </span>
+                        <span className="bhrigu-activation__text">
+                          {t("nadi.triggerRow", {
+                            planet: ln(a.planet, "graha"),
+                            sign: ln(a.sign_name, "rasi"),
+                            karaka: a.karaka,
+                          })}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
-                {!aiLoading && (
-                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                    <Sparkles size={18} />
-                    {aiAnalysis ? t("nadi.aiRegenerate") : t("nadi.aiGenerate")}
-                  </button>
-                )}
-                <p className="card-note">{t("nadi.disclaimer")}</p>
-              </Card>
+              </div>
+
+              {/* AI reading */}
+              <div className="mt-xl">
+                <Card title={t("nadi.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
+                  <ErrorBanner message={aiError} />
+                  {!aiAnalysis && !aiLoading && (
+                    <p className="ai-panel__hint">{t("nadi.aiHint")}</p>
+                  )}
+                  {aiLoading && <LoadingState message={t("nadi.aiLoading")} />}
+                  {aiAnalysis && !aiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <Markdown>{aiAnalysis}</Markdown>
+                      {aiModel && (
+                        <div className="ai-panel__meta">
+                          {t("nadi.aiModel", { model: aiModel })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!aiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                      <Sparkles size={18} />
+                      {aiAnalysis ? t("nadi.aiRegenerate") : t("nadi.aiGenerate")}
+                    </button>
+                  )}
+                  <p className="card-note">{t("nadi.disclaimer")}</p>
+                </Card>
+              </div>
             </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

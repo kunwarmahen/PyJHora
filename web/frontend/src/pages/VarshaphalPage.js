@@ -241,315 +241,316 @@ export const VarshaphalPage = () => {
         subtitle={t("varshaphal.subtitle")}
         accent="gold"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <ProfileBanner profile={selectedProfile} />
+          <RecentReadings source="varshaphal" profileId={selectedProfile?._id} />
 
-      <div className="dashboard-content">
-        <ProfileBanner profile={selectedProfile} />
-        <RecentReadings source="varshaphal" profileId={selectedProfile?._id} />
-
-        {/* Controls */}
-        <div className="page-controls">
-          <div className="controls-group">
-            <label className="control-label">
-              <CalendarClock size={18} style={{ color: "var(--saffron)" }} />
-              {t("varshaphal.year")}
-            </label>
-            <div className="stepper">
-              <button
-                type="button"
-                className="stepper__btn"
-                onClick={() => stepYear(-1)}
-                aria-label="-1 year"
-                disabled={year <= birthYear}
-              >
-                −
-              </button>
-              <input
-                type="number"
-                className="control-input"
-                style={{ width: "6rem", textAlign: "center" }}
-                value={year}
-                min={birthYear}
-                onChange={(e) => {
-                  const v = parseInt(e.target.value, 10);
-                  if (!Number.isNaN(v)) setYear(Math.max(birthYear, v));
-                }}
-              />
-              <button
-                type="button"
-                className="stepper__btn"
-                onClick={() => stepYear(1)}
-                aria-label="+1 year"
-              >
-                +
-              </button>
+          {/* Controls */}
+          <div className="page-controls">
+            <div className="controls-group">
+              <label className="control-label">
+                <CalendarClock size={18} style={{ color: "var(--saffron)" }} />
+                {t("varshaphal.year")}
+              </label>
+              <div className="stepper">
+                <button
+                  type="button"
+                  className="stepper__btn"
+                  onClick={() => stepYear(-1)}
+                  aria-label="-1 year"
+                  disabled={year <= birthYear}
+                >
+                  −
+                </button>
+                <input
+                  type="number"
+                  className="control-input"
+                  style={{ width: "6rem", textAlign: "center" }}
+                  value={year}
+                  min={birthYear}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (!Number.isNaN(v)) setYear(Math.max(birthYear, v));
+                  }}
+                />
+                <button
+                  type="button"
+                  className="stepper__btn"
+                  onClick={() => stepYear(1)}
+                  aria-label="+1 year"
+                >
+                  +
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Annual-dasha system picker. Pinned right — the lunar counterpart
+            {/* Annual-dasha system picker. Pinned right — the lunar counterpart
               (Tithi Pravesha, paired with Tithi Ashtottari) now lives on its own
               page, so this is the only other control here. */}
-          <div className="controls-group controls-group--end">
-            <label className="control-label">
-              <Clock size={18} style={{ color: "var(--saffron)" }} />
-              {t("varshaphal.annualDasha")}
-            </label>
-            <div className="chart-toggle">
-              {DASHA_SYSTEMS.map((s) => (
-                <button
-                  key={s.key}
-                  className={`chart-toggle__btn${dashaSystem === s.key ? " is-active" : ""}`}
-                  onClick={() => changeDasha(s.key)}
-                >
-                  {t(s.labelKey)}
-                </button>
-              ))}
+            <div className="controls-group controls-group--end">
+              <label className="control-label">
+                <Clock size={18} style={{ color: "var(--saffron)" }} />
+                {t("varshaphal.annualDasha")}
+              </label>
+              <div className="chart-toggle">
+                {DASHA_SYSTEMS.map((s) => (
+                  <button
+                    key={s.key}
+                    className={`chart-toggle__btn${dashaSystem === s.key ? " is-active" : ""}`}
+                    onClick={() => changeDasha(s.key)}
+                  >
+                    {t(s.labelKey)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Its lunar counterpart is read alongside it, not instead of it. */}
-        <p className="settings-hint">
-          {t("varshaphal.lunarPointer")}{" "}
-          <button className="control-btn" onClick={() => navigate("/tithi-pravesha")}>
-            <Moon size={14} /> {t("nav.tithiPravesha")}
-          </button>
-        </p>
+          {/* Its lunar counterpart is read alongside it, not instead of it. */}
+          <p className="settings-hint">
+            {t("varshaphal.lunarPointer")}{" "}
+            <button className="control-btn" onClick={() => navigate("/tithi-pravesha")}>
+              <Moon size={14} /> {t("nav.tithiPravesha")}
+            </button>
+          </p>
 
-        <ErrorBanner message={error} />
+          <ErrorBanner message={error} />
 
-        {loading ? (
-          <Card>
-            <LoadingState message={t("varshaphal.loading")} />
-          </Card>
-        ) : result ? (
-          <div className="fade-in">
-            {/* Year summary */}
-            <div className="info-pills">
-              <span className="info-pill">
-                {t("varshaphal.forYear")}: <strong className="text-saffron">{result.year}</strong>
-              </span>
-              <span className="info-pill">
-                {t("varshaphal.solarYearBegins")}:{" "}
-                <strong>{formatDate(result.year_entry?.date, locale)}</strong>
-                {result.year_entry?.time ? `, ${result.year_entry.time}` : ""}
-              </span>
-              <span className="info-pill">
-                {t("varshaphal.annualLagna")}:{" "}
-                <strong className="text-indigo">{ln(result.lagna?.sign_name, "rasi")}</strong>
-              </span>
-              <span className="info-pill">
-                {t("varshaphal.muntha")}:{" "}
-                <strong className="text-saffron">{ln(result.muntha?.sign_name, "rasi")}</strong>
-                {result.muntha?.house
-                  ? ` (${ordinal(result.muntha.house)} ${t("varshaphal.houseWord")})`
-                  : ""}
-              </span>
-              <span className="info-pill">
-                {t("varshaphal.yearLord")}:{" "}
-                <strong className="text-vermillion">{result.year_lord?.planet || "—"}</strong>
-              </span>
-              <span className="info-pill">
-                {t("transit.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
-              </span>
-            </div>
-
-            <div className="chart-grid">
-              {/* Annual (Tajaka) chart */}
-              <Kundali
-                planets={planets}
-                lagna={result.lagna}
-                title={t("varshaphal.annualChart", { year: result.year })}
-                subtitle={t("varshaphal.tajaka")}
-                exportable
-              />
-
-              {/* Annual placements table */}
-              <div className="ui-card ui-card--accent-gold ui-card--pad-lg ui-card--flush">
-                <h3 className="ui-card-header ui-card-header--sm">
-                  <Compass size={18} />
-                  {t("varshaphal.placements")}
-                </h3>
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>{t("common.planet")}</th>
-                        <th>{t("common.sign")}</th>
-                        <th className="text-center">{t("varshaphal.houseWord")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orderedPlanets.map(([name, p]) => (
-                        <tr key={name}>
-                          <td className="fw-700 text-indigo">
-                            {ln(name, "graha", { abbr: true })}{" "}
-                            <span style={{ fontWeight: 400 }} className="text-secondary">
-                              {name}
-                            </span>
-                          </td>
-                          <td>
-                            {ln(p.sign_name, "rasi")}{" "}
-                            <span className="text-muted">
-                              {p.degrees != null ? `${p.degrees.toFixed(1)}°` : ""}
-                            </span>
-                          </td>
-                          <td className="text-center fw-600 text-saffron">{ordinal(p.house)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <p className="card-note">{t("varshaphal.houseNote")}</p>
+          {loading ? (
+            <Card>
+              <LoadingState message={t("varshaphal.loading")} />
+            </Card>
+          ) : result ? (
+            <div className="fade-in">
+              {/* Year summary */}
+              <div className="info-pills">
+                <span className="info-pill">
+                  {t("varshaphal.forYear")}: <strong className="text-saffron">{result.year}</strong>
+                </span>
+                <span className="info-pill">
+                  {t("varshaphal.solarYearBegins")}:{" "}
+                  <strong>{formatDate(result.year_entry?.date, locale)}</strong>
+                  {result.year_entry?.time ? `, ${result.year_entry.time}` : ""}
+                </span>
+                <span className="info-pill">
+                  {t("varshaphal.annualLagna")}:{" "}
+                  <strong className="text-indigo">{ln(result.lagna?.sign_name, "rasi")}</strong>
+                </span>
+                <span className="info-pill">
+                  {t("varshaphal.muntha")}:{" "}
+                  <strong className="text-saffron">{ln(result.muntha?.sign_name, "rasi")}</strong>
+                  {result.muntha?.house
+                    ? ` (${ordinal(result.muntha.house)} ${t("varshaphal.houseWord")})`
+                    : ""}
+                </span>
+                <span className="info-pill">
+                  {t("varshaphal.yearLord")}:{" "}
+                  <strong className="text-vermillion">{result.year_lord?.planet || "—"}</strong>
+                </span>
+                <span className="info-pill">
+                  {t("transit.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
+                </span>
               </div>
-            </div>
 
-            {/* Sahams */}
-            {sahams.length > 0 && (
-              <div className="ui-card ui-card--accent ui-card--flush mt-xl">
-                <h3 className="ui-card-header ui-card-header--sm" style={{ fontSize: "1.25rem" }}>
-                  <Star size={20} />
-                  {t("varshaphal.sahams")}
-                </h3>
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>{t("varshaphal.saham")}</th>
-                        <th>{t("varshaphal.significance")}</th>
-                        <th>{t("common.sign")}</th>
-                        <th className="text-center">{t("varshaphal.houseWord")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sahams.map((s) => (
-                        <tr key={s.name}>
-                          <td className="fw-700 text-saffron">{s.name}</td>
-                          <td className="text-secondary">{s.significance}</td>
-                          <td>
-                            {ln(s.sign_name, "rasi")}{" "}
-                            <span className="text-muted">
-                              {s.degrees != null ? `${s.degrees.toFixed(1)}°` : ""}
-                            </span>
-                          </td>
-                          <td className="text-center fw-600 text-indigo">{ordinal(s.house)}</td>
+              <div className="chart-grid">
+                {/* Annual (Tajaka) chart */}
+                <Kundali
+                  planets={planets}
+                  lagna={result.lagna}
+                  title={t("varshaphal.annualChart", { year: result.year })}
+                  subtitle={t("varshaphal.tajaka")}
+                  exportable
+                />
+
+                {/* Annual placements table */}
+                <div className="ui-card ui-card--accent-gold ui-card--pad-lg ui-card--flush">
+                  <h3 className="ui-card-header ui-card-header--sm">
+                    <Compass size={18} />
+                    {t("varshaphal.placements")}
+                  </h3>
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>{t("common.planet")}</th>
+                          <th>{t("common.sign")}</th>
+                          <th className="text-center">{t("varshaphal.houseWord")}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {orderedPlanets.map(([name, p]) => (
+                          <tr key={name}>
+                            <td className="fw-700 text-indigo">
+                              {ln(name, "graha", { abbr: true })}{" "}
+                              <span style={{ fontWeight: 400 }} className="text-secondary">
+                                {name}
+                              </span>
+                            </td>
+                            <td>
+                              {ln(p.sign_name, "rasi")}{" "}
+                              <span className="text-muted">
+                                {p.degrees != null ? `${p.degrees.toFixed(1)}°` : ""}
+                              </span>
+                            </td>
+                            <td className="text-center fw-600 text-saffron">{ordinal(p.house)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="card-note">{t("varshaphal.houseNote")}</p>
                 </div>
               </div>
-            )}
 
-            {/* Tajaka yogas */}
-            <div className="ui-card ui-card--accent-gold ui-card--flush mt-xl">
-              <h3 className="ui-card-header ui-card-header--sm" style={{ fontSize: "1.25rem" }}>
-                <Sparkles size={20} />
-                {t("varshaphal.tajakaYogas")}
-              </h3>
-              {tajakaYogas.length > 0 ? (
-                <div className="card-grid">
-                  {tajakaYogas.map((y, i) => (
-                    <div key={i} className="ui-card ui-card--pad-lg">
-                      <div className="fw-700 text-saffron">
-                        {y.name}
-                        {y.pair && (
-                          <span className="text-secondary fw-400"> · {y.pair.join(" – ")}</span>
-                        )}
-                      </div>
-                      <div
-                        className="text-secondary"
-                        style={{ fontSize: "0.85rem", marginTop: "0.35rem" }}
-                      >
-                        {y.description}
-                      </div>
-                    </div>
-                  ))}
+              {/* Sahams */}
+              {sahams.length > 0 && (
+                <div className="ui-card ui-card--accent ui-card--flush mt-xl">
+                  <h3 className="ui-card-header ui-card-header--sm" style={{ fontSize: "1.25rem" }}>
+                    <Star size={20} />
+                    {t("varshaphal.sahams")}
+                  </h3>
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>{t("varshaphal.saham")}</th>
+                          <th>{t("varshaphal.significance")}</th>
+                          <th>{t("common.sign")}</th>
+                          <th className="text-center">{t("varshaphal.houseWord")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sahams.map((s) => (
+                          <tr key={s.name}>
+                            <td className="fw-700 text-saffron">{s.name}</td>
+                            <td className="text-secondary">{s.significance}</td>
+                            <td>
+                              {ln(s.sign_name, "rasi")}{" "}
+                              <span className="text-muted">
+                                {s.degrees != null ? `${s.degrees.toFixed(1)}°` : ""}
+                              </span>
+                            </td>
+                            <td className="text-center fw-600 text-indigo">{ordinal(s.house)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              ) : (
-                <p className="card-note">{t("varshaphal.noYogas")}</p>
               )}
-            </div>
 
-            {/* Annual dasha */}
-            <div className="ui-card ui-card--accent-indigo ui-card--flush mt-xl">
-              <h3 className="ui-card-header ui-card-header--sm" style={{ fontSize: "1.25rem" }}>
-                <Clock size={20} />
-                {t("varshaphal.annualDasha")}
-              </h3>
-              <p className="card-intro">{annualDasha?.system}</p>
+              {/* Tajaka yogas */}
+              <div className="ui-card ui-card--accent-gold ui-card--flush mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm" style={{ fontSize: "1.25rem" }}>
+                  <Sparkles size={20} />
+                  {t("varshaphal.tajakaYogas")}
+                </h3>
+                {tajakaYogas.length > 0 ? (
+                  <div className="card-grid">
+                    {tajakaYogas.map((y, i) => (
+                      <div key={i} className="ui-card ui-card--pad-lg">
+                        <div className="fw-700 text-saffron">
+                          {y.name}
+                          {y.pair && (
+                            <span className="text-secondary fw-400"> · {y.pair.join(" – ")}</span>
+                          )}
+                        </div>
+                        <div
+                          className="text-secondary"
+                          style={{ fontSize: "0.85rem", marginTop: "0.35rem" }}
+                        >
+                          {y.description}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="card-note">{t("varshaphal.noYogas")}</p>
+                )}
+              </div>
 
-              {/* The Tajaka annual dashas are flat — Mudda/Patyayini/Narayana have no
+              {/* Annual dasha */}
+              <div className="ui-card ui-card--accent-indigo ui-card--flush mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm" style={{ fontSize: "1.25rem" }}>
+                  <Clock size={20} />
+                  {t("varshaphal.annualDasha")}
+                </h3>
+                <p className="card-intro">{annualDasha?.system}</p>
+
+                {/* The Tajaka annual dashas are flat — Mudda/Patyayini/Narayana have no
                   sub-levels to open. (The lunar return's drillable Tithi Ashtottari
                   tree lives on the Tithi Pravesha page.) */}
-              {dashaLoading ? (
-                <LoadingState message={t("varshaphal.loading")} />
-              ) : periods.length > 0 ? (
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>
-                          {annualDasha?.lord_type === "raasi"
-                            ? t("varshaphal.periodSign")
-                            : t("varshaphal.period")}
-                        </th>
-                        <th>{t("varshaphal.from")}</th>
-                        <th>{t("varshaphal.to")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {periods.map((p, i) => (
-                        <tr key={i} className={p.current ? "is-current" : ""}>
-                          <td className="fw-700 text-indigo">
-                            {p.lord_name}
-                            {p.current && (
-                              <span className="info-pill" style={{ marginLeft: "0.5rem" }}>
-                                {t("varshaphal.current")}
-                              </span>
-                            )}
-                          </td>
-                          <td className="text-secondary">{formatDate(p.start, locale)}</td>
-                          <td className="text-secondary">{formatDate(p.end, locale)}</td>
+                {dashaLoading ? (
+                  <LoadingState message={t("varshaphal.loading")} />
+                ) : periods.length > 0 ? (
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>
+                            {annualDasha?.lord_type === "raasi"
+                              ? t("varshaphal.periodSign")
+                              : t("varshaphal.period")}
+                          </th>
+                          <th>{t("varshaphal.from")}</th>
+                          <th>{t("varshaphal.to")}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="card-note">{t("varshaphal.noDasha")}</p>
-              )}
-            </div>
-
-            {/* AI year-ahead reading */}
-            <div className="mt-xl">
-              <Card title={t("varshaphal.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
-                <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && (
-                  <p className="ai-panel__hint">{t("varshaphal.aiHint")}</p>
-                )}
-                {aiLoading && <LoadingState message={t("varshaphal.aiLoading")} />}
-                {aiAnalysis && !aiLoading && (
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{aiAnalysis}</Markdown>
-                    {aiModel && (
-                      <div className="ai-panel__meta">
-                        {t("varshaphal.aiModel", { model: aiModel })}
-                      </div>
-                    )}
+                      </thead>
+                      <tbody>
+                        {periods.map((p, i) => (
+                          <tr key={i} className={p.current ? "is-current" : ""}>
+                            <td className="fw-700 text-indigo">
+                              {p.lord_name}
+                              {p.current && (
+                                <span className="info-pill" style={{ marginLeft: "0.5rem" }}>
+                                  {t("varshaphal.current")}
+                                </span>
+                              )}
+                            </td>
+                            <td className="text-secondary">{formatDate(p.start, locale)}</td>
+                            <td className="text-secondary">{formatDate(p.end, locale)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
+                ) : (
+                  <p className="card-note">{t("varshaphal.noDasha")}</p>
                 )}
-                {!aiLoading && (
-                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                    <Sparkles size={18} />
-                    {aiAnalysis ? t("varshaphal.aiRegenerate") : t("varshaphal.aiGenerate")}
-                  </button>
-                )}
-                <p className="card-note">{t("varshaphal.disclaimer")}</p>
-              </Card>
+              </div>
+
+              {/* AI year-ahead reading */}
+              <div className="mt-xl">
+                <Card title={t("varshaphal.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
+                  <ErrorBanner message={aiError} />
+                  {!aiAnalysis && !aiLoading && (
+                    <p className="ai-panel__hint">{t("varshaphal.aiHint")}</p>
+                  )}
+                  {aiLoading && <LoadingState message={t("varshaphal.aiLoading")} />}
+                  {aiAnalysis && !aiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <Markdown>{aiAnalysis}</Markdown>
+                      {aiModel && (
+                        <div className="ai-panel__meta">
+                          {t("varshaphal.aiModel", { model: aiModel })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!aiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                      <Sparkles size={18} />
+                      {aiAnalysis ? t("varshaphal.aiRegenerate") : t("varshaphal.aiGenerate")}
+                    </button>
+                  )}
+                  <p className="card-note">{t("varshaphal.disclaimer")}</p>
+                </Card>
+              </div>
             </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

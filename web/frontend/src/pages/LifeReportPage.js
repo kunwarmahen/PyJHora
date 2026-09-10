@@ -168,99 +168,100 @@ export const LifeReportPage = () => {
         subtitle={t("lifeReport.subtitle")}
         accent="gold"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="life_report" profileId={selectedProfile?._id} />
+          <ProfileBanner profile={selectedProfile} />
+          <p className="card-note">{t("lifeReport.intro")}</p>
 
-      <div className="dashboard-content">
-        <RecentReadings source="life_report" profileId={selectedProfile?._id} />
-        <ProfileBanner profile={selectedProfile} />
-        <p className="card-note">{t("lifeReport.intro")}</p>
+          <ErrorBanner message={error || jobError} />
 
-        <ErrorBanner message={error || jobError} />
-
-        {/* Controls + progress */}
-        <div className="lr-controls">
-          <button
-            className="ui-btn ui-btn--ai"
-            onClick={() => generate(anyDone)}
-            disabled={running || starting}
-          >
-            <Sparkles size={18} />
-            {running
-              ? t("lifeReport.generating", { n: Math.min(doneCount + 1, total), total })
-              : anyDone
-                ? t("lifeReport.regenerate")
-                : t("lifeReport.generate")}
-          </button>
-          {running && (
-            <button className="ui-btn ui-btn--ghost" onClick={cancel}>
-              {t("lifeReport.cancel")}
+          {/* Controls + progress */}
+          <div className="lr-controls">
+            <button
+              className="ui-btn ui-btn--ai"
+              onClick={() => generate(anyDone)}
+              disabled={running || starting}
+            >
+              <Sparkles size={18} />
+              {running
+                ? t("lifeReport.generating", { n: Math.min(doneCount + 1, total), total })
+                : anyDone
+                  ? t("lifeReport.regenerate")
+                  : t("lifeReport.generate")}
             </button>
-          )}
-          {anyDone && !running && (
-            <>
-              <button className="ui-btn ui-btn--ghost" onClick={() => window.print()}>
-                <Printer size={18} />
-                {t("lifeReport.print")}
+            {running && (
+              <button className="ui-btn ui-btn--ghost" onClick={cancel}>
+                {t("lifeReport.cancel")}
               </button>
-              {job?.status === "done" && !restored && (
-                <span className="lr-saved">
-                  <Check size={16} /> {t("lifeReport.saved")}
-                </span>
+            )}
+            {anyDone && !running && (
+              <>
+                <button className="ui-btn ui-btn--ghost" onClick={() => window.print()}>
+                  <Printer size={18} />
+                  {t("lifeReport.print")}
+                </button>
+                {job?.status === "done" && !restored && (
+                  <span className="lr-saved">
+                    <Check size={16} /> {t("lifeReport.saved")}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Reassure the user they can leave — this is the whole point of moving
+            generation to the server. */}
+          {running && <p className="card-note lr-keeps-running">{t("lifeReport.keepsRunning")}</p>}
+
+          {/* Chapter progress chips (live) */}
+          {running && (
+            <div className="lr-progress">
+              {rows.map((c) => {
+                const st = c.status || "pending";
+                return (
+                  <span key={c.key} className={`lr-chip lr-chip--${st}`}>
+                    {st === "active" && <Loader2 size={14} className="lr-spin" />}
+                    {st === "done" && <Check size={14} />}
+                    {c.title}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
+          {/* The report */}
+          {anyDone && (
+            <div className="lr-doc mt-xl">
+              <div className="lr-doc__head">
+                <h1>{t("lifeReport.forName", { name: birthDetails.name || "" })}</h1>
+                {reportModel && (
+                  <p className="lr-doc__meta">{t("lifeReport.model", { model: reportModel })}</p>
+                )}
+              </div>
+
+              {restored ? (
+                <div className="lr-chapter sbc-ai-markdown">
+                  <Markdown>{restored.text}</Markdown>
+                </div>
+              ) : (
+                rows.map((c) =>
+                  c.status === "done" && c.text ? (
+                    <div className="lr-chapter" key={c.key}>
+                      <h2>{c.title}</h2>
+                      <div className="sbc-ai-markdown">
+                        <Markdown>{c.text}</Markdown>
+                      </div>
+                    </div>
+                  ) : null
+                )
               )}
-            </>
+
+              <p className="card-note lr-disclaimer">{t("lifeReport.disclaimer")}</p>
+            </div>
           )}
         </div>
-
-        {/* Reassure the user they can leave — this is the whole point of moving
-            generation to the server. */}
-        {running && <p className="card-note lr-keeps-running">{t("lifeReport.keepsRunning")}</p>}
-
-        {/* Chapter progress chips (live) */}
-        {running && (
-          <div className="lr-progress">
-            {rows.map((c) => {
-              const st = c.status || "pending";
-              return (
-                <span key={c.key} className={`lr-chip lr-chip--${st}`}>
-                  {st === "active" && <Loader2 size={14} className="lr-spin" />}
-                  {st === "done" && <Check size={14} />}
-                  {c.title}
-                </span>
-              );
-            })}
-          </div>
-        )}
-
-        {/* The report */}
-        {anyDone && (
-          <div className="lr-doc mt-xl">
-            <div className="lr-doc__head">
-              <h1>{t("lifeReport.forName", { name: birthDetails.name || "" })}</h1>
-              {reportModel && (
-                <p className="lr-doc__meta">{t("lifeReport.model", { model: reportModel })}</p>
-              )}
-            </div>
-
-            {restored ? (
-              <div className="lr-chapter sbc-ai-markdown">
-                <Markdown>{restored.text}</Markdown>
-              </div>
-            ) : (
-              rows.map((c) =>
-                c.status === "done" && c.text ? (
-                  <div className="lr-chapter" key={c.key}>
-                    <h2>{c.title}</h2>
-                    <div className="sbc-ai-markdown">
-                      <Markdown>{c.text}</Markdown>
-                    </div>
-                  </div>
-                ) : null
-              )
-            )}
-
-            <p className="card-note lr-disclaimer">{t("lifeReport.disclaimer")}</p>
-          </div>
-        )}
-      </div>
+      </main>
     </div>
   );
 };

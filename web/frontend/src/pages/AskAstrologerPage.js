@@ -1,3 +1,4 @@
+import { clickable } from "../utils/a11y";
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -147,7 +148,9 @@ const PortalMenu = ({ anchorRef, open, onClose, align = "left", width = 220, chi
   if (!open || !pos) return null;
   return createPortal(
     <>
-      <div className="menu-backdrop" onClick={onClose} />
+      {/* Closes the menu on an outside click; the menu itself is the control. */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events */}
+      <div className="menu-backdrop" onClick={onClose} aria-hidden="true" />
       <div
         className="portal-menu"
         role="menu"
@@ -928,648 +931,672 @@ export const AskAstrologerPage = () => {
         subtitle={t("ask.subtitle")}
         accent="terracotta"
       />
-
-      {/* Content */}
-      <div className="dashboard-content">
-        <ProfileBanner
-          profile={selectedProfile}
-          actions={
-            <div style={{ display: "flex", gap: "var(--space-sm)", flexWrap: "wrap" }}>
-              <button onClick={startNewConversation} className="change-profile-btn">
-                <Plus size={16} />
-                <span>{t("ask.newChat")}</span>
-              </button>
-              <button
-                onClick={() => {
-                  setShowHistory((v) => !v);
-                  refreshConversations();
-                }}
-                className="change-profile-btn"
-              >
-                <History size={16} />
-                <span>
-                  {t("ask.history")}
-                  {conversations.length ? ` (${conversations.length})` : ""}
-                </span>
-              </button>
-              <button
-                ref={exportBtnRef}
-                onClick={() => setExportMenuOpen((v) => !v)}
-                className="change-profile-btn"
-                disabled={!messages.some((m) => m.type === "ai" && m.content)}
-                title={t("ask.exportTitle")}
-              >
-                <Download size={16} />
-                <span>{t("ask.export")}</span>
-                <ChevronDown size={14} />
-              </button>
-              <PortalMenu
-                anchorRef={exportBtnRef}
-                open={exportMenuOpen}
-                onClose={() => setExportMenuOpen(false)}
-                align="left"
-                width={200}
-              >
-                <button className="export-menu-item" onClick={handleExport}>
-                  <FileText size={15} />
-                  <span>{t("ask.markdown")}</span>
+      <main id="page-content" className="page-main">
+        {/* Content */}
+        <div className="dashboard-content">
+          <ProfileBanner
+            profile={selectedProfile}
+            actions={
+              <div style={{ display: "flex", gap: "var(--space-sm)", flexWrap: "wrap" }}>
+                <button onClick={startNewConversation} className="change-profile-btn">
+                  <Plus size={16} />
+                  <span>{t("ask.newChat")}</span>
                 </button>
-                <button className="export-menu-item" onClick={handleExportPdf}>
-                  <FileType size={15} />
-                  <span>{t("ask.pdf")}</span>
+                <button
+                  onClick={() => {
+                    setShowHistory((v) => !v);
+                    refreshConversations();
+                  }}
+                  className="change-profile-btn"
+                >
+                  <History size={16} />
+                  <span>
+                    {t("ask.history")}
+                    {conversations.length ? ` (${conversations.length})` : ""}
+                  </span>
                 </button>
-              </PortalMenu>
-              <button onClick={() => navigate("/profile-selection", returnHere())} className="change-profile-btn">
-                <Star size={16} />
-                <span>{t("common.changeChart")}</span>
-              </button>
-            </div>
-          }
-        />
-
-        {/* History panel */}
-        {showHistory && (
-          <div className="ui-card ui-card--accent">
-            <h3 className="ui-card-header ui-card-header--sm">
-              <History size={20} />
-              {t("ask.savedConversations")}
-            </h3>
-            {visibleConversations.length === 0 ? (
-              <p className="text-secondary" style={{ fontSize: "0.875rem", margin: 0 }}>
-                {t("ask.noConversations")}
-              </p>
-            ) : (
-              <div className="history-list">
-                {visibleConversations.map((c) => (
-                  <div
-                    key={c.id}
-                    className={`history-item${c.id === conversationId ? " is-active" : ""}`}
-                    onClick={() => loadConversation(c.id)}
-                  >
-                    <div className="history-item__main">
-                      <div className="history-item__title">{c.title}</div>
-                      <div className="history-item__meta">
-                        {Math.floor((c.message_count || 0) / 2)} {t("ask.qa")}
-                        {c.last_model ? ` · ${c.last_model}` : ""}
-                        {c.updated_at ? ` · ${formatDate(c.updated_at)}` : ""}
-                      </div>
-                    </div>
-                    <button
-                      className="history-item__delete"
-                      onClick={(e) => handleDeleteConversation(c.id, e)}
-                      title={t("ask.deleteConversation")}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
+                <button
+                  ref={exportBtnRef}
+                  onClick={() => setExportMenuOpen((v) => !v)}
+                  className="change-profile-btn"
+                  disabled={!messages.some((m) => m.type === "ai" && m.content)}
+                  title={t("ask.exportTitle")}
+                >
+                  <Download size={16} />
+                  <span>{t("ask.export")}</span>
+                  <ChevronDown size={14} />
+                </button>
+                <PortalMenu
+                  anchorRef={exportBtnRef}
+                  open={exportMenuOpen}
+                  onClose={() => setExportMenuOpen(false)}
+                  align="left"
+                  width={200}
+                >
+                  <button className="export-menu-item" onClick={handleExport}>
+                    <FileText size={15} />
+                    <span>{t("ask.markdown")}</span>
+                  </button>
+                  <button className="export-menu-item" onClick={handleExportPdf}>
+                    <FileType size={15} />
+                    <span>{t("ask.pdf")}</span>
+                  </button>
+                </PortalMenu>
+                <button
+                  onClick={() => navigate("/profile-selection", returnHere())}
+                  className="change-profile-btn"
+                >
+                  <Star size={16} />
+                  <span>{t("common.changeChart")}</span>
+                </button>
               </div>
-            )}
-          </div>
-        )}
+            }
+          />
 
-        {/* Display Birth Chart */}
-        {chartData && (
-          <div className="fade-in fade-in--d2">
-            <NorthIndianChart chartData={chartData} />
-          </div>
-        )}
+          {/* History panel */}
+          {showHistory && (
+            <div className="ui-card ui-card--accent">
+              <h3 className="ui-card-header ui-card-header--sm">
+                <History size={20} />
+                {t("ask.savedConversations")}
+              </h3>
+              {visibleConversations.length === 0 ? (
+                <p className="text-secondary" style={{ fontSize: "0.875rem", margin: 0 }}>
+                  {t("ask.noConversations")}
+                </p>
+              ) : (
+                <div className="history-list">
+                  {visibleConversations.map((c) => (
+                    <div
+                      key={c.id}
+                      className={`history-item${c.id === conversationId ? " is-active" : ""}`}
+                      {...clickable(() => loadConversation(c.id), { label: c.title })}
+                    >
+                      <div className="history-item__main">
+                        <div className="history-item__title">{c.title}</div>
+                        <div className="history-item__meta">
+                          {Math.floor((c.message_count || 0) / 2)} {t("ask.qa")}
+                          {c.last_model ? ` · ${c.last_model}` : ""}
+                          {c.updated_at ? ` · ${formatDate(c.updated_at)}` : ""}
+                        </div>
+                      </div>
+                      <button
+                        className="history-item__delete"
+                        onClick={(e) => handleDeleteConversation(c.id, e)}
+                        title={t("ask.deleteConversation")}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-        {/* Example questions (the model summary lives in the page header) */}
-        <div className="ask-grid fade-in fade-in--d4">
-          {/* Examples Card */}
-          <div className="ask-card">
-            <h3 className="ask-card__header">
-              <MessageCircle size={20} />
-              {t("ask.exampleTitle")}
-            </h3>
-            {exampleQuestions.map((q, index) => (
-              <button
-                key={index}
-                className="example-question"
-                onClick={() => handleExampleClick(q)}
-                disabled={loading}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        </div>
+          {/* Display Birth Chart */}
+          {chartData && (
+            <div className="fade-in fade-in--d2">
+              <NorthIndianChart chartData={chartData} />
+            </div>
+          )}
 
-        {/* Answer mode, per-section context and the vargas picker are the expert
+          {/* Example questions (the model summary lives in the page header) */}
+          <div className="ask-grid fade-in fade-in--d4">
+            {/* Examples Card */}
+            <div className="ask-card">
+              <h3 className="ask-card__header">
+                <MessageCircle size={20} />
+                {t("ask.exampleTitle")}
+              </h3>
+              {exampleQuestions.map((q, index) => (
+                <button
+                  key={index}
+                  className="example-question"
+                  onClick={() => handleExampleClick(q)}
+                  disabled={loading}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Answer mode, per-section context and the vargas picker are the expert
             knobs. Someone who just wants to ask a question shouldn't have to
             meet seed/tool/off first — the defaults already work. .ask-grid is a
             CSS grid, so this needs its own grid rather than a wrapper inside the
             previous one. */}
-        <AdvancedOnly title={t("ask.advancedControls")}>
-          <div className="ask-grid">
-            {/* Answer Mode Card */}
-            <div className="ask-card">
-              <h3 className="ask-card__header ask-card__header--tight">
-                <Wrench size={20} />
-                {t("ask.answerMode")}
-              </h3>
-              <p className="ask-card__hint">
-                {modeLocked ? t("ask.modeLockedHint") : t("ask.modeHint")}
-              </p>
-              <div className="ask-toggle-row">
-                {[
-                  { val: "pass_all", label: t("ask.modeFullContext") },
-                  { val: "tools", label: t("ask.modeSmartLookup") },
-                ].map((o) => {
-                  const active = mode === o.val;
-                  return (
-                    <button
-                      key={o.val}
-                      type="button"
-                      className={`ask-toggle-btn${active ? " is-active" : ""}`}
-                      onClick={() => !modeLocked && setMode(o.val)}
-                      disabled={modeLocked}
-                      style={modeLocked && !active ? { opacity: 0.5 } : undefined}
-                    >
-                      {o.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Context Sections Card */}
-            <div className="ask-card">
-              <h3 className="ask-card__header ask-card__header--tight">
-                <Wrench size={20} />
-                {t("ask.contextSections")}
-              </h3>
-              <p className="ask-card__hint">
-                {mode === "tools" ? t("ask.sectionsHintTools") : t("ask.sectionsHintFull")}
-              </p>
-              <div className="ask-section-list">
-                {CONTEXT_SECTIONS.map((s) => {
-                  const state =
-                    mode === "tools" ? sections[s.key] : sections[s.key] === "off" ? "off" : "seed";
-                  return (
-                    <button
-                      key={s.key}
-                      type="button"
-                      className={`ask-section-row ask-section-row--${state}`}
-                      onClick={() => cycleSection(s.key)}
-                      title={t("ask.clickToChange")}
-                    >
-                      <span className="ask-section-row__label">{t(s.labelKey)}</span>
-                      <span className={`ask-section-row__state ask-section-row__state--${state}`}>
-                        {state === "seed"
-                          ? t("ask.stateSeed")
-                          : state === "tool"
-                            ? t("ask.stateTool")
-                            : t("ask.stateOff")}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Divisional Charts (Vargas) Card */}
-            <div className="ask-card">
-              <h3 className="ask-card__header ask-card__header--tight">
-                <Star size={20} />
-                {t("ask.chartsToConsult")}
-              </h3>
-              <p className="ask-card__hint">{t("ask.chartsHint")}</p>
-              <div className="ask-toggle-row">
-                {VARGAS.map((v) => {
-                  const active = selectedVargas.includes(v.value);
-                  const isD1 = v.value === 1;
-                  return (
-                    <button
-                      key={v.value}
-                      type="button"
-                      className={`ask-toggle-btn${active ? " is-active" : ""}`}
-                      onClick={() => !isD1 && toggleVarga(v.value)}
-                      disabled={isD1}
-                      title={`${v.name} — ${v.significance}`}
-                      style={isD1 ? { cursor: "default", opacity: 0.8 } : undefined}
-                    >
-                      {v.code}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </AdvancedOnly>
-
-        {/* Error banner */}
-        {error && (
-          <div className="ask-error">
-            <span>⚠ {error}</span>
-            <button
-              className="ask-error__dismiss"
-              onClick={() => setError("")}
-              title={t("ask.dismiss")}
-            >
-              <X size={16} />
-            </button>
-          </div>
-        )}
-
-        {/* Which model is answering — sits with the chat it describes, right
-            above the transcript, rather than costing a tile in the grid. */}
-        <div className="ask-model-bar fade-in fade-in--d6">
-          <div className="ask-model-chip">
-            <Bot size={13} />
-            <span className="ask-model-chip__name" title={t("ask.aiModel")}>
-              {providersLoading ? t("ask.detectingModels") : model || providerType}
-            </span>
-            <button
-              type="button"
-              className="ask-model-chip__btn"
-              onClick={() => openInfo(lastContext)}
-              title={t("ask.viewDataTitle")}
-            >
-              <Info size={13} />
-              <span>{t("ask.viewDataSent")}</span>
-            </button>
-            <button
-              type="button"
-              className="ask-model-chip__btn"
-              onClick={() => navigate("/settings")}
-            >
-              {t("ask.changeInSettings")}
-            </button>
-          </div>
-        </div>
-
-        {/* Chat Area */}
-        <div className="chat-area fade-in fade-in--d6">
-          <div className="messages-container">
-            {messages.map((message, index) => (
-              <div key={index} className={`message ${message.type}`}>
-                {message.type === "user" && (
-                  <div className="message-header">
-                    <User size={18} />
-                    <span>{t("ask.you")}</span>
-                    <span className="timestamp">{message.timestamp}</span>
-                  </div>
-                )}
-                {message.type === "ai" && (
-                  <div className="message-header">
-                    <Bot size={18} />
-                    <span>
-                      {t("ask.aiAstrologer")}
-                      {message.model
-                        ? ` · ${message.model}`
-                        : message.provider
-                          ? ` (${message.provider})`
-                          : ""}
-                    </span>
-                    {message.timestamp && <span className="timestamp">{message.timestamp}</span>}
-                    {!message.streaming && message.elapsed_ms != null && (
-                      <span className="timestamp" title={t("ask.generationTime")}>
-                        {(message.elapsed_ms / 1000).toFixed(1)}s
-                      </span>
-                    )}
-                    {!message.streaming &&
-                      (() => {
-                        const u = usageLabel(message.usage);
-                        return u ? (
-                          <span className="timestamp" title={u.title}>
-                            {u.short}
-                          </span>
-                        ) : null;
-                      })()}
-                    {!message.streaming && (message.context || message.model) && (
-                      <button
-                        className="msg-info-btn"
-                        onClick={() => openInfo(messageInfo(message))}
-                        title={t("ask.chartDataForAnswer")}
-                      >
-                        <Info size={15} />
-                      </button>
-                    )}
-                  </div>
-                )}
-                {message.type === "system" && (
-                  <div className="message-header">
-                    <Sparkles size={18} />
-                    <span>{t("ask.system")}</span>
-                  </div>
-                )}
-                {message.type === "ai" &&
-                  message.toolSteps &&
-                  message.toolSteps.length > 0 &&
-                  (() => {
-                    const realSteps = message.toolSteps.filter((s) => !s.notice);
+          <AdvancedOnly title={t("ask.advancedControls")}>
+            <div className="ask-grid">
+              {/* Answer Mode Card */}
+              <div className="ask-card">
+                <h3 className="ask-card__header ask-card__header--tight">
+                  <Wrench size={20} />
+                  {t("ask.answerMode")}
+                </h3>
+                <p className="ask-card__hint">
+                  {modeLocked ? t("ask.modeLockedHint") : t("ask.modeHint")}
+                </p>
+                <div className="ask-toggle-row">
+                  {[
+                    { val: "pass_all", label: t("ask.modeFullContext") },
+                    { val: "tools", label: t("ask.modeSmartLookup") },
+                  ].map((o) => {
+                    const active = mode === o.val;
                     return (
-                      <div className="tool-steps">
-                        {/* Pills timeline of the tool calls, in order */}
-                        <div className="tool-pills">
-                          {message.toolSteps.map((s, si) =>
-                            s.notice ? (
-                              <span key={si} className="tool-pill-notice">
-                                {s.notice}
-                              </span>
-                            ) : (
-                              <span
-                                key={si}
-                                className={`tool-pill${s.ok === false ? " tool-pill--err" : ""}`}
-                                title={s.args ? JSON.stringify(s.args) : ""}
-                              >
-                                {s.ok === null ? (
-                                  <Wrench size={12} />
-                                ) : s.ok ? (
-                                  <Check size={12} />
-                                ) : (
-                                  <X size={12} />
-                                )}
-                                {fmtTool(s.name)}
-                                {s.args && Object.keys(s.args).length
-                                  ? ` (${Object.values(s.args).join(", ")})`
-                                  : ""}
-                              </span>
-                            )
-                          )}
-                          {realSteps.length > 0 && (
-                            <button
-                              type="button"
-                              className="tool-trace-toggle"
-                              onClick={() => toggleTrace(index, message)}
-                            >
-                              {openTrace[index] ? "▾" : "▸"} {t("ask.behindTheScenes")}
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Expanded: a vertical timeline of the whole call flow —
-                            seed → each tool call (+ the data it returned) → answer. */}
-                        {openTrace[index] && realSteps.length > 0 && (
-                          <div className="tool-trace-panel">
-                            {/* Start: the seed sent to the model */}
-                            <TraceNode
-                              isFirst
-                              icon={<Star size={11} />}
-                              dotBg="var(--saffron, #e08a2c)"
-                              dotBorder="var(--saffron, #e08a2c)"
-                            >
-                              <div className="trace-label">{t("ask.traceSeedSummary")}</div>
-                              {(message.context || message.mode === "tools") && (
-                                <button
-                                  type="button"
-                                  className="trace-link"
-                                  onClick={() => openInfo(messageInfo(message))}
-                                >
-                                  {t("ask.traceViewWhatSent")}
-                                </button>
-                              )}
-                            </TraceNode>
-
-                            {/* Each tool call / notice, in order */}
-                            {message.toolSteps.map((s, si) =>
-                              s.notice ? (
-                                <TraceNode
-                                  key={si}
-                                  icon={<span className="trace-bullet">•</span>}
-                                  dotBg="var(--ink-light, #999)"
-                                  dotBorder="var(--ink-light, #999)"
-                                >
-                                  <div className="trace-notice">{s.notice}</div>
-                                </TraceNode>
-                              ) : (
-                                <TraceNode
-                                  key={si}
-                                  icon={
-                                    s.ok === false ? (
-                                      <X size={11} />
-                                    ) : s.ok === null ? (
-                                      <Wrench size={11} />
-                                    ) : (
-                                      <Check size={11} />
-                                    )
-                                  }
-                                  dotBg={s.ok === false ? "#c0392b" : "var(--saffron, #e08a2c)"}
-                                  dotBorder={s.ok === false ? "#c0392b" : "var(--saffron, #e08a2c)"}
-                                >
-                                  <div className="trace-label">
-                                    {t("ask.traceLookedUp", { tool: fmtTool(s.name) })}
-                                    {s.args && Object.keys(s.args).length ? (
-                                      <span className="trace-label__args">
-                                        {" "}
-                                        (
-                                        {Object.entries(s.args)
-                                          .map(([k, v]) => `${k}: ${v}`)
-                                          .join(", ")}
-                                        )
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                  {s.result !== undefined && (
-                                    <details className="trace-data">
-                                      <summary className="trace-data__summary">
-                                        {t("ask.traceViewData")}
-                                      </summary>
-                                      <pre className="trace-data__pre">
-                                        {JSON.stringify(s.result, null, 2)}
-                                      </pre>
-                                    </details>
-                                  )}
-                                </TraceNode>
-                              )
-                            )}
-
-                            {/* End: the written answer */}
-                            <TraceNode
-                              isLast
-                              icon={<Sparkles size={11} />}
-                              dotBg="var(--vermillion, #c0392b)"
-                              dotBorder="var(--vermillion, #c0392b)"
-                            >
-                              <div className="trace-label">
-                                {message.streaming
-                                  ? t("ask.traceWriting")
-                                  : t("ask.traceWroteAnswer")}
-                              </div>
-                            </TraceNode>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                <div className="message-content">
-                  {message.type === "ai" ? (
-                    message.streaming && !message.content ? (
-                      <div className="loading">
-                        <div className="typing-indicator">
-                          <span></span>
-                          <span></span>
-                          <span></span>
-                        </div>
-                        {t("ask.consulting")}
-                      </div>
-                    ) : (
-                      <StreamingMarkdown content={message.content} streaming={message.streaming} />
-                    )
-                  ) : (
-                    message.content
-                  )}
-                </div>
-
-                {/* Answer affordances: copy / regenerate / feedback */}
-                {message.type === "ai" &&
-                  !message.streaming &&
-                  message.content &&
-                  !message.error && (
-                    <div className="msg-actions">
                       <button
-                        className="msg-action-btn"
-                        onClick={() => handleCopy(message.content, index)}
-                        title={t("ask.copyTitle")}
+                        key={o.val}
+                        type="button"
+                        className={`ask-toggle-btn${active ? " is-active" : ""}`}
+                        onClick={() => !modeLocked && setMode(o.val)}
+                        disabled={modeLocked}
+                        style={modeLocked && !active ? { opacity: 0.5 } : undefined}
                       >
-                        {copiedIdx === index ? <Check size={13} /> : <Copy size={13} />}
-                        {copiedIdx === index ? t("ask.copied") : t("ask.copy")}
+                        {o.label}
                       </button>
-                      {index === lastAiIndex && message.question && (
-                        <div className="regen-group">
-                          <button
-                            className="msg-action-btn regen-main"
-                            onClick={() => handleRegenerate(message)}
-                            disabled={loading}
-                            title={t("ask.regenCurrentTitle")}
-                          >
-                            <RefreshCw size={13} />
-                            {t("ask.regenerate")}
-                          </button>
-                          <button
-                            ref={regenBtnRef}
-                            className="msg-action-btn regen-caret"
-                            onClick={() => setRegenMenuOpen((v) => !v)}
-                            disabled={loading || modelOptions.length === 0}
-                            title={t("ask.regenDifferentTitle")}
-                            aria-label={t("ask.regenDifferentTitle")}
-                          >
-                            <ChevronDown size={13} />
-                          </button>
-                          <PortalMenu
-                            anchorRef={regenBtnRef}
-                            open={regenMenuOpen}
-                            onClose={() => setRegenMenuOpen(false)}
-                            align="left"
-                            width={220}
-                          >
-                            <div className="regen-menu-label">{t("ask.regenWith")}</div>
-                            {modelOptions.map((opt) => {
-                              const isCurrent =
-                                opt.providerType === providerType && opt.model === model;
-                              return (
-                                <button
-                                  key={`${opt.providerType}:${opt.model}`}
-                                  className="regen-menu-item"
-                                  onClick={() => handleRegenerate(message, opt)}
-                                >
-                                  <span className="regen-menu-model">
-                                    {opt.model}
-                                    {isCurrent ? " ✓" : ""}
-                                  </span>
-                                  <span className="regen-menu-provider">{opt.providerLabel}</span>
-                                </button>
-                              );
-                            })}
-                          </PortalMenu>
-                        </div>
-                      )}
-                      {conversationId && (
-                        <>
-                          <button
-                            className={`msg-action-btn${message.feedback === "up" ? " active-up" : ""}`}
-                            onClick={() => handleFeedback(index, "up")}
-                            title={t("ask.helpful")}
-                          >
-                            <ThumbsUp size={13} />
-                          </button>
-                          <button
-                            className={`msg-action-btn${message.feedback === "down" ? " active-down" : ""}`}
-                            onClick={() => handleFeedback(index, "down")}
-                            title={t("ask.notHelpful")}
-                          >
-                            <ThumbsDown size={13} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
+                    );
+                  })}
+                </div>
               </div>
-            ))}
-          </div>
 
-          {vargaSuggestions.length > 0 && (
-            <div className="varga-suggest-row">
-              <span className="varga-suggest-row__hint">{t("ask.suggestedCharts")}</span>
-              {vargaSuggestions.map((v) => (
-                <button
-                  key={v.value}
-                  type="button"
-                  className="varga-suggest-chip"
-                  onClick={() => addVargas([v.value])}
-                  title={`${v.name} — ${v.significance}`}
-                >
-                  + {v.code} <span className="varga-suggest-chip__sig">{v.significance}</span>
-                </button>
-              ))}
+              {/* Context Sections Card */}
+              <div className="ask-card">
+                <h3 className="ask-card__header ask-card__header--tight">
+                  <Wrench size={20} />
+                  {t("ask.contextSections")}
+                </h3>
+                <p className="ask-card__hint">
+                  {mode === "tools" ? t("ask.sectionsHintTools") : t("ask.sectionsHintFull")}
+                </p>
+                <div className="ask-section-list">
+                  {CONTEXT_SECTIONS.map((s) => {
+                    const state =
+                      mode === "tools"
+                        ? sections[s.key]
+                        : sections[s.key] === "off"
+                          ? "off"
+                          : "seed";
+                    return (
+                      <button
+                        key={s.key}
+                        type="button"
+                        className={`ask-section-row ask-section-row--${state}`}
+                        onClick={() => cycleSection(s.key)}
+                        title={t("ask.clickToChange")}
+                      >
+                        <span className="ask-section-row__label">{t(s.labelKey)}</span>
+                        <span className={`ask-section-row__state ask-section-row__state--${state}`}>
+                          {state === "seed"
+                            ? t("ask.stateSeed")
+                            : state === "tool"
+                              ? t("ask.stateTool")
+                              : t("ask.stateOff")}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Divisional Charts (Vargas) Card */}
+              <div className="ask-card">
+                <h3 className="ask-card__header ask-card__header--tight">
+                  <Star size={20} />
+                  {t("ask.chartsToConsult")}
+                </h3>
+                <p className="ask-card__hint">{t("ask.chartsHint")}</p>
+                <div className="ask-toggle-row">
+                  {VARGAS.map((v) => {
+                    const active = selectedVargas.includes(v.value);
+                    const isD1 = v.value === 1;
+                    return (
+                      <button
+                        key={v.value}
+                        type="button"
+                        className={`ask-toggle-btn${active ? " is-active" : ""}`}
+                        onClick={() => !isD1 && toggleVarga(v.value)}
+                        disabled={isD1}
+                        title={`${v.name} — ${v.significance}`}
+                        style={isD1 ? { cursor: "default", opacity: 0.8 } : undefined}
+                      >
+                        {v.code}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </AdvancedOnly>
+
+          {/* Error banner */}
+          {error && (
+            <div className="ask-error">
+              <span>⚠ {error}</span>
+              <button
+                className="ask-error__dismiss"
+                onClick={() => setError("")}
+                title={t("ask.dismiss")}
+              >
+                <X size={16} />
+              </button>
             </div>
           )}
 
-          <div className="chat-input-container">
-            <ChatComposer
-              value={currentQuestion}
-              onChange={setCurrentQuestion}
-              onSubmit={() => handleAskQuestion(currentQuestion)}
-              onStop={handleStop}
-              busy={loading}
-              multiline={false}
-              placeholder={t("ask.inputPlaceholder")}
-              sendTitle={t("ask.send")}
-              stopTitle={t("ask.stopTitle")}
-              stopLabel={t("ask.stop")}
-            />
+          {/* Which model is answering — sits with the chat it describes, right
+            above the transcript, rather than costing a tile in the grid. */}
+          <div className="ask-model-bar fade-in fade-in--d6">
+            <div className="ask-model-chip">
+              <Bot size={13} />
+              <span className="ask-model-chip__name" title={t("ask.aiModel")}>
+                {providersLoading ? t("ask.detectingModels") : model || providerType}
+              </span>
+              <button
+                type="button"
+                className="ask-model-chip__btn"
+                onClick={() => openInfo(lastContext)}
+                title={t("ask.viewDataTitle")}
+              >
+                <Info size={13} />
+                <span>{t("ask.viewDataSent")}</span>
+              </button>
+              <button
+                type="button"
+                className="ask-model-chip__btn"
+                onClick={() => navigate("/settings")}
+              >
+                {t("ask.changeInSettings")}
+              </button>
+            </div>
           </div>
 
-          {/* Safety / disclaimer footer */}
-          <div className="ai-disclaimer">⚠ {t("ask.disclaimer")}</div>
-        </div>
+          {/* Chat Area */}
+          <div className="chat-area fade-in fade-in--d6">
+            <div className="messages-container">
+              {messages.map((message, index) => (
+                <div key={index} className={`message ${message.type}`}>
+                  {message.type === "user" && (
+                    <div className="message-header">
+                      <User size={18} />
+                      <span>{t("ask.you")}</span>
+                      <span className="timestamp">{message.timestamp}</span>
+                    </div>
+                  )}
+                  {message.type === "ai" && (
+                    <div className="message-header">
+                      <Bot size={18} />
+                      <span>
+                        {t("ask.aiAstrologer")}
+                        {message.model
+                          ? ` · ${message.model}`
+                          : message.provider
+                            ? ` (${message.provider})`
+                            : ""}
+                      </span>
+                      {message.timestamp && <span className="timestamp">{message.timestamp}</span>}
+                      {!message.streaming && message.elapsed_ms != null && (
+                        <span className="timestamp" title={t("ask.generationTime")}>
+                          {(message.elapsed_ms / 1000).toFixed(1)}s
+                        </span>
+                      )}
+                      {!message.streaming &&
+                        (() => {
+                          const u = usageLabel(message.usage);
+                          return u ? (
+                            <span className="timestamp" title={u.title}>
+                              {u.short}
+                            </span>
+                          ) : null;
+                        })()}
+                      {!message.streaming && (message.context || message.model) && (
+                        <button
+                          className="msg-info-btn"
+                          onClick={() => openInfo(messageInfo(message))}
+                          title={t("ask.chartDataForAnswer")}
+                        >
+                          <Info size={15} />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {message.type === "system" && (
+                    <div className="message-header">
+                      <Sparkles size={18} />
+                      <span>{t("ask.system")}</span>
+                    </div>
+                  )}
+                  {message.type === "ai" &&
+                    message.toolSteps &&
+                    message.toolSteps.length > 0 &&
+                    (() => {
+                      const realSteps = message.toolSteps.filter((s) => !s.notice);
+                      return (
+                        <div className="tool-steps">
+                          {/* Pills timeline of the tool calls, in order */}
+                          <div className="tool-pills">
+                            {message.toolSteps.map((s, si) =>
+                              s.notice ? (
+                                <span key={si} className="tool-pill-notice">
+                                  {s.notice}
+                                </span>
+                              ) : (
+                                <span
+                                  key={si}
+                                  className={`tool-pill${s.ok === false ? " tool-pill--err" : ""}`}
+                                  title={s.args ? JSON.stringify(s.args) : ""}
+                                >
+                                  {s.ok === null ? (
+                                    <Wrench size={12} />
+                                  ) : s.ok ? (
+                                    <Check size={12} />
+                                  ) : (
+                                    <X size={12} />
+                                  )}
+                                  {fmtTool(s.name)}
+                                  {s.args && Object.keys(s.args).length
+                                    ? ` (${Object.values(s.args).join(", ")})`
+                                    : ""}
+                                </span>
+                              )
+                            )}
+                            {realSteps.length > 0 && (
+                              <button
+                                type="button"
+                                className="tool-trace-toggle"
+                                onClick={() => toggleTrace(index, message)}
+                              >
+                                {openTrace[index] ? "▾" : "▸"} {t("ask.behindTheScenes")}
+                              </button>
+                            )}
+                          </div>
 
-        {/* Info Modal */}
-        {showInfoModal && (
-          <div className="modal-overlay" onClick={() => setShowInfoModal(false)}>
-            <div className="modal-panel modal-panel--lg" onClick={(e) => e.stopPropagation()}>
-              {/* Modal Header */}
-              <div className="modal-header modal-header--sticky">
-                <h3 className="modal-title">
-                  <Info size={24} />
-                  {t("ask.chartDataSentToAI")}
-                </h3>
-                <button className="modal-close" onClick={() => setShowInfoModal(false)}>
-                  <X size={24} />
-                </button>
+                          {/* Expanded: a vertical timeline of the whole call flow —
+                            seed → each tool call (+ the data it returned) → answer. */}
+                          {openTrace[index] && realSteps.length > 0 && (
+                            <div className="tool-trace-panel">
+                              {/* Start: the seed sent to the model */}
+                              <TraceNode
+                                isFirst
+                                icon={<Star size={11} />}
+                                dotBg="var(--saffron, #e08a2c)"
+                                dotBorder="var(--saffron, #e08a2c)"
+                              >
+                                <div className="trace-label">{t("ask.traceSeedSummary")}</div>
+                                {(message.context || message.mode === "tools") && (
+                                  <button
+                                    type="button"
+                                    className="trace-link"
+                                    onClick={() => openInfo(messageInfo(message))}
+                                  >
+                                    {t("ask.traceViewWhatSent")}
+                                  </button>
+                                )}
+                              </TraceNode>
+
+                              {/* Each tool call / notice, in order */}
+                              {message.toolSteps.map((s, si) =>
+                                s.notice ? (
+                                  <TraceNode
+                                    key={si}
+                                    icon={<span className="trace-bullet">•</span>}
+                                    dotBg="var(--ink-light, #999)"
+                                    dotBorder="var(--ink-light, #999)"
+                                  >
+                                    <div className="trace-notice">{s.notice}</div>
+                                  </TraceNode>
+                                ) : (
+                                  <TraceNode
+                                    key={si}
+                                    icon={
+                                      s.ok === false ? (
+                                        <X size={11} />
+                                      ) : s.ok === null ? (
+                                        <Wrench size={11} />
+                                      ) : (
+                                        <Check size={11} />
+                                      )
+                                    }
+                                    dotBg={s.ok === false ? "#c0392b" : "var(--saffron, #e08a2c)"}
+                                    dotBorder={
+                                      s.ok === false ? "#c0392b" : "var(--saffron, #e08a2c)"
+                                    }
+                                  >
+                                    <div className="trace-label">
+                                      {t("ask.traceLookedUp", { tool: fmtTool(s.name) })}
+                                      {s.args && Object.keys(s.args).length ? (
+                                        <span className="trace-label__args">
+                                          {" "}
+                                          (
+                                          {Object.entries(s.args)
+                                            .map(([k, v]) => `${k}: ${v}`)
+                                            .join(", ")}
+                                          )
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    {s.result !== undefined && (
+                                      <details className="trace-data">
+                                        <summary className="trace-data__summary">
+                                          {t("ask.traceViewData")}
+                                        </summary>
+                                        <pre className="trace-data__pre">
+                                          {JSON.stringify(s.result, null, 2)}
+                                        </pre>
+                                      </details>
+                                    )}
+                                  </TraceNode>
+                                )
+                              )}
+
+                              {/* End: the written answer */}
+                              <TraceNode
+                                isLast
+                                icon={<Sparkles size={11} />}
+                                dotBg="var(--vermillion, #c0392b)"
+                                dotBorder="var(--vermillion, #c0392b)"
+                              >
+                                <div className="trace-label">
+                                  {message.streaming
+                                    ? t("ask.traceWriting")
+                                    : t("ask.traceWroteAnswer")}
+                                </div>
+                              </TraceNode>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  <div className="message-content">
+                    {message.type === "ai" ? (
+                      message.streaming && !message.content ? (
+                        <div className="loading">
+                          <div className="typing-indicator">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </div>
+                          {t("ask.consulting")}
+                        </div>
+                      ) : (
+                        <StreamingMarkdown
+                          content={message.content}
+                          streaming={message.streaming}
+                        />
+                      )
+                    ) : (
+                      message.content
+                    )}
+                  </div>
+
+                  {/* Answer affordances: copy / regenerate / feedback */}
+                  {message.type === "ai" &&
+                    !message.streaming &&
+                    message.content &&
+                    !message.error && (
+                      <div className="msg-actions">
+                        <button
+                          className="msg-action-btn"
+                          onClick={() => handleCopy(message.content, index)}
+                          title={t("ask.copyTitle")}
+                        >
+                          {copiedIdx === index ? <Check size={13} /> : <Copy size={13} />}
+                          {copiedIdx === index ? t("ask.copied") : t("ask.copy")}
+                        </button>
+                        {index === lastAiIndex && message.question && (
+                          <div className="regen-group">
+                            <button
+                              className="msg-action-btn regen-main"
+                              onClick={() => handleRegenerate(message)}
+                              disabled={loading}
+                              title={t("ask.regenCurrentTitle")}
+                            >
+                              <RefreshCw size={13} />
+                              {t("ask.regenerate")}
+                            </button>
+                            <button
+                              ref={regenBtnRef}
+                              className="msg-action-btn regen-caret"
+                              onClick={() => setRegenMenuOpen((v) => !v)}
+                              disabled={loading || modelOptions.length === 0}
+                              title={t("ask.regenDifferentTitle")}
+                              aria-label={t("ask.regenDifferentTitle")}
+                            >
+                              <ChevronDown size={13} />
+                            </button>
+                            <PortalMenu
+                              anchorRef={regenBtnRef}
+                              open={regenMenuOpen}
+                              onClose={() => setRegenMenuOpen(false)}
+                              align="left"
+                              width={220}
+                            >
+                              <div className="regen-menu-label">{t("ask.regenWith")}</div>
+                              {modelOptions.map((opt) => {
+                                const isCurrent =
+                                  opt.providerType === providerType && opt.model === model;
+                                return (
+                                  <button
+                                    key={`${opt.providerType}:${opt.model}`}
+                                    className="regen-menu-item"
+                                    onClick={() => handleRegenerate(message, opt)}
+                                  >
+                                    <span className="regen-menu-model">
+                                      {opt.model}
+                                      {isCurrent ? " ✓" : ""}
+                                    </span>
+                                    <span className="regen-menu-provider">{opt.providerLabel}</span>
+                                  </button>
+                                );
+                              })}
+                            </PortalMenu>
+                          </div>
+                        )}
+                        {conversationId && (
+                          <>
+                            <button
+                              className={`msg-action-btn${message.feedback === "up" ? " active-up" : ""}`}
+                              onClick={() => handleFeedback(index, "up")}
+                              title={t("ask.helpful")}
+                            >
+                              <ThumbsUp size={13} />
+                            </button>
+                            <button
+                              className={`msg-action-btn${message.feedback === "down" ? " active-down" : ""}`}
+                              onClick={() => handleFeedback(index, "down")}
+                              title={t("ask.notHelpful")}
+                            >
+                              <ThumbsDown size={13} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                </div>
+              ))}
+            </div>
+
+            {vargaSuggestions.length > 0 && (
+              <div className="varga-suggest-row">
+                <span className="varga-suggest-row__hint">{t("ask.suggestedCharts")}</span>
+                {vargaSuggestions.map((v) => (
+                  <button
+                    key={v.value}
+                    type="button"
+                    className="varga-suggest-chip"
+                    onClick={() => addVargas([v.value])}
+                    title={`${v.name} — ${v.significance}`}
+                  >
+                    + {v.code} <span className="varga-suggest-chip__sig">{v.significance}</span>
+                  </button>
+                ))}
               </div>
+            )}
 
-              {/* Modal Content */}
-              <div className="modal-body" style={{ fontSize: "0.875rem", lineHeight: "1.6" }}>
-                <div className="info-modal-intro">
-                  <p>{modalData ? t("ask.modalIntroWithData") : t("ask.modalIntroNoData")}</p>
+            <div className="chat-input-container">
+              <ChatComposer
+                value={currentQuestion}
+                onChange={setCurrentQuestion}
+                onSubmit={() => handleAskQuestion(currentQuestion)}
+                onStop={handleStop}
+                busy={loading}
+                multiline={false}
+                placeholder={t("ask.inputPlaceholder")}
+                sendTitle={t("ask.send")}
+                stopTitle={t("ask.stopTitle")}
+                stopLabel={t("ask.stop")}
+              />
+            </div>
+
+            {/* Safety / disclaimer footer */}
+            <div className="ai-disclaimer">⚠ {t("ask.disclaimer")}</div>
+          </div>
+
+          {/* Info Modal */}
+          {showInfoModal && (
+            // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
+            <div
+              className="modal-overlay"
+              onClick={() => setShowInfoModal(false)}
+              aria-hidden="true"
+            >
+              {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events */}
+              <div
+                className="modal-panel modal-panel--lg"
+                role="dialog"
+                aria-modal="true"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div className="modal-header modal-header--sticky">
+                  <h3 className="modal-title">
+                    <Info size={24} />
+                    {t("ask.chartDataSentToAI")}
+                  </h3>
+                  <button className="modal-close" onClick={() => setShowInfoModal(false)}>
+                    <X size={24} />
+                  </button>
                 </div>
 
-                <pre className="info-modal-pre">
-                  {JSON.stringify(modalData || getChartDataForLLM(), null, 2)}
-                </pre>
+                {/* Modal Content */}
+                <div className="modal-body" style={{ fontSize: "0.875rem", lineHeight: "1.6" }}>
+                  <div className="info-modal-intro">
+                    <p>{modalData ? t("ask.modalIntroWithData") : t("ask.modalIntroNoData")}</p>
+                  </div>
 
-                <div className="info-modal-note">
-                  <p className="fw-600 text-indigo">📝 {t("ask.note")}</p>
-                  <p className="text-secondary">{t("ask.noteBody")}</p>
+                  <pre className="info-modal-pre">
+                    {JSON.stringify(modalData || getChartDataForLLM(), null, 2)}
+                  </pre>
+
+                  <div className="info-modal-note">
+                    <p className="fw-600 text-indigo">📝 {t("ask.note")}</p>
+                    <p className="text-secondary">{t("ask.noteBody")}</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

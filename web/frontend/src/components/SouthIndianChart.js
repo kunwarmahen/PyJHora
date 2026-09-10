@@ -7,6 +7,7 @@ import { useLocalizeName } from "../i18n/localizeName";
 import { useSettings } from "../contexts/SettingsContext";
 import { signLabelParts } from "../config/signLabel";
 import { signNumOf } from "../config/chartPosition";
+import { describeChart } from "../config/chartDescription";
 import { ChartExportButtons } from "./ChartExportButtons";
 import "../styles/NorthIndianChart.css";
 
@@ -127,7 +128,26 @@ export const SouthIndianChart = ({
         </h3>
         {exportable && <ChartExportButtons targetRef={gridRef} title={`${title} ${subtitle}`} />}
       </div>
-      <div className="si-grid" ref={gridRef} role="img" aria-label={`${title} (${subtitle})`}>
+      {/* role="img" makes the grid one object to a screen reader and hides the
+          cells inside it, so the label has to carry the whole chart — see
+          config/chartDescription.js. Before this it said only the title. */}
+      <div
+        className="si-grid"
+        ref={gridRef}
+        role="img"
+        aria-label={describeChart({
+          title,
+          subtitle,
+          ascendant: lagnaSignNum ? ln(RASI_NAMES[lagnaSignNum - 1], "rasi") : null,
+          cells: Object.keys(SIGN_POS).map((key) => ({
+            label: ln(RASI_NAMES[Number(key) - 1], "rasi"),
+            items: itemsForSign(Number(key)).map((i) =>
+              i.type === "planet" ? ln(i.fullName, "graha") : i.name
+            ),
+          })),
+          t,
+        })}
+      >
         {Object.keys(SIGN_POS).map((key) => {
           const signNum = Number(key);
           const { col, row } = SIGN_POS[signNum];
@@ -157,15 +177,25 @@ export const SouthIndianChart = ({
                 {items.map((item, idx) => {
                   const cond = item.fullName ? flagsByPlanet[item.fullName] : null;
                   const clickable = onSelectPlanet && item.type === "planet" && item.fullName;
+                  const Tag = clickable ? "button" : "span";
                   return (
-                    <span
+                    <Tag
                       key={idx}
+                      type={clickable ? "button" : undefined}
                       className={`si-pl${item.type === "lagna" ? " si-pl-lagna" : ""}${
                         item.type === "arudha" ? " si-pl-arudha" : ""
                       }${clickable ? " si-pl-clickable" : ""}`}
                       title={
                         cond
                           ? `${ln(item.fullName, "graha")}: ${cond.labels.join(", ")}`
+                          : undefined
+                      }
+                      aria-label={
+                        clickable
+                          ? t("chartA11y.planetIn", {
+                              planet: ln(item.fullName, "graha"),
+                              place: ln(RASI_NAMES[signNum - 1], "rasi"),
+                            })
                           : undefined
                       }
                       onClick={
@@ -189,7 +219,7 @@ export const SouthIndianChart = ({
                           ●
                         </span>
                       )}
-                    </span>
+                    </Tag>
                   );
                 })}
               </div>

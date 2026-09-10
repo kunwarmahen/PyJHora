@@ -1,3 +1,4 @@
+import { clickable } from "../utils/a11y";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -375,7 +376,7 @@ export const ProfileSelectionPage = () => {
                       className={`profile-card fade-in stagger-${Math.min(index + 1, 5)}${
                         exportMode && selectedIds.has(profile._id) ? " selected-for-export" : ""
                       }`}
-                      onClick={() => handleSelectProfile(profile)}
+                      {...clickable(() => handleSelectProfile(profile), { label: profile.name })}
                     >
                       <div className="profile-card-header">
                         <div className="profile-avatar">
@@ -482,7 +483,9 @@ export const ProfileSelectionPage = () => {
 
                   <div
                     className={`profile-card create-new-card fade-in stagger-${Math.min(profiles.length + 1, 5)}`}
-                    onClick={() => setShowCreateForm(true)}
+                    {...clickable(() => setShowCreateForm(true), {
+                      label: t("profile.createNew"),
+                    })}
                     style={{ display: exportMode ? "none" : undefined }}
                   >
                     <div className="create-icon">

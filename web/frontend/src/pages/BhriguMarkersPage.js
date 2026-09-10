@@ -149,142 +149,149 @@ export const BhriguMarkersPage = () => {
         subtitle={t("bhrigu.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="bhrigu" profileId={selectedProfile?._id} />
+          <ProfileBanner profile={selectedProfile} />
 
-      <div className="dashboard-content">
-        <RecentReadings source="bhrigu" profileId={selectedProfile?._id} />
-        <ProfileBanner profile={selectedProfile} />
+          <p className="card-note">{t("bhrigu.intro")}</p>
 
-        <p className="card-note">{t("bhrigu.intro")}</p>
-
-        <div className="page-controls">
-          <div className="controls-group">
-            <label className="control-label">{t("bhrigu.horizon")}</label>
-            <select
-              className="control-input"
-              value={years}
-              onChange={(e) => setYears(parseInt(e.target.value, 10))}
-            >
-              {[8, 12, 20, 30].map((y) => (
-                <option key={y} value={y}>
-                  {t("bhrigu.yearsOption", { count: y })}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <ErrorBanner message={error} />
-
-        {loading ? (
-          <Card>
-            <LoadingState message={t("bhrigu.loading")} />
-          </Card>
-        ) : data ? (
-          <div className="fade-in">
-            {/* Bhrigu Bindu summary */}
-            {bb && (
-              <div className="info-pills">
-                <span className="info-pill">
-                  <Compass size={14} />{" "}
-                  {t("bhrigu.bbSign", { sign: ln(bb.sign_name, "rasi"), deg: bb.degrees })}
-                </span>
-                <span className="info-pill">{t("bhrigu.bbHouse", { n: bb.house_from_lagna })}</span>
-                <span className="info-pill">{t("bhrigu.moonSign", { sign: data.moon_sign })}</span>
-                <span className="info-pill">{t("bhrigu.ageNow", { age: data.age_now })}</span>
-              </div>
-            )}
-
-            {/* Annual progression */}
-            <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
-              <h3 className="ui-card-header ui-card-header--sm">
-                <TrendingUp size={18} /> {t("bhrigu.progressionTitle")}
-              </h3>
-              <p className="card-note">{t("bhrigu.progressionIntro")}</p>
-              <div className="bhrigu-prog-grid">
-                {progression.map((p) => (
-                  <div
-                    key={p.age}
-                    className={`bhrigu-prog${p.is_bhrigu_bindu ? " bhrigu-prog--bb" : ""}${
-                      p.is_moon_sign ? " bhrigu-prog--moon" : ""
-                    }${p.planets.length ? " bhrigu-prog--active" : ""}`}
-                  >
-                    <div className="bhrigu-prog__year">
-                      {p.year}{" "}
-                      <span className="text-secondary">· {t("bhrigu.age", { n: p.age })}</span>
-                    </div>
-                    <div className="bhrigu-prog__sign">
-                      {ln(p.sign_name, "rasi")}{" "}
-                      <span className="text-secondary">({ln(p.sign_lord, "graha")})</span>
-                    </div>
-                    <div className="bhrigu-prog__planets">
-                      {p.planets.length ? p.planets.join(", ") : t("bhrigu.emptySign")}
-                    </div>
-                    {(p.is_bhrigu_bindu || p.is_moon_sign) && (
-                      <div className="bhrigu-prog__tag">
-                        {p.is_bhrigu_bindu ? t("bhrigu.bbTag") : t("bhrigu.moonTag")}
-                      </div>
-                    )}
-                  </div>
+          <div className="page-controls">
+            <div className="controls-group">
+              <label className="control-label">{t("bhrigu.horizon")}</label>
+              <select
+                className="control-input"
+                value={years}
+                onChange={(e) => setYears(parseInt(e.target.value, 10))}
+              >
+                {[8, 12, 20, 30].map((y) => (
+                  <option key={y} value={y}>
+                    {t("bhrigu.yearsOption", { count: y })}
+                  </option>
                 ))}
-              </div>
-            </div>
-
-            {/* Activations */}
-            <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush mt-xl">
-              <h3 className="ui-card-header ui-card-header--sm">
-                <Sparkles size={18} /> {t("bhrigu.activationsTitle")}
-              </h3>
-              <p className="card-note">{t("bhrigu.activationsIntro")}</p>
-              {activations.length === 0 ? (
-                <p className="card-note">{t("bhrigu.noActivations")}</p>
-              ) : (
-                <ul className="bhrigu-activation-list">
-                  {activations.map((a, i) => (
-                    <li key={i} className="bhrigu-activation">
-                      <span className="bhrigu-activation__date">{formatDate(a.date, locale)}</span>
-                      <span className="bhrigu-activation__text">
-                        {t("bhrigu.activationRow", {
-                          planet: a.planet,
-                          sign: ln(a.sign_name, "rasi"),
-                          target: a.target,
-                        })}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {/* AI reading */}
-            <div className="mt-xl">
-              <Card title={t("bhrigu.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
-                <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && (
-                  <p className="ai-panel__hint">{t("bhrigu.aiHint")}</p>
-                )}
-                {aiLoading && <LoadingState message={t("bhrigu.aiLoading")} />}
-                {aiAnalysis && !aiLoading && (
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{aiAnalysis}</Markdown>
-                    {aiModel && (
-                      <div className="ai-panel__meta">
-                        {t("bhrigu.aiModel", { model: aiModel })}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {!aiLoading && (
-                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                    <Sparkles size={18} />
-                    {aiAnalysis ? t("bhrigu.aiRegenerate") : t("bhrigu.aiGenerate")}
-                  </button>
-                )}
-                <p className="card-note">{t("bhrigu.disclaimer")}</p>
-              </Card>
+              </select>
             </div>
           </div>
-        ) : null}
-      </div>
+
+          <ErrorBanner message={error} />
+
+          {loading ? (
+            <Card>
+              <LoadingState message={t("bhrigu.loading")} />
+            </Card>
+          ) : data ? (
+            <div className="fade-in">
+              {/* Bhrigu Bindu summary */}
+              {bb && (
+                <div className="info-pills">
+                  <span className="info-pill">
+                    <Compass size={14} />{" "}
+                    {t("bhrigu.bbSign", { sign: ln(bb.sign_name, "rasi"), deg: bb.degrees })}
+                  </span>
+                  <span className="info-pill">
+                    {t("bhrigu.bbHouse", { n: bb.house_from_lagna })}
+                  </span>
+                  <span className="info-pill">
+                    {t("bhrigu.moonSign", { sign: data.moon_sign })}
+                  </span>
+                  <span className="info-pill">{t("bhrigu.ageNow", { age: data.age_now })}</span>
+                </div>
+              )}
+
+              {/* Annual progression */}
+              <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <TrendingUp size={18} /> {t("bhrigu.progressionTitle")}
+                </h3>
+                <p className="card-note">{t("bhrigu.progressionIntro")}</p>
+                <div className="bhrigu-prog-grid">
+                  {progression.map((p) => (
+                    <div
+                      key={p.age}
+                      className={`bhrigu-prog${p.is_bhrigu_bindu ? " bhrigu-prog--bb" : ""}${
+                        p.is_moon_sign ? " bhrigu-prog--moon" : ""
+                      }${p.planets.length ? " bhrigu-prog--active" : ""}`}
+                    >
+                      <div className="bhrigu-prog__year">
+                        {p.year}{" "}
+                        <span className="text-secondary">· {t("bhrigu.age", { n: p.age })}</span>
+                      </div>
+                      <div className="bhrigu-prog__sign">
+                        {ln(p.sign_name, "rasi")}{" "}
+                        <span className="text-secondary">({ln(p.sign_lord, "graha")})</span>
+                      </div>
+                      <div className="bhrigu-prog__planets">
+                        {p.planets.length ? p.planets.join(", ") : t("bhrigu.emptySign")}
+                      </div>
+                      {(p.is_bhrigu_bindu || p.is_moon_sign) && (
+                        <div className="bhrigu-prog__tag">
+                          {p.is_bhrigu_bindu ? t("bhrigu.bbTag") : t("bhrigu.moonTag")}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Activations */}
+              <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush mt-xl">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <Sparkles size={18} /> {t("bhrigu.activationsTitle")}
+                </h3>
+                <p className="card-note">{t("bhrigu.activationsIntro")}</p>
+                {activations.length === 0 ? (
+                  <p className="card-note">{t("bhrigu.noActivations")}</p>
+                ) : (
+                  <ul className="bhrigu-activation-list">
+                    {activations.map((a, i) => (
+                      <li key={i} className="bhrigu-activation">
+                        <span className="bhrigu-activation__date">
+                          {formatDate(a.date, locale)}
+                        </span>
+                        <span className="bhrigu-activation__text">
+                          {t("bhrigu.activationRow", {
+                            planet: a.planet,
+                            sign: ln(a.sign_name, "rasi"),
+                            target: a.target,
+                          })}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* AI reading */}
+              <div className="mt-xl">
+                <Card title={t("bhrigu.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
+                  <ErrorBanner message={aiError} />
+                  {!aiAnalysis && !aiLoading && (
+                    <p className="ai-panel__hint">{t("bhrigu.aiHint")}</p>
+                  )}
+                  {aiLoading && <LoadingState message={t("bhrigu.aiLoading")} />}
+                  {aiAnalysis && !aiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <Markdown>{aiAnalysis}</Markdown>
+                      {aiModel && (
+                        <div className="ai-panel__meta">
+                          {t("bhrigu.aiModel", { model: aiModel })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!aiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                      <Sparkles size={18} />
+                      {aiAnalysis ? t("bhrigu.aiRegenerate") : t("bhrigu.aiGenerate")}
+                    </button>
+                  )}
+                  <p className="card-note">{t("bhrigu.disclaimer")}</p>
+                </Card>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

@@ -28,10 +28,17 @@ export const PageHeader = ({
   const { t } = useTranslation();
   return (
     <>
-      <nav className="navbar">
+      {/* Bypass block (WCAG 2.4.1). The drawer behind the hamburger is ~40
+          entries; without this a keyboard or screen-reader user walks all of it
+          on every page. `.skip-link` is off-screen until focused. The target is
+          the <main> each page wraps its content in. */}
+      <a className="skip-link" href="#page-content">
+        {t("common.skipToContent")}
+      </a>
+      <header className="navbar" role="banner">
         <div className="navbar-brand">
           {backTo && (
-            <button className="page-back-btn" onClick={() => navigate(backTo)}>
+            <button type="button" className="page-back-btn" onClick={() => navigate(backTo)}>
               <ArrowLeft size={20} />
               <span>{t("common.back")}</span>
             </button>
@@ -49,6 +56,7 @@ export const PageHeader = ({
           {/* Always-present way out for someone who doesn't understand the page
               they're on. Icon-only: it must never crowd the page's own actions. */}
           <button
+            type="button"
             className="page-help-btn"
             onClick={() => navigate(helpLinkForPath(location.pathname))}
             title={t("nav.help")}
@@ -59,7 +67,7 @@ export const PageHeader = ({
           <ThemeToggle />
           <NavDrawer />
         </div>
-      </nav>
+      </header>
       {/* One mount point covers every feature page: PageHeader is on all of
           them, and the notice renders itself only on an advanced route reached
           while in Essentials mode. */}

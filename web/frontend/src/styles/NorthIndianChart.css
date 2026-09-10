@@ -187,8 +187,24 @@
   color: var(--saffron);
 }
 /* Clickable planet (interactive explorer, §5.5). */
+/* A clickable planet is a real <button> now (§68.8) — a <span onClick> could
+ * not be tabbed to and announced as nothing. Strip the control chrome so it
+ * still reads as the text it always looked like. */
 .si-pl-clickable {
   cursor: pointer;
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  line-height: inherit;
+}
+.si-pl-clickable:focus-visible {
+  outline: 2px solid var(--saffron);
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 .si-pl-clickable:hover {
   text-decoration: underline;

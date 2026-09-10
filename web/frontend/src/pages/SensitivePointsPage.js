@@ -160,199 +160,50 @@ export const SensitivePointsPage = () => {
         subtitle={t("sensitive.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="sensitive_points" profileId={selectedProfile?._id} />
+          <ProfileBanner profile={selectedProfile} />
 
-      <div className="dashboard-content">
-        <RecentReadings source="sensitive_points" profileId={selectedProfile?._id} />
-        <ProfileBanner profile={selectedProfile} />
+          {loading && (
+            <Card>
+              <LoadingState message={t("sensitive.loading")} />
+            </Card>
+          )}
+          <ErrorBanner message={error} />
 
-        {loading && (
-          <Card>
-            <LoadingState message={t("sensitive.loading")} />
-          </Card>
-        )}
-        <ErrorBanner message={error} />
+          {!loading && !error && data && (
+            <div className="fade-in">
+              <p className="card-intro">{t("sensitive.intro")}</p>
 
-        {!loading && !error && data && (
-          <div className="fade-in">
-            <p className="card-intro">{t("sensitive.intro")}</p>
+              <Tabs
+                tabs={visibleTabs}
+                active={tab}
+                onChange={setTab}
+                ariaLabel={t("sensitive.title")}
+              />
 
-            <Tabs
-              tabs={visibleTabs}
-              active={tab}
-              onChange={setTab}
-              ariaLabel={t("sensitive.title")}
-            />
-
-            {tab === "special" && (
-              <>
-                <Card
-                  title={t("sensitive.specialLagnaTitle")}
-                  icon={<Compass size={22} />}
-                  accent="saffron"
-                  count={special?.special_lagnas?.length || 0}
-                >
-                  <p className="card-note">{t("sensitive.specialLagnaNote")}</p>
-                  <div className="table-scroll">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>{t("sensitive.colPoint")}</th>
-                          <th>{t("sensitive.colMeaning")}</th>
-                          <th>{t("sensitive.colSign")}</th>
-                          <th>{t("sensitive.colHouse")}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(special?.special_lagnas || []).map((s) => (
-                          <tr key={s.name}>
-                            <td className="fw-700">{s.name}</td>
-                            <td className="text-secondary">{s.significance}</td>
-                            <td>
-                              {ln(s.sign_name, "rasi")} {s.degrees}°
-                            </td>
-                            <td>{s.house}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
-
-                <div className="mt-xl">
+              {tab === "special" && (
+                <>
                   <Card
-                    title={t("sensitive.upagrahaTitle")}
-                    icon={<ShieldAlert size={22} />}
-                    accent="indigo"
-                    count={special?.upagrahas?.length || 0}
-                  >
-                    <p className="card-note">{t("sensitive.upagrahaNote")}</p>
-                    <div className="table-scroll">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>{t("sensitive.colPoint")}</th>
-                            <th>{t("sensitive.colMeaning")}</th>
-                            <th>{t("sensitive.colSign")}</th>
-                            <th>{t("sensitive.colHouse")}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(special?.upagrahas || []).map((u) => (
-                            <tr key={u.name}>
-                              <td className="fw-700">{u.name}</td>
-                              <td className="text-secondary">{u.significance}</td>
-                              <td>
-                                {ln(u.sign_name, "rasi")} {u.degrees}°
-                              </td>
-                              <td>{u.house}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </Card>
-                </div>
-
-                <div className="mt-xl">
-                  <Card
-                    title={t("sensitive.varnadaTitle")}
-                    icon={<Crosshair size={22} />}
+                    title={t("sensitive.specialLagnaTitle")}
+                    icon={<Compass size={22} />}
                     accent="saffron"
-                    count={special?.varnadas?.length || 0}
+                    count={special?.special_lagnas?.length || 0}
                   >
-                    <p className="card-note">
-                      {t("sensitive.varnadaNote", {
-                        method: special?.varnada_method_name || "",
-                      })}
-                    </p>
+                    <p className="card-note">{t("sensitive.specialLagnaNote")}</p>
                     <div className="table-scroll">
                       <table className="data-table">
                         <thead>
                           <tr>
                             <th>{t("sensitive.colPoint")}</th>
-                            <th>{t("sensitive.colSign")}</th>
-                            <th>{t("sensitive.colHouse")}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(special?.varnadas || []).map((v) => (
-                            <tr key={v.name}>
-                              <td className="fw-700">{v.name}</td>
-                              <td>
-                                {ln(v.sign_name, "rasi")} {v.degrees}°
-                              </td>
-                              <td>{v.house}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </Card>
-                </div>
-              </>
-            )}
-
-            {tab === "sphuta" && (
-              <>
-                {/* Sphutas */}
-                <Card
-                  title={t("sensitive.sphutaTitle")}
-                  icon={<Target size={22} />}
-                  accent="saffron"
-                  count={sphutas.length}
-                >
-                  <p className="card-note">{t("sensitive.sphutaNote")}</p>
-                  <div className="table-scroll">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>{t("sensitive.colPoint")}</th>
-                          <th>{t("sensitive.colMeaning")}</th>
-                          <th>{t("sensitive.colSign")}</th>
-                          <th>{t("sensitive.colHouse")}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sphutas.map((s) => (
-                          <tr key={s.name}>
-                            <td className="fw-700">{s.name}</td>
-                            <td className="text-secondary">{s.significance}</td>
-                            <td>
-                              {ln(s.sign_name, "rasi")} {s.degrees}°
-                            </td>
-                            <td>{s.house}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
-              </>
-            )}
-
-            {tab === "sahams" && (
-              <>
-                {/* Sahams */}
-                <div className="mt-xl">
-                  <Card
-                    title={t("sensitive.sahamTitle")}
-                    icon={<Sparkles size={22} />}
-                    accent="gold"
-                    count={sahams.length}
-                  >
-                    <p className="card-note">{t("sensitive.sahamNote")}</p>
-                    <div className="table-scroll">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>{t("sensitive.colSaham")}</th>
                             <th>{t("sensitive.colMeaning")}</th>
                             <th>{t("sensitive.colSign")}</th>
                             <th>{t("sensitive.colHouse")}</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {sahams.map((s) => (
+                          {(special?.special_lagnas || []).map((s) => (
                             <tr key={s.name}>
                               <td className="fw-700">{s.name}</td>
                               <td className="text-secondary">{s.significance}</td>
@@ -366,96 +217,246 @@ export const SensitivePointsPage = () => {
                       </table>
                     </div>
                   </Card>
-                </div>
-              </>
-            )}
 
-            {tab === "argala" && (
-              <>
-                {/* Argala */}
-                <div className="mt-xl">
-                  <Card
-                    title={t("sensitive.argalaTitle")}
-                    icon={<ShieldAlert size={22} />}
-                    accent="vermillion"
-                    count={argala.length}
-                  >
-                    <p className="card-note">{t("sensitive.argalaNote")}</p>
-                    {argala.length === 0 ? (
-                      <p className="text-secondary">{t("sensitive.argalaEmpty")}</p>
-                    ) : (
+                  <div className="mt-xl">
+                    <Card
+                      title={t("sensitive.upagrahaTitle")}
+                      icon={<ShieldAlert size={22} />}
+                      accent="indigo"
+                      count={special?.upagrahas?.length || 0}
+                    >
+                      <p className="card-note">{t("sensitive.upagrahaNote")}</p>
                       <div className="table-scroll">
                         <table className="data-table">
                           <thead>
                             <tr>
-                              <th>{t("sensitive.colHouse")}</th>
+                              <th>{t("sensitive.colPoint")}</th>
+                              <th>{t("sensitive.colMeaning")}</th>
                               <th>{t("sensitive.colSign")}</th>
-                              <th>{t("sensitive.colArgala")}</th>
-                              <th>{t("sensitive.colVirodha")}</th>
-                              <th>{t("sensitive.colNet")}</th>
+                              <th>{t("sensitive.colHouse")}</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {argala.map((h) => (
-                              <tr key={h.bhava}>
-                                <td className="fw-700">{h.bhava}</td>
-                                <td>{ln(h.sign_name, "rasi")}</td>
+                            {(special?.upagrahas || []).map((u) => (
+                              <tr key={u.name}>
+                                <td className="fw-700">{u.name}</td>
+                                <td className="text-secondary">{u.significance}</td>
                                 <td>
-                                  {h.argala
-                                    .map((a) => `${a.planets.join(", ")} (${a.from})`)
-                                    .join("; ") || "—"}
+                                  {ln(u.sign_name, "rasi")} {u.degrees}°
                                 </td>
-                                <td>
-                                  {h.virodhargala
-                                    .map((a) => `${a.planets.join(", ")} (${a.from})`)
-                                    .join("; ") || "—"}
-                                </td>
-                                <td>
-                                  <span className={`sp-net sp-net--${h.net}`}>
-                                    {netLabel(h.net)}
-                                  </span>
-                                </td>
+                                <td>{u.house}</td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </div>
-                    )}
-                  </Card>
-                </div>
-              </>
-            )}
-
-            {/* AI reading */}
-            <div className="mt-xl">
-              <Card title={t("sensitive.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
-                <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && (
-                  <p className="ai-panel__hint">{t("sensitive.aiHint")}</p>
-                )}
-                {aiLoading && <LoadingState message={t("sensitive.aiLoading")} />}
-                {aiAnalysis && !aiLoading && (
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{aiAnalysis}</Markdown>
-                    {aiModel && (
-                      <div className="ai-panel__meta">
-                        {t("sensitive.aiModel", { model: aiModel })}
-                      </div>
-                    )}
+                    </Card>
                   </div>
-                )}
-                {!aiLoading && (
-                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                    <Sparkles size={18} />
-                    {aiAnalysis ? t("sensitive.aiRegenerate") : t("sensitive.aiGenerate")}
-                  </button>
-                )}
-                <p className="card-note">{t("sensitive.disclaimer")}</p>
-              </Card>
+
+                  <div className="mt-xl">
+                    <Card
+                      title={t("sensitive.varnadaTitle")}
+                      icon={<Crosshair size={22} />}
+                      accent="saffron"
+                      count={special?.varnadas?.length || 0}
+                    >
+                      <p className="card-note">
+                        {t("sensitive.varnadaNote", {
+                          method: special?.varnada_method_name || "",
+                        })}
+                      </p>
+                      <div className="table-scroll">
+                        <table className="data-table">
+                          <thead>
+                            <tr>
+                              <th>{t("sensitive.colPoint")}</th>
+                              <th>{t("sensitive.colSign")}</th>
+                              <th>{t("sensitive.colHouse")}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(special?.varnadas || []).map((v) => (
+                              <tr key={v.name}>
+                                <td className="fw-700">{v.name}</td>
+                                <td>
+                                  {ln(v.sign_name, "rasi")} {v.degrees}°
+                                </td>
+                                <td>{v.house}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </Card>
+                  </div>
+                </>
+              )}
+
+              {tab === "sphuta" && (
+                <>
+                  {/* Sphutas */}
+                  <Card
+                    title={t("sensitive.sphutaTitle")}
+                    icon={<Target size={22} />}
+                    accent="saffron"
+                    count={sphutas.length}
+                  >
+                    <p className="card-note">{t("sensitive.sphutaNote")}</p>
+                    <div className="table-scroll">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>{t("sensitive.colPoint")}</th>
+                            <th>{t("sensitive.colMeaning")}</th>
+                            <th>{t("sensitive.colSign")}</th>
+                            <th>{t("sensitive.colHouse")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sphutas.map((s) => (
+                            <tr key={s.name}>
+                              <td className="fw-700">{s.name}</td>
+                              <td className="text-secondary">{s.significance}</td>
+                              <td>
+                                {ln(s.sign_name, "rasi")} {s.degrees}°
+                              </td>
+                              <td>{s.house}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                </>
+              )}
+
+              {tab === "sahams" && (
+                <>
+                  {/* Sahams */}
+                  <div className="mt-xl">
+                    <Card
+                      title={t("sensitive.sahamTitle")}
+                      icon={<Sparkles size={22} />}
+                      accent="gold"
+                      count={sahams.length}
+                    >
+                      <p className="card-note">{t("sensitive.sahamNote")}</p>
+                      <div className="table-scroll">
+                        <table className="data-table">
+                          <thead>
+                            <tr>
+                              <th>{t("sensitive.colSaham")}</th>
+                              <th>{t("sensitive.colMeaning")}</th>
+                              <th>{t("sensitive.colSign")}</th>
+                              <th>{t("sensitive.colHouse")}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sahams.map((s) => (
+                              <tr key={s.name}>
+                                <td className="fw-700">{s.name}</td>
+                                <td className="text-secondary">{s.significance}</td>
+                                <td>
+                                  {ln(s.sign_name, "rasi")} {s.degrees}°
+                                </td>
+                                <td>{s.house}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </Card>
+                  </div>
+                </>
+              )}
+
+              {tab === "argala" && (
+                <>
+                  {/* Argala */}
+                  <div className="mt-xl">
+                    <Card
+                      title={t("sensitive.argalaTitle")}
+                      icon={<ShieldAlert size={22} />}
+                      accent="vermillion"
+                      count={argala.length}
+                    >
+                      <p className="card-note">{t("sensitive.argalaNote")}</p>
+                      {argala.length === 0 ? (
+                        <p className="text-secondary">{t("sensitive.argalaEmpty")}</p>
+                      ) : (
+                        <div className="table-scroll">
+                          <table className="data-table">
+                            <thead>
+                              <tr>
+                                <th>{t("sensitive.colHouse")}</th>
+                                <th>{t("sensitive.colSign")}</th>
+                                <th>{t("sensitive.colArgala")}</th>
+                                <th>{t("sensitive.colVirodha")}</th>
+                                <th>{t("sensitive.colNet")}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {argala.map((h) => (
+                                <tr key={h.bhava}>
+                                  <td className="fw-700">{h.bhava}</td>
+                                  <td>{ln(h.sign_name, "rasi")}</td>
+                                  <td>
+                                    {h.argala
+                                      .map((a) => `${a.planets.join(", ")} (${a.from})`)
+                                      .join("; ") || "—"}
+                                  </td>
+                                  <td>
+                                    {h.virodhargala
+                                      .map((a) => `${a.planets.join(", ")} (${a.from})`)
+                                      .join("; ") || "—"}
+                                  </td>
+                                  <td>
+                                    <span className={`sp-net sp-net--${h.net}`}>
+                                      {netLabel(h.net)}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </Card>
+                  </div>
+                </>
+              )}
+
+              {/* AI reading */}
+              <div className="mt-xl">
+                <Card title={t("sensitive.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
+                  <ErrorBanner message={aiError} />
+                  {!aiAnalysis && !aiLoading && (
+                    <p className="ai-panel__hint">{t("sensitive.aiHint")}</p>
+                  )}
+                  {aiLoading && <LoadingState message={t("sensitive.aiLoading")} />}
+                  {aiAnalysis && !aiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <Markdown>{aiAnalysis}</Markdown>
+                      {aiModel && (
+                        <div className="ai-panel__meta">
+                          {t("sensitive.aiModel", { model: aiModel })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!aiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                      <Sparkles size={18} />
+                      {aiAnalysis ? t("sensitive.aiRegenerate") : t("sensitive.aiGenerate")}
+                    </button>
+                  )}
+                  <p className="card-note">{t("sensitive.disclaimer")}</p>
+                </Card>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

@@ -199,155 +199,162 @@ export const SadeSatiPage = () => {
         subtitle={t("sadeSati.subtitle")}
         accent="indigo"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="saturn_transits" profileId={selectedProfile?._id} />
+          <ProfileBanner profile={selectedProfile} />
+          <p className="card-note">{t("sadeSati.intro")}</p>
 
-      <div className="dashboard-content">
-        <RecentReadings source="saturn_transits" profileId={selectedProfile?._id} />
-        <ProfileBanner profile={selectedProfile} />
-        <p className="card-note">{t("sadeSati.intro")}</p>
+          <ErrorBanner message={error} />
 
-        <ErrorBanner message={error} />
+          {loading ? (
+            <Card>
+              <LoadingState message={t("sadeSati.loading")} />
+            </Card>
+          ) : data ? (
+            <div className="fade-in">
+              {/* Current status banner */}
+              {status && (
+                <div className={`ss-status ss-status--${status.tone}`}>
+                  {status.tone === "clear" ? (
+                    <CheckCircle2 size={20} />
+                  ) : (
+                    <AlertTriangle size={20} />
+                  )}
+                  <span>{status.text}</span>
+                </div>
+              )}
 
-        {loading ? (
-          <Card>
-            <LoadingState message={t("sadeSati.loading")} />
-          </Card>
-        ) : data ? (
-          <div className="fade-in">
-            {/* Current status banner */}
-            {status && (
-              <div className={`ss-status ss-status--${status.tone}`}>
-                {status.tone === "clear" ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
-                <span>{status.text}</span>
+              <div className="info-pills">
+                <span className="info-pill">
+                  {t("sadeSati.moonSign", { sign: data.moon_sign })}
+                </span>
               </div>
-            )}
 
-            <div className="info-pills">
-              <span className="info-pill">{t("sadeSati.moonSign", { sign: data.moon_sign })}</span>
-            </div>
-
-            {/* Sade Sati cycles */}
-            <div className="ss-cycles">
-              {periods.map((c, i) => (
-                <div
-                  key={i}
-                  className={`ss-cycle${c.is_current ? " ss-cycle--current" : ""}${
-                    c.is_past ? " ss-cycle--past" : ""
-                  }`}
-                >
-                  <div className="ss-cycle__head">
-                    <span className="ss-cycle__range">
-                      {fmt(c.start_date, locale)} – {fmt(c.end_date, locale)}
-                    </span>
-                    <span className="ss-cycle__tag">
-                      {c.is_current
-                        ? t("sadeSati.current")
-                        : c.is_past
-                          ? t("sadeSati.past")
-                          : t("sadeSati.upcoming")}
-                    </span>
-                  </div>
-                  <PhaseBar cycle={c} />
-                  <div className="ss-phases">
-                    {c.phases.map((ph) => (
-                      <div
-                        key={ph.phase}
-                        className={`ss-phase${
-                          c.is_current && c.current_phase === ph.phase ? " ss-phase--now" : ""
-                        }`}
-                      >
-                        <span
-                          className="ss-phase__dot"
-                          style={{ background: PHASE_COLORS[ph.phase] }}
-                        />
-                        <span className="ss-phase__name">{t(`sadeSati.phase.${ph.phase}`)}</span>
-                        <span className="ss-phase__sign">{ln(ph.sign_name, "rasi")}</span>
-                        <span className="ss-phase__dates">
-                          {fmt(ph.start_date, locale)} – {fmt(ph.end_date, locale)}
-                        </span>
-                        {ph.retrograde_reentry && (
-                          <span className="ss-phase__retro" title={t("sadeSati.retroHint")}>
-                            ℞
+              {/* Sade Sati cycles */}
+              <div className="ss-cycles">
+                {periods.map((c, i) => (
+                  <div
+                    key={i}
+                    className={`ss-cycle${c.is_current ? " ss-cycle--current" : ""}${
+                      c.is_past ? " ss-cycle--past" : ""
+                    }`}
+                  >
+                    <div className="ss-cycle__head">
+                      <span className="ss-cycle__range">
+                        {fmt(c.start_date, locale)} – {fmt(c.end_date, locale)}
+                      </span>
+                      <span className="ss-cycle__tag">
+                        {c.is_current
+                          ? t("sadeSati.current")
+                          : c.is_past
+                            ? t("sadeSati.past")
+                            : t("sadeSati.upcoming")}
+                      </span>
+                    </div>
+                    <PhaseBar cycle={c} />
+                    <div className="ss-phases">
+                      {c.phases.map((ph) => (
+                        <div
+                          key={ph.phase}
+                          className={`ss-phase${
+                            c.is_current && c.current_phase === ph.phase ? " ss-phase--now" : ""
+                          }`}
+                        >
+                          <span
+                            className="ss-phase__dot"
+                            style={{ background: PHASE_COLORS[ph.phase] }}
+                          />
+                          <span className="ss-phase__name">{t(`sadeSati.phase.${ph.phase}`)}</span>
+                          <span className="ss-phase__sign">{ln(ph.sign_name, "rasi")}</span>
+                          <span className="ss-phase__dates">
+                            {fmt(ph.start_date, locale)} – {fmt(ph.end_date, locale)}
                           </span>
-                        )}
-                      </div>
-                    ))}
+                          {ph.retrograde_reentry && (
+                            <span className="ss-phase__retro" title={t("sadeSati.retroHint")}>
+                              ℞
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
-              {periods.length === 0 && <p className="card-note">{t("sadeSati.noSadeSati")}</p>}
-            </div>
+                ))}
+                {periods.length === 0 && <p className="card-note">{t("sadeSati.noSadeSati")}</p>}
+              </div>
 
-            {/* Ashtama + Kantaka */}
-            <div className="mt-xl">
-              <Card
-                title={t("sadeSati.otherTitle")}
-                icon={<Aperture size={24} />}
-                accent="terracotta"
-              >
-                <p className="card-intro">{t("sadeSati.otherIntro")}</p>
-                <div className="ss-other-grid">
-                  <div>
-                    <h4 className="ss-other-h">{t("sadeSati.ashtama")}</h4>
-                    {ashtama.map((a, i) => (
-                      <div
-                        key={i}
-                        className={`ss-other-row${a.is_current ? " is-current" : ""}${
-                          a.is_past ? " is-past" : ""
-                        }`}
-                      >
-                        {fmt(a.start_date, locale)} – {fmt(a.end_date, locale)}
-                        {a.is_current && <span className="ss-now-tag">{t("sadeSati.now")}</span>}
-                      </div>
-                    ))}
+              {/* Ashtama + Kantaka */}
+              <div className="mt-xl">
+                <Card
+                  title={t("sadeSati.otherTitle")}
+                  icon={<Aperture size={24} />}
+                  accent="terracotta"
+                >
+                  <p className="card-intro">{t("sadeSati.otherIntro")}</p>
+                  <div className="ss-other-grid">
+                    <div>
+                      <h4 className="ss-other-h">{t("sadeSati.ashtama")}</h4>
+                      {ashtama.map((a, i) => (
+                        <div
+                          key={i}
+                          className={`ss-other-row${a.is_current ? " is-current" : ""}${
+                            a.is_past ? " is-past" : ""
+                          }`}
+                        >
+                          {fmt(a.start_date, locale)} – {fmt(a.end_date, locale)}
+                          {a.is_current && <span className="ss-now-tag">{t("sadeSati.now")}</span>}
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <h4 className="ss-other-h">{t("sadeSati.kantaka")}</h4>
+                      {kantaka.map((k, i) => (
+                        <div
+                          key={i}
+                          className={`ss-other-row${k.is_current ? " is-current" : ""}${
+                            k.is_past ? " is-past" : ""
+                          }`}
+                        >
+                          {fmt(k.start_date, locale)} – {fmt(k.end_date, locale)}
+                          {k.is_current && <span className="ss-now-tag">{t("sadeSati.now")}</span>}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="ss-other-h">{t("sadeSati.kantaka")}</h4>
-                    {kantaka.map((k, i) => (
-                      <div
-                        key={i}
-                        className={`ss-other-row${k.is_current ? " is-current" : ""}${
-                          k.is_past ? " is-past" : ""
-                        }`}
-                      >
-                        {fmt(k.start_date, locale)} – {fmt(k.end_date, locale)}
-                        {k.is_current && <span className="ss-now-tag">{t("sadeSati.now")}</span>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Card>
-            </div>
+                </Card>
+              </div>
 
-            {/* AI reading */}
-            <div className="mt-xl">
-              <Card title={t("sadeSati.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
-                <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && (
-                  <p className="ai-panel__hint">{t("sadeSati.aiHint")}</p>
-                )}
-                {aiLoading && <LoadingState message={t("sadeSati.aiLoading")} />}
-                {aiAnalysis && !aiLoading && (
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{aiAnalysis}</Markdown>
-                    {aiModel && (
-                      <div className="ai-panel__meta">
-                        {t("sadeSati.aiModel", { model: aiModel })}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {!aiLoading && (
-                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                    <Sparkles size={18} />
-                    {aiAnalysis ? t("sadeSati.aiRegenerate") : t("sadeSati.aiGenerate")}
-                  </button>
-                )}
-                <p className="card-note">{t("sadeSati.disclaimer")}</p>
-              </Card>
+              {/* AI reading */}
+              <div className="mt-xl">
+                <Card title={t("sadeSati.aiTitle")} icon={<Sparkles size={24} />} accent="indigo">
+                  <ErrorBanner message={aiError} />
+                  {!aiAnalysis && !aiLoading && (
+                    <p className="ai-panel__hint">{t("sadeSati.aiHint")}</p>
+                  )}
+                  {aiLoading && <LoadingState message={t("sadeSati.aiLoading")} />}
+                  {aiAnalysis && !aiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <Markdown>{aiAnalysis}</Markdown>
+                      {aiModel && (
+                        <div className="ai-panel__meta">
+                          {t("sadeSati.aiModel", { model: aiModel })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!aiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                      <Sparkles size={18} />
+                      {aiAnalysis ? t("sadeSati.aiRegenerate") : t("sadeSati.aiGenerate")}
+                    </button>
+                  )}
+                  <p className="card-note">{t("sadeSati.disclaimer")}</p>
+                </Card>
+              </div>
             </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

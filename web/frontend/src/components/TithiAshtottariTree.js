@@ -1,3 +1,4 @@
+import { clickable } from "../utils/a11y";
 import React, { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, AlertCircle } from "lucide-react";
@@ -91,8 +92,10 @@ function TithiAshtottariNode({ node, birthDetails }) {
       style={{ marginLeft: indent, "--lvl-accent": meta.accent, "--avatar": `${avatar}px` }}
     >
       <div
-        onClick={() => canExpand && setExpanded((v) => !v)}
         className={`dasha-node__head${canExpand ? " is-expandable" : ""}`}
+        {...clickable(canExpand ? () => setExpanded((v) => !v) : null, {
+          expanded: canExpand ? expanded : undefined,
+        })}
       >
         <div className="dasha-node__avatar">{(node.lord_name || "?").slice(0, 2)}</div>
 

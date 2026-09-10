@@ -131,137 +131,144 @@ export const RemediesPage = () => {
         subtitle={t("remedies.subtitle")}
         accent="terracotta"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="remedies" profileId={selectedProfile?._id} />
+          <ProfileBanner profile={selectedProfile} />
 
-      <div className="dashboard-content">
-        <RecentReadings source="remedies" profileId={selectedProfile?._id} />
-        <ProfileBanner profile={selectedProfile} />
+          <p className="readonly-banner">
+            <ShieldAlert size={15} /> {t("remedies.disclaimer")}
+          </p>
 
-        <p className="readonly-banner">
-          <ShieldAlert size={15} /> {t("remedies.disclaimer")}
-        </p>
+          <ErrorBanner message={error} />
 
-        <ErrorBanner message={error} />
-
-        {loading ? (
-          <Card>
-            <LoadingState message={t("remedies.loading")} />
-          </Card>
-        ) : data ? (
-          <div className="fade-in">
-            <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush">
-              <h3 className="ui-card-header ui-card-header--sm">
-                <Sun size={18} /> {t("remedies.weakHeader", { count: remedies.length })}
-              </h3>
-              {remedies.length === 0 ? (
-                <p className="card-note">{t("remedies.noneWeak")}</p>
-              ) : (
-                <div className="rem-grid">
-                  {remedies.map((r) => (
-                    <div key={r.planet} className="rem-card">
-                      <div className="rem-card__head">
-                        <span className="rem-card__planet">{r.planet}</span>
-                        <span className="rem-card__reason">{r.reason}</span>
+          {loading ? (
+            <Card>
+              <LoadingState message={t("remedies.loading")} />
+            </Card>
+          ) : data ? (
+            <div className="fade-in">
+              <div className="ui-card ui-card--accent ui-card--pad-lg ui-card--flush">
+                <h3 className="ui-card-header ui-card-header--sm">
+                  <Sun size={18} /> {t("remedies.weakHeader", { count: remedies.length })}
+                </h3>
+                {remedies.length === 0 ? (
+                  <p className="card-note">{t("remedies.noneWeak")}</p>
+                ) : (
+                  <div className="rem-grid">
+                    {remedies.map((r) => (
+                      <div key={r.planet} className="rem-card">
+                        <div className="rem-card__head">
+                          <span className="rem-card__planet">{r.planet}</span>
+                          <span className="rem-card__reason">{r.reason}</span>
+                        </div>
+                        <dl className="rem-card__body">
+                          <div>
+                            <dt>{t("remedies.gemstone")}</dt>
+                            <dd>{r.gemstone}</dd>
+                          </div>
+                          <div>
+                            <dt>{t("remedies.mantra")}</dt>
+                            <dd>
+                              {r.mantra}
+                              {r.mantra_count && (
+                                <span className="text-secondary"> ({r.mantra_count})</span>
+                              )}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>{t("remedies.deity")}</dt>
+                            <dd>{r.deity}</dd>
+                          </div>
+                          <div>
+                            <dt>{t("remedies.day")}</dt>
+                            <dd>{r.day}</dd>
+                          </div>
+                          <div>
+                            <dt>{t("remedies.donation")}</dt>
+                            <dd>{r.donation}</dd>
+                          </div>
+                          <div>
+                            <dt>{t("remedies.color")}</dt>
+                            <dd>{r.color}</dd>
+                          </div>
+                        </dl>
                       </div>
-                      <dl className="rem-card__body">
-                        <div>
-                          <dt>{t("remedies.gemstone")}</dt>
-                          <dd>{r.gemstone}</dd>
-                        </div>
-                        <div>
-                          <dt>{t("remedies.mantra")}</dt>
-                          <dd>
-                            {r.mantra}
-                            {r.mantra_count && (
-                              <span className="text-secondary"> ({r.mantra_count})</span>
-                            )}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>{t("remedies.deity")}</dt>
-                          <dd>{r.deity}</dd>
-                        </div>
-                        <div>
-                          <dt>{t("remedies.day")}</dt>
-                          <dd>{r.day}</dd>
-                        </div>
-                        <div>
-                          <dt>{t("remedies.donation")}</dt>
-                          <dd>{r.donation}</dd>
-                        </div>
-                        <div>
-                          <dt>{t("remedies.color")}</dt>
-                          <dd>{r.color}</dd>
-                        </div>
-                      </dl>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Dignity overview. The remedies themselves are the point for most
-                people; the dignity/strength-ratio table is the working behind
-                them — collapsed in Essentials. */}
-            <AdvancedOnly title={t("remedies.dignityHeader")}>
-              <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
-                <h3 className="ui-card-header ui-card-header--sm">{t("remedies.dignityHeader")}</h3>
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>{t("remedies.planet")}</th>
-                        <th>{t("remedies.sign")}</th>
-                        <th>{t("remedies.house")}</th>
-                        <th>{t("remedies.dignity")}</th>
-                        <th>{t("remedies.strength")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(data.planets || []).map((p) => (
-                        <tr key={p.planet} className={p.weak ? "rem-row--weak" : ""}>
-                          <td>{p.planet}</td>
-                          <td>{ln(p.sign_name, "rasi")}</td>
-                          <td>{p.house}</td>
-                          <td>{t(`remedies.dignities.${p.dignity}`, p.dignity)}</td>
-                          <td>{p.strength_ratio != null ? p.strength_ratio.toFixed(2) : "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {weak.length > 0 && <p className="card-note">{t("remedies.weakFootnote")}</p>}
-              </div>
-            </AdvancedOnly>
-
-            {/* AI reading */}
-            <div className="mt-xl">
-              <Card title={t("remedies.aiTitle")} icon={<Sparkles size={24} />} accent="terracotta">
-                <ErrorBanner message={aiError} />
-                {!aiAnalysis && !aiLoading && (
-                  <p className="ai-panel__hint">{t("remedies.aiHint")}</p>
-                )}
-                {aiLoading && <LoadingState message={t("remedies.aiLoading")} />}
-                {aiAnalysis && !aiLoading && (
-                  <div className="sbc-ai-markdown ai-panel__reading">
-                    <Markdown>{aiAnalysis}</Markdown>
-                    {aiModel && (
-                      <div className="ai-panel__meta">
-                        {t("remedies.aiModel", { model: aiModel })}
-                      </div>
-                    )}
+                    ))}
                   </div>
                 )}
-                {!aiLoading && (
-                  <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                    <Sparkles size={18} />
-                    {aiAnalysis ? t("remedies.aiRegenerate") : t("remedies.aiGenerate")}
-                  </button>
-                )}
-              </Card>
+              </div>
+
+              {/* Dignity overview. The remedies themselves are the point for most
+                people; the dignity/strength-ratio table is the working behind
+                them — collapsed in Essentials. */}
+              <AdvancedOnly title={t("remedies.dignityHeader")}>
+                <div className="ui-card ui-card--accent-indigo ui-card--pad-lg ui-card--flush mt-xl">
+                  <h3 className="ui-card-header ui-card-header--sm">
+                    {t("remedies.dignityHeader")}
+                  </h3>
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>{t("remedies.planet")}</th>
+                          <th>{t("remedies.sign")}</th>
+                          <th>{t("remedies.house")}</th>
+                          <th>{t("remedies.dignity")}</th>
+                          <th>{t("remedies.strength")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(data.planets || []).map((p) => (
+                          <tr key={p.planet} className={p.weak ? "rem-row--weak" : ""}>
+                            <td>{p.planet}</td>
+                            <td>{ln(p.sign_name, "rasi")}</td>
+                            <td>{p.house}</td>
+                            <td>{t(`remedies.dignities.${p.dignity}`, p.dignity)}</td>
+                            <td>{p.strength_ratio != null ? p.strength_ratio.toFixed(2) : "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {weak.length > 0 && <p className="card-note">{t("remedies.weakFootnote")}</p>}
+                </div>
+              </AdvancedOnly>
+
+              {/* AI reading */}
+              <div className="mt-xl">
+                <Card
+                  title={t("remedies.aiTitle")}
+                  icon={<Sparkles size={24} />}
+                  accent="terracotta"
+                >
+                  <ErrorBanner message={aiError} />
+                  {!aiAnalysis && !aiLoading && (
+                    <p className="ai-panel__hint">{t("remedies.aiHint")}</p>
+                  )}
+                  {aiLoading && <LoadingState message={t("remedies.aiLoading")} />}
+                  {aiAnalysis && !aiLoading && (
+                    <div className="sbc-ai-markdown ai-panel__reading">
+                      <Markdown>{aiAnalysis}</Markdown>
+                      {aiModel && (
+                        <div className="ai-panel__meta">
+                          {t("remedies.aiModel", { model: aiModel })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!aiLoading && (
+                    <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                      <Sparkles size={18} />
+                      {aiAnalysis ? t("remedies.aiRegenerate") : t("remedies.aiGenerate")}
+                    </button>
+                  )}
+                </Card>
+              </div>
             </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };

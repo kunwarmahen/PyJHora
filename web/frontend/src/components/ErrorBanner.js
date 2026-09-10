@@ -6,8 +6,10 @@ import "../styles/Shared.css";
 export const ErrorBanner = ({ message }) => {
   if (!message) return null;
   return (
-    <div className="error-banner">
-      <AlertCircle size={20} />
+    // role="alert" so the failure is announced when it appears, rather than
+    // sitting silently above a form the user is still filling in (§68.8).
+    <div className="error-banner" role="alert">
+      <AlertCircle size={20} aria-hidden="true" />
       <span>{message}</span>
     </div>
   );

@@ -403,457 +403,461 @@ export const BirthTimeRectificationPage = () => {
         subtitle={t("rectify.subtitle")}
         accent="terracotta"
       />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="rectification" profileId={selectedProfile?._id} />
+          <ProfileBanner profile={selectedProfile} />
 
-      <div className="dashboard-content">
-        <RecentReadings source="rectification" profileId={selectedProfile?._id} />
-        <ProfileBanner profile={selectedProfile} />
-
-        {/* Experimental disclaimer — always visible, this is the core caveat. */}
-        <div
-          className="readonly-banner"
-          style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start" }}
-        >
-          <AlertTriangle size={20} style={{ flexShrink: 0, marginTop: "0.1rem" }} />
-          <span>{t("rectify.experimental")}</span>
-        </div>
-
-        {/* Mode toggle */}
-        <div className="page-controls">
-          <div className="controls-group">
-            <label className="control-label">{t("rectify.mode")}</label>
-            <div className="chart-toggle">
-              <button
-                className={`chart-toggle__btn${mode === "rule" ? " is-active" : ""}`}
-                onClick={() => chooseMode("rule")}
-              >
-                {t("rectify.modeRule")}
-              </button>
-              <button
-                className={`chart-toggle__btn${mode === "events" ? " is-active" : ""}`}
-                onClick={() => chooseMode("events")}
-              >
-                {t("rectify.modeEvents")}
-              </button>
-              <button
-                className={`chart-toggle__btn${mode === "chat" ? " is-active" : ""}`}
-                onClick={() => chooseMode("chat")}
-              >
-                {t("rectify.modeChat")}
-              </button>
-            </div>
+          {/* Experimental disclaimer — always visible, this is the core caveat. */}
+          <div
+            className="readonly-banner"
+            style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start" }}
+          >
+            <AlertTriangle size={20} style={{ flexShrink: 0, marginTop: "0.1rem" }} />
+            <span>{t("rectify.experimental")}</span>
           </div>
-        </div>
 
-        {/* ---- Rule mode controls ---- */}
-        {mode === "rule" && (
-          <>
-            <div className="page-controls">
-              <div className="controls-group">
-                <label className="control-label">
-                  <Clock4 size={18} style={{ color: "var(--saffron)" }} />
-                  {t("rectify.method")}
-                </label>
-                <div className="chart-toggle">
-                  {METHODS.map((m) => (
-                    <button
-                      key={m.key}
-                      className={`chart-toggle__btn${method === m.key ? " is-active" : ""}`}
-                      onClick={() => chooseMethod(m.key)}
-                    >
-                      {t(m.labelKey)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {activeMethod.needsGender && (
-                <div className="controls-group">
-                  <label className="control-label">{t("rectify.gender")}</label>
-                  <div className="chart-toggle">
-                    <button
-                      className={`chart-toggle__btn${gender === 0 ? " is-active" : ""}`}
-                      onClick={() => setGender(0)}
-                    >
-                      {t("rectify.male")}
-                    </button>
-                    <button
-                      className={`chart-toggle__btn${gender === 1 ? " is-active" : ""}`}
-                      onClick={() => setGender(1)}
-                    >
-                      {t("rectify.female")}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-            <p className="card-intro">{t(`rectify.methodDesc.${method}`)}</p>
-          </>
-        )}
-
-        {/* ---- Event mode controls ---- */}
-        {mode === "events" && (
-          <div className="ui-card ui-card--accent ui-card--flush">
-            <h3 className="ui-card-header ui-card-header--sm">
-              <CalendarHeart size={18} />
-              {t("rectify.eventsTitle")}
-            </h3>
-            <p className="card-intro">{t("rectify.eventsIntro")}</p>
-
-            {events.map((ev, i) => (
-              <div
-                key={i}
-                className="controls-group"
-                style={{ gap: "0.5rem", marginBottom: "0.5rem", flexWrap: "wrap" }}
-              >
-                <select
-                  className="form-select"
-                  value={ev.type}
-                  onChange={(e) => updateEvent(i, { type: e.target.value })}
-                >
-                  {EVENT_TYPES.map((et) => (
-                    <option key={et} value={et}>
-                      {t(`rectify.event.${et}`)}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="date"
-                  className="control-input"
-                  value={ev.date}
-                  onChange={(e) => updateEvent(i, { date: e.target.value })}
-                />
+          {/* Mode toggle */}
+          <div className="page-controls">
+            <div className="controls-group">
+              <label className="control-label">{t("rectify.mode")}</label>
+              <div className="chart-toggle">
                 <button
-                  type="button"
-                  className="control-btn"
-                  onClick={() => removeEvent(i)}
-                  aria-label={t("rectify.removeEvent")}
-                  disabled={events.length <= 1}
+                  className={`chart-toggle__btn${mode === "rule" ? " is-active" : ""}`}
+                  onClick={() => chooseMode("rule")}
                 >
-                  <Trash2 size={16} />
+                  {t("rectify.modeRule")}
+                </button>
+                <button
+                  className={`chart-toggle__btn${mode === "events" ? " is-active" : ""}`}
+                  onClick={() => chooseMode("events")}
+                >
+                  {t("rectify.modeEvents")}
+                </button>
+                <button
+                  className={`chart-toggle__btn${mode === "chat" ? " is-active" : ""}`}
+                  onClick={() => chooseMode("chat")}
+                >
+                  {t("rectify.modeChat")}
                 </button>
               </div>
-            ))}
-
-            <button type="button" className="control-btn" onClick={addEvent}>
-              <Plus size={16} /> {t("rectify.addEvent")}
-            </button>
-
-            <div className="controls-group" style={{ marginTop: "1rem" }}>
-              <label className="control-label">{t("rectify.searchWindow")}</label>
-              <div className="chart-toggle">
-                {WINDOWS.map((w) => (
-                  <button
-                    key={w.minutes}
-                    className={`chart-toggle__btn${windowMinutes === w.minutes ? " is-active" : ""}`}
-                    onClick={() => setWindowMinutes(w.minutes)}
-                  >
-                    {t(w.labelKey)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-xl">
-              <button
-                className="ui-btn ui-btn--primary"
-                onClick={runEventRectify}
-                disabled={loading || validEvents.length === 0}
-              >
-                {loading ? t("rectify.loading") : t("rectify.runEvents")}
-              </button>
-              {validEvents.length === 0 && <p className="card-note">{t("rectify.eventsPrompt")}</p>}
             </div>
           </div>
-        )}
 
-        {/* ---- Conversational mode ---- */}
-        {mode === "chat" && (
-          <div className="ui-card ui-card--accent ui-card--flush">
-            <h3 className="ui-card-header ui-card-header--sm">
-              <MessageCircle size={18} />
-              {t("rectify.chatTitle")}
-            </h3>
-            <p className="card-intro">{t("rectify.chatIntro")}</p>
-
-            {!chatStarted ? (
-              <button className="ui-btn ui-btn--primary" onClick={startChat} disabled={chatBusy}>
-                <MessageCircle size={18} /> {t("rectify.chatStart")}
-              </button>
-            ) : (
-              <>
-                <div className="rectify-chat__log">
-                  {chatMessages.map((m, i) => (
-                    <ChatBubble key={i} role={m.role} content={m.content} error={m.error} />
-                  ))}
-                  {chatBusy && (
-                    <ChatBubble
-                      role="assistant"
-                      content=""
-                      streaming
-                      thinkingLabel={t("rectify.chatThinking")}
-                    />
-                  )}
+          {/* ---- Rule mode controls ---- */}
+          {mode === "rule" && (
+            <>
+              <div className="page-controls">
+                <div className="controls-group">
+                  <label className="control-label">
+                    <Clock4 size={18} style={{ color: "var(--saffron)" }} />
+                    {t("rectify.method")}
+                  </label>
+                  <div className="chart-toggle">
+                    {METHODS.map((m) => (
+                      <button
+                        key={m.key}
+                        className={`chart-toggle__btn${method === m.key ? " is-active" : ""}`}
+                        onClick={() => chooseMethod(m.key)}
+                      >
+                        {t(m.labelKey)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <ChatComposer
-                  value={chatInput}
-                  onChange={setChatInput}
-                  onSubmit={handleChatSend}
-                  busy={chatBusy}
-                  placeholder={t("rectify.chatPlaceholder")}
-                  multiline={false}
-                />
-
-                {/* Collected events + run button */}
-                {collectedEvents.length > 0 && (
-                  <div className="mt-xl">
-                    <div className="fw-600 text-secondary" style={{ marginBottom: "0.4rem" }}>
-                      {t("rectify.collected")}:
-                    </div>
-                    <div className="info-pills">
-                      {collectedEvents.map((e, i) => (
-                        <span key={i} className="info-pill">
-                          {t(`rectify.event.${e.type}`)}{" "}
-                          <strong className="text-saffron">{e.date}</strong>
-                        </span>
-                      ))}
-                    </div>
-                    <div className="mt-xl">
+                {activeMethod.needsGender && (
+                  <div className="controls-group">
+                    <label className="control-label">{t("rectify.gender")}</label>
+                    <div className="chart-toggle">
                       <button
-                        className={`ui-btn ui-btn--primary${chatReady ? " fade-in" : ""}`}
-                        onClick={() => runRectifyForEvents(collectedEvents)}
-                        disabled={loading || collectedEvents.length === 0}
+                        className={`chart-toggle__btn${gender === 0 ? " is-active" : ""}`}
+                        onClick={() => setGender(0)}
                       >
-                        {loading ? t("rectify.loading") : t("rectify.runEvents")}
+                        {t("rectify.male")}
+                      </button>
+                      <button
+                        className={`chart-toggle__btn${gender === 1 ? " is-active" : ""}`}
+                        onClick={() => setGender(1)}
+                      >
+                        {t("rectify.female")}
                       </button>
                     </div>
                   </div>
                 )}
-              </>
-            )}
-          </div>
-        )}
-
-        <ErrorBanner message={error} />
-
-        {needGender ? (
-          <Card>
-            <p className="card-note">{t("rectify.genderPrompt")}</p>
-          </Card>
-        ) : loading ? (
-          <Card>
-            <LoadingState message={t("rectify.loading")} />
-          </Card>
-        ) : result ? (
-          <div className="fade-in">
-            {/* Outcome summary */}
-            <div className="info-pills mt-xl">
-              <span className="info-pill">
-                {t("rectify.entered")}:{" "}
-                <strong className="text-indigo">{result.entered?.tob}</strong>
-              </span>
-              {suggested ? (
-                <>
-                  <span className="info-pill">
-                    {t("rectify.suggested")}:{" "}
-                    <strong className="text-saffron">{suggested.tob}</strong>
-                    {suggested.dob !== result.entered?.dob ? ` (${suggested.dob})` : ""}
-                  </span>
-                  <span className="info-pill">
-                    {t("rectify.delta")}:{" "}
-                    <strong className="text-vermillion">
-                      {result.delta_minutes > 0 ? "+" : ""}
-                      {result.delta_minutes} {t("rectify.minutes")}
-                    </strong>
-                  </span>
-                </>
-              ) : (
-                <span className="info-pill">
-                  <strong className="text-saffron">
-                    {result.already_consistent
-                      ? t("rectify.alreadyConsistent")
-                      : isEventResult
-                        ? t("rectify.eventsNoChange")
-                        : t("rectify.notConverged")}
-                  </strong>
-                </span>
-              )}
-              {isEventResult && result.confidence != null && (
-                <span className="info-pill">
-                  {t("rectify.fit")}: <strong className="text-saffron">{result.confidence}%</strong>
-                </span>
-              )}
-              <span className="info-pill">
-                {t("transit.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
-              </span>
-            </div>
-
-            <p className="card-note">{result.note}</p>
-
-            {/* Event-match breakdown */}
-            {isEventResult && result.events?.length > 0 && (
-              <div className="ui-card ui-card--accent-gold ui-card--flush mt-xl">
-                <h3 className="ui-card-header ui-card-header--sm">{t("rectify.eventMatches")}</h3>
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>{t("rectify.eventCol")}</th>
-                        <th>{t("rectify.dateCol")}</th>
-                        <th>{t("rectify.periodCol")}</th>
-                        <th>{t("rectify.whyCol")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {result.events.map((e, i) => (
-                        <tr key={i}>
-                          <td className="fw-700 text-indigo">{t(`rectify.event.${e.type}`)}</td>
-                          <td className="text-secondary">{e.date}</td>
-                          <td className="text-secondary">
-                            {e.maha} / {e.bhukti}
-                          </td>
-                          <td className="text-secondary" style={{ fontSize: "0.85rem" }}>
-                            {e.matched?.length ? (
-                              <ul style={{ margin: 0, paddingLeft: "1.1rem" }}>
-                                {e.matched.map((m, j) => (
-                                  <li key={j}>{m}</li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <span className="text-muted">{t("rectify.noMatch")}</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
               </div>
-            )}
+              <p className="card-intro">{t(`rectify.methodDesc.${method}`)}</p>
+            </>
+          )}
 
-            {/* Before / after fast-movers */}
-            {suggested && (
-              <div className="ui-card ui-card--accent ui-card--flush mt-xl">
-                <h3 className="ui-card-header ui-card-header--sm">{t("rectify.whatMoved")}</h3>
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th />
-                        <th>{t("rectify.entered")}</th>
-                        <th />
-                        <th>{t("rectify.suggested")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td className="fw-700 text-indigo">{t("rectify.moonStar")}</td>
-                        <td>
-                          {ln(before.moon?.nakshatra, "nakshatra")} · {t("rectify.pada")}{" "}
-                          {before.moon?.pada}
-                        </td>
-                        <td className="text-center">
-                          <ArrowRight size={16} style={{ color: "var(--saffron)" }} />
-                        </td>
-                        <td className="fw-600 text-saffron">
-                          {ln(after.moon?.nakshatra, "nakshatra")} · {t("rectify.pada")}{" "}
-                          {after.moon?.pada}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="fw-700 text-indigo">{t("rectify.risingSign")}</td>
-                        <td>
-                          {ln(before.lagna?.sign_name, "rasi")}{" "}
-                          <span className="text-muted">
-                            ({ln(before.lagna?.nakshatra, "nakshatra")})
-                          </span>
-                        </td>
-                        <td className="text-center">
-                          <ArrowRight size={16} style={{ color: "var(--saffron)" }} />
-                        </td>
-                        <td className="fw-600 text-saffron">
-                          {ln(after.lagna?.sign_name, "rasi")}{" "}
-                          <span className="text-muted">
-                            ({ln(after.lagna?.nakshatra, "nakshatra")})
-                          </span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+          {/* ---- Event mode controls ---- */}
+          {mode === "events" && (
+            <div className="ui-card ui-card--accent ui-card--flush">
+              <h3 className="ui-card-header ui-card-header--sm">
+                <CalendarHeart size={18} />
+                {t("rectify.eventsTitle")}
+              </h3>
+              <p className="card-intro">{t("rectify.eventsIntro")}</p>
 
-                {/* Apply to profile */}
-                <div className="mt-xl">
-                  {applied ? (
-                    <div className="info-pill" style={{ color: "var(--saffron)" }}>
-                      <Check size={16} /> {t("rectify.applied")}
-                    </div>
-                  ) : (
-                    <button
-                      className="ui-btn ui-btn--primary"
-                      onClick={handleApply}
-                      disabled={applying}
-                    >
-                      {applying ? t("rectify.applying") : t("rectify.apply")}
-                    </button>
-                  )}
-                  <p className="card-note">{t("rectify.applyNote")}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Before / after charts */}
-            {result.before_chart?.status === "success" && (
-              <div className="chart-grid mt-xl">
-                <Kundali
-                  planets={result.before_chart.planets}
-                  lagna={result.before_chart.lagna}
-                  title={t("rectify.chartEntered")}
-                  subtitle={result.entered?.tob}
-                />
-                {suggested && result.after_chart?.status === "success" && (
-                  <Kundali
-                    planets={result.after_chart.planets}
-                    lagna={result.after_chart.lagna}
-                    title={t("rectify.chartSuggested")}
-                    subtitle={suggested.tob}
+              {events.map((ev, i) => (
+                <div
+                  key={i}
+                  className="controls-group"
+                  style={{ gap: "0.5rem", marginBottom: "0.5rem", flexWrap: "wrap" }}
+                >
+                  <select
+                    className="form-select"
+                    value={ev.type}
+                    onChange={(e) => updateEvent(i, { type: e.target.value })}
+                  >
+                    {EVENT_TYPES.map((et) => (
+                      <option key={et} value={et}>
+                        {t(`rectify.event.${et}`)}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    className="control-input"
+                    value={ev.date}
+                    onChange={(e) => updateEvent(i, { date: e.target.value })}
                   />
+                  <button
+                    type="button"
+                    className="control-btn"
+                    onClick={() => removeEvent(i)}
+                    aria-label={t("rectify.removeEvent")}
+                    disabled={events.length <= 1}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+
+              <button type="button" className="control-btn" onClick={addEvent}>
+                <Plus size={16} /> {t("rectify.addEvent")}
+              </button>
+
+              <div className="controls-group" style={{ marginTop: "1rem" }}>
+                <label className="control-label">{t("rectify.searchWindow")}</label>
+                <div className="chart-toggle">
+                  {WINDOWS.map((w) => (
+                    <button
+                      key={w.minutes}
+                      className={`chart-toggle__btn${windowMinutes === w.minutes ? " is-active" : ""}`}
+                      onClick={() => setWindowMinutes(w.minutes)}
+                    >
+                      {t(w.labelKey)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-xl">
+                <button
+                  className="ui-btn ui-btn--primary"
+                  onClick={runEventRectify}
+                  disabled={loading || validEvents.length === 0}
+                >
+                  {loading ? t("rectify.loading") : t("rectify.runEvents")}
+                </button>
+                {validEvents.length === 0 && (
+                  <p className="card-note">{t("rectify.eventsPrompt")}</p>
                 )}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* AI explanation */}
-            {suggested && (
-              <div className="mt-xl">
-                <Card title={t("rectify.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
-                  <ErrorBanner message={aiError} />
-                  {!aiAnalysis && !aiLoading && (
-                    <p className="ai-panel__hint">{t("rectify.aiHint")}</p>
-                  )}
-                  {aiLoading && <LoadingState message={t("rectify.aiLoading")} />}
-                  {aiAnalysis && !aiLoading && (
-                    <div className="sbc-ai-markdown ai-panel__reading">
-                      <Markdown>{aiAnalysis}</Markdown>
-                      {aiModel && (
-                        <div className="ai-panel__meta">
-                          {t("rectify.aiModel", { model: aiModel })}
-                        </div>
-                      )}
+          {/* ---- Conversational mode ---- */}
+          {mode === "chat" && (
+            <div className="ui-card ui-card--accent ui-card--flush">
+              <h3 className="ui-card-header ui-card-header--sm">
+                <MessageCircle size={18} />
+                {t("rectify.chatTitle")}
+              </h3>
+              <p className="card-intro">{t("rectify.chatIntro")}</p>
+
+              {!chatStarted ? (
+                <button className="ui-btn ui-btn--primary" onClick={startChat} disabled={chatBusy}>
+                  <MessageCircle size={18} /> {t("rectify.chatStart")}
+                </button>
+              ) : (
+                <>
+                  <div className="rectify-chat__log">
+                    {chatMessages.map((m, i) => (
+                      <ChatBubble key={i} role={m.role} content={m.content} error={m.error} />
+                    ))}
+                    {chatBusy && (
+                      <ChatBubble
+                        role="assistant"
+                        content=""
+                        streaming
+                        thinkingLabel={t("rectify.chatThinking")}
+                      />
+                    )}
+                  </div>
+
+                  <ChatComposer
+                    value={chatInput}
+                    onChange={setChatInput}
+                    onSubmit={handleChatSend}
+                    busy={chatBusy}
+                    placeholder={t("rectify.chatPlaceholder")}
+                    multiline={false}
+                  />
+
+                  {/* Collected events + run button */}
+                  {collectedEvents.length > 0 && (
+                    <div className="mt-xl">
+                      <div className="fw-600 text-secondary" style={{ marginBottom: "0.4rem" }}>
+                        {t("rectify.collected")}:
+                      </div>
+                      <div className="info-pills">
+                        {collectedEvents.map((e, i) => (
+                          <span key={i} className="info-pill">
+                            {t(`rectify.event.${e.type}`)}{" "}
+                            <strong className="text-saffron">{e.date}</strong>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="mt-xl">
+                        <button
+                          className={`ui-btn ui-btn--primary${chatReady ? " fade-in" : ""}`}
+                          onClick={() => runRectifyForEvents(collectedEvents)}
+                          disabled={loading || collectedEvents.length === 0}
+                        >
+                          {loading ? t("rectify.loading") : t("rectify.runEvents")}
+                        </button>
+                      </div>
                     </div>
                   )}
-                  {!aiLoading && (
-                    <button className="ui-btn ui-btn--ai" onClick={handleAi}>
-                      <Sparkles size={18} />
-                      {aiAnalysis ? t("rectify.aiRegenerate") : t("rectify.aiGenerate")}
-                    </button>
-                  )}
-                  <p className="card-note">{t("rectify.disclaimer")}</p>
-                </Card>
+                </>
+              )}
+            </div>
+          )}
+
+          <ErrorBanner message={error} />
+
+          {needGender ? (
+            <Card>
+              <p className="card-note">{t("rectify.genderPrompt")}</p>
+            </Card>
+          ) : loading ? (
+            <Card>
+              <LoadingState message={t("rectify.loading")} />
+            </Card>
+          ) : result ? (
+            <div className="fade-in">
+              {/* Outcome summary */}
+              <div className="info-pills mt-xl">
+                <span className="info-pill">
+                  {t("rectify.entered")}:{" "}
+                  <strong className="text-indigo">{result.entered?.tob}</strong>
+                </span>
+                {suggested ? (
+                  <>
+                    <span className="info-pill">
+                      {t("rectify.suggested")}:{" "}
+                      <strong className="text-saffron">{suggested.tob}</strong>
+                      {suggested.dob !== result.entered?.dob ? ` (${suggested.dob})` : ""}
+                    </span>
+                    <span className="info-pill">
+                      {t("rectify.delta")}:{" "}
+                      <strong className="text-vermillion">
+                        {result.delta_minutes > 0 ? "+" : ""}
+                        {result.delta_minutes} {t("rectify.minutes")}
+                      </strong>
+                    </span>
+                  </>
+                ) : (
+                  <span className="info-pill">
+                    <strong className="text-saffron">
+                      {result.already_consistent
+                        ? t("rectify.alreadyConsistent")
+                        : isEventResult
+                          ? t("rectify.eventsNoChange")
+                          : t("rectify.notConverged")}
+                    </strong>
+                  </span>
+                )}
+                {isEventResult && result.confidence != null && (
+                  <span className="info-pill">
+                    {t("rectify.fit")}:{" "}
+                    <strong className="text-saffron">{result.confidence}%</strong>
+                  </span>
+                )}
+                <span className="info-pill">
+                  {t("transit.ayanamsa")}: <strong className="text-indigo">{ayanamsaLabel}</strong>
+                </span>
               </div>
-            )}
-          </div>
-        ) : null}
-      </div>
+
+              <p className="card-note">{result.note}</p>
+
+              {/* Event-match breakdown */}
+              {isEventResult && result.events?.length > 0 && (
+                <div className="ui-card ui-card--accent-gold ui-card--flush mt-xl">
+                  <h3 className="ui-card-header ui-card-header--sm">{t("rectify.eventMatches")}</h3>
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>{t("rectify.eventCol")}</th>
+                          <th>{t("rectify.dateCol")}</th>
+                          <th>{t("rectify.periodCol")}</th>
+                          <th>{t("rectify.whyCol")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {result.events.map((e, i) => (
+                          <tr key={i}>
+                            <td className="fw-700 text-indigo">{t(`rectify.event.${e.type}`)}</td>
+                            <td className="text-secondary">{e.date}</td>
+                            <td className="text-secondary">
+                              {e.maha} / {e.bhukti}
+                            </td>
+                            <td className="text-secondary" style={{ fontSize: "0.85rem" }}>
+                              {e.matched?.length ? (
+                                <ul style={{ margin: 0, paddingLeft: "1.1rem" }}>
+                                  {e.matched.map((m, j) => (
+                                    <li key={j}>{m}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <span className="text-muted">{t("rectify.noMatch")}</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Before / after fast-movers */}
+              {suggested && (
+                <div className="ui-card ui-card--accent ui-card--flush mt-xl">
+                  <h3 className="ui-card-header ui-card-header--sm">{t("rectify.whatMoved")}</h3>
+                  <div className="table-scroll">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th />
+                          <th>{t("rectify.entered")}</th>
+                          <th />
+                          <th>{t("rectify.suggested")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td className="fw-700 text-indigo">{t("rectify.moonStar")}</td>
+                          <td>
+                            {ln(before.moon?.nakshatra, "nakshatra")} · {t("rectify.pada")}{" "}
+                            {before.moon?.pada}
+                          </td>
+                          <td className="text-center">
+                            <ArrowRight size={16} style={{ color: "var(--saffron)" }} />
+                          </td>
+                          <td className="fw-600 text-saffron">
+                            {ln(after.moon?.nakshatra, "nakshatra")} · {t("rectify.pada")}{" "}
+                            {after.moon?.pada}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="fw-700 text-indigo">{t("rectify.risingSign")}</td>
+                          <td>
+                            {ln(before.lagna?.sign_name, "rasi")}{" "}
+                            <span className="text-muted">
+                              ({ln(before.lagna?.nakshatra, "nakshatra")})
+                            </span>
+                          </td>
+                          <td className="text-center">
+                            <ArrowRight size={16} style={{ color: "var(--saffron)" }} />
+                          </td>
+                          <td className="fw-600 text-saffron">
+                            {ln(after.lagna?.sign_name, "rasi")}{" "}
+                            <span className="text-muted">
+                              ({ln(after.lagna?.nakshatra, "nakshatra")})
+                            </span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Apply to profile */}
+                  <div className="mt-xl">
+                    {applied ? (
+                      <div className="info-pill" style={{ color: "var(--saffron)" }}>
+                        <Check size={16} /> {t("rectify.applied")}
+                      </div>
+                    ) : (
+                      <button
+                        className="ui-btn ui-btn--primary"
+                        onClick={handleApply}
+                        disabled={applying}
+                      >
+                        {applying ? t("rectify.applying") : t("rectify.apply")}
+                      </button>
+                    )}
+                    <p className="card-note">{t("rectify.applyNote")}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Before / after charts */}
+              {result.before_chart?.status === "success" && (
+                <div className="chart-grid mt-xl">
+                  <Kundali
+                    planets={result.before_chart.planets}
+                    lagna={result.before_chart.lagna}
+                    title={t("rectify.chartEntered")}
+                    subtitle={result.entered?.tob}
+                  />
+                  {suggested && result.after_chart?.status === "success" && (
+                    <Kundali
+                      planets={result.after_chart.planets}
+                      lagna={result.after_chart.lagna}
+                      title={t("rectify.chartSuggested")}
+                      subtitle={suggested.tob}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* AI explanation */}
+              {suggested && (
+                <div className="mt-xl">
+                  <Card title={t("rectify.aiTitle")} icon={<Sparkles size={24} />} accent="gold">
+                    <ErrorBanner message={aiError} />
+                    {!aiAnalysis && !aiLoading && (
+                      <p className="ai-panel__hint">{t("rectify.aiHint")}</p>
+                    )}
+                    {aiLoading && <LoadingState message={t("rectify.aiLoading")} />}
+                    {aiAnalysis && !aiLoading && (
+                      <div className="sbc-ai-markdown ai-panel__reading">
+                        <Markdown>{aiAnalysis}</Markdown>
+                        {aiModel && (
+                          <div className="ai-panel__meta">
+                            {t("rectify.aiModel", { model: aiModel })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {!aiLoading && (
+                      <button className="ui-btn ui-btn--ai" onClick={handleAi}>
+                        <Sparkles size={18} />
+                        {aiAnalysis ? t("rectify.aiRegenerate") : t("rectify.aiGenerate")}
+                      </button>
+                    )}
+                    <p className="card-note">{t("rectify.disclaimer")}</p>
+                  </Card>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </main>
     </div>
   );
 };
