@@ -17,7 +17,8 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from astrology import (AstrologyCompute, DEFAULT_AYANAMSA, SUPPORTED_VARGAS,
-                       chart_positions, strip_layout_all)
+                       RASI_LORDS, ZODIAC_NAMES, chart_positions, sign_index,
+                       strip_layout_all)
 
 # Which context sections are included by default.
 DEFAULT_SECTIONS = {
@@ -61,6 +62,21 @@ DEFAULT_VARGAS = [1, 9, 10]
 # makes the LLM mislabel a level-3 lord as the Antardasha.
 _LEVEL_NAMES = {1: "Mahadasha", 2: "Antardasha (Bhukti)",
                 3: "Pratyantardasha", 4: "Sookshma (Sookshma-antardasha)"}
+
+
+def _house_rulers(lagna: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """[{house, sign, lord}] for all twelve, counted from the Lagna's sign.
+
+    Note this runs on the *LLM-facing* lagna, which has had `sign_num` stripped
+    (it is a drawing coordinate, §65) — so the sign comes from `sign_name`, which
+    `sign_index` handles. Reading `sign_num` here silently produced an Aries
+    table for every chart.
+    """
+    asc = sign_index(lagna) or 0
+    return [{"house": i + 1,
+             "sign": ZODIAC_NAMES[(asc + i) % 12],
+             "lord": RASI_LORDS[(asc + i) % 12]}
+            for i in range(12)]
 
 
 def _today_str(current_tz: Optional[float] = None) -> str:
@@ -205,6 +221,12 @@ def build_chart_context(birth_details: Dict[str, Any],
         "today": _today_str(current_tz),
         "time_accuracy": birth_details.get("time_accuracy") or "exact",
         "house_system": natal["house_system"],
+        # Who rules each house, always — it is fixed by the sign on the house, so
+        # it costs one line and no compute call. Seeded unconditionally because a
+        # model that isn't told will *infer* it from natural karaka-ship: asked
+        # about dharma it calls Jupiter the 9th lord, which is true for two lagnas
+        # out of twelve and was wrong here (§67).
+        "house_rulers": _house_rulers(natal["lagna"]),
         "lagna": natal["lagna"],
         "moon_sign": {
             "sign_name": moon.get("sign_name", "Unknown"),

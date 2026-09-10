@@ -12,6 +12,15 @@ from .base import *  # noqa: F401,F403
 from astrology import chart_positions
 
 
+def _ordinal(n):
+    """1 -> "1st". Houses read as ordinals in prose; "L9"-style shorthand is a
+    dialect the model has to decode, and it decoded it wrong (§67)."""
+    if not isinstance(n, int):
+        return "n/a"
+    suffix = "th" if 11 <= (n % 100) <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
 def _ordinal_en(n) -> str:
     """1 → "1st". House numbers read as ordinals in a reading ("your 7th"), and a
     prompt that prints "house 7" invites the model to echo that phrasing back."""
@@ -2219,6 +2228,34 @@ Planetary Positions (All 9 Grahas) — house counted from the Lagna:"""
                 f"{data.get('degrees', 0):.2f}°, house {data.get('house', '?')}"
                 f"{nakshatra_info}")
 
+        # Who rules what. Stated plainly and early, because the model will
+        # otherwise supply it from natural karaka-ship — asked about dharma it
+        # calls Jupiter the 9th lord, which holds for two lagnas in twelve (§67).
+        # The closing sentence is built from this chart, so it contradicts the
+        # wrong answer specifically rather than warning in the abstract.
+        rulers = chart_data.get("house_rulers") or []
+        if rulers:
+            by_house = {r["house"]: r for r in rulers}
+            chart_description += (
+                "\n\nHouse rulers in THIS chart — the sign standing on a house fixes "
+                "its lord:\n"
+            )
+            chart_description += " · ".join(
+                f"{_ordinal(r['house'])} {r['sign']}: {r['lord']}" for r in rulers
+            )
+            ninth = by_house.get(9, {})
+            jupiter_rules = [_ordinal(r["house"]) for r in rulers if r["lord"] == "Jupiter"]
+            if ninth.get("lord"):
+                chart_description += (
+                    f"\nTake a house's lord from that list, never from a planet's natural "
+                    f"karaka-ship. Jupiter is the natural karaka of dharma and wisdom, but "
+                    f"the 9th lord HERE is {ninth['lord']} (the 9th is {ninth['sign']})"
+                )
+                chart_description += (
+                    f", and Jupiter rules the {' and '.join(jupiter_rules)}.\n"
+                    if jupiter_rules else ", and Jupiter rules no house here.\n"
+                )
+
         # Divisional charts (vargas) — compact one line per chart for token economy
         vargas = chart_data.get("vargas", [])
         if vargas:
@@ -2471,9 +2508,11 @@ Planetary Positions (All 9 Grahas) — house counted from the Lagna:"""
         # matrix is a visual reference, so only the wiring is seeded here.
         friendships = chart_data.get("friendships", {})
         if isinstance(friendships, dict) and friendships.get("house_lords"):
-            chart_description += "\n\nHouse-lord placements (lord of house → house it occupies):"
+            chart_description += "\n\nHouse-lord placements (where each bhava's lord sits):"
             for h in friendships["house_lords"]:
-                chart_description += f"\n- L{h.get('house')} in H{h.get('lord_house')} ({h.get('lord')})"
+                chart_description += (
+                    f"\n- {_ordinal(h.get('house'))} lord is {h.get('lord')}, "
+                    f"in the {_ordinal(h.get('lord_house'))}")
             pari = friendships.get("parivartana", [])
             if pari:
                 chart_description += "\nParivartana (mutual exchange): " + "; ".join(

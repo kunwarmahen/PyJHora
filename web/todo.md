@@ -6633,3 +6633,69 @@ rejection of a bad value, and the window-overlap detection.
 
 FAQ: `digestWindowOverlap` (why an hour is recommended and warned about) and
 `digestReadingShape` (why the reading and the email look different).
+
+## 67. "The 9th house is ruled by Jupiter" — it isn't, and we never said who did (owner report 2026-09-09)
+
+A Life Report chapter on Dharma & Purpose told the owner:
+
+> The 9th house of fortune and dharma is ruled by Jupiter, which is placed in the
+> 12th house in Aries. … Ketu in the 12th house, conjunct your 9th lord, Jupiter.
+
+Every clause except the lordship is right. Jupiter *is* in the 12th in Aries,
+Ketu *is* there with it. But the lagna is Taurus, so the 9th is **Capricorn** and
+its lord is **Saturn** (sitting in the 3rd); Jupiter rules the **8th and 11th**.
+Confirmed against `get_friendships`. The chapter then reasoned about dharma from
+the wrong ruler — a wrong premise, dressed in correct detail.
+
+### Why the model made it up
+
+Because we made the true answer easy to miss and the false one easy to reach.
+Jupiter is the *natural karaka* of dharma and the 9th; in the corpus every model
+has read, "Jupiter" and "9th house" sit in the same sentence constantly. The real
+lordships were in the context — as `- L9 in H3 (Saturn)`, in shorthand, at the
+bottom of a block that opens with twenty yoga definitions. Correct data, beaten
+by a strong prior. Same shape as §63: the fix is in the data, not in a sterner
+instruction.
+
+### The fix
+
+`house_rulers` is now seeded **unconditionally** — it is fixed by the sign on
+each house, so it costs one line and no compute call, and it must not be
+switchable off. Rendered early, in prose, and closed with a correction built from
+this chart:
+
+```
+House rulers in THIS chart — the sign standing on a house fixes its lord:
+1st Taurus: Venus · … · 9th Capricorn: Saturn · 10th Aquarius: Saturn · 11th Pisces: Jupiter · 12th Aries: Mars
+Take a house's lord from that list, never from a planet's natural karaka-ship.
+Jupiter is the natural karaka of dharma and wisdom, but the 9th lord HERE is
+Saturn (the 9th is Capricorn), and Jupiter rules the 8th and 11th.
+```
+
+That last sentence is generated per chart, so it contradicts the specific wrong
+answer instead of warning in the abstract. The friendships block also stopped
+speaking in shorthand: `- L9 in H3 (Saturn)` → `- 9th lord is Saturn, in the 3rd`.
+
+**A bug caught while building it, worth recording:** the first version read
+`lagna["sign_num"]` and produced an Aries table for every chart — because the
+LLM-facing lagna has had `sign_num` stripped (§65). It now resolves the sign by
+name via `sign_index`. Pinned by a test, since an Aries table is wrong in a way
+that looks plausible for exactly one lagna in twelve.
+
+### The other half of the report was right
+
+The owner also questioned "Saturn will move into your 12th house, conjunct your
+natal Jupiter and Ketu". That one stands: Saturn is in Pisces (11th) and enters
+Aries — the 12th — on **2027-06-03**, where natal Jupiter (Aries 22.86°) and Ketu
+(Aries 17.54°) sit, so it does transit over both. "Conjunct" for a transiting
+graha crossing a natal point is ordinary usage; only the phrasing invites reading
+it as two natal planets.
+
+### Guards
+
+`tests/test_house_rulers.py` — the seeded rulers must equal `get_friendships`'
+independently computed lordships, they survive every section being switched off,
+the rendered prompt names Saturn as the 9th lord and carries the karaka
+correction, and `_house_rulers` follows the lagna rather than defaulting to Aries.
+
+704 backend tests green.
