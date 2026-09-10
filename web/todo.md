@@ -3324,9 +3324,12 @@ balance rule (`_ashtottari_dasha_start_date`: `start = jd_dob − (1 − t_frac)
 | sidereal year | 365.256 | 2026-04-04 | +18.4 d |
 | `true_tithi_year(birth)` | 354.500 | 2025-10-05 | −163.2 d |
 
-### 26.6 The one open question (start here next session)
+### 26.6 The one open question — ✅ SUPERSEDED by §26.0 (kept for the trail)
 
-🔴 **What anchors the cycle at 2026-03-17?** The leading hypothesis, given the negative result above and
+✅ **What anchors the cycle at 2026-03-17?** *(ANSWERED 2026-07-13 — see §26.0: nothing does. The
+cycle is re-anchored per chart and measured in elongation, not days.)*
+
+The original reasoning, kept for the trail: the leading hypothesis, given the negative result above and
 the fact that the observed cycle is 384d (adhika) rather than 354d: **JHora recomputes the lunar-year
 length at each cycle** (true lunar year, alternating ~354 ↔ ~384 as adhika months fall), so a constant
 `Y` cannot reproduce the anchor after ~50 years of accumulated cycles. NOTE the engine sets
@@ -3375,7 +3378,8 @@ the top level. Investigated — this is the **easy** part, and it settles the de
   have the UI pattern: the Dasha page's tree + `tools.get_dasha_children(lords_path)`.
   `tithi_ashtottari.get_running_dhasa_for_given_date(current_jd, jd_at_dob, place,
   dhasa_level_index=DEHA)` gives the running chain at all 6 levels for "now" highlighting.
-- 🔴 **OPEN — `antardhasa_option`.** It decides where each child sequence *starts*. Engine default is
+- ✅ **ANSWERED — `antardhasa_option`.** *(§26.0 step 4: option **3**, the next lord after the parent —
+  verified against both of the owner's JHora charts.)* Originally: it decides where each child sequence *starts*. Engine default is
   `3` = the **next** lord after the parent; option `1` = the **parent** lord itself:
 
   | option | children of a Venus maha |
@@ -3562,15 +3566,15 @@ Also swept the **18 i18n keys** the removals orphaned (`digest.basis*`, `digest.
 
 ### 26.8 Superseded questions (now answered — kept for context)
 
-- 🔴 **Start-lord rule.** Mudda advances the natal lord by the year count (`(lord + years) % 9`). Is the
+- ✅ **Start-lord rule.** Mudda advances the natal lord by the year count (`(lord + years) % 9`). Is the
   annual Tithi Ashtottari the same with 8 lords (`(lord + years) % 8`), seeded from the **janma tithi**?
   The screenshot starts on **Venus** with a near-full period — **to pin this down exactly we need the
   owner's birth details (dob / tob / place) and the TP year shown**, so we can reverse-engineer the rule
   and assert our output byte-matches the JHora table above.
-- 🔴 **Is the first period a true balance?** Venus shows 74.0d vs a full 74.61d — is that a genuine
+- ✅ **Is the first period a true balance?** Venus shows 74.0d vs a full 74.61d — is that a genuine
   (tiny) balance carried from the previous year, or just rounding in our cycle estimate? The birth
   details would settle this too.
-- 🔴 **Which year length?** Confirm the compression uses the **actual TP window** (354/384d, which is
+- ✅ **Which year length?** Confirm the compression uses the **actual TP window** (354/384d, which is
   what the data shows) rather than a mean lunar year (354.37d).
 - **Keep a drill-down?** Do we want bhukti/antara *within* each compressed maha (JHora's panel shows
   maha only), or is the maha table enough?
@@ -6699,3 +6703,173 @@ the rendered prompt names Saturn as the 9th lord and carries the karaka
 correction, and `_house_rulers` follows the lagna rather than defaulting to Aries.
 
 704 backend tests green.
+
+---
+
+## 68. What's next — a survey of the whole repo, and the seven things worth building (owner ask 2026-09-09)
+
+> *"please take a look at this project and suggest what can be improved or new feature added.
+> Also tell me if anything else left from past"*
+
+Everything below is **proposed, not built**. Unchecked items carry 🔴 per the legend at the top.
+
+### 68.0 First: what was actually left over from the past
+
+**Nothing structural.** Every checkbox in this file and in `improvements-2026-07.md` is ticked —
+0 unchecked of either. Five 🔴 spot-markers had survived in §26, and all five were stale: §26.0
+solved the Tithi Ashtottari anchor on 2026-07-13 and says so in its own opening line
+("§26.1 / §26.5 / §26.6 / §26.6b below are SUPERSEDED"), while §26.8's heading already read
+*"Superseded questions (now answered)"*. In particular `antardhasa_option` — the last one marked
+**OPEN** — was answered by §26.0 step 4 (**option 3**, the next lord after the parent, verified
+against both JHora charts). The markers were flipped to ✅ in this pass so the legend means what it
+says again: **the only 🔴 left in the file are the §68 items below.**
+
+Three small threads are genuinely still loose. None blocks anything:
+
+| thread | where | state |
+|---|---|---|
+| Shared primitives not adopted everywhere | §2 | **1 of 51** pages imports `<Button>`; **186** `style={{…}}` literals remain under `pages/`. Filed as "incremental" on 2026-06-28 and never swept. Cosmetic debt, no user-visible defect. |
+| i18n leftovers | §5 | Kendra-Trikona raja yoga labels, panchanga limb values and Ashtakoot koota names stay English **by design** (owner decision 2026-07-19). Still undecided: the upstream `म्रृगशीर्षा` typo in `list_values_hi.txt` (unreported to PyJHora), and whether new-page UI strings stay English-only. |
+| Gemini **native** tool-calling | line ~785 | The converters are unit-tested against the verified v1beta REST shape, but the **live round-trip has still never been run** — §50 verified Gemini *availability* in-browser, which is a different thing. One real key and one tool-using question closes it. |
+
+### 68.1 (P0) 🔴 The claim checker — stop shipping the §63/§64/§65/§67 bug class
+
+- [ ] **Validate the model's factual claims against the computed chart before the reading is shown.**
+
+Four of the last five sections in this file are the same failure wearing different clothes:
+
+| § | what the model said | what was true |
+|---|---|---|
+| 63 | read `"rasi": 3, "house": 4` as a house | it was a drawing cell |
+| 64 | reasoned over Sahams | every Saham had been empty since 5.0 |
+| 65 | — | `house` and `sign_num` meant different things per payload |
+| 67 | "the 9th house is ruled by Jupiter" | the 9th is Capricorn; Saturn rules it |
+
+Every one was **caught by the owner, in a finished reading, after shipping**, and every fix was a
+better *prompt*. That is a losing trade: the prompt now carries a per-chart correction naming
+Saturn, which helps this chart and no other class of error.
+
+The mechanical version: between generation and display, extract the checkable assertions —
+`<planet> is in the Nth house`, `<planet> is in <sign>`, `the Nth lord is <planet>`, `<planet> is
+retrograde / combust / exalted / debilitated`, `<planet> is in <nakshatra>` — and test each against
+the already-computed chart. A contradiction gets struck or regenerated, and **logged with a rate the
+admin console can show**. The extraction can be a regex pass over a small closed vocabulary (28
+grahas/lagnas × 12 houses × 12 signs is a tiny space) before it ever needs an LLM.
+
+`tests/test_house_rulers.py` is the prototype of the other half — but it guards **one fact for one
+chart**. Generalize it to a **golden-prompt suite**: for ~6 fixed charts spanning all twelve lagnas,
+assert the *rendered* prompt carries the right lordships and placements. §67's own build log records
+a bug that produced an Aries table for every chart — wrong-looking-plausible for exactly one lagna in
+twelve, and structurally invisible to a single-chart test.
+
+### 68.2 (P1) 🔴 CI — 747 tests that only run when somebody types `./dev.sh test`
+
+- [ ] **Add `.github/workflows/` — there is no `.github/` directory in the repo at all.**
+
+`pytest tests/ --collect-only` reports **747** backend tests today (§67 counted 704). Plus 15
+frontend suites, `prettier --check`, the `routes_snapshot.json` guard, and `styles/tokens.test.js`.
+All of it fires only on demand, on one machine. The workflow is an afternoon and is permanently
+cheap; `./dev.sh test engine` (PyJHora's own ~8,000) can be a separate, slower, manual job.
+
+### 68.3 (P1) 🔴 The frontend has never rendered a page in a test
+
+- [ ] **Add `@testing-library/react` + a mount-every-page smoke harness.**
+
+All 15 frontend test files test **pure config/util modules** — `format`, `returnTo`, `features`,
+`theme`, `tokens`, `localizeName`. `@testing-library` is not even a devDependency, so no component
+has ever been mounted. That is precisely the blind spot §66 fell into ("every chart says 1 in the
+first house" — a stale bundle plus a renderer *guessing* which key held the position) and §65's
+`sign_num` rename lived in.
+
+Two pieces:
+- one shared harness that mounts each of the **51** pages against a stubbed API and asserts it
+  neither throws nor renders an error banner — cheap, and it catches import-time and null-payload
+  breakage across the whole surface;
+- a chart-renderer test that asserts a known chart's planets land in the **right cells** of both
+  chart styles. That one test is the guard §65/§66 wanted.
+
+### 68.4 (P1) 🔴 406 KB gzipped before the first chart draws
+
+- [ ] **Route-level `React.lazy` + a lazy MapPicker.**
+
+Measured on the current build: `main.*.js` is **1,672,219 bytes raw / 415,961 gzipped**, and
+[`App.js`](frontend/src/App.js) statically imports **all 51 pages** — there is not one `React.lazy`
+in the app. Confirmed riding along in that main chunk: `leaflet` + `react-leaflet` (used by exactly
+one dialog, `components/MapPicker.js`), `micromark`/`react-markdown` (32 pages, none of them the
+dashboard), `i18next`, and every page a signed-in user will never open. For a mobile-first PWA on
+Indian mobile data that is the single most expensive thing the app does before it shows anything.
+
+Credit where due: `jspdf` and `html2canvas` are **already** dynamically imported
+(`utils/exportChart.js`, `utils/exportConversation.js`) — that is the 400 KB chunk, correctly
+deferred. This is the same trick, applied to routes.
+
+### 68.5 (P1) 🔴 Event alerts — the hole in the notification layer
+
+- [ ] **A per-user forward calendar of chart events, delivered on the crossing.**
+
+`scheduler.py` sends **digests and nothing else**. Nothing in the app ever tells you:
+
+- your **Mahadasha/Bhukti changes** on <date>;
+- **Saturn enters your 12th** on 2027-06-03 (§67 computed exactly this, in passing, to answer a
+  question — and then threw it away);
+- **Sade Sati** phase two begins;
+- **Mercury stations retrograde in your 10th**;
+- a **transit hits a natal sensitive point** or crosses an arudha (§60 already joins those).
+
+Every one of those computes exists — `get_life_timeline`, `get_transits`, `get_dashas`, Sade Sati,
+the ingress scanner. What is missing is the thin part: precompute the next N months of thresholds
+per profile, store them, and fire the existing email/push path when one is crossed. It reuses the
+digest delivery, the notification prefs UI, the scheduler claim logic and the viewer-timezone layer
+(§57) wholesale. **Highest value per unit of work on this list.**
+
+### 68.6 (P2) 🔴 Muhurta that knows whose muhurta it is
+
+- [ ] **Score muhurta windows against the querent's chart, not only the Panchanga.**
+
+`get_muhurta` already scans a date range and returns ranked `best_windows` — so the *reverse search*
+exists. But its own docstring says it plainly: **"Location-driven (not birth-chart bound)"**. It
+scores nakshatra/vaara/tithi/yoga plus Abhijit and the benefic horas, and stops there. Two people in
+the same city get the identical answer.
+
+The personal half is already written and running elsewhere: **Tara Bala and Chandra Bala** from the
+janma nakshatra went into the digests in §56. Feed the same window through those, plus the running
+dasha lord's disposition and lagna shuddhi from the natal chart, and a generic almanac becomes a
+personal one. Both halves exist; this is the join.
+
+*(Noted while reading it: the no-coordinates fallback is hard-coded to Chennai — `lat, lon =
+13.0827, 80.2707`. Harmless given the location layer always supplies a place now, but it should
+probably fail loudly rather than silently answer for someone else's city.)*
+
+### 68.7 (P2) 🔴 Close the loop on predictions
+
+- [ ] **"Did this land?" on saved readings, linked to the journal.**
+
+The app has unified AI history (§17), a journal (`journal.py`) and a life timeline — and **no thread
+connecting a reading to what actually happened**. Add an outcome control on a saved reading, let it
+attach a journal entry, and feed confirmed outcomes back into later prompts ("in the previous
+Jupiter/Saturn period the user reported …").
+
+Two payoffs, and the second is the real one: it is a feature nobody else ships, **and** it is the
+only genuine evaluation signal this project would have for all the prompt work in §51–§67 and §68.1.
+
+### 68.8 (P3) 🔴 Smaller things found in the same pass
+
+- [ ] **The RAG corpus is 21 lines.** `backend/rag_corpus/seed_principles.jsonl` is the honest seed
+      it was always described as — which means the "cite a classical source" feature currently cites
+      almost nothing. Loading real public-domain translations (BPHS, Phaladeepika, Saravali, Jataka
+      Parijata) is what makes §5.12 real, and gives the model something to retrieve instead of
+      leaning on the priors that cause §68.1.
+- [ ] **Accessibility.** **16 of 51** pages contain any `aria-` attribute at all; the chart grids are
+      `div`-based and announce as nothing.
+- [ ] **`react-icons` is a dependency imported by zero files** (all 75 icon consumers use
+      `lucide-react`). Drop it.
+- [ ] **`react-scripts` 5.0.1 is unmaintained.** A Vite migration would also make §68.4 nearly free.
+      Optional, and a bigger bite than it looks.
+- [ ] **Offline is shell-only.** `sw.js` caches the app shell, but every computation is server-side,
+      so opening offline gives a working shell with nothing in it. Caching the active profile's core
+      payloads would make the app *readable* on a plane or a metro.
+
+### 68.9 Recommendation
+
+If two: **§68.5 event alerts** for what a user actually feels, and **§68.1 the claim checker** for
+what keeps biting. §68.2 CI is the cheapest thing on the list and should probably just happen.
