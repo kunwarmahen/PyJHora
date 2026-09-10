@@ -41,6 +41,30 @@ describe("markdown rendering", () => {
     expect(src).toMatch(/remarkPlugins=\{\[\s*remarkGfm\s*\]\}/);
   });
 
+  test("the wrapper resets white-space, and owns the reading typography", () => {
+    // Chat bubbles are `white-space: pre-wrap` so a plain-text turn keeps its
+    // line breaks. Inherited into markdown, that turned react-markdown's
+    // newline between every block into a literal blank line — ~30px of dead
+    // space between every paragraph, heading and list. The wrapper opts out.
+    expect(fs.readFileSync(WRAPPER, "utf8")).toMatch(/className="md"/);
+    const css = fs.readFileSync(path.join(SRC, "styles", "Markdown.css"), "utf8");
+    expect(css).toMatch(/\.md\.md\s*\{[^}]*white-space:\s*normal/);
+  });
+
+  test("the heading scale actually steps down, and never collapses into body text", () => {
+    // An `####` used to compute to exactly the body size and vanish into the
+    // prose, which is most of why a long answer read as undifferentiated.
+    const css = fs.readFileSync(path.join(SRC, "styles", "Markdown.css"), "utf8");
+    const size = (tag) => {
+      const m = css.match(new RegExp(`\\.md\\.md ${tag} \\{[^}]*font-size:\\s*([\\d.]+)em`));
+      return m ? parseFloat(m[1]) : null;
+    };
+    const scale = ["h1", "h2", "h3", "h4"].map(size);
+    expect(scale.every((v) => typeof v === "number")).toBe(true);
+    expect(scale).toEqual([...scale].sort((a, b) => b - a));
+    expect(Math.min(...scale)).toBeGreaterThan(1); // larger than the body text
+  });
+
   test("tables render inside a scroll container so wide ones cannot widen the page", () => {
     const src = fs.readFileSync(WRAPPER, "utf8");
     expect(src).toMatch(/md-table-wrap/);

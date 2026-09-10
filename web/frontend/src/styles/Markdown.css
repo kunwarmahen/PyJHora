@@ -1,13 +1,168 @@
 /**
- * Styling for the GFM constructs `components/Markdown.js` added — chiefly
- * tables, which the app had no rules for because nothing could produce one
- * until remark-gfm was wired in.
+ * The reading typography for everything a model writes.
  *
- * Scoped to `.md-table` rather than to a container class: AI prose renders
- * inside `.message-content`, `.ai-analysis`, chat bubbles and half a dozen
- * page-specific panels, and a table should look the same in all of them.
- * Borrowed from `.aspects-table` so a model-written table reads as a sibling
- * of the tables the app computes itself.
+ * `.md` is the wrapper `components/Markdown.js` puts around every rendered
+ * answer, so these rules reach chat turns, page panels and saved readings
+ * alike — one rhythm instead of each surface inventing its own.
+ *
+ * The class is doubled (`.md.md`) throughout. Several surfaces still carry
+ * their own `.ai-analysis p`, `.sbc-ai-markdown li`-style rules from before
+ * this file existed, which tie with a single `.md` on specificity — leaving
+ * the winner to CSS import order, which varies with each page's import graph.
+ * Doubling costs nothing and makes the outcome deterministic.
+ *
+ * Sizes are in `em` on purpose: the wrapper inherits whatever font-size its
+ * host sets (0.875rem in a chat bubble, 1rem in a page panel), and the whole
+ * scale rides along with it.
+ */
+
+/* Chat bubbles set `white-space: pre-wrap` so a plain-text turn keeps its line
+   breaks. Markdown must opt out: react-markdown leaves a newline text node
+   between every block, and under pre-wrap each one rendered as a literal blank
+   line — ~30px of dead space between every paragraph, heading and list, which
+   is what made a long answer look untended. */
+.md.md {
+  white-space: normal;
+  line-height: 1.65;
+}
+
+/* No dead space against the top and bottom of the host container. */
+.md.md > *:first-child {
+  margin-top: 0;
+}
+.md.md > *:last-child {
+  margin-bottom: 0;
+}
+
+.md.md p {
+  margin: 0 0 0.9em;
+}
+
+/* Headings bind to the section BELOW them: a generous gap above, a tight one
+   under. The app's display serif has a small x-height, so the steps are wider
+   than a sans scale would need — an `####` used to compute to exactly the body
+   size and vanish into the prose. */
+.md.md h1,
+.md.md h2,
+.md.md h3,
+.md.md h4,
+.md.md h5,
+.md.md h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 1.7em 0 0.5em;
+  /* Colour is deliberately left to inherit so a surface can accent its own
+     headings (the chakra panel's saffron) without fighting this file. */
+}
+
+.md.md h1 {
+  font-size: 1.8em;
+}
+.md.md h2 {
+  font-size: 1.5em;
+}
+.md.md h3 {
+  font-size: 1.25em;
+}
+.md.md h4 {
+  font-size: 1.1em;
+}
+.md.md h5,
+.md.md h6 {
+  font-size: 1em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: var(--font-body);
+}
+
+/* A heading straight after a heading is one unit — don't stack both gaps. */
+.md.md h1 + h2,
+.md.md h2 + h3,
+.md.md h3 + h4,
+.md.md h4 + h5 {
+  margin-top: 0.6em;
+}
+
+.md.md ul,
+.md.md ol {
+  margin: 0 0 0.9em;
+  padding-left: 1.4em;
+}
+
+.md.md li {
+  margin: 0 0 0.3em;
+}
+
+/* A "loose" list — one with blank lines between items — has each item's text
+   wrapped in its own <p>. Left alone those paragraph margins stack on top of
+   the item margins and blow the list apart. */
+.md.md li > p {
+  margin: 0 0 0.4em;
+}
+.md.md li > p:last-child {
+  margin-bottom: 0;
+}
+
+.md.md li > ul,
+.md.md li > ol {
+  margin: 0.3em 0 0;
+}
+
+.md.md blockquote {
+  margin: 1.1em 0;
+  padding: 0.1em 0 0.1em 1em;
+  border-left: 3px solid var(--saffron);
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.md.md blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+.md.md strong {
+  font-weight: 700;
+}
+
+.md.md a {
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.md.md code {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+}
+
+.md.md pre {
+  margin: 1.1em 0;
+  padding: var(--space-md);
+  overflow-x: auto;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+}
+
+.md.md pre code {
+  padding: 0;
+  background: none;
+  font-size: 0.85em;
+}
+
+.md.md hr {
+  margin: 1.6em 0;
+  border: none;
+  border-top: 1px solid var(--sandalwood);
+}
+
+/**
+ * Tables. Scoped to `.md-table` rather than to `.md` so the class travels with
+ * the element, and borrowed from `.aspects-table` so a model-written table
+ * reads as a sibling of the tables the app computes itself.
  */
 
 .md-table-wrap {
@@ -55,14 +210,12 @@
 
 /* Task lists (`- [ ]`), the other GFM construct a model reaches for when it
    lays out remedies or a checklist of steps. */
-.md-task-list,
-.message-content ul.contains-task-list,
-.ai-analysis ul.contains-task-list {
+.md.md .contains-task-list {
   list-style: none;
-  padding-left: var(--space-sm);
+  padding-left: 0.2em;
 }
 
-.contains-task-list input[type="checkbox"] {
+.md.md .contains-task-list input[type="checkbox"] {
   margin-right: var(--space-sm);
 }
 
