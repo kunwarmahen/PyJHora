@@ -66,3 +66,6 @@ docs/*
 # Design preview (throwaway)
 frontend/ledger-preview.html
 **/*/package-lock.json
+
+# RAG embedding cache — derived from rag_corpus/*.jsonl, rebuilt on demand.
+backend/rag_corpus/.index.json

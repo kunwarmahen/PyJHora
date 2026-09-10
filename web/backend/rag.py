@@ -22,6 +22,7 @@ citations as simply absent.
 import glob
 import hashlib
 import json
+import logging
 import os
 import urllib.error
 import urllib.request
@@ -30,28 +31,50 @@ from typing import List, Dict, Any, Optional
 CORPUS_DIR = os.path.join(os.path.dirname(__file__), "rag_corpus")
 CACHE_PATH = os.path.join(CORPUS_DIR, ".index.json")
 
+logger = logging.getLogger(__name__)
+
 OLLAMA_URL = (os.getenv("OLLAMA_URL") or "http://localhost:11434").rstrip("/")
 EMBED_MODEL = os.getenv("RAG_EMBED_MODEL", "nomic-embed-text")
 EMBED_TIMEOUT = float(os.getenv("RAG_EMBED_TIMEOUT", "20"))
+EMBED_BATCH = max(1, int(os.getenv("RAG_EMBED_BATCH", "16")))
 
 # In-memory index: list of {source, reference, text, embedding:[float]}.
 _INDEX: Optional[List[Dict[str, Any]]] = None
 _CORPUS_HASH: Optional[str] = None
+# Normalised embedding matrix, derived from _INDEX and rebuilt whenever it is.
+_MATRIX: Dict[str, Any] = {}
+
+
+def _post(path: str, body: Dict[str, Any], timeout: float) -> Optional[Dict[str, Any]]:
+    req = urllib.request.Request(
+        f"{OLLAMA_URL}{path}", data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode())
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError):
+        return None
 
 
 def _embed(text: str) -> Optional[List[float]]:
     """One Ollama embedding, or None if the service/model is unavailable."""
-    payload = json.dumps({"model": EMBED_MODEL, "prompt": text}).encode()
-    req = urllib.request.Request(
-        f"{OLLAMA_URL}/api/embeddings", data=payload,
-        headers={"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=EMBED_TIMEOUT) as resp:
-            data = json.loads(resp.read().decode())
-        emb = data.get("embedding")
-        return emb if isinstance(emb, list) and emb else None
-    except (urllib.error.URLError, TimeoutError, ValueError, OSError):
-        return None
+    data = _post("/api/embeddings", {"model": EMBED_MODEL, "prompt": text},
+                 EMBED_TIMEOUT)
+    emb = (data or {}).get("embedding")
+    return emb if isinstance(emb, list) and emb else None
+
+
+def _embed_batch(texts: List[str]) -> Optional[List[List[float]]]:
+    """Embed a batch through Ollama's newer `/api/embed`, or None if it is not
+    there. Older builds only have the one-at-a-time `/api/embeddings`, and a
+    real corpus is hundreds of passages — one HTTP round trip each turns a
+    first build into minutes of nothing happening."""
+    data = _post("/api/embed", {"model": EMBED_MODEL, "input": texts},
+                 EMBED_TIMEOUT * max(1, len(texts) / 8))
+    embs = (data or {}).get("embeddings")
+    if isinstance(embs, list) and len(embs) == len(texts) and all(embs):
+        return embs
+    return None
 
 
 def _load_corpus() -> List[Dict[str, str]]:
@@ -110,6 +133,7 @@ def build_index(force: bool = False) -> int:
     corpus = _load_corpus()
     if not corpus:
         _INDEX, _CORPUS_HASH = [], ""
+        _MATRIX.clear()
         return 0
     chash = _corpus_hash(corpus)
     if not force and _INDEX is not None and _CORPUS_HASH == chash:
@@ -118,18 +142,32 @@ def build_index(force: bool = False) -> int:
     cached = None if force else _load_cache(chash)
     if cached is not None:
         _INDEX, _CORPUS_HASH = cached, chash
+        _MATRIX.clear()
         return len(_INDEX)
 
-    # Embed each passage. If embeddings are unreachable, leave the index empty
-    # (feature simply stays off) rather than a partial index.
-    built: List[Dict[str, Any]] = []
-    for e in corpus:
-        emb = _embed(e["text"])
-        if emb is None:
-            _INDEX, _CORPUS_HASH = [], ""
-            return 0
-        built.append({**e, "embedding": emb})
+    # Embed every passage. If embeddings are unreachable, leave the index empty
+    # (the feature simply stays off) rather than a partial index.
+    vectors: List[List[float]] = []
+    batched = True
+    for start in range(0, len(corpus), EMBED_BATCH):
+        chunk = [e["text"] for e in corpus[start:start + EMBED_BATCH]]
+        embs = _embed_batch(chunk) if batched else None
+        if embs is None:
+            batched = False           # no /api/embed here — fall back for good
+            embs = []
+            for text in chunk:
+                emb = _embed(text)
+                if emb is None:
+                    _INDEX, _CORPUS_HASH = [], ""
+                    _MATRIX.clear()
+                    return 0
+                embs.append(emb)
+        vectors.extend(embs)
+        logger.info("rag: embedded %d/%d passages", len(vectors), len(corpus))
+
+    built = [{**e, "embedding": v} for e, v in zip(corpus, vectors)]
     _INDEX, _CORPUS_HASH = built, chash
+    _MATRIX.clear()
     _save_cache(built, chash)
     return len(built)
 
@@ -141,18 +179,29 @@ def available() -> bool:
     return bool(_INDEX)
 
 
-def _cosine(a: List[float], b: List[float]) -> float:
+def _unit_matrix():
+    """The index as one L2-normalised matrix, built once per index.
+
+    Scoring a query is then a single matrix-vector product instead of a Python
+    loop over every passage — which matters once the corpus is a whole book
+    rather than the 21-line seed.
+    """
     import numpy as np
-    va, vb = np.asarray(a, dtype=float), np.asarray(b, dtype=float)
-    na, nb = np.linalg.norm(va), np.linalg.norm(vb)
-    if na == 0 or nb == 0:
-        return 0.0
-    return float(np.dot(va, vb) / (na * nb))
+    cached = _MATRIX.get("m")
+    if cached is not None:
+        return cached
+    m = np.asarray([e["embedding"] for e in _INDEX or []], dtype=float)
+    if m.size:
+        norms = np.linalg.norm(m, axis=1, keepdims=True)
+        m = m / np.where(norms == 0, 1.0, norms)
+    _MATRIX["m"] = m
+    return m
 
 
 def retrieve(query: str, k: int = 3) -> List[Dict[str, Any]]:
     """Top-k corpus passages for `query`, each {source, reference, text, score}.
     Empty when the corpus/embeddings are unavailable."""
+    import numpy as np
     if _INDEX is None:
         build_index()
     if not _INDEX:
@@ -160,10 +209,14 @@ def retrieve(query: str, k: int = 3) -> List[Dict[str, Any]]:
     qemb = _embed(query)
     if qemb is None:
         return []
-    scored = [
-        {"source": e["source"], "reference": e["reference"], "text": e["text"],
-         "score": round(_cosine(qemb, e["embedding"]), 4)}
-        for e in _INDEX
+    q = np.asarray(qemb, dtype=float)
+    qn = np.linalg.norm(q)
+    if qn == 0:
+        return []
+    scores = _unit_matrix() @ (q / qn)
+    top = np.argsort(scores)[::-1][:k]
+    return [
+        {"source": _INDEX[i]["source"], "reference": _INDEX[i]["reference"],
+         "text": _INDEX[i]["text"], "score": round(float(scores[i]), 4)}
+        for i in top
     ]
-    scored.sort(key=lambda x: x["score"], reverse=True)
-    return scored[:k]
