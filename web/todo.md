@@ -7360,7 +7360,44 @@ sub-tools' Tara Bala for the same native on the same day** — two surfaces, one
 coordinates fail on both muhurta entry points; a broken profile degrades to the almanac rather than
 failing the location question; and the endpoint really binds the optional body.
 
-984 backend tests green, 209 frontend.
+1,016 backend tests green (985 at first commit, plus §71.1's four and work landing in parallel),
+212 frontend.
+
+### 71.1 The guard that could not see this feature — ✅ fixed same day
+
+Found while sweeping the docs, and it is the §64-class bug in miniature.
+
+`tests/test_ayanamsa_reaches_computes.py` exists to catch exactly one thing: a compute that reads a
+birth moment but cannot be told which ayanamsa to use, and so silently answers in the default. Its
+structural half finds those computes by walking the package's AST for a function taking **`dob` and
+`tob`**. The muhurta pair names that pair **`birth_dob`/`birth_tob`** — because `dob` sitting next to
+`date` reads as the same thing — so both sat outside the guard entirely. `get_muhurta_subtools` was
+computing a janma star, a day star and a Panchaka lagna, all sidereal, in whatever ayanamsa happened
+to be set, and the whole muhurta page ignored the reader's setting.
+
+The guard now knows both namings (`_BIRTH_MOMENT_NAMES`), and **a new test asserts the guard's own
+search still finds `get_dashas`, `get_muhurta` and `get_muhurta_subtools`** — a search that silently
+stops matching turns every assertion after it into a pass.
+
+**The differential had to change too.** The existing behavioural tests use TRUE_CITRA vs LAHIRI,
+which is right for a dasha (~1' of ayanamsa ≈ 3 days of a Ketu balance — loud) and wrong here: these
+answers are bucketed into 13°20' nakshatras, so 1' moves a star name only when a longitude happens to
+sit within 1' of a boundary. The first version of the test walked a month and still failed — not
+because the fix was broken, but because ~29 samples at ~1/800 odds each is a coin-flip test. **FAGAN**
+is ~0.9° away, which puts CHART1's natal Moon on the far side of the Ashlesha/Magha boundary, so the
+janma star itself changes and every tara counted from it moves with it. Verified the guard bites:
+removing the parameter again fails three tests, not zero.
+
+Wired the rest of the way while there — `MuhurtaSubtoolsRequest.ayanamsa`, both routes forwarding it,
+`api.js` sending it on all three muhurta calls, and `MuhurtaPage` reading `settings.ayanamsa` (it read
+none at all). The saved reading now records the ayanamsa it was written under, so reopening one
+recomputes in the same zodiac. Live proof on the owner's chart: True Chitra → birth star Magha, tara
+Vipat, the day rates `avoid`; Fagan → Ashlesha, Kshema, `excellent`.
+
+Two smaller things fixed in passing: the sub-tools panel printed **"1th position"** (`{{n}}th` in the
+locale file → now i18next ordinal plurals, so 1st/2nd/3rd/11th all read correctly), and
+`get_muhurta_subtools` built a natal `drik.Place` it never used — the Moon's longitude is a function
+of the instant alone, and only the birth *timezone* fixes which instant that was.
 
 ### Not done, deliberately
 

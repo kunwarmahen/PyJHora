@@ -599,15 +599,15 @@ export const astrologyService = {
   // `birthDetails` is what turns an almanac search into this person's search
   // (§68.6) — Tara Bala, Chandra Bala, the running dasha lords and per-window
   // lagna shuddhi. Omit it and the endpoint answers exactly as it always did.
-  getMuhurta: ({ activity, startDate, endDate, place, latitude, longitude, timezone, birthDetails } = {}) =>
+  getMuhurta: ({ activity, startDate, endDate, place, latitude, longitude, timezone, birthDetails, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
     api.post("/api/astrology/muhurta", birthDetails || null, {
       params: {
         activity, start_date: startDate, end_date: endDate,
-        place, latitude, longitude, timezone,
+        place, latitude, longitude, timezone, ayanamsa,
       },
     }),
   analyzeMuhurtaAI: (
-    { activity, startDate, endDate, place, latitude, longitude, timezone, birthDetails, profileId, personName } = {},
+    { activity, startDate, endDate, place, latitude, longitude, timezone, birthDetails, profileId, personName, ayanamsa = DEFAULT_AYANAMSA } = {},
     model = {}
   ) =>
     api.post(
@@ -618,6 +618,7 @@ export const astrologyService = {
         birth_details: birthDetails || undefined,
         profile_id: profileId,
         person_name: personName,
+        ayanamsa,
         llm_provider: model.legacyProvider || "qwen",
         provider_type: model.providerType,
         model: model.model,
@@ -745,10 +746,11 @@ export const astrologyService = {
 
   // ---- Muhurta sub-tools: Choghadiya / Panchaka / Tarabala / Chandrabala ----
   // Location-driven; pass birthDetails to personalize Tarabala + Chandrabala.
-  getMuhurtaSubtools: ({ date, place, latitude, longitude, timezone, birthDetails } = {}) =>
+  getMuhurtaSubtools: ({ date, place, latitude, longitude, timezone, birthDetails, ayanamsa = DEFAULT_AYANAMSA } = {}) =>
     api.post("/api/astrology/muhurta/subtools", {
       date, place, latitude, longitude, timezone,
       birth_details: birthDetails || undefined,
+      ayanamsa,
     }),
 
   // ---- Nadi karaka reading (significators + transit triggers) ----

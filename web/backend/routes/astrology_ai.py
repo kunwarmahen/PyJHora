@@ -506,6 +506,7 @@ async def analyze_muhurta(
                      "end_date": request.end_date, "place": request.place,
                      "latitude": request.latitude, "longitude": request.longitude,
                      "timezone": request.timezone,
+                     "ayanamsa": request.ayanamsa,
                      "personalized": result.get("personalized", False)},
         )
         return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value,

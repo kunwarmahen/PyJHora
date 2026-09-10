@@ -583,18 +583,26 @@ class MuhurtaMixin:
                              birth_tob: Optional[str] = None,
                              birth_lat: Optional[float] = None,
                              birth_lon: Optional[float] = None,
-                             birth_tz: Optional[float] = None) -> Dict:
+                             birth_tz: Optional[float] = None,
+                             ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
         """Day-level muhurta helpers for a date + place: the Choghadiya table
         (day + night, each part with its nature), the Panchaka status, and — if
         birth details are supplied — the personal Tarabala (from the birth star)
         and Chandrabala (the transit Moon counted from the natal Moon). These are
         the small classical "should I act today?" checks that sit alongside the
-        electional (muhurta) search. `date` defaults to today at `place`."""
+        electional (muhurta) search. `date` defaults to today at `place`.
+
+        The `ayanamsa` is load-bearing for three of the four answers: the birth
+        star, the day's star and the Panchaka lagna are all read off *sidereal*
+        longitudes, so a reader on Lahiri must not be handed True Chitra's stars.
+        Only the Choghadiya is exempt — it divides sunrise to sunset and knows
+        nothing about the zodiac."""
         if not ENGINE_AVAILABLE:
             return {"error": "Jyotir AI engine not available", "status": "failed"}
         try:
             from datetime import datetime, timezone as _utc, timedelta
 
+            _set_ayanamsa(ayanamsa)
             tz_offset = tz if tz is not None else 5.5
             # Same reasoning as get_muhurta (§68.6): the Choghadiya and Panchaka
             # are sunrise-derived and local, so a missing place is a question we
@@ -700,10 +708,10 @@ class MuhurtaMixin:
                     by, bm, bd = map(int, birth_dob.split("-"))
                     btp = birth_tob.split(":")
                     bh = int(btp[0]); bmin = int(btp[1]) if len(btp) > 1 else 0
-                    blat = birth_lat if birth_lat else lat
-                    blon = birth_lon if birth_lon else lon
+                    # Only the birth timezone is needed: the Moon's longitude is a
+                    # function of the instant alone, and the coordinates matter
+                    # only through the offset that fixes which instant it was.
                     btz = birth_tz if birth_tz is not None else tz_offset
-                    bplace = drik.Place(place or "", blat, blon, btz)
                     bjd = swe.julday(by, bm, bd, bh + bmin / 60.0)
                     b_moon_long = drik.lunar_longitude(bjd - btz / 24.0)
                     birth_star = int(b_moon_long // (360.0 / 27.0)) + 1  # 1..27
@@ -739,6 +747,9 @@ class MuhurtaMixin:
             import traceback
             traceback.print_exc()
             return {"error": str(e), "status": "failed"}
+        finally:
+            if ENGINE_AVAILABLE:
+                _set_ayanamsa(DEFAULT_AYANAMSA)
 
     # ── Prashna / horary (§16) ─────────────────────────────────────────────
     @staticmethod

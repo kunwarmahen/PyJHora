@@ -448,6 +448,9 @@ class MuhurtaSubtoolsRequest(BaseModel):
     longitude: Optional[float] = None
     timezone: Optional[float] = None
     birth_details: Optional[BirthDetails] = None
+    # Load-bearing: the janma star, the day's star and the Panchaka lagna are all
+    # sidereal, so a reader on Lahiri must not be handed True Chitra's stars.
+    ayanamsa: Optional[str] = None
 
 class BhriguMarkersAnalysisRequest(BaseModel):
     birth_details: BirthDetails

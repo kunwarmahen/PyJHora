@@ -1481,6 +1481,7 @@ async def get_muhurta_subtools(
             birth_lat=bd.latitude if bd else None,
             birth_lon=bd.longitude if bd else None,
             birth_tz=bd.timezone if bd else None,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
         )
         if result.get("status") != "success":
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))

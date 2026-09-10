@@ -1820,7 +1820,7 @@ masked, and used ahead of any global env key for that user's requests.
 - `GET /api/astrology/life-report/job?profile_id=` - Progress while generating, the finished report afterwards (the page polls this)
 - `POST /api/astrology/life-report/cancel?job_id=` - Stop a running report
 - `POST /api/astrology/muhurta?activity=&start_date=&end_date=&place=&latitude=&longitude=&timezone=&ayanamsa=` - Auspicious windows for an activity over a date range. **The body is an optional `BirthDetails`** (§71): send it and every day and window is also scored against that chart (Tara Bala, Chandra Bala, the running Vimsottari lords' gochara, per-window lagna shuddhi) and the result carries `personalized: true` + `personal_basis`; omit it and the answer is the location-only almanac. Coordinates are **required** — a muhurta without a place is refused, not answered for a default city
-- `POST /api/astrology/muhurta/subtools` - Choghadiya + Panchaka for a day (`MuhurtaSubtoolsRequest`), plus personal Tarabala / Chandrabala when `birth_details` is sent
+- `POST /api/astrology/muhurta/subtools` - Choghadiya + Panchaka for a day (`MuhurtaSubtoolsRequest`), plus personal Tarabala / Chandrabala when `birth_details` is sent. Honours `ayanamsa`: the janma star, the day's star and the Panchaka lagna are all sidereal (only the Choghadiya is exempt — it divides sunrise to sunset and knows nothing about the zodiac)
 - `POST /api/astrology/muhurta-analysis` - AI rationale for the recommended windows (`MuhurtaAnalysisRequest`; names the personal reasons when `birth_details` is sent, and says the answer is the public almanac's when it is not)
 
 ### Saved Profiles

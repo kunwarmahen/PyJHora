@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { CalendarCheck, Sparkles, MapPin, Clock, Star, Compass, Moon, AlertTriangle, User } from "lucide-react";
 import Markdown from "../components/Markdown";
 import { useProfile } from "../contexts/ProfileContext";
+import { useSettings } from "../contexts/SettingsContext";
 import { useRestoreReading } from "../hooks/useRestoreReading";
 import { RecentReadings } from "../components/RecentReadings";
 import { astrologyService } from "../services/api";
@@ -95,6 +96,12 @@ export const MuhurtaPage = () => {
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
   const { selectedProfile } = useProfile();
+  // The stars this page counts from — the janma star, the day's star, the
+  // Panchaka lagna, a window's rising sign — are all sidereal, so the reader's
+  // chosen ayanamsa has to travel with every request or the page quietly answers
+  // in the engine default.
+  const { settings } = useSettings();
+  const ayanamsa = settings.ayanamsa;
 
   // The natal half of every request on this page. Shared by the window search,
   // the day sub-tools and the AI rationale so they can never disagree about
@@ -156,13 +163,14 @@ export const MuhurtaPage = () => {
           latitude: c.latitude,
           longitude: c.longitude,
           timezone: c.timezone,
+          ayanamsa: c.ayanamsa || ayanamsa,
           birthDetails: c.personalized ? birthDetails : undefined,
         })
         .then((res) => setResult(res.data))
         .catch(() => {});
       setPendingReading(null);
     }
-  }, [pendingReading, loading, birthDetails]);
+  }, [pendingReading, loading, birthDetails, ayanamsa]);
 
   // Day sub-tools (Choghadiya / Panchaka / Tarabala / Chandrabala).
   const [subDate, setSubDate] = useState(todayISO);
@@ -196,6 +204,7 @@ export const MuhurtaPage = () => {
         startDate,
         endDate,
         ...loc,
+        ayanamsa,
         birthDetails: personalize ? birthDetails : undefined,
       });
       setResult(res.data);
@@ -204,7 +213,7 @@ export const MuhurtaPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [loc, activity, startDate, endDate, personalize, birthDetails, t]);
+  }, [loc, activity, startDate, endDate, personalize, birthDetails, ayanamsa, t]);
 
   const runSubtools = useCallback(async () => {
     if (!loc) return;
@@ -214,6 +223,7 @@ export const MuhurtaPage = () => {
       const res = await astrologyService.getMuhurtaSubtools({
         date: subDate,
         ...loc,
+        ayanamsa,
         birthDetails,
       });
       setSubData(res.data);
@@ -222,7 +232,7 @@ export const MuhurtaPage = () => {
     } finally {
       setSubLoading(false);
     }
-  }, [loc, subDate, birthDetails, t]);
+  }, [loc, subDate, birthDetails, ayanamsa, t]);
 
   const handleAi = async () => {
     if (!loc) return;
@@ -235,6 +245,7 @@ export const MuhurtaPage = () => {
           startDate,
           endDate,
           ...loc,
+          ayanamsa,
           birthDetails: personalize ? birthDetails : undefined,
           profileId: personalize ? selectedProfile?._id : undefined,
           personName: personalize ? selectedProfile?.birth_details?.name : undefined,
@@ -395,7 +406,11 @@ export const MuhurtaPage = () => {
                       <Moon size={12} /> {t("muhurta.subtools.chandrabala")}
                     </div>
                     <div className="muh-status__value">
-                      {t("muhurta.subtools.house", { n: subData.chandrabala.position })}
+                      {/* Ordinal plurals, not "{{n}}th" — that printed "1th position". */}
+                      {t("muhurta.subtools.house", {
+                        count: subData.chandrabala.position,
+                        ordinal: true,
+                      })}
                       <span className={`muh-badge muh-badge--${subData.chandrabala.quality}`}>
                         {t(`muhurta.subtools.quality.${subData.chandrabala.quality}`)}
                       </span>

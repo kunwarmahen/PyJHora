@@ -1805,7 +1805,10 @@
       "tarabalaNote": "From your birth star {{birth}} to today's {{today}}.",
       "chandrabala": "Chandrabala",
       "chandrabalaNote": "Transit Moon in {{transit}}, counted from your natal Moon in {{birth}}.",
-      "house": "{{n}}th position",
+      "house_ordinal_one": "{{count}}st position",
+      "house_ordinal_two": "{{count}}nd position",
+      "house_ordinal_few": "{{count}}rd position",
+      "house_ordinal_other": "{{count}}th position",
       "quality": {
         "very_good": "Very good",
         "good": "Good",
