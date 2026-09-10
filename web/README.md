@@ -109,6 +109,14 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   default sends no cap at all, so the model stops when it is done. The setting applies across
   **every** AI feature (Ask, predictions, compatibility, quiz, and the per-page plain-language
   analyses), not just the Ask page.
+- **Classical citations** (§5.12 / §73): a reading can quote the shastra rather than assert on
+  its own authority. `backend/rag_corpus/` ships **315 passages** — **246 real verses of the
+  *Brihat Jataka*** (N. Chidambaram Iyer, 1885, public domain) with genuine chapter/verse
+  references, plus 69 general principles labelled *"General principle"* so a paraphrase is never
+  dressed up as a shloka. Retrieval is local (Ollama embeddings, no new cloud service) and the
+  AI reaches it through the `search_classical_texts` tool. Add your own out-of-copyright editions
+  with `rag_corpus/import_text.py`; if the corpus or Ollama is unavailable, readings simply carry
+  no citations. See `backend/rag_corpus/README.md`.
 - **Streaming answers**: responses stream token-by-token (SSE) with a **Stop** button
 - **Per-answer token usage**: each answer shows the provider-reported token count
   (prompt + completion breakdown on hover), captured from Ollama, OpenAI/-compatible
@@ -470,6 +478,8 @@ pyjhora-web/
 │   ├── ratelimit.py         # Per-user rate limiting for AI endpoints
 │   ├── shares.py            # Read-only shareable chart links
 │   ├── api_tokens.py        # Per-user hashed API tokens for the public API + MCP
+│   ├── rag.py               # Classical-text retrieval + citations (local Ollama embeddings)
+│   ├── rag_corpus/          # The corpus itself: *.jsonl + import_text.py (see its README)
 │   ├── tests/               # Golden-value + endpoint smoke tests (./dev.sh test)
 │   ├── pytest.ini           # Test config
 │   ├── requirements.txt     # Python dependencies
@@ -564,9 +574,18 @@ The backend has a golden-value + endpoint smoke suite (pinned to two JHora-verif
 charts) that catches drift from a PyJHora bump or an `astrology.py` refactor:
 
 ```bash
-./dev.sh test          # backend golden-value + endpoint + determinism tests
+./dev.sh test          # backend golden-value + endpoint + determinism tests (1,029)
+./dev.sh test web      # frontend jest (232) + prettier --check + eslint, incl. jsx-a11y
+./dev.sh test all      # both
 ./dev.sh test engine   # also smoke-run PyJHora's own ~1,500-test suite
 ```
+
+`test web` is the guard on everything the compiler cannot see: the `jsx-a11y` rules (§73) that
+stop another icon-only control shipping without a name, and the formatter. It must report
+**0 problems** — a warning left standing is how the rule set becomes decoration.
+
+Still open (todo.md §68.2/§68.3): none of this runs in CI, and no page has ever been *rendered*
+in a test — every frontend suite covers a pure config or util module.
 
 #### MongoDB Setup
 
@@ -1938,6 +1957,20 @@ The frontend uses React with:
 - **Mobile/PWA**: responsive rules in `src/styles/Responsive.css`; installable PWA via
   `public/manifest.json` + icons + `public/sw.js` (registered in production only; the
   service worker never caches `/api`)
+- **Offline reading** (§73): the shell alone was useless, since every number is computed
+  server-side. `src/services/offlineCache.js` keeps each **deterministic** API response in
+  IndexedDB — keyed on a hash of *user + method + path + params + body*, because the core
+  payloads are POSTs and the Cache API cannot store those — and replays it when a request
+  fails with no response at all. `OfflineBanner` then says when the copy was saved. AI
+  readings, jobs and streams are never cached (they are in the history instead), and the
+  store is dropped on logout and whenever a different account signs in on this browser.
+- **Accessibility** (§73): every feature page wraps its content in `<main id="page-content">`
+  with a skip link past the ~40-entry drawer; the drawer is `inert` when closed and closes on
+  Escape; tab bars are one tab stop with arrow-key movement. The kundali is a complex image
+  with a **full text alternative** — `src/config/chartDescription.js` names the ascendant and
+  then every sign/house with its occupants, so a screen reader reads the chart rather than
+  the word "image". Controls that cannot be a `<button>` get the keyboard contract from
+  `src/utils/a11y.js`. The `jsx-a11y` lint rules are on; `./dev.sh test web` runs them.
 - **Adding a dependency — regenerate the lockfile with the build image's npm.**
   `frontend/Dockerfile.nas` builds on `node:18-alpine`, whose **npm is 10.8.2**, and it runs
   `npm ci`, which refuses a lockfile that disagrees with `package.json`. A newer local npm

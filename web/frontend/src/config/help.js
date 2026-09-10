@@ -25,6 +25,9 @@ export const HELP_SECTIONS = [
       { id: "whereToStart", to: "/birth-chart" },
       { id: "dashboardLayout", to: "/dashboard" },
       { id: "essentialsVsEverything", to: "/settings" },
+      // No `to`: offline is how the whole app behaves, not somewhere to go.
+      { id: "offline" },
+      { id: "accessibility" },
       { id: "believe" },
     ],
   },
@@ -99,6 +102,7 @@ export const HELP_SECTIONS = [
       { id: "aiWhichModel", to: "/settings" },
       { id: "aiUnavailable", to: "/settings" },
       { id: "aiAccurate" },
+      { id: "aiCitations" },
       { id: "aiCorrectionNote" },
       { id: "aiHistory", to: "/history" },
       // No `to` on this one on purpose: `aiHistory` above already resolves

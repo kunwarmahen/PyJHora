@@ -6899,30 +6899,29 @@ Jupiter/Saturn period the user reported …").
 Two payoffs, and the second is the real one: it is a feature nobody else ships, **and** it is the
 only genuine evaluation signal this project would have for all the prompt work in §51–§67 and §68.1.
 
-### 68.8 (P3) 🔴 Smaller things found in the same pass
+### 68.8 (P3) 🟡 Smaller things found in the same pass — **four of five done, see §73**
 
-- [ ] **The RAG corpus is 21 lines.** `backend/rag_corpus/seed_principles.jsonl` is the honest seed
-      it was always described as — which means the "cite a classical source" feature currently cites
-      almost nothing. Loading real public-domain translations (BPHS, Phaladeepika, Saravali, Jataka
-      Parijata) is what makes §5.12 real, and gives the model something to retrieve instead of
-      leaning on the priors that cause §68.1.
-- [ ] **Accessibility.** **16 of 51** pages contain any `aria-` attribute at all; the chart grids are
-      `div`-based and announce as nothing.
-- [ ] **`react-icons` is a dependency imported by zero files** (all 75 icon consumers use
-      `lucide-react`). Drop it.
+- [x] **The RAG corpus is 21 lines.** SHIPPED 2026-09-10 — 315 passages, 246 of them real cited
+      verses of the 1885 Brihat Jataka, plus an importer. See **§73**.
+- [x] **Accessibility.** SHIPPED 2026-09-10 — `<main>` on 41 pages, a skip link, the chart read
+      aloud, drawer/tab keyboard behaviour, and a lint guard. See **§73**.
+- [x] **`react-icons` is a dependency imported by zero files** (all 75 icon consumers use
+      `lucide-react`). Dropped 2026-09-10.
 - [ ] **`react-scripts` 5.0.1 is unmaintained.** A Vite migration would also make §68.4 nearly free.
-      Optional, and a bigger bite than it looks.
-- [ ] **Offline is shell-only.** `sw.js` caches the app shell, but every computation is server-side,
-      so opening offline gives a working shell with nothing in it. Caching the active profile's core
-      payloads would make the app *readable* on a plane or a metro.
+      Optional, and a bigger bite than it looks. **Deliberately left open** — asked and answered
+      2026-09-10: it touches the build, the service worker, `REACT_APP_*` → `import.meta.env`, 21
+      test suites and the PWA setup, and §68.3 means no component test would catch the regression.
+- [x] **Offline is shell-only.** SHIPPED 2026-09-10 — the responses are cached now, not just the
+      shell. See **§73**.
 
 ### 68.9 Recommendation
 
 If two: **§68.5 event alerts** for what a user actually feels, and **§68.1 the claim checker** for
 what keeps biting. §68.2 CI is the cheapest thing on the list and should probably just happen.
 
-> **§68.1 is done — see §69; §68.5 — see §70; §68.6 — see §71; §68.7 — see §72.** §68.2, §68.3,
-> §68.4 and §68.8 are still open.
+> **§68.1 is done — see §69; §68.5 — see §70; §68.6 — see §71; §68.7 — see §72; §68.8 — see §73.**
+> §68.2 (CI), §68.3 (frontend never renders a page in a test) and §68.4 (route-level `React.lazy`)
+> are still open, and so is the Vite migration inside §68.8.
 
 ---
 
@@ -7570,3 +7569,151 @@ that call, so the *next* path to forget fails instead of shipping.
 The convention itself is now written down in
 [docs/AI_TOOL_CALLING_DESIGN.md §4.1c](docs/AI_TOOL_CALLING_DESIGN.md) — it existed only as two
 inline comments, which is why it was possible to add a second tool to the same trap.
+
+---
+
+## 73. The small things that were not small (§68.8) — ✅ SHIPPED 2026-09-10
+
+> *"now lets work on 68.8 (P3)"* — plus, on scope: ship a real public-domain text rather than only
+> an importer, and leave `react-scripts` alone.
+
+Five bullets at the bottom of a P3 list. Four are done; the fifth (Vite) was declined on purpose and
+is recorded above as still open.
+
+### 73.1 The corpus that could not cite anything
+
+`rag.py` has always been careful: *"this module invents nothing"*, and the bundled seed used the
+honest reference **"General principle"** rather than a made-up verse number. The trouble was that
+honesty was all it had. **21 lines**, 15 of them actual passages. A feature whose entire purpose is
+to quote a source had almost nothing to quote, so every reading argued from the model's priors —
+which is the failure §68.1 exists to catch.
+
+Now: **315 passages**, of which **246 are real verses of the Brihat Jataka** with real chapter and
+verse numbers, from **N. Chidambaram Iyer's 1885 English translation** (Foster Press, Madras) —
+scanned by Google, out of copyright, and on Archive.org as `brihatjatakavar00iyergoog`. The seed
+grew from 15 to **69**, aimed at what the Brihat Jataka does not cover well: dashas, vargas,
+Ashtakavarga, Jaimini, KP, muhurta, Sade Sati phases.
+
+**The corpus file is generated, never hand-edited.** `rag_corpus/import_text.py` holds one *profile*
+per edition, because 19th-century OCR mangles precisely the parts a parser leans on. In this book the
+word CHAPTER is printed as `CHAPTER IV*`, `r CHAPTER IH.`, `CHPTER X.`, `CHAl^TBR XVII.` and
+`OEfAPTER VI.`; the running head arrives as `isRlHAT JATAKA`, `BBIIIAT JATAKA`, `UUVAT JAT&KA`. So
+headings are matched by **edit distance** to the word, numerals through an OCR confusion map
+(`H` is a run-together `II`, hence `IH` = 3; `Xlir` = 13; `XXL` = 21; `XXVIir` = 28), and the running
+head is excised even when the scan runs it into the middle of a sentence.
+
+Two rules decide what ships, and both are the same rule: **a wrong citation is worse than a missing
+one.**
+
+- **Headings are authoritative.** The first attempt inferred chapter numbers from position and
+  resynchronised on a verse restart — and *drifted*, filing chapter 7's verses under chapter 8. That
+  is a confident lie with a verse number attached. Now a verse is filed under the chapter its printed
+  heading says. Five of the 28 headings did not survive the scan at all; where the arithmetic between
+  two surviving headings is ambiguous, those verses are **dropped**. **57 stanzas** go that way and
+  the run says so.
+- **An OCR quality gate.** Every candidate is scored by the fraction of its words a dictionary (or a
+  bundled Jyotish glossary) recognises; below `--min-quality` (0.85) it is dropped — **50 stanzas**.
+  A garbled line quoted as scripture under a real verse number is the same failure in a different
+  coat.
+
+The mapping is checked three ways, and all three agree: against the term index the book prints in its
+front matter (every definitional term — Apoklima, Chaturasra, Dyuna — lands in chapter 1, exactly as
+the index says); against the subjects (ch. 7 is longevity, ch. 9 Ashtakavarga, ch. 27 the drekkanas);
+and against **the contents list the book prints in its own final chapter** — *"7. On Ayurdaya",
+"9. On Ashtakavargas"* — which is now a test. Chapter 28 is that contents list, so it is excluded
+rather than shipped as doctrine.
+
+`rag.py` also had to grow up for a corpus this size: embedding went from one HTTP round trip per
+passage to batches of 16 through Ollama's newer `/api/embed` (falling back to the old endpoint when
+it isn't there), and scoring from a Python loop to one matrix-vector product. **315 passages embed in
+1.5 s**, cached to a gitignored `.index.json`.
+
+Verified live against Ollama, not just in tests:
+
+```
+Q: the drekkana of Aries
+  [0.7989] Brihat Jataka — Ch. 27 v. 3: The 3rd Drekkana of Aries is a man of a wicked nature…
+  [0.7708] Brihat Jataka — Ch. 27 v. 1: The 1st Drekkana of sign Aries is a man with a white cloth…
+```
+
+### 73.2 Offline: the shell was there, the app was not
+
+`sw.js` cached the app shell, so opening offline gave a working frame around nothing — every number
+in this app is computed server-side.
+
+The obvious fix does not work: **the Cache API cannot store a POST**, and the core payloads (birth
+chart, vargas, dashas, yogas) are POSTs carrying the birth details in the body. A service worker
+keying on the URL cannot even tell two profiles' charts apart. So the cache is app-level —
+`services/offlineCache.js`, IndexedDB, keyed on a stable hash of *user + method + path + params +
+body*. When a request fails with **no response at all** (the network, not the server saying no), the
+saved copy is returned and a strip appears across the top saying when it was saved.
+
+What is cached is decided by a **predicate, not a list of paths**: any deterministic computation
+under `/api/astrology/` plus the user's charts and preferences; never anything matching
+`-analysis`, `/ask`, `/predict`, `/life-report/`, `/rectify` or `/stream`. A list of eighty endpoints
+would rot the first time a feature shipped; a rule covers the endpoint added next year. AI readings
+are excluded on purpose — they are not deterministic, and they already live in the unified history
+(§17).
+
+Privacy: entries are namespaced by the `prefs_owner` stamp (§ the same one SettingsContext trusts)
+and dropped wholesale on logout *and* when a different account signs in on the same browser. A
+household browser must not keep the last person's chart readable.
+
+### 73.3 Accessibility: the chart announced as "image"
+
+The audit line was "16 of 51 pages contain any `aria-` attribute". The real finding was worse: both
+chart components carried `role="img"` with an aria-label of **just the title**, and `role="img"`
+*hides everything inside it* from assistive technology. The single most important thing in the app
+announced itself as "Rasi Chart, image" and stopped.
+
+- **The chart is read aloud now.** `config/chartDescription.js` builds the long text alternative a
+  complex diagram is entitled to — ascendant, then each sign (South) or house-with-sign (North) and
+  what is sitting in it, in reading order. Both styles use it, so they say the same thing in the same
+  words. It is a plain function, so it is tested without mounting React (which §68.3 still cannot do).
+- **`<main>` on 41 pages** by codemod, plus a **skip link** in `PageHeader` — the drawer is ~40
+  entries and a keyboard user walked all of it on every page.
+- **The drawer was a keyboard trap.** It is only translated off-screen when closed, so all ~40 links
+  stayed in the tab order. It is now `inert` when closed (set on the DOM node — React 18 does not
+  pass the prop through), closes on Escape, returns focus to the hamburger, and marks the current
+  page with `aria-current`.
+- **Tab bars** are one tab stop with arrow/Home/End between them, as a tablist should be.
+- **19 `<div onClick>` controls** could not be reached from a keyboard at all — a saved reading, a
+  dasha node, a profile card. Where the content allows a real `<button>` it is one; where it does not
+  (a `<button>` may not contain a `<div>`), `utils/a11y.js`'s `clickable()` supplies the whole
+  contract in one spread. Modal backdrops went the other way: they duplicate a close button that
+  already exists, so they are `aria-hidden` rather than made into a second control.
+- **The notification switches** are the `<label><input/><span/></label>` pattern, so the label
+  carries no text; each input names itself with `aria-label` instead.
+- **A guard, not a one-off sweep**: the `jsx-a11y` rules CRA ships but leaves off are now on in
+  `package.json`, and `./dev.sh test web` runs the frontend suites, `prettier --check` and `eslint`
+  together. It reports **0 problems**.
+
+### Traps hit on the way
+
+- **A resync heuristic that "recovers" structure can invent it.** The verse-restart rule looked like
+  a clean way to find the five lost chapter headings; it found nine, and silently renumbered a third
+  of the book. Dropping what cannot be placed is the only version of this that is honest.
+- **`role="img"` prunes the subtree.** Adding `tabIndex` to something inside it produces the
+  focusable-but-invisible-to-AT bug. The North chart's click-a-planet stays pointer-only for that
+  reason; the keyboard path is the PlanetExplorer chip strip that was already there, which is why it
+  is acceptable.
+- **A codemod that balances still needs reading.** The `<main>` insertion put the closing tag in the
+  *last* matching shape in the file, which in `AdminPage.js` belonged to a component 500 lines below.
+  JSX must balance, so the build caught it — but the check that "found" nothing wrong was a local
+  shape check, not a structural one.
+- **`prettier --check` had been failing on 19 untouched files**, so the new `./dev.sh test web`
+  target failed on arrival. Formatting them fixed it and broke `styles/tokens.test.js`, whose
+  boundary sentinel was a literal selector string that Prettier legitimately split across lines. The
+  guard now matches a pattern.
+- **`react-icons` really was dead weight** — zero importers, removed with `npm uninstall`.
+
+### Tests
+
+`backend/tests/test_rag_corpus.py` (13) holds the corpus to well-formed, unique, furniture-free
+references and cross-checks the chapters against the book's own contents list, then runs the importer
+over a synthetic mangled scan to pin each rule — headings authoritative, notes never imported, an
+unplaceable chapter dropped rather than guessed. `frontend/src/config/chartDescription.test.js` (4)
+and `src/utils/a11y.test.js` (5) hold the text alternative and the keyboard contract;
+`src/services/offlineCache.test.js` (9) pins the two rules that could do damage quietly — an AI
+reading must never be replayed as if it were today's, and the key must separate two profiles and two
+users. **1029 backend + 232 frontend green.**
