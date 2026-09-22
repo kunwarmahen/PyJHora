@@ -69,6 +69,7 @@ SOURCE_META: Dict[str, Dict[str, str]] = {
     "nakshatra_profile": {"label": "Nakshatra profile",  "route": "/nakshatra",         "kind": "reading"},
     "planetary_nakshatras": {"label": "Planetary nakshatras", "route": "/nakshatra",    "kind": "reading"},
     "gochara_phala":     {"label": "Gochara-phala",       "route": "/gochara",           "kind": "reading"},
+    "nakshatra_gochara": {"label": "Nakshatra gochara",   "route": "/transit",           "kind": "reading"},
     "life_report":       {"label": "Life Report",          "route": "/life-report",       "kind": "reading"},
 }
 

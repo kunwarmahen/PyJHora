@@ -86,6 +86,7 @@ const PROFILE_READING_PATHS = new Set([
   "/api/astrology/saturn-transits-analysis",
   "/api/astrology/nakshatra-profile-analysis",
   "/api/astrology/gochara-phala-analysis",
+  "/api/astrology/nakshatra-gochara-analysis",
   "/api/astrology/friendships-analysis",
   "/api/astrology/nadi-analysis",
   "/api/astrology/bhrigu-markers-analysis",
@@ -1052,6 +1053,46 @@ export const astrologyService = {
         person_name: opts.personName,
         current_date: opts.currentDate,
         current_tz: opts.currentTz,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        ayanamsa: model.ayanamsa,
+      },
+      { timeout: 300000 }
+    ),
+
+  // ---- Nakshatra gochara (transit stars + dated windows) — §75 ----
+  getNakshatraGochara: (
+    birthDetails,
+    currentDate = null,
+    currentTime = null,
+    currentTz = null,
+    horizonDays = null,
+    ayanamsa = DEFAULT_AYANAMSA
+  ) =>
+    api.post("/api/astrology/nakshatra-gochara", birthDetails, {
+      params: {
+        current_date: currentDate || undefined,
+        current_time: currentTime || undefined,
+        current_tz: currentTz ?? undefined,
+        horizon_days: horizonDays || undefined,
+        ayanamsa,
+      },
+    }),
+  analyzeNakshatraGocharaAI: (birthDetails, opts = {}, model = {}) =>
+    api.post(
+      "/api/astrology/nakshatra-gochara-analysis",
+      {
+        birth_details: birthDetails,
+        person_name: opts.personName,
+        profile_id: opts.profileId,
+        current_date: opts.currentDate,
+        current_time: opts.currentTime,
+        current_tz: opts.currentTz,
+        horizon_days: opts.horizonDays,
         llm_provider: model.legacyProvider || "qwen",
         provider_type: model.providerType,
         model: model.model,

@@ -231,6 +231,26 @@ class ChakraAnalysisRequest(BaseModel):
     max_tokens: Optional[int] = None
     ayanamsa: Optional[str] = None
 
+class NakshatraGocharaAnalysisRequest(BaseModel):
+    """AI reading for the nakshatra-level gochara (§75): which star each graha is
+    transiting, for how long, and how that lands on this native."""
+    birth_details: BirthDetails
+    profile_id: Optional[str] = None  # for grouping the saved reading in history
+    person_name: Optional[str] = None
+    current_date: Optional[str] = None
+    current_time: Optional[str] = None
+    current_tz: Optional[float] = None
+    # How far the star calendar runs forward; clamped to [90, 3660] in the engine.
+    horizon_days: Optional[int] = None
+    llm_provider: str = "qwen"  # legacy fallback
+    provider_type: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
+    # Optional per-user output cap (output tokens); honored via _resolve_cfg.
+    max_tokens: Optional[int] = None
+    ayanamsa: Optional[str] = None
+
 class SarvatobhadraAnalysisRequest(BaseModel):
     birth_details: BirthDetails
     profile_id: Optional[str] = None  # for grouping the saved reading in history

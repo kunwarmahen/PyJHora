@@ -1770,6 +1770,86 @@ Write a friendly ~240-word reading:
 3. One practical, encouraging closing line about the overall tone of this window.
 Base everything only on the list above. No medical, financial, lifespan or legal predictions."""
 
+    def _build_nakshatra_gochara_prompt(self, d: Dict[str, Any], name: str) -> str:
+        """Nakshatra-level gochara (§75): the star each graha is transiting, the
+        dated window, and how it lands on this native.
+
+        Two rules shape this prompt. The computed block is authoritative — an
+        earlier chakra reading contradicted its own input when it was merely
+        *offered* the numbers, so they are declared binding here. And the star's
+        deity and symbol are handed over explicitly as imagery: the tradition has
+        no "graha X in star Y" result table, the verdict below is built from
+        tarabala, house, dasha and natal resonance, and a reading that derives
+        its conclusion from the deity instead has invented a rule.
+        """
+        janma = d.get("janma") or {}
+        dasha = d.get("dasha") or {}
+
+        def block(g):
+            w = g.get("window") or {}
+            tb = g.get("tarabala") or {}
+            sym = g.get("symbolism") or {}
+            res = g.get("natal_resonance") or {}
+            when = "window not tracked (it changes star about every day)"
+            if w.get("entered") and w.get("leaves"):
+                when = f"in this star {w['entered']} → {w['leaves']}"
+            elif w.get("leaves"):
+                when = f"in this star until {w['leaves']}"
+            elif w.get("entered"):
+                when = f"in this star since {w['entered']}"
+            nxt = "; ".join(
+                f"{u['nakshatra']} from {u['enters']} [{u.get('tarabala')} tara; "
+                f"deity {u.get('deity')}, theme {u.get('theme')}]"
+                + (" (turning back into it)" if u.get("retrograde_reentry") else "")
+                for u in (g.get("upcoming") or [])[:3]
+            )
+            lines = [
+                f"- **{g['planet']}**{' (retrograde)' if g.get('retrograde') else ''} "
+                f"in **{g['nakshatra']}** pada {g.get('nakshatra_pada')} "
+                f"({g['sign_name']} {g.get('degrees')}°), star lord {g.get('nakshatra_lord')} — {when}",
+                f"    · tarabala from their birth star: **{tb.get('name')}** ({tb.get('tone')}) — {tb.get('meaning')}",
+                f"    · house {g.get('house_from_lagna')} from Lagna, {g.get('house_from_moon')} from Moon"
+                + (f"; owns houses {', '.join(str(h) for h in g['owns_houses'])}"
+                   if g.get("owns_houses") else "; owns no house (node)"),
+                f"    · VERDICT (computed): **{g.get('support')}** — {'; '.join(g.get('support_reasons') or [])}",
+            ]
+            if g.get("emphasis"):
+                lines.append(f"    · live for this chart because: {'; '.join(g['emphasis'])}")
+            if res.get("occupied_by") or res.get("own_natal_star"):
+                lines.append(f"    · natal star of {g['planet']}: {res.get('natal_star')}")
+            if nxt:
+                lines.append(f"    · next stars: {nxt}")
+            lines.append(f"    · IMAGERY ONLY (not a rule): deity {sym.get('deity')}, "
+                         f"symbol {sym.get('symbol')}, theme — {sym.get('theme')}")
+            return "\n".join(lines)
+
+        body = "\n".join(block(g) for g in (d.get("grahas") or [])) or "- (no data)"
+        running = ", ".join(x for x in [
+            f"Maha {dasha['maha']}" if dasha.get("maha") else None,
+            f"Antar {dasha['antar']}" if dasha.get("antar") else None] if x) or "not available"
+
+        return f"""You are a precise, warm Vedic astrologer reading **nakshatra gochara** for {name} — not the sign-level transit picture, but the finer one: which of the 27 stars each graha is currently transiting, for how long, and what that star means *for this particular birth star*.
+
+Everything below is already computed from {name}'s chart and is AUTHORITATIVE. Do not recompute it, do not contradict it, and do not substitute a placement you expect from memory.
+
+Their birth star (janma nakshatra): **{janma.get('nakshatra')}**, lord {janma.get('lord')}, Moon in {janma.get('moon_sign')}. Running dasha: {running}. As of {d.get('transit_date')}:
+
+{body}
+
+HOW TO READ IT:
+- **Tarabala is the spine.** The transit star counted from their birth star gives one of the nine Taras, and that — with the graha's own nature, its house and whether its dasha is running — is where your verdict comes from. The line marked VERDICT is the computed one; agree with it.
+- **The deity, symbol and theme are imagery, not rules.** Use them for language and feel — the colour a star lends a transit. Never derive a prediction from a deity's mythology; the classical texts supply no "graha X transiting star Y" result table, and inventing one dressed as tradition is the one thing this reading must not do.
+- **Every star's deity and theme is given above, including the upcoming ones.** Use only those. Do not name a deity, symbol or theme from memory for any star — that is where this reading goes wrong, and a confidently wrong deity is worse than none.
+- **Dates are the point.** A star window is what makes this readable as timing rather than mood. Name the actual dates for the two or three transits that matter most, and say plainly when a window closes.
+
+Write ~320 words:
+1. **The star that matters most right now** — pick the graha whose window, tarabala and dasha link make it the live one, and say what it asks of them, with its dates.
+2. **Two or three others worth knowing**, each with its window and what it supports or tests.
+3. **What changes next** — the nearest upcoming star ingress from the list, with its date, and one sentence on the shift.
+4. One grounded closing line.
+
+Say "transiting" when you mean a transit, so it is never mistaken for a birth placement. Speak to {name} in the second person. No medical, financial, legal or lifespan predictions, and no claims about world events — this reads one person's chart. Do not promise an outcome beyond the last date shown above."""
+
     def _build_avasthas_prompt(self, d: Dict[str, Any], name: str) -> str:
         """Explain the planetary avasthas (Baladi / Jagradadi / Deeptadi)."""
         planets = d.get("planets") or []

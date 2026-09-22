@@ -433,7 +433,8 @@ export const FEATURE_ALIASES = {
   dhasa: "dasha vimshottari vimsottari mahadasha bhukti antardasha period timing",
   transit:
     "gochara current planets movement now arudha arudh aroodha lagna al upapada ul pada" +
-    " padas bhava arudha",
+    " padas bhava arudha nakshatra gochara star stars transit star tara tarabala tara bala" +
+    " nakshatra transit star window when does it end how long",
   remedies: "gemstone gem stone mantra upaya parihara donation deity",
   lifeReport: "report full life story chapters narrative",
   history:
@@ -604,6 +605,15 @@ export const FEATURE_SUBITEMS = [
     parent: "sarvatobhadra",
     to: "/chakras?tab=kaala",
     keywords: "kaala kala directions wheel",
+  },
+  // ── Transits: the star-level view of the same gochara (§75) ──
+  {
+    label: "Nakshatra gochara (transit stars)",
+    parent: "transit",
+    to: "/transit",
+    keywords:
+      "nakshatra gochara transit star stars tara tarabala tara bala star window" +
+      " which star is saturn in how long does this transit last star ingress",
   },
   {
     label: "Tripataki Chakra",

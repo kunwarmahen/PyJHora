@@ -78,6 +78,7 @@ export const HELP_SECTIONS = [
       { id: "featSadeSati", to: "/sade-sati" },
       { id: "featCompare", to: "/compare" },
       { id: "featGochara", to: "/gochara" },
+      { id: "featNakshatraGochara", to: "/transit" },
       { id: "featBhava", to: "/bhava" },
       { id: "featEphemeris", to: "/ephemeris" },
       { id: "featReport", to: "/report" },

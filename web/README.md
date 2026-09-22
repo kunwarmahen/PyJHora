@@ -18,7 +18,10 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   Transits (Gochara — each transiting graha **weighted by its Ashtakavarga bindus** for the
   sign it occupies, with a supported/neutral/rough chip, and counted from the **bhava
   arudhas** as well as the Lagna and Moon: AL/UL columns and labels on the chart, all
-  twelve padas in a grid, steppers from a minute to a year),
+  twelve padas in a grid, steppers from a minute to a year, and a **nakshatra-gochara**
+  layer reading the same transits one level finer — which of the 27 stars each graha is
+  crossing, the dates it entered and leaves, and that star's **tarabala** counted from
+  your birth star),
   an Ephemeris & transit calendar (daily sidereal grid + sign-ingress dates),
   a Bhava / house-cusp chart (Sripati / Placidus / KP / Equal),
   a print-ready Full Report (Save-as-PDF),
@@ -198,7 +201,7 @@ actually proceeds, so features an astrologer reaches for in the same breath sit 
 | --- | --- |
 | **Start here** | Birth Chart · Ask AI Astrologer · Today |
 | **Read the chart** | Bhava · Nakshatra · Planetary Strength · Chart Deep-Dive · Sensitive Points · Jaimini · KP · Nadi Karakas · Bhrigu Markers · Life Report · Full Report |
-| **Timing** | Dhasa · Life Timeline · Transits · Gochara-phala · Sade Sati · Varshaphal · Tithi Pravesha |
+| **Timing** | Dhasa · Life Timeline · Transits (+ nakshatra gochara) · Gochara-phala · Sade Sati · Varshaphal · Tithi Pravesha |
 | **Calendar & muhurta** | This Fortnight · This Month · Almanac · Muhurta · Pancha Pakshi · Chakras · Vedic Clock · Chart of the Moment · Ephemeris |
 | **Relationships** | Compatibility · Compare Charts |
 | **Remedies & practice** | Remedies · Prashna · Astro-Journal · AI History · Learn the Chart · Birth-Time Rectification |
@@ -1136,6 +1139,25 @@ DB name), which is deliberate.
 - Key upcoming sign-ingress dates for Jupiter and Saturn
 - North / South Indian chart styles, respects the selected ayanamsa
 
+**Nakshatra gochara** (same page, below the transit table) reads those transits at star
+level rather than sign level — a sign holds a slow graha for years, a nakshatra for
+months, so this is where a transit becomes timing:
+
+- **Dated star windows** for every graha but the Moon: when it entered the star it is in,
+  when it leaves, and the stars ahead — including the ones it turns *back* into while
+  retrograde, which are flagged as re-entries rather than shown as ordinary ingresses
+- **Tarabala** — the transit star counted from your own birth star, giving one of the nine
+  Taras (Sampat, Vipat, Kshema … Vadha). This is the column added to the transit table, and
+  it is the only one on that table that is about you rather than about the sky
+- Each graha's house from Lagna and Moon, the houses it owns, whether it or the star's lord
+  is your running dasha lord, and whether it is crossing a star a natal graha occupies
+- A computed **supportive / mixed / pressured** verdict, from tarabala and the graha's own
+  nature — and *only* those. Each star's deity, symbol and theme are shown too, labelled
+  **Imagery (not a rule)**: the classical texts give no table of results for "graha X in
+  star Y", so nothing here pretends one exists
+- An AI reading of the star windows, and a `get_nakshatra_gochara` tool so Ask can answer
+  "how long does this Saturn transit last" with dates
+
 ### 6a. Ephemeris & Transit Calendar (`/ephemeris`)
 
 - A **daily sidereal ephemeris**: for each day in the window every graha's sign,
@@ -1934,7 +1956,7 @@ concern in §4 — pure file moves, no behaviour change):
 - **llm_service.py** + **llm/**: unified LLM service (Ollama / OpenAI-compatible /
   Gemini / OpenAI) — the tool loop stays in `llm_service.py`; provider adapters are
   `llm/providers/*`, prompt builders + the context renderer are `llm/prompts.py`
-- **tools.py**: the AI tool registry (49 tools) — also what `/api/v1/tools` and the
+- **tools.py**: the AI tool registry (50 tools) — also what `/api/v1/tools` and the
   MCP server publish
 - **events.py**: the forward calendar of a chart's own events (§70) — dasha
   changes, Saturn's phases, ingresses, retrograde stations, eclipses — stored per

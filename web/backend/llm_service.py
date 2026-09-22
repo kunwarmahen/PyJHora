@@ -696,6 +696,16 @@ Reply with STRICT JSON only, exactly this shape:
         cfg = config or self.resolve_config()
         return await self._complete(prompt, cfg)
 
+    async def analyze_nakshatra_gochara(self,
+                                       data: Dict[str, Any],
+                                       name: str = "this person",
+                                       config: Optional[ModelConfig] = None) -> str:
+        """Nakshatra-level gochara reading (§75): the star each graha transits,
+        its dated window, and how it lands on this native's birth star."""
+        prompt = self._build_nakshatra_gochara_prompt(data, name)
+        cfg = config or self.resolve_config()
+        return await self._complete(prompt, cfg)
+
     async def analyze_kp(self,
                          data: Dict[str, Any],
                          name: str = "this person",

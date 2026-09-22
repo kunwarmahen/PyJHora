@@ -292,44 +292,61 @@ class TransitsMixin:
     }
 
     @staticmethod
-    def _planet_sign_spans(pl_idx: int, jd_start: float, jd_end: float,
-                           tz_offset: float) -> List[tuple]:
-        """Contiguous same-sign spans of one graha across [jd_start, jd_end].
+    def _planet_arc_spans(pl_idx: int, jd_start: float, jd_end: float,
+                          tz_offset: float, arc_deg: float) -> List[tuple]:
+        """Contiguous spans of one graha inside a fixed zodiacal arc across
+        [jd_start, jd_end] — 30° for a sign, 360/27 for a nakshatra.
 
-        Samples the planet's sidereal longitude once a day and bisects each sign
-        change to the hour. A retrograde dip back into the previous sign naturally
+        Samples the graha's sidereal longitude once a day and bisects each arc
+        change to the hour. A retrograde dip back into the previous arc naturally
         breaks into separate spans (correct — each ingress is a real event). Cheap
-        (one `sidereal_longitude` per day); safe for the slow movers this is used
-        for (Jupiter/Saturn/Rahu move < 0.25°/day, never crossing a sign twice in
-        a day). Returns [(sign0, start_jd, end_jd), …]."""
-        pl = drik.ephemeris_planet_index(pl_idx)
+        (one `sidereal_longitude` per day).
 
-        def sign_at(j):
-            return int(drik.sidereal_longitude(j - tz_offset / 24.0, pl) // 30) % 12
+        Daily sampling is sound only while the graha cannot cross the whole arc
+        between two samples. At 30° that holds for every graha but the Moon; at a
+        13°20' nakshatra it still holds for every graha but the Moon, because
+        Mercury — the fastest of the rest — peaks near 2.2°/day and so needs six
+        days to cross a star. **Never pass the Moon here**: it covers a nakshatra
+        in a day, and the scan would silently skip whole stars.
+
+        Returns [(arc_index, start_jd, end_jd), …]."""
+        pl = drik.ephemeris_planet_index(pl_idx)
+        n_arcs = int(round(360.0 / arc_deg))
+
+        def arc_at(j):
+            return int(drik.sidereal_longitude(j - tz_offset / 24.0, pl) // arc_deg) % n_arcs
 
         spans = []
         jd = jd_start
-        cur_sign = sign_at(jd)
+        cur = arc_at(jd)
         span_start = jd
         while jd < jd_end:
             jd_next = min(jd + 1.0, jd_end)
-            s = sign_at(jd_next)
-            if s != cur_sign:
+            a = arc_at(jd_next)
+            if a != cur:
                 lo, hi = jd, jd_next
                 for _ in range(30):
                     mid = (lo + hi) / 2.0
-                    if sign_at(mid) == cur_sign:
+                    if arc_at(mid) == cur:
                         lo = mid
                     else:
                         hi = mid
                     if hi - lo < 1.0 / 24.0:
                         break
-                spans.append((cur_sign, span_start, hi))
-                cur_sign = sign_at(hi)
+                spans.append((cur, span_start, hi))
+                cur = arc_at(hi)
                 span_start = hi
             jd = jd_next
-        spans.append((cur_sign, span_start, jd_end))
+        spans.append((cur, span_start, jd_end))
         return spans
+
+    @staticmethod
+    def _planet_sign_spans(pl_idx: int, jd_start: float, jd_end: float,
+                           tz_offset: float) -> List[tuple]:
+        """Contiguous same-sign spans of one graha. `(sign0, start_jd, end_jd)`.
+        The 30° case of `_planet_arc_spans`; see there for the sampling contract."""
+        return AstrologyCompute._planet_arc_spans(
+            pl_idx, jd_start, jd_end, tz_offset, 30.0)
 
     @staticmethod
     def _next_sign_ingress(pl_idx: int, jd_from: float, tz_offset: float,
@@ -373,6 +390,331 @@ class TransitsMixin:
                 return cur_sign, sign_at(hi), hi
             jd = jd_next
         return None
+
+    # ── §75 Nakshatra gochara ───────────────────────────────────────────────
+    # A graha delivers its results coloured by the star it stands in, not only
+    # by the sign — which is why Vimsottari is keyed to the star lord. The sign
+    # view above says Saturn is in Pisces for two and a half years; the star view
+    # says it is in Revati from here to there, and Revati is a different story
+    # from Uttara Bhadrapada. These two blocks are what make the second view
+    # personal: the star's window, and where that window lands on the native.
+
+    # Grahas that get nakshatra windows. The Moon is excluded outright — it
+    # covers a whole star in a day, so daily sampling would skip stars and the
+    # "window" would be noise anyway. See `_planet_arc_spans`.
+    _NAK_WINDOW_PLANETS = (0, 2, 3, 4, 5, 6, 7, 8)   # Sun, Mars..Saturn, Rahu, Ketu
+
+    # How far back to look for the current star's entry, and how far forward to
+    # carry the calendar, per graha. A star is 13°20', so the span is roughly
+    # 13 days for the Sun, ~18 for Mars, ~160 for Jupiter, ~250 for the nodes and
+    # ~400 for Saturn; these are those numbers with room for a retrograde loop.
+    # Scanning the slow movers over the full horizon is where the cost is, so the
+    # fast ones deliberately get a short leash rather than the same window.
+    _NAK_SCAN_SPAN = {
+        0: (60, 200),     # Sun
+        2: (200, 500),    # Mars
+        3: (60, 200),     # Mercury
+        4: (400, None),   # Jupiter  (None = the caller's horizon)
+        5: (60, 200),     # Venus
+        6: (500, None),   # Saturn
+        7: (400, None),   # Rahu
+        8: (400, None),   # Ketu
+    }
+
+    # Natural benefics/malefics, for the one place the verdict leans on a graha's
+    # own nature rather than on the count. Same sets the Sarvatobhadra reading
+    # uses, so a malefic is a malefic in both places.
+    _NAK_SUPPORT_TONE = {"very_good": 2, "good": 1, "caution": -1, "bad": -2}
+
+    @staticmethod
+    def _nakshatra_spans(pl_idx: int, jd_start: float, jd_end: float,
+                         tz_offset: float) -> List[tuple]:
+        """Contiguous same-nakshatra spans of one graha. `(nak0, start, end)`."""
+        return AstrologyCompute._planet_arc_spans(
+            pl_idx, jd_start, jd_end, tz_offset, 360.0 / 27.0)
+
+    @staticmethod
+    def get_nakshatra_gochara(dob: str, tob: str, place: str,
+                              lat: Optional[float] = None, lon: Optional[float] = None,
+                              tz: Optional[float] = None,
+                              current_date: Optional[str] = None,
+                              current_time: Optional[str] = None,
+                              current_tz: Optional[float] = None,
+                              horizon_days: int = 1100,
+                              ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """Nakshatra-level gochara (§75): which star each graha is transiting,
+        **from when to when**, and how that star lands on this particular native.
+
+        For every graha but the Moon this returns the dated window of the star it
+        currently occupies (and the stars after it, inside `horizon_days`), joined
+        to four personal references:
+
+          • **Tarabala** — the transit star counted from the native's janma star,
+            giving one of the nine Taras. This is the tradition's own answer to
+            "what does this star mean *for me*", and it is the spine of the verdict.
+          • **House** — the graha's house counted from the natal Lagna and from the
+            natal Moon, plus the houses it owns in this chart.
+          • **Dasha** — whether the graha, or the star's lord, is running as the
+            Maha or Antar lord. Classically this is what makes a transit *fire*;
+            it is recorded as emphasis, never as good or bad.
+          • **Natal resonance** — whether the graha is crossing its own natal star,
+            or a star a natal graha sits in.
+
+        The star's deity, symbol and theme ride along under `symbolism`, kept in
+        their own block on purpose: they are imagery for a reading to draw on, not
+        rules, and nothing in the verdict is computed from them. The tradition
+        supplies no "graha X transiting star Y" result table, and this does not
+        invent one.
+        """
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            from datetime import datetime
+            _set_ayanamsa(ayanamsa)
+
+            year, month, day = map(int, dob.split("-"))
+            tp = tob.split(":")
+            hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
+            if not lat or not lon:
+                lat, lon = 13.0827, 80.2707
+            tz_offset = tz if tz is not None else 5.5
+            place_obj = drik.Place(place or "", lat, lon, tz_offset)
+
+            horizon_days = max(90, min(int(horizon_days or 1100), 3660))
+
+            # ── Natal reference ─────────────────────────────────────────────
+            natal_jd = swe.julday(year, month, day, hour + minute / 60.0)
+            natal = charts.rasi_chart(natal_jd, place_obj)
+            natal_lagna_rasi = natal[0][1][0]
+            natal_moon_rasi, natal_moon_deg = natal[2][1]
+            janma_nak = _janma_nakshatra(natal_moon_rasi * 30.0 + natal_moon_deg)  # 1-27
+            nak_span = 360.0 / 27.0
+            pada_span = nak_span / 4.0
+
+            # Which star each natal graha stands in — the resonance reference.
+            natal_star = {}
+            for pidx, (rasi, degrees) in natal[1:]:
+                nm = PLANET_NAMES.get(pidx)
+                if nm:
+                    natal_star[nm] = int((rasi * 30.0 + degrees) / nak_span)  # 0-based
+
+            # ── The transit moment ──────────────────────────────────────────
+            transit_tz = current_tz if current_tz is not None else tz_offset
+            if current_date:
+                ty, tm, td = map(int, current_date.split("-"))
+            else:
+                now = _now_at_tz(transit_tz)
+                ty, tm, td = now.year, now.month, now.day
+            # The exact minute matters: the Moon moves ~0.5 deg/hr, so noon and
+            # the page's actual moment can put it in different stars — and this
+            # card sits beside the transit table, which does honour the minute.
+            # Two cards on one page disagreeing about the Moon reads as a bug.
+            if current_time:
+                _tp = current_time.split(":")
+                t_hour = int(_tp[0]); t_min = int(_tp[1]) if len(_tp) > 1 else 0
+            else:
+                t_hour, t_min = 12, 0   # local noon: a stable daily snapshot
+            transit_place = drik.Place(place or "", lat, lon, transit_tz)
+            transit_jd = swe.julday(ty, tm, td, t_hour + t_min / 60.0)
+            transit = charts.rasi_chart(transit_jd, transit_place)
+            retro_ids = set(drik.planets_in_retrograde(transit_jd, transit_place))
+
+            def iso(jd):
+                g = utils.jd_to_gregorian(jd)
+                return f"{g[0]:04d}-{g[1]:02d}-{g[2]:02d}"
+
+            # ── The running dasha, for the emphasis flag ────────────────────
+            # Best-effort: a dasha failure must not sink the transit reading, it
+            # only costs one of the four personal hooks.
+            maha_lord = antar_lord = None
+            try:
+                dsh = AstrologyCompute.get_dashas(
+                    dob=dob, tob=tob, place=place, lat=lat, lon=lon, tz=tz,
+                    dhasa_type="vimsottari", current_tz=current_tz, ayanamsa=ayanamsa)
+                if dsh.get("status") != "failed":
+                    maha_lord = (dsh.get("current_dasha") or {}).get("lord")
+                    today_iso = f"{ty:04d}-{tm:02d}-{td:02d}"
+                    for sub in (dsh.get("current_bhukthi") or {}).get("periods") or []:
+                        if sub.get("start_date", "") <= today_iso <= sub.get("end_date", ""):
+                            antar_lord = sub.get("lord")
+                            break
+            except Exception as de:
+                print(f"Nakshatra gochara dasha join failed: {de}")
+
+            def house_from(ref_rasi, rasi):
+                return ((rasi - ref_rasi) % 12) + 1
+
+            grahas = []
+            for pidx, (rasi, degrees) in transit[1:]:
+                name = PLANET_NAMES.get(pidx)
+                if not name:
+                    continue
+                abs_long = rasi * 30.0 + degrees
+                nak0 = int(abs_long / nak_span)              # 0-based
+                pada = int((abs_long % nak_span) / pada_span) + 1
+
+                # ── The dated window ────────────────────────────────────────
+                window, upcoming = None, []
+                if pidx in AstrologyCompute._NAK_WINDOW_PLANETS:
+                    back, fwd = AstrologyCompute._NAK_SCAN_SPAN[pidx]
+                    fwd = horizon_days if fwd is None else min(fwd, horizon_days)
+                    try:
+                        spans = AstrologyCompute._nakshatra_spans(
+                            pidx, transit_jd - back, transit_jd + fwd, transit_tz)
+                    except Exception as se:
+                        print(f"Nakshatra span scan failed for {name}: {se}")
+                        spans = []
+                    for i, (s_nak, s_start, s_end) in enumerate(spans):
+                        if s_start <= transit_jd <= s_end:
+                            # The first span starts at the scan edge, not at a real
+                            # ingress, so its start is only a date if we saw the
+                            # boundary. Saying "entered" of a scan edge would be a
+                            # fabricated date, so it is reported as unknown instead.
+                            known = i > 0
+                            window = {
+                                "entered": iso(s_start) if known else None,
+                                "entered_known": known,
+                                "leaves": iso(s_end) if i < len(spans) - 1 else None,
+                                "days_in": int(transit_jd - s_start) if known else None,
+                                "days_left": (int(s_end - transit_jd)
+                                              if i < len(spans) - 1 else None),
+                            }
+                            for (n_nak, n_start, n_end) in spans[i + 1:i + 7]:
+                                upcoming.append({
+                                    "nakshatra": NAKSHATRA_NAMES[n_nak],
+                                    "nakshatra_index": n_nak + 1,
+                                    "enters": iso(n_start),
+                                    # A step backwards is the graha turning retrograde
+                                    # into the star it just left — a real ingress, and
+                                    # a different story from the forward one.
+                                    "retrograde_reentry": n_nak == (s_nak - 1) % 27,
+                                    "tarabala": _tarabala(janma_nak, n_nak + 1)[0],
+                                    # The upcoming stars carry their imagery too.
+                                    # Without it a model narrating "what changes
+                                    # next" supplies a deity from memory, and it
+                                    # gets them wrong (it called Uttara
+                                    # Bhadrapada's Ahir Budhnya "the Nagas",
+                                    # which is Ashlesha's). Cheaper to hand over
+                                    # the real table than to forbid the guess.
+                                    "deity": refdata.NAKSHATRA_DEITY[n_nak],
+                                    "theme": refdata.NAKSHATRA_THEME[n_nak],
+                                })
+                                s_nak = n_nak
+                            break
+
+                # ── The four personal hooks ─────────────────────────────────
+                tb_name, tb_tone = _tarabala(janma_nak, nak0 + 1)
+                star_lord = refdata.NAKSHATRA_LORD[nak0]
+                own_natal = natal_star.get(name) == nak0
+                occupied_by = sorted(n for n, s in natal_star.items()
+                                     if s == nak0 and n != name)
+                emphasis = []
+                if name == maha_lord:
+                    emphasis.append(f"{name} is the running Maha dasha lord")
+                elif name == antar_lord:
+                    emphasis.append(f"{name} is the running Antardasha lord")
+                if star_lord == maha_lord:
+                    emphasis.append(f"the star's lord {star_lord} is the running Maha dasha lord")
+                elif star_lord == antar_lord:
+                    emphasis.append(f"the star's lord {star_lord} is the running Antardasha lord")
+                if own_natal:
+                    emphasis.append(f"{name} is crossing its own natal star")
+                if occupied_by:
+                    emphasis.append("natal " + ", ".join(occupied_by) + " stands in this star")
+
+                # ── The verdict ─────────────────────────────────────────────
+                # Tarabala is the spine; the graha's own nature tilts it one step.
+                # Emphasis (dasha, resonance) deliberately does NOT move the score:
+                # it says the transit is live for this native, not that it is kind.
+                score = AstrologyCompute._NAK_SUPPORT_TONE.get(tb_tone, 0)
+                reasons = [f"{tb_name} tara — {TARABALA_MEANING.get(tb_name, '')}"]
+                if name in _SBC_MALEFICS and score < 0:
+                    score -= 1
+                    reasons.append(f"{name} is a natural malefic in a difficult tara")
+                elif name in _SBC_BENEFICS and score > 0:
+                    score += 1
+                    reasons.append(f"{name} is a natural benefic in a favourable tara")
+                support = "supportive" if score >= 2 else ("pressured" if score <= -2 else "mixed")
+
+                grahas.append({
+                    "planet": name,
+                    "retrograde": pidx in retro_ids,
+                    # Layout-free on purpose: a transit is counted from several
+                    # references at once, so each count is named (see the
+                    # position-payload contract in the wire-a-feature skill).
+                    "sign_num": rasi + 1,
+                    "sign_name": ZODIAC_NAMES[rasi],
+                    "degrees": round(degrees, 2),
+                    "nakshatra": NAKSHATRA_NAMES[nak0],
+                    "nakshatra_index": nak0 + 1,
+                    "nakshatra_pada": pada,
+                    "nakshatra_lord": star_lord,
+                    "window": window,
+                    "upcoming": upcoming,
+                    "tarabala": {
+                        "name": tb_name,
+                        "tone": tb_tone,
+                        "meaning": TARABALA_MEANING.get(tb_name),
+                        "count": utils.count_stars(janma_nak, nak0 + 1),
+                    },
+                    "house_from_lagna": house_from(natal_lagna_rasi, rasi),
+                    "house_from_moon": house_from(natal_moon_rasi, rasi),
+                    "owns_houses": sorted(house_from(natal_lagna_rasi, sign0)
+                                          for sign0, lord in enumerate(SIGN_LORD)
+                                          if lord == pidx),
+                    "natal_resonance": {
+                        "own_natal_star": own_natal,
+                        "natal_star": (NAKSHATRA_NAMES[natal_star[name]]
+                                       if name in natal_star else None),
+                        "occupied_by": occupied_by,
+                    },
+                    "emphasis": emphasis,
+                    "support": support,
+                    "support_reasons": reasons,
+                    # Imagery, not rules. Kept in its own block so a prompt can
+                    # hand it over labelled as symbolism and a reader can see that
+                    # nothing above was derived from it.
+                    "symbolism": {
+                        "deity": refdata.NAKSHATRA_DEITY[nak0],
+                        "symbol": refdata.NAKSHATRA_SYMBOL[nak0],
+                        "theme": refdata.NAKSHATRA_THEME[nak0],
+                    },
+                })
+
+            order = {n: i for i, n in enumerate(
+                ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus",
+                 "Saturn", "Rahu", "Ketu"])}
+            grahas.sort(key=lambda g: order.get(g["planet"], 99))
+
+            return {
+                "status": "success",
+                "transit_date": f"{ty:04d}-{tm:02d}-{td:02d}",
+                "transit_time": f"{t_hour:02d}:{t_min:02d}",
+                "horizon_days": horizon_days,
+                "janma": {
+                    "nakshatra": NAKSHATRA_NAMES[janma_nak - 1],
+                    "nakshatra_index": janma_nak,
+                    "lord": refdata.NAKSHATRA_LORD[janma_nak - 1],
+                    "deity": refdata.NAKSHATRA_DEITY[janma_nak - 1],
+                    "moon_sign": ZODIAC_NAMES[natal_moon_rasi],
+                },
+                "lagna_sign": ZODIAC_NAMES[natal_lagna_rasi],
+                "dasha": {"maha": maha_lord, "antar": antar_lord},
+                "grahas": grahas,
+                # Named so a caller never has to guess why the Moon has no window.
+                "no_window": {
+                    "planets": ["Moon"],
+                    "reason": "The Moon crosses a nakshatra roughly every day, so a "
+                              "dated star window carries no information for it.",
+                },
+            }
+        except Exception as e:
+            print(f"Nakshatra gochara error: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}
+        finally:
+            _set_ayanamsa(DEFAULT_AYANAMSA)
 
     # Saturn's house-from-Moon → the Sade Sati phase label.
     _SADE_SATI_PHASES = {12: "rising", 1: "peak", 2: "setting"}

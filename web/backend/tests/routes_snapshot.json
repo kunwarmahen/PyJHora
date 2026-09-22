@@ -719,6 +719,20 @@
   "body": "NadiAnalysisRequest",
   "params": []
  },
+ "POST /api/astrology/nakshatra-gochara": {
+  "body": "BirthDetails",
+  "params": [
+   "query:ayanamsa",
+   "query:current_date",
+   "query:current_time",
+   "query:current_tz",
+   "query:horizon_days"
+  ]
+ },
+ "POST /api/astrology/nakshatra-gochara-analysis": {
+  "body": "NakshatraGocharaAnalysisRequest",
+  "params": []
+ },
  "POST /api/astrology/nakshatra-profile": {
   "body": "BirthDetails",
   "params": [

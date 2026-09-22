@@ -1856,6 +1856,33 @@ async def get_gochara_phala(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/api/astrology/nakshatra-gochara")
+async def get_nakshatra_gochara(
+    birth_details: BirthDetails,
+    current_date: Optional[str] = None,
+    current_time: Optional[str] = None,
+    current_tz: Optional[float] = None,
+    horizon_days: int = 1100,
+    ayanamsa: str = DEFAULT_AYANAMSA,
+    current_user: str = Depends(get_current_user),
+):
+    """Nakshatra-level gochara (§75): the dated star window of each transiting
+    graha, joined to this native's tarabala, houses, dasha and natal stars."""
+    try:
+        result = AstrologyCompute.get_nakshatra_gochara(
+            dob=birth_details.dob, tob=birth_details.tob, place=birth_details.place,
+            lat=birth_details.latitude, lon=birth_details.longitude,
+            tz=birth_details.timezone, current_date=current_date,
+            current_time=current_time, current_tz=current_tz,
+            horizon_days=horizon_days, ayanamsa=ayanamsa)
+        if result.get("status") != "success":
+            raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ── Composed long-form Life Report (§5.11) ──────────────────────────────────
 @router.get("/api/astrology/life-report/chapters")
 async def life_report_chapters(current_user: str = Depends(get_current_user)):

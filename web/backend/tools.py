@@ -846,6 +846,42 @@ def _gochara_phala(bd, ayanamsa, current_date: Optional[str] = None,
     }
 
 
+def _nakshatra_gochara(bd, ayanamsa, current_date: Optional[str] = None,
+                       current_tz: Optional[float] = None,
+                       horizon_days: Optional[int] = None, **_):
+    r = AstrologyCompute.get_nakshatra_gochara(
+        ayanamsa=ayanamsa, current_date=current_date, current_tz=current_tz,
+        horizon_days=horizon_days or 1100, **_args(bd))
+    if r.get("status") != "success":
+        return r
+    # Trimmed for the model: the full row carries pada, degrees and every
+    # upcoming star, which crowds out the four facts a reading actually uses.
+    # `symbolism` stays whole and stays named — it is the block the prompt must
+    # be able to point at and call imagery.
+    return {
+        "transit_date": r.get("transit_date"),
+        "janma": r.get("janma"),
+        "dasha": r.get("dasha"),
+        "grahas": [{
+            "planet": g["planet"],
+            "retrograde": g["retrograde"],
+            "nakshatra": g["nakshatra"],
+            "nakshatra_lord": g["nakshatra_lord"],
+            "window": g["window"],
+            "next_stars": (g.get("upcoming") or [])[:3],
+            "tarabala": g["tarabala"],
+            "house_from_lagna": g["house_from_lagna"],
+            "house_from_moon": g["house_from_moon"],
+            "owns_houses": g["owns_houses"],
+            "support": g["support"],
+            "support_reasons": g["support_reasons"],
+            "emphasis": g["emphasis"],
+            "symbolism_not_a_rule": g["symbolism"],
+        } for g in r.get("grahas", [])],
+        "no_window": r.get("no_window"),
+    }
+
+
 # --------------------------------------------------------------------------- #
 # Registry
 # --------------------------------------------------------------------------- #
@@ -1326,6 +1362,28 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         _gochara_phala,
     ),
     _Tool(
+        "get_nakshatra_gochara",
+        "Nakshatra-level gochara: which of the 27 stars each graha is CURRENTLY "
+        "TRANSITING, the dated window it holds that star for (entered / leaves, "
+        "including retrograde re-entries) and the next stars ahead, joined to this "
+        "native's own chart — the tarabala of the transit star counted from their "
+        "birth star, the house from Lagna and Moon, the houses the graha owns, "
+        "whether it or the star's lord is the running dasha lord, and a computed "
+        "supportive/mixed/pressured verdict. Finer than get_transits (signs) and "
+        "get_gochara_phala (houses from the Moon). Use for 'what is Saturn doing to "
+        "me', 'how long does this last' and any transit question needing DATES. "
+        "The `symbolism_not_a_rule` block (star deity, symbol, theme) is imagery "
+        "for language only — never derive a prediction from it.",
+        {"type": "object", "properties": {
+            "current_date": {"type": "string",
+                             "description": "Transit date YYYY-MM-DD; defaults to today."},
+            "horizon_days": {"type": "integer",
+                             "description": "How far ahead the star calendar runs "
+                                            "(90-3660, default 1100 \u2248 3 years)."}},
+         "required": []},
+        _nakshatra_gochara,
+    ),
+    _Tool(
         "get_journal_entries",
         "The user's astro-journal: their own dated life events (career/relationship/"
         "health/move/… + free notes), each with the Vimsottari maha/bhukti that was "
@@ -1478,6 +1536,7 @@ SECTION_TOOL: Dict[str, str] = {
     "friendships": "get_friendships",
     "nakshatra": "get_nakshatra_profile",
     "gochara_phala": "get_gochara_phala",
+    "nakshatra_gochara": "get_nakshatra_gochara",
     "sarvatobhadra": "get_sarvatobhadra_chakra",
     "kota": "get_kota_chakra",
     "kaala": "get_kaala_chakra",
@@ -1564,6 +1623,7 @@ _DISPLAY: Dict[str, Dict[str, str]] = {
     "get_transits":         {"label": "Current transits (Gochara)", "category": "Timing"},
     "get_now_chart":        {"label": "Chart of the moment (the sky right now)", "category": "Timing"},
     "get_gochara_phala":    {"label": "Gochara-phala with vedha (Moon-referenced)", "category": "Timing"},
+    "get_nakshatra_gochara": {"label": "Nakshatra gochara (transit stars, dated windows)", "category": "Timing"},
     "get_panchanga":        {"label": "Panchanga almanac",      "category": "Timing"},
     "get_varshaphal":       {"label": "Varshaphal (annual chart)", "category": "Timing"},
     "get_fortnightly_digest": {"label": "Fortnightly digest (Paksha Pravesha)", "category": "Timing"},

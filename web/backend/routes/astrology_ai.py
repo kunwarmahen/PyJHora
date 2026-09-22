@@ -228,6 +228,50 @@ async def analyze_kaala_chakra(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/api/astrology/nakshatra-gochara-analysis")
+async def analyze_nakshatra_gochara(
+    request: NakshatraGocharaAnalysisRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """AI reading of the nakshatra-level gochara (§75) — the star each graha is
+    transiting, its dated window, and how it lands on this native."""
+    _enforce_rate_limit(current_user)
+    try:
+        bd = request.birth_details
+        data = AstrologyCompute.get_nakshatra_gochara(
+            dob=bd.dob, tob=bd.tob, place=bd.place,
+            lat=bd.latitude, lon=bd.longitude, tz=bd.timezone,
+            current_date=request.current_date, current_time=request.current_time,
+            current_tz=request.current_tz,
+            horizon_days=request.horizon_days or 1100,
+            ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
+        )
+        if data.get("status") != "success":
+            raise HTTPException(status_code=400, detail=data.get("error", "Calculation failed"))
+
+        cfg = await _resolve_cfg(current_user, request)
+        ai_analysis = await llm_service.analyze_nakshatra_gochara(
+            data=data, name=request.person_name or "this person", config=cfg,
+        )
+        await _save_reading(
+            current_user, source="nakshatra_gochara",
+            title=f"Nakshatra gochara — {request.person_name or bd.name or 'chart'}",
+            text=ai_analysis, cfg=cfg, profile_id=request.profile_id,
+            birth_details=bd.model_dump(),
+            context={"person_name": request.person_name,
+                     "current_date": request.current_date,
+                     "current_time": request.current_time,
+                     "current_tz": request.current_tz,
+                     "horizon_days": request.horizon_days,
+                     "ayanamsa": request.ayanamsa},
+        )
+        return {"ai_analysis": ai_analysis, "provider": cfg.provider_type.value, "model": cfg.model}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/api/astrology/kota-chakra-analysis")
 async def analyze_kota_chakra(
     request: ChakraAnalysisRequest,

@@ -7939,3 +7939,168 @@ The bundle grew to 406 KB one honest static import at a time and nothing in the 
 test is there so the next one fails loudly.
 
 **240 frontend tests green** (232 + 8). Backend untouched.
+
+---
+
+## §75 Nakshatra gochara — the transit star, its devata, and what it does to *you* (SHIPPED 2026-09-21)
+
+### 75.1 Where this came from
+
+The owner brought in a post of the kind that circulates constantly:
+
+> "Shani Retrograde in Revati really triggered more war in western countries as I said in July …
+> Nakshatra Devata of Revati is Pushan, the one who guides the departed soul on its journey. So no
+> way this war will end up soon rather this war will gradually escalate into something much bigger
+> in coming years"
+
+The question was whether we could produce that *kind* of result — not the mundane/geopolitical
+claim, which we are not building, but the move it makes: **a transiting graha read through the
+nakshatra it stands in, and that star's devata, for a person's chart**.
+
+Every ingredient was already in the repo and none of them were joined up:
+
+- `get_transits` already computed each transiting graha's nakshatra and pada, and threw the
+  symbolism away. The model saw the bare string "Revati".
+- `reference_data.py` already held deity / symbol / theme / gana / yoni / lord for all 27 stars —
+  and `nakshatra_profile()` was only ever called for the **Moon's birth star**.
+- `_tarabala()` already existed, used only for the Moon's 27-day day-quality strip.
+- Nothing anywhere knew **when** a graha entered a star or when it leaves. The ephemeris detects
+  *sign* changes only (`prev_sign` in `get_ephemeris`).
+
+So the feature is mostly a join plus one new scanner.
+
+### 75.2 The scope decision, and the line this draws
+
+The owner picked, explicitly: dated windows (not a snapshot), all four personal hooks, the
+symbolism as **colour with the rules as spine**, and a column plus panel on the existing Transits
+page rather than a new page.
+
+That third choice is the one that shapes the code. **The classical texts supply no "graha X
+transiting star Y" result table.** A 9 × 27 grid of results would be deterministic and testable and
+would also be an invention presented as tradition — the same call made in §2.7, where Tripataki
+got a drawing and no verdict because the engine had none. So:
+
+- The **verdict** is computed from tarabala + the graha's own nature. Nothing else moves it.
+- The **deity, symbol and theme** ride in their own `symbolism` block, reach the model under the
+  key `symbolism_not_a_rule`, and are printed in the UI under a heading that says *Imagery (not a
+  rule)* with a sentence explaining that no prediction on the page derives from them.
+- Two tests assert the verdict is a pure function of the two allowed inputs — including one phrased
+  the way a reader would notice it breaking: two grahas alike in tara-tone and nature must never
+  disagree.
+
+Dasha overlap and natal-star resonance are recorded as **`emphasis`**, deliberately *not* as score.
+Classically they say a transit is *live* for this native, not that it is kind — so they say that
+and nothing more.
+
+### 75.3 The scanner
+
+`_planet_sign_spans` already did daily-sample-then-bisect for 30° signs. It is now the 30° case of
+a generalised **`_planet_arc_spans(pl_idx, jd_start, jd_end, tz, arc_deg)`**, with
+`_nakshatra_spans` as the 360/27 case. Sade Sati rides on the sign wrapper, so a test asserts the
+generic and specific paths still return identical output for Saturn over 900 days.
+
+Two traps are pinned in the docstring:
+
+- **Daily sampling is only sound while the graha cannot cross the whole arc between two samples.**
+  At 30° that excludes only the Moon. At 13°20' it *still* excludes only the Moon — Mercury, the
+  fastest of the rest, peaks near 2.2°/day and needs six days to cross a star. The Moon covers one
+  a day, so it is excluded outright (`_NAK_WINDOW_PLANETS`), and the payload carries a `no_window`
+  block saying why rather than leaving a caller to guess.
+- **We do not use `drik.next_planet_entry_date`.** The reasons are already recorded at
+  `_next_sign_ingress` (it lands ambiguously *on* the boundary, and cannot express a retrograde
+  step backwards at all) and `_transit_events_in_window` (it searches forward until it finds the
+  event, which for Saturn means stepping months — 2.8 s locally, gateway timeouts).
+
+Scan cost is bounded per graha by `_NAK_SCAN_SPAN` — fast movers get a short leash because only the
+slow ones need years. Whole call: **0.11 s** at the default 1100-day horizon, 0.24 s at the 3660-day
+maximum. The horizon is clamped to [90, 3660]; 0 and `None` both mean "unspecified" and take the
+default, which is the `or` idiom the route passes through (pinned, because the first version of the
+test assumed clamping).
+
+### 75.4 The two bugs the browser caught that the tests could not
+
+Both were found by driving the real page, and both are the "plausible wrong number" class:
+
+1. **The new table column's header was in the wrong place.** The `<th>` went in at the end of the
+   header row and the `<td>` in the middle, so `FROM LAGNA` sat over the tara chips and `TARA` over
+   the from-Moon numbers. Every value was correct and every value was under the wrong name — the
+   §63/§65 failure exactly. Nothing in the suite looks at column order; the screenshot did.
+2. **The card disagreed with the table above it about the Moon.** The transit table honours the
+   page's minute stepper; this endpoint computed at local noon. At 22:56 the table said the Moon was
+   in Shravana and the new card said Uttara Ashadha — 0.5°/hr is enough to cross a star boundary.
+   `current_time` now threads through compute → route → model → service → page, and a test asserts
+   every graha's star agrees with `get_transits` at the same instant.
+
+A third thing looked like a bug and was not: the UI showed Saturn leaving Revati on **Oct 9** while
+curl said **Oct 10**. Saturn crosses at 2026-10-10 00:45 IST = 2026-10-09 19:30 UTC — the same
+instant in the headless browser's UTC and in the owner's zone. That is the viewer-timezone rule
+working, not a drift.
+
+### 75.5 The AI reading, and what a live run changed
+
+First live run (qwen3.8, owner's chart) was dated, personal and correctly spotted that natal Rahu
+sits in Swati — and then said Saturn's next star, Uttara Bhadrapada, brings "the intense,
+transformative fire of the **Naga deities**". Ahir Budhnya is Uttara Bhadrapada's deity; the Nagas
+are Ashlesha's. The model had the current star's imagery and nothing for the upcoming ones, so it
+supplied a deity from memory and got it wrong.
+
+Fixed with **data, not a prohibition**: every entry in `upcoming` now carries its own `deity` and
+`theme`, the prompt prints them, and one line forbids naming any imagery not given above. The
+re-run named Ashta Vasus for Dhanishta, the coiled serpent for Ashlesha and Savitar for Hasta — all
+correct, all from the block. Both halves are pinned by tests.
+
+The prompt also declares the computed block **AUTHORITATIVE**, for the §2.7 reason: a chakra
+reading once contradicted its own input when the numbers were merely offered to it.
+
+### 75.6 Claim checking — deliberately unchanged, and why
+
+`claim_check.py` already extracts and verifies nakshatra claims, but against
+`planetary_positions` — the **natal** chart. A transit-frame claim checked against natal facts
+would manufacture contradictions, which is why `_SKIP` already exempts any sentence containing
+transit / transiting / gochara / ingress.
+
+This reading is generated through `_complete` without a `check` dict, exactly like every other
+panel reading (chakras, gochara-phala, Varshaphal), so **nothing new is checked and nothing new is
+mis-flagged**. The prompt instructs the model to write "transiting" so that any text that later
+reaches the Ask path lands in the `_SKIP` frame guard.
+
+Giving the checker a genuine *transit* frame — a second fact table, so "Saturn is transiting
+Revati" could be verified rather than skipped — is real work and belongs in its own section, not
+smuggled in here. Flagged, not done.
+
+### 75.7 What shipped
+
+| Surface | |
+|---|---|
+| Engine registry | n/a — not a dasha or varga; no `SUPPORTED_*` entry exists for a transit view |
+| Compute | `get_nakshatra_gochara` + `_planet_arc_spans` / `_nakshatra_spans` in `compute_transits.py` |
+| REST | `POST /api/astrology/nakshatra-gochara` |
+| AI tool | `get_nakshatra_gochara` — handler, `_Tool`, `_DISPLAY` (Timing), `SECTION_TOOL` |
+| Prompt | `_build_nakshatra_gochara_prompt` + `analyze_nakshatra_gochara` + `POST …/nakshatra-gochara-analysis` |
+| Prompt/context | n/a — not seeded into every reading; it is a section tool, reachable on demand |
+| UI | `components/NakshatraGochara.js`, a TARA column on the Transits table, styles in `Nakshatra.css` |
+| Dashboard search | `FEATURE_ALIASES.transit` keywords + a `FEATURE_SUBITEMS` entry |
+| Essentials/Everything | n/a — deliberately ungated: tarabala is *more* legible to a newcomer than the Ashtakavarga column beside it, not less |
+| Help/FAQ | `featNakshatraGochara` → `/transit` |
+| i18n | `nakGochara.*` (22 keys) + the help pair in `en.json`; hi/sa fall back |
+| Tests | `tests/test_nakshatra_gochara.py` — 48 tests |
+| Reading history | `nakshatra_gochara` in `conversations.SOURCE_META` → `/transit` |
+
+`routes_snapshot.json` regenerated for the two new routes (**regenerate it with `indent=1`** — the
+default `indent=2` rewrites all 2,275 lines and destroys the reviewable diff that is the whole point
+of the snapshot).
+
+**1081 backend tests green**, up from 1030: 48 in the new file, plus 3 that appeared without being
+written — `test_no_tool_ships_a_sign_index_to_the_model` and two `test_handler_globals_resolve`
+cases picked the new tool and both new routes straight off the registries they parametrize over.
+That is the "test the class, not the instance" machinery doing its job. **240 frontend tests green**,
+lint clean, and the page driven end-to-end in a browser against the owner's chart with a real
+Ollama reading generated.
+
+### 75.8 What it answers
+
+The post that started this claimed Saturn retrograde in Revati and left every date implied. For the
+owner's chart the app now states: Saturn entered Revati **2026-05-17**, leaves **2026-10-10**,
+turns back into Uttara Bhadrapada, re-enters Revati **2027-02-08**, reaches Ashwini **2027-06-03** —
+and that Revati counted from the owner's Magha birth star is **Parama Mitra**, the best of the nine.
+Dated, falsifiable, and about one person.

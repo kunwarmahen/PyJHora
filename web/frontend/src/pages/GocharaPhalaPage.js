@@ -140,6 +140,14 @@ export const GocharaPhalaPage = () => {
           <RecentReadings source="gochara_phala" profileId={selectedProfile?._id} />
           <ProfileBanner profile={selectedProfile} />
           <p className="card-note">{t("gochara.intro")}</p>
+          {/* The two transit readings use different reference frames and are easy
+            to mistake for each other, so each says what the other is for. */}
+          <p className="card-note">
+            {t("gochara.vsNakshatra")}{" "}
+            <button type="button" className="ui-link" onClick={() => navigate("/transit")}>
+              {t("gochara.vsNakshatraLink")}
+            </button>
+          </p>
 
           <ErrorBanner message={error} />
 

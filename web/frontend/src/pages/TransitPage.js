@@ -15,6 +15,7 @@ import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { TransitChat } from "../components/TransitChat";
 import { RecentReadings } from "../components/RecentReadings";
+import { NakshatraGochara } from "../components/NakshatraGochara";
 import { AYANAMSAS } from "../constants/jyotish";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
@@ -62,6 +63,14 @@ const ordinal = (n) => {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 };
 
+// §75 tarabala tone -> the shared tone classes in Nakshatra.css.
+const TARA_TONE_CLASS = {
+  very_good: "nak-tone--vgood",
+  good: "nak-tone--good",
+  caution: "nak-tone--caution",
+  bad: "nak-tone--bad",
+};
+
 // Map the backend bindu_strength to a localized chip label key.
 const STRENGTH_LABEL_KEY = {
   good: "transit.supportGood",
@@ -79,6 +88,9 @@ export const TransitPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  // §75: the star each graha transits + its dated window. Fetched alongside the
+  // sign-level transits so the table can show the tara without a second wait.
+  const [nakGochara, setNakGochara] = useState(null);
   // The transit moment is stored as epoch ms (a primitive, so effect deps stay
   // stable). Defaults to "now"; the date/time inputs and the ±steppers move it.
   const [momentMs, setMomentMs] = useState(() => Date.now());
@@ -170,6 +182,21 @@ export const TransitPage = () => {
         tzOffset(d)
       );
       setResult(res.data);
+      // Best-effort: the star layer is an addition to this page, not its
+      // subject, so a failure here must not blank the transit chart.
+      try {
+        const ng = await astrologyService.getNakshatraGochara(
+          birthDetails,
+          dateISO(d),
+          timeISO(d),
+          tzOffset(d),
+          null,
+          ayanamsa
+        );
+        setNakGochara(ng.data);
+      } catch (ngErr) {
+        setNakGochara(null);
+      }
     } catch (err) {
       setError(err.response?.data?.detail || t("transit.calcError"));
     } finally {
@@ -190,6 +217,9 @@ export const TransitPage = () => {
   const Kundali = chartStyle === "south" ? SouthIndianChart : NorthIndianChart;
   const planets = result?.planets || {};
   const orderedPlanets = PLANET_ORDER.filter((p) => planets[p]).map((p) => [p, planets[p]]);
+  // Star rows keyed by graha, so the table's tara column is a lookup rather
+  // than a find() per row.
+  const nakByPlanet = Object.fromEntries((nakGochara?.grahas || []).map((g) => [g.planet, g]));
 
   // The natal arudhas the transits above are also counted from. Specialist
   // material, so the whole arudha layer follows the same Everything-mode gate
@@ -355,6 +385,7 @@ export const TransitPage = () => {
                           <th>{t("common.planet")}</th>
                           <th>{t("common.sign")}</th>
                           <th>{t("common.nakshatra")}</th>
+                          <th>{t("nakGochara.taraColumn")}</th>
                           <th className="text-center">{t("transit.fromLagna")}</th>
                           <th className="text-center">{t("transit.fromMoon")}</th>
                           {padas.length > 0 && (
@@ -393,6 +424,23 @@ export const TransitPage = () => {
                             <td className="text-secondary">
                               {ln(p.nakshatra, "nakshatra")}
                               {p.nakshatra_pada ? ` (${p.nakshatra_pada})` : ""}
+                            </td>
+                            {/* §75: the transit star counted from the native's
+                              birth star. The one column on this table that is
+                              about them rather than about the sky. */}
+                            <td>
+                              {nakByPlanet[name] ? (
+                                <span
+                                  className={`nakg-chip ${
+                                    TARA_TONE_CLASS[nakByPlanet[name].tarabala?.tone] || ""
+                                  }`}
+                                  title={nakByPlanet[name].tarabala?.meaning || ""}
+                                >
+                                  {nakByPlanet[name].tarabala?.name}
+                                </span>
+                              ) : (
+                                <span className="text-muted">—</span>
+                              )}
                             </td>
                             <td className="text-center fw-600 text-saffron">
                               {ordinal(p.house_from_lagna)}
@@ -458,6 +506,22 @@ export const TransitPage = () => {
                   {showBindus && <p className="card-note">{t("transit.supportNote")}</p>}
                 </div>
               </div>
+
+              {/* §75: the same transits read one level finer — which of the 27
+                stars each graha stands in, from when to when, and what that
+                star is worth to *this* birth star. */}
+              {nakGochara && (
+                <NakshatraGochara
+                  data={nakGochara}
+                  birthDetails={birthDetails}
+                  profile={selectedProfile}
+                  profileId={selectedProfile?._id}
+                  transitDate={transitDate}
+                  transitTime={transitTime}
+                  transitTz={tzOffset(moment)}
+                  ayanamsa={ayanamsa}
+                />
+              )}
 
               {/* Every bhava arudha as a reference frame. The two named ones are
                 columns above; the rest only make sense as a grid, so they get
