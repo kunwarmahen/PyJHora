@@ -745,6 +745,7 @@ class NotificationPrefsRequest(BaseModel):
     daily_digest: Optional[bool] = None
     email: Optional[bool] = None
     push: Optional[bool] = None
+    ai_ready: Optional[bool] = None
     profile_id: Optional[str] = None
     profile_ids: Optional[List[str]] = None
     all_profiles: Optional[bool] = None

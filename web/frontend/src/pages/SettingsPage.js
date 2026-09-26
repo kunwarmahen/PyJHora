@@ -1548,6 +1548,29 @@ export const SettingsPage = () => {
                                 </label>
                               </div>
                               {pushBlocked && <p className="settings-hint">{reasonText}</p>}
+                              {/* "Your answer is ready" (ai_ready_push.py). Only
+                                  meaningful with push on, so only shown then. */}
+                              {!pushBlocked && notif?.push && (
+                                <>
+                                  <div className="settings-row">
+                                    <label className="settings-label">
+                                      {t("settings.notifications.aiReady")}
+                                    </label>
+                                    <label className="settings-switch">
+                                      <input
+                                        type="checkbox"
+                                        aria-label={t("settings.notifications.aiReady")}
+                                        checked={notif?.ai_ready !== false}
+                                        onChange={(e) => saveNotif({ ai_ready: e.target.checked })}
+                                      />
+                                      <span />
+                                    </label>
+                                  </div>
+                                  <p className="settings-hint">
+                                    {t("settings.notifications.aiReadyHint")}
+                                  </p>
+                                </>
+                              )}
                             </>
                           );
                         })()}

@@ -1245,6 +1245,8 @@
       "email": "Email me the digest",
       "emailUnavailable": "email not configured",
       "push": "Browser push notification",
+      "aiReady": "Tell me when an AI answer is ready",
+      "aiReadyHint": "When a reading or answer finishes after you've left the page, send a notification that opens it.",
       "pushUnavailable": "unavailable",
       "pushReason": {
         "server": "Browser push isn't configured on this server (no VAPID keys).",

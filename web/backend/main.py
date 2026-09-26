@@ -95,6 +95,7 @@ app = FastAPI(
 # Long AI calls run detached when the client asks (X-Detach) — see
 # detached_http.py. Added BEFORE CORS so CORS wraps it (its 202s get headers).
 from detached_http import DetachMiddleware
+import ai_ready_push  # noqa: F401  (registers the "answer ready" push listener)
 app.add_middleware(DetachMiddleware)
 
 # CORS Middleware

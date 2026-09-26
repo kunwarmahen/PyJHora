@@ -57,6 +57,11 @@ DEFAULT_PREFS: Dict[str, Any] = {
     "event_hour": 8,          # earliest local hour an alert may be delivered
     "event_lead_days": 3,     # how far ahead of the crossing to tell you
     "event_kinds": list(EVENT_KINDS),
+
+    # "Your answer is ready" (ai_ready_push.py): a push when an AI answer
+    # finishes after you left the page. Rides the `push` channel above — it only
+    # ever fires for someone who turned browser push on.
+    "ai_ready": True,
 }
 
 
@@ -78,6 +83,8 @@ async def set_prefs(user_id: str, prefs: Dict[str, Any]) -> Dict[str, Any]:
         clean["email"] = bool(prefs["email"])
     if "push" in prefs:
         clean["push"] = bool(prefs["push"])
+    if "ai_ready" in prefs:
+        clean["ai_ready"] = bool(prefs["ai_ready"])
     if "profile_id" in prefs:
         clean["profile_id"] = prefs["profile_id"] or None
     if "profile_ids" in prefs:

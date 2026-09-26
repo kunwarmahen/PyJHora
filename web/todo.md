@@ -8277,3 +8277,13 @@ mid-answer looked lost — it isn't saved until it's answered, so History didn't
 `conversations.save_reading` inside a detached job), `hooks/useAiActivity.test.js`; provider fakes
 in `test_llm_providers.py` stream. Verified in the browser against a local model: pill while
 running on another page, "In progress" in History, "ready" → opens the saved answer.
+
+### §77.1 "Your answer is ready" push
+
+`ai_ready_push.py` registers an `ai_activity.on_finish` listener: when a job finishes (or fails)
+with **nobody watching**, it waits a 20 s grace, and if the result still hasn't been seen, sends a
+browser push that opens the saved answer (`<route>?reading=<id>&profile=<id>` — both existing
+deep links). Only for users with the digest's `push` channel on; new pref `ai_ready` (default on,
+Settings → Notifications, shown only while push is on). A stopped job sends nothing.
+Tests: `test_ai_ready_push.py` (watched / seen during grace / push off / pref off / cancelled all
+stay silent; the link and title per kind).
