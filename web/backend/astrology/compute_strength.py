@@ -8,6 +8,8 @@ from .engine import *  # noqa: F401,F403  (constants + helpers the bodies use)
 
 import re as _re
 
+from . import yoga_catalog
+
 # Our catalog key -> the English display name PyJHora keys its dosha results by.
 # Not derivable: upstream spells it "Manglik Dosha" where we say "Manglik (Kuja)
 # Dosha", so the two lists have to be pinned to each other explicitly.
@@ -646,26 +648,34 @@ class StrengthMixin:
             # names: yoga_msgs_hi.json is missing yukthi_samanwithavagmi_yoga_154/_155
             # and adds dhana_yoga + yukthi_samanwithavagmi_yoga. English is the
             # canonical key set; language must never move the astrology.
-            results, found, total = yoga.get_yoga_details(
-                jd, place_obj, divisional_chart_factor=1, language="en",
-            )
+            #
+            # yoga_catalog.detect runs the same catalogue minus duplicate keys and
+            # with the rules we correct; it also tiers each yoga classical vs
+            # extended (BV Raman's house-specific list) — see its docstring.
+            results, total = yoga_catalog.detect(jd, place_obj)
             engine_lang = to_engine_language(lang)
-            # {key: [name, description, benefits]} — untouched by the insert() below.
+            # {key: [name, description, benefits]}
             translated = (
                 yoga.get_yoga_resources(language=engine_lang) if engine_lang != "en" else {}
             )
             yogas = []
-            for key, details in results.items():
-                # details = [chartID, name, description, benefits]
+            for key, details in results:
+                # details = [name, description, benefits]
                 t = translated.get(key)  # missing key -> English, never a blank
                 yogas.append({
                     "key": key,
-                    "name": (t[0] if t else details[1]) if len(details) > 1 else key,
-                    "description": (t[1] if t else details[2]) if len(details) > 2 else "",
-                    "benefits": (t[2] if t else details[3]) if len(details) > 3 else "",
+                    "name": (t[0] if t else details[0]) if details else key,
+                    "description": (t[1] if t else details[1]) if len(details) > 1 else "",
+                    "benefits": (t[2] if t else details[2]) if len(details) > 2 else "",
+                    "tier": yoga_catalog.tier_of(key),
+                    "nature": yoga_catalog.nature_of(key),
                 })
-            yogas.sort(key=lambda y: y["name"])
-            return {"status": "success", "yogas": yogas, "found": found, "total": total}
+            # classical first, supportive before challenging, then by name
+            yogas.sort(key=lambda y: (y["tier"] != "classical",
+                                      y["nature"] != "supportive", y["name"]))
+            classical = sum(1 for y in yogas if y["tier"] == "classical")
+            return {"status": "success", "yogas": yogas, "found": len(yogas),
+                    "classical_count": classical, "total": total}
         except Exception as e:
             import traceback
             traceback.print_exc()

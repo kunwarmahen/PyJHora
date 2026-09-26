@@ -42,6 +42,26 @@ import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import { returnHere } from "../utils/returnTo";
 
+// One yoga. `nature` / `tier` come from the backend's yoga_catalog.
+function YogaCard({ yoga: y, t }) {
+  const challenging = y.nature === "challenging";
+  return (
+    <div className={`yoga-card${challenging ? " yoga-card--challenging" : ""}`}>
+      <div className="yoga-name">
+        {y.name}
+        {challenging && <span className="yoga-nature-tag">{t("birthChart.yogaChallenging")}</span>}
+      </div>
+      {y.description && <p className="yoga-desc">{y.description}</p>}
+      {y.benefits && (
+        <div className="yoga-benefit">
+          <span className="yoga-benefit-label">{t("birthChart.effects")}</span>
+          {y.benefits}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const BirthChartPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -70,6 +90,9 @@ export const BirthChartPage = () => {
   const [doshas, setDoshas] = useState(null);
   const [yogas, setYogas] = useState(null);
   const [rajaYogas, setRajaYogas] = useState(null);
+  // An older cached response has no `tier`: treat it as classical rather than hide it.
+  const classicalYogas = (yogas || []).filter((y) => y.tier !== "extended");
+  const minorYogas = (yogas || []).filter((y) => y.tier === "extended");
   const [aspects, setAspects] = useState(null);
   const [showAspects, setShowAspects] = useState(() => localStorage.getItem("showAspects") === "1");
   const [conditions, setConditions] = useState(null);
@@ -563,25 +586,29 @@ export const BirthChartPage = () => {
                         <Star size={24} />
                         {t("birthChart.yogas")}
                         <span className="section-count">
-                          {t("birthChart.yogasFound", { count: yogas.length })}
+                          {t("birthChart.yogasFound", { count: classicalYogas.length })}
                         </span>
                       </h3>
                       <div className="yoga-grid">
-                        {yogas.map((y) => (
-                          <div key={y.key} className="yoga-card">
-                            <div className="yoga-name">{y.name}</div>
-                            {y.description && <p className="yoga-desc">{y.description}</p>}
-                            {y.benefits && (
-                              <div className="yoga-benefit">
-                                <span className="yoga-benefit-label">
-                                  {t("birthChart.effects")}
-                                </span>
-                                {y.benefits}
-                              </div>
-                            )}
-                          </div>
+                        {classicalYogas.map((y) => (
+                          <YogaCard key={y.key} yoga={y} t={t} />
                         ))}
                       </div>
+                      {/* BV Raman's house-by-house list: broad rules, alarming
+                          names, not in JHora — kept one click away. */}
+                      {minorYogas.length > 0 && (
+                        <details className="minor-yogas">
+                          <summary>
+                            {t("birthChart.minorYogasToggle", { count: minorYogas.length })}
+                          </summary>
+                          <p className="minor-yogas-note">{t("birthChart.minorYogasNote")}</p>
+                          <div className="yoga-grid">
+                            {minorYogas.map((y) => (
+                              <YogaCard key={y.key} yoga={y} t={t} />
+                            ))}
+                          </div>
+                        </details>
+                      )}
                     </div>
                   )}
 

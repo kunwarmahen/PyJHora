@@ -26,3 +26,6 @@ src/jhora/ui
 src/jhora/tests
 src/jhora/images
 src/jhora/docs
+
+# Family birth data for local JHora cross-checks only — never ship it.
+web/backend/tests/private_*.json

@@ -119,7 +119,8 @@ export const FullReportPage = () => {
   const d1Planets = chart?.d1_chart || {};
   const orderedPlanets = PLANET_ORDER.filter((p) => d1Planets[p]).map((p) => [p, d1Planets[p]]);
 
-  const yogasPresent = (data?.yogas?.yogas || []).slice(0, 30);
+  // Classical tier only — BV Raman's extended list stays on the Birth Chart page.
+  const yogasPresent = (data?.yogas?.yogas || []).filter((y) => y.tier !== "extended");
   const doshasPresent = (data?.doshas?.doshas || []).filter((d) => d.present);
   const dhasaList = (data?.dhasa?.dashas || data?.dhasa?.periods || []).slice(0, 9);
 
@@ -303,6 +304,9 @@ export const FullReportPage = () => {
                     {yogasPresent.map((y) => (
                       <li key={y.key}>
                         <strong>{y.name}</strong>
+                        {y.nature === "challenging" && (
+                          <em> ({t("birthChart.yogaChallenging")})</em>
+                        )}
                         {y.benefits ? (
                           <span className="report-list__note"> — {y.benefits}</span>
                         ) : null}

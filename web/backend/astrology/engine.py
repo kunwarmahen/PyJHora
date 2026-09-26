@@ -120,6 +120,28 @@ try:
 
     drik.true_sidereal_year = _fast_true_sidereal_year
 
+    # ── Correctness patch: house.graha_drishti_of_the_planet ──────────────
+    #
+    # Documented as "graha drishti of a planet on other planets", but upstream
+    # appends the planet's RASI drishti (Jaimini sign aspects) to the list:
+    # `app[planet] += app1[planet]`. Every sign rasi-aspects three others, so each
+    # planet picks up ~3 phantom aspects — on the owner's chart Rahu in Libra
+    # "aspects" 8 of 9 planets where graha drishti gives it Jupiter and Ketu.
+    # `associations_of_the_planet` is built on it, so every "associated with /
+    # aspected by a malefic" test in yoga.py (and Mangal dosha's c7) was near
+    # always true: Bandhubhisthyaktha fired on 97% of random charts. Graha drishti
+    # is what the BV Raman / Parashari texts behind those rules mean; the rasi
+    # drishti helpers stay available under their own names.
+    # tests/test_yoga_catalog.py tripwires the raw engine call, so this can be
+    # retired once upstream stops mixing the two.
+    _engine_graha_drishti_of_the_planet = house.graha_drishti_of_the_planet
+
+    def _graha_drishti_of_the_planet(house_to_planet_dict, planet, separator='/'):
+        _, _, app = house.graha_drishti_from_chart(house_to_planet_dict, separator)
+        return list(set(app[planet]))
+
+    house.graha_drishti_of_the_planet = _graha_drishti_of_the_planet
+
     # The compressed annual Tithi Ashtottari (the dasha JHora pairs with the Tithi
     # Pravesha chart). Lives outside this module because it is pure elongation
     # geometry the engine does not ship — see varsha_tithi_ashtottari.

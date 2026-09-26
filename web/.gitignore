@@ -69,3 +69,6 @@ frontend/ledger-preview.html
 
 # RAG embedding cache — derived from rag_corpus/*.jsonl, rebuilt on demand.
 backend/rag_corpus/.index.json
+
+# Family birth data used only by local JHora cross-checks (tests/test_yoga_catalog.py)
+backend/tests/private_*.json

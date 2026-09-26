@@ -2450,7 +2450,8 @@ Planetary Positions (All 9 Grahas) — house counted from the Lagna:"""
                 desc = (y.get("description") or "").strip()
                 if len(desc) > 140:
                     desc = desc[:137].rstrip() + "..."
-                chart_description += f"\n- {y.get('name', 'Unknown')}" + (f": {desc}" if desc else "")
+                tag = " [challenging]" if y.get("nature") == "challenging" else ""
+                chart_description += f"\n- {y.get('name', 'Unknown')}{tag}" + (f": {desc}" if desc else "")
 
         # Doshas — list present ones with detail, name-only for absent
         doshas = chart_data.get("doshas", [])

@@ -23,6 +23,7 @@ from typing import Any, Callable, Dict, List, Optional
 from astrology import (AstrologyCompute, DEFAULT_AYANAMSA, SUPPORTED_VARGAS,
                        SUPPORTED_DASHAS, chart_positions, sanitize,
                        strip_layout, strip_layout_all)
+from astrology import yoga_catalog
 from chart_context import _running_dasha_chain
 import rag
 
@@ -111,7 +112,7 @@ def _dasha_children(bd, ayanamsa, lords_path: Optional[List[str]] = None, **_):
 
 def _yogas(bd, ayanamsa, **_):
     y = AstrologyCompute.get_yogas(ayanamsa=ayanamsa, **_args(bd))
-    return {"yogas": y.get("yogas", []) if y.get("status") == "success" else []}
+    return {"yogas": yoga_catalog.for_ai(y)}
 
 
 def _doshas(bd, ayanamsa, **_):
@@ -940,8 +941,9 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
     ),
     _Tool(
         "get_yogas",
-        "Named yogas present in the Rasi chart (name + description). Use for "
-        "personality, strengths, and special combinations.",
+        "Classical named yogas present in the Rasi chart (name, description, "
+        "nature: supportive|challenging). Use for personality, strengths, and "
+        "special combinations.",
         _EMPTY_PARAMS, _yogas,
     ),
     _Tool(

@@ -19,6 +19,7 @@ from datetime import datetime
 from astrology import (AstrologyCompute, DEFAULT_AYANAMSA, SUPPORTED_VARGAS,
                        RASI_LORDS, ZODIAC_NAMES, chart_positions, sign_index,
                        strip_layout_all)
+from astrology import yoga_catalog
 
 # Which context sections are included by default.
 DEFAULT_SECTIONS = {
@@ -254,7 +255,7 @@ def build_chart_context(birth_details: Dict[str, Any],
 
     if sections.get("yogas"):
         y = AstrologyCompute.get_yogas(ayanamsa=ayanamsa, **args)
-        ctx["yogas"] = y.get("yogas", []) if y.get("status") == "success" else []
+        ctx["yogas"] = yoga_catalog.for_ai(y)
 
     if sections.get("doshas"):
         d = AstrologyCompute.get_doshas(ayanamsa=ayanamsa, **args)
