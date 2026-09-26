@@ -257,23 +257,55 @@ class OllamaMixin:
 
     async def _chat_once_ollama(self, messages, specs, cfg,
                                 max_tokens: Optional[int] = None) -> Dict[str, Any]:
+        """One tool-loop round. Streamed from Ollama and assembled here, although
+        the caller only wants the finished message: with `stream: False` the
+        300 s httpx timeout covered the WHOLE generation, and a final answer
+        round on a 27B model routinely writes past that — it was cut at exactly
+        5m0s mid-answer (NAS, 2026-09-26). Streamed, the timeout only bounds the
+        gap between chunks."""
         max_tokens = cfg.max_tokens or max_tokens
         url = (cfg.base_url or self.ollama_url).rstrip("/")
         payload = {
             "model": cfg.model or self.ollama_default_model,
             "messages": self._to_ollama_messages(messages),
-            "stream": False,
+            "stream": True,
             "tools": self._openai_tool_payload(specs),
+            # Explicitly off, like every other Ollama call here: left unset, a
+            # thinking model (qwen3) deliberates for thousands of tokens in every
+            # round — minutes of invisible work per round on local hardware.
+            "think": False,
             "options": {"temperature": 0.7, **output_cap(max_tokens, "num_predict")},
         }
+        content_parts: List[str] = []
+        raw_calls: List[Dict[str, Any]] = []
+        final: Dict[str, Any] = {}
         async with httpx.AsyncClient(timeout=300.0) as client:
-            r = await client.post(f"{url}/api/chat", json=payload)
-            if r.status_code != 200:
-                raise RuntimeError(f"Ollama {payload['model']}: {r.status_code} - {r.text[:300]}")
-            data = r.json()
-        msg = data.get("message", {})
+            for _ in range(2):  # the second try drops `think` for a daemon that rejects it
+                async with client.stream("POST", f"{url}/api/chat", json=payload) as r:
+                    if r.status_code != 200:
+                        body = (await r.aread()).decode("utf-8", "replace")
+                        if "think" in payload and _rejects_think(body):
+                            payload.pop("think", None)
+                            continue
+                        raise RuntimeError(f"Ollama {payload['model']}: {r.status_code} - {body[:300]}")
+                    async for line in r.aiter_lines():
+                        if not line.strip():
+                            continue
+                        try:
+                            chunk = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        if chunk.get("error"):
+                            raise RuntimeError(f"Ollama {payload['model']}: {chunk['error']}")
+                        m = chunk.get("message") or {}
+                        if m.get("content"):
+                            content_parts.append(m["content"])
+                        raw_calls.extend(m.get("tool_calls") or [])
+                        if chunk.get("done"):
+                            final = chunk
+                    break
         tool_calls = []
-        for tc in msg.get("tool_calls") or []:
+        for tc in raw_calls:
             fn = tc.get("function", {})
             args = fn.get("arguments")
             if isinstance(args, str):
@@ -283,8 +315,9 @@ class OllamaMixin:
                     args = {}
             tool_calls.append({"id": None, "name": fn.get("name"), "args": args or {}})
         usage = None
-        if data.get("prompt_eval_count") is not None or data.get("eval_count") is not None:
-            pt, ct = data.get("prompt_eval_count"), data.get("eval_count")
+        if final.get("prompt_eval_count") is not None or final.get("eval_count") is not None:
+            pt, ct = final.get("prompt_eval_count"), final.get("eval_count")
             usage = {"prompt_tokens": pt, "completion_tokens": ct,
                      "total_tokens": (pt or 0) + (ct or 0)}
-        return {"content": msg.get("content"), "tool_calls": tool_calls, "usage": usage}
+        return {"content": "".join(content_parts) or None, "tool_calls": tool_calls,
+                "usage": usage}

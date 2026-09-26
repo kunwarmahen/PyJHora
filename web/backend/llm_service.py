@@ -15,6 +15,11 @@ from llm.prompts import PromptsMixin
 from llm.providers import OllamaMixin, OpenAIMixin, GeminiMixin
 
 
+def _with_note(text: str, note: str) -> str:
+    """Text the model already wrote, followed by why the answer stops there."""
+    return f"{text}\n\n[{note}]" if text else f"\n\n[{note}]"
+
+
 class LLMService(PromptsMixin, OllamaMixin, OpenAIMixin, GeminiMixin):
     def __init__(self):
         # API keys
@@ -1374,7 +1379,9 @@ Reply with STRICT JSON only, exactly this shape:
                 # with another workload). That says nothing about whether it
                 # supports native tool calls, so don't switch protocols and try
                 # again — report it and stop.
-                yield {"type": "token", "text": last_content or f"\n\n[{e.raw_message}]"}
+                # Show what failed AFTER any preamble — a preamble alone ("Let me
+                # pull the argala…") read as a finished answer that said nothing.
+                yield {"type": "token", "text": _with_note(last_content, e.raw_message)}
                 if usage is not None and have_usage:
                     usage.update(agg)
                 return
@@ -1471,7 +1478,7 @@ Reply with STRICT JSON only, exactly this shape:
             _add_usage(u)
             yield {"type": "token", "text": content or last_content or "[No answer produced]"}
         except Exception as e:
-            yield {"type": "token", "text": last_content or f"\n\n[Tool mode error: {e}]"}
+            yield {"type": "token", "text": _with_note(last_content, f"Tool mode error: {e}")}
         if usage is not None and have_usage:
             usage.update(agg)
 
