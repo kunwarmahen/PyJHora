@@ -15,6 +15,27 @@ from llm.base import (OPENAI_STYLE_PROVIDERS, ProviderType, _KEY_ENV_VAR,
 from llm_service import llm_service
 
 
+
+class _Streamed:
+    """What httpx's client.stream() gives the Ollama adapters (they stream every
+    call — see _ollama_collect): a 200 whose NDJSON body is `body` as the final
+    `done` chunk, which is where Ollama puts the counters."""
+
+    status_code = 200
+
+    def __init__(self, body):
+        self._body = body
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *a):
+        return False
+
+    async def aiter_lines(self):
+        import json as _json
+        yield _json.dumps({**self._body, "done": True})
+
 def test_openrouter_resolves_to_its_own_endpoint_and_key():
     cfg = llm_service.resolve_config("openrouter", api_key="sk-or-test")
     assert cfg.provider_type is ProviderType.OPENROUTER
@@ -316,6 +337,10 @@ def test_one_shot_completions_ask_for_no_thinking(monkeypatch):
             seen.update(json or {})
             return _Resp()
 
+        def stream(self, method, url, json=None):
+            seen.update(json or {})
+            return _Streamed(_Resp.json())
+
     import httpx
     monkeypatch.setattr(httpx, "AsyncClient", _Client)
     cfg = llm_service.resolve_config("ollama", model="qwen3.8-64k:latest")
@@ -353,6 +378,10 @@ def _capture_client(monkeypatch, payload_box, body):
         async def post(self, url, json=None, headers=None):
             payload_box.update(json or {})
             return _Resp()
+
+        def stream(self, method, url, json=None, headers=None):
+            payload_box.update(json or {})
+            return _Streamed(body)
 
     import httpx
     monkeypatch.setattr(httpx, "AsyncClient", _Client)

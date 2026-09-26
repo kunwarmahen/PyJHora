@@ -32,6 +32,50 @@ def _empty_response_error(model: str, data: Dict[str, Any]) -> str:
             f"(done_reason={reason}).")
 
 
+
+async def _ollama_collect(client, url: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """POST to an Ollama endpoint with `stream: True` and assemble the chunks into
+    the object `stream: False` would have returned (`response`/`message` joined,
+    plus the final chunk's counters). Every Ollama call here goes through this:
+    non-streamed, httpx's 300 s timeout covered the WHOLE generation, and a long
+    answer from a 27B local model was cut at exactly 5m0s (NAS, 2026-09-26).
+    Streamed, the timeout only bounds a silence between chunks.
+
+    A daemon that rejects `think` gets one retry without it. Any other non-200
+    comes back as {"_status": code, "_body": text} for the caller to report."""
+    payload = {**payload, "stream": True}
+    for _ in range(2):
+        async with client.stream("POST", url, json=payload) as r:
+            if r.status_code != 200:
+                body = (await r.aread()).decode("utf-8", "replace")
+                if "think" in payload and _rejects_think(body):
+                    payload.pop("think", None)
+                    continue
+                return {"_status": r.status_code, "_body": body}
+            response, thinking, content, calls = [], [], [], []
+            final: Dict[str, Any] = {}
+            async for line in r.aiter_lines():
+                if not line.strip():
+                    continue
+                try:
+                    chunk = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if chunk.get("error"):
+                    return {"_status": 500, "_body": str(chunk["error"])}
+                response.append(chunk.get("response") or "")
+                thinking.append(chunk.get("thinking") or "")
+                m = chunk.get("message") or {}
+                content.append(m.get("content") or "")
+                thinking.append(m.get("thinking") or "")
+                calls.extend(m.get("tool_calls") or [])
+                if chunk.get("done"):
+                    final = chunk
+            return {**final, "response": "".join(response), "thinking": "".join(thinking),
+                    "message": {"role": "assistant", "content": "".join(content),
+                                "thinking": "".join(thinking), "tool_calls": calls}}
+    return {"_status": 400, "_body": "Ollama rejected the request"}
+
 class OllamaMixin:
 
     async def _ollama_status(self) -> Dict[str, Any]:
@@ -209,28 +253,22 @@ class OllamaMixin:
             "model": model,
             "prompt": prompt,
             "system": system,
-            "stream": False,
             # Explicitly off, not merely unset: several models think by default.
             "think": False,
             "options": {"temperature": 0.7, **output_cap(max_tokens, "num_predict")},
         }
         try:
-            # Local models can be slow to cold-load + generate; allow up to 5 min
+            # Streamed and assembled (see _ollama_collect): a long answer must not
+            # be cut at the 300 s mark; the timeout bounds silence between chunks.
             async with httpx.AsyncClient(timeout=300.0) as client:
-                response = await client.post(f"{url}/api/generate", json=payload)
-                if response.status_code != 200 and _rejects_think(response.text):
-                    # Not a thinking model — it wants the key gone, not false.
-                    payload.pop("think", None)
-                    response = await client.post(f"{url}/api/generate", json=payload)
-                if response.status_code == 200:
-                    data = response.json()
-                    self._fill_usage(usage, data.get("prompt_eval_count"),
-                                     data.get("eval_count"))
-                    text = (data.get("response") or "").strip()
-                    if text:
-                        return text
-                    return _empty_response_error(model, data)
-                return f"Error from Ollama ({model}): {response.status_code} - {response.text}"
+                data = await _ollama_collect(client, f"{url}/api/generate", payload)
+            if "_status" in data:
+                return f"Error from Ollama ({model}): {data['_status']} - {data['_body']}"
+            self._fill_usage(usage, data.get("prompt_eval_count"), data.get("eval_count"))
+            text = (data.get("response") or "").strip()
+            if text:
+                return text
+            return _empty_response_error(model, data)
         except httpx.ConnectError:
             return ("Error: Cannot connect to Ollama. Ensure it is running "
                     "('ollama serve') and the model is installed ('ollama pull " + model + "').")
@@ -268,7 +306,6 @@ class OllamaMixin:
         payload = {
             "model": cfg.model or self.ollama_default_model,
             "messages": self._to_ollama_messages(messages),
-            "stream": True,
             "tools": self._openai_tool_payload(specs),
             # Explicitly off, like every other Ollama call here: left unset, a
             # thinking model (qwen3) deliberates for thousands of tokens in every
@@ -276,36 +313,12 @@ class OllamaMixin:
             "think": False,
             "options": {"temperature": 0.7, **output_cap(max_tokens, "num_predict")},
         }
-        content_parts: List[str] = []
-        raw_calls: List[Dict[str, Any]] = []
-        final: Dict[str, Any] = {}
         async with httpx.AsyncClient(timeout=300.0) as client:
-            for _ in range(2):  # the second try drops `think` for a daemon that rejects it
-                async with client.stream("POST", f"{url}/api/chat", json=payload) as r:
-                    if r.status_code != 200:
-                        body = (await r.aread()).decode("utf-8", "replace")
-                        if "think" in payload and _rejects_think(body):
-                            payload.pop("think", None)
-                            continue
-                        raise RuntimeError(f"Ollama {payload['model']}: {r.status_code} - {body[:300]}")
-                    async for line in r.aiter_lines():
-                        if not line.strip():
-                            continue
-                        try:
-                            chunk = json.loads(line)
-                        except json.JSONDecodeError:
-                            continue
-                        if chunk.get("error"):
-                            raise RuntimeError(f"Ollama {payload['model']}: {chunk['error']}")
-                        m = chunk.get("message") or {}
-                        if m.get("content"):
-                            content_parts.append(m["content"])
-                        raw_calls.extend(m.get("tool_calls") or [])
-                        if chunk.get("done"):
-                            final = chunk
-                    break
+            data = await _ollama_collect(client, f"{url}/api/chat", payload)
+        if "_status" in data:
+            raise RuntimeError(f"Ollama {payload['model']}: {data['_status']} - {data['_body'][:300]}")
         tool_calls = []
-        for tc in raw_calls:
+        for tc in data["message"]["tool_calls"]:
             fn = tc.get("function", {})
             args = fn.get("arguments")
             if isinstance(args, str):
@@ -315,9 +328,9 @@ class OllamaMixin:
                     args = {}
             tool_calls.append({"id": None, "name": fn.get("name"), "args": args or {}})
         usage = None
-        if final.get("prompt_eval_count") is not None or final.get("eval_count") is not None:
-            pt, ct = final.get("prompt_eval_count"), final.get("eval_count")
+        if data.get("prompt_eval_count") is not None or data.get("eval_count") is not None:
+            pt, ct = data.get("prompt_eval_count"), data.get("eval_count")
             usage = {"prompt_tokens": pt, "completion_tokens": ct,
                      "total_tokens": (pt or 0) + (ct or 0)}
-        return {"content": "".join(content_parts) or None, "tool_calls": tool_calls,
+        return {"content": data["message"]["content"] or None, "tool_calls": tool_calls,
                 "usage": usage}

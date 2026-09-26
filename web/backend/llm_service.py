@@ -13,6 +13,7 @@ from llm.base import __all__ as _base_all
 from llm.gate import gate
 from llm.prompts import PromptsMixin
 from llm.providers import OllamaMixin, OpenAIMixin, GeminiMixin
+from llm.providers.ollama import _ollama_collect
 
 
 def _with_note(text: str, note: str) -> str:
@@ -1525,14 +1526,17 @@ Reply with STRICT JSON only, exactly this shape:
         if cfg.provider_type == ProviderType.OLLAMA:
             url = (cfg.base_url or self.ollama_url).rstrip("/")
             payload = {"model": cfg.model or self.ollama_default_model,
-                       "messages": self._to_text_messages(messages), "stream": False,
+                       "messages": self._to_text_messages(messages),
+                       # Off like every other Ollama call — see _chat_once_ollama.
+                       "think": False,
                        "options": {"temperature": 0.7,
                                    **output_cap(max_tokens, "num_predict")}}
+            # Streamed + assembled: this is the tool loop's forced final answer,
+            # and non-streamed it was cut at 5m0s mid-answer (NAS, 2026-09-26).
             async with httpx.AsyncClient(timeout=300.0) as client:
-                r = await client.post(f"{url}/api/chat", json=payload)
-                if r.status_code != 200:
-                    raise RuntimeError(f"Ollama: {r.status_code} - {r.text[:300]}")
-                data = r.json()
+                data = await _ollama_collect(client, f"{url}/api/chat", payload)
+            if "_status" in data:
+                raise RuntimeError(f"Ollama: {data['_status']} - {data['_body'][:300]}")
             pt, ct = data.get("prompt_eval_count"), data.get("eval_count")
             usage = ({"prompt_tokens": pt, "completion_tokens": ct,
                       "total_tokens": (pt or 0) + (ct or 0)}
