@@ -425,11 +425,14 @@ export const FEATURES = [
  * match, not a translation. Add to this as features grow. Keyed by feature key.
  */
 export const FEATURE_ALIASES = {
-  birthChart: "kundali rasi natal horoscope lagna ascendant d1 d9 navamsa planets",
+  birthChart:
+    "kundali rasi natal horoscope lagna ascendant d1 d9 navamsa planets" +
+    " yoga yogas dosha doshas raja yoga aspects drishti divisional varga vargas",
   ask: "chat question ai astrologer talk advice",
   dailyDigest: "today daily forecast horoscope of the day",
   compatibility:
-    "marriage match matching guna milan ashtakoot dashakoota partner spouse relationship love porutham mangal dosha",
+    "marriage match matching guna milan ashtakoot dashakoota partner spouse relationship love porutham mangal dosha" +
+    " kuja dosha manglik seventh house 7th house",
   dhasa: "dasha vimshottari vimsottari mahadasha bhukti antardasha period timing",
   transit:
     "gochara current planets movement now arudha arudh aroodha lagna al upapada ul pada" +
@@ -453,23 +456,26 @@ export const FEATURE_ALIASES = {
     "auspicious time electional choghadiya panchaka good time kaala vela gulika yamaganda rahu kalam tara bala tarabala chandra bala chandrabala lagna shuddhi suddhi personal muhurta abhijit hora",
   prashna: "horary question kp prashna",
   timeline: "life timeline dasha transit events upcoming what's coming forward calendar alerts",
-  strength: "shadbala planetary strength bhava bala vimsopaka",
+  strength: "shadbala planetary strength bhava bala vimsopaka ishta kashta",
   sadeSati: "saturn shani seven and half sade sati kantaka ashtama",
   bhrigu: "nadi bhrigu bindu markers yearly progression",
   nadi: "karaka significator nadi timing conjunction",
   panchaPakshi: "bird timing five birds pancha pakshi",
   sarvatobhadra: "chakra kota kaala tripataki vedha sarvatobhadra",
   sensitivePoints:
-    "sphuta saham argala sensitive points special lagna upagraha hora ghati bhava vighati varnada gulika maandi kaala mrityu dhuma vyatipata parivesha indrachapa upaketu sree indu bhrigu bindu pranapada kunda",
+    "sphuta saham argala sensitive points special lagna upagraha hora ghati bhava vighati varnada gulika maandi kaala mrityu dhuma vyatipata parivesha indrachapa upaketu sree indu bhrigu bindu pranapada kunda mandi",
   vedicClock: "clock ghati hora retrograde vakra vedic clock",
   kp: "krishnamurti sub lord significator ruling planets horary kp system",
-  jaimini: "chara karaka karakamsa swamsa argala jaimini arudha pada upapada",
+  jaimini: "chara karaka karakamsa swamsa argala jaimini arudha pada upapada atmakaraka amatyakaraka darakaraka",
   now: "chart of the moment now current instant",
   compare: "compare two charts synastry side by side",
   rectify: "birth time correction rectification unknown time",
   learn: "quiz learn practice study lesson",
   journal: "diary log events astro journal notes",
-  advanced: "more all everything advanced tools arudha arudh aroodha pada padas upapada al ul",
+  advanced:
+    "more all everything advanced tools arudha arudh aroodha pada padas upapada al ul" +
+    " sarvashtakavarga bhinnashtakavarga bindu bindus longevity ayu ayurdaya planetary conditions" +
+    " combust combustion retrograde avastha avasthas friendship friendships maitri",
 };
 
 /**
@@ -489,6 +495,121 @@ export const FEATURE_ALIASES = {
  * Dhasa `system` values are the backend SUPPORTED_DASHAS keys, verbatim.
  */
 export const FEATURE_SUBITEMS = [
+  // ── Birth Chart tabs (§15 tab split) — the most-searched content in the app
+  //    lives behind these, so each gets its own deep-link. ──
+  {
+    label: "Yogas & Doshas",
+    parent: "birthChart",
+    to: "/birth-chart?tab=yogas",
+    keywords:
+      "yoga yogas raja yoga rajayoga dhana yoga gajakesari pancha mahapurusha ruchaka bhadra hamsa malavya sasa" +
+      " budhaditya neechabhanga viparita dosha doshas kaal sarp kala sarpa kalasarpa mangal manglik kuja pitru" +
+      " guru chandal combinations",
+  },
+  {
+    label: "Aspects",
+    parent: "birthChart",
+    to: "/birth-chart?tab=aspects",
+    keywords: "aspects aspect drishti graha drishti rasi drishti sight",
+  },
+  {
+    label: "Divisional charts (vargas)",
+    parent: "birthChart",
+    to: "/birth-chart?tab=advanced",
+    keywords:
+      "divisional varga vargas shodasavarga d2 d3 d4 d7 d10 d12 d16 d20 d24 d27 d30 d40 d45 d60" +
+      " hora drekkana chaturthamsa saptamsa dasamsa dashamsa dwadasamsa shodasamsa vimsamsa" +
+      " chaturvimsamsa bhamsa trimsamsa khavedamsa akshavedamsa shashtyamsa career",
+  },
+  {
+    label: "Birth Panchanga",
+    parent: "birthChart",
+    to: "/birth-chart?tab=panchanga",
+    keywords: "panchanga panchang birth tithi vara karana yoga birth day weekday",
+  },
+  {
+    label: "Nakshatra & Lagna",
+    parent: "birthChart",
+    to: "/birth-chart?tab=nakshatra",
+    keywords: "nakshatra pada birth star janma lagna ascendant rising sign",
+  },
+  // ── Strength tabs ──
+  {
+    label: "Shadbala",
+    parent: "strength",
+    to: "/strength?tab=shadbala",
+    keywords: "shadbala six fold strength sthana dig kaala chesta naisargika drik rupas",
+  },
+  {
+    label: "Bhava Bala",
+    parent: "strength",
+    to: "/strength?tab=bhava",
+    keywords: "bhava bala house strength",
+  },
+  {
+    label: "Vimsopaka Bala",
+    parent: "strength",
+    to: "/strength?tab=vimsopaka",
+    keywords: "vimsopaka vimshopaka varga strength twenty point",
+  },
+  // ── Compatibility workspace + matching systems ──
+  {
+    label: "7th House (marriage)",
+    parent: "compatibility",
+    to: "/compatibility?tab=seventh",
+    keywords: "seventh house 7th house spouse marriage partner d9 navamsa",
+  },
+  {
+    label: "Marriage timeline",
+    parent: "compatibility",
+    to: "/compatibility?tab=timeline",
+    keywords: "marriage timing timeline when will i marry dasha overlap saturn",
+  },
+  {
+    label: "Mangal Dosha",
+    parent: "compatibility",
+    to: "/compatibility?system=mangal",
+    keywords: "mangal dosha manglik kuja dosha mars dosha chevvai",
+  },
+  {
+    label: "Dashakoota (10 poruthams)",
+    parent: "compatibility",
+    to: "/compatibility?system=dashakoota",
+    keywords: "dashakoota dasa porutham ten poruthams south indian matching",
+  },
+  // ── KP horary ──
+  {
+    label: "KP Horary (1–249)",
+    parent: "kp",
+    to: "/kp?tab=horary",
+    keywords: "kp horary prashna number 249 question",
+  },
+  // ── Chart Deep-Dive sections (one scrolling page, no tabs) ──
+  {
+    label: "Ashtakavarga",
+    parent: "advanced",
+    to: "/advanced",
+    keywords: "ashtakavarga sarvashtakavarga bhinnashtakavarga bindu bindus sav bav",
+  },
+  {
+    label: "Longevity (Ayu)",
+    parent: "advanced",
+    to: "/advanced",
+    keywords: "longevity ayu ayurdaya lifespan vitality",
+  },
+  {
+    label: "Planetary conditions & Avasthas",
+    parent: "advanced",
+    to: "/advanced",
+    keywords:
+      "planetary conditions combust combustion retrograde exalted debilitated avastha avasthas baladi jagradadi deeptadi states",
+  },
+  {
+    label: "Planetary friendships",
+    parent: "advanced",
+    to: "/advanced",
+    keywords: "friendship friendships maitri friend enemy neutral panchadha",
+  },
   // ── Dhasa picker: the conditional / rasi dasha systems ──
   {
     label: "Sudarshana Chakra Dasha",
@@ -686,4 +807,33 @@ export const featureForKey = (key) => FEATURES.find((f) => f.key === key);
 export const isFeatureVisible = (path, uiMode) => {
   const feature = featureForPath(path);
   return !feature || feature.tier === "simple" || uiMode === "advanced";
+};
+
+/**
+ * The dashboard's type-to-filter launcher, as a pure function so its coverage is
+ * testable (features.test.js pins the terms people actually type). `t` supplies
+ * the localized tile title/description; aliases and sub-item keywords are
+ * English. Every whitespace token must appear somewhere in an entry's haystack.
+ * Sub-items ignore Essentials/Everything: a deep-link must never dead-end just
+ * because its parent tile is hidden.
+ */
+export const searchFeatures = (features, query, t) => {
+  const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return { tiles: features, subs: [] };
+  const hit = (parts) => {
+    const hay = parts.join(" ").toLowerCase();
+    return tokens.every((tok) => hay.includes(tok));
+  };
+  const tiles = features.filter((f) =>
+    hit([
+      t(`dashboard.features.${f.key}.title`),
+      t(`dashboard.features.${f.key}.description`),
+      FEATURE_ALIASES[f.key] || "",
+    ])
+  );
+  const subs = FEATURE_SUBITEMS.filter((s) => {
+    const parent = featureForKey(s.parent);
+    return hit([s.label, s.keywords || "", parent ? t(`dashboard.features.${parent.key}.title`) : ""]);
+  });
+  return { tiles, subs };
 };

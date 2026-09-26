@@ -16,9 +16,8 @@ import { SITE_TITLE } from "../config/branding";
 import {
   visibleFeatures,
   groupedFeatures,
-  FEATURE_ALIASES,
-  FEATURE_SUBITEMS,
   featureForKey,
+  searchFeatures,
 } from "../config/features";
 import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
@@ -69,39 +68,10 @@ export const DashboardPage = () => {
   }, [open]);
 
   const q = query.trim().toLowerCase();
-  const tokens = useMemo(() => (q ? q.split(/\s+/) : []), [q]);
-
-  const filtered = useMemo(() => {
-    if (!q) return features;
-    return features.filter((f) => {
-      const hay = [
-        t(`dashboard.features.${f.key}.title`),
-        t(`dashboard.features.${f.key}.description`),
-        FEATURE_ALIASES[f.key] || "",
-      ]
-        .join(" ")
-        .toLowerCase();
-      return tokens.every((tok) => hay.includes(tok));
-    });
-  }, [features, q, tokens, t]);
-
-  // Sub-tools that live inside a tile (Sudarshana → Dhasa, Kota → Chakras…).
-  // Only surfaced while searching, and regardless of Essentials/Everything mode:
-  // a deep-link must never dead-end just because its parent tile is hidden.
-  const subMatches = useMemo(() => {
-    if (!q) return [];
-    return FEATURE_SUBITEMS.filter((s) => {
-      const parent = featureForKey(s.parent);
-      const hay = [
-        s.label,
-        s.keywords || "",
-        parent ? t(`dashboard.features.${parent.key}.title`) : "",
-      ]
-        .join(" ")
-        .toLowerCase();
-      return tokens.every((tok) => hay.includes(tok));
-    });
-  }, [q, tokens, t]);
+  const { tiles: filtered, subs: subMatches } = useMemo(
+    () => searchFeatures(features, q, t),
+    [features, q, t]
+  );
 
   // Tiles are laid out section by section in reading order (cast → read → time
   // → calendar → relationships → remedies), not as one undifferentiated grid,

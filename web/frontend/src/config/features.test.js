@@ -5,7 +5,11 @@ import {
   groupedFeatures,
   featureForPath,
   isFeatureVisible,
+  searchFeatures,
+  FEATURE_SUBITEMS,
+  featureForKey,
 } from "./features";
+import en from "../i18n/locales/en.json";
 
 describe("feature registry", () => {
   it("has a unique path and key per feature", () => {
@@ -103,6 +107,37 @@ describe("feature registry", () => {
     it("treats unregistered routes as visible", () => {
       expect(isFeatureVisible("/login", "simple")).toBe(true);
       expect(isFeatureVisible("/share/abc123", "simple")).toBe(true);
+    });
+  });
+});
+
+// The dashboard launcher must find content that lives behind a tab or inside a
+// long page, not just tile names — "yogas" once found nothing because Yogas &
+// Doshas is a Birth Chart tab. Add a term here whenever someone reports a miss.
+describe("dashboard search coverage", () => {
+  const t = (key) => key.split(".").reduce((o, k) => (o ? o[k] : undefined), en) || "";
+  const tiles = FEATURES.filter((f) => !f.navOnly);
+
+  it.each([
+    "yoga", "yogas", "raja yoga", "gajakesari", "doshas", "kaal sarp", "manglik",
+    "aspects", "drishti", "divisional", "d10", "dasamsa", "d60", "navamsa",
+    "panchanga", "nakshatra", "ashtakavarga", "sarvashtakavarga", "longevity",
+    "avasthas", "combust", "friendship", "atmakaraka", "7th house", "shadbala",
+    "vimsopaka", "kp horary", "mandi", "sudarshana", "kota", "marriage", "gemstone",
+  ])("finds %s", (term) => {
+    const { tiles: hits, subs } = searchFeatures(tiles, term, t);
+    expect(hits.length + subs.length).toBeGreaterThan(0);
+  });
+
+  it("lands 'yogas' on the Yogas tab", () => {
+    const { subs } = searchFeatures(tiles, "yogas", t);
+    expect(subs.map((s) => s.to)).toContain("/birth-chart?tab=yogas");
+  });
+
+  it("gives every sub-item a real parent and an internal link", () => {
+    FEATURE_SUBITEMS.forEach((s) => {
+      expect(featureForKey(s.parent)).toBeDefined();
+      expect(s.to.startsWith("/")).toBe(true);
     });
   });
 });
