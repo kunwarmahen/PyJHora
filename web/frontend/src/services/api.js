@@ -216,6 +216,12 @@ const writeAiPending = (key, jobId) => {
   }
 };
 
+// Tell the header's activity pill a job just started, so it shows at once
+// instead of on its next poll (hooks/useAiActivity.js listens).
+const announceAiJob = () => {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("jyotir:ai-activity"));
+};
+
 const settleAs = (resp, config) => {
   const final = {
     data: resp.data,
@@ -276,6 +282,12 @@ api.interceptors.request.use((config) => {
   config.headers = config.headers || {};
   if (typeof config.headers.set === "function") config.headers.set("X-Detach", "1");
   else config.headers["X-Detach"] = "1";
+  // Where the reader is, so the activity list can link a finished job back.
+  if (typeof window !== "undefined") {
+    const page = window.location.pathname;
+    if (typeof config.headers.set === "function") config.headers.set("X-AI-Page", page);
+    else config.headers["X-AI-Page"] = page;
+  }
   const key = aiRequestKey(config);
   config._aiKey = key;
   const pending = !config._aiResumeFailed && readAiPending()[key];
@@ -290,6 +302,7 @@ api.interceptors.response.use((response) => {
   if (!jobId) return response;
   const key = response.config?._aiKey;
   if (key) writeAiPending(key, jobId);
+  announceAiJob();
   return followAiJob(jobId, response.config, key);
 });
 
@@ -1958,6 +1971,7 @@ const runAskJob = ({ request = null, jobId = null, after = 0 }, callbacks) => {
   const dispatch = (seq, evt) => {
     if (seq) lastSeq = seq;
     if (evt.type === "job") {
+      if (jobId !== evt.job_id) announceAiJob();
       jobId = evt.job_id;
       onJob && onJob(jobId);
     } else if (evt.type === "meta") onMeta && onMeta(evt);
@@ -2093,5 +2107,12 @@ export const streamAskQuestion = (birthDetails, question, model = {}, callbacks 
  * replays the whole answer from the start. `onGone` fires if the server no
  * longer has it — the saved conversation is then the place to look. */
 export const resumeAskStream = (jobId, callbacks = {}) => runAskJob({ jobId, after: 0 }, callbacks);
+
+// What the AI is working on for this user (backend/ai_activity.py) — read by
+// the header pill, History's "In progress" and the Ask page's resume.
+export const aiActivityService = {
+  list: () => api.get("/api/ai/activity", { timeout: 15000 }),
+  markSeen: (jobId) => api.post(`/api/ai/activity/${encodeURIComponent(jobId)}/seen`),
+};
 
 export default api;

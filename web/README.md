@@ -146,6 +146,10 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   control (filtered to that tool) for reopening a past reading in place. Readings pile up; each is
   individually deletable. Retention is capped by `AI_HISTORY_MAX` (default 100, pruned on write).
   (The Learn-the-Chart quiz keeps its own dedicated history and is not stored here.)
+- **AI activity** (§77): answers are written by server-side jobs that survive a dropped
+  connection, a locked phone or a closed tab. A pill in every page header shows what the AI is
+  writing for you (and History lists it under **"In progress"**); when it's done the pill says so
+  and opens the saved answer on its own page.
 - **"Did this land?"**: every saved reading takes an **outcome** — it happened / partly / too early
   to tell / it didn't — with what actually came about in your own words, optionally logged to your
   astro-journal in the same step. Settled verdicts are fed back into later readings, so the AI can

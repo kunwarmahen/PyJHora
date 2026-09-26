@@ -10,6 +10,7 @@ from typing import Optional, List, Dict, Any
 
 from bson import ObjectId
 
+import ai_activity
 from database import bson_safe, get_database
 
 COLLECTION = "ai_conversations"
@@ -123,6 +124,8 @@ async def create_conversation(user_id: str, profile_id: Optional[str],
     }
     res = await db[COLLECTION].insert_one(doc)
     await prune_history(user_id)
+    # Inside an AI job, this is the answer it was working on (ai_activity).
+    ai_activity.note_result(str(res.inserted_id))
     return str(res.inserted_id)
 
 
@@ -160,6 +163,8 @@ async def save_reading(user_id: str, *, source: str, title: str, text: str,
     }
     res = await db[COLLECTION].insert_one(doc)
     await prune_history(user_id)
+    # The reading's own title and page beat the job's guess from the request.
+    ai_activity.note_result(str(res.inserted_id), title=doc["title"], route=meta["route"])
     return str(res.inserted_id)
 
 
@@ -199,6 +204,7 @@ async def append_messages(user_id: str, conv_id: str,
         {"$push": {"messages": {"$each": bson_safe(messages)}},
          "$set": {"updated_at": _now_iso()}},
     )
+    ai_activity.note_result(conv_id)
 
 
 async def replace_last_assistant(user_id: str, conv_id: str,
@@ -225,6 +231,7 @@ async def replace_last_assistant(user_id: str, conv_id: str,
         {"_id": oid, "user_id": user_id},
         {"$set": {"messages": msgs, "updated_at": _now_iso()}},
     )
+    ai_activity.note_result(conv_id)
 
 
 async def set_feedback(user_id: str, conv_id: str, message_index: int,

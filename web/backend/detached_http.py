@@ -33,9 +33,12 @@ import secrets
 import time
 from typing import Dict, List, Optional, Tuple
 
+import ai_activity
 from auth import decode_token
 
 DETACH_HEADER = b"x-detach"
+# The page the reader was on, so a finished job can link back to it.
+PAGE_HEADER = b"x-ai-page"
 POLL_WAIT_S = 25.0
 KEEP_FINISHED_S = 2 * 60 * 60
 MAX_AGE_S = 6 * 60 * 60
@@ -128,6 +131,35 @@ def _wants_detach(scope) -> bool:
                for k, v in scope.get("headers", []))
 
 
+_NAMED = {"predict": "Prediction", "ask": "Question", "quiz/generate": "Learn quiz",
+          "quiz/grade": "Quiz grading", "life-report/chapter": "Life report chapter"}
+
+
+def _activity_fields(scope, body: bytes) -> dict:
+    """What the activity list shows for this request until the saved reading
+    supplies its own title (conversations.save_reading → note_result)."""
+    try:
+        data = json.loads(body or b"{}")
+    except ValueError:
+        data = {}
+    data = data if isinstance(data, dict) else {}
+    tail = scope["path"].split("/api/astrology/", 1)[-1]
+    if data.get("question"):
+        title = str(data["question"]).strip()[:160]
+    elif tail in _NAMED:
+        title = _NAMED[tail]
+    elif tail.startswith("rectify-birth-time"):
+        title = "Birth-time rectification"
+    else:
+        title = tail.removesuffix("-analysis").replace("-", " ").capitalize() + " reading"
+    page = next((v.decode("latin-1") for k, v in scope.get("headers", []) if k == PAGE_HEADER), "")
+    # A same-site path only — this becomes a link in the reader's own UI.
+    route = page if page.startswith("/") and not page.startswith("//") and len(page) < 200 else None
+    pid = data.get("profile_id")
+    return {"title": title, "route": route,
+            "profile_id": pid if isinstance(pid, str) else None}
+
+
 async def _json(send, status: int, payload: bytes) -> None:
     await send({"type": "http.response.start", "status": status,
                 "headers": [(b"content-type", b"application/json"),
@@ -184,10 +216,17 @@ class DetachMiddleware:
             elif message["type"] == "http.response.body":
                 job.body.extend(message.get("body", b""))
 
+        fields = _activity_fields(scope, body)
+
         async def run():
+            # Inside the job's task: the activity becomes this context's current
+            # one, so the reading the handler saves is tied back to it.
+            ai_activity.begin(job.id, owner, kind="reading", **fields)
+            outcome = "done"
             try:
                 await self.app(inner_scope, replay, capture)
             except asyncio.CancelledError:
+                outcome = "cancelled"
                 job.status, job.headers = 499, [(b"content-type", b"application/json")]
                 job.body = bytearray(b'{"detail": "Cancelled"}')
                 raise
@@ -197,6 +236,14 @@ class DetachMiddleware:
             finally:
                 job.finished_at = time.monotonic()
                 job.finished.set()
+                error = None
+                if outcome == "done" and not 200 <= job.status < 300:
+                    outcome = "failed"
+                    try:
+                        error = str(json.loads(bytes(job.body)).get("detail"))
+                    except Exception:
+                        error = f"HTTP {job.status}"
+                ai_activity.finish(job.id, outcome, error)
 
         job.task = asyncio.create_task(run())
         await _json(send, 202, json.dumps({"detached_job": job.id}).encode())

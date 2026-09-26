@@ -133,6 +133,10 @@
    "path:username*"
   ]
  },
+ "GET /api/ai/activity": {
+  "params": [],
+  "body": ""
+ },
  "GET /api/ai/conversations": {
   "body": "",
   "params": [
@@ -407,6 +411,12 @@
   "params": [
    "path:username*"
   ]
+ },
+ "POST /api/ai/activity/{job_id}/seen": {
+  "params": [
+   "path:job_id*"
+  ],
+  "body": ""
  },
  "POST /api/ai/conversations/{conversation_id}/feedback": {
   "body": "FeedbackRequest",

@@ -9,6 +9,8 @@ import { PageHeader } from "../components/PageHeader";
 import { ErrorBanner } from "../components/ErrorBanner";
 import { LoadingState } from "../components/LoadingState";
 import { OutcomeControl } from "../components/OutcomeControl";
+import { AiActivityList } from "../components/AiActivity";
+import { useAiActivity } from "../hooks/useAiActivity";
 import { VERDICTS } from "../config/outcomes";
 import { intlLocale } from "../utils/format";
 import "../styles/Dashboard.css";
@@ -131,6 +133,14 @@ export const HistoryPage = () => {
     }
   }, []);
 
+  // Questions still being answered aren't saved yet, so they can't be in the
+  // list below — show them above it, and reload the list as each one lands.
+  const activity = useAiActivity();
+  const finishedCount = activity.items.filter((i) => i.status === "done").length;
+  useEffect(() => {
+    if (finishedCount) load();
+  }, [finishedCount, load]);
+
   const visible = useMemo(
     () => items.filter((c) => filter === "all" || (c.kind || "reading") === filter),
     [items, filter]
@@ -164,6 +174,16 @@ export const HistoryPage = () => {
       <main id="page-content" className="page-main">
         <div className="dashboard-content">
           <ErrorBanner message={error} />
+
+          {activity.items.length > 0 && (
+            <div className="ui-card ui-card--accent ui-card--pad-lg mb-xl">
+              <h3 className="ui-card-header ui-card-header--sm">
+                <Sparkles size={18} />
+                {t("activity.historyTitle")}
+              </h3>
+              <AiActivityList items={activity.items} />
+            </div>
+          )}
 
           {track && track.total > 0 && (
             <div className="ui-card ui-card--pad-lg mb-xl">

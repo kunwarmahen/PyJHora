@@ -8,6 +8,7 @@ import { ProfileBanner } from "../components/ProfileBanner";
 import { LocationPrompt } from "../components/LocationPrompt";
 import { NavDrawer } from "../components/NavDrawer";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { AiActivityPill } from "../components/AiActivity";
 import { NowChartWidget } from "../components/NowChartWidget";
 import { UiModeToggle } from "../components/UiModeToggle";
 import { BrandLogo } from "../components/BrandLogo";
@@ -163,6 +164,7 @@ export const DashboardPage = () => {
             <span className="welcome-text">{t("dashboard.welcome")}</span>
             <span className="username">{user?.name || user?.username}</span>
           </div>
+          <AiActivityPill />
           <ThemeToggle />
           <button
             onClick={() => navigate("/help")}

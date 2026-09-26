@@ -106,6 +106,9 @@ export const HELP_SECTIONS = [
       { id: "aiCitations" },
       { id: "aiCorrectionNote" },
       { id: "aiHistory", to: "/history" },
+      // Long answers + leaving the page (§77). No `to`: the pill it describes is
+      // on every page, and /history is already aiHistory's.
+      { id: "aiLongWait" },
       // No `to` on this one on purpose: `aiHistory` above already resolves
       // /history, and a second entry claiming the same path makes the match
       // ambiguous — which would leave the History page's "?" with nowhere to go.

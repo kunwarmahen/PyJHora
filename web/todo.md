@@ -8215,3 +8215,65 @@ judged against that.
 
 When this is built, run the standing wire-a-feature pass (the `wire-a-feature` skill): Help/FAQ,
 search, i18n, tests, docs.
+
+---
+
+## §77 Slow local answers — never lost, never invisible (owner report 2026-09-26) — ✅ SHIPPED 2026-09-26
+
+**The report.** On the NAS (jyotirai.win behind a Cloudflare Tunnel, `qwen3.8-64k` on the
+LAN GPU box) the first Ask question worked and the follow-up failed with *"network error"*;
+on the iPhone a killed Safari tab lost the answer; and once that was fixed, a question left
+mid-answer looked lost — it isn't saved until it's answered, so History didn't have it either.
+
+**What was actually wrong** (from the Ollama journal, lined up against the backend's UTC logs):
+
+1. **Cloudflare cuts a silent stream.** The tool loop's rounds were not streamed, so the SSE
+   connection carried no bytes for ~2 min; the tunnel dropped it at a fixed 2m4s, the
+   generator was cancelled, and Ollama logged a 500 (`srv stop: cancel task`) mid-generation.
+   The 44 JSON AI endpoints had the same exposure (Cloudflare answers 524 past ~100 s).
+2. **Our own 300 s httpx timeout covered the whole generation** on every non-streamed Ollama
+   call — tool rounds, the tool loop's *forced final answer*, and `_call_ollama` (all the
+   one-shot readings). Answers were cut at exactly 5m0s. The "model unavailable" path then
+   showed round 2's preamble as if it were the answer.
+3. **Tool rounds never sent `think: false`**, unlike every other Ollama call — qwen3 spent
+   thousands of tokens deliberating per round.
+
+**What shipped** (three commits):
+
+- `ask_jobs.py` — Ask/transit chat generations run as detached jobs; the SSE response only
+  follows one, with a `: ping` heartbeat every 15 s and `id:` sequence numbers.
+  `GET /api/astrology/ask/jobs/{id}?after=N` re-attaches (replays exactly what was missed),
+  `DELETE` is the Stop button (closing the stream no longer stops the model).
+- `detached_http.py` — ASGI middleware for the 44 JSON AI endpoints: `X-Detach: 1` → run in the
+  background, answer `202 {detached_job}`; `GET /api/ai/jobs/{id}` long-polls (≤25 s) and returns
+  the handler's own response verbatim. The client (an axios interceptor in `services/api.js`)
+  does this for every AI call transparently; pending job ids live in `ai_pending_jobs` so an
+  identical request after a tab kill collects the same job instead of re-asking the model.
+- `_ollama_collect()` (`llm/providers/ollama.py`) — **every** Ollama call streams and assembles;
+  the timeout now bounds only a silence between chunks. `think: false` everywhere.
+- `ai_activity.py` — the server-side record of each job (title, page, profile, status, and the
+  id of what it saved). `GET /api/ai/activity`, `POST /api/ai/activity/{id}/seen`. The saved
+  item is tied to its job by a **context variable** set inside the job's task and read by the
+  four persistence points in `conversations.py` — none of the 44 handlers changed.
+  A result a reader watched arrive (live SSE follower / poll in flight, or delivered by one) is
+  marked seen, so nobody is told about an answer already on screen.
+- UI: an **activity pill** in every page header (`components/AiActivity.js`, one shared poll in
+  `hooks/useAiActivity.js`: 5 s while running, 60 s idle, instant on a `jyotir:ai-activity`
+  nudge); History's **"In progress"** card; a ticking clock + "still working" hint and a
+  "reconnecting" state on Ask; the Ask page resumes from the server, not just localStorage.
+  Help/FAQ `aiLongWait`.
+
+**Traps.**
+- Both job registries and the activity list are **in-process** — the backend must stay at one
+  uvicorn worker. A restart loses running jobs (finished answers are already in History).
+- A new AI endpoint must match `DETACHABLE` (backend) **and** `DETACHABLE_AI` (api.js);
+  `tests/test_detached_http.py` scans every handler's source for `llm_service.<x>(` and fails.
+- Never add a non-streamed Ollama call; use `_ollama_collect`. Test fakes need `stream()`.
+- **Known gap, not from this work:** `/predictions` and `/learn` don't restore a saved reading
+  (`?reading=`), so opening a prediction/quiz item — from History or the pill — lands on an
+  empty form. Possibly also a nakshatra-gochara reading on `/transit`. Fix in their pages.
+
+**Tests.** `test_ask_jobs.py`, `test_detached_http.py`, `test_ai_activity.py` (incl. the real
+`conversations.save_reading` inside a detached job), `hooks/useAiActivity.test.js`; provider fakes
+in `test_llm_providers.py` stream. Verified in the browser against a local model: pill while
+running on another page, "In progress" in History, "ready" → opens the saved answer.

@@ -29,7 +29,9 @@ from __future__ import annotations
 import asyncio
 import secrets
 import time
-from typing import AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
+
+import ai_activity
 
 HEARTBEAT_S = 15.0
 # How long a finished job stays replayable — long enough for a phone to be
@@ -63,6 +65,13 @@ class AskJob:
         """SSE text for frames after seq `after`, then live ones, with heartbeats.
         Ends when the job is done and everything has been sent."""
         seq = max(0, after)
+        with ai_activity.watch(self.id):
+            async for chunk in self._follow(seq):
+                yield chunk
+        # Reached only when every frame, the final one included, was sent.
+        ai_activity.mark_seen(self.id, self.owner)
+
+    async def _follow(self, seq: int) -> AsyncIterator[str]:
         while True:
             while seq < len(self.frames):
                 frame = self.frames[seq]
@@ -92,31 +101,44 @@ def _sweep() -> None:
             _jobs.pop(jid, None)
 
 
-def start(owner: str, frames: AsyncIterator[str]) -> AskJob:
+def start(owner: str, frames: AsyncIterator[str],
+          activity: Optional[Dict[str, Any]] = None) -> AskJob:
     """Run `frames` (an async iterator of complete SSE frames) to completion in
     the background, independent of any reader. The first frame every follower
-    sees is `{"type":"job","job_id":…}` so it can re-attach later."""
+    sees is `{"type":"job","job_id":…}` so it can re-attach later. `activity`
+    (title, route, profile_id, …) lists the job in ai_activity while it runs."""
     import json
 
     _sweep()
     job = AskJob(owner)
     _jobs[job.id] = job
+
     def frame(obj) -> str:
         return f"data: {json.dumps(obj)}\n\n"
 
     job._push(frame({"type": "job", "job_id": job.id}))
 
     async def run():
+        # Inside the job's own task, so the activity is this context's current
+        # one and the persistence layer can tie the saved answer to it.
+        if activity is not None:
+            ai_activity.begin(job.id, owner, kind="ask", **activity)
+        status, error = "done", None
         try:
             async for f in frames:
                 job._push(f)
+                if f.startswith('data: {"type": "error"'):
+                    status, error = "failed", json.loads(f[len("data: "):]).get("message")
         except asyncio.CancelledError:
+            status = "cancelled"
             job._push(frame({"type": "cancelled"}))
             raise
         except Exception as e:  # the generator's own errors are already frames; this is the backstop
+            status, error = "failed", str(e)
             job._push(frame({"type": "error", "message": str(e)}))
         finally:
             job._finish()
+            ai_activity.finish(job.id, status, error)
 
     job.task = asyncio.create_task(run())
     return job

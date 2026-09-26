@@ -29,7 +29,12 @@ import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { formatDate } from "../utils/format";
 import { VARGAS, VARGA_SUGGESTIONS } from "../constants/jyotish";
-import { astrologyService, streamAskQuestion, resumeAskStream } from "../services/api";
+import {
+  astrologyService,
+  aiActivityService,
+  streamAskQuestion,
+  resumeAskStream,
+} from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
 import { exportConversationPdf } from "../utils/exportConversation";
 import { NorthIndianChart } from "../components/NorthIndianChart";
@@ -746,13 +751,42 @@ export const AskAstrologerPage = () => {
   // closed (iOS killed the tab, the reader navigated away). The whole answer is
   // replayed from the server's buffer; once done, the saved thread is reloaded
   // so what's on screen is exactly what History holds.
-  const resumePendingAsk = async () => {
-    const pending = readPendingAsk();
-    if (!pending || !selectedProfile || pending.profileId !== selectedProfile._id) return;
-    if (!pending.jobId || Date.now() - (pending.at || 0) > PENDING_ASK_MAX_AGE_MS) {
-      writePendingAsk(null);
-      return;
+  // The server's activity list is the fallback: it knows about a question asked
+  // from another device, or from this one after its storage was cleared.
+  const serverPendingAsk = async () => {
+    try {
+      const { data } = await aiActivityService.list();
+      const item = (data?.items || []).find(
+        (i) =>
+          i.kind === "ask" &&
+          i.status === "running" &&
+          i.route === "/ask-astrologer" &&
+          i.profile_id === selectedProfile?._id
+      );
+      return item
+        ? {
+            jobId: item.id,
+            profileId: item.profile_id,
+            conversationId: item.conversation_id,
+            question: item.title,
+            at: Date.parse(item.started_at) || Date.now(),
+          }
+        : null;
+    } catch (e) {
+      return null;
     }
+  };
+
+  const resumePendingAsk = async () => {
+    if (!selectedProfile) return;
+    let pending = readPendingAsk();
+    if (pending && pending.profileId !== selectedProfile._id) pending = null;
+    if (pending && (!pending.jobId || Date.now() - (pending.at || 0) > PENDING_ASK_MAX_AGE_MS)) {
+      writePendingAsk(null);
+      pending = null;
+    }
+    if (!pending) pending = await serverPendingAsk();
+    if (!pending) return;
     if (pending.conversationId) await loadConversation(pending.conversationId);
     setMessages((prev) => [
       ...prev,

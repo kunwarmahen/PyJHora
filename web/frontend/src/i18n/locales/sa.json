@@ -959,6 +959,21 @@
       "digestTaraBala": "Tara Bala is the tradition's own answer to “is today a good day *for me*”. You count from your birth star (the nakshatra the Moon was in when you were born) to the star running today; the count lands on one of nine Taras, each with a name and a verdict — Sampat (gain), Kshema (safety) and Sadhaka (accomplishment) are the strong ones; Vipat, Pratyak and Vadha are the ones to move gently through. It leads the digest because it is the one thing in your reading that genuinely changes every single day: your dasha turns over in months, a Saturn transit in years, but the Moon moves to a new star every day or so. On the fortnight and month pages the same count is applied to every day of the window, so you get the actual dates worth acting on. It sits alongside Chandra Bala, the gochara verdicts and the Sarvatobhadra chakra — four independent measures that sometimes disagree. That is normal, and the reading will tell you so rather than splitting the difference."
     }
   },
+  "activity": {
+    "title": "AI गतिविधि",
+    "historyTitle": "जारी है",
+    "pillRunning_one": "{{count}} उत्तर लिखा जा रहा है",
+    "pillRunning_other": "{{count}} उत्तर लिखे जा रहे हैं",
+    "pillReady_one": "{{count}} उत्तर तैयार",
+    "pillReady_other": "{{count}} उत्तर तैयार",
+    "writingAnswer": "उत्तर लिखा जा रहा है… {{time}}",
+    "writingReading": "रीडिंग लिखी जा रही है… {{time}}",
+    "ready": "तैयार — खोलें",
+    "stopped": "रोका गया",
+    "failed": "पूरा नहीं हुआ: {{error}}",
+    "dismiss": "हटाएँ",
+    "keepBrowsing": "आप ब्राउज़ करते रहें या फ़ोन लॉक कर दें — पूरा होने पर उत्तर इतिहास में सहेज दिया जाएगा।"
+  },
   "history": {
     "filter": {
       "digest": "Digests"

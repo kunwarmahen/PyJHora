@@ -5,6 +5,7 @@ import { ArrowLeft, HelpCircle } from "lucide-react";
 import { NavDrawer } from "./NavDrawer";
 import { AdvancedNotice } from "./AdvancedOnly";
 import { ThemeToggle } from "./ThemeToggle";
+import { AiActivityPill } from "./AiActivity";
 import { helpLinkForPath } from "../config/help";
 import "../styles/Shared.css";
 
@@ -53,6 +54,9 @@ export const PageHeader = ({
         </div>
         <div className="nav-right">
           {right}
+          {/* What the AI is writing for you, from any page — a question left
+              mid-answer is otherwise invisible until it's saved. */}
+          <AiActivityPill />
           {/* Always-present way out for someone who doesn't understand the page
               they're on. Icon-only: it must never crowd the page's own actions. */}
           <button

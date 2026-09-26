@@ -23,6 +23,7 @@ from chart_context import build_chart_context
 from llm_service import llm_service, LLMProvider
 import tools as tool_registry
 import conversations as convo
+import ai_activity
 import detached_http
 import digest_history
 import journal
@@ -71,9 +72,14 @@ async def poll_ai_job(job_id: str, current_user: str = Depends(get_current_user)
     job = detached_http.get(job_id, current_user)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    if not await detached_http.wait(job):
+    # A poll in flight is a reader watching: an answer that lands during it
+    # needs no "ready" notice (ai_activity).
+    with ai_activity.watch(job_id):
+        finished = await detached_http.wait(job)
+    if not finished:
         return JSONResponse({"status": "running"}, status_code=202,
                             headers={"Cache-Control": "no-store"})
+    ai_activity.mark_seen(job_id, current_user)  # delivered to the page that asked
     return Response(content=bytes(job.body), status_code=job.status,
                     media_type=job.content_type(), headers={"Cache-Control": "no-store"})
 
@@ -83,6 +89,24 @@ async def cancel_ai_job(job_id: str, current_user: str = Depends(get_current_use
     if not detached_http.cancel(job_id, current_user):
         raise HTTPException(status_code=404, detail="Job not found")
     return {"status": "cancelled"}
+
+
+@router.get("/api/ai/activity")
+async def ai_activity_list(current_user: str = Depends(get_current_user)):
+    """What the AI is working on for this user, across Ask and every reading:
+    running jobs, then finished ones not yet seen (each with the saved item's id
+    and page, so it can be opened)."""
+    items = ai_activity.list_for(current_user)
+    return {"items": items,
+            "running": sum(1 for i in items if i["status"] == "running"),
+            "ready": sum(1 for i in items if i["status"] != "running")}
+
+
+@router.post("/api/ai/activity/{job_id}/seen")
+async def ai_activity_seen(job_id: str, current_user: str = Depends(get_current_user)):
+    if not ai_activity.mark_seen(job_id, current_user):
+        raise HTTPException(status_code=404, detail="Not found")
+    return {"status": "ok"}
 
 
 @router.get("/api/ai/tools")

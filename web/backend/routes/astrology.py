@@ -1255,7 +1255,12 @@ async def ask_question_stream(
     # The generation runs detached (ask_jobs): a dropped connection — an idle
     # proxy while a thinking model is silent, a phone killing the tab — no longer
     # kills the answer. This response just follows the job, with heartbeats.
-    job = ask_jobs.start(current_user, event_gen())
+    job = ask_jobs.start(current_user, event_gen(), activity={
+        "title": (request.question or "").strip()[:160] or "Question",
+        "route": convo.source_meta(request.source or "astrologer")["route"],
+        "profile_id": request.profile_id,
+        "conversation_id": request.conversation_id,
+    })
     return _follow_response(job, after=0)
 
 
