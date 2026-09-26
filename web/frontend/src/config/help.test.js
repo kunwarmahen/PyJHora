@@ -171,3 +171,22 @@ describe("help search coverage", () => {
     expect(GLOSSARY.Antara).toBeUndefined();
   });
 });
+
+// Keywords make a term *findable*; these capabilities must also be *explained*
+// in an answer's own words, so the result a reader lands on actually says what
+// the thing is. Add a line when a capability ships.
+describe("help explains every capability in words", () => {
+  const prose = allHelpItemIds()
+    .map((id) => `${en.help.q[id]} ${en.help.a[id]}`)
+    .join(" ")
+    .toLowerCase();
+
+  test.each([
+    "raja yoga", "aspects", "divisional", "ashtakavarga", "longevity", "avasthas",
+    "friendship", "combust", "karakamsa", "vimsopaka", "yogini", "narayana",
+    "kalachakra", "sudarshana", "muntha", "hijri", "ashtakoot", "dashakoota",
+    "upapada", "sign labels", "ayanamsa", "mcp", "calendar",
+  ])("%s", (term) => {
+    expect(prose).toContain(term);
+  });
+});
