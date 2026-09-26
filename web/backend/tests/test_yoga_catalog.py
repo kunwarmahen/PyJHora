@@ -13,6 +13,7 @@ data is deliberately NOT kept in the repo.
 """
 import json
 import os
+import re
 import random
 import statistics
 
@@ -157,3 +158,19 @@ def test_kaahala_upstream_tripwire():
     place = drik.Place("Chennai", SYNTH["lat"], SYNTH["lon"], SYNTH["tz"])
     assert yoga.kaahala_yoga_from_jd_place(jd, place) is True
     assert "kaahala_yoga" not in _classical(SYNTH)
+
+
+def test_display_text_is_tidy():
+    """Upstream ships raw keys as names (Gaja-Kesari, Guru-Mangala), the title
+    repeated inside the description, stray "]" and BV Raman catalogue numbers."""
+    msgs = yoga.get_yoga_resources(language="en")
+    for key, (name, desc, benefits) in ((k, v[:3]) for k, v in msgs.items()):
+        n, d, _ = yoga_catalog.tidy(key, name, desc, benefits, english=True)
+        assert "_" not in n, key
+        assert d and not re.match(r"\d+\s*[-.:]\s", d), key  # "221 - …", not "5th …"
+        assert not d.startswith(("]", " ")), key
+        assert not d.lower().startswith(n.lower() + ":"), key
+    n, d, _ = yoga_catalog.tidy("gaja_kesari_yoga", *msgs["gaja_kesari_yoga"][:3], english=True)
+    assert n == "Gaja-Kesari Yoga" and d.startswith("If (1) Jupiter")
+    assert yoga_catalog.tidy("guru_mangala_yoga", *msgs["guru_mangala_yoga"][:3],
+                             english=True)[0] == "Guru-Mangala Yoga"

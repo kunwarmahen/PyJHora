@@ -662,11 +662,18 @@ class StrengthMixin:
             for key, details in results:
                 # details = [name, description, benefits]
                 t = translated.get(key)  # missing key -> English, never a blank
+                name, description, benefits = yoga_catalog.tidy(
+                    key,
+                    (t[0] if t else details[0]) if details else key,
+                    (t[1] if t else details[1]) if len(details) > 1 else "",
+                    (t[2] if t else details[2]) if len(details) > 2 else "",
+                    english=not t,
+                )
                 yogas.append({
                     "key": key,
-                    "name": (t[0] if t else details[0]) if details else key,
-                    "description": (t[1] if t else details[1]) if len(details) > 1 else "",
-                    "benefits": (t[2] if t else details[2]) if len(details) > 2 else "",
+                    "name": name,
+                    "description": description,
+                    "benefits": benefits,
                     "tier": yoga_catalog.tier_of(key),
                     "nature": yoga_catalog.nature_of(key),
                 })

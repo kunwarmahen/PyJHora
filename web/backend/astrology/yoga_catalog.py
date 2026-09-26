@@ -22,6 +22,8 @@ So each yoga now carries:
 
 Detection is language-independent (English keys) — see get_yogas.
 """
+import re as _re
+
 from .engine import yoga, charts, house, utils, const, drik
 
 # ── Catalogue shape ────────────────────────────────────────────────────────
@@ -135,6 +137,48 @@ DESCRIPTION_FIXES_EN = {
     "hamsa_yoga": "Jupiter is in a quadrant (1st, 4th, 7th or 10th) in Sagittarius, "
                   "Pisces or Cancer — his own or exaltation sign.",
 }
+
+
+# Upstream names that are raw keys, and misspelt ones.
+NAME_FIXES_EN = {
+    "gaja_kesari_yoga": "Gaja-Kesari Yoga",
+    "guru_mangala_yoga": "Guru-Mangala Yoga",
+    "dhurmarana_yoga": "Dhurmarana Yoga",       # "Yoag"
+    "grihanasa_yoga_191": "Grihanasa Yoga",     # "Grihansa"
+    "grihanasa_yoga_192": "Grihanasa Yoga",
+}
+
+# Typos in the upstream message text (any language's text is passed through;
+# these only ever occur in the English).
+_TEXT_TYPOS = {
+    "Jupiter32": "Jupiter", "Aquariius": "Aquarius", "Sagitarius": "Sagittarius",
+    "Capricornn": "Capricorn", "identicalwith": "identical with",
+    "aspectedby": "aspected by", "navamsaoccupiedby": "navamsa occupied by",
+    "shouldbe": "should be", "4rh lord": "4th lord", "malefic 1O": "malefic 10",
+    "he l0th": "The 10th", "cojoins": "conjoins", "cojoined": "conjoined",
+    "this is yoga": "this yoga",
+}
+# "221 - ", "195. ", "BVR-16 " … — BV Raman's catalogue numbers, and a stray "]".
+_LEADING_JUNK = _re.compile(r"^[\s\]]*(?:BVR-?\s*)?(?:\d+\s*[-.:]\s*)?")
+
+
+def tidy(key: str, name: str, description: str, benefits: str, english: bool):
+    """Clean one yoga's display text (upstream message-file defects)."""
+    if english and key in NAME_FIXES_EN:
+        name = NAME_FIXES_EN[key]
+    elif "_" in name:  # a raw key standing in for a name
+        name = name.replace("_", " ").title()
+    out = []
+    for text in (description, benefits):
+        text = _LEADING_JUNK.sub("", text or "", count=1)
+        # "Gaja-Kesari Yoga: If (1) …" — the title repeated inside the text
+        for n in {name, NAME_FIXES_EN.get(key, "")} - {""}:
+            if text.lower().startswith(n.lower() + ":"):
+                text = text[len(n) + 1:].lstrip()
+        for bad, good in _TEXT_TYPOS.items():
+            text = text.replace(bad, good)
+        out.append(text[:1].upper() + text[1:])
+    return name, out[0], out[1]
 
 
 # ── Benefic / malefic for yoga rules ───────────────────────────────────────
