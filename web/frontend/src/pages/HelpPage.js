@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, HelpCircle, Search, Sparkles, X } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
-import { filterHelp } from "../config/help";
+import { filterGlossary, filterHelp } from "../config/help";
 import { GLOSSARY } from "../constants/glossary";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
@@ -29,6 +29,8 @@ export const HelpPage = () => {
   // Searching on the rendered text, not our ids, so results match what's read.
   const searchText = useMemo(() => (id) => `${t(`help.q.${id}`)} ${t(`help.a.${id}`)}`, [t]);
   const sections = useMemo(() => filterHelp(query, searchText), [query, searchText]);
+  // The glossary is searched too — many terms are defined only there.
+  const glossary = useMemo(() => filterGlossary(query, GLOSSARY), [query]);
 
   // Deep link: /help#aiModes opens that answer and scrolls to it.
   useEffect(() => {
@@ -96,7 +98,7 @@ export const HelpPage = () => {
             </button>
           </div>
 
-          {sections.length === 0 && <p className="help-empty">{t("help.noResults", { query })}</p>}
+          {sections.length === 0 && glossary.length === 0 && <p className="help-empty">{t("help.noResults", { query })}</p>}
 
           {sections.map((section) => (
             <section key={section.id} className="help-section" id={`section-${section.id}`}>
@@ -139,13 +141,13 @@ export const HelpPage = () => {
           ))}
 
           {/* Glossary — rendered from the same table the hover definitions use, so
-            the two can never drift apart. */}
-          {!query && (
+            the two can never drift apart. Filtered by the search like the FAQ. */}
+          {glossary.length > 0 && (
             <section className="help-section" id="section-glossary">
               <h2 className="help-section__title">{t("help.glossary.title")}</h2>
               <p className="help-section__blurb">{t("help.glossary.blurb")}</p>
               <dl className="help-glossary">
-                {Object.entries(GLOSSARY).map(([term, def]) => (
+                {glossary.map(([term, def]) => (
                   <div className="help-glossary__row" key={term}>
                     <dt>{term}</dt>
                     <dd>{def}</dd>

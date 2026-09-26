@@ -1,7 +1,9 @@
+import { GLOSSARY } from "../constants/glossary";
 import {
   HELP_SECTIONS,
   allHelpItemIds,
   filterHelp,
+  filterGlossary,
   helpAnchorForPath,
   helpLinkForPath,
 } from "./help";
@@ -130,5 +132,42 @@ describe("contextual help links", () => {
     expect(helpLinkForPath("/nope")).toBe("/help");
     expect(helpLinkForPath("")).toBe("/help");
     expect(helpLinkForPath(undefined)).toBe("/help");
+  });
+});
+
+// The FAQ search once missed "raja yoga", "d10", "ashtakavarga", "ayanamsa" and
+// ~30 more, and hid the glossary while searching. Every term here must reach an
+// answer or a glossary definition. Add a term whenever someone reports a miss.
+describe("help search coverage", () => {
+  const text = (id) => `${en.help.q[id]} ${en.help.a[id]}`;
+
+  test.each([
+    "yoga", "raja yoga", "gajakesari", "kaal sarp", "manglik", "drishti",
+    "divisional", "d10", "dasamsa", "ashtakavarga", "sarvashtakavarga", "longevity",
+    "avastha", "combust", "friendship", "atmakaraka", "karakamsa", "7th house",
+    "vimsopaka", "kp horary", "sub lord", "mandi", "sudarshana", "kaala chakra",
+    "yogini", "narayana", "vimshottari", "antardasha", "muntha", "ayanamsa",
+    "lahiri", "jagannatha", "api token", "mcp", "calendar", "dark mode", "hindi",
+    "export", "pratyantar",
+  ])("finds %s", (term) => {
+    const faq = filterHelp(term, text).flatMap((s) => s.items);
+    const glossary = filterGlossary(term, GLOSSARY);
+    expect(faq.length + glossary.length).toBeGreaterThan(0);
+  });
+
+  test("matches every word in any order", () => {
+    const ids = (q) => filterHelp(q, text).flatMap((s) => s.items.map((i) => i.id));
+    expect(ids("raja yoga")).toContain("yogaAndDosha");
+    expect(ids("yoga raja")).toContain("yogaAndDosha");
+  });
+
+  test("filters the glossary and returns all of it for an empty query", () => {
+    expect(filterGlossary("", GLOSSARY)).toHaveLength(Object.keys(GLOSSARY).length);
+    expect(filterGlossary("ashtakavarga", GLOSSARY).map(([t]) => t)).toContain("Ashtakavarga");
+  });
+
+  test("the glossary never calls the 3rd dasha level 'Antara'", () => {
+    // Level 2 is the Antardasha/Bhukti; level 3 is the Pratyantardasha.
+    expect(GLOSSARY.Antara).toBeUndefined();
   });
 });

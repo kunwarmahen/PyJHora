@@ -12,8 +12,8 @@ export const GLOSSARY = {
   Dasha:
     "A planetary period that times when results unfold. Vimsottari is the most common 120-year system.",
   Bhukti: "A sub-period (Antardasha) within a Maha Dasha.",
-  Antara: "A sub-sub-period (Pratyantar) within a Bhukti.",
-  Sookshma: "A fine sub-period within an Antara.",
+  Pratyantar: "A sub-sub-period (Pratyantardasha, the 3rd level) within a Bhukti.",
+  Sookshma: "A fine sub-period (the 4th level) within a Pratyantar.",
   Vimsottari: "The principal 120-year nakshatra-based dasha system.",
   Ashtottari: "A conditional 108-year nakshatra dasha system.",
   Yogini: "A 36-year nakshatra dasha of the eight Yoginis.",

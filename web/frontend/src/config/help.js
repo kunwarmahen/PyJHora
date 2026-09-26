@@ -13,7 +13,12 @@
  * every term that must appear is explained where it appears.
  */
 
-/** Questions grouped by area. `to` turns an answer into a "take me there" link. */
+/**
+ * Questions grouped by area. `to` turns an answer into a "take me there" link.
+ * `keywords` are extra English search terms the answer doesn't say itself —
+ * spellings (vimshottari/vimsottari) and the specific names a reader types
+ * (gajakesari, d10) — so the search finds the answer that covers them.
+ */
 export const HELP_SECTIONS = [
   {
     id: "start",
@@ -25,6 +30,11 @@ export const HELP_SECTIONS = [
       { id: "whereToStart", to: "/birth-chart" },
       { id: "dashboardLayout", to: "/dashboard" },
       { id: "essentialsVsEverything", to: "/settings" },
+      {
+        id: "languageAndTheme",
+        to: "/settings",
+        keywords: "language hindi sanskrit english translate dark mode light mode night theme",
+      },
       // No `to`: offline is how the whole app behaves, not somewhere to go.
       { id: "offline" },
       { id: "accessibility" },
@@ -39,11 +49,37 @@ export const HELP_SECTIONS = [
       { id: "whatIsHouse" },
       { id: "whatIsSign" },
       { id: "rasiVsNavamsa" },
+      {
+        id: "whatIsVarga",
+        to: "/birth-chart?tab=advanced",
+        keywords:
+          "divisional varga vargas shodasavarga d2 d3 d4 d7 d10 d12 d16 d20 d24 d27 d30 d40 d45 d60" +
+          " hora drekkana saptamsa dasamsa dashamsa dwadasamsa trimsamsa shashtyamsa",
+      },
       { id: "whatIsNakshatra", to: "/nakshatra" },
-      { id: "yogaAndDosha" },
+      {
+        id: "yogaAndDosha",
+        to: "/birth-chart?tab=yogas",
+        keywords:
+          "raja yoga rajayoga dhana yoga gajakesari pancha mahapurusha budhaditya neechabhanga viparita" +
+          " kaal sarp kala sarpa kalasarpa mangal manglik kuja pitru guru chandal combinations",
+      },
       { id: "whatIsArudha", to: "/transit" },
       { id: "retrograde" },
-      { id: "conditionalDashas", to: "/dhasa" },
+      {
+        id: "whatIsAyanamsa",
+        to: "/settings",
+        keywords:
+          "ayanamsa ayanamsha lahiri true chitra citra raman krishnamurti sidereal tropical" +
+          " jagannatha hora jhora mean nodes true nodes rahu ketu different results",
+      },
+      {
+        id: "conditionalDashas",
+        to: "/dhasa",
+        keywords:
+          "yogini narayana kalachakra kaalachakra sudarshana sudarsana chara sthira drig trikona sudasa" +
+          " shodasottari dwadasottari panchottari shatabdika shashtihayani dwisatpathi",
+      },
       { id: "whatIsKaalaVela", to: "/muhurta" },
       { id: "personalMuhurta", to: "/muhurta" },
       { id: "whatIsLagnaShuddhi", to: "/muhurta" },
@@ -52,19 +88,40 @@ export const HELP_SECTIONS = [
   {
     id: "features",
     items: [
-      { id: "featBirthChart", to: "/birth-chart" },
+      {
+        id: "featBirthChart",
+        to: "/birth-chart",
+        keywords: "kundali horoscope rasi d1 aspects aspect drishti graha drishti tabs",
+      },
       { id: "featToday", to: "/daily-digest" },
-      { id: "featDasha", to: "/dhasa" },
+      {
+        id: "featDasha",
+        to: "/dhasa",
+        keywords: "vimshottari vimsottari mahadasha antardasha bhukti pratyantardasha pratyantar sookshma",
+      },
       { id: "featTransit", to: "/transit" },
-      { id: "featCompatibility", to: "/compatibility" },
+      {
+        id: "featCompatibility",
+        to: "/compatibility",
+        keywords:
+          "marriage match guna milan ashtakoot dashakoota porutham mangal dosha manglik kuja 7th seventh house",
+      },
       { id: "featLifeReport", to: "/life-report" },
       { id: "featRemedies", to: "/remedies" },
-      { id: "featVarshaphal", to: "/varshaphal" },
+      {
+        id: "featVarshaphal",
+        to: "/varshaphal",
+        keywords: "muntha tajaka solar return year lord varsha annual",
+      },
       { id: "featAlmanac", to: "/almanac" },
       { id: "featMuhurta", to: "/muhurta" },
       { id: "featPrashna", to: "/prashna" },
       { id: "featSensitivePoints", to: "/sensitive-points" },
-      { id: "featSpecialPoints", to: "/sensitive-points?tab=special" },
+      {
+        id: "featSpecialPoints",
+        to: "/sensitive-points?tab=special",
+        keywords: "mandi maandi gulika upagraha indu lagna hora lagna ghati lagna",
+      },
       { id: "featVedicClock", to: "/vedic-clock" },
       { id: "featRectify", to: "/rectify" },
       { id: "featLearn", to: "/learn" },
@@ -74,24 +131,42 @@ export const HELP_SECTIONS = [
       // one, which is what keeps this tour complete.
       { id: "featNow", to: "/now" },
       { id: "featTimeline", to: "/timeline" },
-      { id: "featStrength", to: "/strength" },
+      {
+        id: "featStrength",
+        to: "/strength",
+        keywords: "vimsopaka vimshopaka shadbala bhava bala ishta kashta",
+      },
       { id: "featSadeSati", to: "/sade-sati" },
       { id: "featCompare", to: "/compare" },
       { id: "featGochara", to: "/gochara" },
       { id: "featNakshatraGochara", to: "/transit" },
       { id: "featBhava", to: "/bhava" },
       { id: "featEphemeris", to: "/ephemeris" },
-      { id: "featReport", to: "/report" },
+      { id: "featReport", to: "/report", keywords: "export download save pdf print" },
       { id: "featFortnightly", to: "/fortnightly-digest" },
       { id: "featMonthly", to: "/monthly-digest" },
       { id: "featTithiPravesha", to: "/tithi-pravesha" },
       { id: "featBhrigu", to: "/bhrigu-markers" },
       { id: "featNadi", to: "/nadi" },
       { id: "featPanchaPakshi", to: "/pancha-pakshi" },
-      { id: "featChakras", to: "/chakras" },
-      { id: "featKp", to: "/kp" },
-      { id: "featJaimini", to: "/jaimini" },
-      { id: "featAdvanced", to: "/advanced" },
+      { id: "featChakras", to: "/chakras", keywords: "kaala chakra kala chakra kota tripataki vedha" },
+      {
+        id: "featKp",
+        to: "/kp",
+        keywords: "krishnamurti sub lord significator ruling planets horary 249",
+      },
+      {
+        id: "featJaimini",
+        to: "/jaimini",
+        keywords: "chara karaka atmakaraka amatyakaraka darakaraka karakamsa swamsa",
+      },
+      {
+        id: "featAdvanced",
+        to: "/advanced",
+        keywords:
+          "deep dive ashtakavarga sarvashtakavarga bhinnashtakavarga bindu bindus longevity ayu ayurdaya" +
+          " avastha avasthas planetary conditions combust combustion friendship friendships maitri",
+      },
     ],
   },
   {
@@ -133,6 +208,16 @@ export const HELP_SECTIONS = [
       { id: "privKeys", to: "/settings" },
       { id: "privEmails", to: "/settings" },
       { id: "privDelete", to: "/settings" },
+      {
+        id: "calendarFeed",
+        to: "/settings",
+        keywords: "calendar feed subscribe ical ics google calendar apple outlook",
+      },
+      {
+        id: "apiAccess",
+        to: "/settings",
+        keywords: "api token tokens mcp claude desktop script developer programmatic",
+      },
     ],
   },
 ];
@@ -176,20 +261,39 @@ export const helpLinkForPath = (pathname) => {
   return anchor ? `/help#${anchor}` : "/help";
 };
 
+/** Split a query into lower-case words; every word must match somewhere. */
+const queryTokens = (query) => (query || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+
 /**
  * Filter the outline by a search string.
  *
  * `text(id)` resolves an id to its question + answer, so matching happens on
- * what the reader actually sees rather than on our internal ids. Sections with
- * no surviving items drop out entirely.
+ * what the reader actually sees rather than on our internal ids, plus the
+ * item's `keywords`. Each word of the query must appear, in any order ("raja
+ * yoga" and "yoga raja" both work). Sections with no surviving items drop out
+ * entirely.
  */
 export const filterHelp = (query, text, sections = HELP_SECTIONS) => {
-  const q = (query || "").trim().toLowerCase();
-  if (!q) return sections;
+  const tokens = queryTokens(query);
+  if (!tokens.length) return sections;
   return sections
     .map((s) => ({
       ...s,
-      items: s.items.filter((i) => (text(i.id) || "").toLowerCase().includes(q)),
+      items: s.items.filter((i) => {
+        const hay = `${text(i.id) || ""} ${i.keywords || ""}`.toLowerCase();
+        return tokens.every((tok) => hay.includes(tok));
+      }),
     }))
     .filter((s) => s.items.length > 0);
+};
+
+/** Glossary entries ([term, definition]) matching the query, same word rules. */
+export const filterGlossary = (query, glossary) => {
+  const entries = Object.entries(glossary);
+  const tokens = queryTokens(query);
+  if (!tokens.length) return entries;
+  return entries.filter(([term, def]) => {
+    const hay = `${term} ${def}`.toLowerCase();
+    return tokens.every((tok) => hay.includes(tok));
+  });
 };
