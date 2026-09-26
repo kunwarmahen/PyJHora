@@ -21,6 +21,7 @@ from auth import create_access_token, decode_token, get_password_hash, verify_pa
 from database import User, BirthDetails, ChartData
 from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, SUPPORTED_VARGAS, SUPPORTED_DASHAS
 from chart_context import build_chart_context
+import ask_jobs
 import claim_check
 import claim_reports
 from llm_service import llm_service, LLMProvider
@@ -1251,12 +1252,43 @@ async def ask_question_stream(
             print(f"Failed to persist conversation: {e}")
         yield f"data: {json.dumps({'type': 'done', 'conversation_id': conv_id, 'elapsed_ms': elapsed_ms, 'usage': usage})}\n\n"
 
-    return StreamingResponse(
-        event_gen(),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no",
-                 "Connection": "keep-alive"},
-    )
+    # The generation runs detached (ask_jobs): a dropped connection — an idle
+    # proxy while a thinking model is silent, a phone killing the tab — no longer
+    # kills the answer. This response just follows the job, with heartbeats.
+    job = ask_jobs.start(current_user, event_gen())
+    return _follow_response(job, after=0)
+
+
+_SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no",
+                "Connection": "keep-alive"}
+
+
+def _follow_response(job, after: int) -> StreamingResponse:
+    return StreamingResponse(job.follow(after), media_type="text/event-stream",
+                             headers=_SSE_HEADERS)
+
+
+@router.get("/api/astrology/ask/jobs/{job_id}")
+async def resume_ask_job(
+    job_id: str,
+    after: int = 0,
+    current_user: str = Depends(get_current_user),
+):
+    """Re-attach to an Ask generation: replays frames after seq `after`, then
+    follows live. 404 once the job is gone (finished long ago, or the server
+    restarted) — the saved conversation is the answer then."""
+    job = ask_jobs.get(job_id, current_user)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return _follow_response(job, after)
+
+
+@router.delete("/api/astrology/ask/jobs/{job_id}")
+async def cancel_ask_job(job_id: str, current_user: str = Depends(get_current_user)):
+    """Stop button: closing the stream no longer stops the model, so say it."""
+    if not ask_jobs.cancel(job_id, current_user):
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {"status": "cancelled"}
 
 
 @router.post("/api/astrology/predict")

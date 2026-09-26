@@ -6,7 +6,7 @@ decorator changed from @app.* to @router.*.
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import StreamingResponse, Response
+from fastapi.responses import StreamingResponse, Response, JSONResponse
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any
@@ -23,6 +23,7 @@ from chart_context import build_chart_context
 from llm_service import llm_service, LLMProvider
 import tools as tool_registry
 import conversations as convo
+import detached_http
 import digest_history
 import journal
 import outcomes as outcome_store
@@ -61,6 +62,27 @@ async def list_llm_providers(current_user: str = Depends(get_current_user)):
         return {"providers": providers}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/api/ai/jobs/{job_id}")
+async def poll_ai_job(job_id: str, current_user: str = Depends(get_current_user)):
+    """Long-poll a detached AI request (detached_http.py): waits up to 25 s, then
+    either 202 {"status": "running"} or the original handler's response verbatim."""
+    job = detached_http.get(job_id, current_user)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if not await detached_http.wait(job):
+        return JSONResponse({"status": "running"}, status_code=202,
+                            headers={"Cache-Control": "no-store"})
+    return Response(content=bytes(job.body), status_code=job.status,
+                    media_type=job.content_type(), headers={"Cache-Control": "no-store"})
+
+
+@router.delete("/api/ai/jobs/{job_id}")
+async def cancel_ai_job(job_id: str, current_user: str = Depends(get_current_user)):
+    if not detached_http.cancel(job_id, current_user):
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {"status": "cancelled"}
 
 
 @router.get("/api/ai/tools")

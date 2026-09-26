@@ -29,7 +29,7 @@ import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { formatDate } from "../utils/format";
 import { VARGAS, VARGA_SUGGESTIONS } from "../constants/jyotish";
-import { astrologyService, streamAskQuestion } from "../services/api";
+import { astrologyService, streamAskQuestion, resumeAskStream } from "../services/api";
 import { useRestoreReading } from "../hooks/useRestoreReading";
 import { exportConversationPdf } from "../utils/exportConversation";
 import { NorthIndianChart } from "../components/NorthIndianChart";
@@ -42,6 +42,50 @@ import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Chat.css";
 import { returnHere } from "../utils/returnTo";
+
+// The answer being generated, remembered across page loads: the server finishes
+// it whether or not anyone is watching (backend/ask_jobs.py), so when iOS kills
+// the tab — or the reader just navigates away — reopening this page picks the
+// answer back up instead of losing it.
+const PENDING_ASK_KEY = "ask_pending_job";
+const PENDING_ASK_MAX_AGE_MS = 6 * 60 * 60 * 1000; // the server keeps jobs no longer
+const readPendingAsk = () => {
+  try {
+    return JSON.parse(localStorage.getItem(PENDING_ASK_KEY) || "null");
+  } catch (e) {
+    return null;
+  }
+};
+const writePendingAsk = (value) => {
+  try {
+    if (value) localStorage.setItem(PENDING_ASK_KEY, JSON.stringify(value));
+    else localStorage.removeItem(PENDING_ASK_KEY);
+  } catch (e) {
+    /* storage blocked: the answer still streams, it just can't be resumed after a reload */
+  }
+};
+
+// A ticking clock beside "Consulting the chart…". A local thinking model can be
+// silent for minutes before its first word; without this that looks exactly
+// like a hung page.
+const SLOW_HINT_AFTER_S = 45;
+const ThinkingClock = ({ since, t }) => {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const secs = Math.max(0, Math.floor((now - since) / 1000));
+  return (
+    <>
+      {" "}
+      <span className="thinking-clock">
+        {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}
+      </span>
+      {secs >= SLOW_HINT_AFTER_S && <div className="thinking-hint">{t("ask.slowModelHint")}</div>}
+    </>
+  );
+};
 
 // Toggleable context sections (must mirror the backend's DEFAULT_SECTIONS). In
 // "Full context" mode each is On (seeded) or Off; in "Smart lookup" mode each is
@@ -500,7 +544,7 @@ export const AskAstrologerPage = () => {
     }
 
     // Auto-calculate chart + load saved conversations on mount
-    calculateChart();
+    calculateChart().then(resumePendingAsk);
     refreshConversations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProfile, navigate]);
@@ -598,67 +642,149 @@ export const AskAstrologerPage = () => {
         regenerate,
       },
       {
-        onMeta: (m) => {
-          if (m.context) setLastContext(m.context);
-          updateLastAi((msg) => ({
-            ...msg,
-            provider: m.provider || msg.provider,
-            model: m.model || msg.model,
-            mode: m.mode || msg.mode,
-            context: m.context || msg.context,
-            vargas: m.vargas || msg.vargas,
-            sections: m.sections || msg.sections,
-          }));
-        },
-        onToken: (t) => updateLastAi((msg) => ({ ...msg, content: msg.content + t })),
-        onToolCall: (e) =>
-          updateLastAi((msg) => ({
-            ...msg,
-            toolSteps: [...(msg.toolSteps || []), { name: e.name, args: e.args, ok: null }],
-          })),
-        onToolResult: (e) =>
-          updateLastAi((msg) => {
-            const steps = [...(msg.toolSteps || [])];
-            for (let i = steps.length - 1; i >= 0; i--) {
-              if (steps[i].name === e.name && steps[i].ok === null) {
-                steps[i] = { ...steps[i], ok: e.ok, result: e.result };
-                break;
-              }
-            }
-            return { ...msg, toolSteps: steps };
+        ...streamCallbacks(question),
+        onJob: (jobId) =>
+          writePendingAsk({
+            jobId,
+            profileId: selectedProfile._id,
+            conversationId: conversationIdRef.current,
+            question,
+            at: Date.now(),
           }),
-        onNotice: (e) =>
-          updateLastAi((msg) => ({
-            ...msg,
-            toolSteps: [...(msg.toolSteps || []), { notice: e.text }],
-          })),
-        onDone: (d) => {
-          if (d.conversation_id) setConversationId(d.conversation_id);
-          updateLastAi((msg) => ({
-            ...msg,
-            streaming: false,
-            elapsed_ms: d.elapsed_ms ?? msg.elapsed_ms,
-            usage: d.usage || msg.usage,
-            question, // remember the prompt so Regenerate can replay it
-          }));
-          setLoading(false);
-          abortRef.current = null;
-          refreshConversations();
-        },
-        onError: (e) => {
-          updateLastAi((msg) => ({
-            ...msg,
-            streaming: false,
-            error: !msg.content,
-            content: msg.content || `Error: ${e.message}`,
-          }));
-          setError(e.message || t("ask.errAnswer"));
-          setLoading(false);
-          abortRef.current = null;
-        },
       }
     );
   };
+
+  // What to do with each streamed event — shared by a fresh question, a
+  // Regenerate, and re-attaching to an answer after the page was reloaded.
+  const streamCallbacks = (question) => ({
+    onMeta: (m) => {
+      if (m.context) setLastContext(m.context);
+      updateLastAi((msg) => ({
+        ...msg,
+        provider: m.provider || msg.provider,
+        model: m.model || msg.model,
+        mode: m.mode || msg.mode,
+        context: m.context || msg.context,
+        vargas: m.vargas || msg.vargas,
+        sections: m.sections || msg.sections,
+      }));
+    },
+    onToken: (t) => updateLastAi((msg) => ({ ...msg, content: msg.content + t })),
+    onToolCall: (e) =>
+      updateLastAi((msg) => ({
+        ...msg,
+        toolSteps: [...(msg.toolSteps || []), { name: e.name, args: e.args, ok: null }],
+      })),
+    onToolResult: (e) =>
+      updateLastAi((msg) => {
+        const steps = [...(msg.toolSteps || [])];
+        for (let i = steps.length - 1; i >= 0; i--) {
+          if (steps[i].name === e.name && steps[i].ok === null) {
+            steps[i] = { ...steps[i], ok: e.ok, result: e.result };
+            break;
+          }
+        }
+        return { ...msg, toolSteps: steps };
+      }),
+    onNotice: (e) =>
+      updateLastAi((msg) => ({
+        ...msg,
+        toolSteps: [...(msg.toolSteps || []), { notice: e.text }],
+      })),
+    onReconnecting: () => updateLastAi((msg) => ({ ...msg, reconnecting: true })),
+    onReconnected: () => updateLastAi((msg) => ({ ...msg, reconnecting: false })),
+    onGone: () => {
+      // The server no longer has the job (restarted, or it finished long
+      // ago). If it finished, the turn was saved — the thread has it.
+      writePendingAsk(null);
+      abortRef.current = null;
+      setLoading(false);
+      const convId = conversationIdRef.current || readPendingAsk()?.conversationId;
+      if (convId) loadConversation(convId);
+      else {
+        updateLastAi((msg) => ({
+          ...msg,
+          streaming: false,
+          reconnecting: false,
+          error: true,
+          content: msg.content || t("ask.jobGone"),
+        }));
+        refreshConversations();
+      }
+    },
+    onDone: (d) => {
+      writePendingAsk(null);
+      if (d.conversation_id) setConversationId(d.conversation_id);
+      updateLastAi((msg) => ({
+        ...msg,
+        streaming: false,
+        elapsed_ms: d.elapsed_ms ?? msg.elapsed_ms,
+        usage: d.usage || msg.usage,
+        question, // remember the prompt so Regenerate can replay it
+      }));
+      setLoading(false);
+      abortRef.current = null;
+      refreshConversations();
+    },
+    onError: (e) => {
+      writePendingAsk(null);
+      updateLastAi((msg) => ({
+        ...msg,
+        streaming: false,
+        reconnecting: false,
+        error: !msg.content,
+        content: msg.content || `Error: ${e.message}`,
+      }));
+      setError(e.message || t("ask.errAnswer"));
+      setLoading(false);
+      abortRef.current = null;
+    },
+  });
+
+  // Pick up an answer that was still being written when this page was last
+  // closed (iOS killed the tab, the reader navigated away). The whole answer is
+  // replayed from the server's buffer; once done, the saved thread is reloaded
+  // so what's on screen is exactly what History holds.
+  const resumePendingAsk = async () => {
+    const pending = readPendingAsk();
+    if (!pending || !selectedProfile || pending.profileId !== selectedProfile._id) return;
+    if (!pending.jobId || Date.now() - (pending.at || 0) > PENDING_ASK_MAX_AGE_MS) {
+      writePendingAsk(null);
+      return;
+    }
+    if (pending.conversationId) await loadConversation(pending.conversationId);
+    setMessages((prev) => [
+      ...prev,
+      { type: "user", content: pending.question },
+      {
+        type: "ai",
+        content: "",
+        streaming: true,
+        question: pending.question,
+        startedAt: pending.at,
+        timestamp: new Date().toLocaleTimeString(),
+      },
+    ]);
+    setLoading(true);
+    const base = streamCallbacks(pending.question);
+    abortRef.current = resumeAskStream(pending.jobId, {
+      ...base,
+      onDone: (d) => {
+        base.onDone(d);
+        if (d.conversation_id) loadConversation(d.conversation_id);
+      },
+    });
+  };
+
+  // Leaving the page only detaches: the job keeps going server-side and is
+  // picked up again by resumePendingAsk on the way back.
+  useEffect(
+    () => () => {
+      if (abortRef.current) abortRef.current();
+    },
+    []
+  );
 
   const handleAskQuestion = (question) => {
     if (!question.trim() || !selectedProfile || loading) return;
@@ -671,6 +797,7 @@ export const AskAstrologerPage = () => {
         type: "ai",
         content: "",
         streaming: true,
+        startedAt: Date.now(),
         provider: providerType,
         model,
         question,
@@ -731,6 +858,8 @@ export const AskAstrologerPage = () => {
       ...msg,
       content: "",
       streaming: true,
+      startedAt: Date.now(),
+      reconnecting: false,
       error: false,
       elapsed_ms: undefined,
       usage: undefined,
@@ -743,13 +872,15 @@ export const AskAstrologerPage = () => {
     runStream(question, { regenerate: true, override });
   };
 
-  // Stop an in-flight generation (aborts the SSE fetch).
+  // Stop an in-flight generation: close the stream AND stop the model on the
+  // server — closing alone no longer stops it (the job outlives connections).
   const handleStop = () => {
     if (abortRef.current) {
-      abortRef.current();
+      abortRef.current({ cancelJob: true });
       abortRef.current = null;
     }
-    updateLastAi((msg) => ({ ...msg, streaming: false }));
+    writePendingAsk(null);
+    updateLastAi((msg) => ({ ...msg, streaming: false, reconnecting: false }));
     setLoading(false);
   };
 
@@ -1544,13 +1675,21 @@ export const AskAstrologerPage = () => {
                             <span></span>
                             <span></span>
                           </div>
-                          {t("ask.consulting")}
+                          {message.reconnecting ? t("ask.reconnecting") : t("ask.consulting")}
+                          {message.startedAt && !message.reconnecting && (
+                            <ThinkingClock since={message.startedAt} t={t} />
+                          )}
                         </div>
                       ) : (
-                        <StreamingMarkdown
-                          content={message.content}
-                          streaming={message.streaming}
-                        />
+                        <>
+                          <StreamingMarkdown
+                            content={message.content}
+                            streaming={message.streaming}
+                          />
+                          {message.streaming && message.reconnecting && (
+                            <div className="thinking-hint">{t("ask.reconnecting")}</div>
+                          )}
+                        </>
                       )
                     ) : (
                       message.content

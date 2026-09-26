@@ -159,6 +159,140 @@ const cacheOwner = () => {
   }
 };
 
+// --- Detached AI requests ----------------------------------------------------
+// Every "AI reading" call (the *-analysis panels, predict, quiz, rectification…)
+// asks the server to run it detached (backend/detached_http.py): the POST comes
+// straight back 202 {detached_job}, and we long-poll /api/ai/jobs/{id} (≤25 s a
+// poll) until the handler's own response is ready — which we then hand to the
+// caller as if the POST had returned it. No single connection lasts long enough
+// for Cloudflare's ~100 s cut, a network blip just means another poll, and a job
+// id kept in localStorage lets an identical request made after iOS killed the
+// tab pick up the same reading instead of starting over. Callers don't change.
+const DETACHABLE_AI =
+  /^\/api\/astrology\/([a-z0-9-]+-analysis|predict|ask|quiz\/generate|quiz\/grade|rectify-birth-time\/(chat|explain|events\/explain)|life-report\/chapter)$/;
+const AI_PENDING_KEY = "ai_pending_jobs";
+const AI_PENDING_MAX_AGE_MS = 6 * 60 * 60 * 1000; // the server keeps jobs no longer
+const AI_POLL_RETRY_DELAYS = [1000, 2000, 4000, 8000, 15000, 15000, 30000, 30000];
+
+const aiPath = (url = "") => {
+  const path = url.split("?")[0];
+  return path.startsWith(API_URL) ? path.slice(API_URL.length) : path;
+};
+
+// A short, stable fingerprint of the request (method, path, params, body).
+const aiRequestKey = (config) => {
+  const str = offlineCache.cacheKey({ ...config, url: aiPath(config.url) }, cacheOwner());
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const c = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761);
+    h2 = Math.imul(h2 ^ c, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+};
+
+const readAiPending = () => {
+  try {
+    const all = JSON.parse(localStorage.getItem(AI_PENDING_KEY) || "{}");
+    const now = Date.now();
+    return Object.fromEntries(
+      Object.entries(all).filter(([, v]) => v && now - v.at < AI_PENDING_MAX_AGE_MS)
+    );
+  } catch (e) {
+    return {};
+  }
+};
+const writeAiPending = (key, jobId) => {
+  try {
+    const all = readAiPending();
+    if (jobId) all[key] = { jobId, at: Date.now() };
+    else delete all[key];
+    localStorage.setItem(AI_PENDING_KEY, JSON.stringify(all));
+  } catch (e) {
+    /* storage blocked: the reading still arrives, it just can't survive a reload */
+  }
+};
+
+const settleAs = (resp, config) => {
+  const final = {
+    data: resp.data,
+    status: resp.status,
+    statusText: resp.statusText,
+    headers: resp.headers,
+    config,
+    request: resp.request,
+  };
+  if (final.status >= 200 && final.status < 300) return final;
+  const err = new Error(`Request failed with status code ${final.status}`);
+  err.name = "AxiosError";
+  err.isAxiosError = true;
+  err.config = config;
+  err.response = final;
+  throw err;
+};
+
+// Poll a detached job to its end and return what the original POST would have.
+const followAiJob = async (jobId, config, key) => {
+  const signal = config.signal || new AbortController().signal;
+  let attempt = 0;
+  while (true) {
+    let resp;
+    try {
+      resp = await api.get(`/api/ai/jobs/${encodeURIComponent(jobId)}`, {
+        timeout: 60000,
+        signal: config.signal,
+        // Hand the handler's own errors back verbatim; only a 401 goes through
+        // the refresh interceptor (a phone back after an hour has a stale token).
+        validateStatus: (s) => s !== 401,
+      });
+    } catch (err) {
+      if (err.response || signal.aborted || axios.isCancel(err)) throw err;
+      // No response: the network dropped. Wait it out — the job keeps running.
+      if (attempt >= AI_POLL_RETRY_DELAYS.length) throw err;
+      await sleep(AI_POLL_RETRY_DELAYS[attempt++], signal);
+      await untilReachable(signal);
+      continue;
+    }
+    attempt = 0;
+    if (resp.status === 202 && resp.data?.status === "running") continue;
+    if (key) writeAiPending(key, null);
+    if (resp.status === 404 && resp.data?.detail === "Job not found") {
+      // Gone (server restarted, or finished hours ago): ask again, for real.
+      // eslint-disable-next-line no-unused-vars
+      const { adapter, _aiKey, ...fresh } = config;
+      return api.request({ ...fresh, _aiResumeFailed: true });
+    }
+    return settleAs(resp, config);
+  }
+};
+
+api.interceptors.request.use((config) => {
+  if ((config.method || "").toLowerCase() !== "post" || !DETACHABLE_AI.test(aiPath(config.url))) {
+    return config;
+  }
+  config.headers = config.headers || {};
+  if (typeof config.headers.set === "function") config.headers.set("X-Detach", "1");
+  else config.headers["X-Detach"] = "1";
+  const key = aiRequestKey(config);
+  config._aiKey = key;
+  const pending = !config._aiResumeFailed && readAiPending()[key];
+  // The same reading was already asked for and never collected (the tab was
+  // killed mid-wait): collect it instead of asking the model all over again.
+  if (pending) config.adapter = (cfg) => followAiJob(pending.jobId, cfg, key);
+  return config;
+});
+
+api.interceptors.response.use((response) => {
+  const jobId = response.status === 202 && response.data?.detached_job;
+  if (!jobId) return response;
+  const key = response.config?._aiKey;
+  if (key) writeAiPending(key, jobId);
+  return followAiJob(jobId, response.config, key);
+});
+
 api.interceptors.response.use((response) => {
   const config = response.config || {};
   if (response.status === 200 && offlineCache.isCacheable(config.method, config.url)) {
@@ -1677,92 +1811,287 @@ export const astrologyService = {
   deleteQuiz: (sessionId) => api.delete(`/api/astrology/quiz/${sessionId}`),
 };
 
-/**
- * Stream an AI answer over SSE (fetch + ReadableStream — axios can't stream in
- * the browser). Calls callbacks as events arrive. Returns a function to abort.
- *   callbacks: { onMeta, onToken, onDone, onError }
+// --- Ask streaming: a detached job the reader follows (and re-follows) -------
+// The server runs each answer as a job that outlives its connection
+// (backend/ask_jobs.py). The first frame names the job; every frame carries an
+// SSE `id:` sequence number. When the connection drops — Cloudflare cutting an
+// idle stream, iOS suspending the tab, a flaky phone network — we re-attach with
+// `after=<last seq>` and receive exactly what we missed, so nothing repeats and
+// nothing is lost. Heartbeats arrive as SSE comments, which the parser skips.
+
+// Waits between re-attach attempts. Progress resets the count; time spent with
+// the tab hidden or the device offline isn't spent on attempts at all.
+const ASK_RETRY_DELAYS = [1000, 2000, 4000, 8000, 15000, 15000, 30000, 30000];
+
+const sharedRefresh = () => {
+  if (!refreshPromise) {
+    refreshPromise = doRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+};
+
+// fetch with the bearer token and one silent refresh on 401 — a phone that
+// comes back to a job after an hour will usually hold an expired access token.
+const authedFetch = async (url, init = {}) => {
+  const go = () =>
+    fetch(url, {
+      ...init,
+      headers: {
+        ...(init.headers || {}),
+        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+      },
+    });
+  const resp = await go();
+  if (resp.status !== 401) return resp;
+  try {
+    await sharedRefresh();
+  } catch (e) {
+    return resp;
+  }
+  return go();
+};
+
+const abortError = () => {
+  const e = new Error("aborted");
+  e.name = "AbortError";
+  return e;
+};
+
+const sleep = (ms, signal) =>
+  new Promise((resolve, reject) => {
+    if (signal.aborted) return reject(abortError());
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        reject(abortError());
+      },
+      { once: true }
+    );
+  });
+
+// Resolve once the page is visible and the device thinks it is online.
+const untilReachable = (signal) =>
+  new Promise((resolve, reject) => {
+    const ok = () =>
+      (typeof document === "undefined" || document.visibilityState !== "hidden") &&
+      (typeof navigator === "undefined" || navigator.onLine !== false);
+    if (ok()) return resolve();
+    const check = () => {
+      if (!ok()) return;
+      cleanup();
+      resolve();
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(abortError());
+    };
+    const cleanup = () => {
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("online", check);
+      signal.removeEventListener("abort", onAbort);
+    };
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("online", check);
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+
+// Read an SSE body, calling onFrame(seq, event) per `data:` frame.
+const readSse = async (resp, onFrame) => {
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) return;
+    buffer += decoder.decode(value, { stream: true });
+    // SSE frames are separated by a blank line
+    let idx;
+    while ((idx = buffer.indexOf("\n\n")) !== -1) {
+      const frame = buffer.slice(0, idx);
+      buffer = buffer.slice(idx + 2);
+      const lines = frame.split("\n");
+      const dataLine = lines.find((l) => l.startsWith("data:"));
+      if (!dataLine) continue; // heartbeat comment
+      const idLine = lines.find((l) => l.startsWith("id:"));
+      let evt;
+      try {
+        evt = JSON.parse(dataLine.slice(5).trim());
+      } catch (e) {
+        continue;
+      }
+      onFrame(idLine ? parseInt(idLine.slice(3).trim(), 10) || 0 : 0, evt);
+    }
+  }
+};
+
+const httpError = (message, extra = {}) => Object.assign(new Error(message), extra);
+
+/*
+ * Drive one Ask job: start it (`request` given) or re-attach to it (`jobId`).
+ * Returns stop(opts): stop({ cancelJob: true }) also stops the model on the
+ * server (the Stop button); plain stop() only detaches, and the job still
+ * finishes and saves its turn — so leaving the page never throws an answer away.
  */
-export const streamAskQuestion = (birthDetails, question, model = {}, callbacks = {}) => {
+const runAskJob = ({ request = null, jobId = null, after = 0 }, callbacks) => {
   const controller = new AbortController();
-  const { onMeta, onToken, onDone, onError, onToolCall, onToolResult, onNotice } = callbacks;
+  const { signal } = controller;
+  const {
+    onJob,
+    onMeta,
+    onToken,
+    onDone,
+    onError,
+    onToolCall,
+    onToolResult,
+    onNotice,
+    onReconnecting,
+    onReconnected,
+    onGone,
+  } = callbacks;
+  let lastSeq = after;
+  let finished = false;
+
+  const dispatch = (seq, evt) => {
+    if (seq) lastSeq = seq;
+    if (evt.type === "job") {
+      jobId = evt.job_id;
+      onJob && onJob(jobId);
+    } else if (evt.type === "meta") onMeta && onMeta(evt);
+    else if (evt.type === "token") onToken && onToken(evt.text);
+    else if (evt.type === "tool_call") onToolCall && onToolCall(evt);
+    else if (evt.type === "tool_result") onToolResult && onToolResult(evt);
+    else if (evt.type === "notice") onNotice && onNotice(evt);
+    else if (evt.type === "done") {
+      finished = true;
+      onDone && onDone(evt);
+    } else if (evt.type === "error") {
+      finished = true;
+      onError && onError(new Error(evt.message));
+    } else if (evt.type === "cancelled") {
+      finished = true;
+      onError && onError(new Error("The answer was stopped."));
+    }
+  };
 
   (async () => {
-    try {
-      const resp = await fetch(`${API_URL}/api/astrology/ask/stream`, {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify({
-          birth_details: birthDetails,
-          question,
-          llm_provider: model.legacyProvider || "qwen",
-          provider_type: model.providerType,
-          model: model.model,
-          base_url: model.baseUrl,
-          api_key: model.apiKey,
-          max_tokens: model.maxTokens || undefined,
-          vargas: model.vargas,
-          sections: model.sections,
-          ayanamsa: model.ayanamsa,
-          mode: model.mode,
-          source: model.source,
-          conversation_id: model.conversationId,
-          profile_id: model.profileId,
-          regenerate: model.regenerate || false,
-        }),
-      });
-
-      if (resp.status === 429) {
-        const detail =
-          (await resp.json().catch(() => null))?.detail || "Rate limit reached. Please slow down.";
-        throw new Error(detail);
-      }
-
-      if (!resp.ok || !resp.body) {
-        const text = await resp.text().catch(() => "");
-        throw new Error(text || `Request failed (${resp.status})`);
-      }
-
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        // SSE frames are separated by a blank line
-        let idx;
-        while ((idx = buffer.indexOf("\n\n")) !== -1) {
-          const frame = buffer.slice(0, idx);
-          buffer = buffer.slice(idx + 2);
-          const dataLine = frame.split("\n").find((l) => l.startsWith("data:"));
-          if (!dataLine) continue;
-          let evt;
-          try {
-            evt = JSON.parse(dataLine.slice(5).trim());
-          } catch (e) {
-            continue;
+    let attempt = 0;
+    let reconnecting = false;
+    while (true) {
+      const seqBefore = lastSeq;
+      try {
+        let resp;
+        if (!jobId) {
+          resp = await authedFetch(`${API_URL}/api/astrology/ask/stream`, {
+            method: "POST",
+            signal,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(request),
+          });
+          if (resp.status === 429) {
+            const detail =
+              (await resp.json().catch(() => null))?.detail ||
+              "Rate limit reached. Please slow down.";
+            throw httpError(detail, { fatal: true });
           }
-          if (evt.type === "meta") onMeta && onMeta(evt);
-          else if (evt.type === "token") onToken && onToken(evt.text);
-          else if (evt.type === "tool_call") onToolCall && onToolCall(evt);
-          else if (evt.type === "tool_result") onToolResult && onToolResult(evt);
-          else if (evt.type === "notice") onNotice && onNotice(evt);
-          else if (evt.type === "done") onDone && onDone(evt);
-          else if (evt.type === "error") onError && onError(new Error(evt.message));
+        } else {
+          resp = await authedFetch(
+            `${API_URL}/api/astrology/ask/jobs/${encodeURIComponent(jobId)}?after=${lastSeq}`,
+            { signal }
+          );
+          if (resp.status === 404)
+            throw httpError("The answer in progress is gone.", { gone: true });
+        }
+        if (!resp.ok || !resp.body) {
+          const text = await resp.text().catch(() => "");
+          throw httpError(text || `Request failed (${resp.status})`, { fatal: true });
+        }
+        if (reconnecting) {
+          reconnecting = false;
+          onReconnected && onReconnected();
+        }
+        await readSse(resp, dispatch);
+        if (finished) return;
+        // The body ended without a verdict: the connection was cut mid-answer.
+        throw httpError("The connection closed before the answer finished.");
+      } catch (err) {
+        if (finished) return;
+        if (err.name === "AbortError" || signal.aborted) return;
+        if (err.gone) {
+          if (onGone) onGone();
+          else onError && onError(err);
+          return;
+        }
+        // Without a job id there is nothing to re-attach to.
+        if (err.fatal || !jobId) {
+          onError && onError(err);
+          return;
+        }
+        if (lastSeq > seqBefore) attempt = 0;
+        if (attempt >= ASK_RETRY_DELAYS.length) {
+          onError && onError(err);
+          return;
+        }
+        reconnecting = true;
+        onReconnecting && onReconnecting(attempt + 1);
+        try {
+          await sleep(ASK_RETRY_DELAYS[attempt++], signal);
+          await untilReachable(signal);
+        } catch (e) {
+          return; // stopped while waiting
         }
       }
-    } catch (err) {
-      if (err.name !== "AbortError") onError && onError(err);
     }
   })();
 
-  return () => controller.abort();
+  return ({ cancelJob = false } = {}) => {
+    controller.abort();
+    if (cancelJob && jobId && !finished) {
+      authedFetch(`${API_URL}/api/astrology/ask/jobs/${encodeURIComponent(jobId)}`, {
+        method: "DELETE",
+      }).catch(() => {});
+    }
+  };
 };
+
+/**
+ * Stream an AI answer over SSE (fetch + ReadableStream — axios can't stream in
+ * the browser). Calls callbacks as events arrive and re-attaches by itself when
+ * the connection drops. Returns stop(opts) — see runAskJob.
+ *   callbacks: { onJob, onMeta, onToken, onDone, onError, onToolCall,
+ *                onToolResult, onNotice, onReconnecting, onReconnected, onGone }
+ */
+export const streamAskQuestion = (birthDetails, question, model = {}, callbacks = {}) =>
+  runAskJob(
+    {
+      request: {
+        birth_details: birthDetails,
+        question,
+        llm_provider: model.legacyProvider || "qwen",
+        provider_type: model.providerType,
+        model: model.model,
+        base_url: model.baseUrl,
+        api_key: model.apiKey,
+        max_tokens: model.maxTokens || undefined,
+        vargas: model.vargas,
+        sections: model.sections,
+        ayanamsa: model.ayanamsa,
+        mode: model.mode,
+        source: model.source,
+        conversation_id: model.conversationId,
+        profile_id: model.profileId,
+        regenerate: model.regenerate || false,
+      },
+    },
+    callbacks
+  );
+
+/** Re-attach to a job after the page itself was lost (iOS killed the tab):
+ * replays the whole answer from the start. `onGone` fires if the server no
+ * longer has it — the saved conversation is then the place to look. */
+export const resumeAskStream = (jobId, callbacks = {}) => runAskJob({ jobId, after: 0 }, callbacks);
 
 export default api;

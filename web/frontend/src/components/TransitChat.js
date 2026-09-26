@@ -181,7 +181,7 @@ export const TransitChat = ({ birthDetails, profile, result, ayanamsa = DEFAULT_
   };
 
   const stop = () => {
-    if (abortRef.current) abortRef.current();
+    if (abortRef.current) abortRef.current({ cancelJob: true });
     abortRef.current = null;
     setBusy(false);
     setMessages((prev) => {

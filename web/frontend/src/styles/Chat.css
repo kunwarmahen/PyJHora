@@ -1594,3 +1594,15 @@
     max-width: 12ch;
   }
 }
+
+/* Ask: a ticking clock + reassurance while a slow local model thinks, and the
+   "reconnecting" line when the stream is being re-attached (ask_jobs). */
+.thinking-clock {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+.thinking-hint {
+  margin-top: 6px;
+  font-size: 0.85em;
+  opacity: 0.75;
+}

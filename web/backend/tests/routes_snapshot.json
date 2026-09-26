@@ -17,6 +17,18 @@
    "path:conversation_id*"
   ]
  },
+ "DELETE /api/ai/jobs/{job_id}": {
+  "params": [
+   "path:job_id*"
+  ],
+  "body": ""
+ },
+ "DELETE /api/astrology/ask/jobs/{job_id}": {
+  "params": [
+   "path:job_id*"
+  ],
+  "body": ""
+ },
  "DELETE /api/astrology/quiz/{session_id}": {
   "body": "",
   "params": [
@@ -141,6 +153,12 @@
    "path:trace_id*"
   ]
  },
+ "GET /api/ai/jobs/{job_id}": {
+  "params": [
+   "path:job_id*"
+  ],
+  "body": ""
+ },
  "GET /api/ai/outcomes": {
   "body": "",
   "params": [
@@ -205,6 +223,13 @@
    "query:place",
    "query:timezone"
   ]
+ },
+ "GET /api/astrology/ask/jobs/{job_id}": {
+  "params": [
+   "path:job_id*",
+   "query:after"
+  ],
+  "body": ""
  },
  "GET /api/astrology/ayanamsas": {
   "body": "",

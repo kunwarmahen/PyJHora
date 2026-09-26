@@ -92,6 +92,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Long AI calls run detached when the client asks (X-Detach) — see
+# detached_http.py. Added BEFORE CORS so CORS wraps it (its 202s get headers).
+from detached_http import DetachMiddleware
+app.add_middleware(DetachMiddleware)
+
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
