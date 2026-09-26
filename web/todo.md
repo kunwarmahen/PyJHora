@@ -8104,3 +8104,114 @@ owner's chart the app now states: Saturn entered Revati **2026-05-17**, leaves *
 turns back into Uttara Bhadrapada, re-enters Revati **2027-02-08**, reaches Ashwini **2027-06-03** —
 and that Revati counted from the owner's Magha birth star is **Parama Mitra**, the best of the nine.
 Dated, falsifiable, and about one person.
+
+## §76 The newcomer's first minute — from sign-up to a personal answer (owner ask 2026-09-26) — 🔴 PROPOSED, NOT BUILT
+
+> *"for a newcomer who is not an astrology expert but just wants to come and learn about his own
+> future. Can we build something which is easy for him to setup and use the tool. I know many site
+> provide walkthrough."*
+
+Everything below is **proposed, not built**. Written down for future implementation; nothing here is
+decided beyond the principle in 76.1.
+
+### 76.0 What a first-time visitor sees today
+
+Landing → Register → `ProfileSelectionPage` form → Dashboard. That's four screens before anything
+personal appears, and then a grid of tiles named in Sanskrit.
+
+- **Already good (verified 2026-09-26, don't rebuild):** timezone and coordinates are auto-filled
+  from the place search, with the manual fields tucked under an "advanced" `<details>`. New accounts
+  already start in **Essentials** (`resolveUiMode()`; only pre-split accounts are grandfathered into
+  Everything, `SettingsContext.js` ~L300). "Unknown birth time" is already an option in the
+  time-accuracy select. `config/help.js` already maps every page route to its "what does this page
+  do?" entry.
+- **The gap:** the form still asks for profile name, full name, notify email and current location
+  in the same breath as birth details. After saving, nothing explains *what the person is looking
+  at* or *what to do first*. Help exists but only if you go looking. No part of the app is ever
+  addressed to someone who has never heard the word "dasha".
+
+### 76.1 The principle: a first answer, not a product tour
+
+A "step 1 of 8: this is the sidebar" walkthrough teaches the tool. A newcomer doesn't want the tool.
+They want to know *what their chart says about them*. So the target is **one meaningful, personal
+answer within ~60 seconds of arriving**, with the teaching following from there. Every item below is
+judged against that.
+
+### 76.2 (P0) 🔴 Three-question onboarding flow
+
+- [ ] 🔴 One question per screen: *When were you born?* → *What time?* (with a prominent "I'm not
+      sure") → *Where?* (the existing place search/map picker). Timezone stays invisible.
+- [ ] 🔴 "I'm not sure" goes straight into Unknown Birth Time mode with a friendly line ("we'll focus
+      on what doesn't depend on the exact minute"), not a validation error.
+- [ ] 🔴 Current location comes from the browser (the viewer-location rule: never the server clock or birth place
+      stays in force). Profile name defaults to the person's name. Notify email and similar fields
+      are deferred to Settings or the §76.4 checklist.
+- [ ] 🔴 Shown only for an account with **zero profiles**. The existing form remains for adding a
+      second profile, importing, and for experienced users.
+
+### 76.3 (P0) 🔴 "Your chart in plain words" — the payoff screen
+
+- [ ] 🔴 Three cards: **Rising sign**, **Moon sign**, **Birth star**. Each gets one plain-language
+      sentence, with the Sanskrit term shown small and explained beside it, never alone.
+- [ ] 🔴 **"The chapter you're in now"**: the running Mahadasha/Antardasha as a life chapter with
+      start and end dates. This is the most future-shaped, easy-to-grasp thing Jyotish offers.
+      Level names follow JHora (L2 Antardasha, L3 Pratyantardasha).
+- [ ] 🔴 **Three starter questions** that open Ask with the question filled in (e.g. "What does
+      this year hold for my career?", "What are my natural strengths?", "When is a good time for
+      big decisions?"). The Ask SSE/detached-job path already handles slow answers.
+- [ ] 🔴 Card sentences come from **computed data + reference tables**, not an LLM call, so the
+      screen is instant and costs nothing. The AI enters only when the person asks.
+- [ ] 🔴 Reachable later (e.g. a "Start here" tile in Essentials), not a one-shot screen.
+
+### 76.4 (P1) 🔴 A "first week" checklist instead of a tour
+
+- [ ] 🔴 A dismissable dashboard card: ☐ See your chart explained ☐ Ask your first question
+      ☐ Turn on the daily digest ☐ Learn what a dasha is (the 2-minute Learn quiz). It hides itself
+      when everything is done. Progress is stored as a synced preference, not only localStorage.
+
+### 76.5 (P1) 🔴 Short in-context hints from content that already exists
+
+- [ ] 🔴 The first visit to any page shows **one** dismissable line ("What am I looking at?") sourced
+      from the existing `help.js` route→entry mapping, so there's no new copy per page. It's
+      remembered per page, and it can be switched off globally in Settings.
+- [ ] 🔴 Glossary tooltips on jargon (Lagna, Dasha, Nakshatra, Gochara, Yoga…). A single definitions
+      table keyed like the i18n data layer (read `docs/I18N_DATA_LAYER_DESIGN.md` first) so the
+      definitions translate too.
+- [ ] 🔴 Only if element highlighting is really needed: **driver.js** (small), not react-joyride.
+      It must be lazy-loaded, and `bundleSplit.test.js` must stay green (§74).
+
+### 76.6 (P1) 🔴 Careful framing for alarming results
+
+- [ ] 🔴 Mangal Dosha, Sade Sati, Kaal Sarp and similar stay **off the first-run screen**. Where they
+      do appear to a newcomer they carry context ("common: roughly 1 in 3 charts…") and remedies are
+      offered calmly, not urgently.
+- [ ] 🔴 A short, honest statement near the payoff screen that astrology is interpretive and readings
+      are guidance, consistent with the claim-checker/citation stance (§69).
+
+### 76.7 (P2, needs an owner decision) 🔴 Try before signing up
+
+- [ ] 🔴 Let the landing page take birth details and show the §76.3 payoff screen **without an
+      account**, and offer sign-up to save it and ask questions. This is likely the biggest single
+      reduction in drop-off.
+- Costs and guard-rails if we do it: anonymous compute needs rate limiting, nothing gets persisted
+  server-side until sign-up (hand the details over at registration), and **AI stays behind login**
+  because LLM calls cost money.
+
+### 76.8 How we'd know it worked
+
+- [ ] 🔴 Funnel events: landing → details entered → payoff seen → first Ask question → returned on
+      day 7. The headline metric is **time-to-first-personal-answer**. Surface it on the admin
+      Overview (§44) as counts, not per-user content.
+
+### 76.9 Open questions for the owner
+
+1. **Try before sign-up (76.7):** are we open to anonymous chart computation, or does an account stay
+   required?
+2. **Who is "the newcomer"?** Indian users who know "rashi" but not "dasha", or global users who know
+   nothing? This sets the tone and the terms ("Moon sign" vs "Rashi").
+3. **Scope of the first slice:** proposed as 76.2 + 76.3. Everything after that is follow-on work.
+4. Did "easy to set up" also mean **self-hosting** (someone installing and running this themselves)?
+   If so, that's a separate section (Docker one-liner, `.env` defaults, first-admin bootstrap).
+
+When this is built, run the standing wire-a-feature pass (the `wire-a-feature` skill): Help/FAQ,
+search, i18n, tests, docs.
