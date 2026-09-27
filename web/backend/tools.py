@@ -246,6 +246,9 @@ def _divisional_chart(bd, ayanamsa, varga_factor: Optional[int] = None, **_):
         "name": vc.get("name"),
         "significance": vc.get("significance"),
         "house_system": view["house_system"],
+        "note": (f"Signs and houses here belong to the {vc.get('code')} only, "
+                 f"counted from the {vc.get('code')} Lagna. They are NOT natal "
+                 f"(D1) placements — never quote them as the birth chart's."),
         "lagna": view["lagna"],
         "planets": view["planets"],
     }

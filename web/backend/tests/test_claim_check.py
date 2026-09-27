@@ -543,3 +543,52 @@ def test_the_report_keeps_what_the_model_said_before_it_was_corrected():
     assert text == RIGHT
     assert report["contradictions"] == []                  # the reader saw none
     assert [c["kind"] for c in report["initial"]] == ["placement_house"]
+
+
+# ── "Own sign" (live qwen3 output, 2026-09-27) ──────────────────────────────
+
+def test_own_sign_is_checked_against_the_planets_real_sign(facts):
+    """"Sun — the 10th lord sitting in its own house" was written for a Sun in
+    Virgo. Houses are whole-sign, so own house and own sign are the same claim."""
+    wrong = cc.check("The Sun, the 4th lord sitting in its own house, rules the home.",
+                     facts)["contradictions"]
+    assert [c["truth"] for c in wrong] == ["Sun is in Taurus, not its own sign (Leo)"]
+    assert not cc.check("Venus in its own sign gives charm.", facts)["contradictions"]
+    # A sign that belongs to a planet is not a claim about where it stands.
+    assert not cc.extract_claims("Leo is the Sun's own sign.")
+    assert not cc.extract_claims("Mars aspects its own sign Aries.")
+
+
+def test_own_sign_never_judges_the_nodes(facts):
+    assert not cc.check("Rahu in its own sign.", facts)["contradictions"]
+
+
+# ── False alarms from the same live runs (qwen3.8, career question) ─────────
+
+def test_a_transit_heading_mutes_its_section():
+    """The lines under the heading never say "transit" themselves."""
+    text = ("**Immediate Transit Influence:**\n"
+            "*   **Saturn (Retrograde) in Pisces (5th from Lagna):** focus.\n"
+            "*   **Jupiter in Cancer (9th from Lagna):** grace.\n"
+            "### 3. The 10th House\n"
+            "Jupiter is in the 10th house.")
+    claims = cc.extract_claims(text)
+    assert [(c.kind, c.subject, c.value) for c in claims] == [
+        ("placement_house", "Jupiter", 10)]
+
+
+def test_a_sign_in_brackets_after_a_house_labels_the_house():
+    claims = cc.extract_claims(
+        "**Sun (10th Lord):** The ruler of your 10th house (Leo) is placed in "
+        "the **11th house (Virgo)**.")
+    got = {(c.kind, c.subject, c.value) for c in claims}
+    assert ("placement_sign", "Sun", "Leo") not in got
+    assert ("house_sign", 10, "Leo") in got
+
+
+def test_lord_of_something_else_is_not_the_houses_lord():
+    claims = cc.extract_claims(
+        "**10th Lord (Sun) in 11th House (Virgo):** The lord of career (Sun) "
+        "is placed in the house of gains (11th).")
+    assert ("lordship", 11, "Sun") not in {(c.kind, c.subject, c.value)
+                                           for c in claims}

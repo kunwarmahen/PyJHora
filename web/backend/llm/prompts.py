@@ -2386,19 +2386,33 @@ Planetary Positions (All 9 Grahas) — house counted from the Lagna:"""
                 )
 
         # Divisional charts (vargas) — compact one line per chart for token economy
+        # Every placement carries its chart's code ("D10-H10", not "H10"): a
+        # varga whose lagna matches the D1's reads like a second copy of the
+        # natal chart, and a career question once got "Sun in the 10th" lifted
+        # from the D10 line of a chart whose natal Sun is in the 11th.
         vargas = chart_data.get("vargas", [])
         if vargas:
-            chart_description += "\n\nDivisional Charts (Vargas):"
+            d1_lagna = (chart_data.get("lagna") or {}).get("sign_name")
+            chart_description += (
+                "\n\nDivisional Charts (Vargas) — each line is a SEPARATE chart. "
+                "A 'D10-H10' is the 10th house of the D10, not of the natal chart: "
+                "never state a natal (D1) sign or house from these lines; natal "
+                "placements come ONLY from 'Planetary Positions' above."
+            )
             for v in vargas:
+                code = v.get("code", "?")
                 lagna_sign = v.get("lagna", {}).get("sign_name", "?")
                 placements = ", ".join(
-                    f"{name} {p.get('sign_name', '?')} (H{p.get('house', '?')})"
+                    f"{name} {p.get('sign_name', '?')} ({code}-H{p.get('house', '?')})"
                     for name, p in v.get("planets", {}).items()
                 )
+                same_asc = (f" (same sign as the natal Lagna, but these are {code} "
+                            f"placements, not D1)"
+                            if d1_lagna and lagna_sign == d1_lagna else "")
                 chart_description += (
-                    f"\n- {v.get('code', '?')} {v.get('name', '')} "
-                    f"({v.get('significance', '')}): Asc {lagna_sign} = H1, houses "
-                    f"counted from it; {placements}"
+                    f"\n- {code} {v.get('name', '')} "
+                    f"({v.get('significance', '')}): {code} Asc {lagna_sign}{same_asc} "
+                    f"= {code}-H1, houses counted from it; {placements}"
                 )
 
         # Add Dasha information

@@ -244,3 +244,23 @@
     display: table-header-group;
   }
 }
+
+/* The claim checker's correction, lifted above the answer it corrects
+   (components/claimCorrection.js). */
+.md-correction {
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-left: 4px solid var(--danger);
+  border-radius: var(--radius-sm);
+}
+.md-correction > :first-child {
+  margin-top: 0;
+}
+.md-correction > :last-child {
+  margin-bottom: 0;
+}
+.md-correction strong {
+  color: var(--danger);
+}

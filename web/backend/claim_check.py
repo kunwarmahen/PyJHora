@@ -218,6 +218,8 @@ _NEW_CLAUSE = re.compile(r"[,;]\s*(?:and|or|but|while|so|then|which|whose|where)
 # the sign belongs to whatever planet is being placed, not to the house.
 _BARE_COPULA = re.compile(r"^[\s,;:=—–-]*(?:is|was|remains|stands\s+as)?[\s,;:=—–-]*$", re.I)
 
+_HOUSE_LABEL = re.compile(r"^\s*\(\s*$")
+
 _LORD_GAP = re.compile(
     r"\b(?:lord|lords|lordship|ruler|rules|ruled|ruling|owns|owner|governs)\b", re.I)
 
@@ -285,7 +287,13 @@ _CONDITION_SCOPE = {
 }
 _DIGNITIES = {"exalted": "exalted", "exaltation": "exalted", "uccha": "exalted",
               "debilitated": "debilitated", "debilitation": "debilitated",
-              "neecha": "debilitated", "neecha bhanga": None, "fallen": "debilitated"}
+              "neecha": "debilitated", "neecha bhanga": None, "fallen": "debilitated",
+              # "the 10th lord sitting in its own house" — live output for a Sun
+              # that sat in Virgo. Houses are whole-sign, so own house == own sign.
+              "own sign": "own", "own house": "own", "own rasi": "own",
+              "own rashi": "own", "swakshetra": "own", "svakshetra": "own"}
+# Looked up by the normalized match, so "own  sign" and "Own-Sign" both land.
+_DIGNITY_BY_NORM = {_norm(k): v for k, v in _DIGNITIES.items()}
 
 
 # ── The truth table ─────────────────────────────────────────────────────────
@@ -423,12 +431,14 @@ class Claim:
         if self.kind == "nakshatra":
             return f"{self.subject} is in {self.value}"
         if self.kind == "dignity":
+            if self.value == "own":
+                return f"{self.subject} is in its own sign"
             return f"{self.subject} is {self.value}"
         return f"{self.subject} is {self.value}"
 
 
 _DIGNITY_PATTERN = "|".join(
-    sorted((k.replace(" ", r"\s+") for k in _DIGNITIES), key=len, reverse=True))
+    sorted((k.replace(" ", r"[\s-]+") for k in _DIGNITIES), key=len, reverse=True))
 _MONTH_PATTERN = "|".join(_MONTHS)
 
 _ANCHOR = re.compile(rf"""
@@ -503,13 +513,32 @@ def _clean(sentence: str) -> str:
     return re.sub(r"[*_`#>]+", " ", sentence)
 
 
+# A markdown heading, or a line that is nothing but bold text ("**Immediate
+# Transit Influence:**"). Either opens a section.
+_HEADING = re.compile(r"^\s*(?:#{1,6}\s+.+|\*\*[^*]+\*\*\s*:?\s*)$")
+
+
 def extract_claims(text: str) -> List[Claim]:
-    """Every checkable assertion about the natal chart, in order of appearance."""
+    """Every checkable assertion about the natal chart, in order of appearance.
+
+    The frame of reference is carried by *sections* as well as sentences: under
+    "**Immediate Transit Influence:**" a model writes "Saturn (Retrograde) in
+    Pisces (5th from Lagna)" without repeating the word transit, and six such
+    lines once came back as natal contradictions in a single reading. A heading
+    that matches `_SKIP` mutes everything up to the next heading.
+    """
     claims: List[Claim] = []
-    for sentence in _split_sentences(text):
-        if _SKIP.search(sentence):
+    muted = False
+    for line in (text or "").splitlines():
+        if _HEADING.match(line):
+            muted = bool(_SKIP.search(line))
             continue
-        claims.extend(_claims_in(_clean(sentence), sentence))
+        if muted:
+            continue
+        for sentence in _split_sentences(line):
+            if _SKIP.search(sentence):
+                continue
+            claims.extend(_claims_in(_clean(sentence), sentence))
     return claims
 
 
@@ -537,7 +566,7 @@ def _claims_in(clean: str, original: str) -> List[Claim]:
         elif kind == "condition":
             value = _CONDITIONS[_norm(raw)]
         else:
-            value = _DIGNITIES.get(_norm(raw))
+            value = _DIGNITY_BY_NORM.get(_norm(raw))
             if value is None:
                 continue
         anchors.append({"kind": kind, "value": value,
@@ -554,12 +583,14 @@ def _claims_in(clean: str, original: str) -> List[Claim]:
     house_list = False                   # houses still running as one list, no planet since
     prev_end = 0                         # a relation binds to the NEAREST anchor
 
+    prev_kind: Optional[str] = None      # the kind of the anchor before this one
     for a in anchors:
         # A consumed lord word can put `prev_end` past this anchor entirely
         # ("the 8th and 11th lord" swallows the 11th); an empty gap is the right
         # reading there — the two ordinals share one lord.
         gap = clean[prev_end:a["start"]] if a["start"] >= prev_end else ""
         prev_end = max(prev_end, a["end"])
+        last_kind, prev_kind = prev_kind, a["kind"]
 
         if a["kind"] == "planet":
             # "the 9th house … is ruled by Jupiter" / "the 9th lord is Saturn" /
@@ -573,7 +604,8 @@ def _claims_in(clean: str, original: str) -> List[Claim]:
                     out.append(Claim("lordship", h, a["value"], original))
                 house_role = "lordship"
                 lord_houses = []
-            elif pending_house is not None and _lord_ok(gap):
+            elif pending_house is not None and _lord_ok(gap) \
+                    and not _LORD_OF_OTHER.search(gap):
                 out.append(Claim("lordship", pending_house, a["value"], original))
                 house_role = "lordship"
                 lord_house = None
@@ -641,6 +673,13 @@ def _claims_in(clean: str, original: str) -> List[Claim]:
 
         if a["kind"] == "sign":
             tail = clean[a["end"]:a["end"] + 20]
+            if last_kind == "house" and pending_house is not None \
+                    and _HOUSE_LABEL.match(gap):
+                # "The ruler of your 10th house (Leo) is placed in the 11th" —
+                # the bracket names the house's sign; reading it as the Sun's
+                # placement was a false alarm on a correct sentence.
+                out.append(Claim("house_sign", pending_house, a["value"], original))
+                continue
             leads = _SIGN_LEADS.match(tail)
             if leads:
                 # "Taurus Lagna", "Taurus rising", "the Leo Moon" — the sign leads
@@ -697,6 +736,13 @@ def _lord_ok(gap: str) -> bool:
     lordship, so only the blockers apply."""
     return (len(gap) <= _MAX_GAP and bool(_LORD_GAP.search(gap))
             and not _GAP_BLOCKERS.search(gap))
+
+
+# "…in the 11th House (Virgo): The lord of career (Sun)…" — with the house BEFORE
+# the gap, "lord of <something>" inside it names whose lord the planet is, and
+# that something is not the house. Live output that made the Sun the 11th lord.
+# (Planet first — "Jupiter, the lord of the 8th" — is the ordinary shape.)
+_LORD_OF_OTHER = re.compile(r"\b(?:lord|ruler)\s+of\b", re.I)
 
 
 def _tail_is_connector(gap: str) -> bool:
@@ -764,6 +810,18 @@ def _check_claim(claim: Claim, facts: Facts) -> Optional[Contradiction]:
                                  f"{subject} is in {truth}", claim.quote)
     elif k == "dignity":
         truth = facts.dignity.get(subject)
+        if value == "own":
+            # Checked against OWN_SIGNS directly: Mercury in Virgo is exalted AND
+            # own, and `dignity` only records the first. The nodes own nothing
+            # the classics agree on, so they are never judged.
+            sign = facts.planet_sign.get(subject)
+            if sign in ZODIAC_NAMES and OWN_SIGNS.get(subject) \
+                    and ZODIAC_NAMES.index(sign) not in OWN_SIGNS[subject]:
+                owns = " and ".join(ZODIAC_NAMES[i] for i in sorted(OWN_SIGNS[subject]))
+                return Contradiction(k, claim.said(),
+                                     f"{subject} is in {sign}, not its own sign "
+                                     f"({owns})", claim.quote)
+            return None
         if subject in facts.planet_sign and value in ("exalted", "debilitated") \
                 and truth != value:
             sign = facts.planet_sign[subject]
@@ -820,6 +878,8 @@ def _judgeable(claim: Claim, facts: Facts) -> bool:
     if k == "nakshatra":
         return s in facts.planet_nakshatra
     if k == "dignity":
+        if claim.value == "own":
+            return s in facts.planet_sign and bool(OWN_SIGNS.get(s))
         return s in facts.planet_sign
     if k == "condition":
         return facts.flags is not None and s in _CONDITION_SCOPE.get(claim.value, set())

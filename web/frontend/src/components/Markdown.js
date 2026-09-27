@@ -1,6 +1,7 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { splitCorrection } from "./claimCorrection";
 import "../styles/Markdown.css";
 
 /**
@@ -32,12 +33,27 @@ const components = {
   ),
 };
 
-export const Markdown = ({ children }) => (
-  <div className="md">
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-      {children}
-    </ReactMarkdown>
-  </div>
+const render = (text) => (
+  <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+    {text}
+  </ReactMarkdown>
 );
+
+// A claim-check correction is lifted to the top of the answer (see
+// claimCorrection.js) — every AI surface renders through here, so every one of
+// them shows it before the prose it corrects.
+export const Markdown = ({ children }) => {
+  const { body, correction } = splitCorrection(children);
+  return (
+    <div className="md">
+      {correction && (
+        <aside className="md-correction" role="note">
+          {render(correction)}
+        </aside>
+      )}
+      {render(body)}
+    </div>
+  );
+};
 
 export default Markdown;
