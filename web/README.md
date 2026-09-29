@@ -849,6 +849,13 @@ LOCAL_LLM_COOLDOWN=300
 LLM_FALLBACK_ORDER=gemini,openrouter,openai
 OLLAMA_CPU_URL=
 
+# Birth-detail privacy (§78). Hosted models are not sent the birth date, time or
+# place unless the user allows it in Settings → AI; self-hosted ones get
+# everything. "Self-hosted" = an Ollama / OpenAI-compatible endpoint on loopback,
+# a private/Tailscale IP, a single-label or .local/.lan/.internal name. List any
+# other host that is really yours (e.g. a Tailscale MagicDNS name):
+# SELF_HOSTED_LLM_HOSTS=nas.tailnet-1234.ts.net
+
 # Per-user API-key encryption (keys users save in the UI are encrypted with this;
 # falls back to SECRET_KEY if unset — set a stable value in production)
 API_KEY_ENCRYPTION_KEY=change-this-to-a-long-random-string
@@ -1625,6 +1632,15 @@ the Daily / Period digests). Exposed to Ask-Astrologer as the `get_tithi_pravesh
 - Enhanced predictions with a local Ollama model or any configured provider
 - Contextual astrological interpretations
 - Personalized analysis
+- **Privacy with hosted models (§78):** the chart is computed here, so a hosted
+  provider (Gemini, OpenAI, OpenRouter, a cloud OpenAI-compatible host) is sent the
+  computed chart, the profile name and your own text — but by default **not** the
+  birth date (replaced by the age), time or place/coordinates. Each can be allowed
+  per user in Settings → AI → "What hosted AI models may see". A self-hosted model
+  always gets everything; a local model falling back to a hosted one is redacted.
+  Redaction happens at the send points in `llm_service.py` (`llm/privacy.py`), so no
+  prompt builder has to remember it. Note: Gemini's free tier may use prompts for
+  training — use a paid key if that matters.
 
 ### 22. AI History (`/history`)
 
@@ -1660,7 +1676,7 @@ Not a user feature: a superuser surface for operating the deployment. Access is 
 opening Mongo. A logged-in non-admin probing any console route gets **404, not 403**, so the
 console's existence is not confirmed to them.
 
-- **Overview** — deployment totals, new users over 7/30 days, per-collection record counts
+- **Overview** — deployment totals, new users over 7/30 days, per-collection record counts, and AI requests by provider over 30 days (how many left the server, how many had birth details withheld — counts only)
 - **Users** — every account with headline counts; suspend (blocks login, Google sign-in and token
   refresh) and cascade-delete. You cannot touch yourself or another admin
 - **Activity** — what the deployment has been doing: signups, AI readings and chats, delivered
