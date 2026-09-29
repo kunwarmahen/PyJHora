@@ -11,6 +11,8 @@ import claim_check
 from llm.base import *  # noqa: F401,F403  (constants, enums, ModelConfig, stdlib deps)
 from llm.base import __all__ as _base_all
 from llm.gate import gate
+from llm.privacy import outbound_policy
+import ai_outbound
 from llm.prompts import PromptsMixin
 from llm.providers import OllamaMixin, OpenAIMixin, GeminiMixin
 from llm.providers.ollama import _ollama_collect
@@ -974,10 +976,12 @@ Reply with STRICT JSON only, exactly this shape:
                 if not alt.api_key or not alt.model:
                     continue  # no key → it would only fail; don't advertise it
                 alt.max_tokens = cfg.max_tokens
+                alt.privacy = cfg.privacy
                 out.append(alt)
         else:
             local = self.resolve_config(ProviderType.OLLAMA.value)
             local.max_tokens = cfg.max_tokens
+            local.privacy = cfg.privacy
             out.append(local)
         return out
 
@@ -1038,10 +1042,28 @@ Reply with STRICT JSON only, exactly this shape:
                       f"{nxt.provider_type.value}/{nxt.model}")
         raise last or LLMUnavailable("Error: no model configuration to try.")
 
+    # ------------------------------------------------------------------ #
+    # Outbound privacy (§78) — the four send points below are the only places
+    # a request leaves for a provider, so this is where birth details are held
+    # back from hosted models. Self-hosted configs pass through untouched.
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def _outbound(cfg: ModelConfig):
+        policy = outbound_policy(cfg)
+        ai_outbound.record(cfg, redacted=policy is not None)
+        return policy
+
+    def _outbound_messages(self, messages, cfg: ModelConfig):
+        policy = self._outbound(cfg)
+        return policy.redact_messages(messages) if policy else messages
+
     async def _complete_once(self, prompt: str, cfg: ModelConfig,
                              max_tokens: Optional[int],
                              sys_prompt: str,
                              usage: Optional[Dict[str, Any]]) -> str:
+        policy = self._outbound(cfg)
+        if policy:
+            prompt, sys_prompt = policy.redact_text(prompt), policy.redact_text(sys_prompt)
         if cfg.provider_type == ProviderType.OLLAMA:
             return await self._call_ollama(prompt, cfg, max_tokens, sys_prompt, usage)
         if cfg.provider_type in OPENAI_STYLE_PROVIDERS:
@@ -1147,12 +1169,13 @@ Reply with STRICT JSON only, exactly this shape:
 
         def _new_gen(active: ModelConfig):
             cap = active.max_tokens or max_tokens
+            msgs = self._outbound_messages(messages, active)
             if active.provider_type == ProviderType.OLLAMA:
-                return self._stream_ollama(messages, active, cap, usage)
+                return self._stream_ollama(msgs, active, cap, usage)
             if active.provider_type in OPENAI_STYLE_PROVIDERS:
-                return self._stream_openai_style(messages, active, cap, usage)
+                return self._stream_openai_style(msgs, active, cap, usage)
             if active.provider_type == ProviderType.GEMINI:
-                return self._stream_gemini(messages, active, cap, usage)
+                return self._stream_gemini(msgs, active, cap, usage)
 
             async def _unsupported():
                 yield "Unsupported LLM provider"
@@ -1497,6 +1520,7 @@ Reply with STRICT JSON only, exactly this shape:
         if use_json:
             content, u = await self._complete_chat_once(messages, cfg)
             return {"content": content, "tool_calls": [], "usage": u}
+        messages = self._outbound_messages(messages, cfg)
         if cfg.provider_type == ProviderType.OLLAMA:
             return await self._chat_once_ollama(messages, specs, cfg)
         if cfg.provider_type in OPENAI_STYLE_PROVIDERS:
@@ -1523,6 +1547,7 @@ Reply with STRICT JSON only, exactly this shape:
 
         Ungated on purpose — every caller is already inside a gate slot."""
         max_tokens = cfg.max_tokens or max_tokens
+        messages = self._outbound_messages(messages, cfg)
         if cfg.provider_type == ProviderType.OLLAMA:
             url = (cfg.base_url or self.ollama_url).rstrip("/")
             payload = {"model": cfg.model or self.ollama_default_model,

@@ -97,7 +97,8 @@ export const HELP_SECTIONS = [
       {
         id: "featDasha",
         to: "/dhasa",
-        keywords: "vimshottari vimsottari mahadasha antardasha bhukti pratyantardasha pratyantar sookshma",
+        keywords:
+          "vimshottari vimsottari mahadasha antardasha bhukti pratyantardasha pratyantar sookshma",
       },
       { id: "featTransit", to: "/transit" },
       {
@@ -149,7 +150,11 @@ export const HELP_SECTIONS = [
       { id: "featBhrigu", to: "/bhrigu-markers" },
       { id: "featNadi", to: "/nadi" },
       { id: "featPanchaPakshi", to: "/pancha-pakshi" },
-      { id: "featChakras", to: "/chakras", keywords: "kaala chakra kala chakra kota tripataki vedha" },
+      {
+        id: "featChakras",
+        to: "/chakras",
+        keywords: "kaala chakra kala chakra kota tripataki vedha",
+      },
       {
         id: "featKp",
         to: "/kp",
@@ -205,6 +210,12 @@ export const HELP_SECTIONS = [
     items: [
       { id: "privWhatStored" },
       { id: "privSharing" },
+      {
+        id: "privAiProviders",
+        to: "/settings?tab=ai",
+        keywords:
+          "gemini openai openrouter cloud hosted external send withheld redact anonymous birth date time place training",
+      },
       { id: "privKeys", to: "/settings" },
       { id: "privEmails", to: "/settings" },
       { id: "privDelete", to: "/settings" },

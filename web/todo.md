@@ -8287,3 +8287,33 @@ deep links). Only for users with the digest's `push` channel on; new pref `ai_re
 Settings → Notifications, shown only while push is on). A stopped job sends nothing.
 Tests: `test_ai_ready_push.py` (watched / seen during grace / push off / pref off / cancelled all
 stay silent; the link and title per kind).
+
+## §78 Birth details held back from hosted AI (owner ask 2026-09-28) — ✅ SHIPPED 2026-09-28
+
+**Ask:** obfuscate private information sent to external models. Owner picked from a menu:
+drop what the model doesn't use (yes, per-user configurable; a local model is sent everything),
+name swapping (no — keep it simple), free-text PII scrubbing (no), rounding degrees (no — reversing
+a chart to a birth moment is too much effort to be the threat), local-only "private mode" (no —
+just disclose), provider retention (disclose the Gemini free-tier training note), admin counts (yes).
+
+**What reaches a hosted model now (default):** the computed chart, the profile name, the user's
+own text and tool results — but the birth **date** (replaced by the age), **time** and **place +
+coordinates** are withheld. Settings → AI → "What hosted AI models may see" has three
+checkboxes (synced prefs `ai_share_birth_date|time|place`, default off, pushed immediately).
+
+**How:** `llm/privacy.py` redacts at the four send points in `llm_service.py`
+(`_complete_once`, `stream_answer`'s generator, `_chat_once_on`, `_complete_chat_once`) — not in
+the prompt builders, so a new reading can't forget it. The policy rides on `ModelConfig.privacy`
+(set in `deps._resolve_cfg` from prefs + the request body's own birth details, and in
+`digest._digest_cfg`), copied onto fallbacks — a busy local GPU falling back to Gemini is redacted.
+No policy = everything withheld (fails closed). "Self-hosted" is judged by the endpoint's host
+(loopback/private/CGNAT/single-label/.local/.internal, plus `SELF_HOSTED_LLM_HOSTS` env for e.g.
+a Tailscale MagicDNS name), so Ollama pointed at a cloud host counts as hosted.
+Passes: labelled "Date/Time/Place of Birth:" lines; birth objects (dicts with dob/tob) in JSON tool
+results — a muhurta's own location is left alone; the request's date/place as bare text.
+**A bare birth time is deliberately not replaced** — "10:45" is equally a muhurta window.
+
+**Admin:** Overview → "AI requests by provider · 30 days" (`ai_outbound.py`, daily counts only,
+no user field; in test_admin's NOT_PER_USER allowlist). **Help:** Privacy → `privAiProviders`;
+`aiWhatItSees` corrected. Tests: `tests/test_privacy.py` (redactor + every send point, hosted vs
+local, captured at the adapters / HTTP client).

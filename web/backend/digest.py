@@ -124,6 +124,11 @@ async def _digest_cfg(user_id: str):
         pass
     # Nobody is watching the 3am run, so it matters more here than anywhere that
     # a busy GPU has somewhere else to go before the narrative is given up on.
+    # The same birth-detail privacy the request path applies (§78). No request
+    # body here, so the policy knows no literal values — the labelled prompt
+    # lines and JSON fields it redacts are where a digest carries them.
+    from llm.privacy import PrivacyPolicy
+    cfg.privacy = PrivacyPolicy.from_prefs(prefs)
     cfg.fallbacks = llm_service.build_fallbacks(cfg, user_keys)
     # Same stale-model guard the request path applies (deps._resolve_cfg) — it
     # matters more here, where nobody is watching the 3am run fail.

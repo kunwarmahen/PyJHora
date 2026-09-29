@@ -105,6 +105,7 @@ def test_every_per_user_collection_is_registered_for_deletion():
         "app_config",            # one document: the deployment's runtime settings
         "admin_audit",           # security/moderation events, pruned on their own horizon
         "claim_check_stats",     # daily counters for the whole deployment, not per user
+        "ai_outbound",           # daily per-provider call counts, no user field (§78)
     }
 
     backend = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

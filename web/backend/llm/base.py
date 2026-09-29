@@ -325,6 +325,10 @@ class ModelConfig:
     # for scheduled work — because the LLM layer has no database. Empty is the
     # normal case and means "fail on this config's own terms".
     fallbacks: List["ModelConfig"] = field(default_factory=list)
+    # The user's llm.privacy.PrivacyPolicy — which birth details a HOSTED model
+    # may see (§78). Set beside `fallbacks`, for the same no-database reason;
+    # None fails closed (everything withheld) when the request leaves the server.
+    privacy: Optional[Any] = None
 
 
 # Providers served off this machine (or the LAN box next to it), whose capacity

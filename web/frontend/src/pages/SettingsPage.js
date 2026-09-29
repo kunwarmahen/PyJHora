@@ -907,6 +907,38 @@ export const SettingsPage = () => {
                 <p className="settings-hint">{t("settings.ai.maxTokensHint")}</p>
               </div>
 
+              {/* What a hosted model may see (§78). Enforced server-side for every
+                reading; a self-hosted model is always sent everything. */}
+              <div className="settings-row settings-row--stack">
+                <label className="settings-label">{t("settings.ai.privacy.title")}</label>
+                <p className="settings-hint">{t("settings.ai.privacy.intro")}</p>
+                {[
+                  { k: "aiShareBirthDate", l: t("settings.ai.privacy.date") },
+                  { k: "aiShareBirthTime", l: t("settings.ai.privacy.time") },
+                  { k: "aiShareBirthPlace", l: t("settings.ai.privacy.place") },
+                ].map((o) => (
+                  <label key={o.k} className="settings-check">
+                    <input
+                      type="checkbox"
+                      checked={settings[o.k] === "true"}
+                      onChange={(e) => set(o.k, e.target.checked ? "true" : "false")}
+                    />
+                    <span>{o.l}</span>
+                  </label>
+                ))}
+                <p className="settings-hint">
+                  {isLocalProvider
+                    ? t("settings.ai.privacy.local")
+                    : t("settings.ai.privacy.hosted")}
+                </p>
+                <p className="settings-hint">{t("settings.ai.privacy.alwaysSent")}</p>
+                {settings.aiProviderType === "gemini" && (
+                  <p className="settings-hint settings-hint--warn">
+                    {t("settings.ai.privacy.geminiFree")}
+                  </p>
+                )}
+              </div>
+
               <div className="settings-links">
                 <button type="button" className="settings-link" onClick={() => setTab("apiKeys")}>
                   <Key size={14} /> {t("settings.ai.manageKeys")}

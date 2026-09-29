@@ -54,6 +54,9 @@ export const SETTING_KEYS = {
   aiBaseUrl: "ai_base_url",
   aiMode: "ai_mode",
   aiMaxTokens: "ai_max_tokens",
+  aiShareBirthDate: "ai_share_birth_date",
+  aiShareBirthTime: "ai_share_birth_time",
+  aiShareBirthPlace: "ai_share_birth_place",
 };
 
 // The preferences synced to the server (cross-device). The non-secret LLM/model
@@ -70,6 +73,9 @@ const SYNCED_KEYS = [
   "aiBaseUrl",
   "aiMode",
   "aiMaxTokens",
+  "aiShareBirthDate",
+  "aiShareBirthTime",
+  "aiShareBirthPlace",
 ];
 // Discrete one-click choices, pushed to the server immediately rather than on
 // the 600ms debounce. The debounce is there to coalesce typing (aiBaseUrl,
@@ -77,7 +83,17 @@ const SYNCED_KEYS = [
 // leaves the server holding the OLD value, and the login sync below then
 // reasserts it over the correct local one — so the user's click silently
 // reverts on the next page load. Visible immediately with the theme toggle.
-const IMMEDIATE_KEYS = ["theme", "density", "uiMode", "startupProfile"];
+// The privacy switches are enforced by the SERVER when a reading leaves for a
+// hosted model (§78), so a stale server value is a leak, not just a revert.
+const IMMEDIATE_KEYS = [
+  "theme",
+  "density",
+  "uiMode",
+  "startupProfile",
+  "aiShareBirthDate",
+  "aiShareBirthTime",
+  "aiShareBirthPlace",
+];
 // Settings that only mean anything under the provider they were chosen for: a
 // model id belongs to one vendor's catalogue, an endpoint to one server. Left
 // standing across a provider switch they are sent to the NEW provider, which is
@@ -123,6 +139,11 @@ const DEFAULTS = {
   aiBaseUrl: "",
   aiMode: "pass_all",
   aiMaxTokens: 0, // 0 = use the provider/server default
+  // Which birth details a HOSTED model may see ("true"/"false", like storage).
+  // Withheld by default; a self-hosted model is always sent everything (§78).
+  aiShareBirthDate: "false",
+  aiShareBirthTime: "false",
+  aiShareBirthPlace: "false",
 };
 
 const read = (key) => {
@@ -168,6 +189,9 @@ export const SettingsProvider = ({ children }) => {
     aiBaseUrl: read("aiBaseUrl"),
     aiMode: read("aiMode"),
     aiMaxTokens: readNumber("aiMaxTokens"),
+    aiShareBirthDate: read("aiShareBirthDate"),
+    aiShareBirthTime: read("aiShareBirthTime"),
+    aiShareBirthPlace: read("aiShareBirthPlace"),
   }));
 
   // Mirror of `settings` so callbacks can read the current values without being

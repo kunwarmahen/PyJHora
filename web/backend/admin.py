@@ -190,7 +190,17 @@ async def global_stats() -> Dict[str, Any]:
         "new_users_30d": new_30d,
         "content_access_enabled": content_access_enabled(),
         "collections": collections,
+        # Where AI requests went over the last 30 days (§78) — counts only.
+        "ai_outbound": await _ai_outbound_summary(),
     }
+
+
+async def _ai_outbound_summary() -> List[Dict[str, Any]]:
+    try:
+        import ai_outbound
+        return await ai_outbound.summary(30)
+    except Exception:
+        return []
 
 
 async def _counts_for(username: str) -> Dict[str, int]:

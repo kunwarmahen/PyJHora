@@ -147,6 +147,36 @@ function OverviewTab() {
         </div>
       </Card>
 
+      {/* Where AI requests went (§78) — counts only, no user or content. */}
+      <Card title="AI requests by provider · 30 days" accent="indigo">
+        {stats.ai_outbound?.length ? (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Provider</th>
+                  <th>Requests</th>
+                  <th>Left this server</th>
+                  <th>Birth details withheld</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.ai_outbound.map((r) => (
+                  <tr key={r.provider}>
+                    <td>{r.provider}</td>
+                    <td>{r.calls}</td>
+                    <td>{r.external}</td>
+                    <td>{r.redacted}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p>No AI requests recorded yet.</p>
+        )}
+      </Card>
+
       <div className="admin-content-note" style={{ marginTop: "var(--space-lg)" }}>
         {stats.content_access_enabled ? (
           <>

@@ -35,6 +35,11 @@ PREFERENCE_KEYS = (
     "ai_base_url",
     "ai_mode",
     "ai_max_tokens",
+    # Which birth details a HOSTED model may see (llm/privacy.py, §78). Absent =
+    # "false" = withheld; a self-hosted model is always sent everything.
+    "ai_share_birth_date",
+    "ai_share_birth_time",
+    "ai_share_birth_place",
 )
 
 

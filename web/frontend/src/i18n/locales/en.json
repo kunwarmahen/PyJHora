@@ -1157,7 +1157,18 @@
       "mtUseDefault": "Use the model's default length",
       "maxTokensHint": "How many tokens the AI may generate per answer — the output budget, not the model's context window. Auto sends no limit, so the model stops when it is done. Set a value to cap long answers, or if a model runs on past the point of being useful.",
       "manageKeys": "Manage API keys",
-      "viewCapabilities": "View AI capabilities"
+      "viewCapabilities": "View AI capabilities",
+      "privacy": {
+        "title": "What hosted AI models may see",
+        "intro": "Readings are written from a chart this app has already calculated, so the AI doesn't need your birth date, time or place. By default they are held back from hosted models (Gemini, OpenAI, OpenRouter) — the date is replaced by your age. Tick an item to send it anyway.",
+        "date": "Send the birth date",
+        "time": "Send the birth time",
+        "place": "Send the birth place and coordinates",
+        "local": "You're using a self-hosted model on this machine or your network, so it is sent everything — these switches only apply when a reading goes to a hosted provider (including as a fallback when the local model is busy).",
+        "hosted": "These switches apply to every reading, chat and digest sent to the provider you've chosen.",
+        "alwaysSent": "Always sent, to any model: the calculated chart (planets, houses, dashas, transits), the profile's name, and what you write — your questions and, when the AI looks them up, your journal entries.",
+        "geminiFree": "Gemini's free tier may use prompts to improve Google's products. Use a paid Gemini key, or a different provider, if that matters to you."
+      }
     },
     "apiKeys": {
       "hint": "Your keys are encrypted on the server and never shown in full. Ollama runs locally and needs no key.",
@@ -2677,6 +2688,7 @@
       "aiModes": "What's the difference between \"Full context\" and \"Smart lookup\"?",
       "aiWhatIsIt": "What is the AI astrologer?",
       "aiWhatItSees": "What information does the AI actually see?",
+      "privAiProviders": "What do cloud AI providers like Gemini or OpenAI get sent?",
       "aiWhichModel": "Which AI model is it using? Can I change it?",
       "aiUnavailable": "A reading said the model was busy or unavailable. What happened?",
       "believe": "Do I have to believe in astrology to get something out of this?",
@@ -2767,7 +2779,8 @@
       "aiLongWait": "Yes. A local model can take several minutes on a long question, and the answer is written on the server, not in your browser — so you can switch pages, lock your phone or close the tab. While it's working, the ✦ pill in the top bar shows it (and History lists it under \"In progress\"). When it's done the pill says it's ready: tap it to open the answer on its own page. It's also saved to History like any other reading.",
       "aiModes": "Full context hands the model your whole chart up front — thorough, and better for open-ended questions, but slower and heavier. Smart lookup gives it a summary plus the ability to fetch specific calculations on demand, which is quicker and usually enough. If an answer seems to have missed something, switch to Full context and ask again.",
       "aiWhatIsIt": "A conversational astrologer that has already been handed your chart. You can ask it anything — \"what does my chart say about money?\", \"explain my current period\", \"what is a nakshatra?\" — and ask follow-ups. It's also the layer that writes the readings on other pages.",
-      "aiWhatItSees": "The chart data for the profile you have selected: birth details, planetary positions, houses, periods, yogas and whatever the specific page computed. It does not see your password, your email, other users' data, or anything you haven't given the app. If you're using a cloud AI provider, that chart context is sent to them to answer — if you'd rather it never left your machine, run a local model (Ollama) instead.",
+      "aiWhatItSees": "The chart data for the profile you have selected: planetary positions, houses, periods, yogas and whatever the specific page computed, plus the profile's name and what you type. A local model also sees the birth date, time and place; a cloud provider doesn't, unless you allow it in Settings → AI (see \"What do cloud AI providers get sent?\" under Privacy). It never sees your password, your email or other users' data.",
+      "privAiProviders": "Everything a reading needs, and no more by default. The app calculates the chart itself, so a cloud provider (Gemini, OpenAI, OpenRouter) is sent the calculated chart — planets, houses, periods, transits — plus the profile's name, your questions, and any journal entries the AI looks up for you. Your birth date, time and place are held back: the date is replaced by your age. You can choose to send any of them in Settings → AI. A model you run yourself (Ollama on your computer or home network) is always sent everything, since nothing leaves. Note that the free Gemini tier may use prompts to improve Google's products; a paid key doesn't.",
       "aiWhichModel": "Whichever you've configured in Settings → AI. You can point it at a local model running on your own machine (nothing leaves home) or at a cloud provider with your own API key. The model's name is shown on each reading, so you can always tell what wrote it.",
       "aiUnavailable": "A local model shares its graphics card with everything else on that machine, so if something heavier is running the model may have nowhere to load itself. When that happens the app says so instead of inventing an answer, and it tries whatever else it can reach — a cloud provider you've added a key for, or a slower CPU-only endpoint if one is configured. Settings → System shows the local model as \"Busy\" while this lasts, with a rough countdown. Scheduled digests hold back for up to an hour and a half rather than arriving thinner than usual, and go out with their highlights after that. Just ask again in a few minutes; nothing is broken and nothing was lost.",
       "believe": "Not at all. Plenty of people read a chart the way they'd read a personality sketch or a journalling prompt: something to think with, not something to obey. The app is deliberately written to describe tendencies rather than issue verdicts, and nothing here should replace medical, legal or financial advice.",
