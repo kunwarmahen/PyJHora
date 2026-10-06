@@ -48,6 +48,21 @@ def _fmt_period_days(dates, days) -> str:
     return ", ".join(out)
 
 
+# Divisional charts a Topic Reading needs beyond chart_context.DEFAULT_VARGAS
+# (§83.4). The education prompt reads the D24, so the route must put it in the
+# context — an instruction about a chart the model never received invites invention.
+TOPIC_EXTRA_VARGAS = {"education": [24]}
+
+
+def topic_vargas(prediction_type: str, requested: Optional[list]) -> Optional[list]:
+    """The vargas a Topic Reading's context carries: the caller's explicit list
+    wins; otherwise the defaults plus whatever the topic's prompt reads."""
+    if requested is not None or prediction_type not in TOPIC_EXTRA_VARGAS:
+        return requested
+    from chart_context import DEFAULT_VARGAS
+    return sorted(set(DEFAULT_VARGAS) | set(TOPIC_EXTRA_VARGAS[prediction_type]))
+
+
 class PromptsMixin:
 
     def _build_quiz_gen_prompt(self, chart_data: Dict[str, Any], topics: List[str],
@@ -196,7 +211,18 @@ class PromptsMixin:
             "general": "overall life path, personality, and general predictions",
             "health": "health constitution, potential health issues, and wellness recommendations",
             "career": "career inclinations, professional success factors, and recommended fields",
-            "relationships": "relationship patterns, marriage timing, and compatibility factors"
+            "relationships": "relationship patterns, marriage timing, and compatibility factors",
+            # §83.4 — each new topic names its classical houses and karakas, so
+            # the reading is anchored rather than a general one under a new title.
+            "finance": "wealth and money: the 2nd house (accumulated wealth) and 11th house "
+                       "(gains) and their lords, Jupiter as karaka of wealth, any dhana yogas, "
+                       "and when the dasha chain favours earning or saving",
+            "education": "education and learning: the 4th house (formal education), 5th house "
+                         "(intelligence) and 2nd house (early learning), their lords, Mercury and "
+                         "Jupiter, and the dasha periods that suit study",
+            "travel": "travel and living abroad: the 3rd house (short journeys), 9th house "
+                      "(long journeys) and 12th house (foreign lands and settling away), their "
+                      "lords, Rahu, and the dasha periods that bring movement",
         }
         focus = type_specific.get(prediction_type, type_specific["general"])
 
@@ -204,7 +230,7 @@ class PromptsMixin:
         # Bhava/Hora/Ghati/Varnada Lagna with their rules, but "available" is not
         # "applied" — without an instruction the model reads the natal houses and
         # leaves them on the table. Only types with a settled classical rule get
-        # an entry here; health and relationships deliberately get none.
+        # an entry here; health, relationships and travel deliberately get none.
         extra_technique = {
             "career": (
                 "\nBeyond the natal 10th house, ALSO judge the 10th counted from the "
@@ -212,6 +238,17 @@ class PromptsMixin:
                 "status. Treat it as a second opinion, not a replacement: where it "
                 "agrees with the natal 10th, say so plainly; where it disagrees, name "
                 "that tension rather than smoothing it over.\n"
+            ),
+            "finance": (
+                "\nBeyond the natal 2nd and 11th, ALSO judge the 2nd and 11th counted "
+                "from the HORA LAGNA — the classical reference for wealth. Treat it as "
+                "a second opinion: say where it agrees with the natal houses and name "
+                "any tension rather than smoothing it over.\n"
+            ),
+            "education": (
+                "\nThe D24 (Chaturvimsamsa) — the divisional chart for learning — is in "
+                "the context. Read its Lagna, its 4th and 5th houses and Mercury and "
+                "Jupiter there as a second opinion on the natal 4th and 5th.\n"
             ),
             "general": (
                 "\nRead BHAVA, HORA and GHATI LAGNA as a trio alongside the natal "

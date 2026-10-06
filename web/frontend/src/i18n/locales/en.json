@@ -906,13 +906,19 @@
       "general": "Life path",
       "career": "Career",
       "relationships": "Relationships",
-      "health": "Health"
+      "health": "Health",
+      "finance": "Wealth",
+      "education": "Education",
+      "travel": "Travel"
     },
     "topicHint": {
       "general": "Your overall life path and character, read with the natal Lagna alongside the Bhava, Hora and Ghati lagnas.",
       "career": "Work, vocation and rise in standing — the 10th house and its lord, checked against the 10th from the Ghati Lagna.",
       "relationships": "Relationship patterns, partnership and marriage timing — the 7th house, Venus, Jupiter and the running dasha.",
-      "health": "Constitution and where care is worth taking. This is astrology, not medical advice — see a doctor for anything that worries you."
+      "health": "Constitution and where care is worth taking. This is astrology, not medical advice — see a doctor for anything that worries you.",
+      "finance": "Money coming in and staying — the 2nd and 11th houses, Jupiter and any wealth yogas, checked against the same houses from the Hora Lagna.",
+      "education": "Study and learning — the 4th and 5th houses, Mercury and Jupiter, with the D24 (the divisional chart for education) as a second opinion.",
+      "travel": "Journeys near and far, and living abroad — the 3rd, 9th and 12th houses, Rahu and the periods that bring movement."
     },
     "readingTitle": "Reading",
     "hint": "Choose a topic above, then ask for the reading. It is saved to your AI History.",
@@ -2944,7 +2950,7 @@
       "whatIsAyanamsa": "Vedic astrology measures the zodiac against the fixed stars, and the stars have slowly drifted from where Western astrology's zodiac starts. The ayanamsa is how big that drift is taken to be, and different schools use slightly different values — which is why two apps can put a planet a degree apart, or even in a different nakshatra. This app defaults to True Chitra (a precise form of Lahiri) with mean Rahu and Ketu, which matches Jagannatha Hora. You can pick another — plain Lahiri, KP, Raman and others — in Settings → General → Ayanamsa.",
       "calendarFeed": "Yes. Settings → Calendar gives you a subscription link for Google Calendar, Apple Calendar or Outlook, carrying your chart's upcoming events — bhukti changes, Sade Sati boundaries, your solar return, slow-planet ingresses and eclipses on your birth stars. It refreshes by itself about twice a day. Anyone who has the link can see the feed (calendar apps can't log in), so keep it private.",
       "apiAccess": "Yes, if you're comfortable with a little setup. Settings → API access creates a personal token for the read-only API, and the same token works with the app's MCP server, which lets an AI assistant such as Claude Desktop look up your charts. The token acts as you, so treat it like a password; you can revoke it there at any time. Nothing reached this way can change your data.",
-      "featPredictions": "An AI reading of your chart on just one area of life — your life path, career, relationships or health — instead of everything at once. Pick the topic and the AI reads the houses, lords, yogas and running dasha that bear on it; for career it also checks the 10th house counted from the Ghati Lagna, the classical second opinion on rise in standing. It sits with the Life Report and Full Report in Reports, and every reading is saved to your AI History. Health readings are astrology, not medical advice.",
+      "featPredictions": "An AI reading of your chart on just one area of life — your life path, career, relationships, health, wealth, education or travel — instead of everything at once. Pick the topic and the AI reads the houses, lords, yogas and running dasha that bear on it; for career it also checks the 10th house counted from the Ghati Lagna, the classical second opinion on rise in standing. Wealth is checked the same way from the Hora Lagna, and education against the D24, the divisional chart for learning. It sits with the Life Report and Full Report in Reports, and every reading is saved to your AI History. Health readings are astrology, not medical advice.",
       "featStart": "The best first stop. It explains four things from your chart in everyday words: your Rising sign (Lagna — how you meet the world), your Moon sign (Rashi — your mind and feelings), your birth star (Nakshatra — the Moon's exact star group, with its traditional symbol and deity), and the chapter of life you're in now (your current dasha period and sub-period, with dates). Each card shows the Sanskrit name beside the plain one, so you'll recognise it on other pages. Nothing on it is written by the AI — it's worked out from your chart instantly — and if your birth time isn't known, it says what can't be stated without it instead of guessing. Underneath are a few questions you can send straight to the AI astrologer."
     }
   },

@@ -132,7 +132,7 @@ class AskQuestionRequest(BaseModel):
 class PredictionRequest(BaseModel):
     birth_details: BirthDetails
     profile_id: Optional[str] = None  # for grouping the saved reading in history
-    prediction_type: str = "general"  # general, health, career, relationships
+    prediction_type: str = "general"  # general, health, career, relationships, finance, education, travel
     llm_provider: str = "qwen"  # legacy fallback
     # New model-selection fields (optional; fall back to llm_provider when absent)
     provider_type: Optional[str] = None   # ollama | openai-compatible | gemini | openai

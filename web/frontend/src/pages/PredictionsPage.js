@@ -36,7 +36,15 @@ const readModelConfig = () => {
 // The topics the backend's prediction prompt knows (`llm/prompts.py`
 // `_build_prediction_prompt` → type_specific). An unknown key would silently
 // fall back to "general", so this list must stay a subset of that one.
-export const TOPICS = ["general", "career", "relationships", "health"];
+export const TOPICS = [
+  "general",
+  "career",
+  "relationships",
+  "health",
+  "finance",
+  "education",
+  "travel",
+];
 
 /**
  * Topic Reading (§79.3) — a focused AI reading of the selected chart on one area

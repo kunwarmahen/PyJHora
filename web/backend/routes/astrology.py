@@ -21,6 +21,7 @@ from auth import create_access_token, decode_token, get_password_hash, verify_pa
 from database import User, BirthDetails, ChartData
 from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, SUPPORTED_VARGAS, SUPPORTED_DASHAS
 from chart_context import build_chart_context
+from llm.prompts import topic_vargas
 import ask_jobs
 import claim_check
 import claim_reports
@@ -1313,7 +1314,7 @@ async def generate_prediction(
             birth_details=request.birth_details.model_dump(),
             ayanamsa=request.ayanamsa or DEFAULT_AYANAMSA,
             sections=request.sections,
-            vargas=request.vargas,
+            vargas=topic_vargas(request.prediction_type, request.vargas),
             current_tz=await viewer_tz(
                 current_user, fallback=request.birth_details.timezone),
         )

@@ -30,7 +30,7 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 | §82.2 | CI workflow has never run on GitHub — check the first run after a push | ✅ first run green (798fb4f) |
 | §82.3 | Translation backlog — §81 screens ✅ (§83.2); left: Hindi Help answers (~190), glossary, landing page, raja-yoga/panchanga/koota names | P2 |
 | §82.1 | **New:** Compatibility's Mangal rule flags 88.9% of charts — keep (now labelled) or narrow? | 🔴 owner call |
-| §82.4 | Mangal Dosha prevalence on Compatibility ✅ (§83.3); more Topic Reading topics | P2 |
+| §82.4 | Mangal Dosha prevalence on Compatibility ✅ (§83.3); more Topic Reading topics ✅ (§83.4) | ✅ |
 | §82.5 | Hardening: in-process rate limit, forwarded-IP trust, beacon inflation, realistic-payload harness | P3 |
 
 Product docs are in [`docs/`](docs/) — start at [`README.md`](README.md). A ready-to-paste prompt for
@@ -8666,7 +8666,7 @@ up directly. Each item names where the detail lives.
 - [x] ✅ **Done 2026-10-06 (§83.3) — 88.9% / 50.8%.** **Mangal Dosha on Compatibility has no prevalence line** (§81.4) — that tab uses its own cancellation
       logic, so the Birth Chart figure isn't the same rule; measure it with that function before showing a
       number.
-- [ ] **Topic Reading's topics** are four (general/career/relationships/health) because that is what
+- [x] ✅ **Done 2026-10-06 (§83.4): + wealth, education, travel.** **Topic Reading's topics** are four (general/career/relationships/health) because that is what
       `_build_prediction_prompt` knows. More (finance, education, travel) need prompt entries first —
       `test_topic_reading_topics.py` fails if the page offers a topic the prompt doesn't know.
 
@@ -8760,3 +8760,19 @@ green on 798fb4f.
   a backend restart. Not browser-driven (the tab needs two partner profiles).
 - **Help/FAQ:** `featCompatibility` says the Mangal tab's rule makes ~9 in 10 Manglik and why it differs from
   the Birth Chart. **Docs:** FEATURES.md Compatibility line.
+
+### 83.4 Topic Reading: wealth, education, travel (§82.4) — ✅ SHIPPED 2026-10-06
+- **What.** Three new `prediction_type`s in `_build_prediction_prompt`, each naming its classical houses
+  and karakas: **finance** ("Wealth": 2nd + 11th and lords, Jupiter, dhana yogas; *plus* the 2nd/11th from
+  the **Hora Lagna**, the same second-opinion pattern as career's Ghati Lagna), **education** (4th, 5th, 2nd,
+  Mercury, Jupiter; *plus* the **D24**), **travel** (3rd, 9th, 12th, Rahu; no extra technique, no settled
+  single rule). Page `TOPICS` + en/hi labels and hints.
+- **Trap — an instruction about data the model doesn't have.** D24 isn't in `DEFAULT_VARGAS` (1/9/10), and the
+  page sends no varga list. Telling the model to read the D24 without it would invite an invented chart.
+  `TOPIC_EXTRA_VARGAS` + `topic_vargas()` (in `llm/prompts.py`, next to the instruction) make `/predict` add
+  D24 for education only; an explicit caller list still wins. The Hora Lagna is already in every context.
+- **Tests.** `test_topic_reading_topics.py`: the existing guard now covers seven page topics; new tests pin
+  that education's context gets D24 (and keeps the defaults), the caller's list wins, and each new focus
+  names its houses. Routes snapshot unchanged. Browser (hi): the picker shows all seven, शिक्षा shows its hint.
+  Not exercised: a live model generating these readings (depends on the configured provider).
+- **Help/FAQ:** `featPredictions` lists the new topics and their second opinions. **Docs:** FEATURES.md Topic Reading.

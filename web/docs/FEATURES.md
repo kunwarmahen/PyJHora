@@ -856,12 +856,14 @@ Also here: **Life Report** (`/life-report`) — see *Life Report* under Cross-cu
 ### Topic Reading (`/predictions`)
 
 A focused AI reading of the selected chart on one area — **life path**, **career**,
-**relationships** or **health** — as a tab bar (`?tab=career`, deep-linkable). Calls
+**relationships**, **health**, **wealth**, **education** or **travel** (the last three §83.4) — as a tab bar (`?tab=career`, deep-linkable). Calls
 `POST /api/astrology/predict` with `prediction_type` = the topic; the server builds the full
 chart context (D1, dasha chain, yogas, doshas, transits), runs the claim checker, and saves the
 reading to AI History (source `prediction`, label "Topic reading"), which reopens it here under
 its topic. Career also judges the 10th from the Ghati Lagna; life path reads Bhava/Hora/Ghati
-lagnas with the natal Lagna (`llm/prompts.py` `_build_prediction_prompt`). The page's `TOPICS`
+lagnas with the natal Lagna; wealth judges the 2nd/11th from the Hora Lagna; education reads the D24,
+which the route adds to the context for that topic only (`TOPIC_EXTRA_VARGAS` / `topic_vargas`) (`llm/prompts.py`
+`_build_prediction_prompt`). The page's `TOPICS`
 must stay a subset of that prompt's topics — an unknown one silently falls back to general.
 
 Until §79.3 this was the original `/predictions` form: hand-typed birth details, no profile, a

@@ -46,3 +46,24 @@ def test_every_page_topic_gets_its_own_focus(topic):
         return
     # A known topic gets its own focus; an unknown one would get general's.
     assert _focus_line(topic) != _focus_line("general"), topic
+
+
+def test_education_reading_receives_the_d24_it_is_told_to_read():
+    """§83.4: the education prompt reads the D24, which is not a default varga,
+    so the route must add it — an instruction about a chart the model never got
+    invites an invented one. An explicit caller list still wins."""
+    from chart_context import DEFAULT_VARGAS
+    from llm.prompts import topic_vargas
+
+    assert 24 not in DEFAULT_VARGAS
+    assert 24 in topic_vargas("education", None)
+    assert set(DEFAULT_VARGAS) <= set(topic_vargas("education", None))
+    assert topic_vargas("career", None) is None          # -> defaults
+    assert topic_vargas("education", [1, 9]) == [1, 9]   # caller's list wins
+    assert "D24" in _Prompts()._build_prediction_prompt({}, "education")
+
+
+def test_new_topics_name_their_classical_houses():
+    assert "2nd house" in _focus_line("finance") and "11th house" in _focus_line("finance")
+    assert "4th house" in _focus_line("education")
+    assert "12th house" in _focus_line("travel")
