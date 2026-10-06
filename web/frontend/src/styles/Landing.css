@@ -1146,6 +1146,9 @@
 .landing .final .hero-cta {
   justify-content: center;
 }
+/* The hero is a night sky in both themes too, so its ghost button needs the
+   same light-on-dark treatment (it was dark-on-dark in the light theme). */
+.landing .hero .btn-ghost,
 .landing .final .btn-ghost {
   color: var(--night-ink);
   border-color: rgba(var(--white-rgb), 0.3);

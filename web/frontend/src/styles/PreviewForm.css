@@ -98,3 +98,13 @@
   color: var(--ink);
   max-width: 52ch;
 }
+
+/* The place search is an input + button + tip, ~345px wide: in a 200px track it
+   spilled under the submit button (§83.6). Give it two tracks where there is
+   room; the single-column phone layout already has the width. */
+@media (min-width: 720px) {
+  .preview__place {
+    grid-column: span 2;
+    min-width: 0;
+  }
+}

@@ -28,7 +28,7 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 | §82.1 | Hindi typo `म्रृगशीर्षा` — patch upstream file or override? | ⏸ owner: ignore for now |
 | §82.1 | Vite migration — the §68.3 blocker is gone; still optional | ⏸ owner: not now |
 | §82.2 | CI workflow has never run on GitHub — check the first run after a push | ✅ first run green (798fb4f) |
-| §82.3 | Translation backlog — §81 screens ✅ (§83.2); left: Hindi Help answers (~190), landing page, raja-yoga/panchanga/koota names | P2 |
+| §82.3 | Translation backlog — §81 screens ✅ (§83.2); left: Hindi Help answers (~190), raja-yoga/panchanga/koota names | P2 |
 | §82.1 | **New:** Compatibility's Mangal rule flags 88.9% of charts — keep (now labelled) or narrow? | 🔴 owner call |
 | §82.4 | Mangal Dosha prevalence on Compatibility ✅ (§83.3); more Topic Reading topics ✅ (§83.4) | ✅ |
 | §82.5 | Hardening: in-process rate limit, forwarded-IP trust, beacon inflation, realistic-payload harness | P3 |
@@ -8657,7 +8657,7 @@ up directly. Each item names where the detail lives.
       separate `hi` table, not by editing `en`), `welcome.*`, `checklist.*`, `pageHint.*`, `preview.*`,
       `predictions.*` (Topic Reading). Blocked on the 82.1 decision.
 - [x] ✅ **Done 2026-10-06 (§83.5) — 33/33.** **Glossary**: only 10 core terms have Hindi (`glossaryTerms.*` in hi.json); ~25 remain English.
-- [ ] **Landing page copy is hard-coded English** (`LandingPage.js`), unlike the rest of the app — move to
+- [x] ✅ **Done 2026-10-06 (§83.6) — owner: translate.** **Landing page copy is hard-coded English** (`LandingPage.js`), unlike the rest of the app — move to
       i18n if the landing page should follow the language picker.
 - [ ] **Still English by design** (I18N doc §5/§6.5): Kendra-Trikona raja-yoga labels (our own f-strings),
       panchanga limb values, Ashtakoot koota names.
@@ -8783,3 +8783,26 @@ green on 798fb4f.
   English stays the fallback. Frontend config/constants/components 303/303.
 - Help/FAQ: n/a — no answer describes which glossary entries are translated; `languageAndTheme` (§83.2) already
   says Hindi coverage is partial. Docs: n/a beyond this entry.
+### 83.6 The landing page in Hindi, with its own language button (§82.3) — ✅ SHIPPED 2026-10-06
+- **Why now.** §83.2 translated the preview form embedded in the landing page, so a visitor whose browser
+  asks for Hindi would have seen English copy around a Hindi form. Owner chose to translate the page
+  (over pinning the form to English).
+- **What.** Every string in `LandingPage.js` moved to `landing.*` (en + hi, ~150 strings incl. the pricing
+  plans; the dev-facing pricing note stays English). `PLANS`/`FEATURES` keep only structure (ids, prices,
+  icons, classes); `DEPTH_CHIPS` became a locale array. Inline markup uses `<Trans>` (`<accent>`, `<b>`,
+  `<strong>`, `<br/>`, and `<cite1>`/`<cite2>` spans that keep their source titles). A **language button**
+  beside the theme toggle offers the other of English/हिन्दी (Sanskrit has no landing copy) via
+  `updateSetting("language")`, so it lazy-loads the hi chunk and persists like the Settings choice.
+  The shared **`LocationSearch`** (landing preview, Welcome, profile forms, Settings) was hard-coded English
+  too: now `locationSearch.*` in en + hi.
+- **Bugs fixed on the way (both pre-existing, both visible in English):** the hero's "See your chart free" ghost
+  button was dark-on-dark in the light theme (the hero is a night sky in both themes; `.final` already had the
+  override, the hero didn't). The preview form's place search (input + button + tip, ~345px) spilled under the
+  submit button from a 200px grid track; it now spans two tracks from 720px up.
+- **Tests.** `pages/landingCopy.test.js`: every literal `landing.*` key the page uses exists in en; keys built from
+  `PLANS`/`FEATURES` ids exist; hi mirrors en's shape. The page harness already mounts LandingPage (it discovers
+  every `*Page.js`). Frontend 528/528, eslint/prettier clean. Browser (Playwright): English → click हिन्दी → Hindi
+  hero/nav/sections, no raw keys, no page errors, choice survives reload; `<strong>`×4, cites×2, accent and `<br>`
+  render; form at 1280/1024/390px has no overlap and no horizontal scroll.
+- **Help/FAQ:** `languageAndTheme` mentions the front page's own language button; hi `tryWithoutAccount` now
+  quotes the Hindi heading. **Docs:** FEATURES.md "Public landing page".

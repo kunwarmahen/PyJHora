@@ -488,8 +488,10 @@ landing page never gets in a returning user's way — the `/` route branches on 
 in `components/RootRoute.js`. The page ships its own theme-aware styles scoped under
 `.landing` and reuses the app's Light/Dark/System toggle. An optional pricing
 section (Free / Pro / Practitioner) is hidden by default and shown only when
-`REACT_APP_SHOW_PRICING=true`; tier numbers are placeholders in
-`pages/LandingPage.js` until you finalize them.
+`REACT_APP_SHOW_PRICING=true`; tier prices are placeholders in `PLANS` in
+`pages/LandingPage.js` until you finalize them (plan *text* is in `landing.pricing.plans.*`).
+**English / हिन्दी** (§83.6): all copy is in `landing.*` in en.json/hi.json, and a language button beside the
+theme toggle switches it (stored like the Settings choice, so it carries into the app after sign-up).
 
 ### The newcomer's first minute (§76/§81)
 

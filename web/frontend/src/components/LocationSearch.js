@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import "./LocationSearch.css";
 import { API_URL } from "../services/api";
 
@@ -17,10 +18,8 @@ import { API_URL } from "../services/api";
  *   }}
  * />
  */
-const LocationSearch = ({
-  onLocationSelect,
-  placeholder = "Search location (e.g., Chennai, India)",
-}) => {
+const LocationSearch = ({ onLocationSelect, placeholder }) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,7 +27,7 @@ const LocationSearch = ({
 
   const searchLocation = async () => {
     if (!query.trim()) {
-      setError("Please enter a location");
+      setError(t("locationSearch.empty"));
       return;
     }
 
@@ -48,7 +47,9 @@ const LocationSearch = ({
       const data = await response.json();
 
       if (data.success) {
-        setSuccess(`Found: ${data.place} (${data.latitude}, ${data.longitude})`);
+        setSuccess(
+          t("locationSearch.found", { place: data.place, lat: data.latitude, lon: data.longitude })
+        );
 
         // Call the callback with location data
         if (onLocationSelect) {
@@ -60,10 +61,10 @@ const LocationSearch = ({
           });
         }
       } else {
-        setError(data.message || "Location not found");
+        setError(data.message || t("locationSearch.notFound"));
       }
     } catch (err) {
-      setError("Failed to search location. Please try again.");
+      setError(t("locationSearch.failed"));
       console.error("Location search error:", err);
     } finally {
       setLoading(false);
@@ -85,7 +86,7 @@ const LocationSearch = ({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder={placeholder}
+          placeholder={placeholder || t("locationSearch.placeholder")}
           disabled={loading}
         />
         <button
@@ -93,7 +94,7 @@ const LocationSearch = ({
           onClick={searchLocation}
           disabled={loading || !query.trim()}
         >
-          {loading ? <span className="loading-spinner">🔍</span> : "Search"}
+          {loading ? <span className="loading-spinner">🔍</span> : t("locationSearch.button")}
         </button>
       </div>
 
@@ -101,9 +102,7 @@ const LocationSearch = ({
 
       {success && <div className="location-search-success">✓ {success}</div>}
 
-      <div className="location-search-hint">
-        💡 Tip: Use format "City, Country" (e.g., "Mumbai, India", "New York, USA")
-      </div>
+      <div className="location-search-hint">💡 {t("locationSearch.tip")}</div>
     </div>
   );
 };

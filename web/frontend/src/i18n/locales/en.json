@@ -2945,7 +2945,7 @@
       "accessibility": "Yes. Every page starts with a “Skip to content” link so you are not walked through the whole menu first, the menu closes with Escape, and the tab bars move with the arrow keys. The chart itself is described out loud rather than announced as a picture — a screen reader reads the ascendant and then each sign or house with what is sitting in it. If you find something that cannot be reached from the keyboard, that is a bug worth reporting.",
       "aiCitations": "From a small library of out-of-copyright translations kept with the app — at present the 1885 English translation of Varaha Mihira's *Brihat Jataka*, plus a set of plainly-stated general principles. When a reading cites a chapter and verse, that verse is really in the book; the app never invents a reference. The general principles are labelled “General principle” rather than given a false verse number, so you can always tell which is which. The library is deliberately small, so many readings will have nothing to cite — those simply argue from the chart.",
       "featNakshatraGochara": "On the Transits page, under the main table. A sign is 30 degrees wide and a planet can sit in one for years; a nakshatra is 13°20', so it says far more about timing. This shows which of the 27 stars each planet is currently crossing, the dates it entered and leaves (including when a retrograde planet turns back into the star behind it), and — the part that is about you — the tarabala: that star counted from your own birth star, which gives one of nine classical results from Sampat (gain) to Vadha (avoid anything irreversible). Each star's deity and symbol are shown too, but labelled as imagery: the classical texts give no table of results for 'planet X in star Y', so nothing here pretends one exists.",
-      "languageAndTheme": "Yes. Settings → General → Language switches between English, Hindi and Sanskrit (Sanskrit is still a work in progress). Hindi doesn't cover every screen yet: sign, star and planet names, the main pages and the newcomer screens (Start here, the welcome steps, the checklist) are translated, while some longer explanations, including many Help answers, still appear in English. The theme — Light, Dark, or System to follow your device — is in the same place, and the sun/moon button in the page header flips it in one tap. Printed reports always come out light.",
+      "languageAndTheme": "Yes. Settings → General → Language switches between English, Hindi and Sanskrit (Sanskrit is still a work in progress). Hindi doesn't cover every screen yet: sign, star and planet names, the main pages and the newcomer screens (Start here, the welcome steps, the checklist) are translated, while some longer explanations, including many Help answers, still appear in English. The front page has its own English / हिन्दी button beside the theme switch, so you can read it in Hindi before signing in. The theme — Light, Dark, or System to follow your device — is in the same place, and the sun/moon button in the page header flips it in one tap. Printed reports always come out light.",
       "whatIsVarga": "A divisional chart, or varga, splits each sign into smaller slices and rebuilds the chart from them, to magnify one area of life. The Navamsa (D9) is the best known — marriage and inner strength — and the Dasamsa (D10) is read for career. Others cover siblings (D3), children (D7), parents (D12), and so on up to the very fine D60. They're all on the Birth Chart page under the Advanced tab; pick one from the list to draw it.",
       "whatIsAyanamsa": "Vedic astrology measures the zodiac against the fixed stars, and the stars have slowly drifted from where Western astrology's zodiac starts. The ayanamsa is how big that drift is taken to be, and different schools use slightly different values — which is why two apps can put a planet a degree apart, or even in a different nakshatra. This app defaults to True Chitra (a precise form of Lahiri) with mean Rahu and Ketu, which matches Jagannatha Hora. You can pick another — plain Lahiri, KP, Raman and others — in Settings → General → Ayanamsa.",
       "calendarFeed": "Yes. Settings → Calendar gives you a subscription link for Google Calendar, Apple Calendar or Outlook, carrying your chart's upcoming events — bhukti changes, Sade Sati boundaries, your solar return, slow-planet ingresses and eclipses on your birth stars. It refreshes by itself about twice a day. Anyone who has the link can see the feed (calendar apps can't log in), so keep it private.",
@@ -3287,5 +3287,233 @@
     "label": "What am I looking at?",
     "more": "More in Help",
     "dismiss": "Got it — don't show this again on this page"
+  },
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "how": "How it works",
+      "depth": "For practitioners",
+      "pricing": "Pricing",
+      "login": "Log in",
+      "getStarted": "Get started free",
+      "homeAria": "{{site}} home"
+    },
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "switchTitle": "Switch theme (next: {{next}})",
+      "switchAria": "Switch theme, currently {{current}}"
+    },
+    "lang": {
+      "switchAria": "Read this page in {{language}}"
+    },
+    "hero": {
+      "eyebrow": "ज्योतिष · the science of light",
+      "title": "Read the sky like it<br/>was <accent>written for you.</accent>",
+      "sub": "{{site}} computes your Vedic chart to the arc-second with the Swiss Ephemeris, then explains it in plain language — with every answer traced back to the classical texts.",
+      "seeFree": "See your chart free",
+      "meta": ["True Chitra ayanamsa", "Matches Jagannatha Hora", "50+ classical tools"]
+    },
+    "chart": {
+      "northAria": "A North Indian style Vedic birth chart",
+      "southAria": "A South Indian style Vedic birth chart",
+      "northCap": "North Indian · <b>Rasi</b>",
+      "southCap": "South Indian · <b>Rasi</b>"
+    },
+    "trust": [
+      "Swiss Ephemeris precision",
+      "27 nakshatras & 16 vargas",
+      "Vimsottari & 40+ dashas",
+      "KP · Jaimini · Tajaka",
+      "Open-source engine"
+    ],
+    "try": {
+      "eyebrow": "Free · no account needed",
+      "title": "See your chart in plain words.",
+      "body": "Your Rising sign, Moon sign, birth star and the chapter of life you're in now — worked out from your birth details in a second, explained for someone who has never read a chart."
+    },
+    "features": {
+      "eyebrow": "Everything, in one sky",
+      "title": "A full Jyotish practice, quietly doing the math for you.",
+      "body": "Start with the essentials and go as deep as you like. The computation is exact; the explanation is human.",
+      "items": {
+        "readings": {
+          "title": "Readings you can check",
+          "body": "Ask anything about your chart and get a clear answer — each claim cited to a classical source, never invented.",
+          "tag": "AI · citations · plain language"
+        },
+        "charts": {
+          "title": "Your chart, sixteen ways",
+          "body": "North and South Indian charts, all sixteen divisional vargas, and bhava cusps in KP, Sripati, Placidus and Equal.",
+          "tag": "D1–D60 · bhava · cusps"
+        },
+        "timing": {
+          "title": "Timing that means something",
+          "body": "Vimsottari and 40+ dasha systems, transit forecasts, and Ashtakavarga support scored on every planetary move.",
+          "tag": "dashas · transits · gochara"
+        },
+        "compat": {
+          "title": "Two charts, one story",
+          "body": "Ashtakoot and Dashakoota compatibility, seventh-house depth, and the years your two timelines actually overlap.",
+          "tag": "guna milan · marriage workspace"
+        },
+        "systems": {
+          "title": "KP, Jaimini & beyond",
+          "body": "Sub-lords and significators, Chara Karakas and Karakamsa, Sarvatobhadra and the classical chakras — all headless-accurate.",
+          "tag": "KP · Jaimini · chakras"
+        },
+        "daily": {
+          "title": "A gentle daily rhythm",
+          "body": "Panchanga, muhurta windows, remedies, and a daily digest that lands in your inbox — so the sky checks in on you.",
+          "tag": "panchanga · muhurta · digest"
+        }
+      }
+    },
+    "how": {
+      "eyebrow": "Three steps to your first reading",
+      "title": "From birth details to real understanding, in a minute.",
+      "steps": [
+        {
+          "title": "Add your birth details",
+          "body": "Date, time and place. Don't know your exact time? Rectify it from the events you do remember."
+        },
+        {
+          "title": "Get precise charts instantly",
+          "body": "Every varga, dasha and strength measure is computed the moment you land — no waiting, no guesswork."
+        },
+        {
+          "title": "Ask, and understand",
+          "body": "Chat in plain language or go deep into the classical detail. Toggle “explain simply” whenever you like."
+        }
+      ]
+    },
+    "ai": {
+      "eyebrow": "The difference",
+      "title": "Answers you can trace back.",
+      "intro": "Most astrology apps hand you a confident paragraph and hope you believe it. {{site}} shows its work.",
+      "points": [
+        "Every reading is grounded in <strong>your actual computed positions</strong> — not a generic sun-sign.",
+        "Claims are <strong>cited to the classical texts</strong> they draw from, so you can read the source yourself.",
+        "When the tradition is silent, it <strong>says so</strong> instead of inventing a verdict.",
+        "One tap toggles between <strong>plain language and full technical depth</strong>."
+      ],
+      "demo": {
+        "label": "ask · your chart",
+        "q": "When does my career finally settle down?",
+        "a": "Your tenth house is ruled by Saturn, which turns strong in its own sign during the <strong>Saturn–Mercury period beginning late 2027</strong>. Classical timing links this pairing to steady, earned advancement rather than sudden change<cite1>¹</cite1>. Transit Jupiter reinforces it by crossing your tenth in the same window<cite2>²</cite2>.",
+        "sources": "Sources: BPHS ch.47 · Phaladeepika ch.26"
+      }
+    },
+    "depth": {
+      "eyebrow": "For serious practice, too",
+      "title": "A friendly front door — with a full workbench behind it.",
+      "body": "The same product a curious beginner opens is the one a working astrologer relies on. Nothing is dumbed down; the depth is simply one tap away.",
+      "chips": [
+        "KP sub-lords & significators",
+        "Jaimini Chara Karakas",
+        "Ashtakavarga",
+        "Shadbala & strengths",
+        "Varshaphal & Tajaka",
+        "Kota · Kaala · Tripataki chakras",
+        "Prashna & horary (1–249)",
+        "Ruling planets",
+        "Multi-client profiles",
+        "API & MCP access"
+      ]
+    },
+    "pricing": {
+      "eyebrow": "Simple, honest pricing",
+      "title": "Start free. Upgrade when the sky gets interesting.",
+      "monthly": "Monthly",
+      "annual": "Annual",
+      "toggleAria": "Toggle annual billing",
+      "save": "Save ~20%",
+      "perMonth": "/month",
+      "perMonthYearly": "/mo billed yearly",
+      "note": "Suggested pricing — final numbers are set in code; the whole section hides behind the REACT_APP_SHOW_PRICING flag.",
+      "plans": {
+        "free": {
+          "name": "Free",
+          "desc": "For getting to know your chart.",
+          "per": "/forever",
+          "features": [
+            "Birth chart + core vargas",
+            "Panchanga & daily preview",
+            "3 AI questions a day",
+            "1 saved profile"
+          ],
+          "cta": "Get started"
+        },
+        "pro": {
+          "name": "Pro",
+          "flag": "Most popular",
+          "desc": "For everyone who wants the whole picture.",
+          "annualNote": "Billed $84/year",
+          "features": [
+            "Everything in Free",
+            "Unlimited AI readings & chat",
+            "All dashas, transits & forecasts",
+            "Full reports & PDF export",
+            "Compatibility & daily digest",
+            "5 saved profiles"
+          ],
+          "cta": "Start 14-day free trial"
+        },
+        "practitioner": {
+          "name": "Practitioner",
+          "desc": "For astrologers with real clients.",
+          "annualNote": "Billed $276/year",
+          "features": [
+            "Everything in Pro",
+            "Unlimited client profiles",
+            "KP, Jaimini & chakra tools",
+            "API & MCP access",
+            "Priority support"
+          ],
+          "cta": "Start 14-day free trial"
+        }
+      }
+    },
+    "privacy": {
+      "eyebrow": "Your sky, your data",
+      "title": "Your chart is yours.",
+      "body": "Birth data is intimate. {{site}} keeps it private by default, and you stay in control of every reading and conversation.",
+      "items": [
+        "Private by default — export or delete anything, anytime.",
+        "Built on the open-source PyJHora engine, self-hostable if you prefer.",
+        "Your readings are never used to train anyone else's model."
+      ]
+    },
+    "final": {
+      "eyebrow": "Jyotisha awaits",
+      "title": "The sky has been <accent>waiting for you.</accent>",
+      "body": "Add your birth details and get your first cited reading in under a minute. No card required."
+    },
+    "footer": {
+      "blurb": "Ancient Jyotish, computed precisely and explained in plain language.",
+      "product": "Product",
+      "learn": "Learn",
+      "company": "Company",
+      "nakshatras": "Nakshatras",
+      "dashas": "Dashas & timing",
+      "explained": "The chart, explained",
+      "glossary": "Glossary",
+      "privacy": "Privacy",
+      "getStarted": "Get started",
+      "signIn": "Sign in",
+      "top": "Back to top",
+      "rights": "© {{year}} {{site}}. All rights reserved.",
+      "disclaimer": "For guidance and reflection — not a substitute for medical, legal, or financial advice."
+    }
+  },
+  "locationSearch": {
+    "placeholder": "Search location (e.g., Chennai, India)",
+    "button": "Search",
+    "empty": "Please enter a location",
+    "notFound": "Location not found",
+    "failed": "Failed to search location. Please try again.",
+    "found": "Found: {{place}} ({{lat}}, {{lon}})",
+    "tip": "Tip: Use format \"City, Country\" (e.g., \"Mumbai, India\", \"New York, USA\")"
   }
 }

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sun, Moon, Monitor } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
+import { Sun, Moon, Monitor, Languages } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
 import { resolveTheme } from "../config/theme";
 import { SITE_TITLE } from "../config/branding";
@@ -13,7 +14,6 @@ const SHOW_PRICING = process.env.REACT_APP_SHOW_PRICING === "true";
 
 const THEME_ORDER = ["light", "dark", "system"];
 const THEME_ICON = { light: Sun, dark: Moon, system: Monitor };
-const THEME_LABEL = { light: "Light", dark: "Dark", system: "System" };
 
 const BrandMark = () => (
   <svg className="brand-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
@@ -23,58 +23,14 @@ const BrandMark = () => (
   </svg>
 );
 
+// Text lives in the locale files (landing.pricing.plans.<id>); prices stay here.
 const PLANS = [
-  {
-    name: "Free",
-    desc: "For getting to know your chart.",
-    price: "$0",
-    per: "/forever",
-    features: [
-      "Birth chart + core vargas",
-      "Panchanga & daily preview",
-      "3 AI questions a day",
-      "1 saved profile",
-    ],
-    cta: "Get started",
-    ctaClass: "btn-outline",
-  },
-  {
-    name: "Pro",
-    featured: true,
-    flag: "Most popular",
-    desc: "For everyone who wants the whole picture.",
-    monthly: "$9",
-    annual: "$7",
-    annualNote: "Billed $84/year",
-    features: [
-      "Everything in Free",
-      "Unlimited AI readings & chat",
-      "All dashas, transits & forecasts",
-      "Full reports & PDF export",
-      "Compatibility & daily digest",
-      "5 saved profiles",
-    ],
-    cta: "Start 14-day free trial",
-    ctaClass: "btn-primary",
-  },
-  {
-    name: "Practitioner",
-    desc: "For astrologers with real clients.",
-    monthly: "$29",
-    annual: "$23",
-    annualNote: "Billed $276/year",
-    features: [
-      "Everything in Pro",
-      "Unlimited client profiles",
-      "KP, Jaimini & chakra tools",
-      "API & MCP access",
-      "Priority support",
-    ],
-    cta: "Start 14-day free trial",
-    ctaClass: "btn-outline",
-  },
+  { id: "free", price: "$0", ctaClass: "btn-outline" },
+  { id: "pro", featured: true, monthly: "$9", annual: "$7", ctaClass: "btn-primary" },
+  { id: "practitioner", monthly: "$29", annual: "$23", ctaClass: "btn-outline" },
 ];
 
+// Text: landing.features.items.<key>.
 const FEATURES = [
   {
     icon: (
@@ -91,9 +47,7 @@ const FEATURES = [
         <circle cx="12" cy="12" r="4" />
       </svg>
     ),
-    title: "Readings you can check",
-    body: "Ask anything about your chart and get a clear answer — each claim cited to a classical source, never invented.",
-    tag: "AI · citations · plain language",
+    key: "readings",
   },
   {
     icon: (
@@ -109,9 +63,7 @@ const FEATURES = [
         <path d="M4 4 20 20M20 4 4 20" />
       </svg>
     ),
-    title: "Your chart, sixteen ways",
-    body: "North and South Indian charts, all sixteen divisional vargas, and bhava cusps in KP, Sripati, Placidus and Equal.",
-    tag: "D1–D60 · bhava · cusps",
+    key: "charts",
   },
   {
     icon: (
@@ -128,9 +80,7 @@ const FEATURES = [
         <circle cx="12" cy="12" r="9" />
       </svg>
     ),
-    title: "Timing that means something",
-    body: "Vimsottari and 40+ dasha systems, transit forecasts, and Ashtakavarga support scored on every planetary move.",
-    tag: "dashas · transits · gochara",
+    key: "timing",
   },
   {
     icon: (
@@ -148,9 +98,7 @@ const FEATURES = [
         <path d="M4 20c0-3 2-5 4-5s4 2 4 5M12 20c0-3 2-5 4-5s4 2 4 5" />
       </svg>
     ),
-    title: "Two charts, one story",
-    body: "Ashtakoot and Dashakoota compatibility, seventh-house depth, and the years your two timelines actually overlap.",
-    tag: "guna milan · marriage workspace",
+    key: "compat",
   },
   {
     icon: (
@@ -169,9 +117,7 @@ const FEATURES = [
         />
       </svg>
     ),
-    title: "KP, Jaimini & beyond",
-    body: "Sub-lords and significators, Chara Karakas and Karakamsa, Sarvatobhadra and the classical chakras — all headless-accurate.",
-    tag: "KP · Jaimini · chakras",
+    key: "systems",
   },
   {
     icon: (
@@ -187,23 +133,8 @@ const FEATURES = [
         <path d="M12 3a9 9 0 1 0 9 9M12 3v9l6-4" />
       </svg>
     ),
-    title: "A gentle daily rhythm",
-    body: "Panchanga, muhurta windows, remedies, and a daily digest that lands in your inbox — so the sky checks in on you.",
-    tag: "panchanga · muhurta · digest",
+    key: "daily",
   },
-];
-
-const DEPTH_CHIPS = [
-  "KP sub-lords & significators",
-  "Jaimini Chara Karakas",
-  "Ashtakavarga",
-  "Shadbala & strengths",
-  "Varshaphal & Tajaka",
-  "Kota · Kaala · Tripataki chakras",
-  "Prashna & horary (1–249)",
-  "Ruling planets",
-  "Multi-client profiles",
-  "API & MCP access",
 ];
 
 /** Slow, tilted spiral galaxy tucked into the hero's top-right corner + starfield. */
@@ -368,6 +299,13 @@ function makeStarfield(canvas, count, opts, reduce) {
 
 export const LandingPage = () => {
   const { settings, updateSetting } = useSettings();
+  const { t, i18n } = useTranslation();
+  // Landing copy exists in en + hi only, so the button offers the other one of
+  // those two (§83.6); a Sanskrit reader sees English copy and can pick Hindi.
+  const lang = (i18n.language || "en").split("-")[0];
+  const otherLang =
+    lang === "hi" ? { code: "en", native: "English" } : { code: "hi", native: "हिन्दी" };
+  const themeName = (k) => t(`landing.theme.${k}`);
   const [scrolled, setScrolled] = useState(false);
   const [annual, setAnnual] = useState(false);
   const rootRef = useRef(null);
@@ -379,8 +317,8 @@ export const LandingPage = () => {
   const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(pref) + 1) % THEME_ORDER.length];
   const themeLabel =
     pref === "system"
-      ? `${THEME_LABEL.system} · ${resolveTheme("system") === "dark" ? "Dark" : "Light"}`
-      : THEME_LABEL[pref];
+      ? `${themeName("system")} · ${themeName(resolveTheme("system") === "dark" ? "dark" : "light")}`
+      : themeName(pref);
 
   // Funnel step one (§76.8): the landing page was opened. Counts only.
   useEffect(() => {
@@ -434,39 +372,60 @@ export const LandingPage = () => {
   }, []);
 
   const priceOf = (plan) => (plan.price ? plan.price : annual ? plan.annual : plan.monthly);
-  const perOf = (plan) => (plan.price ? plan.per : annual ? "/mo billed yearly" : "/month");
+  const perOf = (plan) =>
+    plan.price
+      ? t(`landing.pricing.plans.${plan.id}.per`)
+      : t(annual ? "landing.pricing.perMonthYearly" : "landing.pricing.perMonth");
+  const list = (key) => {
+    const v = t(key, { returnObjects: true });
+    return Array.isArray(v) ? v : [];
+  };
 
   return (
     <div className="landing" ref={rootRef}>
       {/* ===================== NAV ===================== */}
       <nav className={`nav${scrolled ? " scrolled" : ""}`}>
         <div className="nav-inner">
-          <a className="brand" href="#top" aria-label={`${SITE_TITLE} home`}>
+          <a
+            className="brand"
+            href="#top"
+            aria-label={t("landing.nav.homeAria", { site: SITE_TITLE })}
+          >
             <BrandMark />
             {SITE_TITLE}
           </a>
           <div className="nav-links">
-            <a href="#features">Features</a>
-            <a href="#how">How it works</a>
-            <a href="#depth">For practitioners</a>
-            {SHOW_PRICING && <a href="#pricing">Pricing</a>}
+            <a href="#features">{t("landing.nav.features")}</a>
+            <a href="#how">{t("landing.nav.how")}</a>
+            <a href="#depth">{t("landing.nav.depth")}</a>
+            {SHOW_PRICING && <a href="#pricing">{t("landing.nav.pricing")}</a>}
           </div>
           <div className="nav-right">
             <button
               type="button"
               className="theme-toggle"
               onClick={() => updateSetting("theme", nextTheme)}
-              title={`Switch theme (next: ${THEME_LABEL[nextTheme]})`}
-              aria-label={`Switch theme, currently ${themeLabel}`}
+              title={t("landing.theme.switchTitle", { next: themeName(nextTheme) })}
+              aria-label={t("landing.theme.switchAria", { current: themeLabel })}
             >
               <ThemeIcon size={16} />
               <span className="tt-label">{themeLabel}</span>
             </button>
+            <button
+              type="button"
+              className="theme-toggle"
+              lang={otherLang.code}
+              onClick={() => updateSetting("language", otherLang.code)}
+              aria-label={t("landing.lang.switchAria", { language: otherLang.native })}
+            >
+              <Languages size={16} />
+              <span className="tt-label">{otherLang.native}</span>
+            </button>
             <Link className="login-link" to="/login">
-              Log in
+              {t("landing.nav.login")}
             </Link>
             <Link className="btn btn-primary" to="/register">
-              Get started free
+              {t("landing.nav.getStarted")}
             </Link>
           </div>
         </div>
@@ -478,29 +437,26 @@ export const LandingPage = () => {
         <div className="wrap">
           <div className="hero-grid">
             <div className="hero-copy">
-              <span className="eyebrow">ज्योतिष · the science of light</span>
+              <span className="eyebrow">{t("landing.hero.eyebrow")}</span>
               <h1>
-                Read the sky like it
-                <br />
-                was <span className="accent">written for you.</span>
+                <Trans
+                  i18nKey="landing.hero.title"
+                  components={{ accent: <span className="accent" /> }}
+                />
               </h1>
-              <p className="hero-sub">
-                {SITE_TITLE} computes your Vedic chart to the arc-second with the Swiss Ephemeris,
-                then explains it in plain language — with every answer traced back to the classical
-                texts.
-              </p>
+              <p className="hero-sub">{t("landing.hero.sub", { site: SITE_TITLE })}</p>
               <div className="hero-cta">
                 <Link className="btn btn-primary" to="/register">
-                  Get started free
+                  {t("landing.nav.getStarted")}
                 </Link>
                 <a className="btn btn-ghost" href="#try">
-                  See your chart free
+                  {t("landing.hero.seeFree")}
                 </a>
               </div>
               <div className="hero-meta">
-                <span>True&nbsp;Chitra ayanamsa</span>
-                <span>Matches Jagannatha&nbsp;Hora</span>
-                <span>50+ classical tools</span>
+                {list("landing.hero.meta").map((m) => (
+                  <span key={m}>{m}</span>
+                ))}
               </div>
             </div>
 
@@ -511,7 +467,7 @@ export const LandingPage = () => {
                 className="vchart chart-north"
                 viewBox="0 0 400 400"
                 role="img"
-                aria-label="A North Indian style Vedic birth chart"
+                aria-label={t("landing.chart.northAria")}
               >
                 <rect className="frame" x="2" y="2" width="396" height="396" rx="6" />
                 <path className="grid" d="M2 2 L398 398 M398 2 L2 398" />
@@ -593,7 +549,7 @@ export const LandingPage = () => {
                 className="vchart chart-south"
                 viewBox="0 0 400 400"
                 role="img"
-                aria-label="A South Indian style Vedic birth chart"
+                aria-label={t("landing.chart.southAria")}
               >
                 <rect className="frame" x="2" y="2" width="396" height="396" rx="6" />
                 <rect className="grid" x="100" y="100" width="200" height="200" />
@@ -675,10 +631,10 @@ export const LandingPage = () => {
               </svg>
 
               <div className="chart-caption cap-north">
-                North Indian · <b>Rasi</b>
+                <Trans i18nKey="landing.chart.northCap" components={{ b: <b /> }} />
               </div>
               <div className="chart-caption cap-south">
-                South Indian · <b>Rasi</b>
+                <Trans i18nKey="landing.chart.southCap" components={{ b: <b /> }} />
               </div>
             </div>
           </div>
@@ -688,26 +644,12 @@ export const LandingPage = () => {
       {/* ===================== TRUST ===================== */}
       <section className="trust">
         <div className="wrap trust-inner">
-          <span className="trust-item">
-            <span className="dia" />
-            Swiss Ephemeris precision
-          </span>
-          <span className="trust-item">
-            <span className="dia" />
-            27 nakshatras &amp; 16 vargas
-          </span>
-          <span className="trust-item">
-            <span className="dia" />
-            Vimsottari &amp; 40+ dashas
-          </span>
-          <span className="trust-item">
-            <span className="dia" />
-            KP · Jaimini · Tajaka
-          </span>
-          <span className="trust-item">
-            <span className="dia" />
-            Open-source engine
-          </span>
+          {list("landing.trust").map((item) => (
+            <span className="trust-item" key={item}>
+              <span className="dia" />
+              {item}
+            </span>
+          ))}
         </div>
       </section>
 
@@ -715,13 +657,9 @@ export const LandingPage = () => {
       <section className="section" id="try">
         <div className="wrap">
           <div className="section-head reveal in">
-            <span className="eyebrow">Free · no account needed</span>
-            <h2>See your chart in plain words.</h2>
-            <p>
-              Your Rising sign, Moon sign, birth star and the chapter of life you&apos;re in now —
-              worked out from your birth details in a second, explained for someone who has never
-              read a chart.
-            </p>
+            <span className="eyebrow">{t("landing.try.eyebrow")}</span>
+            <h2>{t("landing.try.title")}</h2>
+            <p>{t("landing.try.body")}</p>
           </div>
           <PreviewForm />
         </div>
@@ -731,20 +669,17 @@ export const LandingPage = () => {
       <section className="section" id="features">
         <div className="wrap">
           <div className="section-head reveal">
-            <span className="eyebrow">Everything, in one sky</span>
-            <h2>A full Jyotish practice, quietly doing the math for you.</h2>
-            <p>
-              Start with the essentials and go as deep as you like. The computation is exact; the
-              explanation is human.
-            </p>
+            <span className="eyebrow">{t("landing.features.eyebrow")}</span>
+            <h2>{t("landing.features.title")}</h2>
+            <p>{t("landing.features.body")}</p>
           </div>
           <div className="feat-grid">
             {FEATURES.map((f) => (
-              <article className="feat reveal" key={f.title}>
+              <article className="feat reveal" key={f.key}>
                 <div className="feat-ic">{f.icon}</div>
-                <h3>{f.title}</h3>
-                <p>{f.body}</p>
-                <span className="tag">{f.tag}</span>
+                <h3>{t(`landing.features.items.${f.key}.title`)}</h3>
+                <p>{t(`landing.features.items.${f.key}.body`)}</p>
+                <span className="tag">{t(`landing.features.items.${f.key}.tag`)}</span>
               </article>
             ))}
           </div>
@@ -755,31 +690,16 @@ export const LandingPage = () => {
       <section className="section steps" id="how">
         <div className="wrap">
           <div className="section-head reveal">
-            <span className="eyebrow">Three steps to your first reading</span>
-            <h2>From birth details to real understanding, in a minute.</h2>
+            <span className="eyebrow">{t("landing.how.eyebrow")}</span>
+            <h2>{t("landing.how.title")}</h2>
           </div>
           <div className="steps-grid">
-            <div className="step reveal">
-              <h3>Add your birth details</h3>
-              <p>
-                Date, time and place. Don&apos;t know your exact time? Rectify it from the events
-                you do remember.
-              </p>
-            </div>
-            <div className="step reveal">
-              <h3>Get precise charts instantly</h3>
-              <p>
-                Every varga, dasha and strength measure is computed the moment you land — no
-                waiting, no guesswork.
-              </p>
-            </div>
-            <div className="step reveal">
-              <h3>Ask, and understand</h3>
-              <p>
-                Chat in plain language or go deep into the classical detail. Toggle “explain simply”
-                whenever you like.
-              </p>
-            </div>
+            {list("landing.how.steps").map((step) => (
+              <div className="step reveal" key={step.title}>
+                <h3>{step.title}</h3>
+                <p>{step.body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -789,41 +709,18 @@ export const LandingPage = () => {
         <div className="wrap">
           <div className="ai-grid">
             <div className="ai-copy reveal">
-              <span className="eyebrow">The difference</span>
-              <h2>Answers you can trace back.</h2>
-              <p>
-                Most astrology apps hand you a confident paragraph and hope you believe it.{" "}
-                {SITE_TITLE} shows its work.
-              </p>
+              <span className="eyebrow">{t("landing.ai.eyebrow")}</span>
+              <h2>{t("landing.ai.title")}</h2>
+              <p>{t("landing.ai.intro", { site: SITE_TITLE })}</p>
               <ul className="ai-points">
-                <li>
-                  <span className="chk">✓</span>
-                  <span>
-                    Every reading is grounded in <strong>your actual computed positions</strong> —
-                    not a generic sun-sign.
-                  </span>
-                </li>
-                <li>
-                  <span className="chk">✓</span>
-                  <span>
-                    Claims are <strong>cited to the classical texts</strong> they draw from, so you
-                    can read the source yourself.
-                  </span>
-                </li>
-                <li>
-                  <span className="chk">✓</span>
-                  <span>
-                    When the tradition is silent, it <strong>says so</strong> instead of inventing a
-                    verdict.
-                  </span>
-                </li>
-                <li>
-                  <span className="chk">✓</span>
-                  <span>
-                    One tap toggles between <strong>plain language and full technical depth</strong>
-                    .
-                  </span>
-                </li>
+                {list("landing.ai.points").map((_, i) => (
+                  <li key={i}>
+                    <span className="chk">✓</span>
+                    <span>
+                      <Trans i18nKey={`landing.ai.points.${i}`} />
+                    </span>
+                  </li>
+                ))}
               </ul>
             </div>
             <div className="reading reveal">
@@ -831,22 +728,18 @@ export const LandingPage = () => {
                 <span className="dot dot-red" />
                 <span className="dot dot-amber" />
                 <span className="dot dot-green" />
-                <span className="rlabel">ask · your chart</span>
+                <span className="rlabel">{t("landing.ai.demo.label")}</span>
               </div>
               <div className="reading-body">
-                <div className="reading-q">When does my career finally settle down?</div>
+                <div className="reading-q">{t("landing.ai.demo.q")}</div>
                 <p className="reading-a">
-                  Your tenth house is ruled by Saturn, which turns strong in its own sign during the{" "}
-                  <strong>Saturn–Mercury period beginning late 2027</strong>. Classical timing links
-                  this pairing to steady, earned advancement rather than sudden change
-                  <span className="cite" title="Brihat Parasara Hora Sastra, ch. 47">
-                    ¹
-                  </span>
-                  . Transit Jupiter reinforces it by crossing your tenth in the same window
-                  <span className="cite" title="Phaladeepika, ch. 26">
-                    ²
-                  </span>
-                  .
+                  <Trans
+                    i18nKey="landing.ai.demo.a"
+                    components={{
+                      cite1: <span className="cite" title="Brihat Parasara Hora Sastra, ch. 47" />,
+                      cite2: <span className="cite" title="Phaladeepika, ch. 26" />,
+                    }}
+                  />
                 </p>
                 <div className="reading-src">
                   <span
@@ -859,7 +752,7 @@ export const LandingPage = () => {
                       display: "inline-block",
                     }}
                   />
-                  Sources: BPHS ch.47 · Phaladeepika ch.26
+                  {t("landing.ai.demo.sources")}
                 </div>
               </div>
             </div>
@@ -870,14 +763,11 @@ export const LandingPage = () => {
       {/* ===================== DEPTH / PRACTITIONER ===================== */}
       <section className="section depth" id="depth">
         <div className="wrap reveal">
-          <span className="eyebrow">For serious practice, too</span>
-          <h2>A friendly front door — with a full workbench behind it.</h2>
-          <p>
-            The same product a curious beginner opens is the one a working astrologer relies on.
-            Nothing is dumbed down; the depth is simply one tap away.
-          </p>
+          <span className="eyebrow">{t("landing.depth.eyebrow")}</span>
+          <h2>{t("landing.depth.title")}</h2>
+          <p>{t("landing.depth.body")}</p>
           <div className="chips">
-            {DEPTH_CHIPS.map((c) => (
+            {list("landing.depth.chips").map((c) => (
               <span className="chip" key={c}>
                 {c}
               </span>
@@ -891,56 +781,60 @@ export const LandingPage = () => {
         <section className="section" id="pricing">
           <div className="wrap">
             <div className="section-head center reveal">
-              <span className="eyebrow">Simple, honest pricing</span>
-              <h2>Start free. Upgrade when the sky gets interesting.</h2>
+              <span className="eyebrow">{t("landing.pricing.eyebrow")}</span>
+              <h2>{t("landing.pricing.title")}</h2>
               <div className="price-toggle">
-                <span className={`switch-label${!annual ? " on" : ""}`}>Monthly</span>
+                <span className={`switch-label${!annual ? " on" : ""}`}>
+                  {t("landing.pricing.monthly")}
+                </span>
                 <button
                   type="button"
                   className="switch"
                   role="switch"
                   aria-checked={annual}
-                  aria-label="Toggle annual billing"
+                  aria-label={t("landing.pricing.toggleAria")}
                   onClick={() => setAnnual((v) => !v)}
                 >
                   <span className="knob" />
                 </button>
-                <span className={`switch-label${annual ? " on" : ""}`}>Annual</span>
-                <span className="save-badge">Save ~20%</span>
+                <span className={`switch-label${annual ? " on" : ""}`}>
+                  {t("landing.pricing.annual")}
+                </span>
+                <span className="save-badge">{t("landing.pricing.save")}</span>
               </div>
             </div>
 
             <div className="plans">
-              {PLANS.map((plan) => (
-                <div className={`plan reveal${plan.featured ? " featured" : ""}`} key={plan.name}>
-                  {plan.flag && <span className="plan-flag">{plan.flag}</span>}
-                  <div className="plan-name">{plan.name}</div>
-                  <div className="plan-desc">{plan.desc}</div>
-                  <div className="plan-price">
-                    <span className="amt">{priceOf(plan)}</span>
-                    <span className="per">{perOf(plan)}</span>
+              {PLANS.map((plan) => {
+                const k = `landing.pricing.plans.${plan.id}`;
+                return (
+                  <div className={`plan reveal${plan.featured ? " featured" : ""}`} key={plan.id}>
+                    {plan.featured && <span className="plan-flag">{t(`${k}.flag`)}</span>}
+                    <div className="plan-name">{t(`${k}.name`)}</div>
+                    <div className="plan-desc">{t(`${k}.desc`)}</div>
+                    <div className="plan-price">
+                      <span className="amt">{priceOf(plan)}</span>
+                      <span className="per">{perOf(plan)}</span>
+                    </div>
+                    <div className="plan-annual-note">
+                      {annual && plan.annual ? t(`${k}.annualNote`) : " "}
+                    </div>
+                    <ul>
+                      {list(`${k}.features`).map((feat) => (
+                        <li key={feat}>
+                          <span className="tick">◆</span>
+                          {feat}
+                        </li>
+                      ))}
+                    </ul>
+                    <Link className={`btn ${plan.ctaClass}`} to="/register">
+                      {t(`${k}.cta`)}
+                    </Link>
                   </div>
-                  <div className="plan-annual-note">
-                    {annual && plan.annualNote ? plan.annualNote : " "}
-                  </div>
-                  <ul>
-                    {plan.features.map((feat) => (
-                      <li key={feat}>
-                        <span className="tick">◆</span>
-                        {feat}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link className={`btn ${plan.ctaClass}`} to="/register">
-                    {plan.cta}
-                  </Link>
-                </div>
-              ))}
+                );
+              })}
             </div>
-            <p className="price-note">
-              Suggested pricing — final numbers are set in code; the whole section hides behind the
-              REACT_APP_SHOW_PRICING flag.
-            </p>
+            <p className="price-note">{t("landing.pricing.note")}</p>
           </div>
         </section>
       )}
@@ -950,26 +844,17 @@ export const LandingPage = () => {
         <div className="wrap">
           <div className="privacy-card reveal">
             <div>
-              <span className="eyebrow">Your sky, your data</span>
-              <h2>Your chart is yours.</h2>
-              <p>
-                Birth data is intimate. {SITE_TITLE} keeps it private by default, and you stay in
-                control of every reading and conversation.
-              </p>
+              <span className="eyebrow">{t("landing.privacy.eyebrow")}</span>
+              <h2>{t("landing.privacy.title")}</h2>
+              <p>{t("landing.privacy.body", { site: SITE_TITLE })}</p>
             </div>
             <div className="privacy-list">
-              <div>
-                <span className="d" />
-                Private by default — export or delete anything, anytime.
-              </div>
-              <div>
-                <span className="d" />
-                Built on the open-source PyJHora engine, self-hostable if you prefer.
-              </div>
-              <div>
-                <span className="d" />
-                Your readings are never used to train anyone else&apos;s model.
-              </div>
+              {list("landing.privacy.items").map((item) => (
+                <div key={item}>
+                  <span className="d" />
+                  {item}
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -980,21 +865,21 @@ export const LandingPage = () => {
         <canvas className="stars2" ref={finalCanvas} />
         <div className="wrap">
           <span className="eyebrow" style={{ color: "var(--hero-gold)" }}>
-            Jyotisha awaits
+            {t("landing.final.eyebrow")}
           </span>
           <h2 style={{ marginTop: 16 }}>
-            The sky has been <span className="accent">waiting for you.</span>
+            <Trans
+              i18nKey="landing.final.title"
+              components={{ accent: <span className="accent" /> }}
+            />
           </h2>
-          <p>
-            Add your birth details and get your first cited reading in under a minute. No card
-            required.
-          </p>
+          <p>{t("landing.final.body")}</p>
           <div className="hero-cta">
             <Link className="btn btn-primary" to="/register">
-              Get started free
+              {t("landing.nav.getStarted")}
             </Link>
             <Link className="btn btn-ghost" to="/login">
-              Log in
+              {t("landing.nav.login")}
             </Link>
           </div>
         </div>
@@ -1009,40 +894,35 @@ export const LandingPage = () => {
                 <BrandMark />
                 {SITE_TITLE}
               </a>
-              <p className="footer-blurb">
-                Ancient Jyotish, computed precisely and explained in plain language.
-              </p>
+              <p className="footer-blurb">{t("landing.footer.blurb")}</p>
             </div>
             <div className="footer-col">
-              <h4>Product</h4>
-              <a href="#features">Features</a>
-              {SHOW_PRICING && <a href="#pricing">Pricing</a>}
-              <a href="#depth">For practitioners</a>
-              <Link to="/login">Log in</Link>
+              <h4>{t("landing.footer.product")}</h4>
+              <a href="#features">{t("landing.nav.features")}</a>
+              {SHOW_PRICING && <a href="#pricing">{t("landing.nav.pricing")}</a>}
+              <a href="#depth">{t("landing.nav.depth")}</a>
+              <Link to="/login">{t("landing.nav.login")}</Link>
             </div>
             <div className="footer-col">
-              <h4>Learn</h4>
-              <a href="#features">Nakshatras</a>
-              <a href="#how">Dashas &amp; timing</a>
-              <a href="#reading">The chart, explained</a>
-              <a href="#depth">Glossary</a>
+              <h4>{t("landing.footer.learn")}</h4>
+              <a href="#features">{t("landing.footer.nakshatras")}</a>
+              <a href="#how">{t("landing.footer.dashas")}</a>
+              <a href="#reading">{t("landing.footer.explained")}</a>
+              <a href="#depth">{t("landing.footer.glossary")}</a>
             </div>
             <div className="footer-col">
-              <h4>Company</h4>
-              <a href="#privacy">Privacy</a>
-              <Link to="/register">Get started</Link>
-              <Link to="/login">Sign in</Link>
-              <a href="#top">Back to top</a>
+              <h4>{t("landing.footer.company")}</h4>
+              <a href="#privacy">{t("landing.footer.privacy")}</a>
+              <Link to="/register">{t("landing.footer.getStarted")}</Link>
+              <Link to="/login">{t("landing.footer.signIn")}</Link>
+              <a href="#top">{t("landing.footer.top")}</a>
             </div>
           </div>
           <div className="footer-bottom">
             <small>
-              © {new Date().getFullYear()} {SITE_TITLE}. All rights reserved.
+              {t("landing.footer.rights", { year: new Date().getFullYear(), site: SITE_TITLE })}
             </small>
-            <span className="disclaimer">
-              For guidance and reflection — not a substitute for medical, legal, or financial
-              advice.
-            </span>
+            <span className="disclaimer">{t("landing.footer.disclaimer")}</span>
           </div>
         </div>
       </footer>
