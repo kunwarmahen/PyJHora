@@ -28,7 +28,7 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 | §82.1 | Hindi typo `म्रृगशीर्षा` — patch upstream file or override? | ⏸ owner: ignore for now |
 | §82.1 | Vite migration — the §68.3 blocker is gone; still optional | ⏸ owner: not now |
 | §82.2 | CI workflow has never run on GitHub — check the first run after a push | ✅ first run green (798fb4f) |
-| §82.3 | Translation backlog — §81 screens ✅ (§83.2); left: Hindi Help answers (~190), glossary, landing page, raja-yoga/panchanga/koota names | P2 |
+| §82.3 | Translation backlog — §81 screens ✅ (§83.2); left: Hindi Help answers (~190), landing page, raja-yoga/panchanga/koota names | P2 |
 | §82.1 | **New:** Compatibility's Mangal rule flags 88.9% of charts — keep (now labelled) or narrow? | 🔴 owner call |
 | §82.4 | Mangal Dosha prevalence on Compatibility ✅ (§83.3); more Topic Reading topics ✅ (§83.4) | ✅ |
 | §82.5 | Hardening: in-process rate limit, forwarded-IP trust, beacon inflation, realistic-payload harness | P3 |
@@ -8656,7 +8656,7 @@ up directly. Each item names where the detail lives.
       star rows are pinned to `reference_data.py` by `test_first_look_tables.py`, so translate those as a
       separate `hi` table, not by editing `en`), `welcome.*`, `checklist.*`, `pageHint.*`, `preview.*`,
       `predictions.*` (Topic Reading). Blocked on the 82.1 decision.
-- [ ] **Glossary**: only 10 core terms have Hindi (`glossaryTerms.*` in hi.json); ~25 remain English.
+- [x] ✅ **Done 2026-10-06 (§83.5) — 33/33.** **Glossary**: only 10 core terms have Hindi (`glossaryTerms.*` in hi.json); ~25 remain English.
 - [ ] **Landing page copy is hard-coded English** (`LandingPage.js`), unlike the rest of the app — move to
       i18n if the landing page should follow the language picker.
 - [ ] **Still English by design** (I18N doc §5/§6.5): Kendra-Trikona raja-yoga labels (our own f-strings),
@@ -8776,3 +8776,10 @@ green on 798fb4f.
   names its houses. Routes snapshot unchanged. Browser (hi): the picker shows all seven, शिक्षा shows its hint.
   Not exercised: a live model generating these readings (depends on the configured provider).
 - **Help/FAQ:** `featPredictions` lists the new topics and their second opinions. **Docs:** FEATURES.md Topic Reading.
+
+### 83.5 Glossary in Hindi (§82.3) — ✅ SHIPPED 2026-10-06
+- All 33 `GLOSSARY` terms now have `glossaryTerms.*` in hi.json (was 10), in the existing "शब्द — परिभाषा"
+  style. They reach the chart tooltips (`GlossaryTerm`) and the Help glossary via `lookupGlossary(term, t)`;
+  English stays the fallback. Frontend config/constants/components 303/303.
+- Help/FAQ: n/a — no answer describes which glossary entries are translated; `languageAndTheme` (§83.2) already
+  says Hindi coverage is partial. Docs: n/a beyond this entry.
