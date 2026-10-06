@@ -24,10 +24,7 @@ describe("claim-check correction", () => {
   });
 
   test("the header matches the backend's", () => {
-    const py = fs.readFileSync(
-      path.join(__dirname, "../../../backend/claim_check.py"),
-      "utf8"
-    );
+    const py = fs.readFileSync(path.join(__dirname, "../../../backend/claim_check.py"), "utf8");
     expect(py).toContain(`CORRECTION_HEADER = "${CORRECTION_HEADER}"`);
   });
 

@@ -23,9 +23,8 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 
 | § | Item | Status |
 |---|---|---|
-| §68.2 | CI — the test suites only run when someone types `./dev.sh test` | 🔴 open |
-| §68.3 | The frontend has never rendered a page in a test | 🔴 open |
 | §76 | Newcomer onboarding (76.2–76.7) — 4 owner questions in §76.9 | 🔴 proposed, not built |
+| §80.3 | CI workflow written but not yet run on GitHub (runs on next push) | 🟡 check first run |
 
 Product docs are in [`docs/`](docs/) — start at [`README.md`](README.md).
 
@@ -6852,18 +6851,18 @@ assert the *rendered* prompt carries the right lordships and placements. §67's 
 a bug that produced an Aries table for every chart — wrong-looking-plausible for exactly one lagna in
 twelve, and structurally invisible to a single-chart test.
 
-### 68.2 (P1) 🔴 CI — 747 tests that only run when somebody types `./dev.sh test`
+### 68.2 (P1) ✅ CI — 747 tests that only run when somebody types `./dev.sh test` — SHIPPED 2026-10-06 (§80)
 
-- [ ] **Add `.github/workflows/` — there is no `.github/` directory in the repo at all.**
+- [x] **Add `.github/workflows/` — there is no `.github/` directory in the repo at all.** → `web-ci.yml` (§80)
 
 `pytest tests/ --collect-only` reports **747** backend tests today (§67 counted 704). Plus 15
 frontend suites, `prettier --check`, the `routes_snapshot.json` guard, and `styles/tokens.test.js`.
 All of it fires only on demand, on one machine. The workflow is an afternoon and is permanently
 cheap; `./dev.sh test engine` (PyJHora's own ~8,000) can be a separate, slower, manual job.
 
-### 68.3 (P1) 🔴 The frontend has never rendered a page in a test
+### 68.3 (P1) ✅ The frontend has never rendered a page in a test — SHIPPED 2026-10-06 (§80)
 
-- [ ] **Add `@testing-library/react` + a mount-every-page smoke harness.**
+- [x] **Add `@testing-library/react` + a mount-every-page smoke harness.** → done without the dependency: React 18 `createRoot` + `act` (§80)
 
 All 15 frontend test files test **pure config/util modules** — `format`, `returnTo`, `features`,
 `theme`, `tokens`, `localizeName`. `@testing-library` is not even a devDependency, so no component
@@ -8486,3 +8485,44 @@ Chakras moves out of "calendar" (it never was one). Drawer goes from ~40 rows to
      back-reference (these/those/they/them/respectively) is not bound to the last planet. "both"/"each"
      deliberately left out — "Mercury, which rules both the 8th and 11th" must still be judged (test).
   Live re-run after the fixes: clean. Backend 1149 → 1166 tests across §79.3/79.7, frontend 360.
+
+---
+
+## §80 Every page mounted in a test, and CI (§68.2 + §68.3) — ✅ SHIPPED 2026-10-06
+
+### 80.1 The page harness — `frontend/src/pages/pages.smoke.test.js`
+- Discovers every `*Page.js` (50 files, 51 components) and mounts each with React 18 `createRoot` +
+  `act` in a `MemoryRouter` at its real route — **no new dependency** (`@testing-library` would have
+  meant an `npm install` and a lockfile the repo doesn't track).
+- Two modes, both real: API **down** (no response) and **rejected** (400 + `detail`, what the routes send
+  on `status != success`). Asserts: no render error, no request loop, non-empty render. Plus: every hub
+  member renders its hub strip with itself `aria-current` (the §79 class test, through real pages).
+- A "200 with `{}`" mode was tried first and **dropped**: it crashed Deep-Dive, Chakras, Timeline and the
+  admin overview, but the routes never send that shape, so those were the stub's crashes, not bugs.
+- **Traps, each one cost a hang or a false failure:**
+  1. Context stubs returning a fresh object per call → AdminPage's `[user]` effect re-ran forever and the
+     whole suite hung at 140% CPU with no output (jest's per-test timeout can't interrupt it). Stubs are
+     built once. `timeout` on `npx` doesn't kill node either — use `timeout -s KILL node node_modules/.bin/…`.
+  2. CRA's `resetMocks: true` wipes every `jest.fn` implementation before each test → stubs returned
+     `undefined` from the second page on ("reading 'then'"). Stubs are plain functions.
+  3. `react-markdown` is ESM-only and CRA's Jest doesn't transform `node_modules` → the `Markdown`
+     wrapper is stubbed. jsdom lacks `IntersectionObserver` (Landing) → stubbed.
+  4. A request-loop guard (200 calls per mount) turns a refetch loop into a failure naming the method.
+- Mutation-checked: a `boom.crash` injected into EphemerisPage fails all three of its cases.
+
+### 80.2 Chart cell placement — `frontend/src/components/chartPlacement.test.js`
+- Taurus-Lagna chart whose every planet carries a deliberately WRONG `house`; asserts each lands in the
+  right North house (counted from the Lagna's sign) and South sign cell, sign labels per house, and the
+  Lagna marker only in the 1st. `NorthIndianChart` `<g>` gets `data-house`/`data-sign`, South cells
+  `data-sign`. Mutation-checked: making `signNumOf` read `house` fails all three.
+
+### 80.3 CI — `.github/workflows/web-ci.yml`
+- On push to main / PRs touching `web/**`, `src/jhora/**` or the workflow: **backend** (Python 3.11,
+  `pip install -r requirements.txt`, `pytest tests` — no Mongo service, the suite never opens one) and
+  **frontend** (Node 22, `npm install` — no lockfile is tracked —, `prettier --check`, `eslint
+  --max-warnings=0`, tests). PyJHora's engine suite is a manual `workflow_dispatch` input.
+- To make the format gate pass, three files were reformatted (`HelpPage.js`, `help.test.js`,
+  `claimCorrection.test.js`) — formatting only.
+- 🔴 **Not yet run on GitHub** — it runs on the next push; nothing has been pushed from here.
+
+Frontend 360 → 502 tests (139 page mounts + 3 chart placement), backend 1166, lint + format clean.

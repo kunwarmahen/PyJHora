@@ -188,6 +188,24 @@ PyJHora. The stack also builds and runs under **Podman** (`podman compose up --b
 
 ## Testing
 
+| Suite | Run | What it covers |
+| --- | --- | --- |
+| Backend | `./dev.sh test` (or `cd backend && venv/bin/python -m pytest tests`) | ~1,170 tests: golden chart values vs Jagannatha Hora, endpoints (main-thread ASGI client, no Mongo), registries, the claim checker, prompts |
+| Frontend | `./dev.sh test web` (or `CI=true npx react-scripts test --watchAll=false`) | ~500 tests: config/registry modules, **every page mounted** (`src/pages/pages.smoke.test.js`), chart cell placement (`src/components/chartPlacement.test.js`) |
+| Engine | `./dev.sh test engine` | PyJHora's own ~8,000 (slow; manual) |
+| CI | `.github/workflows/web-ci.yml` | backend + frontend (format, lint, tests) on every push/PR touching `web/` or `src/jhora/`; engine via manual dispatch |
+
+**The page harness** (`pages.smoke.test.js`) discovers every `*Page.js`, so a new page is covered
+the moment it exists. It mounts each one with the API **down** and with every call **rejected** (a 400 with
+a `detail`, which is what routes send when a calculation fails) and asserts it doesn't throw or loop
+on requests; every hub member must also render its hub strip. Traps it documents: CRA's `resetMocks`
+wipes `jest.fn` implementations between tests (stubs are plain functions); context stubs must be
+*stable* objects or effects that depend on them re-run forever; `react-markdown` is ESM-only, so the
+`Markdown` wrapper is stubbed.
+
+**The chart test** renders a chart whose `house` fields are deliberately wrong for their signs: a renderer
+that reads `house` instead of `sign_num` (the §65/§66 bug) fails it. Cells carry `data-house`/`data-sign`.
+
 ### Manual API Testing
 
 Use curl or Postman:

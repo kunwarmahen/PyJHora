@@ -1,0 +1,85 @@
+# Jyotir AI web app — run the test suites on every push and pull request (todo.md §68.2).
+#
+# Until this existed, ~1,170 backend and ~370 frontend tests ran only when someone
+# typed `./dev.sh test` on one machine. PyJHora's own engine suite (~8,000 tests,
+# `./dev.sh test engine`) is deliberately not here: it is slow and changes rarely —
+# run it by hand with the workflow_dispatch "engine" input.
+name: web-ci
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", "src/jhora/**", ".github/workflows/web-ci.yml"]
+  pull_request:
+    paths: ["web/**", "src/jhora/**", ".github/workflows/web-ci.yml"]
+  workflow_dispatch:
+    inputs:
+      engine:
+        description: "Also run PyJHora's own engine tests (slow)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: web-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: web/backend/requirements.txt
+      - name: Install
+        run: pip install -r requirements.txt
+      # The suite never opens a Mongo connection (endpoint tests use a main-thread
+      # ASGI client without the app lifespan), so no database service is needed.
+      # The engine is imported from ../../src, with its ephemeris files in git.
+      - name: Test
+        run: python -m pytest tests -q -p no:warnings
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # No lockfile is committed (web/.gitignore ignores package-lock.json), so
+      # this is `npm install`, not `npm ci`.
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Format
+        run: npx prettier --check "src/**/*.{js,css}"
+      - name: Lint
+        run: npx eslint src --max-warnings=0
+      - name: Test
+        run: CI=true npx react-scripts test --watchAll=false
+
+  engine:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.engine }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: pip install -r backend/requirements.txt
+      - name: Engine tests
+        run: ./dev.sh test engine

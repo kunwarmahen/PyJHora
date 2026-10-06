@@ -98,7 +98,9 @@ export const HelpPage = () => {
             </button>
           </div>
 
-          {sections.length === 0 && glossary.length === 0 && <p className="help-empty">{t("help.noResults", { query })}</p>}
+          {sections.length === 0 && glossary.length === 0 && (
+            <p className="help-empty">{t("help.noResults", { query })}</p>
+          )}
 
           {sections.map((section) => (
             <section key={section.id} className="help-section" id={`section-${section.id}`}>

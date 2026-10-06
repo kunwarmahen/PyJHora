@@ -387,6 +387,10 @@ export const NorthIndianChart = ({
             return (
               <g
                 key={house.num}
+                // Which bhava and which sign this cell is — what the cell-placement
+                // test reads (§68.3), and handy in devtools.
+                data-house={house.num}
+                data-sign={sign}
                 onMouseEnter={() => setHoveredHouse(house.num)}
                 onMouseLeave={() => setHoveredHouse(null)}
               >

@@ -157,6 +157,7 @@ export const SouthIndianChart = ({
           return (
             <div
               key={signNum}
+              data-sign={signNum}
               className={`si-cell${isLagna ? " si-lagna" : ""}${isCrowded ? " si-crowded" : ""}`}
               style={{ gridColumn: col, gridRow: row }}
             >
