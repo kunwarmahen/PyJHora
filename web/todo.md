@@ -26,8 +26,6 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 | §68.2 | CI — the test suites only run when someone types `./dev.sh test` | 🔴 open |
 | §68.3 | The frontend has never rendered a page in a test | 🔴 open |
 | §76 | Newcomer onboarding (76.2–76.7) — 4 owner questions in §76.9 | 🔴 proposed, not built |
-| §79.4 | Root strays (`cmd.txt`, `test_log.txt`, `features_per_book.txt`) — owner to confirm | 🔴 owner call |
-| §79.3 | `/predictions` routed but linked from nowhere — retire or fold into Reports | 🔴 owner call |
 
 Product docs are in [`docs/`](docs/) — start at [`README.md`](README.md).
 
@@ -8337,7 +8335,7 @@ local, captured at the adapters / HTTP client).
 
 ---
 
-## §79 Consolidation — ~40 pages into a dozen hubs, and the docs into one place (owner ask 2026-10-05) — ✅ SHIPPED 2026-10-05/06 (two owner calls left: root strays, `/predictions`)
+## §79 Consolidation — ~40 pages into a dozen hubs, and the docs into one place (owner ask 2026-10-05) — ✅ SHIPPED 2026-10-05/06
 
 **Ask:** "we have lot of information in all different places, some should be together." A review
 (2026-10-05) found two kinds of scatter: pages that are one idea split by build order (four return
@@ -8379,7 +8377,7 @@ redirects. Pages keep their own in-page `?tab=` bars; the hub strip is route lin
 Standalone: Dashboard, Ask, Muhurta, Remedies, Prashna, Learn, Rectify, Settings.
 Chakras moves out of "calendar" (it never was one). Drawer goes from ~40 rows to ~17.
 
-### 79.3 Duplicated content — one home each — ✅ SHIPPED 2026-10-06 (except `/predictions`, owner call)
+### 79.3 Duplicated content — one home each — ✅ SHIPPED 2026-10-06
 - **Chart Deep-Dive** stops repeating four things and links to their one home with a "Looking for
   something that used to be here?" card: Shadbala → Strength › Composition; chara karakas → Jaimini;
   special lagnas & upagrahas → Sensitive Points › Special (same `get_chart_details` data); graha
@@ -8401,7 +8399,7 @@ Chakras moves out of "calendar" (it never was one). Drawer goes from ~40 rows to
   running" panel links to `/sade-sati` for the cycles in full.
 - **Chart of the Moment ↔ Prashna**: Now gets an "Ask a question of this moment (Prashna)" button.
 - Karakas: Nadi Karakas are a different set (Nadi significators), not a duplicate — left alone.
-- 🔴 Owner call: `/predictions` is routed but linked from nowhere — retire or fold into Reports.
+- `/predictions` → **Topic Reading** in the Reports hub (owner call 2026-10-06) — see §79.7.
 - Help: `featAdvanced` rewritten (says where the four things went), `featStrength` mentions the table.
   Tests: backend 1152 pass (+3), frontend 360 pass. Browser-verified every new link lands
   (`/strength?tab=composition` 7-row table, `/sensitive-points?tab=argala`, `/sade-sati`, `/prashna`).
@@ -8426,7 +8424,7 @@ Chakras moves out of "calendar" (it never was one). Drawer goes from ~40 rows to
 - **Not done, on purpose:** splitting shipped sections out of this file — 24 code comments cite
   `todo.md §N`. An "Open work" index at the top instead.
 - `wire-a-feature` skill row 12 now points at `docs/FEATURES.md` (under the right hub); row 7 mentions `hub`.
-- 🔴 Owner call: repo-root `cmd.txt`, `test_log.txt`, `features_per_book.txt` — delete?
+- Repo-root `cmd.txt`, `test_log.txt`, `features_per_book.txt` — **owner: keep** (2026-10-06).
 
 ### 79.5 Help / FAQ (P1) — ✅
 - `dashboardLayout` rewritten for sections + hubs (en, hi, sa).
@@ -8458,3 +8456,33 @@ Chakras moves out of "calendar" (it never was one). Drawer goes from ~40 rows to
   This Month · Varshaphal · Tithi Pravesha with Varshaphal current; clicking This Month lands on
   `/monthly-digest`; search "gochara" → Transits + Gochara-phala; at 390 px the strip scrolls
   sideways and the page doesn't (scrollWidth 390).
+
+### 79.7 `/predictions` → Topic Reading, in Reports — ✅ SHIPPED 2026-10-06 (owner call)
+- **What it was:** the app's original form — hand-typed birth details + LocationSearch, ignoring the
+  selected profile; a copy of the Birth Chart positions and of the Transits table; no `PageHeader`
+  (so no drawer, help or hub strip); and it ignored `?reading=`, so every "Prediction" in AI History
+  reopened onto an empty form. Routed, linked from nowhere.
+- **What it is:** `PredictionsPage.js` rewritten as **Topic Reading** — the selected profile, the shared
+  header (Reports strip: Life Report · Full Report · Topic Reading), topics as the shared tab bar
+  (`?tab=general|career|relationships|health`, deep-linkable), the AI panel, RecentReadings, and
+  History restore *under the topic it was written for*. Route unchanged (`/predictions`), so saved
+  readings still land. Backend untouched except the History label ("Prediction" → "Topic reading").
+- **Trap — restoring into a tab.** Setting `?tab=` inside the restore callback races the hook's own
+  `?reading=` removal (last `setSearchParams` wins). Applied one render later, as KPPage does, with a
+  ref so the topic switch it causes doesn't clear the text it is restoring.
+- **Two lists in two languages:** the page's `TOPICS` must be a subset of `_build_prediction_prompt`'s
+  topics (an unknown one silently becomes "general"). `tests/test_topic_reading_topics.py` parses the
+  JS list and checks each topic gets its own focus line.
+- Wired: `features.js` (`hub: "reports"`, aliases), `help.js` `featPredictions` + en text, en/hi strings
+  (sa's stale form strings removed → fall back), Reports hub description, `whereIsPage`, README, FEATURES.md.
+- **Claim checker — three false alarms found by live career readings** (each would put "statements do
+  not match your chart" on a *correct* reading; all pinned verbatim in `test_claim_check.py`):
+  1. "**Ghati Lagna (Gemini)** – 10th from Ghati … Capricorn" read as "Lagna is in Gemini/Capricorn".
+     Special lagnas (Ghati/Hora/Bhava/Indu/Sree/Varnada/Pranapada/…) are now a frame-of-reference
+     skip like Arudha/Karakamsa. Career readings are *told* to use the Ghati Lagna, so every one hit it.
+  2. "The 3rd house (where 10th lord resides) and the 1st house Mercury/Venus" made Mercury the 10th
+     lord: a pending lord word is dropped once its bracket has closed (unbalanced `)` in the gap).
+  3. "Mercury/Venus … these are the primary lords of the 1st and 2nd" made Venus the 2nd lord: a plural
+     back-reference (these/those/they/them/respectively) is not bound to the last planet. "both"/"each"
+     deliberately left out — "Mercury, which rules both the 8th and 11th" must still be judged (test).
+  Live re-run after the fixes: clean. Backend 1149 → 1166 tests across §79.3/79.7, frontend 360.

@@ -35,6 +35,7 @@ import {
   Star,
   BookText,
   ScrollText,
+  Target,
 } from "lucide-react";
 
 /**
@@ -299,6 +300,15 @@ export const FEATURES = [
     hub: "reports",
     gradient: "linear-gradient(135deg, #D4AF37 0%, #FF9933 100%)",
   },
+  {
+    key: "predictions",
+    path: "/predictions",
+    Icon: Target,
+    tier: "advanced",
+    group: "chart",
+    hub: "reports",
+    gradient: "linear-gradient(135deg, #E27B5A 0%, #D4AF37 100%)",
+  },
   // ═══ Timing — dashas first, then transits over them ══════════════════════════════
   {
     key: "dhasa",
@@ -504,6 +514,8 @@ export const FEATURE_ALIASES = {
     " nakshatra transit star window when does it end how long",
   remedies: "gemstone gem stone mantra upaya parihara donation deity",
   lifeReport: "report full life story chapters narrative",
+  predictions:
+    "topic reading prediction predictions career job work profession health wellness relationships love marriage general life path focused",
   history:
     "saved readings past previous history outcome outcomes did this land track record accuracy hit rate came true verdict",
   gochara: "transit phala moon vedha",

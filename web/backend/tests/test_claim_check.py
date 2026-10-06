@@ -118,6 +118,18 @@ TRUE_OR_NEUTRAL = [
     "Your Saturn return arrives in the 3rd week of June 2035.",
     "Rahu is retrograde by nature, as always.",
     "Guru Chandala yoga does not form here.",
+    # Special lagnas are their own reference points, not the Lagna (§79.3 — the
+    # first is verbatim from a live career Topic Reading, which the prompt asks
+    # to judge from the Ghati Lagna; it was flagged twice as "Lagna is in …").
+    "*   **Ghati Lagna (Gemini) - 10th from Ghati:** This falls in the sign of **Capricorn**",
+    "The Hora Lagna is in Leo, in the 4th house.",
+    "Your Bhava Lagna falls in Gemini.",
+    "Indu Lagna in Capricorn points to wealth through steady effort.",
+    # Live career Topic Reading, 2026-10-06 — both correct, both flagged:
+    # a lord word closed inside its bracket reached the planet after it…
+    "*   **Creative Media/Communications:** The 3rd house (where 10th lord resides) and the 1st house Mercury/Venus suggest fields involving writing, public speaking, or design.",
+    # …and "these" (two planets) was bound to the last one named.
+    "*   **Mercury/Venus Support:** Since these are the primary lords of the 1st and 2nd houses, maintaining a polished personal brand and clear communication is essential for the Rahu period.",
 ]
 
 
@@ -592,3 +604,23 @@ def test_lord_of_something_else_is_not_the_houses_lord():
         "is placed in the house of gains (11th).")
     assert ("lordship", 11, "Sun") not in {(c.kind, c.subject, c.value)
                                            for c in claims}
+
+
+def test_the_lagna_itself_is_still_checked_beside_a_special_lagna(facts):
+    # Skipping special-lagna sentences must not swallow a real slip about the
+    # Lagna (chart 1's is Taurus) said in its own sentence.
+    report = cc.check("The Ghati Lagna is in Gemini. Your Lagna is in Capricorn.", facts)
+    assert [c["said"] for c in report["contradictions"]] == ["Lagna is in Capricorn"]
+
+
+def test_a_single_named_lord_is_still_caught(facts):
+    # "these/they" guards a plural back-reference only; a named planet still binds.
+    report = cc.check("Mercury is the lord of the 1st house.", facts)
+    assert [c["said"] for c in report["contradictions"]] == ["the 1st lord is Mercury"]
+
+
+def test_both_inside_a_single_planet_lordship_is_still_judged(facts):
+    # "both" belongs to the houses here, not to several planets — the plural guard
+    # must not switch this check off. Chart 1: Jupiter rules the 8th and 11th.
+    report = cc.check("Mercury, which rules both the 8th and 11th, is strong.", facts)
+    assert "the 8th lord is Mercury" in [c["said"] for c in report["contradictions"]]

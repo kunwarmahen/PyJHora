@@ -1,16 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Target, Sparkles } from "lucide-react";
 import Markdown from "../components/Markdown";
-import { AlertCircle, CheckCircle, MapPin } from "lucide-react";
+import { useProfile } from "../contexts/ProfileContext";
+import { useSettings } from "../contexts/SettingsContext";
 import { astrologyService } from "../services/api";
-import LocationSearch from "../components/LocationSearch";
-import "../styles/Forms.css";
-import { useLocalizeName } from "../i18n/localizeName";
+import { useRestoreReading } from "../hooks/useRestoreReading";
+import { RecentReadings } from "../components/RecentReadings";
+import { PageHeader } from "../components/PageHeader";
+import { ProfileBanner } from "../components/ProfileBanner";
+import { Card } from "../components/Card";
+import { ErrorBanner } from "../components/ErrorBanner";
+import { LoadingState } from "../components/LoadingState";
+import { Tabs, useTabs } from "../components/Tabs";
+import "../styles/Dashboard.css";
+import "../styles/Shared.css";
+import { returnHere } from "../utils/returnTo";
 
 // Read the user's AI provider/model choice (Settings → AI, persisted in
-// localStorage) so predictions run through the unified LLM service — the same
-// path every other AI page uses. A blank model lets the server fall back to its
-// configured default (e.g. OLLAMA_DEFAULT_MODEL).
+// localStorage) — the same path every other AI page uses. A blank model lets the
+// server fall back to its configured default.
 const readModelConfig = () => {
   const providerType = localStorage.getItem("ai_provider_type") || "ollama";
   return {
@@ -23,309 +33,161 @@ const readModelConfig = () => {
   };
 };
 
-// UI prediction type → the LLM service's prediction_type keyword.
-const AI_TYPE = { horoscope: "general", health: "health", career: "career" };
+// The topics the backend's prediction prompt knows (`llm/prompts.py`
+// `_build_prediction_prompt` → type_specific). An unknown key would silently
+// fall back to "general", so this list must stay a subset of that one.
+export const TOPICS = ["general", "career", "relationships", "health"];
 
+/**
+ * Topic Reading (§79.3) — a focused AI reading of the selected chart on one area
+ * of life. Part of the Reports hub: the Life Report covers everything in
+ * chapters; this answers "just tell me about my career".
+ *
+ * This was the app's original /predictions form: it took birth details by hand,
+ * ignored the selected profile, repeated the Birth Chart's positions and the
+ * Transits page's table, had no header (so no way back into the app), and
+ * dropped the `?reading=` id History opens it with. The route stays /predictions
+ * so saved readings still reopen here.
+ */
 export const PredictionsPage = () => {
+  const navigate = useNavigate();
   const { t } = useTranslation();
-  const ln = useLocalizeName();
-  const [formData, setFormData] = useState({
-    name: "",
-    dob: "",
-    tob: "",
-    place: "",
-    latitude: null,
-    longitude: null,
-    timezone: null,
-  });
-  const [predictionType, setPredictionType] = useState("horoscope");
-  const [useAi, setUseAi] = useState(false);
+  const { selectedProfile } = useProfile();
+  const { settings } = useSettings();
+  const ayanamsa = settings.ayanamsa;
+
+  // The topic lives in the URL (`?tab=career`) like every tab bar, so a topic is
+  // linkable from search and survives a refresh.
+  const topicTabs = useMemo(
+    () => TOPICS.map((key) => ({ key, label: t(`predictions.topic.${key}`) })),
+    [t]
+  );
+  const { tabs, active: topic, setActive } = useTabs(topicTabs);
+  const [reading, setReading] = useState("");
+  const [model, setModel] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState(null);
-  const [aiReading, setAiReading] = useState("");
-  const [aiModel, setAiModel] = useState("");
-  const [aiError, setAiError] = useState("");
 
-  const predictionTypes = [
-    { value: "horoscope", label: t("predictions.typeHoroscope") },
-    { value: "health", label: t("predictions.typeHealth") },
-    { value: "career", label: t("predictions.typeCareer") },
-    { value: "transit", label: t("predictions.typeTransit") },
-  ];
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleLocationSelect = (location) => {
-    setFormData((prev) => ({
-      ...prev,
-      place: location.place,
-      latitude: location.latitude,
-      longitude: location.longitude,
-      timezone: location.timezone,
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    // Validate location data
-    if (!formData.latitude || !formData.longitude || !formData.timezone) {
-      setError(t("predictions.errLocation"));
+  // A reading belongs to the topic it was written for: switching topic clears
+  // it — except the one switch a History restore makes to reach its own topic.
+  const keepOnSwitch = useRef(false);
+  useEffect(() => {
+    if (keepOnSwitch.current) {
+      keepOnSwitch.current = false;
       return;
     }
+    setReading("");
+    setModel("");
+    setError("");
+  }, [topic]);
 
+  // Reopened from History (`?reading=`): show the saved text under the topic it
+  // was written for. Applied one render later, as KPPage does, so the topic's
+  // `?tab=` write lands after the hook has dropped `?reading=` from the URL
+  // rather than racing it.
+  const [pending, setPending] = useState(null);
+  useRestoreReading((r) => setPending(r));
+  useEffect(() => {
+    if (!pending) return;
+    const saved = pending.context?.prediction_type;
+    if (TOPICS.includes(saved) && saved !== topic) {
+      keepOnSwitch.current = true;
+      setActive(saved);
+    }
+    setReading(pending.reading);
+    setModel(pending.model);
+    setPending(null);
+  }, [pending, topic, setActive]);
+
+  useEffect(() => {
+    if (!selectedProfile) navigate("/profile-selection", returnHere());
+  }, [selectedProfile, navigate]);
+
+  const birthDetails = useMemo(() => {
+    if (!selectedProfile) return null;
+    const b = selectedProfile.birth_details;
+    return {
+      name: b.name,
+      dob: b.dob,
+      tob: b.tob,
+      place: b.place,
+      latitude: parseFloat(b.latitude),
+      longitude: parseFloat(b.longitude),
+      timezone: parseFloat(b.timezone),
+    };
+  }, [selectedProfile]);
+
+  const generate = async () => {
+    if (!birthDetails) return;
     setLoading(true);
     setError("");
-    setAiError("");
-    setAiReading("");
-    setAiModel("");
-
     try {
-      const birthDetails = {
-        name: formData.name,
-        dob: formData.dob,
-        tob: formData.tob,
-        place: formData.place,
-        latitude: formData.latitude,
-        longitude: formData.longitude,
-        timezone: formData.timezone,
-      };
-
-      // Transits are a separate deterministic view; everything else shows the
-      // horoscope chart data (optionally with an AI-written reading below it).
-      if (predictionType === "transit") {
-        const response = await astrologyService.getTransits(birthDetails);
-        setResult(response.data);
-        return;
-      }
-
-      const response = await astrologyService.getHoroscope(birthDetails);
-      setResult(response.data);
-
-      if (useAi) {
-        try {
-          const aiRes = await astrologyService.generatePrediction(
-            birthDetails,
-            AI_TYPE[predictionType] || "general",
-            readModelConfig()
-          );
-          setAiReading(aiRes.data?.prediction || "");
-          setAiModel(aiRes.data?.model || aiRes.data?.provider || "");
-        } catch (err) {
-          setAiError(err.response?.data?.detail || t("predictions.aiError"));
-        }
-      }
+      const res = await astrologyService.generatePrediction(birthDetails, topic, {
+        ...readModelConfig(),
+        ayanamsa,
+      });
+      setReading(res.data?.prediction || "");
+      setModel(res.data?.model || res.data?.provider || "");
     } catch (err) {
-      setError(err.response?.data?.detail || t("predictions.genError"));
+      setError(err.response?.data?.detail || t("predictions.aiError"));
     } finally {
       setLoading(false);
     }
   };
 
+  if (!selectedProfile) return null;
+
   return (
-    <div className="page-container">
-      <div className="form-wrapper">
-        <h1>{t("predictions.title")}</h1>
-        <p className="subtitle">{t("predictions.subtitle")}</p>
+    <div className="dashboard-container mandala-bg">
+      <PageHeader
+        icon={<Target size={24} />}
+        title={t("predictions.title")}
+        subtitle={t("predictions.subtitle")}
+        accent="gold"
+      />
+      <main id="page-content" className="page-main">
+        <div className="dashboard-content">
+          <RecentReadings source="prediction" profileId={selectedProfile._id} />
+          <ProfileBanner profile={selectedProfile} />
+          <p className="card-note">{t("predictions.intro")}</p>
 
-        {error && (
-          <div className="error-box">
-            <AlertCircle size={18} />
-            <span>{error}</span>
-          </div>
-        )}
+          <Tabs
+            tabs={tabs}
+            active={topic}
+            onChange={setActive}
+            ariaLabel={t("predictions.topicLabel")}
+          />
+          <p className="card-note">{t(`predictions.topicHint.${topic}`)}</p>
 
-        <form onSubmit={handleSubmit} className="astrology-form">
-          <div className="form-row">
-            <div className="form-group">
-              <label>{t("predictions.name")} *</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder={t("predictions.namePlaceholder")}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>{t("predictions.dobLabel")} *</label>
-              <input
-                type="date"
-                name="dob"
-                value={formData.dob}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>{t("predictions.tobLabel")} *</label>
-              <input
-                type="time"
-                name="tob"
-                value={formData.tob}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group full-width">
-              <label>📍 {t("predictions.placeLabel")} *</label>
-              <LocationSearch onLocationSelect={handleLocationSelect} />
-
-              {formData.latitude && formData.longitude && (
-                <div className="location-info-box">
-                  <MapPin size={16} color="#4CAF50" />
-                  <div>
-                    <strong>{formData.place}</strong>
-                    <br />
-                    <small>
-                      Lat: {formData.latitude}°, Lon: {formData.longitude}°, TZ: UTC+
-                      {formData.timezone}
-                    </small>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>{t("predictions.typeLabel")} *</label>
-              <select value={predictionType} onChange={(e) => setPredictionType(e.target.value)}>
-                {predictionTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="form-group checkbox">
-            <input
-              type="checkbox"
-              id="useAi"
-              checked={useAi}
-              onChange={(e) => setUseAi(e.target.checked)}
-              disabled={predictionType === "transit"}
-            />
-            <label htmlFor="useAi">{t("predictions.useAi")}</label>
-          </div>
-
-          <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? t("predictions.generating") : t("predictions.generate")}
-          </button>
-        </form>
-
-        {result && (
-          <div className="result-box">
-            <div className="result-header">
-              <CheckCircle size={24} className="success" />
-              <h2>{t("predictions.generated")}</h2>
-            </div>
-
-            <div className="result-content">
-              <div className="prediction-section">
-                {result.lagna && (
-                  <div className="info-item">
-                    <strong>{t("birthChart.lagnaAscendant")}:</strong>
-                    <span>
-                      {typeof result.lagna === "object"
-                        ? ln(result.lagna.sign_name, "rasi")
-                        : result.lagna}
-                    </span>
-                  </div>
-                )}
-                {result.moon_sign && (
-                  <div className="info-item">
-                    <strong>{t("predictions.moonSign")}:</strong>
-                    <span>
-                      {typeof result.moon_sign === "object"
-                        ? ln(result.moon_sign.sign_name, "rasi") || result.moon_sign
-                        : result.moon_sign}
-                    </span>
-                  </div>
-                )}
-                {result.sun_sign && (
-                  <div className="info-item">
-                    <strong>{t("predictions.sunSign")}:</strong>
-                    <span>
-                      {typeof result.sun_sign === "object"
-                        ? ln(result.sun_sign.sign_name, "rasi") || result.sun_sign
-                        : result.sun_sign}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {result.planetary_positions && Object.keys(result.planetary_positions).length > 0 && (
-                <div className="predictions-detail">
-                  <h3>{t("predictions.planetaryPositions")}</h3>
-                  {Object.entries(result.planetary_positions).map(([planet, data]) => (
-                    <div key={planet} className="prediction-item">
-                      <strong>{planet}:</strong>
-                      <p>
-                        {data.sign_name} - {data.nakshatra} ({t("common.pada")} {data.pada})
-                        <br />
-                        <small style={{ color: "var(--text-neutral-muted)" }}>
-                          {t("predictions.longitude")}: {data.longitude?.toFixed(2)}°
-                        </small>
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {result.predictions && Object.keys(result.predictions).length > 0 && (
-                <div className="predictions-detail">
-                  <h3>{t("predictions.detailed")}</h3>
-                  {Object.entries(result.predictions).map(([key, value]) => (
-                    <div key={key} className="prediction-item">
-                      <strong className="capitalize">{key}:</strong>
-                      <p>{value}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {aiError && (
-                <div className="error-box">
-                  <AlertCircle size={18} />
-                  <span>{aiError}</span>
-                </div>
-              )}
-
-              {aiReading && (
-                <div className="ai-prediction">
-                  <h3>{t("predictions.astrological")}</h3>
-                  <div className="sbc-ai-markdown">
-                    <Markdown>{aiReading}</Markdown>
-                  </div>
-                  {aiModel && (
-                    <p className="subtitle" style={{ marginTop: 8 }}>
-                      {t("predictions.aiModel", { model: aiModel })}
-                    </p>
+          <div className="mt-xl">
+            <Card
+              title={t("predictions.readingTitle")}
+              icon={<Sparkles size={24} />}
+              accent="indigo"
+            >
+              <ErrorBanner message={error} />
+              {!reading && !loading && <p className="ai-panel__hint">{t("predictions.hint")}</p>}
+              {loading && <LoadingState message={t("predictions.generating")} />}
+              {reading && !loading && (
+                <div className="sbc-ai-markdown ai-panel__reading">
+                  <Markdown>{reading}</Markdown>
+                  {model && (
+                    <div className="ai-panel__meta">{t("predictions.aiModel", { model })}</div>
                   )}
                 </div>
               )}
-            </div>
+              {!loading && (
+                <button className="ui-btn ui-btn--ai" onClick={generate}>
+                  <Sparkles size={18} />
+                  {reading ? t("predictions.regenerate") : t("predictions.generate")}
+                </button>
+              )}
+            </Card>
           </div>
-        )}
-      </div>
+        </div>
+      </main>
     </div>
   );
 };
+
+export default PredictionsPage;

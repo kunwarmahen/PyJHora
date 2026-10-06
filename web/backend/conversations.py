@@ -61,7 +61,7 @@ SOURCE_META: Dict[str, Dict[str, str]] = {
     "compare":          {"label": "Compare charts",     "route": "/compare",           "kind": "reading"},
     "rectification":    {"label": "Rectification",      "route": "/rectify",           "kind": "reading"},
     "quiz":             {"label": "Learn quiz",         "route": "/learn",             "kind": "reading"},
-    "prediction":       {"label": "Prediction",         "route": "/predictions",       "kind": "reading"},
+    "prediction":       {"label": "Topic reading",      "route": "/predictions",       "kind": "reading"},
     "kp":               {"label": "KP system",          "route": "/kp",                "kind": "reading"},
     "kp_horary":        {"label": "KP horary",          "route": "/kp",                "kind": "reading"},
     "jaimini":          {"label": "Jaimini",            "route": "/jaimini",           "kind": "reading"},

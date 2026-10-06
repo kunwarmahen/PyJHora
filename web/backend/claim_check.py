@@ -164,6 +164,8 @@ _SKIP = re.compile(r"""
       |tithi\s+pravesha)\b
   | \b(?:prashna|horary|kp\s|sub-?lord|cuspal|significator)\b
   | \b(?:arudha|karakamsa|swamsa|upapada|\bal\b|\bul\b)\b
+  | \b(?:ghati|ghatika|hora|bhava|indu|sree|sri|shree|varnada|pranapada|kunda
+      |vighati|nisheka|chandra|surya)\s+lagnas?\b      # special lagnas: own frame
   | \bfrom\s+the\s+(?:moon|chandra|sun|surya|arudha|karakamsa|lagna|ascendant
       |7th|10th)\b
   | \bif\b | \bwere\s+(?:it|they|he|she|to|in)\b | \bwould\s+(?:be|have|place)\b
@@ -667,6 +669,14 @@ def _claims_in(clean: str, original: str) -> List[Claim]:
                 continue
             else:
                 house_role = "bare"
+                if gap.count(")") > gap.count("("):
+                    # "The 3rd house (where 10th lord resides) and the 1st house
+                    # Mercury/Venus…" — the lord word was said inside a bracket
+                    # that has now closed, so it never reaches a planet named
+                    # after it. Live output that made Mercury the 10th lord. (A
+                    # bracket opened and closed in the gap — "the 4th lord
+                    # (home) in the 1st, the Sun" — still carries the lord.)
+                    lord_houses = []
             pending_house = a["value"]
             house_list = True
             continue
@@ -731,11 +741,18 @@ def _placement_ok(gap: str) -> bool:
     return _tail_is_connector(gap)
 
 
+# "Mercury/Venus … these are the lords of the 1st and 2nd" — a plural back-
+# reference names several planets at once and says nothing about which house is
+# whose. Binding it to the last planet named made Venus the 2nd lord on a correct
+# live sentence; a lordship with an unknown owner is not judged.
+_PLURAL_REF = re.compile(r"\b(?:these|those|they|them|respectively)\b", re.I)
+
+
 def _lord_ok(gap: str) -> bool:
     """Same, for "…is the lord of…". The lord word itself is what makes it a
     lordship, so only the blockers apply."""
     return (len(gap) <= _MAX_GAP and bool(_LORD_GAP.search(gap))
-            and not _GAP_BLOCKERS.search(gap))
+            and not _GAP_BLOCKERS.search(gap) and not _PLURAL_REF.search(gap))
 
 
 # "…in the 11th House (Virgo): The lord of career (Sun)…" — with the house BEFORE

@@ -31,7 +31,7 @@ the page title to move between them (§79). Every page keeps its own URL.
 | **My Chart** | Birth Chart (D1/D9, all vargas, yogas & doshas, aspects, panchanga) · Bhava Chart · Nakshatra Profile · Planetary Strength · Chart Deep-Dive · Sensitive Points |
 | **Your Periods** | Today · This Fortnight · This Month · Varshaphal (solar year) · Tithi Pravesha (lunar return) — each with AI readings and email/push digests |
 | **Other Systems** | Jaimini · KP System · Nadi Karakas · Bhrigu Markers · Chakras (Sarvatobhadra, Kota, Kaala, Tripataki) |
-| **Reports** | Life Report (chaptered reading) · Full Report (print-ready PDF) |
+| **Reports** | Life Report (chaptered reading) · Full Report (print-ready PDF) · Topic Reading (career, relationships, health or life path) |
 | **Dasha & Timeline** | Dasha Periods (Vimsottari + 18 other systems) · Life Timeline (+ What's coming & event alerts) |
 | **Transits** | Transits (with Ashtakavarga support + nakshatra gochara) · Gochara-phala · Sade Sati · Ephemeris |
 | **Sky & Panchanga** | Almanac · Vedic Clock & Retrograde · Pancha Pakshi · Chart of the Moment |

@@ -155,6 +155,12 @@ export const HELP_SECTIONS = [
       // ── Reports ──
       { id: "featLifeReport", to: "/life-report" },
       { id: "featReport", to: "/report", keywords: "export download save pdf print" },
+      {
+        id: "featPredictions",
+        to: "/predictions",
+        keywords:
+          "prediction predictions topic career job health relationships marriage focused reading",
+      },
       // ── Dasha & Timeline ──
       {
         id: "featDasha",

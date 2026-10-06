@@ -229,7 +229,7 @@ Two levels. **Sections** put things in the order a reading actually proceeds; in
 | Section | Entries (hubs in bold, members in brackets) |
 | --- | --- |
 | **Start here** | **My Chart** (Birth Chart · Bhava Chart · Nakshatra Profile · Planetary Strength · Chart Deep-Dive · Sensitive Points) · Ask AI Astrologer · **Your Periods** (Today · This Fortnight · This Month · Varshaphal · Tithi Pravesha) |
-| **Read the chart** | **Other Systems** (Jaimini · KP · Nadi Karakas · Bhrigu Markers · Chakras) · **Reports** (Life Report · Full Report) |
+| **Read the chart** | **Other Systems** (Jaimini · KP · Nadi Karakas · Bhrigu Markers · Chakras) · **Reports** (Life Report · Full Report · Topic Reading) |
 | **Timing** | **Dasha & Timeline** (Dasha Periods · Life Timeline) · **Transits** (Transits · Gochara-phala · Sade Sati · Ephemeris) |
 | **Calendar & muhurta** | **Sky & Panchanga** (Almanac · Vedic Clock · Pancha Pakshi · Chart of the Moment) · Muhurta |
 | **Relationships** | **Relationships** (Compatibility · Compare Charts) |
@@ -832,13 +832,20 @@ Also here: **Jaimini** (`/jaimini`) — Chara Karakas, Karakamsa/Swamsa with ras
 
 Also here: **Life Report** (`/life-report`) — see *Life Report* under Cross-cutting features above.
 
-### Horoscope & Predictions
+### Topic Reading (`/predictions`)
 
-- General horoscope predictions
-- Health predictions
-- Career predictions
-- Current transits (Gochara)
-- Optional AI enhancement with Qwen
+A focused AI reading of the selected chart on one area — **life path**, **career**,
+**relationships** or **health** — as a tab bar (`?tab=career`, deep-linkable). Calls
+`POST /api/astrology/predict` with `prediction_type` = the topic; the server builds the full
+chart context (D1, dasha chain, yogas, doshas, transits), runs the claim checker, and saves the
+reading to AI History (source `prediction`, label "Topic reading"), which reopens it here under
+its topic. Career also judges the 10th from the Ghati Lagna; life path reads Bhava/Hora/Ghati
+lagnas with the natal Lagna (`llm/prompts.py` `_build_prediction_prompt`). The page's `TOPICS`
+must stay a subset of that prompt's topics — an unknown one silently falls back to general.
+
+Until §79.3 this was the original `/predictions` form: hand-typed birth details, no profile, a
+copy of the Birth Chart positions and of the Transits table, no header, and it ignored the
+`?reading=` id History opened it with. It was routed but linked from nowhere.
 
 ### Full Report (print-ready PDF) (`/report`)
 
