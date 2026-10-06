@@ -15,6 +15,7 @@ import { BrandLogo } from "../components/BrandLogo";
 import { SITE_TITLE } from "../config/branding";
 import {
   visibleFeatures,
+  navEntries,
   groupedFeatures,
   featureForKey,
   searchFeatures,
@@ -77,7 +78,15 @@ export const DashboardPage = () => {
   // → calendar → relationships → remedies), not as one undifferentiated grid,
   // so features an astrologer uses together sit together. Grouping the SEARCH
   // results too keeps a match in the same place it lives when you're browsing.
-  const sections = useMemo(() => groupedFeatures(filtered), [filtered]);
+  //
+  // Browsing shows hubs (§79) — one tile for Your Periods, not five. Searching
+  // shows the individual pages, so "gochara" lands on Gochara-phala itself
+  // rather than on a hub you'd then have to look through.
+  const entries = useMemo(
+    () => navEntries(settings.uiMode).filter((f) => !f.navOnly),
+    [settings.uiMode]
+  );
+  const sections = useMemo(() => groupedFeatures(q ? filtered : entries), [q, filtered, entries]);
 
   const closeSearch = () => {
     setQuery("");
@@ -234,15 +243,19 @@ export const DashboardPage = () => {
                 <div className="features-grid">
                   {section.features.map((feature, index) => (
                     <Link
-                      key={feature.key}
+                      key={feature.path}
                       to={feature.path}
                       className={`feature-card fade-in stagger-${index + 1}`}
                     >
                       <div className="feature-icon" style={{ background: feature.gradient }}>
                         <feature.Icon size={32} />
                       </div>
-                      <h3>{t(`dashboard.features.${feature.key}.title`)}</h3>
-                      <p>{t(`dashboard.features.${feature.key}.description`)}</p>
+                      <h3>
+                        {t(`${feature.tileKey || `dashboard.features.${feature.key}`}.title`)}
+                      </h3>
+                      <p>
+                        {t(`${feature.tileKey || `dashboard.features.${feature.key}`}.description`)}
+                      </p>
                       <div className="feature-arrow">
                         <span>{t("dashboard.explore")}</span>
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

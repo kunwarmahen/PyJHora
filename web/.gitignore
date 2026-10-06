@@ -63,6 +63,13 @@ build/
 # explicit allow-list. Add any design doc that should survive a clone.
 docs/*
 !docs/I18N_DATA_LAYER_DESIGN.md
+!docs/AI_TOOL_CALLING_DESIGN.md
+!docs/FEATURES.md
+!docs/SETUP.md
+!docs/ARCHITECTURE.md
+!docs/API.md
+!docs/LOCATION_SEARCH.md
+# docs/archive/ (the pre-2026 location notes + QUICKSTART) stays ignored.
 # Design preview (throwaway)
 frontend/ledger-preview.html
 **/*/package-lock.json

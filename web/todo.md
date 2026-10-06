@@ -16,6 +16,24 @@
 > The "Status: planning" line below is likewise historical — nearly everything here
 > has since shipped (§1–§26 plus the whole of `improvements-2026-07.md`).
 
+## Open work — start here (index kept current, §79.4)
+
+This file is ~8,000 lines because it is the **build log**: code comments cite its section
+numbers (`todo.md §52`), so finished sections stay where they are. What is still open:
+
+| § | Item | Status |
+|---|---|---|
+| §68.2 | CI — the test suites only run when someone types `./dev.sh test` | 🔴 open |
+| §68.3 | The frontend has never rendered a page in a test | 🔴 open |
+| §76 | Newcomer onboarding (76.2–76.7) — 4 owner questions in §76.9 | 🔴 proposed, not built |
+| §79.3 | Duplicated content between hub members (Shadbala, Argala, Karakas, …) | 🔴 open |
+| §79.4 | Root strays (`cmd.txt`, `test_log.txt`, `features_per_book.txt`) — owner to confirm | 🔴 owner call |
+| §79.3 | `/predictions` routed but linked from nowhere — retire or fold into Reports | 🔴 owner call |
+
+Product docs are in [`docs/`](docs/) — start at [`README.md`](README.md).
+
+---
+
 Status: planning. No app code changed yet. Direction agreed: **Refined Vedic** —
 keep the spiritual/Indian-astrology identity, but calm it down (drop rotating
 mandala / glow-pulse / gradient-text-everywhere), give it real typographic
@@ -8317,3 +8335,108 @@ results — a muhurta's own location is left alone; the request's date/place as 
 no user field; in test_admin's NOT_PER_USER allowlist). **Help:** Privacy → `privAiProviders`;
 `aiWhatItSees` corrected. Tests: `tests/test_privacy.py` (redactor + every send point, hosted vs
 local, captured at the adapters / HTTP client).
+
+---
+
+## §79 Consolidation — ~40 pages into a dozen hubs, and the docs into one place (owner ask 2026-10-05) — ✅ 79.1/79.2/79.4/79.5 SHIPPED 2026-10-05, 79.3 open
+
+**Ask:** "we have lot of information in all different places, some should be together." A review
+(2026-10-05) found two kinds of scatter: pages that are one idea split by build order (four return
+charts, two reports, two record lists, three "sky now" pages), and the **same data shown on two
+pages** (Shadbala, Argala, Karakas, Sade Sati, Nadi, the chart of the moment). The docs have the same
+shape: six files about one location-search feature, a 2,300-line README, an 8,300-line todo whose
+open work is three items, and `web/docs/` gitignored so none of it is even committed.
+
+### 79.1 The hub mechanism (P1) — how pages become one place without breaking a link — ✅
+
+A **hub** is a set of existing routes that share one entry in the drawer/dashboard and a section
+strip under the page header. Every page keeps its own URL, so AI readings, digests, notifications,
+bookmarks and `?tab=` deep-links that point at `/gochara` or `/varshaphal` keep working — nothing
+redirects. Pages keep their own in-page `?tab=` bars; the hub strip is route links (`<nav>` +
+`aria-current`), not a second tablist, so the two never fight over `?tab=`.
+
+- `config/features.js` stays the ONE registry: a feature gets `hub: "<hubKey>"`; `HUBS` holds only
+  the hub's own icon/gradient/group; members are derived from `FEATURES` in order (first = leader).
+- Drawer + dashboard render **entries** (hubs collapsed + standalone features). Search still finds
+  individual pages, so typing "gochara" lands on Gochara-phala, not on a hub you then have to search.
+- Essentials: a hub shows if any member is `simple`; its tile/drawer link opens the first simple
+  member; the strip hides advanced members unless you're on one (deep-links never dead-end).
+- `PageHeader` renders the strip from the path — zero per-page edits.
+
+### 79.2 The hubs (P1) — ✅
+
+| Hub | Members (leader first) | Section |
+|---|---|---|
+| My Chart | Birth Chart · Houses (Bhava) · Birth Star · Strength · Deep-Dive · Sensitive Points | start |
+| Your Periods | Today · Fortnight · Month · Varshaphal (solar year) · Tithi Pravesha (lunar return) | start |
+| Other Systems | Jaimini · KP · Nadi Karakas · Bhrigu/Nadi Markers · Chakras | chart |
+| Reports | Life Report (read) · Full Report (print/PDF) | chart |
+| Dasha & Timeline | Dasha · Life Timeline | timing |
+| Transits | Transits · Gochara-phala · Sade Sati · Ephemeris | timing |
+| Sky & Panchanga | Almanac · Vedic Clock · Pancha Pakshi · Chart of the Moment | calendar |
+| Relationships | Compatibility · Compare | relationships |
+| My Notebook | AI History · Astro-Journal | practice |
+
+Standalone: Dashboard, Ask, Muhurta, Remedies, Prashna, Learn, Rectify, Settings.
+Chakras moves out of "calendar" (it never was one). Drawer goes from ~40 rows to ~17.
+
+### 79.3 Duplicated content — one home each (P2, per hub, after 79.1/79.2) 🔴
+- Shadbala: Deep-Dive and Strength → Strength only (Deep-Dive links to it).
+- Argala: Sensitive Points and Jaimini → Jaimini only.
+- Karakas: Deep-Dive, Jaimini, Nadi Karakas → chara karakas in Jaimini; Nadi keeps its own (different) karakas.
+- Sade Sati: own page + Timeline band → keep both, but the Timeline band links to the page.
+- Chart of the Moment ↔ Prashna: "Ask about this moment" button from Now into Prashna.
+- `/predictions` is routed but linked from nowhere — retire it or fold into Reports (owner call).
+
+### 79.4 Docs (P1) — ✅ (one item left to the owner)
+- `web/README.md` 2,333 → 66 lines: what it is, quick start, the hub table, and a docs index. The rest
+  moved **verbatim** (one regrouping, no rewrites except where stale) into:
+  - `docs/FEATURES.md` — overview, cross-cutting features (AI, view modes, dashboard, settings, help,
+    digests, location, API/MCP), then the feature reference **regrouped under hub headings**, with a
+    one-line entry for each page that had none (Nakshatra, Strength, Gochara-phala, Sade Sati, Jaimini,
+    KP, Nadi, Timeline, Now, Compare, Journal, Learn, the fortnight/month digests, Tithi Pravesha).
+  - `docs/SETUP.md` (install, `.env`, AI models, deployment, troubleshooting — absorbs QUICKSTART),
+    `docs/ARCHITECTURE.md` (structure, dev notes, testing + the feature registry), `docs/API.md`.
+  - Dropped: the "Frontend Pages" list (listed 17 of ~50 routes; the hub table replaces it) and
+    "Future Enhancements" (multi-language, SVG charts, sharing… all long shipped).
+  - Stale counts fixed: "14 other dasha systems" → 18 (`SUPPORTED_DASHAS` has 18 besides Vimsottari).
+- `docs/LOCATION_SEARCH.md` replaces the six location notes + `QUICKSTART.md` (moved to
+  `docs/archive/`, still ignored). They described a local city CSV and a Google Maps scraper; the code
+  is Nominatim + timezonefinder, so this was written fresh from `compute_geo.py`/`routes/misc.py`.
+- `web/.gitignore` allow-lists every new doc — `docs/*` is ignored wholesale, so an un-listed doc
+  silently never reaches git. **Add new docs to that list.**
+- **Not done, on purpose:** splitting shipped sections out of this file — 24 code comments cite
+  `todo.md §N`. An "Open work" index at the top instead.
+- `wire-a-feature` skill row 12 now points at `docs/FEATURES.md` (under the right hub); row 7 mentions `hub`.
+- 🔴 Owner call: repo-root `cmd.txt`, `test_log.txt`, `features_per_book.txt` — delete?
+
+### 79.5 Help / FAQ (P1) — ✅
+- `dashboardLayout` rewritten for sections + hubs (en, hi, sa).
+- New `whereIsPage` ("I can't find a page I used to open — where did it go?"): every hub and its
+  members, the strip, search, and that old links still work (en + hi; sa falls back).
+- The "What each page does" tour is reordered into hub order with `// ── Hub ──` markers, so it reads
+  the way the drawer does. Every page keeps its own entry — `help.test.js` still requires one per page.
+- `aiHistory` says where History now lives (My Notebook).
+- `help.test.js` search coverage: "my notebook", "your periods", "where did".
+
+### 79.6 What shipped, the traps, the tests
+- **Files:** `config/features.js` (`HUBS`, `hub` on 32 features, `hubMembers`/`hubForPath`/
+  `visibleHubMembers`/`navEntries`), `components/HubNav.js` + `styles/HubNav.css`, `PageHeader.js`
+  (mounts the strip), `NavDrawer.js` + `DashboardPage.js` (render entries), locales (`nav.hubs.*`,
+  `dashboard.hubs.*`, en/hi/sa; `nav.dhasa` "Dhasa Periods" → "Dasha Periods" to match its tile).
+- **Trap — two `?tab=` bars.** A hub as a tabbed page that embeds member pages would have clashed with
+  members' own `?tab=` (Birth Chart, Compatibility, Chakras…) and doubled their headers. Route-link strip
+  instead: zero member-page edits, no URL changes.
+- **Trap — search.** Collapsing tiles must not collapse search: browsing renders hubs, a query renders
+  pages (`searchFeatures` unchanged), else "gochara" would find only "Transits".
+- **Trap — Essentials deep-link.** `/varshaphal` opened in Essentials shows "Today · Varshaphal" — the
+  current page is always in its strip even when advanced.
+- **Tests:** `features.test.js` → "hubs" (9): every `hub` resolves and has ≥2 members, members share
+  the hub's group, labels exist, each hub listed once and no member alone, **every visible page is
+  reachable from the drawer or a strip** (the class test), leader choice per mode, deep-link member kept,
+  drawer ≤ 20 entries. Frontend 348 → 360 tests, all pass.
+- **Verified in the browser** (Playwright, owner chart): Essentials dashboard 9 tiles (unchanged count, now 7 of
+  them hubs), Everything 15 (was 38); drawer 16 rows (was 39); `/varshaphal` strip = Today · This Fortnight ·
+  This Month · Varshaphal · Tithi Pravesha with Varshaphal current; clicking This Month lands on
+  `/monthly-digest`; search "gochara" → Transits + Gochara-phala; at 390 px the strip scrolls
+  sideways and the page doesn't (scrollWidth 390).

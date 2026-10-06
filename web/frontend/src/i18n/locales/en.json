@@ -420,7 +420,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "birthChart": "Birth Chart",
-    "dhasa": "Dhasa Periods",
+    "dhasa": "Dasha Periods",
     "transit": "Transits",
     "ephemeris": "Ephemeris",
     "bhava": "Bhava Chart",
@@ -463,9 +463,9 @@
     "help": "Help & FAQ",
     "groups": {
       "start": "Start here",
-      "startHint": "The chart itself, your assistant, and what today holds",
+      "startHint": "Your chart, your assistant, and the periods you're living through",
       "chart": "Read the chart",
-      "chartHint": "Houses, planetary strength, yogas, and the special systems",
+      "chartHint": "The other classical schools, and your chart written up",
       "timing": "Timing",
       "timingHint": "Dashas first, then the transits running over them",
       "calendar": "Calendar & muhurta",
@@ -476,7 +476,18 @@
       "practiceHint": "What to do about it — and your own record of the work"
     },
     "menu": "Menu",
-    "features": "Features"
+    "features": "Features",
+    "hubs": {
+      "chart": "My Chart",
+      "periods": "Your Periods",
+      "systems": "Other Systems",
+      "reports": "Reports",
+      "dasha": "Dasha & Timeline",
+      "transits": "Transits",
+      "sky": "Sky & Panchanga",
+      "relationships": "Relationships",
+      "notebook": "My Notebook"
+    }
   },
   "aiTools": {
     "title": "AI Capabilities",
@@ -658,6 +669,44 @@
       "lifeReport": {
         "title": "Life Report",
         "description": "A composed, multi-chapter reading of your whole chart"
+      }
+    },
+    "hubs": {
+      "chart": {
+        "title": "My Chart",
+        "description": "Your birth chart and everything read straight from it — houses, birth star, strength and the fine points."
+      },
+      "periods": {
+        "title": "Your Periods",
+        "description": "Today, this fortnight, this month and the year ahead — each period's chart, dasha and transits."
+      },
+      "systems": {
+        "title": "Other Systems",
+        "description": "The chart through the other classical schools — Jaimini, KP, Nadi, Bhrigu markers and the chakras."
+      },
+      "reports": {
+        "title": "Reports",
+        "description": "Your whole chart written up — a chaptered reading to read, or a print-ready PDF."
+      },
+      "dasha": {
+        "title": "Dasha & Timeline",
+        "description": "Your planetary periods, and every dasha, Sade Sati and eclipse laid out on one timeline."
+      },
+      "transits": {
+        "title": "Transits",
+        "description": "Where the planets are now over your chart — the transit table, Moon-based results, Sade Sati and the ephemeris."
+      },
+      "sky": {
+        "title": "Sky & Panchanga",
+        "description": "The sky's own clock — almanac, vedic clock, Pancha Pakshi and the chart of this moment."
+      },
+      "relationships": {
+        "title": "Relationships",
+        "description": "Matching two charts — Guna Milan, the 7th house and marriage timing — or comparing any two side by side."
+      },
+      "notebook": {
+        "title": "My Notebook",
+        "description": "Your own record — every AI reading and chat, and the life events you've logged."
       }
     }
   },
@@ -2745,6 +2794,7 @@
       "whatIsThis": "What is this app, in one sentence?",
       "whereToStart": "I've added my details. Where do I start?",
       "dashboardLayout": "The dashboard has a lot of tiles. How is it organised?",
+      "whereIsPage": "I can't find a page I used to open from the menu. Where did it go?",
       "whyBirthTime": "Why does it keep asking for my exact birth time?",
       "yogaAndDosha": "What are yogas and doshas?",
       "whatIsArudha": "What is an Arudha Lagna, and why does the Transit page count from it?",
@@ -2775,7 +2825,7 @@
     "a": {
       "aiAccurate": "It faithfully reports what the calculations say and interprets them in the tradition's own terms — the maths is real astronomy. Whether astrology itself predicts anything is a question this app can't settle for you. Please treat every reading as reflection, not instruction, and never as medical, legal or financial advice. AI models can also simply be wrong, and this one occasionally will be.",
       "aiCorrectionNote": "Every reading is checked against your own chart before you see it. The app pulls out the factual statements — which house a planet sits in, which sign, which nakshatra, who rules a house, whether a planet is retrograde or combust — and compares each one with what was actually calculated for your birth details. If the AI has contradicted the chart, the app asks it again, naming the mistake; most of the time the second answer is right and you never see any of this. When something still doesn't match, that box appears and tells you what the chart really says. The interpretation around it may still be worth reading — but where the words and the chart disagree, the chart is right, and the note is there so you aren't left to spot it yourself.",
-      "aiHistory": "Everything is saved automatically. AI History holds every reading and chat, and you can reopen any of them exactly as they were. Readings also show up under the page that produced them.",
+      "aiHistory": "Everything is saved automatically. AI History (in My Notebook, next to your Astro-Journal) holds every reading and chat, and you can reopen any of them exactly as they were. Readings also show up under the page that produced them.",
       "aiLongWait": "Yes. A local model can take several minutes on a long question, and the answer is written on the server, not in your browser — so you can switch pages, lock your phone or close the tab. While it's working, the ✦ pill in the top bar shows it (and History lists it under \"In progress\"). When it's done the pill says it's ready: tap it to open the answer on its own page. It's also saved to History like any other reading.",
       "aiModes": "Full context hands the model your whole chart up front — thorough, and better for open-ended questions, but slower and heavier. Smart lookup gives it a summary plus the ability to fetch specific calculations on demand, which is quicker and usually enough. If an answer seems to have missed something, switch to Full context and ask again.",
       "aiWhatIsIt": "A conversational astrologer that has already been handed your chart. You can ask it anything — \"what does my chart say about money?\", \"explain my current period\", \"what is a nakshatra?\" — and ask follow-ups. It's also the layer that writes the readings on other pages.",
@@ -2836,7 +2886,8 @@
       "whatIsSign": "The zodiac is a circle split into twelve 30° signs, and at any moment each planet sits in one of them. The sign describes the *manner* of a planet — Mars in a cautious sign behaves differently from Mars in a bold one. Note that Vedic astrology uses the sidereal zodiac, measured against the actual stars, so your Sun sign here is often one back from the one in a newspaper horoscope. That's expected, not a bug.",
       "whatIsThis": "It takes your birth date, time and place, works out where the planets were at that moment, and helps you read what Vedic astrology (Jyotish) traditionally makes of it — with an AI that can explain any of it in plain English.",
       "whereToStart": "Open your Birth Chart and read the plain-English panels rather than the diagram. Then try Today for what's happening right now, and ask the AI astrologer anything you're curious about — it can see your chart, so \"what does my chart say about my work?\" is a perfectly good question.",
-      "dashboardLayout": "In the order a reading actually goes. Start here is your chart, the AI and today. Read the chart is everything that describes the chart as it stands. Timing is when things happen — dashas first, then the transits running over them. Calendar & muhurta is the sky's own clock and picking a moment to act. Then Relationships, and Remedies & practice for what to do about it. The nav menu uses the same six sections, and if you know what you want, just start typing on the dashboard to filter.",
+      "dashboardLayout": "In the order a reading actually goes, with related pages grouped together. Start here is My Chart, the AI astrologer and Your Periods. Read the chart holds the other classical schools and the written-up Reports. Timing is Dasha & Timeline first, then the Transits running over them. Calendar & muhurta is Sky & Panchanga — the sky's own clock — and Muhurta for picking a moment to act. Then Relationships, and Remedies & practice, where My Notebook keeps your own record. Where several pages are one idea they share a single tile, and once you're on any of them a strip under the page title lists the others, so moving between them is one tap. The menu uses the same sections and groups. If you know what you want, just start typing on the dashboard — the search finds every individual page by name, not just the groups.",
+      "whereIsPage": "Nowhere — every page is still there, at the same address, but pages that belong to one idea now share one entry in the menu and on the dashboard. My Chart: Birth Chart, Bhava Chart, Nakshatra Profile, Planetary Strength, Chart Deep-Dive and Sensitive Points. Your Periods: Today, This Fortnight, This Month, Varshaphal and Tithi Pravesha. Other Systems: Jaimini, KP System, Nadi Karakas, Bhrigu Markers and the Chakras. Reports: Life Report and Full Report. Dasha & Timeline: Dasha Periods and Life Timeline. Transits: Transits, Gochara-phala, Sade Sati and the Ephemeris. Sky & Panchanga: Almanac, Vedic Clock, Pancha Pakshi and Chart of the Moment. Relationships: Compatibility and Compare Charts. My Notebook: AI History and Astro-Journal. Open the group, then use the strip under the page title — or simply type the page's name into the dashboard search. In Essentials mode the strip shows only the pages Essentials advertises; switch to Everything in Settings to see them all. Bookmarks and links in old readings and emails still open the same page.",
       "whyBirthTime": "Because the sky changes fast. The \"ascendant\" — the sign coming up over the horizon — moves to a new sign roughly every two hours, and it decides how the whole chart is laid out. A few minutes usually doesn't matter; a few hours changes almost everything. Date and place matter too, but time is the sensitive one.",
       "yogaAndDosha": "A yoga is a specific planetary combination said to produce a particular result — many are simply favourable patterns worth knowing about. A dosha is an affliction or rough patch in the chart. Both get named dramatically in traditional texts. Read them as emphasis rather than fate: a chart with a dosha is extremely common, and it isn't a diagnosis. On the Birth Chart's Yogas & Doshas tab you'll see them split into the classical yogas, raja yogas (combinations for rank and success, shown with how strongly they're formed) and doshas such as Mangal or Kaal Sarpa, each marked present or absent.",
       "whatIsArudha": "Your Lagna is where you actually stand; the Arudha Lagna (AL) is how that position appears to everyone else — your image, your standing, the visible face of your life rather than the felt one. It is a Jaimini idea, and it is computed, not guessed: from the Lagna, to its ruling planet, and the same distance onward again. The Upapada (UL) is the same construction for the twelfth house, and is read for the marriage.\n\nSo a planet can be doing one thing to how a season feels and another to how it looks. In Everything view the Transit page counts each transiting planet from the Arudha Lagna and the Upapada alongside the Lagna and the Moon, marks AL and UL on the chart, and lists all twelve arudhas below. Nothing there is a verdict — the classical good/bad tables for transits are counted from the Moon, so the arudha columns tell you where a planet is, and leave what it means to you and to the AI reading.",

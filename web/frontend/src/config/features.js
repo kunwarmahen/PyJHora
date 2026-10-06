@@ -56,6 +56,10 @@ import {
  *                          to it, it just isn't advertised. See <AdvancedNotice>.
  *   group     section this feature belongs to — a key from FEATURE_GROUPS below.
  *             The dashboard and the drawer both render section headings from it.
+ *             A hub member carries its hub's group.
+ *   hub       the HUBS key this page belongs to (§79), if any. Hub members get
+ *             no drawer row or tile of their own — the hub's entry stands for
+ *             them — but search still finds each one by name.
  *   navOnly   in the drawer but not a dashboard tile (Dashboard, Settings).
  *   footer    drawer renders it in the footer with the other account-level
  *             actions (Help, Logout) instead of in the feature list.
@@ -86,8 +90,36 @@ export const FEATURE_GROUPS = [
   { key: "practice" },
 ];
 
+/**
+ * Hubs (§79): pages that are one idea, given one entry in the drawer and on the
+ * dashboard, and a section strip (<HubNav>) under each member's header.
+ *
+ * Membership lives on the FEATURE (`hub: "<key>"`), never here, so there is no
+ * second list to drift: a hub's members are the features naming it, in registry
+ * order, and the first of them is the leader the hub's entry opens. Every member
+ * keeps its own route — readings, digests, notifications and bookmarks that
+ * deep-link to /gochara or /varshaphal still land — and keeps its own in-page
+ * `?tab=` bar; the strip is route links, not a second tablist.
+ *
+ *   key       i18n stem — `nav.hubs.<key>` (drawer + strip label) and
+ *             `dashboard.hubs.<key>.{title,description}` (the tile).
+ *   group     the dashboard/drawer section the hub's entry sits in; members
+ *             carry the same group so a search result stays where it lives.
+ */
+export const HUBS = [
+  { key: "chart", Icon: Calendar, group: "start" },
+  { key: "periods", Icon: Sun, group: "start" },
+  { key: "systems", Icon: Layers, group: "chart" },
+  { key: "reports", Icon: ScrollText, group: "chart" },
+  { key: "dasha", Icon: Clock, group: "timing" },
+  { key: "transits", Icon: Orbit, group: "timing" },
+  { key: "sky", Icon: CalendarDays, group: "calendar" },
+  { key: "relationships", Icon: Heart, group: "relationships" },
+  { key: "notebook", Icon: BookText, group: "practice" },
+];
+
 export const FEATURES = [
-  // ═══ Start here — the chart itself, the assistant, and today ════════════════
+  // ═══ Start here — your chart, the assistant, and your periods ════════════════════
   {
     key: "dashboard",
     path: "/dashboard",
@@ -102,7 +134,53 @@ export const FEATURES = [
     Icon: Calendar,
     tier: "simple",
     group: "start",
+    hub: "chart",
     gradient: "linear-gradient(135deg, #FF9933 0%, #FFB347 100%)",
+  },
+  {
+    key: "bhava",
+    path: "/bhava",
+    Icon: Home,
+    tier: "advanced",
+    group: "start",
+    hub: "chart",
+    gradient: "linear-gradient(135deg, #E27B5A 0%, #D4AF37 100%)",
+  },
+  {
+    key: "nakshatra",
+    path: "/nakshatra",
+    Icon: Star,
+    tier: "advanced",
+    group: "start",
+    hub: "chart",
+    gradient: "linear-gradient(135deg, #D4AF37 0%, #FF9933 100%)",
+  },
+  {
+    key: "strength",
+    path: "/strength",
+    Icon: Gauge,
+    tier: "advanced",
+    group: "start",
+    hub: "chart",
+    gradient: "linear-gradient(135deg, #D4AF37 0%, #2E9E5B 100%)",
+  },
+  {
+    key: "advanced",
+    path: "/advanced",
+    Icon: Sparkles,
+    tier: "advanced",
+    group: "start",
+    hub: "chart",
+    gradient: "linear-gradient(135deg, #D4AF37 0%, #E27B5A 100%)",
+  },
+  {
+    key: "sensitivePoints",
+    path: "/sensitive-points",
+    Icon: Crosshair,
+    tier: "advanced",
+    group: "start",
+    hub: "chart",
+    gradient: "linear-gradient(135deg, #2D3561 0%, #D4AF37 100%)",
   },
   {
     key: "ask",
@@ -118,55 +196,53 @@ export const FEATURES = [
     Icon: Sun,
     tier: "simple",
     group: "start",
+    hub: "periods",
     gradient: "linear-gradient(135deg, #FF9933 0%, #E27B5A 100%)",
   },
-  // ═══ Read the chart — houses, then grahas, then the special systems ═════════
   {
-    key: "bhava",
-    path: "/bhava",
-    Icon: Home,
+    key: "fortnightlyDigest",
+    path: "/fortnightly-digest",
+    Icon: CalendarDays,
     tier: "advanced",
-    group: "chart",
-    gradient: "linear-gradient(135deg, #E27B5A 0%, #D4AF37 100%)",
+    group: "start",
+    hub: "periods",
+    gradient: "linear-gradient(135deg, #F0883E 0%, #D4AF37 100%)",
   },
   {
-    key: "nakshatra",
-    path: "/nakshatra",
-    Icon: Star,
+    key: "monthlyDigest",
+    path: "/monthly-digest",
+    Icon: CalendarRange,
     tier: "advanced",
-    group: "chart",
-    gradient: "linear-gradient(135deg, #D4AF37 0%, #FF9933 100%)",
+    group: "start",
+    hub: "periods",
+    gradient: "linear-gradient(135deg, #E27B5A 0%, #B5651D 100%)",
   },
   {
-    key: "strength",
-    path: "/strength",
-    Icon: Gauge,
+    key: "varshaphal",
+    path: "/varshaphal",
+    Icon: CalendarClock,
     tier: "advanced",
-    group: "chart",
-    gradient: "linear-gradient(135deg, #D4AF37 0%, #2E9E5B 100%)",
+    group: "start",
+    hub: "periods",
+    gradient: "linear-gradient(135deg, #D4AF37 0%, #2D3561 100%)",
   },
   {
-    key: "advanced",
-    path: "/advanced",
-    Icon: Sparkles,
+    key: "tithiPravesha",
+    path: "/tithi-pravesha",
+    Icon: Moon,
     tier: "advanced",
-    group: "chart",
-    gradient: "linear-gradient(135deg, #D4AF37 0%, #E27B5A 100%)",
+    group: "start",
+    hub: "periods",
+    gradient: "linear-gradient(135deg, #2D3561 0%, #FF9933 100%)",
   },
-  {
-    key: "sensitivePoints",
-    path: "/sensitive-points",
-    Icon: Crosshair,
-    tier: "advanced",
-    group: "chart",
-    gradient: "linear-gradient(135deg, #2D3561 0%, #D4AF37 100%)",
-  },
+  // ═══ Read the chart — the other schools, and the written reports ═════════════════
   {
     key: "jaimini",
     path: "/jaimini",
     Icon: Layers,
     tier: "advanced",
     group: "chart",
+    hub: "systems",
     gradient: "linear-gradient(135deg, #E27B5A 0%, #E34234 100%)",
   },
   {
@@ -175,6 +251,7 @@ export const FEATURES = [
     Icon: Compass,
     tier: "advanced",
     group: "chart",
+    hub: "systems",
     gradient: "linear-gradient(135deg, #2D3561 0%, #5A5F7A 100%)",
   },
   {
@@ -183,6 +260,7 @@ export const FEATURES = [
     Icon: ScrollText,
     tier: "advanced",
     group: "chart",
+    hub: "systems",
     gradient: "linear-gradient(135deg, #3A3F5A 0%, #C97B4A 100%)",
   },
   {
@@ -191,7 +269,17 @@ export const FEATURES = [
     Icon: Waypoints,
     tier: "advanced",
     group: "chart",
+    hub: "systems",
     gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
+  },
+  {
+    key: "sarvatobhadra",
+    path: "/chakras",
+    Icon: Grid3x3,
+    tier: "advanced",
+    group: "chart",
+    hub: "systems",
+    gradient: "linear-gradient(135deg, #FF9933 0%, #2D3561 100%)",
   },
   {
     key: "lifeReport",
@@ -199,6 +287,7 @@ export const FEATURES = [
     Icon: ScrollText,
     tier: "simple",
     group: "chart",
+    hub: "reports",
     gradient: "linear-gradient(135deg, #D4AF37 0%, #2D3561 100%)",
   },
   {
@@ -207,15 +296,17 @@ export const FEATURES = [
     Icon: FileText,
     tier: "advanced",
     group: "chart",
+    hub: "reports",
     gradient: "linear-gradient(135deg, #D4AF37 0%, #FF9933 100%)",
   },
-  // ═══ Timing — dashas first, then transits over them ═════════════════════════
+  // ═══ Timing — dashas first, then transits over them ══════════════════════════════
   {
     key: "dhasa",
     path: "/dhasa",
     Icon: Clock,
     tier: "simple",
     group: "timing",
+    hub: "dasha",
     gradient: "linear-gradient(135deg, #2D3561 0%, #5A5F7A 100%)",
   },
   {
@@ -224,6 +315,7 @@ export const FEATURES = [
     Icon: GanttChartSquare,
     tier: "advanced",
     group: "timing",
+    hub: "dasha",
     gradient: "linear-gradient(135deg, #2D3561 0%, #E27B5A 100%)",
   },
   {
@@ -232,6 +324,7 @@ export const FEATURES = [
     Icon: Orbit,
     tier: "simple",
     group: "timing",
+    hub: "transits",
     gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
   },
   {
@@ -240,6 +333,7 @@ export const FEATURES = [
     Icon: Orbit,
     tier: "advanced",
     group: "timing",
+    hub: "transits",
     gradient: "linear-gradient(135deg, #2D3561 0%, #C97B54 100%)",
   },
   {
@@ -248,48 +342,54 @@ export const FEATURES = [
     Icon: Aperture,
     tier: "advanced",
     group: "timing",
+    hub: "transits",
     gradient: "linear-gradient(135deg, #5A5F7A 0%, #B23A48 100%)",
   },
   {
-    key: "varshaphal",
-    path: "/varshaphal",
-    Icon: CalendarClock,
-    tier: "advanced",
-    group: "timing",
-    gradient: "linear-gradient(135deg, #D4AF37 0%, #2D3561 100%)",
-  },
-  {
-    key: "tithiPravesha",
-    path: "/tithi-pravesha",
-    Icon: Moon,
-    tier: "advanced",
-    group: "timing",
-    gradient: "linear-gradient(135deg, #2D3561 0%, #FF9933 100%)",
-  },
-  // ═══ Calendar & muhurta — the sky's own clock, and picking a moment ═════════
-  {
-    key: "fortnightlyDigest",
-    path: "/fortnightly-digest",
-    Icon: CalendarDays,
-    tier: "advanced",
-    group: "calendar",
-    gradient: "linear-gradient(135deg, #F0883E 0%, #D4AF37 100%)",
-  },
-  {
-    key: "monthlyDigest",
-    path: "/monthly-digest",
+    key: "ephemeris",
+    path: "/ephemeris",
     Icon: CalendarRange,
     tier: "advanced",
-    group: "calendar",
-    gradient: "linear-gradient(135deg, #E27B5A 0%, #B5651D 100%)",
+    group: "timing",
+    hub: "transits",
+    gradient: "linear-gradient(135deg, #2D3561 0%, #D4AF37 100%)",
   },
+  // ═══ Calendar & muhurta — the sky's own clock, and picking a moment ══════════════
   {
     key: "almanac",
     path: "/almanac",
     Icon: CalendarDays,
     tier: "advanced",
     group: "calendar",
+    hub: "sky",
     gradient: "linear-gradient(135deg, #FFB347 0%, #D4AF37 100%)",
+  },
+  {
+    key: "vedicClock",
+    path: "/vedic-clock",
+    Icon: Timer,
+    tier: "advanced",
+    group: "calendar",
+    hub: "sky",
+    gradient: "linear-gradient(135deg, #5A5F7A 0%, #FF9933 100%)",
+  },
+  {
+    key: "panchaPakshi",
+    path: "/pancha-pakshi",
+    Icon: Bird,
+    tier: "advanced",
+    group: "calendar",
+    hub: "sky",
+    gradient: "linear-gradient(135deg, #E27B5A 0%, #FFB347 100%)",
+  },
+  {
+    key: "now",
+    path: "/now",
+    Icon: Globe,
+    tier: "advanced",
+    group: "calendar",
+    hub: "sky",
+    gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
   },
   {
     key: "muhurta",
@@ -299,53 +399,14 @@ export const FEATURES = [
     group: "calendar",
     gradient: "linear-gradient(135deg, #D4AF37 0%, #FFB347 100%)",
   },
-  {
-    key: "panchaPakshi",
-    path: "/pancha-pakshi",
-    Icon: Bird,
-    tier: "advanced",
-    group: "calendar",
-    gradient: "linear-gradient(135deg, #E27B5A 0%, #FFB347 100%)",
-  },
-  {
-    key: "sarvatobhadra",
-    path: "/chakras",
-    Icon: Grid3x3,
-    tier: "advanced",
-    group: "calendar",
-    gradient: "linear-gradient(135deg, #FF9933 0%, #2D3561 100%)",
-  },
-  {
-    key: "vedicClock",
-    path: "/vedic-clock",
-    Icon: Timer,
-    tier: "advanced",
-    group: "calendar",
-    gradient: "linear-gradient(135deg, #5A5F7A 0%, #FF9933 100%)",
-  },
-  {
-    key: "now",
-    path: "/now",
-    Icon: Globe,
-    tier: "advanced",
-    group: "calendar",
-    gradient: "linear-gradient(135deg, #5A5F7A 0%, #D4AF37 100%)",
-  },
-  {
-    key: "ephemeris",
-    path: "/ephemeris",
-    Icon: CalendarRange,
-    tier: "advanced",
-    group: "calendar",
-    gradient: "linear-gradient(135deg, #2D3561 0%, #D4AF37 100%)",
-  },
-  // ═══ Relationships ══════════════════════════════════════════════════════════
+  // ═══ Relationships ═══════════════════════════════════════════════════════════════
   {
     key: "compatibility",
     path: "/compatibility",
     Icon: Heart,
     tier: "simple",
     group: "relationships",
+    hub: "relationships",
     gradient: "linear-gradient(135deg, #D4AF37 0%, #FFB347 100%)",
   },
   {
@@ -354,9 +415,10 @@ export const FEATURES = [
     Icon: GitCompareArrows,
     tier: "advanced",
     group: "relationships",
+    hub: "relationships",
     gradient: "linear-gradient(135deg, #2D3561 0%, #E27B5A 100%)",
   },
-  // ═══ Remedies & your own practice ═══════════════════════════════════════════
+  // ═══ Remedies & your own practice ════════════════════════════════════════════════
   {
     key: "remedies",
     path: "/remedies",
@@ -374,20 +436,22 @@ export const FEATURES = [
     gradient: "linear-gradient(135deg, #2D3561 0%, #5A5F7A 100%)",
   },
   {
-    key: "journal",
-    path: "/journal",
-    Icon: BookText,
-    tier: "advanced",
-    group: "practice",
-    gradient: "linear-gradient(135deg, #C97B54 0%, #2D3561 100%)",
-  },
-  {
     key: "history",
     path: "/history",
     Icon: History,
     tier: "simple",
     group: "practice",
+    hub: "notebook",
     gradient: "linear-gradient(135deg, #FF9933 0%, #2D3561 100%)",
+  },
+  {
+    key: "journal",
+    path: "/journal",
+    Icon: BookText,
+    tier: "advanced",
+    group: "practice",
+    hub: "notebook",
+    gradient: "linear-gradient(135deg, #C97B54 0%, #2D3561 100%)",
   },
   {
     key: "learn",
@@ -466,7 +530,8 @@ export const FEATURE_ALIASES = {
     "sphuta saham argala sensitive points special lagna upagraha hora ghati bhava vighati varnada gulika maandi kaala mrityu dhuma vyatipata parivesha indrachapa upaketu sree indu bhrigu bindu pranapada kunda mandi",
   vedicClock: "clock ghati hora retrograde vakra vedic clock",
   kp: "krishnamurti sub lord significator ruling planets horary kp system",
-  jaimini: "chara karaka karakamsa swamsa argala jaimini arudha pada upapada atmakaraka amatyakaraka darakaraka",
+  jaimini:
+    "chara karaka karakamsa swamsa argala jaimini arudha pada upapada atmakaraka amatyakaraka darakaraka",
   now: "chart of the moment now current instant",
   compare: "compare two charts synastry side by side",
   rectify: "birth time correction rectification unknown time",
@@ -795,6 +860,70 @@ export const groupedFeatures = (features) =>
     features: features.filter((f) => f.group === group.key),
   })).filter((section) => section.features.length > 0);
 
+/** A hub's members, in registry order (leader first). */
+export const hubMembers = (hubKey) => FEATURES.filter((f) => f.hub === hubKey);
+
+/** The hub a route belongs to, with its members — or undefined. */
+export const hubForPath = (path) => {
+  const feature = FEATURES.find((f) => f.path === path);
+  const hub = feature?.hub && HUBS.find((h) => h.key === feature.hub);
+  return hub ? { ...hub, members: hubMembers(hub.key) } : undefined;
+};
+
+/**
+ * Members of a hub a reader should see in its strip: Essentials hides the
+ * advanced ones, except the page you're actually on (a deep-link must never
+ * leave you on a page the strip pretends isn't there).
+ */
+export const visibleHubMembers = (hubKey, uiMode, currentPath) =>
+  hubMembers(hubKey).filter(
+    (f) => uiMode === "advanced" || f.tier === "simple" || f.path === currentPath
+  );
+
+const pageEntry = (f) => ({
+  ...f,
+  navKey: `nav.${f.key}`,
+  tileKey: `dashboard.features.${f.key}`,
+  paths: [f.path],
+});
+
+/**
+ * What the drawer and the dashboard list: every standalone feature, and each
+ * hub ONCE, at the place its first member sits in the registry. A hub is shown
+ * when any member is visible in this mode, and opens its first visible member —
+ * in Essentials that is the first `simple` one, so Your Periods opens Today.
+ * `paths` lets the drawer mark the hub active on any of its members.
+ */
+export const navEntries = (uiMode) => {
+  const visible = visibleFeatures(uiMode);
+  const seen = new Set();
+  const entries = [];
+  visible.forEach((f) => {
+    if (!f.hub) {
+      entries.push(pageEntry(f));
+      return;
+    }
+    if (seen.has(f.hub)) return;
+    seen.add(f.hub);
+    const hub = HUBS.find((h) => h.key === f.hub);
+    const members = visible.filter((m) => m.hub === f.hub);
+    entries.push({
+      key: hub.key,
+      isHub: true,
+      path: members[0].path,
+      paths: hubMembers(hub.key).map((m) => m.path),
+      Icon: hub.Icon,
+      group: hub.group,
+      tier: members.some((m) => m.tier === "simple") ? "simple" : "advanced",
+      gradient: members[0].gradient,
+      members,
+      navKey: `nav.hubs.${hub.key}`,
+      tileKey: `dashboard.hubs.${hub.key}`,
+    });
+  });
+  return entries;
+};
+
 /** The registry entry owning a route, or undefined. */
 export const featureForPath = (path) => FEATURES.find((f) => f.path === path);
 
@@ -833,7 +962,11 @@ export const searchFeatures = (features, query, t) => {
   );
   const subs = FEATURE_SUBITEMS.filter((s) => {
     const parent = featureForKey(s.parent);
-    return hit([s.label, s.keywords || "", parent ? t(`dashboard.features.${parent.key}.title`) : ""]);
+    return hit([
+      s.label,
+      s.keywords || "",
+      parent ? t(`dashboard.features.${parent.key}.title`) : "",
+    ]);
   });
   return { tiles, subs };
 };

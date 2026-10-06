@@ -8,6 +8,11 @@ import {
   searchFeatures,
   FEATURE_SUBITEMS,
   featureForKey,
+  HUBS,
+  hubMembers,
+  hubForPath,
+  visibleHubMembers,
+  navEntries,
 } from "./features";
 import en from "../i18n/locales/en.json";
 
@@ -119,11 +124,38 @@ describe("dashboard search coverage", () => {
   const tiles = FEATURES.filter((f) => !f.navOnly);
 
   it.each([
-    "yoga", "yogas", "raja yoga", "gajakesari", "doshas", "kaal sarp", "manglik",
-    "aspects", "drishti", "divisional", "d10", "dasamsa", "d60", "navamsa",
-    "panchanga", "nakshatra", "ashtakavarga", "sarvashtakavarga", "longevity",
-    "avasthas", "combust", "friendship", "atmakaraka", "7th house", "shadbala",
-    "vimsopaka", "kp horary", "mandi", "sudarshana", "kota", "marriage", "gemstone",
+    "yoga",
+    "yogas",
+    "raja yoga",
+    "gajakesari",
+    "doshas",
+    "kaal sarp",
+    "manglik",
+    "aspects",
+    "drishti",
+    "divisional",
+    "d10",
+    "dasamsa",
+    "d60",
+    "navamsa",
+    "panchanga",
+    "nakshatra",
+    "ashtakavarga",
+    "sarvashtakavarga",
+    "longevity",
+    "avasthas",
+    "combust",
+    "friendship",
+    "atmakaraka",
+    "7th house",
+    "shadbala",
+    "vimsopaka",
+    "kp horary",
+    "mandi",
+    "sudarshana",
+    "kota",
+    "marriage",
+    "gemstone",
   ])("finds %s", (term) => {
     const { tiles: hits, subs } = searchFeatures(tiles, term, t);
     expect(hits.length + subs.length).toBeGreaterThan(0);
@@ -139,5 +171,78 @@ describe("dashboard search coverage", () => {
       expect(featureForKey(s.parent)).toBeDefined();
       expect(s.to.startsWith("/")).toBe(true);
     });
+  });
+});
+
+// §79 — hubs collapse related pages into one entry. The ways that goes wrong are
+// a hub nobody joins (an empty strip), a member naming a hub that doesn't exist
+// (the page silently drops out of the drawer), and a page you can deep-link to
+// that the strip doesn't show.
+describe("hubs", () => {
+  const lookup = (key) => key.split(".").reduce((o, k) => (o ? o[k] : undefined), en);
+
+  it("every feature's hub exists, and every hub has at least two members", () => {
+    const known = new Set(HUBS.map((h) => h.key));
+    FEATURES.filter((f) => f.hub).forEach((f) => expect(known).toContain(f.hub));
+    HUBS.forEach((h) => expect(hubMembers(h.key).length).toBeGreaterThanOrEqual(2));
+  });
+
+  it("members sit in their hub's section, so search results stay where they live", () => {
+    HUBS.forEach((h) => hubMembers(h.key).forEach((m) => expect(m.group).toBe(h.group)));
+  });
+
+  it("every hub has a drawer label and a tile title + description", () => {
+    HUBS.forEach((h) => {
+      expect(lookup(`nav.hubs.${h.key}`)).toBeTruthy();
+      expect(lookup(`dashboard.hubs.${h.key}.title`)).toBeTruthy();
+      expect(lookup(`dashboard.hubs.${h.key}.description`)).toBeTruthy();
+    });
+  });
+
+  it("lists each hub once and no member on its own", () => {
+    ["simple", "advanced"].forEach((mode) => {
+      const entries = navEntries(mode);
+      const hubKeys = entries.filter((e) => e.isHub).map((e) => e.key);
+      expect(new Set(hubKeys).size).toBe(hubKeys.length);
+      entries.filter((e) => !e.isHub).forEach((e) => expect(e.hub).toBeUndefined());
+    });
+  });
+
+  it("reaches every visible page either directly or through its hub's strip", () => {
+    ["simple", "advanced"].forEach((mode) => {
+      const reachable = new Set();
+      navEntries(mode).forEach((e) => {
+        reachable.add(e.path);
+        if (e.isHub) visibleHubMembers(e.key, mode, e.path).forEach((m) => reachable.add(m.path));
+      });
+      visibleFeatures(mode).forEach((f) => expect(reachable).toContain(f.path));
+    });
+  });
+
+  it("opens a hub on its first page the mode advertises", () => {
+    const periods = (mode) => navEntries(mode).find((e) => e.key === "periods");
+    expect(periods("simple").path).toBe("/daily-digest");
+    // Reports leads with the Life Report, the one Essentials shows.
+    expect(navEntries("simple").find((e) => e.key === "reports").path).toBe("/life-report");
+    // An all-advanced hub is simply absent from Essentials.
+    expect(navEntries("simple").find((e) => e.key === "systems")).toBeUndefined();
+    expect(periods("advanced").members.length).toBe(5);
+  });
+
+  it("keeps a deep-linked advanced member in the strip even in Essentials", () => {
+    const simple = visibleHubMembers("transits", "simple", "/transit").map((m) => m.path);
+    expect(simple).toEqual(["/transit"]);
+    const deep = visibleHubMembers("transits", "simple", "/gochara").map((m) => m.path);
+    expect(deep).toEqual(["/transit", "/gochara"]);
+  });
+
+  it("resolves a route to its hub", () => {
+    expect(hubForPath("/varshaphal").key).toBe("periods");
+    expect(hubForPath("/muhurta")).toBeUndefined();
+    expect(hubForPath("/nope")).toBeUndefined();
+  });
+
+  it("shrinks the drawer to well under the page count", () => {
+    expect(navEntries("advanced").length).toBeLessThanOrEqual(20);
   });
 });

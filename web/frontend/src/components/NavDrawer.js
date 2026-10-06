@@ -5,7 +5,7 @@ import { Menu, X, Sparkles, LogOut, ShieldAlert, HelpCircle } from "lucide-react
 import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
 import { useSettings } from "../contexts/SettingsContext";
-import { visibleFeatures, groupedFeatures } from "../config/features";
+import { navEntries, groupedFeatures } from "../config/features";
 import { UiModeToggle } from "./UiModeToggle";
 import { BrandLogo } from "./BrandLogo";
 import { SITE_TITLE } from "../config/branding";
@@ -25,7 +25,7 @@ export const NavDrawer = () => {
   const { user, logout } = useAuth();
   const { clearProfile } = useProfile();
   const { settings } = useSettings();
-  const visible = visibleFeatures(settings.uiMode);
+  const visible = navEntries(settings.uiMode);
   // Features flagged `footer` (Settings) live down with Help/Logout — they're
   // account-level actions, not places to explore.
   const sections = groupedFeatures(visible.filter((f) => !f.footer));
@@ -119,18 +119,22 @@ export const NavDrawer = () => {
           {sections.map((section) => (
             <div key={section.key} className="nav-drawer-section">
               <div className="nav-drawer-section-title">{t(`nav.groups.${section.key}`)}</div>
-              {section.features.map(({ key, path, Icon }) => (
-                <button
-                  key={path}
-                  type="button"
-                  aria-current={location.pathname === path ? "page" : undefined}
-                  className={`nav-drawer-link ${location.pathname === path ? "active" : ""}`}
-                  onClick={() => go(path)}
-                >
-                  <Icon size={20} />
-                  <span>{t(`nav.${key}`)}</span>
-                </button>
-              ))}
+              {section.features.map(({ navKey, path, paths, Icon }) => {
+                // A hub is "here" on any of its members, not only its leader.
+                const here = paths.includes(location.pathname);
+                return (
+                  <button
+                    key={path}
+                    type="button"
+                    aria-current={here ? "page" : undefined}
+                    className={`nav-drawer-link ${here ? "active" : ""}`}
+                    onClick={() => go(path)}
+                  >
+                    <Icon size={20} />
+                    <span>{t(navKey)}</span>
+                  </button>
+                );
+              })}
             </div>
           ))}
         </nav>
@@ -148,7 +152,7 @@ export const NavDrawer = () => {
             <Sparkles size={20} />
             <span>{t("common.changeChart")}</span>
           </button>
-          {footerLinks.map(({ key, path, Icon }) => (
+          {footerLinks.map(({ navKey, path, Icon }) => (
             <button
               key={path}
               type="button"
@@ -157,7 +161,7 @@ export const NavDrawer = () => {
               onClick={() => go(path)}
             >
               <Icon size={20} />
-              <span>{t(`nav.${key}`)}</span>
+              <span>{t(navKey)}</span>
             </button>
           ))}
           {/* Help sits in the footer next to the other always-available actions

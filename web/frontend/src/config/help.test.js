@@ -148,7 +148,7 @@ describe("help search coverage", () => {
     "vimsopaka", "kp horary", "sub lord", "mandi", "sudarshana", "kaala chakra",
     "yogini", "narayana", "vimshottari", "antardasha", "muntha", "ayanamsa",
     "lahiri", "jagannatha", "api token", "mcp", "calendar", "dark mode", "hindi",
-    "export", "pratyantar",
+    "export", "pratyantar", "my notebook", "your periods", "where did",
   ])("finds %s", (term) => {
     const faq = filterHelp(term, text).flatMap((s) => s.items);
     const glossary = filterGlossary(term, GLOSSARY);

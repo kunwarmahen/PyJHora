@@ -227,9 +227,9 @@
     "sadeSati": "साढेसाती",
     "groups": {
       "start": "अत्र आरभताम्",
-      "startHint": "कुण्डली, सहायकः, अद्यतनं च",
+      "startHint": "कुण्डली, सहायकः, भवतः कालखण्डाश्च",
       "chart": "कुण्डलीपठनम्",
-      "chartHint": "भावाः, ग्रहबलम्, योगाः, विशेषपद्धतयश्च",
+      "chartHint": "अन्याः शास्त्रीयपद्धतयः, लिखितं विवरणं च",
       "timing": "कालनिर्णयः",
       "timingHint": "प्रथमं दशा, ततः तस्योपरि गोचरः",
       "calendar": "पञ्चाङ्गं मुहूर्तश्च",
@@ -240,7 +240,18 @@
       "practiceHint": "किं करणीयम् — स्वकर्मणश्च लेखा"
     },
     "menu": "सूची",
-    "features": "साधनानि"
+    "features": "साधनानि",
+    "hubs": {
+      "chart": "मम कुण्डली",
+      "periods": "भवतः कालखण्डाः",
+      "systems": "अन्यपद्धतयः",
+      "reports": "विवरणानि",
+      "dasha": "दशा जीवनरेखा च",
+      "transits": "गोचरः",
+      "sky": "गगनं पञ्चाङ्गं च",
+      "relationships": "सम्बन्धाः",
+      "notebook": "मम लेखपुस्तिका"
+    }
   },
   "dashboard": {
     "welcome": "स्वागतम्,",
@@ -956,7 +967,7 @@
       "featSpecialPoints": "आपके लग्न के विकल्प संदर्भ-बिंदु और छाया-ग्रह। इनमें तीन वास्तव में उपयोगी हैं: होरा लग्न धन और आय के लिए, घटी लग्न अधिकार और पदोन्नति के लिए, तथा भाव लग्न शरीर के लिए — तीनों साथ पढ़े जाते हैं, आपके सामान्य लग्न के साथ, उसके स्थान पर नहीं। शेष केवल इसलिए दिखाए जाते हैं कि पारंपरिक कुंडली उन्हें सूचीबद्ध करती है।",
       "featSensitivePoints": "कुंडली के विशिष्ट गणित बिंदु — विशेष लग्न व उपग्रह, स्फुट, 36 सहम और अर्गला — जिनका उपयोग अनुभवी पाठक बारीकियों के लिए करते हैं। आरंभ में इन्हें छोड़ा जा सकता है।",
       "whatIsKaalaVela": "दिन आठ भागों में बँटा है, हर भाग का एक ग्रह स्वामी; इनमें चार पारंपरिक रूप से छायांकित माने जाते हैं — काल, मृत्यु, अर्थ प्रहर और यम घंटक। कोई सुझाया समय इनमें पड़े तो उसे हटाया नहीं, केवल चिह्नित किया जाता है, क्योंकि ये प्रायः राहु काल और गुलिक काल से मेल खाते हैं और सबको हटाने पर दिन का अधिकांश भाग शेष नहीं बचता।",
-      "dashboardLayout": "यः क्रमेण कुण्डली पठ्यते स एव क्रमः। “अत्र आरभताम्” इत्यत्र कुण्डली, AI, अद्यतनं च। “कुण्डलीपठनम्” इत्यत्र यत् किमपि कुण्डलीं वर्णयति। “कालनिर्णयः” इत्यत्र कदा किं भवति — प्रथमं दशा, ततः तस्योपरि गोचरः। “पञ्चाङ्गं मुहूर्तश्च” इत्यत्र गगनस्य कालमानं कर्मक्षणश्च। ततः “सम्बन्धाः”, अन्ते च “उपायाः अभ्यासश्च”। नेविगेशन-सूच्यामपि एते षट् विभागाः सन्ति।",
+      "dashboardLayout": "यः क्रमेण कुण्डली पठ्यते स एव क्रमः, सम्बद्धानि पृष्ठानि च एकत्र। एकविषयकाणि पृष्ठानि एकस्मिन् फलके सन्ति; तेषु कस्मिन्नपि पृष्ठे शीर्षकस्य अधः पट्टिका इतराणि पृष्ठानि दर्शयति। यत् इच्छसि तत् ज्ञायते चेत् फलकपटले लिख — अन्वेषणं प्रत्येकं पृष्ठं नाम्ना विन्दति।",
       "aiDigestHistory": "Yes. Every digest that is actually delivered — by email or as a browser notification, for each person it covered — is now saved to AI History under the “Digests” filter, and opens back up on its own page exactly as it was sent. Digests are kept separately from your chats and readings, so a daily email can never push your conversations out of your history.",
       "digestCautions": "Because a reading that only ever reports good news is not a reading. The digest now also carries what the classical texts call difficult for you: an unfavourable gochara (transit measured from your birth Moon), a favourable one cancelled by vedha (another planet obstructing it), Ashtama or Ardhashtama Sani, the Vishti karana, and the periods traditionally kept clear for anything newly begun — Rahu Kalam and its companions. Each one is marked either “today”, meaning it is what is different about this day, or “ongoing”, meaning it is a backdrop you have been living with for weeks or months. None of it is a prediction of misfortune: it is a note about what to handle with care, and the digest always leaves you something you can do.",
       "digestTaraBala": "Tara Bala is the tradition's own answer to “is today a good day *for me*”. You count from your birth star (the nakshatra the Moon was in when you were born) to the star running today; the count lands on one of nine Taras, each with a name and a verdict — Sampat (gain), Kshema (safety) and Sadhaka (accomplishment) are the strong ones; Vipat, Pratyak and Vadha are the ones to move gently through. It leads the digest because it is the one thing in your reading that genuinely changes every single day: your dasha turns over in months, a Saturn transit in years, but the Moon moves to a new star every day or so. On the fortnight and month pages the same count is applied to every day of the window, so you get the actual dates worth acting on. It sits alongside Chandra Bala, the gochara verdicts and the Sarvatobhadra chakra — four independent measures that sometimes disagree. That is normal, and the reading will tell you so rather than splitting the difference."

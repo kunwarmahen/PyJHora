@@ -29,6 +29,14 @@ export const HELP_SECTIONS = [
       { id: "noBirthTime", to: "/rectify" },
       { id: "whereToStart", to: "/birth-chart" },
       { id: "dashboardLayout", to: "/dashboard" },
+      // §79 hubs. No `to`: it answers "where is X" for every page at once, and
+      // /dashboard is already dashboardLayout's.
+      {
+        id: "whereIsPage",
+        keywords:
+          "missing moved gone menu hub hubs group grouped find page where strip my chart your periods" +
+          " other systems reports transits sky panchanga notebook",
+      },
       { id: "essentialsVsEverything", to: "/settings" },
       {
         id: "languageAndTheme",
@@ -88,82 +96,20 @@ export const HELP_SECTIONS = [
   {
     id: "features",
     items: [
+      // In hub order (§79, config/features.js HUBS) so the tour reads the way
+      // the drawer does. Every page keeps its own entry — its "?" lands here,
+      // and help.test.js fails if a feature is ever added without one.
+      // ── My Chart ──
       {
         id: "featBirthChart",
         to: "/birth-chart",
         keywords: "kundali horoscope rasi d1 aspects aspect drishti graha drishti tabs",
       },
-      { id: "featToday", to: "/daily-digest" },
-      {
-        id: "featDasha",
-        to: "/dhasa",
-        keywords:
-          "vimshottari vimsottari mahadasha antardasha bhukti pratyantardasha pratyantar sookshma",
-      },
-      { id: "featTransit", to: "/transit" },
-      {
-        id: "featCompatibility",
-        to: "/compatibility",
-        keywords:
-          "marriage match guna milan ashtakoot dashakoota porutham mangal dosha manglik kuja 7th seventh house",
-      },
-      { id: "featLifeReport", to: "/life-report" },
-      { id: "featRemedies", to: "/remedies" },
-      {
-        id: "featVarshaphal",
-        to: "/varshaphal",
-        keywords: "muntha tajaka solar return year lord varsha annual",
-      },
-      { id: "featAlmanac", to: "/almanac" },
-      { id: "featMuhurta", to: "/muhurta" },
-      { id: "featPrashna", to: "/prashna" },
-      { id: "featSensitivePoints", to: "/sensitive-points" },
-      {
-        id: "featSpecialPoints",
-        to: "/sensitive-points?tab=special",
-        keywords: "mandi maandi gulika upagraha indu lagna hora lagna ghati lagna",
-      },
-      { id: "featVedicClock", to: "/vedic-clock" },
-      { id: "featRectify", to: "/rectify" },
-      { id: "featLearn", to: "/learn" },
-      { id: "featJournal", to: "/journal" },
-      // The rest of the feature set, so every page in the app has an entry its
-      // "?" can land on. help.test.js fails if a feature is ever added without
-      // one, which is what keeps this tour complete.
-      { id: "featNow", to: "/now" },
-      { id: "featTimeline", to: "/timeline" },
+      { id: "featBhava", to: "/bhava" },
       {
         id: "featStrength",
         to: "/strength",
         keywords: "vimsopaka vimshopaka shadbala bhava bala ishta kashta",
-      },
-      { id: "featSadeSati", to: "/sade-sati" },
-      { id: "featCompare", to: "/compare" },
-      { id: "featGochara", to: "/gochara" },
-      { id: "featNakshatraGochara", to: "/transit" },
-      { id: "featBhava", to: "/bhava" },
-      { id: "featEphemeris", to: "/ephemeris" },
-      { id: "featReport", to: "/report", keywords: "export download save pdf print" },
-      { id: "featFortnightly", to: "/fortnightly-digest" },
-      { id: "featMonthly", to: "/monthly-digest" },
-      { id: "featTithiPravesha", to: "/tithi-pravesha" },
-      { id: "featBhrigu", to: "/bhrigu-markers" },
-      { id: "featNadi", to: "/nadi" },
-      { id: "featPanchaPakshi", to: "/pancha-pakshi" },
-      {
-        id: "featChakras",
-        to: "/chakras",
-        keywords: "kaala chakra kala chakra kota tripataki vedha",
-      },
-      {
-        id: "featKp",
-        to: "/kp",
-        keywords: "krishnamurti sub lord significator ruling planets horary 249",
-      },
-      {
-        id: "featJaimini",
-        to: "/jaimini",
-        keywords: "chara karaka atmakaraka amatyakaraka darakaraka karakamsa swamsa",
       },
       {
         id: "featAdvanced",
@@ -172,6 +118,79 @@ export const HELP_SECTIONS = [
           "deep dive ashtakavarga sarvashtakavarga bhinnashtakavarga bindu bindus longevity ayu ayurdaya" +
           " avastha avasthas planetary conditions combust combustion friendship friendships maitri",
       },
+      { id: "featSensitivePoints", to: "/sensitive-points" },
+      {
+        id: "featSpecialPoints",
+        to: "/sensitive-points?tab=special",
+        keywords: "mandi maandi gulika upagraha indu lagna hora lagna ghati lagna",
+      },
+      // ── Your Periods ──
+      { id: "featToday", to: "/daily-digest" },
+      { id: "featFortnightly", to: "/fortnightly-digest" },
+      { id: "featMonthly", to: "/monthly-digest" },
+      {
+        id: "featVarshaphal",
+        to: "/varshaphal",
+        keywords: "muntha tajaka solar return year lord varsha annual",
+      },
+      { id: "featTithiPravesha", to: "/tithi-pravesha" },
+      // ── Other Systems ──
+      {
+        id: "featJaimini",
+        to: "/jaimini",
+        keywords: "chara karaka atmakaraka amatyakaraka darakaraka karakamsa swamsa",
+      },
+      {
+        id: "featKp",
+        to: "/kp",
+        keywords: "krishnamurti sub lord significator ruling planets horary 249",
+      },
+      { id: "featNadi", to: "/nadi" },
+      { id: "featBhrigu", to: "/bhrigu-markers" },
+      {
+        id: "featChakras",
+        to: "/chakras",
+        keywords: "kaala chakra kala chakra kota tripataki vedha",
+      },
+      // ── Reports ──
+      { id: "featLifeReport", to: "/life-report" },
+      { id: "featReport", to: "/report", keywords: "export download save pdf print" },
+      // ── Dasha & Timeline ──
+      {
+        id: "featDasha",
+        to: "/dhasa",
+        keywords:
+          "vimshottari vimsottari mahadasha antardasha bhukti pratyantardasha pratyantar sookshma",
+      },
+      { id: "featTimeline", to: "/timeline" },
+      // ── Transits ──
+      { id: "featTransit", to: "/transit" },
+      { id: "featNakshatraGochara", to: "/transit" },
+      { id: "featGochara", to: "/gochara" },
+      { id: "featSadeSati", to: "/sade-sati" },
+      { id: "featEphemeris", to: "/ephemeris" },
+      // ── Sky & Panchanga ──
+      { id: "featAlmanac", to: "/almanac" },
+      { id: "featVedicClock", to: "/vedic-clock" },
+      { id: "featPanchaPakshi", to: "/pancha-pakshi" },
+      { id: "featNow", to: "/now" },
+      // ── Standalone tools ──
+      { id: "featMuhurta", to: "/muhurta" },
+      // ── Relationships ──
+      {
+        id: "featCompatibility",
+        to: "/compatibility",
+        keywords:
+          "marriage match guna milan ashtakoot dashakoota porutham mangal dosha manglik kuja 7th seventh house",
+      },
+      { id: "featCompare", to: "/compare" },
+      // ── Remedies & practice ──
+      { id: "featRemedies", to: "/remedies" },
+      { id: "featPrashna", to: "/prashna" },
+      { id: "featJournal", to: "/journal" },
+      // ── Practice ──
+      { id: "featLearn", to: "/learn" },
+      { id: "featRectify", to: "/rectify" },
     ],
   },
   {

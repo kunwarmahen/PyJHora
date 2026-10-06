@@ -1,0 +1,87 @@
+/* The hub section strip (§79) — sits flush under the page navbar.
+ *
+ * Underlined links on a band, so it never reads as the saffron pill tabs a page
+ * may have inside it: this row moves between pages, those move within one.
+ * Every colour is a theme token (styles/tokens.test.js). */
+
+.hub-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 0 var(--space-2xl);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.hub-nav__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.hub-nav__links {
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+  /* Five members on a phone scroll sideways rather than wrap. */
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hub-nav__links::-webkit-scrollbar {
+  display: none;
+}
+
+.hub-nav__link {
+  flex: none;
+  white-space: nowrap;
+  padding: 11px 12px 9px;
+  border-bottom: 3px solid transparent;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.hub-nav__link:hover {
+  color: var(--text-primary);
+  border-bottom-color: var(--border);
+}
+
+.hub-nav__link--on,
+.hub-nav__link--on:hover {
+  color: var(--accent-deep);
+  border-bottom-color: var(--accent);
+}
+
+.hub-nav__link:focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: -2px;
+}
+
+@media (max-width: 640px) {
+  .hub-nav {
+    padding: 0 var(--space-md);
+  }
+  /* The title costs a third of a phone's width; the links say enough. */
+  .hub-nav__title {
+    display: none;
+  }
+}
+
+@media print {
+  .hub-nav {
+    display: none;
+  }
+}
