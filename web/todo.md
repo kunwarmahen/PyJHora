@@ -23,11 +23,11 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 
 | § | Item | Status |
 |---|---|---|
-| §82.1 | Pitru Dosha fires for 88.8% of charts — keep, narrow or hide? | 🔴 owner call |
-| §82.1 | New screens are English-only — steady state or translate (hi first)? | 🔴 owner call |
-| §82.1 | Hindi typo `म्रृगशीर्षा` — patch upstream file or override? | 🔴 owner call |
-| §82.1 | Vite migration — the §68.3 blocker is gone; still optional | 🔴 owner call |
-| §82.2 | CI workflow has never run on GitHub — check the first run after a push | 🟡 check |
+| §82.1 | Pitru Dosha fires for 88.8% of charts — keep, narrow or hide? | ✅ narrowed → 31.5% (§83.1) |
+| §82.1 | New screens are English-only — steady state or translate (hi first)? | ✅ decided: translate, hi first (§82.3) |
+| §82.1 | Hindi typo `म्रृगशीर्षा` — patch upstream file or override? | ⏸ owner: ignore for now |
+| §82.1 | Vite migration — the §68.3 blocker is gone; still optional | ⏸ owner: not now |
+| §82.2 | CI workflow has never run on GitHub — check the first run after a push | ✅ first run green (798fb4f) |
 | §82.3 | Translation backlog (§81 screens, glossary, landing page, raja-yoga/panchanga/koota names) | P2 |
 | §82.4 | Mangal Dosha prevalence on Compatibility; more Topic Reading topics | P2 |
 | §82.5 | Hardening: in-process rate limit, forwarded-IP trust, beacon inflation, realistic-payload harness | P3 |
@@ -8624,21 +8624,24 @@ index at the top of this file mirrors this list. Owner calls are marked; everyth
 up directly. Each item names where the detail lives.
 
 ### 82.1 Owner decisions 🔴
-- [ ] 🔴 **Pitru Dosha fires for 88.8% of charts** (§81.4). PyJHora's `dosha.pitru_dosha` is an OR of five
+- [x] ✅ **Pitru Dosha fires for 88.8% of charts** (§81.4). **Decided 2026-10-06: narrow** — Sun-centred
+      rule, now 31.5%. Shipped in §83.1. PyJHora's `dosha.pitru_dosha` is an OR of five
       broad conditions sourced to a Times of India article. Options: keep (the prevalence line already
       tells the reader), narrow to a classical subset, or hide it. Re-run `scripts/dosha_prevalence.py`
       after any change.
-- [ ] 🔴 **New-page UI strings are English-only** (I18N doc §6.6). §79–§81 added English-first screens
+- [x] ✅ **New-page UI strings are English-only** (I18N doc §6.6). **Decided 2026-10-06: translate, Hindi
+      first**; sa UI keys keep falling back to en. §79–§81 added English-first screens
       (Start here, Welcome, landing preview, checklist, page hints, Topic Reading, hub names' descriptions in
       sa). Steady state, or translate? If translate: hi first (sa falls back to hi only for engine text —
       UI keys fall back to **en**).
-- [ ] 🔴 **The `म्रृगशीर्षा` typo** in `src/jhora/lang/list_values_hi.txt` (I18N doc §4.5/§6.4): patch upstream
+- [ ] ⏸ **(owner 2026-10-06: ignore for now)** **The `म्रृगशीर्षा` typo** in `src/jhora/lang/list_values_hi.txt` (I18N doc §4.5/§6.4): patch upstream
       file in this repo, or override in `frontend/scripts/name-locales.manual.json`.
-- [ ] 🔴 **Vite migration** (§68 tail): declined 2026-09-10 partly because no component test would catch a
+- [ ] ⏸ **(owner 2026-10-06: not now)** **Vite migration** (§68 tail): declined 2026-09-10 partly because no component test would catch a
       build regression. §80's page harness now does — the blocker is gone; still optional.
 
 ### 82.2 Check first 🟡
-- [ ] 🟡 **CI's first run** (§80.3) — `.github/workflows/web-ci.yml` has never run on GitHub. After the next
+- [x] ✅ **Done 2026-10-06:** `web-ci` ran on push of 798fb4f and passed (checked via the public Actions API;
+      `gh` isn't installed here). **CI's first run** (§80.3) — `.github/workflows/web-ci.yml` has never run on GitHub. After the next
       push: backend job (does `pip install -r requirements.txt` resolve on ubuntu/py3.11 with the ephemeris
       from git?), frontend job (`npm install` without a lockfile — pin if it flakes).
 
@@ -8672,3 +8675,37 @@ up directly. Each item names where the detail lives.
 - [ ] **Page harness tests failure modes only** (§80.1). A "realistic payload" mode (recorded fixtures per
       endpoint) would catch a page that crashes on a real-but-unusual response — the empty-`{}` mode was
       dropped because the routes never send that shape.
+
+---
+
+## §83 Working through §82 (2026-10-06)
+
+Owner decisions taken 2026-10-06 (§82.1): narrow Pitru Dosha; translate the §79–§81 screens, Hindi
+first; leave the `म्रृगशीर्षा` typo for now; no Vite migration for now. CI's first run (§82.2) was already
+green on 798fb4f.
+
+### 83.1 Pitru Dosha — our own, narrower rule — ✅ SHIPPED 2026-10-06
+- **What.** `get_doshas` no longer calls `dosha.pitru_dosha`. `_pitru_reasons` in
+  `astrology/compute_strength.py` keeps only the Sun-and-9th core: **the Sun or Rahu in the 9th house,
+  or the Sun in one sign with Rahu or Ketu**. The Moon conditions (mother, not father), Ketu-in-4th and
+  the Venus/Mercury cluster are dropped. The description states the rule and names what fired
+  ("In this chart: the Sun shares a sign with Rahu."), in English and Hindi (sa → hi).
+- **Measured, not asserted** (same sampler as `scripts/dosha_prevalence.py`, seed 76, n=5000):
+  upstream rule 88.8%; without its condition #3 ("Sun/Moon/Rahu/Ketu associated with Mars or Saturn",
+  67.9% on its own) still 59.1%. That's why the first proposal ("drop #3") went back to the owner;
+  the Sun-centred rule measured 31.6% in the scratch run and **31.5%** through `get_doshas` itself, which
+  is the figure in `dosha_prevalence.json` and the one users see.
+- **Traps.**
+  - PyJHora's Hindi (and other language) Pitru text explains *its* five conditions, so in non-English
+    it would contradict our verdict. Pitru therefore never takes `get_dosha_details` text; ours is en+hi.
+  - Upstream bug, routed around rather than patched: condition #2's docstring says "Ketu in the 4th"
+    but the code checks planet id 7, which is **Rahu**. Moot for us now that #2 is dropped; noted for an
+    upstream report.
+  - Signs, not degrees: "with Rahu" means the same sign, as upstream's condition #5 does.
+- **Tests.** `tests/test_pitru_rule.py`: each kept condition fires alone, and the 9th is counted from the lagna;
+  every dropped upstream condition is asserted to fire *upstream* (so the fixture is real) and not
+  under ours; en/hi descriptions; `get_doshas` matches the predicate for CHART1 in both languages; the
+  stored prevalence must sit in 25–40% (a figure back near 90 means the json was regenerated against
+  the old rule).
+- **Help/FAQ:** `help.a.yogaAndDosha` now says a present dosha carries a measured prevalence and why
+  Pitru's rule is narrower. **Docs:** FEATURES.md onboarding "Calm framing" bullet.

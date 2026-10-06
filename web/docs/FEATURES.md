@@ -502,7 +502,9 @@ section (Free / Pro / Practitioner) is hidden by default and shown only when
 - **First-week checklist** on the dashboard, **page hints** from each page's Help answer (Settings →
   General → Page hints), translatable glossary tooltips.
 - **Calm framing:** every dosha carries how common it is under the app's own rules (measured by
-  `scripts/dosha_prevalence.py`).
+  `scripts/dosha_prevalence.py`). **Pitru Dosha uses our own narrowed rule** (§83): the Sun or Rahu in
+  the 9th, or the Sun sharing a sign with Rahu/Ketu — 31.5% of charts, vs 88.8% under PyJHora's
+  five-condition rule. The description names the condition(s) that fired, in English and Hindi.
 - **Funnel** counts + time-to-first-answer medians on the admin Overview.
 
 # Feature reference by hub

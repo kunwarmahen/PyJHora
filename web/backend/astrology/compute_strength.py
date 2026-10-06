@@ -54,6 +54,63 @@ def _load_dosha_prevalence() -> Dict[str, float]:
 
 _DOSHA_PREVALENCE = _load_dosha_prevalence()
 
+
+# Pitru Dosha under OUR rule, not PyJHora's (owner decision 2026-10-06, todo.md §83).
+# Upstream's dosha.pitru_dosha ORs five broad conditions sourced to a newspaper
+# article and fires for 88.8% of charts; dropping its widest condition still left
+# 59.1%. Pitru = the father, whose significator is the Sun and whose house is the
+# 9th, so we keep only the Sun-and-9th core: the Sun or Rahu in the 9th, or the
+# Sun in one sign with Rahu or Ketu (an eclipse-type affliction). The Moon
+# conditions (the mother) and the Venus/Mercury cluster are dropped. Measured
+# prevalence: dosha_prevalence.json. Signs, not degrees — as upstream does.
+_PITRU_REASONS = {
+    "en": {
+        "sun_9": "the Sun is in the 9th house",
+        "rahu_9": "Rahu is in the 9th house",
+        "sun_rahu": "the Sun shares a sign with Rahu",
+        "sun_ketu": "the Sun shares a sign with Ketu",
+    },
+    "hi": {
+        "sun_9": "सूर्य नौवें भाव में है",
+        "rahu_9": "राहु नौवें भाव में है",
+        "sun_rahu": "सूर्य और राहु एक ही राशि में हैं",
+        "sun_ketu": "सूर्य और केतु एक ही राशि में हैं",
+    },
+}
+_PITRU_TEXT = {
+    "en": ("Linked to the father and ancestral karma: the Sun signifies the father and the "
+           "9th house is the house of the father. Counted here when the Sun or Rahu is in the "
+           "9th house, or the Sun shares a sign with Rahu or Ketu.", "In this chart: {}."),
+    "hi": ("पिता और पूर्वजों के कर्म से जुड़ा दोष: सूर्य पिता का कारक है और नौवाँ भाव पितृ भाव है। "
+           "यहाँ इसे तब माना जाता है जब सूर्य या राहु नौवें भाव में हो, या सूर्य राहु अथवा केतु "
+           "के साथ एक ही राशि में हो।", "इस कुंडली में: {}।"),
+}
+
+
+def _pitru_reasons(planet_positions) -> List[str]:
+    """Which of our Pitru Dosha conditions hold (keys of _PITRU_REASONS); [] = absent."""
+    h = utils.get_planet_house_dictionary_from_planet_positions(planet_positions)
+    ninth = (h["L"] + 8) % 12
+    sun, rahu, ketu = h[const.SUN_ID], h[const.RAHU_ID], h[const.KETU_ID]
+    found = []
+    if sun == ninth:
+        found.append("sun_9")
+    if rahu == ninth:
+        found.append("rahu_9")
+    if sun == rahu:
+        found.append("sun_rahu")
+    if sun == ketu:
+        found.append("sun_ketu")
+    return found
+
+
+def _pitru_description(reasons: List[str], engine_lang: str) -> str:
+    lang = engine_lang if engine_lang in _PITRU_TEXT else "en"
+    rule, here = _PITRU_TEXT[lang]
+    if not reasons:
+        return rule
+    return f"{rule} {here.format('; '.join(_PITRU_REASONS[lang][r] for r in reasons))}"
+
 class StrengthMixin:
 
     # The 8 BAV contributors, in Jyotir AI's order.
@@ -582,13 +639,14 @@ class StrengthMixin:
                     return any(x is True for x in v)
                 return bool(v)
 
+            pitru = _pitru_reasons(pp)
             catalog = [
                 ("kala_sarpa", "Kala Sarpa Dosha", dosha.kala_sarpa(h2p),
                  "All planets fall on one side of the Rahu–Ketu axis. Can bring delays and obstacles, often with strong results later in life."),
                 ("manglik", "Manglik (Kuja) Dosha", dosha.manglik(pp),
                  "Mars in certain houses from the Lagna, Moon or Venus. Traditionally weighed in marriage compatibility."),
-                ("pitru", "Pitru Dosha", dosha.pitru_dosha(pp),
-                 "Affliction linked to the 9th house and the Sun, associated with ancestral karma."),
+                # Our narrowed rule, not dosha.pitru_dosha — see _pitru_reasons.
+                ("pitru", "Pitru Dosha", bool(pitru), None),
                 ("guru_chandala", "Guru Chandala Dosha", dosha.guru_chandala_dosha(pp),
                  "Jupiter conjunct Rahu or Ketu. Can affect judgement, ethics and guidance."),
                 ("ganda_moola", "Ganda Moola Dosha", dosha.ganda_moola(moon_star),
@@ -615,6 +673,10 @@ class StrengthMixin:
             doshas = []
             for (k, n, v, d) in catalog:
                 text = engine_text.get(_DOSHA_ENGINE_KEY.get(k, ""))
+                if k == "pitru":
+                    # Upstream's text explains upstream's five-condition rule, so
+                    # it would contradict the verdict; ours is en + hi.
+                    text, d = None, _pitru_description(pitru, engine_lang)
                 doshas.append({
                     "key": k,
                     "name": n,
