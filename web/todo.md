@@ -28,9 +28,10 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 | §82.1 | Hindi typo `म्रृगशीर्षा` — patch upstream file or override? | ⏸ owner: ignore for now |
 | §82.1 | Vite migration — the §68.3 blocker is gone; still optional | ⏸ owner: not now |
 | §82.2 | CI workflow has never run on GitHub — check the first run after a push | ✅ first run green (798fb4f) |
-| §82.3 | Translation backlog — §81 screens ✅ (§83.2); left: Hindi Help answers (~190), raja-yoga/panchanga/koota names | P2 |
+| §82.3 | Translation backlog — §81 screens ✅ glossary ✅ landing ✅ (§83.2/5/6); left: Hindi Help answers (~190), compat verdict text, raja-yoga/panchanga/koota names | P2 |
 | §82.1 | **New:** Compatibility's Mangal rule flags 88.9% of charts — keep (now labelled) or narrow? | 🔴 owner call |
 | §82.4 | Mangal Dosha prevalence on Compatibility ✅ (§83.3); more Topic Reading topics ✅ (§83.4) | ✅ |
+| §82.3 | **New:** file upstream — PyJHora `pitru_dosha` condition #2 tests Rahu, not Ketu | 🟡 optional |
 | §82.5 | Hardening: in-process rate limit, forwarded-IP trust, beacon inflation (realistic-payload harness ✅ §83.7) | P3 |
 
 Product docs are in [`docs/`](docs/) — start at [`README.md`](README.md). A ready-to-paste prompt for
@@ -8618,7 +8619,7 @@ hint stays dismissed across reload.
 
 ---
 
-## §82 Open follow-ups — everything still to do, in one place (collected 2026-10-06) — 🔴 OPEN
+## §82 Open follow-ups — everything still to do, in one place (collected 2026-10-06; worked in §83) — 🔴 OPEN
 
 Gathered at the end of §79–§81 so nothing lives only in a chat or a commit message. The "Open work"
 index at the top of this file mirrors this list. Owner calls are marked; everything else can be picked
@@ -8659,6 +8660,11 @@ up directly. Each item names where the detail lives.
 - [x] ✅ **Done 2026-10-06 (§83.5) — 33/33.** **Glossary**: only 10 core terms have Hindi (`glossaryTerms.*` in hi.json); ~25 remain English.
 - [x] ✅ **Done 2026-10-06 (§83.6) — owner: translate.** **Landing page copy is hard-coded English** (`LandingPage.js`), unlike the rest of the app — move to
       i18n if the landing page should follow the language picker.
+- [ ] **(new 2026-10-06) Hindi Help answers** — ~190 of ~200 `help.a.*` have no Hindi, and page hints quote
+      them, so most page hints stay English for a Hindi reader (§83.2). The largest remaining Hindi block;
+      the rest of the app is also only partly translated (hi has 1,230 of 2,898 UI keys, counted 2026-10-06).
+- [ ] **(new 2026-10-06) Compatibility verdict + cancellation reasons are English f-strings** in
+      `compute_match._mangal_dosha` / `get_compatibility` (§83.3) — same class as the raja-yoga labels below.
 - [ ] **Still English by design** (I18N doc §5/§6.5): Kendra-Trikona raja-yoga labels (our own f-strings),
       panchanga limb values, Ashtakoot koota names.
 
@@ -8669,6 +8675,9 @@ up directly. Each item names where the detail lives.
 - [x] ✅ **Done 2026-10-06 (§83.4): + wealth, education, travel.** **Topic Reading's topics** are four (general/career/relationships/health) because that is what
       `_build_prediction_prompt` knows. More (finance, education, travel) need prompt entries first —
       `test_topic_reading_topics.py` fails if the page offers a topic the prompt doesn't know.
+
+- [ ] **(new 2026-10-06) Upstream report:** PyJHora `dosha.pitru_dosha` condition #2 says "Ketu in the 4th"
+      but tests planet id 7 (Rahu) (§83.1). We no longer use the predicate; worth filing upstream.
 
 ### 82.5 Hardening (P3)
 - [ ] **Anonymous rate limit is in-process** (`ratelimit.public_check`): resets on restart, not shared across
