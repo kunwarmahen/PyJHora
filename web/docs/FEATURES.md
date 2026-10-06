@@ -501,6 +501,9 @@ section (Free / Pro / Practitioner) is hidden by default and shown only when
   unknown or edge-of-sign time, and three starter questions that open Ask.
 - **First-week checklist** on the dashboard, **page hints** from each page's Help answer (Settings →
   General → Page hints), translatable glossary tooltips.
+- **Hindi** (§83.2): Start here, the welcome steps, landing preview form, checklist, page-hint chrome and
+  their Help answers are translated (incl. a Hindi copy of the 27 birth-star rows); Sanskrit falls back
+  to English for these.
 - **Calm framing:** every dosha carries how common it is under the app's own rules (measured by
   `scripts/dosha_prevalence.py`). **Pitru Dosha uses our own narrowed rule** (§83): the Sun or Rahu in
   the 9th, or the Sun sharing a sign with Rahu/Ketu — 31.5% of charts, vs 88.8% under PyJHora's

@@ -28,7 +28,7 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 | §82.1 | Hindi typo `म्रृगशीर्षा` — patch upstream file or override? | ⏸ owner: ignore for now |
 | §82.1 | Vite migration — the §68.3 blocker is gone; still optional | ⏸ owner: not now |
 | §82.2 | CI workflow has never run on GitHub — check the first run after a push | ✅ first run green (798fb4f) |
-| §82.3 | Translation backlog (§81 screens, glossary, landing page, raja-yoga/panchanga/koota names) | P2 |
+| §82.3 | Translation backlog — §81 screens ✅ (§83.2); left: Hindi Help answers (~190), glossary, landing page, raja-yoga/panchanga/koota names | P2 |
 | §82.4 | Mangal Dosha prevalence on Compatibility; more Topic Reading topics | P2 |
 | §82.5 | Hardening: in-process rate limit, forwarded-IP trust, beacon inflation, realistic-payload harness | P3 |
 
@@ -8646,7 +8646,7 @@ up directly. Each item names where the detail lives.
       from git?), frontend job (`npm install` without a lockfile — pin if it flakes).
 
 ### 82.3 Translation work (P2)
-- [ ] **Hindi for the §81 screens**: `firstLook.*` (incl. the 12+12 sign sentences, 9 chapter lines; the 27
+- [x] ✅ **Done 2026-10-06 (§83.2).** **Hindi for the §81 screens**: `firstLook.*` (incl. the 12+12 sign sentences, 9 chapter lines; the 27
       star rows are pinned to `reference_data.py` by `test_first_look_tables.py`, so translate those as a
       separate `hi` table, not by editing `en`), `welcome.*`, `checklist.*`, `pageHint.*`, `preview.*`,
       `predictions.*` (Topic Reading). Blocked on the 82.1 decision.
@@ -8709,3 +8709,26 @@ green on 798fb4f.
   the old rule).
 - **Help/FAQ:** `help.a.yogaAndDosha` now says a present dosha carries a measured prevalence and why
   Pitru's rule is narrower. **Docs:** FEATURES.md onboarding "Calm framing" bullet.
+
+### 83.2 Hindi for the newcomer screens (§82.3) — ✅ SHIPPED 2026-10-06
+- **What.** 214 new `hi.json` keys: all of `firstLook.*` (title/intro/card labels, 12 rising + 12 Moon
+  sentences, 9+9 chapter lines, caveats, starters, and a **Hindi copy of the 27 star rows** — the
+  "separate hi table" §82.3 asked for; `test_first_look_tables.py` reads only `en.json`, so it keeps pinning
+  the English to `reference_data.py`), `welcome.*`, `checklist.*`, `pageHint.*`, `preview.*`, plus the
+  labels the new Help answers point at (`nav.start`, the Start tile, Settings → `tabs.general`,
+  `general.pageHints*`) and four Help entries (`whereToStart`, `featStart`, `tryWithoutAccount`, `firstWeek`).
+  `predictions.*` (Topic Reading) was already in Hindi.
+- **Consistency choices.** "पन्ना" for page (the file's existing word, 10:1 over "पेज"); "दैनिक डाइजेस्ट" because
+  that is what the Notifications toggle the checklist points to already says; the landing heading is quoted
+  in English in the Hindi Help answer because `LandingPage.js` is still hard-coded English.
+- **Checks.** A merge script added keys only where hi had none and failed on any `{{placeholder}}` set that
+  differs from en (none did); prettier clean; frontend config/components/i18n suites 325/325.
+  Browser (Playwright, `lang=hi`, owner's chart): /start shows वृषभ / सिंह / मघा 4 में से पाद 1 with the Hindi
+  star line, Rahu chapter with Hindi dates, Hindi page hint; dashboard checklist "आपका पहला सप्ताह · 4 में से
+  1 पूरे"; Doshas tab shows the new Hindi Pitru text (absent for the owner under the narrowed rule).
+- **Known wrinkle.** In Hindi the Moon card reads "चंद्र राशि · राशि": the plain label and the Sanskrit term are
+  the same word. The term is the small grey glossary link, so it reads as label + term; left as is.
+- **Left (still §82.3):** Hindi Help answers are ~190 of ~200 missing, and page hints quote them, so most
+  page hints stay English in Hindi. Glossary (~25 terms), landing page, and the by-design English names.
+- **Help/FAQ:** `languageAndTheme` now says plainly that Hindi doesn't cover every screen yet. **Docs:**
+  FEATURES.md onboarding list; I18N doc §6 items 4 and 6 decided, plus the Pitru exception under §5.

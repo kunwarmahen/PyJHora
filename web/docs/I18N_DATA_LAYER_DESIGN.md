@@ -1,7 +1,8 @@
 # Localizing engine-returned data (the i18n "data layer")
 
 Status: **rollout done (2026-07-19)** — machinery + every display site (38 files) + doshas.
-Three owner decisions in §6 (items 4–6) are still open; they are tracked in web/todo.md §82.
+§6 items 4 and 6 were decided 2026-10-06 (typo: leave for now; new screens: translate, Hindi first); item 5 is
+still English by design. Progress is logged in web/todo.md §83.
 This is the durable record: the decisions, the traps, and what a future session needs to
 resume without re-deriving any of it.
 
@@ -228,6 +229,10 @@ before touching it:
   upstream says "Manglik Dosha" where we say "Manglik (Kuja) Dosha".
 - Its text is `<html>`-wrapped with `<br>`; `_strip_html` unwraps it so markup
   never reaches the reader.
+- **Exception — Pitru Dosha (2026-10-06, todo.md §83.1).** The app now uses its own narrowed Pitru rule, so
+  upstream's Pitru text (which explains upstream's five conditions) would contradict the verdict. Pitru
+  never takes `get_dosha_details` text; `_PITRU_TEXT`/`_PITRU_REASONS` in `compute_strength.py` carry en + hi.
+  A future dosha that gets its own rule needs the same treatment.
 - **Unlike yogas, the language cannot move the astrology here** — detection is
   boolean and never reads the message file. `test_language_never_moves_the_astrology`
   pins that, and is what would catch it becoming untrue.
@@ -237,7 +242,7 @@ labels, panchanga limb values, and Ashtakoot koota names.
 
 ## 6. Open decisions — for the owner
 
-**Owner answered 1–3 on 2026-07-19** (decisions inline below; 4–6 still open):
+**Owner answered 1–3 on 2026-07-19, and 4 + 6 on 2026-10-06** (decisions inline below; 5 is English by design):
 
 - **(1) Keep the sa→hi stopgap.** Do not block the A-layer rollout on authoring upstream
   Sanskrit. Sanskrit continues to show Hindi wherever PyJHora does the translating.
@@ -264,12 +269,15 @@ labels, panchanga limb values, and Ashtakoot koota names.
    for en.** Keys mostly line up with `dosha_msgs_*.json`, but
    `compute_strength.get_doshas` writes its own descriptions and they're better than
    upstream's. Switching gains Hindi and loses the curated text.
-4. **The `म्रृगशीर्षा` typo** (§4.5): patch `src/jhora/lang/list_values_hi.txt` (it's this
+4. **The `म्रृगशीर्षा` typo** — **LEAVE FOR NOW (owner, 2026-10-06).** (§4.5): patch `src/jhora/lang/list_values_hi.txt` (it's this
    repo) or add a hi override to the manual file.
 5. **Kendra-Trikona raja yogas** are built from our own f-strings, so the A layer must
    cover them.
 6. **New-page UI strings are English-only**, falling back via `fallbackLng` — the standing
-   pattern for every recent feature page. Steady state, or debt to burn down?
+   pattern for every recent feature page. Steady state, or debt to burn down? — **TRANSLATE, HINDI FIRST
+   (owner, 2026-10-06).** The §81 screens went first (todo.md §83.2). Sanskrit UI keys still fall back to
+   **en**, not hi: i18next's `fallbackLng` is not the engine's sa→hi hop. Hindi Help answers are the
+   largest remaining block (~190 of ~200 missing); they also feed the page hints.
 
 ## 7. Commands
 
