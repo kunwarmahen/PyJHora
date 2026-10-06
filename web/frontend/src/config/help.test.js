@@ -184,6 +184,9 @@ describe("help search coverage", () => {
     "my notebook",
     "your periods",
     "where did",
+    "rising sign",
+    "without an account",
+    "checklist",
   ])("finds %s", (term) => {
     const faq = filterHelp(term, text).flatMap((s) => s.items);
     const glossary = filterGlossary(term, GLOSSARY);

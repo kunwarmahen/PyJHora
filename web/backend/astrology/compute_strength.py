@@ -38,6 +38,22 @@ def _strip_html(text: str) -> str:
 AstrologyCompute = None
 
 
+
+def _load_dosha_prevalence() -> Dict[str, float]:
+    """{dosha key: % of sampled charts} from dosha_prevalence.json, or {}."""
+    import json as _json
+    import os as _os
+    path = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))),
+                         "dosha_prevalence.json")
+    try:
+        with open(path) as f:
+            return {k: v["percent"] for k, v in _json.load(f).get("doshas", {}).items()}
+    except Exception:
+        return {}
+
+
+_DOSHA_PREVALENCE = _load_dosha_prevalence()
+
 class StrengthMixin:
 
     # The 8 BAV contributors, in Jyotir AI's order.
@@ -604,6 +620,10 @@ class StrengthMixin:
                     "name": n,
                     "present": _present(v),
                     "description": _strip_html(text) if text else d,
+                    # How common it is under these same rules (§76.6) — measured,
+                    # not quoted: scripts/dosha_prevalence.py. A newcomer told
+                    # they "have" a dosha should know when most people do too.
+                    "prevalence_percent": _DOSHA_PREVALENCE.get(k),
                 })
             return {
                 "status": "success",

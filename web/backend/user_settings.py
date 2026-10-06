@@ -40,6 +40,12 @@ PREFERENCE_KEYS = (
     "ai_share_birth_date",
     "ai_share_birth_time",
     "ai_share_birth_place",
+    # The newcomer's first week (§76.4/§76.5): checklist progress, whether the
+    # one-line page hints show, and which pages' hints were already dismissed.
+    # Comma lists / on|off — synced so a phone doesn't re-teach what the laptop did.
+    "onboarding_checklist",
+    "page_hints",
+    "hints_seen",
 )
 
 

@@ -228,7 +228,7 @@ Two levels. **Sections** put things in the order a reading actually proceeds; in
 
 | Section | Entries (hubs in bold, members in brackets) |
 | --- | --- |
-| **Start here** | **My Chart** (Birth Chart · Bhava Chart · Nakshatra Profile · Planetary Strength · Chart Deep-Dive · Sensitive Points) · Ask AI Astrologer · **Your Periods** (Today · This Fortnight · This Month · Varshaphal · Tithi Pravesha) |
+| **Start here** | Start here (your chart in plain words) · **My Chart** (Birth Chart · Bhava Chart · Nakshatra Profile · Planetary Strength · Chart Deep-Dive · Sensitive Points) · Ask AI Astrologer · **Your Periods** (Today · This Fortnight · This Month · Varshaphal · Tithi Pravesha) |
 | **Read the chart** | **Other Systems** (Jaimini · KP · Nadi Karakas · Bhrigu Markers · Chakras) · **Reports** (Life Report · Full Report · Topic Reading) |
 | **Timing** | **Dasha & Timeline** (Dasha Periods · Life Timeline) · **Transits** (Transits · Gochara-phala · Sade Sati · Ephemeris) |
 | **Calendar & muhurta** | **Sky & Panchanga** (Almanac · Vedic Clock · Pancha Pakshi · Chart of the Moment) · Muhurta |
@@ -489,6 +489,21 @@ in `components/RootRoute.js`. The page ships its own theme-aware styles scoped u
 section (Free / Pro / Practitioner) is hidden by default and shown only when
 `REACT_APP_SHOW_PRICING=true`; tier numbers are placeholders in
 `pages/LandingPage.js` until you finalize them.
+
+### The newcomer's first minute (§76/§81)
+
+- **Landing preview** (`#try`, no account): date, time ("I'm not sure" allowed), place → the plain-words
+  cards. Nothing stored server-side; details wait in the tab and fill the welcome flow after sign-up.
+  `POST /api/public/first-look`, rate-limited per caller and globally.
+- **Welcome** (`/welcome`): three questions for an account with no profile; lands on Start here.
+- **Start here** (`/start`): Rising sign, Moon sign, birth star and the current dasha chapter in plain
+  words (sentences are i18n tables keyed by sign/star/planet — no model call), honest caveats for an
+  unknown or edge-of-sign time, and three starter questions that open Ask.
+- **First-week checklist** on the dashboard, **page hints** from each page's Help answer (Settings →
+  General → Page hints), translatable glossary tooltips.
+- **Calm framing:** every dosha carries how common it is under the app's own rules (measured by
+  `scripts/dosha_prevalence.py`).
+- **Funnel** counts + time-to-first-answer medians on the admin Overview.
 
 # Feature reference by hub
 

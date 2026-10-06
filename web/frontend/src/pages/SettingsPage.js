@@ -45,6 +45,7 @@ import { DENSITIES } from "../config/density";
 import { zoneLabel } from "../config/currentLocation";
 import { Tabs, useTabs } from "../components/Tabs";
 import "../styles/Settings.css";
+import { useChecklist } from "../hooks/useChecklist";
 
 const KEYED_PROVIDERS = ["gemini", "openai", "openai-compatible", "openrouter"];
 // The tabs, in order. One list: `?tab=` validates against it and the tab bar is
@@ -72,6 +73,7 @@ const MT_MAX = 32768;
 const MT_STEP = 256;
 
 export const SettingsPage = () => {
+  const checklist = useChecklist();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { settings, updateSetting } = useSettings();
@@ -322,6 +324,7 @@ export const SettingsPage = () => {
       .getPrefs()
       .then((r) => {
         setNotif(r.data?.prefs || null);
+        if (r.data?.prefs?.daily_digest) checklist.mark("digest"); // §76.4 — already on
         setNotifMeta({
           push_available: !!r.data?.push_available,
           email_available: !!r.data?.email_available,
@@ -337,6 +340,7 @@ export const SettingsPage = () => {
   }, []);
 
   const saveNotif = async (patch) => {
+    if (patch.daily_digest) checklist.mark("digest"); // §76.4
     const next = { ...(notif || {}), ...patch };
     setNotif(next);
     try {
@@ -684,6 +688,28 @@ export const SettingsPage = () => {
                 </div>
               </div>
               <p className="settings-hint">{t("settings.general.startupProfileHint")}</p>
+
+              {/* Newcomer page hints (§76.5): auto = new accounts only. Turning
+                  them back on also brings back the ones already dismissed. */}
+              <div className="settings-row">
+                <label className="settings-label">{t("settings.general.pageHints")}</label>
+                <div className="settings-segment">
+                  {["auto", "on", "off"].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={`settings-seg-btn${settings.pageHints === v ? " is-active" : ""}`}
+                      onClick={() => {
+                        set("pageHints", v);
+                        if (v === "on") set("hintsSeen", "");
+                      }}
+                    >
+                      {t(`settings.general.pageHintsOpt.${v}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="settings-hint">{t("settings.general.pageHintsHint")}</p>
 
               <div className="settings-row">
                 <label className="settings-label">{t("settings.general.language")}</label>

@@ -1,0 +1,69 @@
+/* "What am I looking at?" (§76.5). Theme tokens only. */
+.page-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  max-width: 1200px;
+  margin: var(--space-md) auto 0;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.page-hint > svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--accent-deep);
+}
+
+.page-hint p {
+  margin: 0;
+  flex: 1;
+  line-height: 1.5;
+}
+
+.page-hint strong {
+  color: var(--text-primary);
+}
+
+.page-hint a {
+  color: var(--accent-deep);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.page-hint__close {
+  flex: none;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--radius-md);
+}
+
+.page-hint__close:hover {
+  color: var(--text-primary);
+}
+
+.page-hint__close:focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1260px) {
+  .page-hint {
+    margin-left: var(--space-md);
+    margin-right: var(--space-md);
+  }
+}
+
+@media print {
+  .page-hint {
+    display: none;
+  }
+}

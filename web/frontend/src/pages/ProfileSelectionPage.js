@@ -1,6 +1,6 @@
 import { clickable } from "../utils/a11y";
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useProfile } from "../contexts/ProfileContext";
 import { formatDate, orDash } from "../utils/format";
@@ -323,6 +323,13 @@ export const ProfileSelectionPage = () => {
               </div>
             ) : (
               <>
+                {/* A newcomer who reached the full picker anyway (§76.2): point
+                    them at the three-question setup rather than the long form. */}
+                {profiles.length === 0 && !exportMode && (
+                  <p className="profile-welcome-hint">
+                    {t("profile.newHere")} <Link to="/welcome">{t("profile.newHereLink")}</Link>
+                  </p>
+                )}
                 {exportMode ? (
                   <div className="profiles-toolbar export-mode">
                     <span className="export-hint">

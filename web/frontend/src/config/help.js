@@ -38,6 +38,16 @@ export const HELP_SECTIONS = [
           " other systems reports transits sky panchanga notebook",
       },
       { id: "essentialsVsEverything", to: "/settings" },
+      // §76 — the newcomer's first minute. No `to` on these: the pages they
+      // describe each have their own tour entry.
+      {
+        id: "tryWithoutAccount",
+        keywords: "free preview without account sign up try before register no account anonymous",
+      },
+      {
+        id: "firstWeek",
+        keywords: "checklist first week hints what am I looking at tips onboarding getting started",
+      },
       {
         id: "languageAndTheme",
         to: "/settings",
@@ -99,6 +109,12 @@ export const HELP_SECTIONS = [
       // In hub order (§79, config/features.js HUBS) so the tour reads the way
       // the drawer does. Every page keeps its own entry — its "?" lands here,
       // and help.test.js fails if a feature is ever added without one.
+      // ── Start here (§76) ──
+      {
+        id: "featStart",
+        to: "/start",
+        keywords: "start here beginner rising sign moon sign birth star chapter plain words",
+      },
       // ── My Chart ──
       {
         id: "featBirthChart",

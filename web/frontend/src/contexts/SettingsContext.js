@@ -57,6 +57,11 @@ export const SETTING_KEYS = {
   aiShareBirthDate: "ai_share_birth_date",
   aiShareBirthTime: "ai_share_birth_time",
   aiShareBirthPlace: "ai_share_birth_place",
+  // The newcomer's first week (§76.4/§76.5) — see config/checklist.js and
+  // components/PageHint.js. Comma lists and an on/off switch.
+  onboardingChecklist: "onboarding_checklist",
+  pageHints: "page_hints",
+  hintsSeen: "hints_seen",
 };
 
 // The preferences synced to the server (cross-device). The non-secret LLM/model
@@ -76,6 +81,9 @@ const SYNCED_KEYS = [
   "aiShareBirthDate",
   "aiShareBirthTime",
   "aiShareBirthPlace",
+  "onboardingChecklist",
+  "pageHints",
+  "hintsSeen",
 ];
 // Discrete one-click choices, pushed to the server immediately rather than on
 // the 600ms debounce. The debounce is there to coalesce typing (aiBaseUrl,
@@ -93,6 +101,9 @@ const IMMEDIATE_KEYS = [
   "aiShareBirthDate",
   "aiShareBirthTime",
   "aiShareBirthPlace",
+  "onboardingChecklist",
+  "pageHints",
+  "hintsSeen",
 ];
 // Settings that only mean anything under the provider they were chosen for: a
 // model id belongs to one vendor's catalogue, an endpoint to one server. Left
@@ -144,6 +155,9 @@ const DEFAULTS = {
   aiShareBirthDate: "false",
   aiShareBirthTime: "false",
   aiShareBirthPlace: "false",
+  onboardingChecklist: "",
+  pageHints: "auto",
+  hintsSeen: "",
 };
 
 const read = (key) => {

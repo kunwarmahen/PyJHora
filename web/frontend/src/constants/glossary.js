@@ -42,10 +42,27 @@ export const GLOSSARY = {
 };
 
 // case-insensitive lookup
-export const lookupGlossary = (key) => {
+/** The canonical term for `key` (case-insensitive), or null. */
+const canonical = (key) => {
   if (!key) return null;
-  if (GLOSSARY[key]) return GLOSSARY[key];
+  if (GLOSSARY[key]) return key;
   const lower = String(key).toLowerCase();
-  const hit = Object.keys(GLOSSARY).find((k) => k.toLowerCase() === lower);
-  return hit ? GLOSSARY[hit] : null;
+  return Object.keys(GLOSSARY).find((k) => k.toLowerCase() === lower) || null;
 };
+
+/**
+ * A term's definition, in the reader's language when one exists (§76.5).
+ *
+ * English lives here, keyed by the term; a translation is `glossaryTerms.<Term>`
+ * in that language's locale file and overrides it. Pass i18next's `t` to get
+ * the translated text — without it (tests, non-React callers) this is English.
+ */
+export const lookupGlossary = (key, t) => {
+  const term = canonical(key);
+  if (!term) return null;
+  return t ? t(`glossaryTerms.${term}`, { defaultValue: GLOSSARY[term] }) : GLOSSARY[term];
+};
+
+/** The whole glossary as [term, definition] pairs, translated where possible. */
+export const glossaryEntries = (t) =>
+  Object.keys(GLOSSARY).map((term) => [term, lookupGlossary(term, t)]);

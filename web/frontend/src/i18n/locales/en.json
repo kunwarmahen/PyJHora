@@ -350,7 +350,9 @@
     "creating": "Creating Profile…",
     "updating": "Updating Profile…",
     "create": "Create Profile",
-    "update": "Update Profile"
+    "update": "Update Profile",
+    "newHere": "New here?",
+    "newHereLink": "Answer three quick questions instead — date, time and place."
   },
   "learn": {
     "title": "Learn the Chart",
@@ -488,7 +490,8 @@
       "relationships": "Relationships",
       "notebook": "My Notebook"
     },
-    "predictions": "Topic Reading"
+    "predictions": "Topic Reading",
+    "start": "Start here"
   },
   "aiTools": {
     "title": "AI Capabilities",
@@ -674,6 +677,10 @@
       "predictions": {
         "title": "Topic Reading",
         "description": "A focused AI reading on one area — career, relationships, health or your life path."
+      },
+      "start": {
+        "title": "Start here",
+        "description": "Your chart in plain words — Rising sign, Moon sign, birth star and the chapter of life you're in now."
       }
     },
     "hubs": {
@@ -1182,7 +1189,14 @@
         "resume": "Open my last profile",
         "ask": "Always ask"
       },
-      "startupProfileHint": "Whether signing in goes straight to a chart or to the profile picker. Opening your last profile falls back to your default profile, and to the picker if you have several profiles and no default."
+      "startupProfileHint": "Whether signing in goes straight to a chart or to the profile picker. Opening your last profile falls back to your default profile, and to the picker if you have several profiles and no default.",
+      "pageHints": "Page hints",
+      "pageHintsOpt": {
+        "auto": "Auto",
+        "on": "On",
+        "off": "Off"
+      },
+      "pageHintsHint": "A one-line “What am I looking at?” on your first visit to each page. Auto shows them for your first two weeks; On brings back any you dismissed."
     },
     "location": {
       "intro": "Where you live now. This is separate from your birth details, which never change — your chart is always cast for the moment and place you were born.",
@@ -1536,7 +1550,9 @@
       "weak": "Weak",
       "special": "Special"
     },
-    "aspectsAdvanced": "Graha Drishti (planetary aspects)"
+    "aspectsAdvanced": "Graha Drishti (planetary aspects)",
+    "doshaCommon": "Common: found in about {{n}} of every 100 charts, by the rules this app uses.",
+    "doshasCalm": "A dosha is a traditional caution, not a verdict. Most charts have at least one, many are very common, and none decides a life on its own — read them as things to be aware of."
   },
   "tp": {
     "title": "Tithi Pravesha",
@@ -2261,7 +2277,7 @@
   "sadeSati": {
     "title": "Sade Sati",
     "subtitle": "Saturn's transits over your Moon",
-    "intro": "Sade Sati is the ~7½-year period when Saturn transits the 12th, 1st and 2nd signs from your natal Moon. A time of maturing and consolidation — traditionally testing, but a chapter of growth, not doom.",
+    "intro": "Sade Sati is the ~7½-year period when Saturn transits the 12th, 1st and 2nd signs from your natal Moon. A time of maturing and consolidation — traditionally testing, but a chapter of growth, not doom. It comes to everyone: Saturn circles the zodiac about every 29½ years, so most people pass through it two or three times — roughly a quarter of a lifetime.",
     "loading": "Tracing Saturn's path…",
     "calcError": "Couldn't compute the Saturn transits.",
     "moonSign": "Moon sign: {{sign}}",
@@ -2749,6 +2765,8 @@
       "aiUnavailable": "A reading said the model was busy or unavailable. What happened?",
       "believe": "Do I have to believe in astrology to get something out of this?",
       "essentialsVsEverything": "There seem to be a lot of pages. Do I need all of them?",
+      "tryWithoutAccount": "Can I try it without an account?",
+      "firstWeek": "What are the checklist and the little “What am I looking at?” notes?",
       "featAdvanced": "Advanced Tools",
       "featAlmanac": "Almanac",
       "featBhava": "Bhava Chart",
@@ -2828,7 +2846,8 @@
       "whatIsAyanamsa": "What's the ayanamsa, and why do other apps give different positions?",
       "calendarFeed": "Can I see my upcoming periods in my own calendar?",
       "apiAccess": "Can I use my charts from a script or from Claude Desktop?",
-      "featPredictions": "What is a Topic Reading?"
+      "featPredictions": "What is a Topic Reading?",
+      "featStart": "What is the “Start here” page?"
     },
     "a": {
       "aiAccurate": "It faithfully reports what the calculations say and interprets them in the tradition's own terms — the maths is real astronomy. Whether astrology itself predicts anything is a question this app can't settle for you. Please treat every reading as reflection, not instruction, and never as medical, legal or financial advice. AI models can also simply be wrong, and this one occasionally will be.",
@@ -2843,6 +2862,8 @@
       "aiUnavailable": "A local model shares its graphics card with everything else on that machine, so if something heavier is running the model may have nowhere to load itself. When that happens the app says so instead of inventing an answer, and it tries whatever else it can reach — a cloud provider you've added a key for, or a slower CPU-only endpoint if one is configured. Settings → System shows the local model as \"Busy\" while this lasts, with a rough countdown. Scheduled digests hold back for up to an hour and a half rather than arriving thinner than usual, and go out with their highlights after that. Just ask again in a few minutes; nothing is broken and nothing was lost.",
       "believe": "Not at all. Plenty of people read a chart the way they'd read a personality sketch or a journalling prompt: something to think with, not something to obey. The app is deliberately written to describe tendencies rather than issue verdicts, and nothing here should replace medical, legal or financial advice.",
       "essentialsVsEverything": "No. The app starts in Essentials, which shows about a dozen pages most people want. Everything unlocks the full set — over thirty — including the specialist systems. Switch any time in Settings → General → View mode. Nothing is ever taken away from you; Essentials just doesn't advertise it all at once.",
+      "tryWithoutAccount": "Yes. On the front page, enter your date, time and place of birth under “See your chart in plain words” and you'll get your Rising sign, Moon sign, birth star and the chapter of life you're in now — no account needed. Nothing is saved on our side: the details stay in that browser tab. If you then create an account, they're carried straight into your first profile so you don't type them twice. Asking the AI astrologer needs an account, because every question costs real computing time.",
+      "firstWeek": "Help for your first couple of weeks. The checklist on the dashboard suggests four things worth doing once — see your chart explained, ask a first question, turn on the daily digest, take the short quiz on your own chart — and ticks each off when you actually do it; hide it any time with the ×. The one-line note at the top of a page says what that page is for, the first time you open it. Both follow you across devices. Settings → General → Page hints turns the notes on or off for good; “On” also brings back any you dismissed.",
       "featAdvanced": "One long page of the classical measurements that sit behind a reading. Ashtakavarga scores every sign by bindus (points) from each planet, and the combined Sarvashtakavarga shows which signs are strong for you. The arudha padas show how each house's affairs appear to the world. You'll also find a longevity (ayu) indication, planetary conditions such as combust or retrograde, the avasthas (the \"state\" each planet is in, like infant or old, awake or asleep), and a friendship table showing which planets treat each other as friend, neutral or enemy. A few things that used to be repeated here now live in one place each, and the page links to them: Shadbala on Planetary Strength, the chara karakas on Jaimini, the special lagnas and upagrahas on Sensitive Points, and the aspects on the Birth Chart. For the curious; nothing here is needed for normal use.",
       "featAlmanac": "The traditional calendar: the day's panchanga, auspicious and inauspicious windows, festivals and vratha dates, and eclipses. Each day also shows sunrise and sunset, Rahu Kalam and the other daily windows, and the Islamic (Hijri) date.",
       "featBhava": "The houses again, but drawn by their actual cusps rather than by whole signs. House systems (Sripati, Placidus, KP, Equal) disagree about where a house begins, and this lets you see the effect.",
@@ -2884,7 +2905,7 @@
       "privEmails": "Only what you switch on — the daily or periodic digest, and password resets. Digests are off until you enable them, and every one has an unsubscribe link. You can add other recipients, but only after they confirm.",
       "privKeys": "Only if you want to use a cloud AI provider under your own account. A key is a password that lets this app use your allowance at, say, OpenAI or Google. Stored encrypted, and shown to you only masked. If you use a local model instead, you never need one.",
       "privSharing": "You get a link that shows a read-only copy of that chart to anyone who opens it — no login needed. Treat it as public: a link is a key, so only send it to people you'd show the birth details to. You can revoke it later.",
-      "privWhatStored": "Your account (username, email, name), the birth profiles you create, the charts and readings you generate, your settings, and your journal entries if you write any. It lives in this app's own database. It isn't sold, shared or mined.",
+      "privWhatStored": "Your account (username, email, name), the birth profiles you create, the charts and readings you generate, your settings, and your journal entries if you write any. It lives in this app's own database. It isn't sold, shared or mined. The free preview on the front page stores nothing at all — its details stay in your browser tab until you sign up.",
       "rasiVsNavamsa": "The Rasi (also called D1) is your main birth chart — the actual sky. The Navamsa (D9) is a derived chart that magnifies one part of the picture: it's traditionally read for marriage, partnership and inner strength, and as a second opinion on how well a planet really does. A planet that looks weak in the Rasi but strong in the Navamsa is the classic \"grows into it\" signature.",
       "retrograde": "Planets sometimes appear to move backwards from where we stand, because we're orbiting too. Nothing physically reverses. Astrologically a retrograde planet is usually read as turned inward or revisiting something rather than as bad news.",
       "whatAmILookingAt": "A map of the sky, flattened. The twelve compartments are the houses — twelve areas of life, in a fixed order starting from your ascendant. The abbreviations inside them are planets. So \"Sun in the 10th\" means the Sun sat in the part of the sky your tradition associates with career and public standing. That's the whole grammar: a planet, in a sign, in a house.",
@@ -2893,8 +2914,8 @@
       "whatIsNakshatra": "A finer division of the sky than a sign: 27 of them, each about 13°20' wide, sometimes called lunar mansions. Your \"birth star\" is the nakshatra the Moon was in when you were born, and it's used for personality detail and — importantly — for the timing system below.",
       "whatIsSign": "The zodiac is a circle split into twelve 30° signs, and at any moment each planet sits in one of them. The sign describes the *manner* of a planet — Mars in a cautious sign behaves differently from Mars in a bold one. Note that Vedic astrology uses the sidereal zodiac, measured against the actual stars, so your Sun sign here is often one back from the one in a newspaper horoscope. That's expected, not a bug.",
       "whatIsThis": "It takes your birth date, time and place, works out where the planets were at that moment, and helps you read what Vedic astrology (Jyotish) traditionally makes of it — with an AI that can explain any of it in plain English.",
-      "whereToStart": "Open your Birth Chart and read the plain-English panels rather than the diagram. Then try Today for what's happening right now, and ask the AI astrologer anything you're curious about — it can see your chart, so \"what does my chart say about my work?\" is a perfectly good question.",
-      "dashboardLayout": "In the order a reading actually goes, with related pages grouped together. Start here is My Chart, the AI astrologer and Your Periods. Read the chart holds the other classical schools and the written-up Reports. Timing is Dasha & Timeline first, then the Transits running over them. Calendar & muhurta is Sky & Panchanga — the sky's own clock — and Muhurta for picking a moment to act. Then Relationships, and Remedies & practice, where My Notebook keeps your own record. Where several pages are one idea they share a single tile, and once you're on any of them a strip under the page title lists the others, so moving between them is one tap. The menu uses the same sections and groups. If you know what you want, just start typing on the dashboard — the search finds every individual page by name, not just the groups.",
+      "whereToStart": "Open “Start here” — it explains your Rising sign, Moon sign, birth star and the chapter of life you're in now, in plain words, and offers a few good first questions for the AI astrologer. From there the Birth Chart shows the full picture, and Today tells you what's happening right now.",
+      "dashboardLayout": "In the order a reading actually goes, with related pages grouped together. Start here opens with “Start here” — your chart in plain words — then My Chart, the AI astrologer and Your Periods. Read the chart holds the other classical schools and the written-up Reports. Timing is Dasha & Timeline first, then the Transits running over them. Calendar & muhurta is Sky & Panchanga — the sky's own clock — and Muhurta for picking a moment to act. Then Relationships, and Remedies & practice, where My Notebook keeps your own record. Where several pages are one idea they share a single tile, and once you're on any of them a strip under the page title lists the others, so moving between them is one tap. The menu uses the same sections and groups. If you know what you want, just start typing on the dashboard — the search finds every individual page by name, not just the groups.",
       "whereIsPage": "Nowhere — every page is still there, at the same address, but pages that belong to one idea now share one entry in the menu and on the dashboard. My Chart: Birth Chart, Bhava Chart, Nakshatra Profile, Planetary Strength, Chart Deep-Dive and Sensitive Points. Your Periods: Today, This Fortnight, This Month, Varshaphal and Tithi Pravesha. Other Systems: Jaimini, KP System, Nadi Karakas, Bhrigu Markers and the Chakras. Reports: Life Report, Full Report and Topic Reading. Dasha & Timeline: Dasha Periods and Life Timeline. Transits: Transits, Gochara-phala, Sade Sati and the Ephemeris. Sky & Panchanga: Almanac, Vedic Clock, Pancha Pakshi and Chart of the Moment. Relationships: Compatibility and Compare Charts. My Notebook: AI History and Astro-Journal. Open the group, then use the strip under the page title — or simply type the page's name into the dashboard search. In Essentials mode the strip shows only the pages Essentials advertises; switch to Everything in Settings to see them all. Bookmarks and links in old readings and emails still open the same page.",
       "whyBirthTime": "Because the sky changes fast. The \"ascendant\" — the sign coming up over the horizon — moves to a new sign roughly every two hours, and it decides how the whole chart is laid out. A few minutes usually doesn't matter; a few hours changes almost everything. Date and place matter too, but time is the sensitive one.",
       "yogaAndDosha": "A yoga is a specific planetary combination said to produce a particular result — many are simply favourable patterns worth knowing about. A dosha is an affliction or rough patch in the chart. Both get named dramatically in traditional texts. Read them as emphasis rather than fate: a chart with a dosha is extremely common, and it isn't a diagnosis. On the Birth Chart's Yogas & Doshas tab you'll see them split into the classical yogas, raja yogas (combinations for rank and success, shown with how strongly they're formed) and doshas such as Mangal or Kaal Sarpa, each marked present or absent.",
@@ -2922,7 +2943,8 @@
       "whatIsAyanamsa": "Vedic astrology measures the zodiac against the fixed stars, and the stars have slowly drifted from where Western astrology's zodiac starts. The ayanamsa is how big that drift is taken to be, and different schools use slightly different values — which is why two apps can put a planet a degree apart, or even in a different nakshatra. This app defaults to True Chitra (a precise form of Lahiri) with mean Rahu and Ketu, which matches Jagannatha Hora. You can pick another — plain Lahiri, KP, Raman and others — in Settings → General → Ayanamsa.",
       "calendarFeed": "Yes. Settings → Calendar gives you a subscription link for Google Calendar, Apple Calendar or Outlook, carrying your chart's upcoming events — bhukti changes, Sade Sati boundaries, your solar return, slow-planet ingresses and eclipses on your birth stars. It refreshes by itself about twice a day. Anyone who has the link can see the feed (calendar apps can't log in), so keep it private.",
       "apiAccess": "Yes, if you're comfortable with a little setup. Settings → API access creates a personal token for the read-only API, and the same token works with the app's MCP server, which lets an AI assistant such as Claude Desktop look up your charts. The token acts as you, so treat it like a password; you can revoke it there at any time. Nothing reached this way can change your data.",
-      "featPredictions": "An AI reading of your chart on just one area of life — your life path, career, relationships or health — instead of everything at once. Pick the topic and the AI reads the houses, lords, yogas and running dasha that bear on it; for career it also checks the 10th house counted from the Ghati Lagna, the classical second opinion on rise in standing. It sits with the Life Report and Full Report in Reports, and every reading is saved to your AI History. Health readings are astrology, not medical advice."
+      "featPredictions": "An AI reading of your chart on just one area of life — your life path, career, relationships or health — instead of everything at once. Pick the topic and the AI reads the houses, lords, yogas and running dasha that bear on it; for career it also checks the 10th house counted from the Ghati Lagna, the classical second opinion on rise in standing. It sits with the Life Report and Full Report in Reports, and every reading is saved to your AI History. Health readings are astrology, not medical advice.",
+      "featStart": "The best first stop. It explains four things from your chart in everyday words: your Rising sign (Lagna — how you meet the world), your Moon sign (Rashi — your mind and feelings), your birth star (Nakshatra — the Moon's exact star group, with its traditional symbol and deity), and the chapter of life you're in now (your current dasha period and sub-period, with dates). Each card shows the Sanskrit name beside the plain one, so you'll recognise it on other pages. Nothing on it is written by the AI — it's worked out from your chart instantly — and if your birth time isn't known, it says what can't be stated without it instead of guessing. Underneath are a few questions you can send straight to the AI astrologer."
     }
   },
   "arudhaAi": {
@@ -2983,5 +3005,280 @@
     "error": "Could not generate the nakshatra gochara reading",
     "vsGochara": "Looking for the classical sign-level transit verdict instead — each graha's house from your Moon, and the vedha that can cancel it?",
     "vsGocharaLink": "Open Gochara-phala"
+  },
+  "firstLook": {
+    "title": "Your chart in plain words",
+    "subtitle": "Where the sky stood when you were born — and the chapter you're in now",
+    "intro": "Four things from your birth chart that are worth knowing first. Each one has a Sanskrit name — it's shown beside the plain one so you'll recognise it elsewhere in the app.",
+    "risingLabel": "Rising sign",
+    "risingTerm": "Lagna",
+    "risingWhat": "The sign coming up over the eastern horizon at the moment you were born. It describes how you meet the world.",
+    "moonLabel": "Moon sign",
+    "moonTerm": "Rashi",
+    "moonWhat": "The sign the Moon was in. In Vedic astrology it describes your mind and feelings — many people relate to it more than to their Sun sign.",
+    "starLabel": "Birth star",
+    "starTerm": "Nakshatra",
+    "starWhat": "The Moon's position narrowed to one of 27 star groups, each about 13° wide. It's the most personal of the three.",
+    "starLine": "Its symbol is the {{symbol}} and its deity {{deity}}. Traditionally linked with: {{theme}}.",
+    "padaNote": "quarter {{pada}} of 4",
+    "chapterLabel": "The chapter you're in now",
+    "chapterTerm": "Dasha",
+    "chapterWhat": "Vedic astrology divides a life into long periods, each ruled by one planet. They're how it talks about timing.",
+    "chapterLine": "Since {{start}} you have been in your {{lord}} period, which runs until {{end}} — {{theme}}",
+    "subLine": "Within it, the {{lord}} sub-period (until {{end}}) adds its own colour: {{theme}}.",
+    "nextLine": "Next: {{lord}}, from {{start}}.",
+    "rising": {
+      "1": "You meet life head-on: quick to start, direct, and at your best when there's something to go after.",
+      "2": "You come across as steady and grounded — patient, loyal, and drawn to comfort, beauty and things that last.",
+      "3": "You meet the world with curiosity: talkative, quick-witted, and happiest when there's something new to learn.",
+      "4": "You lead with feeling: protective, caring, and deeply tied to home, family and the people you call yours.",
+      "5": "You come across with warmth and presence — generous, proud, and naturally drawn to lead or to shine.",
+      "6": "You meet life with a careful eye: practical, helpful, and good at noticing what others miss.",
+      "7": "You come across as gracious and fair — a natural diplomat who looks for balance and partnership.",
+      "8": "You meet the world with intensity: private, perceptive, slow to trust and deeply loyal once you do.",
+      "9": "You come across as open and hopeful — a seeker who wants meaning, freedom and the bigger picture.",
+      "10": "You meet life with patience and ambition: responsible, disciplined, and built for the long climb.",
+      "11": "You come across as independent and original — drawn to ideas, to groups, and to doing things your own way.",
+      "12": "You meet the world softly: imaginative, compassionate, and sensitive to what others feel."
+    },
+    "moon": {
+      "1": "Emotionally you are quick and fiery — you feel things fast, say them plainly, and recover just as fast.",
+      "2": "Emotionally you need security and calm: steady routines, good food, and people you can rely on.",
+      "3": "Emotionally you need variety and conversation — talking things through is how you make sense of them.",
+      "4": "Emotionally you are tender and protective; home and family are where you recharge.",
+      "5": "Emotionally you need to be appreciated — warmth, loyalty and a little recognition keep you bright.",
+      "6": "Emotionally you settle by sorting things out — being useful and having things in order calms you.",
+      "7": "Emotionally you need harmony and good company; conflict unsettles you more than most.",
+      "8": "Emotionally you feel deeply and privately — intense, loyal, and slow to let go.",
+      "9": "Emotionally you need freedom and something to look forward to; optimism is your natural setting.",
+      "10": "Emotionally you are reserved and self-reliant — you feel safest when things are under control.",
+      "11": "Emotionally you need space and friendship; you would rather understand a feeling than be swept away by it.",
+      "12": "Emotionally you are sensitive and intuitive, absorbing the moods around you — quiet time restores you."
+    },
+    "chapter": {
+      "Sun": "a chapter about identity, authority and stepping into your own light — work, recognition and your relationship with people in charge tend to come forward.",
+      "Moon": "a chapter about feelings, home and nourishment — family, comfort and your inner life tend to take centre stage.",
+      "Mars": "a chapter of energy and action — drive, courage, competition and getting things done.",
+      "Mercury": "a chapter of learning, communication and trade — skills, study, writing, business and connections.",
+      "Jupiter": "a chapter of growth and guidance — learning, teachers, children, faith and widening horizons.",
+      "Venus": "a chapter of relationships, comfort and beauty — love, art, pleasure and the good things of life.",
+      "Saturn": "a chapter of patience and building — responsibility, hard work, and results that come slowly but last.",
+      "Rahu": "a chapter of hunger for the new — ambition, unconventional paths, travel and restless change.",
+      "Ketu": "a chapter of letting go and looking inward — detachment, spiritual interests, and finishing what is old."
+    },
+    "chapterShort": {
+      "Sun": "identity and recognition",
+      "Moon": "feelings and home",
+      "Mars": "energy and action",
+      "Mercury": "learning and communication",
+      "Jupiter": "growth and guidance",
+      "Venus": "relationships and comfort",
+      "Saturn": "patience and responsibility",
+      "Rahu": "ambition and change",
+      "Ketu": "inner work and letting go"
+    },
+    "stars": {
+      "1": {
+        "symbol": "Horse's head",
+        "deity": "Ashwini Kumaras",
+        "theme": "Swift healing, fresh starts and pioneering energy"
+      },
+      "2": {
+        "symbol": "Yoni (female organ)",
+        "deity": "Yama",
+        "theme": "Restraint, transformation and creative struggle"
+      },
+      "3": {
+        "symbol": "Razor / flame",
+        "deity": "Agni",
+        "theme": "Sharp focus, purifying fire and determination"
+      },
+      "4": {
+        "symbol": "Ox-cart / chariot",
+        "deity": "Brahma (Prajapati)",
+        "theme": "Growth, beauty, fertility and sensual comfort"
+      },
+      "5": {
+        "symbol": "Deer's head",
+        "deity": "Soma (Chandra)",
+        "theme": "Searching, curiosity and gentle questing"
+      },
+      "6": {
+        "symbol": "Teardrop / diamond",
+        "deity": "Rudra",
+        "theme": "Storms, breakthrough and emotional intensity"
+      },
+      "7": {
+        "symbol": "Bow and quiver",
+        "deity": "Aditi",
+        "theme": "Renewal, return, safety and boundless nurture"
+      },
+      "8": {
+        "symbol": "Cow's udder / lotus",
+        "deity": "Brihaspati",
+        "theme": "Nourishment, care, prosperity and steadiness"
+      },
+      "9": {
+        "symbol": "Coiled serpent",
+        "deity": "Nagas (Sarpas)",
+        "theme": "Penetrating insight, cunning and hidden depths"
+      },
+      "10": {
+        "symbol": "Royal throne",
+        "deity": "Pitris (Ancestors)",
+        "theme": "Ancestry, tradition, authority and pride"
+      },
+      "11": {
+        "symbol": "Front legs of a bed / hammock",
+        "deity": "Bhaga",
+        "theme": "Pleasure, romance, relaxation and play"
+      },
+      "12": {
+        "symbol": "Back legs of a bed",
+        "deity": "Aryaman",
+        "theme": "Service, contracts, patronage and generosity"
+      },
+      "13": {
+        "symbol": "Hand / closed fist",
+        "deity": "Savitar (Surya)",
+        "theme": "Skill of the hands, craft and clever manifestation"
+      },
+      "14": {
+        "symbol": "Bright jewel / pearl",
+        "deity": "Tvashtar (Vishwakarma)",
+        "theme": "Artistry, design, brilliance and structured beauty"
+      },
+      "15": {
+        "symbol": "Young shoot swaying in the wind / coral",
+        "deity": "Vayu",
+        "theme": "Independence, movement, diplomacy and adaptability"
+      },
+      "16": {
+        "symbol": "Triumphal archway / potter's wheel",
+        "deity": "Indra-Agni",
+        "theme": "Ambition, focus, devotion and single-minded drive"
+      },
+      "17": {
+        "symbol": "Lotus",
+        "deity": "Mitra",
+        "theme": "Friendship, balance, devotion and cooperation"
+      },
+      "18": {
+        "symbol": "Circular amulet / earring",
+        "deity": "Indra",
+        "theme": "Seniority, courage, protection and hidden power"
+      },
+      "19": {
+        "symbol": "Bunch of tied roots",
+        "deity": "Nirriti",
+        "theme": "Roots, upheaval, investigation and destruction-to-renew"
+      },
+      "20": {
+        "symbol": "Elephant tusk / fan",
+        "deity": "Apas (Waters)",
+        "theme": "Invincibility, early vigour and purposeful advance"
+      },
+      "21": {
+        "symbol": "Elephant tusk / small bed / planks",
+        "deity": "Vishwadevas",
+        "theme": "Lasting victory, integrity and unshakable resolve"
+      },
+      "22": {
+        "symbol": "Ear / three footprints",
+        "deity": "Vishnu",
+        "theme": "Learning, listening, connection and wisdom"
+      },
+      "23": {
+        "symbol": "Drum (mridanga) / flute",
+        "deity": "Ashta Vasus",
+        "theme": "Wealth, rhythm, music and generous abundance"
+      },
+      "24": {
+        "symbol": "Empty circle / 100 physicians",
+        "deity": "Varuna",
+        "theme": "Healing, mysticism, veiling and independence"
+      },
+      "25": {
+        "symbol": "Sword / front legs of a funeral cot",
+        "deity": "Aja Ekapada",
+        "theme": "Deep vision, sacrifice, austerity and idealism"
+      },
+      "26": {
+        "symbol": "Twins / back legs of a funeral cot",
+        "deity": "Ahir Budhnya",
+        "theme": "Depth, patience, cosmic support and steadiness"
+      },
+      "27": {
+        "symbol": "Pair of fish / drum",
+        "deity": "Pushan",
+        "theme": "Completion, nourishment, safe passage and kindness"
+      }
+    },
+    "noTimeRising": "Your Rising sign changes every two hours or so, so it needs your birth time. If you ever find it, add it to your profile and this card fills in.",
+    "nearEdge": "Your Rising sign sits right at the edge of the sign — if your birth time is off by even a few minutes, it could be the neighbouring one.",
+    "moonUnsure": "The Moon changed sign on the day you were born, from {{from}} to {{to}}, so without the time we can't say which.",
+    "starUnsure": "The Moon also moved from {{from}} to {{to}} that day — the birth star needs the time too.",
+    "approximate": "Without an exact birth time these dates can be off by months or more.",
+    "askTitle": "Ask about your chart",
+    "askIntro": "The AI astrologer can see everything above and more. Try one of these, or ask your own.",
+    "starters": {
+      "career": "What does this chapter of my life hold for my career?",
+      "strengths": "What are my natural strengths?",
+      "decisions": "When is a good time for big decisions this year?"
+    },
+    "honest": "Astrology is interpretive. These are traditional associations, read from where the planets were when you were born — something to reflect on, not facts about your future.",
+    "more": "Explore your full chart",
+    "loading": "Reading your chart…",
+    "error": "We couldn't read the chart just now. Please try again in a moment.",
+    "chapterUnsure": "Your chapters are counted from your birth star, and that needs the time — so we can't yet say which one you're in. Add your birth time to your profile if you find it, and this fills in."
+  },
+  "checklist": {
+    "title": "Your first week",
+    "progress": "{{done}} of {{total}} done",
+    "dismiss": "Hide this checklist",
+    "done": "done",
+    "todo": "not done yet",
+    "items": {
+      "chart": "See your chart explained in plain words",
+      "ask": "Ask the AI astrologer your first question",
+      "digest": "Turn on your daily digest",
+      "learn": "Take the two-minute quiz on your own chart"
+    }
+  },
+  "welcome": {
+    "step": "Step {{n}} of {{total}}",
+    "dateTitle": "When were you born?",
+    "dateHint": "Your date of birth sets where every planet was.",
+    "timeTitle": "What time?",
+    "timeHint": "As exact as you can — it decides your Rising sign. A birth certificate or a parent usually knows.",
+    "notSure": "I'm not sure",
+    "notSureNote": "That's fine — we'll focus on what doesn't depend on the exact minute, and say so wherever it matters. You can add the time later.",
+    "placeTitle": "Where?",
+    "placeHint": "The town or city you were born in. Search for it, or drop a pin on the map.",
+    "next": "Next",
+    "back": "Back",
+    "finish": "Show me my chart",
+    "saving": "Reading your chart…",
+    "saveError": "We couldn't save that just now. Please try again.",
+    "handoffTitle": "We kept the details you entered — is this right?",
+    "timeUnknown": "Time not known",
+    "change": "Change something",
+    "fullForm": "Prefer the full form? Add a profile with every field",
+    "defaultName": "Me"
+  },
+  "preview": {
+    "date": "Date of birth",
+    "time": "Time of birth",
+    "place": "Place of birth",
+    "submit": "Show my chart",
+    "privacy": "Nothing is saved until you create an account — these details stay in this browser tab.",
+    "busy": "Lots of people are trying this right now — please try again in a minute.",
+    "ctaText": "Create a free account to save this, see your full chart, and ask the AI astrologer anything about it. We'll keep the details you just entered.",
+    "cta": "Save it — create a free account"
+  },
+  "pageHint": {
+    "label": "What am I looking at?",
+    "more": "More in Help",
+    "dismiss": "Got it — don't show this again on this page"
   }
 }

@@ -1,0 +1,40 @@
+{
+ "method": "Share of sampled birth moments where get_doshas reports the dosha present. Births uniform 1940-2015, uniform minute, 14 world cities, default ayanamsa.",
+ "samples": 5000,
+ "seed": 76,
+ "computed": "2026-10-06",
+ "doshas": {
+  "ganda_moola": {
+   "name": "Ganda Moola Dosha",
+   "percent": 22.0
+  },
+  "ghata": {
+   "name": "Ghata Dosha",
+   "percent": 9.1
+  },
+  "guru_chandala": {
+   "name": "Guru Chandala Dosha",
+   "percent": 15.8
+  },
+  "kala_sarpa": {
+   "name": "Kala Sarpa Dosha",
+   "percent": 14.8
+  },
+  "kalathra": {
+   "name": "Kalathra Dosha",
+   "percent": 4.1
+  },
+  "manglik": {
+   "name": "Manglik (Kuja) Dosha",
+   "percent": 42.3
+  },
+  "pitru": {
+   "name": "Pitru Dosha",
+   "percent": 88.8
+  },
+  "shrapit": {
+   "name": "Shrapit Dosha",
+   "percent": 10.0
+  }
+ }
+}

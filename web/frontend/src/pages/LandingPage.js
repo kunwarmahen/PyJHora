@@ -5,6 +5,8 @@ import { useSettings } from "../contexts/SettingsContext";
 import { resolveTheme } from "../config/theme";
 import { SITE_TITLE } from "../config/branding";
 import "../styles/Landing.css";
+import { PreviewForm } from "../components/PreviewForm";
+import { onboardingService } from "../services/api";
 
 /* Pricing shows only when REACT_APP_SHOW_PRICING === "true" (see .env). */
 const SHOW_PRICING = process.env.REACT_APP_SHOW_PRICING === "true";
@@ -380,6 +382,12 @@ export const LandingPage = () => {
       ? `${THEME_LABEL.system} · ${resolveTheme("system") === "dark" ? "Dark" : "Light"}`
       : THEME_LABEL[pref];
 
+  // Funnel step one (§76.8): the landing page was opened. Counts only.
+  useEffect(() => {
+    // Fire-and-forget: a counter must never surface as an error on the page.
+    Promise.resolve(onboardingService.beacon("landing_view")).catch(() => {});
+  }, []);
+
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -485,8 +493,8 @@ export const LandingPage = () => {
                 <Link className="btn btn-primary" to="/register">
                   Get started free
                 </Link>
-                <a className="btn btn-ghost" href="#reading">
-                  See a sample reading
+                <a className="btn btn-ghost" href="#try">
+                  See your chart free
                 </a>
               </div>
               <div className="hero-meta">
@@ -700,6 +708,22 @@ export const LandingPage = () => {
             <span className="dia" />
             Open-source engine
           </span>
+        </div>
+      </section>
+
+      {/* ===================== TRY IT (§76.7) ===================== */}
+      <section className="section" id="try">
+        <div className="wrap">
+          <div className="section-head reveal in">
+            <span className="eyebrow">Free · no account needed</span>
+            <h2>See your chart in plain words.</h2>
+            <p>
+              Your Rising sign, Moon sign, birth star and the chapter of life you&apos;re in now —
+              worked out from your birth details in a second, explained for someone who has never
+              read a chart.
+            </p>
+          </div>
+          <PreviewForm />
         </div>
       </section>
 

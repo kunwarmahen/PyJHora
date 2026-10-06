@@ -47,6 +47,7 @@ import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Chat.css";
 import { returnHere } from "../utils/returnTo";
+import { useChecklist } from "../hooks/useChecklist";
 
 // The answer being generated, remembered across page loads: the server finishes
 // it whether or not anyone is watching (backend/ask_jobs.py), so when iOS kills
@@ -213,6 +214,7 @@ const PortalMenu = ({ anchorRef, open, onClose, align = "left", width = 220, chi
 };
 
 export const AskAstrologerPage = () => {
+  const checklist = useChecklist();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { selectedProfile } = useProfile();
@@ -624,6 +626,7 @@ export const AskAstrologerPage = () => {
   const runStream = (question, { regenerate = false, override = null } = {}) => {
     setLoading(true);
     setError("");
+    checklist.mark("ask"); // §76.4 — the first question ticks the newcomer's list
 
     const useType = override?.providerType || providerType;
     const useModel = override?.model || model;

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { lookupGlossary } from "../constants/glossary";
 import "../styles/Shared.css";
 
@@ -12,8 +13,9 @@ import "../styles/Shared.css";
  */
 export const GlossaryTerm = ({ term, children }) => {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
   const label = children ?? term;
-  const def = lookupGlossary(term ?? (typeof children === "string" ? children : null));
+  const def = lookupGlossary(term ?? (typeof children === "string" ? children : null), t);
 
   if (!def) return <>{label}</>;
 

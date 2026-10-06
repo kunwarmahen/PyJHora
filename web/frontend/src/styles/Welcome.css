@@ -1,0 +1,132 @@
+/* Welcome flow (§76.2) — sits inside the auth card. Theme tokens only. */
+
+.welcome {
+  max-width: 520px;
+}
+
+.welcome__progress {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 var(--space-lg);
+}
+
+.welcome__progress span {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--border);
+}
+
+.welcome__progress span.is-on {
+  background: var(--accent);
+}
+
+.welcome__step {
+  display: grid;
+  gap: var(--space-sm);
+  text-align: left;
+}
+
+.welcome__icon {
+  color: var(--accent-deep);
+}
+
+.welcome__step h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.welcome__hint {
+  margin: 0 0 var(--space-sm);
+  color: var(--text-secondary);
+}
+
+.welcome__input {
+  width: 100%;
+  font: inherit;
+  font-size: 1.15rem;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.welcome__input:disabled {
+  opacity: 0.5;
+}
+
+.welcome__unsure {
+  justify-self: start;
+  margin-top: var(--space-sm);
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 18px;
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.welcome__unsure.is-on {
+  border-style: solid;
+  border-color: var(--accent);
+  background: var(--surface-sunken);
+}
+
+.welcome__note,
+.welcome__picked {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.welcome__picked {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.welcome__nav {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  margin-top: var(--space-lg);
+}
+
+.welcome__nav .submit-btn {
+  flex: 1;
+}
+
+.welcome__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+  padding: 8px 4px;
+}
+
+.welcome__back:hover {
+  color: var(--text-primary);
+}
+
+.welcome__summary {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-lg);
+  display: grid;
+  gap: var(--space-sm);
+  text-align: left;
+  font-size: 1.05rem;
+}
+
+.welcome__summary li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}

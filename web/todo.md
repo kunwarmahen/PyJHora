@@ -23,8 +23,8 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 
 | § | Item | Status |
 |---|---|---|
-| §76 | Newcomer onboarding (76.2–76.7) — 4 owner questions in §76.9 | 🔴 proposed, not built |
 | §80.3 | CI workflow written but not yet run on GitHub (runs on next push) | 🟡 check first run |
+| §81.4 | Pitru Dosha fires for 88.8% of charts (PyJHora rule) — keep, narrow or hide? | 🔴 owner call |
 
 Product docs are in [`docs/`](docs/) — start at [`README.md`](README.md).
 
@@ -8119,7 +8119,7 @@ turns back into Uttara Bhadrapada, re-enters Revati **2027-02-08**, reaches Ashw
 and that Revati counted from the owner's Magha birth star is **Parama Mitra**, the best of the nine.
 Dated, falsifiable, and about one person.
 
-## §76 The newcomer's first minute — from sign-up to a personal answer (owner ask 2026-09-26) — 🔴 PROPOSED, NOT BUILT
+## §76 The newcomer's first minute — from sign-up to a personal answer (owner ask 2026-09-26) — ✅ SHIPPED 2026-10-06 (§81)
 
 > *"for a newcomer who is not an astrology expert but just wants to come and learn about his own
 > future. Can we build something which is easy for him to setup and use the tool. I know many site
@@ -8526,3 +8526,84 @@ Chakras moves out of "calendar" (it never was one). Drawer goes from ~40 rows to
 - 🔴 **Not yet run on GitHub** — it runs on the next push; nothing has been pushed from here.
 
 Frontend 360 → 502 tests (139 page mounts + 3 chart placement), backend 1166, lint + format clean.
+
+---
+
+## §81 The newcomer's first minute, built (§76) — ✅ SHIPPED 2026-10-06
+
+**Owner answers to §76.9 (2026-10-06):** anonymous preview **yes**; the newcomer is **global, knows
+nothing** (plain name first, Sanskrit beside it — "Moon sign · Rashi"); scope **everything in §76**;
+"easy to set up" meant **end users only**, not self-hosting.
+
+### 81.1 The first look — backend
+- `AstrologyCompute.get_first_look` (`compute_reference.py`): Rising sign, Moon sign + birth star (with
+  1-based `nakshatra_index`), and the running Vimsottari chapter (maha, antar, next antar, next maha)
+  — **structured data only**, so the sentences are frontend i18n (I18N doc layer A). Built on
+  `calculate_birth_chart` + `get_dashas`, the calls the Birth Chart and Dasha pages make — pinned by
+  `test_first_look.py::test_agrees_with_the_birth_chart_and_dasha_pages`.
+- **Honest about an unknown time:** Rising withheld; the Moon is computed at 00:00 and 23:59 of the
+  birth date and `sign_certain`/`star_certain` go false if it moved (the owner's own date crosses
+  Cancer→Leo and Ashlesha→Magha); dasha `approximate`. Rising `near_edge` within 2° of a sign edge.
+- Routes (`routes/onboarding.py`): `POST /api/astrology/first-look` (signed in), `POST /api/public/first-look`
+  (no account — strict validation, nothing stored, `ratelimit.public_check`: per caller from
+  CF-Connecting-IP/X-Forwarded-For **plus a global hourly cap**, because the forwarded header can be
+  forged), `POST /api/public/funnel` (anonymous beacons only — a client can't claim a milestone),
+  `POST /api/onboarding/welcome-done`. Env: `PUBLIC_RATE_LIMIT_PER_MIN|PER_DAY|GLOBAL_PER_HOUR`.
+
+### 81.2 Pages
+- **/welcome** (`WelcomePage`): date → time (with "I'm not sure" → noon + `time_accuracy: unknown`) →
+  place (existing search + map). Profile named after the account. Where `resumeProfile` and Register send
+  an account with **zero** profiles; the full picker shows a "New here?" link when empty.
+  `loadProfiles()` now returns **null on failure** — `[]` would have sent anyone on a network blip into
+  the newcomer flow.
+- **/start** (`StartPage`, feature `start`, tier simple, first tile): the four cards (`FirstLook`) +
+  three starter questions that open Ask prefilled (`state.prefillQuestion`). No model call.
+- **Trap — the dasha lord hangs off the star.** First draft said "Rahu period · approximate" for an
+  unknown time; but if the star is uncertain the *lord* is (Ashlesha→Mercury, Magha→Ketu), not just the
+  dates. The chapter is withheld then — `components/firstLook.test.js` pins it.
+- **Landing preview** (`PreviewForm` in a new `#try` section): same cards, no account. "Save it" puts the
+  details in **sessionStorage** (`config/previewHandoff.js` — this tab only, never a shared machine) and
+  the welcome flow opens on a confirm step with them filled in. AI stays behind login.
+
+### 81.3 Guidance
+- **First-week checklist** (`ChecklistCard` on the dashboard; rules `config/checklist.js`, hook
+  `hooks/useChecklist.js`): see chart explained / first question / daily digest / Learn quiz — each
+  ticked **where it happens** (Start, Ask send, Settings digest on, Learn graded). Synced pref
+  `onboardingChecklist`; newcomers only (account < 14 days), so existing users never see it.
+  `mark` reads the latest value via a ref — a once-only effect with a stale list would erase another
+  device's ticks.
+- **Page hints** (`PageHint`, mounted by `PageHeader`): first visit shows the opening of that page's own
+  Help answer (no new copy); dismiss is per page, synced (`hintsSeen`). `pageHints` = auto (newcomers
+  only) / on (also restores dismissed) / off — Settings → General. Opening = first sentence, or two when
+  the first is under 60 chars ("The best first stop." alone said nothing).
+- **Glossary translates:** `lookupGlossary(term, t)` reads `glossaryTerms.<Term>` from the locale,
+  English constant as fallback; tooltips and the Help glossary both use it; hi has the core ten.
+- driver.js **not** added — nothing needed element highlighting.
+
+### 81.4 Framing alarming results (§76.6)
+- `scripts/dosha_prevalence.py` samples 5,000 birth moments (1940–2015, 14 cities, seed 76) through the
+  app's own `get_doshas`; `dosha_prevalence.json` feeds `prevalence_percent` on every dosha, shown on a
+  present one as "found in about N of every 100 charts, by the rules this app uses", plus a calm intro
+  line on the dosha card. Sampling is checked against pure probability (Ganda Moola 22.0% vs 6/27 =
+  22.2%; Ghata 9.1% ≈ 1/12; Guru Chandala 15.8% ≈ 2/12). `test_dosha_prevalence.py` fails if a dosha has
+  no figure. Sade Sati intro now says everyone passes through it (~¼ of a lifetime).
+- 🔴 **Owner call — Pitru Dosha fires for 88.8% of charts.** It is PyJHora's `pitru_dosha`: an OR of
+  five broad conditions (one is "Sun/Moon/Rahu/Ketu associated with Mars or Saturn", aspects included),
+  sourced in its docstring to a Times of India article. The prevalence line now tells the reader; whether
+  to keep, narrow, or hide this dosha is a decision, not a fix.
+- Mangal Dosha on the Compatibility tab has no prevalence line yet (that view uses its own cancellation
+  logic, so the Birth Chart figure would not be the same rule).
+
+### 81.5 Funnel (§76.8)
+- `funnel.py`: daily counts (`funnel_daily`, no user field) + once-per-account milestones on the user doc
+  (`onboarding.signup|welcome_done|payoff_seen|first_ask|returned_day7`). Hooks: register (both paths),
+  first-look, Ask (both routes), `/api/user/profile` (returned after 7 days). Admin Overview → "Newcomer
+  funnel · 30 days" with medians sign-up→Start page and sign-up→first question.
+
+**Tests:** backend 1166 → 1194 (`test_first_look.py`, `test_first_look_tables.py` — frontend star table
+== reference_data by position, `test_dosha_prevalence.py`); frontend 502 → 525 (`config/onboarding.test.js`,
+`components/firstLook.test.js`, Start/Welcome in the page harness — whose API stub now covers **any**
+`*Service` export, after `onboardingService` was missed). Browser-verified: anonymous preview → Save it →
+register → /welcome confirm step → /start (Taurus/Leo/Magha) → starter question prefilled in Ask →
+dashboard checklist 1/4 with "Start here" first; unknown-time path shows all four caveats; a dismissed
+hint stays dismissed across reload.

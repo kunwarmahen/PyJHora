@@ -24,6 +24,7 @@ import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Learn.css";
 import { returnHere } from "../utils/returnTo";
+import { useChecklist } from "../hooks/useChecklist";
 
 const TOPICS = ["planets", "yogas", "dashas", "vargas"];
 const LEVELS = ["beginner", "intermediate", "advanced"];
@@ -50,6 +51,7 @@ const VerdictIcon = ({ verdict }) => {
 };
 
 export const LearnChartPage = () => {
+  const checklist = useChecklist();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const locale = intlLocale(i18n.language);
@@ -167,6 +169,7 @@ export const LearnChartPage = () => {
       });
       setResults(res.data);
       setPhase("results");
+      checklist.mark("learn"); // §76.4
       loadStats();
     } catch (err) {
       setError(err.response?.data?.detail || t("learn.errGrade"));

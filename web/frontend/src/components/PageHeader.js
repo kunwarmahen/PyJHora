@@ -7,6 +7,7 @@ import { AdvancedNotice } from "./AdvancedOnly";
 import { ThemeToggle } from "./ThemeToggle";
 import { AiActivityPill } from "./AiActivity";
 import { HubNav } from "./HubNav";
+import { PageHint } from "./PageHint";
 import { helpLinkForPath } from "../config/help";
 import "../styles/Shared.css";
 
@@ -76,6 +77,8 @@ export const PageHeader = ({
       {/* The hub's section strip (§79) — the other pages that are part of the
           same idea. Rendered here so no member page has to remember it. */}
       <HubNav />
+      {/* "What am I looking at?" on a newcomer's first visit (§76.5). */}
+      <PageHint />
       {/* One mount point covers every feature page: PageHeader is on all of
           them, and the notice renders itself only on an advanced route reached
           while in Essentials mode. */}

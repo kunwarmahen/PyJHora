@@ -662,3 +662,18 @@
 .profile-curloc-clear:hover {
   text-decoration: underline;
 }
+
+/* "New here?" pointer to the three-question setup (§76.2). */
+.profile-welcome-hint {
+  margin: 0 0 var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-md);
+}
+
+.profile-welcome-hint a {
+  color: var(--accent-deep);
+  font-weight: 600;
+}

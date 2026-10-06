@@ -1,0 +1,150 @@
+/* "Your chart in plain words" (§76.3). Every colour is a theme token
+ * (styles/tokens.test.js). */
+
+.first-look {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.first-look__intro {
+  margin: 0;
+  color: var(--text-secondary);
+  max-width: 60ch;
+}
+
+.first-look__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-lg);
+}
+
+.first-look__card,
+.first-look__chapter {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--accent);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: var(--space-sm);
+  align-content: start;
+}
+
+.first-look__chapter {
+  border-top-color: var(--cosmic-indigo);
+}
+
+.first-look__card header,
+.first-look__chapter header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--accent-deep);
+}
+
+.first-look__card h2,
+.first-look__chapter h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* The Sanskrit name: always beside the plain one, never alone. */
+.first-look__term {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.first-look__sign {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  color: var(--accent-deep);
+}
+
+.first-look__sign small {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.first-look p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.first-look__chapter-lead {
+  font-size: 1.05rem;
+}
+
+.first-look__next {
+  color: var(--text-secondary);
+}
+
+.first-look__what {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  border-top: 1px dashed var(--border);
+  padding-top: var(--space-sm);
+}
+
+.first-look__caveat {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.first-look__honest {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* The starter questions under the cards. */
+.first-look__ask {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.first-look__ask h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.first-look__starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.first-look__starter {
+  text-align: left;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  border-radius: var(--radius-full);
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease;
+}
+
+.first-look__starter:hover {
+  border-color: var(--accent);
+  background: var(--surface-sunken);
+}
+
+.first-look__starter:focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 2px;
+}

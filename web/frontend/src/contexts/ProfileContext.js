@@ -40,10 +40,12 @@ export const ProfileProvider = ({ children }) => {
         setProfiles(data.profiles);
         return data.profiles;
       }
-      return [];
+      return null;
     } catch (err) {
       console.error("Failed to load profiles:", err);
-      return [];
+      // null, not []: "couldn't ask" must not read as "has none", or a network
+      // blip would send someone with profiles into the newcomer flow (§76.2).
+      return null;
     } finally {
       setLoading(false);
     }
@@ -286,7 +288,9 @@ export const ProfileProvider = ({ children }) => {
     // before the sign-in) survived all the way to the picker.
     if (!target) {
       clearProfile();
-      return "/profile-selection";
+      // No profile at all is a newcomer: three questions, not the full form
+      // (§76.2). Profiles but none to resume is a choice, so the picker.
+      return Array.isArray(list) && list.length === 0 ? "/welcome" : "/profile-selection";
     }
     selectProfile(target);
     return "/dashboard";
@@ -321,7 +325,7 @@ export const ProfileProvider = ({ children }) => {
     const wanted = new URLSearchParams(window.location.search).get("profile");
     if (!wanted) return;
     (async () => {
-      const list = await loadProfiles();
+      const list = (await loadProfiles()) || [];
       const match = list.find((p) => p._id === wanted);
       if (match) selectProfile(match);
     })();

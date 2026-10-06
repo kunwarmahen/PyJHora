@@ -111,6 +111,17 @@ export const AdminPage = () => {
   );
 };
 
+// Plain names for the funnel steps (backend funnel.EVENTS order).
+const FUNNEL_LABELS = {
+  landing_view: "Landing page opened",
+  preview_seen: "Anonymous chart preview shown",
+  signup: "Account created",
+  welcome_done: "Welcome flow finished",
+  payoff_seen: "“Start here” page seen",
+  first_ask: "First question asked",
+  returned_day7: "Came back after a week",
+};
+
 function OverviewTab() {
   const [stats, setStats] = useState(null);
   const [error, setError] = useState("");
@@ -174,6 +185,52 @@ function OverviewTab() {
           </div>
         ) : (
           <p>No AI requests recorded yet.</p>
+        )}
+      </Card>
+
+      {/* The newcomer funnel (§76.8) — step counts and two medians, no user rows. */}
+      <Card title="Newcomer funnel · 30 days" accent="saffron">
+        {stats.funnel?.steps ? (
+          <>
+            <p>
+              Median time from sign-up to the plain-words page:{" "}
+              <strong>
+                {stats.funnel.median_minutes_to_payoff != null
+                  ? `${stats.funnel.median_minutes_to_payoff} min`
+                  : "—"}
+              </strong>
+              {" · "}to the first question asked:{" "}
+              <strong>
+                {stats.funnel.median_minutes_to_first_ask != null
+                  ? `${stats.funnel.median_minutes_to_first_ask} min`
+                  : "—"}
+              </strong>
+            </p>
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Step</th>
+                    <th>Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.funnel.steps.map((r) => (
+                    <tr key={r.event}>
+                      <td>{FUNNEL_LABELS[r.event] || r.event}</td>
+                      <td>{r.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="admin-content-note">
+              Landing views and previews count every occurrence; the rest count each account once,
+              the first time it reached the step.
+            </p>
+          </>
+        ) : (
+          <p>No funnel data yet.</p>
         )}
       </Card>
 

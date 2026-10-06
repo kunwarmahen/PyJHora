@@ -80,6 +80,7 @@ describe("feature registry", () => {
         "/life-report",
         "/remedies",
         "/settings",
+        "/start",
         "/transit",
       ].sort()
     );
@@ -124,6 +125,10 @@ describe("dashboard search coverage", () => {
   const tiles = FEATURES.filter((f) => !f.navOnly);
 
   it.each([
+    "start here",
+    "moon sign",
+    "rising sign",
+    "beginner",
     "yoga",
     "yogas",
     "raja yoga",

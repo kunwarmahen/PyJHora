@@ -3186,3 +3186,10 @@
 .kaala-row--supportive td {
   background: rgba(var(--success-rgb), 0.05);
 }
+
+/* "Found in about N of 100 charts" under a present dosha (§76.6). */
+.dosha-common {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}

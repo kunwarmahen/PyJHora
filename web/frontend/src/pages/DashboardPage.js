@@ -21,6 +21,7 @@ import {
   searchFeatures,
 } from "../config/features";
 import { useSettings } from "../contexts/SettingsContext";
+import { ChecklistCard } from "../components/ChecklistCard";
 import "../styles/Dashboard.css";
 import { returnHere } from "../utils/returnTo";
 
@@ -182,6 +183,9 @@ export const DashboardPage = () => {
         />
 
         <LocationPrompt />
+
+        {/* The newcomer's first week (§76.4) — hides itself when done or dismissed. */}
+        <ChecklistCard />
 
         <NowChartWidget />
 

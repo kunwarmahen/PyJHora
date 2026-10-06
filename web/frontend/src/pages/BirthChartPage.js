@@ -675,6 +675,7 @@ export const BirthChartPage = () => {
                         <Star size={24} />
                         {t("birthChart.doshas")}
                       </h3>
+                      <p className="card-note">{t("birthChart.doshasCalm")}</p>
                       <div className="dosha-grid">
                         {doshas.map((d) => (
                           <div key={d.key} className={`dosha-card${d.present ? " present" : ""}`}>
@@ -685,6 +686,16 @@ export const BirthChartPage = () => {
                               </span>
                             </div>
                             <p className="dosha-desc">{d.description}</p>
+                            {/* How common it is under these same rules (§76.6) —
+                                measured, so "you have X" comes with "so do N in
+                                100 people". Only on a present dosha. */}
+                            {d.present && d.prevalence_percent != null && (
+                              <p className="dosha-common">
+                                {t("birthChart.doshaCommon", {
+                                  n: Math.round(d.prevalence_percent),
+                                })}
+                              </p>
+                            )}
                           </div>
                         ))}
                       </div>

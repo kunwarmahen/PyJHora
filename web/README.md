@@ -38,7 +38,7 @@ the page title to move between them (§79). Every page keeps its own URL.
 | **Relationships** | Compatibility (Ashtakoot, Dashakoota, Mangal dosha, 7th house, marriage timeline) · Compare Charts |
 | **My Notebook** | AI History (with "Did this land?") · Astro-Journal |
 
-Standalone: **Ask AI Astrologer**, Muhurta (scored against your chart), Prashna, Remedies,
+Standalone: **Start here** (your chart in plain words — also previewable on the landing page without an account), **Ask AI Astrologer**, Muhurta (scored against your chart), Prashna, Remedies,
 Learn the Chart, Birth-Time Rectification, Settings, Help & FAQ, and a deployer-only Admin
 console. Also: a read-only REST API (`/api/v1`) and an MCP server ([`mcp/`](mcp/README.md)),
 an iCal feed, offline mode, Hindi/Sanskrit UI, light/dark themes.

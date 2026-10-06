@@ -75,21 +75,30 @@ jest.mock("../services/api", () => {
     );
   };
   const streamStub = () => ({ cancel: () => {}, done: reply("stream").catch(() => {}) });
-  return {
+  const named = {
     __esModule: true,
     default: service("api"),
     API_URL: "http://api.test",
     setTokens: () => {},
     getRefreshToken: () => null,
     clearTokens: () => {},
-    authService: service("authService"),
-    adminService: service("adminService"),
-    notificationsService: service("notificationsService"),
-    astrologyService: service("astrologyService"),
-    aiActivityService: service("aiActivityService"),
     streamAskQuestion: streamStub,
     resumeAskStream: streamStub,
   };
+  // Every `fooService` export is stubbed by name, so a service added to api.js
+  // later is covered without touching this file (onboardingService was missed
+  // by the hand-kept list and failed StartPage with "reading 'firstLook'").
+  const services = {};
+  return new Proxy(named, {
+    get: (target, key) => {
+      if (key in target) return target[key];
+      if (typeof key === "string" && key.endsWith("Service")) {
+        if (!services[key]) services[key] = service(key);
+        return services[key];
+      }
+      return undefined;
+    },
+  });
 });
 
 const mockProfile = {
@@ -167,6 +176,9 @@ jest.mock("../contexts/SettingsContext", () => {
       aiShareBirthDate: "false",
       aiShareBirthTime: "false",
       aiShareBirthPlace: "false",
+      onboardingChecklist: "",
+      pageHints: "auto",
+      hintsSeen: "",
     },
     updateSetting: () => {},
   };
@@ -304,6 +316,8 @@ const KEY_BY_COMPONENT = {
   SettingsPage: "/settings",
   DashboardPage: "/dashboard",
   AskAstrologerPage: "/ask-astrologer",
+  StartPage: "/start",
+  WelcomePage: "/welcome",
 };
 
 const flush = async () => {

@@ -2115,4 +2115,24 @@ export const aiActivityService = {
   markSeen: (jobId) => api.post(`/api/ai/activity/${encodeURIComponent(jobId)}/seen`),
 };
 
+// The newcomer's first minute (§76). `browserTz` is the viewer's UTC offset —
+// it decides which dasha period is "now" for someone with no stored location.
+const browserTz = () => -new Date().getTimezoneOffset() / 60;
+
+export const onboardingService = {
+  // "Your chart in plain words" for the selected profile (signed in).
+  firstLook: (birthDetails, ayanamsa = DEFAULT_AYANAMSA) =>
+    api.post("/api/astrology/first-look", {
+      birth_details: birthDetails,
+      ayanamsa,
+      current_tz: browserTz(),
+    }),
+  // The landing page's preview — no account, nothing stored server-side.
+  previewFirstLook: (birthDetails) =>
+    api.post("/api/public/first-look", { birth_details: birthDetails, current_tz: browserTz() }),
+  // Anonymous funnel beacon (landing page opened). Never throws.
+  beacon: (event) => api.post("/api/public/funnel", { event }).catch(() => {}),
+  welcomeDone: () => api.post("/api/onboarding/welcome-done").catch(() => {}),
+};
+
 export default api;

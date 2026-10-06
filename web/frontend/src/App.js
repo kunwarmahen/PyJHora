@@ -55,6 +55,8 @@ const AdvancedPage = page(() => import("./pages/AdvancedPage"), "AdvancedPage");
 const ComparePage = page(() => import("./pages/ComparePage"), "ComparePage");
 const SharedChartPage = page(() => import("./pages/SharedChartPage"), "SharedChartPage");
 const PredictionsPage = page(() => import("./pages/PredictionsPage"), "PredictionsPage");
+const StartPage = page(() => import("./pages/StartPage"), "StartPage");
+const WelcomePage = page(() => import("./pages/WelcomePage"), "WelcomePage");
 const AskAstrologerPage = page(() => import("./pages/AskAstrologerPage"), "AskAstrologerPage");
 const AiToolsPage = page(() => import("./pages/AiToolsPage"), "AiToolsPage");
 const SensitivePointsPage = page(
@@ -166,6 +168,25 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <ProfileSelectionPage />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* The newcomer's first minute (§76): three questions for an
+                        account with no profile, then its chart in plain words. */}
+                    <Route
+                      path="/welcome"
+                      element={
+                        <ProtectedRoute>
+                          <WelcomePage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/start"
+                      element={
+                        <ProtectedRoute>
+                          <StartPage />
                         </ProtectedRoute>
                       }
                     />

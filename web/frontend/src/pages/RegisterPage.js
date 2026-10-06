@@ -46,7 +46,8 @@ export const RegisterPage = () => {
     const success = await register(username, email, password, name.trim(), true);
     setIsLoading(false);
     if (success) {
-      navigate("/profile-selection");
+      // A brand-new account has no profile: straight into the three questions (§76.2).
+      navigate("/welcome");
     }
   };
 

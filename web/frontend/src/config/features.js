@@ -130,6 +130,16 @@ export const FEATURES = [
     navOnly: true,
   },
   {
+    // §76.3 — the newcomer's "your chart in plain words". First, because it is
+    // the page that explains the rest.
+    key: "start",
+    path: "/start",
+    Icon: Compass,
+    tier: "simple",
+    group: "start",
+    gradient: "linear-gradient(135deg, #FF9933 0%, #D4AF37 100%)",
+  },
+  {
     key: "birthChart",
     path: "/birth-chart",
     Icon: Calendar,
@@ -499,6 +509,9 @@ export const FEATURES = [
  * match, not a translation. Add to this as features grow. Keyed by feature key.
  */
 export const FEATURE_ALIASES = {
+  start:
+    "start here beginner new newcomer plain words explained simple summary rising sign moon sign" +
+    " birth star sun sign what is my sign chapter overview first",
   birthChart:
     "kundali rasi natal horoscope lagna ascendant d1 d9 navamsa planets" +
     " yoga yogas dosha doshas raja yoga aspects drishti divisional varga vargas",

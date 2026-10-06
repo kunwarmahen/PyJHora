@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ChevronDown, HelpCircle, Search, Sparkles, X } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 import { filterGlossary, filterHelp } from "../config/help";
-import { GLOSSARY } from "../constants/glossary";
+import { glossaryEntries } from "../constants/glossary";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
 import "../styles/Help.css";
@@ -30,7 +30,11 @@ export const HelpPage = () => {
   const searchText = useMemo(() => (id) => `${t(`help.q.${id}`)} ${t(`help.a.${id}`)}`, [t]);
   const sections = useMemo(() => filterHelp(query, searchText), [query, searchText]);
   // The glossary is searched too — many terms are defined only there.
-  const glossary = useMemo(() => filterGlossary(query, GLOSSARY), [query]);
+  // Definitions in the reader's language where translated (§76.5).
+  const glossary = useMemo(
+    () => filterGlossary(query, Object.fromEntries(glossaryEntries(t))),
+    [query, t]
+  );
 
   // Deep link: /help#aiModes opens that answer and scrolls to it.
   useEffect(() => {

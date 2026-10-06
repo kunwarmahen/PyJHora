@@ -1,0 +1,100 @@
+/* Landing-page preview (§76.7). Lives inside `.landing`, so it uses the
+ * landing's own tokens (--ink, --surface, --border, --accent). */
+
+.preview {
+  display: grid;
+  gap: 24px;
+}
+
+.preview__form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  align-items: end;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.preview__form label,
+.preview__place {
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.preview__form input[type="date"],
+.preview__form input[type="time"] {
+  font: inherit;
+  font-weight: 400;
+  font-size: 1rem;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.preview__form input:disabled {
+  opacity: 0.5;
+}
+
+.preview__unsure {
+  justify-self: start;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 4px 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.preview__unsure.is-on {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.preview__place small {
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.preview__privacy {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+}
+
+.preview__error {
+  margin: 0;
+  color: var(--vermillion);
+}
+
+.preview__result {
+  text-align: left;
+}
+
+.preview__cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 20px;
+}
+
+.preview__cta p {
+  margin: 0;
+  color: var(--ink);
+  max-width: 52ch;
+}
