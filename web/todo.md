@@ -23,10 +23,17 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 
 | § | Item | Status |
 |---|---|---|
-| §80.3 | CI workflow written but not yet run on GitHub (runs on next push) | 🟡 check first run |
-| §81.4 | Pitru Dosha fires for 88.8% of charts (PyJHora rule) — keep, narrow or hide? | 🔴 owner call |
+| §82.1 | Pitru Dosha fires for 88.8% of charts — keep, narrow or hide? | 🔴 owner call |
+| §82.1 | New screens are English-only — steady state or translate (hi first)? | 🔴 owner call |
+| §82.1 | Hindi typo `म्रृगशीर्षा` — patch upstream file or override? | 🔴 owner call |
+| §82.1 | Vite migration — the §68.3 blocker is gone; still optional | 🔴 owner call |
+| §82.2 | CI workflow has never run on GitHub — check the first run after a push | 🟡 check |
+| §82.3 | Translation backlog (§81 screens, glossary, landing page, raja-yoga/panchanga/koota names) | P2 |
+| §82.4 | Mangal Dosha prevalence on Compatibility; more Topic Reading topics | P2 |
+| §82.5 | Hardening: in-process rate limit, forwarded-IP trust, beacon inflation, realistic-payload harness | P3 |
 
-Product docs are in [`docs/`](docs/) — start at [`README.md`](README.md).
+Product docs are in [`docs/`](docs/) — start at [`README.md`](README.md). A ready-to-paste prompt for
+picking this list up in a fresh session is [`docs/NEXT_WORK_PROMPT.md`](docs/NEXT_WORK_PROMPT.md).
 
 ---
 
@@ -8151,60 +8158,60 @@ They want to know *what their chart says about them*. So the target is **one mea
 answer within ~60 seconds of arriving**, with the teaching following from there. Every item below is
 judged against that.
 
-### 76.2 (P0) 🔴 Three-question onboarding flow
+### 76.2 (P0) ✅ (built — §81) Three-question onboarding flow
 
-- [ ] 🔴 One question per screen: *When were you born?* → *What time?* (with a prominent "I'm not
+- [x] ✅ One question per screen: *When were you born?* → *What time?* (with a prominent "I'm not
       sure") → *Where?* (the existing place search/map picker). Timezone stays invisible.
-- [ ] 🔴 "I'm not sure" goes straight into Unknown Birth Time mode with a friendly line ("we'll focus
+- [x] ✅ "I'm not sure" goes straight into Unknown Birth Time mode with a friendly line ("we'll focus
       on what doesn't depend on the exact minute"), not a validation error.
-- [ ] 🔴 Current location comes from the browser (the viewer-location rule: never the server clock or birth place
+- [x] ✅ Current location comes from the browser (the viewer-location rule: never the server clock or birth place
       stays in force). Profile name defaults to the person's name. Notify email and similar fields
       are deferred to Settings or the §76.4 checklist.
-- [ ] 🔴 Shown only for an account with **zero profiles**. The existing form remains for adding a
+- [x] ✅ Shown only for an account with **zero profiles**. The existing form remains for adding a
       second profile, importing, and for experienced users.
 
-### 76.3 (P0) 🔴 "Your chart in plain words" — the payoff screen
+### 76.3 (P0) ✅ (built — §81) "Your chart in plain words" — the payoff screen
 
-- [ ] 🔴 Three cards: **Rising sign**, **Moon sign**, **Birth star**. Each gets one plain-language
+- [x] ✅ Three cards: **Rising sign**, **Moon sign**, **Birth star**. Each gets one plain-language
       sentence, with the Sanskrit term shown small and explained beside it, never alone.
-- [ ] 🔴 **"The chapter you're in now"**: the running Mahadasha/Antardasha as a life chapter with
+- [x] ✅ **"The chapter you're in now"**: the running Mahadasha/Antardasha as a life chapter with
       start and end dates. This is the most future-shaped, easy-to-grasp thing Jyotish offers.
       Level names follow JHora (L2 Antardasha, L3 Pratyantardasha).
-- [ ] 🔴 **Three starter questions** that open Ask with the question filled in (e.g. "What does
+- [x] ✅ **Three starter questions** that open Ask with the question filled in (e.g. "What does
       this year hold for my career?", "What are my natural strengths?", "When is a good time for
       big decisions?"). The Ask SSE/detached-job path already handles slow answers.
-- [ ] 🔴 Card sentences come from **computed data + reference tables**, not an LLM call, so the
+- [x] ✅ Card sentences come from **computed data + reference tables**, not an LLM call, so the
       screen is instant and costs nothing. The AI enters only when the person asks.
-- [ ] 🔴 Reachable later (e.g. a "Start here" tile in Essentials), not a one-shot screen.
+- [x] ✅ Reachable later (e.g. a "Start here" tile in Essentials), not a one-shot screen.
 
-### 76.4 (P1) 🔴 A "first week" checklist instead of a tour
+### 76.4 (P1) ✅ (built — §81) A "first week" checklist instead of a tour
 
-- [ ] 🔴 A dismissable dashboard card: ☐ See your chart explained ☐ Ask your first question
+- [x] ✅ A dismissable dashboard card: ☐ See your chart explained ☐ Ask your first question
       ☐ Turn on the daily digest ☐ Learn what a dasha is (the 2-minute Learn quiz). It hides itself
       when everything is done. Progress is stored as a synced preference, not only localStorage.
 
-### 76.5 (P1) 🔴 Short in-context hints from content that already exists
+### 76.5 (P1) ✅ (built — §81) Short in-context hints from content that already exists
 
-- [ ] 🔴 The first visit to any page shows **one** dismissable line ("What am I looking at?") sourced
+- [x] ✅ The first visit to any page shows **one** dismissable line ("What am I looking at?") sourced
       from the existing `help.js` route→entry mapping, so there's no new copy per page. It's
       remembered per page, and it can be switched off globally in Settings.
-- [ ] 🔴 Glossary tooltips on jargon (Lagna, Dasha, Nakshatra, Gochara, Yoga…). A single definitions
+- [x] ✅ Glossary tooltips on jargon (Lagna, Dasha, Nakshatra, Gochara, Yoga…). A single definitions
       table keyed like the i18n data layer (read `docs/I18N_DATA_LAYER_DESIGN.md` first) so the
       definitions translate too.
-- [ ] 🔴 Only if element highlighting is really needed: **driver.js** (small), not react-joyride.
+- [x] ✅ *Not needed — nothing required element highlighting, so no driver.js (§81.3).* Only if element highlighting is really needed: **driver.js** (small), not react-joyride.
       It must be lazy-loaded, and `bundleSplit.test.js` must stay green (§74).
 
-### 76.6 (P1) 🔴 Careful framing for alarming results
+### 76.6 (P1) ✅ (built — §81) Careful framing for alarming results
 
-- [ ] 🔴 Mangal Dosha, Sade Sati, Kaal Sarp and similar stay **off the first-run screen**. Where they
+- [x] ✅ Mangal Dosha, Sade Sati, Kaal Sarp and similar stay **off the first-run screen**. Where they
       do appear to a newcomer they carry context ("common: roughly 1 in 3 charts…") and remedies are
       offered calmly, not urgently.
-- [ ] 🔴 A short, honest statement near the payoff screen that astrology is interpretive and readings
+- [x] ✅ A short, honest statement near the payoff screen that astrology is interpretive and readings
       are guidance, consistent with the claim-checker/citation stance (§69).
 
-### 76.7 (P2, needs an owner decision) 🔴 Try before signing up
+### 76.7 (P2) ✅ (owner said yes 2026-10-06; built — §81) Try before signing up
 
-- [ ] 🔴 Let the landing page take birth details and show the §76.3 payoff screen **without an
+- [x] ✅ Let the landing page take birth details and show the §76.3 payoff screen **without an
       account**, and offer sign-up to save it and ask questions. This is likely the biggest single
       reduction in drop-off.
 - Costs and guard-rails if we do it: anonymous compute needs rate limiting, nothing gets persisted
@@ -8213,11 +8220,11 @@ judged against that.
 
 ### 76.8 How we'd know it worked
 
-- [ ] 🔴 Funnel events: landing → details entered → payoff seen → first Ask question → returned on
+- [x] ✅ Funnel events: landing → details entered → payoff seen → first Ask question → returned on
       day 7. The headline metric is **time-to-first-personal-answer**. Surface it on the admin
       Overview (§44) as counts, not per-user content.
 
-### 76.9 Open questions for the owner
+### 76.9 Open questions for the owner — ✅ answered 2026-10-06 (see §81)
 
 1. **Try before sign-up (76.7):** are we open to anonymous chart computation, or does an account stay
    required?
@@ -8607,3 +8614,61 @@ nothing** (plain name first, Sanskrit beside it — "Moon sign · Rashi"); scope
 register → /welcome confirm step → /start (Taurus/Leo/Magha) → starter question prefilled in Ask →
 dashboard checklist 1/4 with "Start here" first; unknown-time path shows all four caveats; a dismissed
 hint stays dismissed across reload.
+
+---
+
+## §82 Open follow-ups — everything still to do, in one place (collected 2026-10-06) — 🔴 OPEN
+
+Gathered at the end of §79–§81 so nothing lives only in a chat or a commit message. The "Open work"
+index at the top of this file mirrors this list. Owner calls are marked; everything else can be picked
+up directly. Each item names where the detail lives.
+
+### 82.1 Owner decisions 🔴
+- [ ] 🔴 **Pitru Dosha fires for 88.8% of charts** (§81.4). PyJHora's `dosha.pitru_dosha` is an OR of five
+      broad conditions sourced to a Times of India article. Options: keep (the prevalence line already
+      tells the reader), narrow to a classical subset, or hide it. Re-run `scripts/dosha_prevalence.py`
+      after any change.
+- [ ] 🔴 **New-page UI strings are English-only** (I18N doc §6.6). §79–§81 added English-first screens
+      (Start here, Welcome, landing preview, checklist, page hints, Topic Reading, hub names' descriptions in
+      sa). Steady state, or translate? If translate: hi first (sa falls back to hi only for engine text —
+      UI keys fall back to **en**).
+- [ ] 🔴 **The `म्रृगशीर्षा` typo** in `src/jhora/lang/list_values_hi.txt` (I18N doc §4.5/§6.4): patch upstream
+      file in this repo, or override in `frontend/scripts/name-locales.manual.json`.
+- [ ] 🔴 **Vite migration** (§68 tail): declined 2026-09-10 partly because no component test would catch a
+      build regression. §80's page harness now does — the blocker is gone; still optional.
+
+### 82.2 Check first 🟡
+- [ ] 🟡 **CI's first run** (§80.3) — `.github/workflows/web-ci.yml` has never run on GitHub. After the next
+      push: backend job (does `pip install -r requirements.txt` resolve on ubuntu/py3.11 with the ephemeris
+      from git?), frontend job (`npm install` without a lockfile — pin if it flakes).
+
+### 82.3 Translation work (P2)
+- [ ] **Hindi for the §81 screens**: `firstLook.*` (incl. the 12+12 sign sentences, 9 chapter lines; the 27
+      star rows are pinned to `reference_data.py` by `test_first_look_tables.py`, so translate those as a
+      separate `hi` table, not by editing `en`), `welcome.*`, `checklist.*`, `pageHint.*`, `preview.*`,
+      `predictions.*` (Topic Reading). Blocked on the 82.1 decision.
+- [ ] **Glossary**: only 10 core terms have Hindi (`glossaryTerms.*` in hi.json); ~25 remain English.
+- [ ] **Landing page copy is hard-coded English** (`LandingPage.js`), unlike the rest of the app — move to
+      i18n if the landing page should follow the language picker.
+- [ ] **Still English by design** (I18N doc §5/§6.5): Kendra-Trikona raja-yoga labels (our own f-strings),
+      panchanga limb values, Ashtakoot koota names.
+
+### 82.4 Product gaps noticed while building (P2)
+- [ ] **Mangal Dosha on Compatibility has no prevalence line** (§81.4) — that tab uses its own cancellation
+      logic, so the Birth Chart figure isn't the same rule; measure it with that function before showing a
+      number.
+- [ ] **Topic Reading's topics** are four (general/career/relationships/health) because that is what
+      `_build_prediction_prompt` knows. More (finance, education, travel) need prompt entries first —
+      `test_topic_reading_topics.py` fails if the page offers a topic the prompt doesn't know.
+
+### 82.5 Hardening (P3)
+- [ ] **Anonymous rate limit is in-process** (`ratelimit.public_check`): resets on restart, not shared across
+      workers. Fine for the single uvicorn worker; move to Redis if scaled out.
+- [ ] **Per-caller key comes from forwarded headers** (uvicorn runs without `--proxy-headers`): a client
+      reaching the origin directly could forge CF-Connecting-IP. The global hourly cap is the floor; if the
+      origin is ever exposed, trust only Cloudflare's ranges.
+- [ ] **Funnel beacons can be inflated** by anyone posting `landing_view` (rate-limited, counts only — no
+      data risk). If the counts start to matter, sample or dedupe by session.
+- [ ] **Page harness tests failure modes only** (§80.1). A "realistic payload" mode (recorded fixtures per
+      endpoint) would catch a page that crashes on a real-but-unusual response — the empty-`{}` mode was
+      dropped because the routes never send that shape.

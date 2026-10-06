@@ -1,7 +1,7 @@
 # Localizing engine-returned data (the i18n "data layer")
 
-Status: **in progress** — machinery + BirthChart + yogas shipped 2026-07-16; ~22 files
-still to wrap. Tracked as web/todo.md §5 P3, which links here rather than repeating it.
+Status: **rollout done (2026-07-19)** — machinery + every display site (38 files) + doshas.
+Three owner decisions in §6 (items 4–6) are still open; they are tracked in web/todo.md §82.
 This is the durable record: the decisions, the traps, and what a future session needs to
 resume without re-deriving any of it.
 

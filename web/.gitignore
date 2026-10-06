@@ -69,6 +69,7 @@ docs/*
 !docs/ARCHITECTURE.md
 !docs/API.md
 !docs/LOCATION_SEARCH.md
+!docs/NEXT_WORK_PROMPT.md
 # docs/archive/ (the pre-2026 location notes + QUICKSTART) stays ignored.
 # Design preview (throwaway)
 frontend/ledger-preview.html

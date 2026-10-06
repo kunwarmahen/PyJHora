@@ -56,6 +56,7 @@ an iCal feed, offline mode, Hindi/Sanskrit UI, light/dark themes.
 | [docs/AI_TOOL_CALLING_DESIGN.md](docs/AI_TOOL_CALLING_DESIGN.md) | How the AI astrologer reads the chart through tools |
 | [mcp/README.md](mcp/README.md) | The MCP server (its own venv) |
 | [todo.md](todo.md) | Build log + open work, by numbered section (§N); the code cites these numbers |
+| [docs/NEXT_WORK_PROMPT.md](docs/NEXT_WORK_PROMPT.md) | Paste-ready prompt for a fresh session to pick up the open work (§82) |
 
 ## Support and contributing
 
