@@ -192,7 +192,17 @@ async def global_stats() -> Dict[str, Any]:
         "collections": collections,
         # Where AI requests went over the last 30 days (§78) — counts only.
         "ai_outbound": await _ai_outbound_summary(),
+        # The newcomer funnel (§76.8) — step counts and two medians, no user rows.
+        "funnel": await _funnel_summary(),
     }
+
+
+async def _funnel_summary() -> Dict[str, Any]:
+    try:
+        import funnel
+        return await funnel.summary(30)
+    except Exception:
+        return {}
 
 
 async def _ai_outbound_summary() -> List[Dict[str, Any]]:

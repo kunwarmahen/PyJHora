@@ -120,6 +120,7 @@ from routes import journal as journal_routes
 from routes import notifications as notifications_routes
 from routes import misc as misc_routes
 from routes import admin as admin_routes
+from routes import onboarding as onboarding_routes
 
 app.include_router(auth_routes.router)
 app.include_router(v1_routes.router)
@@ -133,6 +134,7 @@ app.include_router(journal_routes.router)
 app.include_router(notifications_routes.router)
 app.include_router(misc_routes.router)
 app.include_router(admin_routes.router)
+app.include_router(onboarding_routes.router)
 
 if __name__ == "__main__":
     import os

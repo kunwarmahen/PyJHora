@@ -1215,3 +1215,112 @@ class ReferenceMixin:
             return {"error": str(e), "status": "failed"}
         finally:
             _set_ayanamsa(DEFAULT_AYANAMSA)
+
+    @staticmethod
+    def get_first_look(dob: str, tob: str, place: str,
+                       lat: Optional[float] = None, lon: Optional[float] = None,
+                       tz: Optional[float] = None,
+                       time_accuracy: str = "exact",
+                       current_tz: Optional[float] = None,
+                       ayanamsa: str = DEFAULT_AYANAMSA) -> Dict:
+        """The newcomer's payoff (§76.3): Rising sign, Moon sign, birth star and the
+        dasha "chapter" running now — the four things a first-time visitor can grasp
+        in a minute.
+
+        Structured data only. Every sign, star and graha here is an enumeration, so
+        the plain-language sentences live in the frontend's i18n tables keyed by
+        these values (docs/I18N_DATA_LAYER_DESIGN.md, layer A) — no prose here, no
+        LLM call, nothing that needs translating server-side.
+
+        Built on `calculate_birth_chart` + `get_dashas`, the same calls the Birth
+        Chart and Dasha pages make, so the first look can never disagree with them.
+
+        With `time_accuracy` != "exact" it is honest about what the clock decides:
+          • the Rising sign moves every ~2 hours, so an unknown time withholds it;
+          • the Moon moves ~13° a day, so its sign and star are checked at both ends
+            of the birth date and flagged when they changed during it;
+          • the dasha dates hang off the Moon's exact degree, so they are flagged
+            approximate.
+        """
+        if not ENGINE_AVAILABLE:
+            return {"error": "Jyotir AI engine not available", "status": "failed"}
+        try:
+            args = {"dob": dob, "tob": tob, "place": place, "lat": lat, "lon": lon, "tz": tz}
+            chart = AstrologyCompute.calculate_birth_chart(ayanamsa=ayanamsa, **args)
+            if chart.get("status") != "success":
+                return {"error": chart.get("error", "Chart calculation failed"),
+                        "status": "failed"}
+            accuracy = (time_accuracy or "exact").lower()
+            if accuracy not in ("exact", "approximate", "unknown"):
+                accuracy = "exact"
+
+            def _moon_of(c):
+                m = (c.get("d1_chart") or {}).get("Moon") or {}
+                nak = m.get("nakshatra")
+                return {
+                    "sign_num": m.get("sign_num"),
+                    "sign_name": m.get("sign_name"),
+                    "degrees": m.get("degrees"),
+                    "nakshatra": nak,
+                    "nakshatra_index": (NAKSHATRA_NAMES.index(nak) + 1
+                                        if nak in NAKSHATRA_NAMES else None),
+                    "pada": m.get("nakshatra_pada"),
+                }
+
+            moon = _moon_of(chart)
+            moon_sign_certain = star_certain = True
+            if accuracy == "unknown":
+                ends = [_moon_of(AstrologyCompute.calculate_birth_chart(
+                    ayanamsa=ayanamsa, **{**args, "tob": t})) for t in ("00:00:00", "23:59:59")]
+                moon_sign_certain = len({e["sign_num"] for e in ends + [moon]}) == 1
+                star_certain = len({e["nakshatra_index"] for e in ends + [moon]}) == 1
+                moon["day_range"] = {"start": ends[0], "end": ends[1]}
+            moon["sign_certain"] = moon_sign_certain
+            moon["star_certain"] = star_certain
+
+            lg = chart.get("lagna") or {}
+            rising = None
+            if accuracy != "unknown":
+                rising = {"sign_num": lg.get("sign_num"), "sign_name": lg.get("sign_name"),
+                          "degrees": lg.get("degrees"),
+                          # Within ~2° of a sign edge, a few minutes of clock error
+                          # changes the Rising sign; say so rather than imply precision.
+                          "near_edge": (lg.get("degrees") is not None
+                                        and (lg["degrees"] < 2 or lg["degrees"] > 28))}
+
+            dashas = AstrologyCompute.get_dashas(current_tz=current_tz, ayanamsa=ayanamsa, **args)
+            chapter = None
+            if dashas.get("status") == "success" and (dashas.get("current_dasha") or {}).get("lord"):
+                import timezones
+                today = timezones.today_at_offset(current_tz)
+                maha = dashas["current_dasha"]
+                subs = (dashas.get("current_bhukthi") or {}).get("periods") or []
+                antar = next((p for p in subs
+                              if p.get("start_date", "") <= today <= p.get("end_date", "9999")), None)
+                after = None
+                if antar:
+                    i = subs.index(antar)
+                    after = subs[i + 1] if i + 1 < len(subs) else None
+                pick = lambda p: ({"lord": p["lord"], "start_date": p.get("start_date"),  # noqa: E731
+                                   "end_date": p.get("end_date")} if p else None)
+                chapter = {
+                    "system": "vimsottari",
+                    "today": today,
+                    "maha": pick(maha),
+                    "antar": pick(antar),
+                    "next_antar": pick(after),
+                    "next_maha": pick(dashas.get("next_dasha")),
+                    "approximate": accuracy != "exact",
+                }
+
+            return {
+                "status": "success",
+                "time_accuracy": accuracy,
+                "rising": rising,
+                "moon": moon,
+                "chapter": chapter,
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "status": "failed"}

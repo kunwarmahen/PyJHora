@@ -71,6 +71,10 @@ async def get_user_profile(current_user: str = Depends(get_current_user)):
         # allowlist is authoritative, so recompute rather than trusting the flag.
         import admin as admin_service
         user["is_admin"] = admin_service.is_admin_user(current_user, user)
+        # The app fetches this on every load, which makes it where "came back a
+        # week after signing up" is noticed (§76.8). One read, fire-and-forget.
+        import funnel
+        await funnel.check_returned(current_user)
         return user
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

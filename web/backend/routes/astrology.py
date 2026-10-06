@@ -26,6 +26,7 @@ import claim_check
 import claim_reports
 from llm_service import llm_service, LLMProvider
 import tools as tool_registry
+import funnel
 import conversations as convo
 import journal
 import life_report
@@ -1022,6 +1023,7 @@ async def ask_question(
 ):
     """Ask a question about the birth chart using AI"""
     _enforce_rate_limit(current_user)
+    funnel.milestone(current_user, "first_ask")   # §76.8 — once per account
     try:
         # Where the reader is now, so "today" and the running dasha are theirs and
         # not the server's. Falls back to the birth offset when no current
@@ -1145,6 +1147,7 @@ async def ask_question_stream(
     """Stream an answer token-by-token (SSE), with multi-turn context, and persist
     the completed turn. Frontend reads this with a fetch + ReadableStream."""
     _enforce_rate_limit(current_user)
+    funnel.milestone(current_user, "first_ask")   # §76.8 — once per account
     tz_now = await viewer_tz(current_user, fallback=request.birth_details.timezone)
     here = await viewer_place(current_user)
     # Build context + resolve model up front so failures surface as HTTP errors.

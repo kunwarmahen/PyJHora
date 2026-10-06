@@ -88,6 +88,8 @@ async def register(req: RegisterRequest, request: Request):
         import admin as admin_service
         await admin_service.security_event("register", actor=req.username,
                                            detail="password", ip=_ip(request))
+        import funnel
+        funnel.milestone(req.username, "signup")
         return await _issue_token_pair(req.username, req.remember_me)
     except HTTPException:
         raise
@@ -229,6 +231,8 @@ async def google_auth(req: GoogleAuthRequest, request: Request):
     if is_new:
         await admin_service.security_event("register", actor=username,
                                            detail="google", ip=_ip(request))
+        import funnel
+        funnel.milestone(username, "signup")
     await admin_service.security_event("google_signin", actor=username, ip=_ip(request))
     return await _issue_token_pair(username, req.remember_me)
 

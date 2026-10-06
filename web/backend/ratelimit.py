@@ -91,3 +91,53 @@ def check(user_id: str) -> Tuple[bool, int, str]:
 
     hits.append(now)
     return True, 0, ""
+
+
+# ── Anonymous endpoints (§76.7) ─────────────────────────────────────────────
+# The landing page's "see your chart" preview runs real chart compute for people
+# with no account. Two limits, because the per-caller key is only as good as the
+# header it comes from: behind nginx + Cloudflare `request.client.host` is the
+# proxy, so the caller is taken from CF-Connecting-IP / X-Forwarded-For — which a
+# client talking to the origin directly could forge. The global cap is the floor
+# that holds whatever the key: anonymous compute can never take the server.
+_public_hits: Dict[str, Deque[float]] = defaultdict(deque)
+_public_all: Deque[float] = deque()
+_HOUR = 60 * 60
+
+
+def public_caller(request) -> str:
+    """Best-effort caller key for an anonymous request."""
+    try:
+        h = request.headers
+        ip = (h.get("cf-connecting-ip")
+              or (h.get("x-forwarded-for") or "").split(",")[0].strip()
+              or (request.client.host if request.client else ""))
+        return ip or "unknown"
+    except Exception:
+        return "unknown"
+
+
+def public_check(key: str) -> Tuple[bool, int]:
+    """Record an anonymous request from `key`; (allowed, retry_after_seconds)."""
+    per_min = _limit("PUBLIC_RATE_LIMIT_PER_MIN", 10)
+    per_day = _limit("PUBLIC_RATE_LIMIT_PER_DAY", 100)
+    global_per_hour = _limit("PUBLIC_RATE_LIMIT_GLOBAL_PER_HOUR", 2000)
+    now = time.time()
+
+    while _public_all and now - _public_all[0] > _HOUR:
+        _public_all.popleft()
+    if len(_public_all) >= global_per_hour:
+        return False, max(1, int(_HOUR - (now - _public_all[0])) + 1)
+
+    hits = _public_hits[key]
+    while hits and now - hits[0] > _DAY:
+        hits.popleft()
+    recent = [t for t in hits if now - t <= _MINUTE]
+    if len(recent) >= per_min:
+        return False, max(1, int(_MINUTE - (now - recent[0])) + 1)
+    if len(hits) >= per_day:
+        return False, max(1, int(_DAY - (now - hits[0])) + 1)
+
+    hits.append(now)
+    _public_all.append(now)
+    return True, 0

@@ -18,16 +18,16 @@
   ]
  },
  "DELETE /api/ai/jobs/{job_id}": {
+  "body": "",
   "params": [
    "path:job_id*"
-  ],
-  "body": ""
+  ]
  },
  "DELETE /api/astrology/ask/jobs/{job_id}": {
+  "body": "",
   "params": [
    "path:job_id*"
-  ],
-  "body": ""
+  ]
  },
  "DELETE /api/astrology/quiz/{session_id}": {
   "body": "",
@@ -134,8 +134,8 @@
   ]
  },
  "GET /api/ai/activity": {
-  "params": [],
-  "body": ""
+  "body": "",
+  "params": []
  },
  "GET /api/ai/conversations": {
   "body": "",
@@ -158,10 +158,10 @@
   ]
  },
  "GET /api/ai/jobs/{job_id}": {
+  "body": "",
   "params": [
    "path:job_id*"
-  ],
-  "body": ""
+  ]
  },
  "GET /api/ai/outcomes": {
   "body": "",
@@ -229,11 +229,11 @@
   ]
  },
  "GET /api/astrology/ask/jobs/{job_id}": {
+  "body": "",
   "params": [
    "path:job_id*",
    "query:after"
-  ],
-  "body": ""
+  ]
  },
  "GET /api/astrology/ayanamsas": {
   "body": "",
@@ -413,10 +413,10 @@
   ]
  },
  "POST /api/ai/activity/{job_id}/seen": {
+  "body": "",
   "params": [
    "path:job_id*"
-  ],
-  "body": ""
+  ]
  },
  "POST /api/ai/conversations/{conversation_id}/feedback": {
   "body": "FeedbackRequest",
@@ -563,6 +563,10 @@
    "query:ayanamsa",
    "query:lang"
   ]
+ },
+ "POST /api/astrology/first-look": {
+  "body": "FirstLookRequest",
+  "params": []
  },
  "POST /api/astrology/fortnightly-digest": {
   "body": "BirthDetails",
@@ -1107,12 +1111,24 @@
   "body": "PushUnsubscribeRequest",
   "params": []
  },
+ "POST /api/onboarding/welcome-done": {
+  "body": "",
+  "params": []
+ },
  "POST /api/profiles/import": {
   "body": "ImportProfilesRequest",
   "params": []
  },
  "POST /api/profiles/save": {
   "body": "SaveProfileRequest",
+  "params": []
+ },
+ "POST /api/public/first-look": {
+  "body": "FirstLookRequest",
+  "params": []
+ },
+ "POST /api/public/funnel": {
+  "body": "FunnelEvent",
   "params": []
  },
  "POST /api/user/location/from-zone": {
