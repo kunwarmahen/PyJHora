@@ -264,6 +264,46 @@ export const StrengthPage = () => {
                           );
                         })}
                       </div>
+                      {/* The exact figures behind the bars, in rupas. This table used
+                          to sit on Chart Deep-Dive as a second Shadbala; it has one
+                          home now (§79.3). */}
+                      <div className="table-scroll mt-xl">
+                        <table className="adv-table">
+                          <caption className="adv-table__caption">
+                            {t("strength.compositionTable")}
+                          </caption>
+                          <thead>
+                            <tr>
+                              <th>{t("common.planet")}</th>
+                              {components.map((c) => (
+                                <th key={c}>{t(`strength.component.${c}`)}</th>
+                              ))}
+                              <th>{t("advanced.colTotal")}</th>
+                              <th>{t("advanced.colRequired")}</th>
+                              <th>{t("advanced.colRatio")}</th>
+                              <th>{t("advanced.colRank")}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {planets.map((p) => (
+                              <tr key={p.planet}>
+                                <td className="fw-700">{p.planet}</td>
+                                {components.map((c) => (
+                                  <td key={c}>{p[c]}</td>
+                                ))}
+                                <td className="fw-700">{p.total_rupa}</td>
+                                <td>{p.required_rupa}</td>
+                                <td
+                                  className={`fw-700 ${p.sufficient ? "text-saffron" : "text-vermillion"}`}
+                                >
+                                  {p.strength_ratio}
+                                </td>
+                                <td>{p.rank}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </Card>
                   </div>
                 </>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Layers, Sparkles, Sun, Anchor } from "lucide-react";
 import Markdown from "../components/Markdown";
@@ -119,7 +119,6 @@ export const JaiminiPage = () => {
   const ck = data?.chara_karakas || [];
   const kk = data?.karakamsa || {};
   const sw = data?.swamsa || {};
-  const argala = data?.argala || [];
 
   return (
     <div className="dashboard-container mandala-bg">
@@ -221,33 +220,13 @@ export const JaiminiPage = () => {
                 <h3 className="ui-card-header ui-card-header--sm">
                   <Anchor size={18} /> {t("jaimini.argalaHeader")}
                 </h3>
-                <p className="card-note">{t("jaimini.argalaNote")}</p>
-                <div className="table-scroll">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>{t("jaimini.house")}</th>
-                        <th>{t("jaimini.sign")}</th>
-                        <th>{t("jaimini.argala")}</th>
-                        <th>{t("jaimini.virodhargala")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {argala.map((a) => (
-                        <tr key={a.house}>
-                          <td>
-                            <strong>{a.house}</strong>
-                          </td>
-                          <td>{ln(a.sign_name, "rasi")}</td>
-                          <td>{(a.argala || []).join(", ") || "—"}</td>
-                          <td className="text-secondary">
-                            {(a.virodhargala || []).join(", ") || "—"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                {/* §79.3 — argala has one home: the twelve-house table on Sensitive
+                    Points. This used to repeat the 1st/7th rows (and, from a second
+                    computation, got them wrong for non-Aries lagnas). */}
+                <p className="card-note">{t("jaimini.argalaMoved")}</p>
+                <Link className="ui-btn ui-btn--secondary" to="/sensitive-points?tab=argala">
+                  {t("jaimini.argalaOpen")}
+                </Link>
               </div>
 
               {/* AI reading */}

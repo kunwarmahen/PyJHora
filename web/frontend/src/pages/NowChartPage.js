@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Globe, Sparkles, RefreshCw, MapPin } from "lucide-react";
+import { Globe, Sparkles, RefreshCw, MapPin, HelpCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import Markdown from "../components/Markdown";
 import { useProfile } from "../contexts/ProfileContext";
@@ -143,8 +143,19 @@ export const NowChartPage = () => {
           <RecentReadings source="now_chart" />
 
           <div
-            style={{ display: "flex", justifyContent: "flex-end", marginBottom: "var(--space-md)" }}
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              flexWrap: "wrap",
+              gap: "var(--space-sm)",
+              marginBottom: "var(--space-md)",
+            }}
           >
+            {/* Prashna casts this same moment around a question (§79.3) — the two
+                pages are one idea with and without the question. */}
+            <Link to="/prashna" className="ui-btn ui-btn--secondary">
+              <HelpCircle size={16} /> {t("now.askPrashna")}
+            </Link>
             <button className="ui-btn ui-btn--secondary" onClick={load} disabled={loading || !loc}>
               <RefreshCw size={16} /> {t("now.refresh")}
             </button>

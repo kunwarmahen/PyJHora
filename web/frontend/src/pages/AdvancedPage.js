@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Sparkles,
   Grid3x3,
   Compass,
-  Gauge,
+  Signpost,
   HeartPulse,
   ShieldAlert,
   Hourglass,
@@ -21,7 +21,6 @@ import { LoadingState } from "../components/LoadingState";
 import { Card } from "../components/Card";
 import { DataField } from "../components/DataField";
 import { GlossaryTerm } from "../components/GlossaryTerm";
-import { AspectsCard } from "../components/AspectsCard";
 import { useSettings } from "../contexts/SettingsContext";
 import "../styles/Dashboard.css";
 import "../styles/Shared.css";
@@ -63,8 +62,6 @@ export const AdvancedPage = () => {
   const ayanamsa = settings.ayanamsa;
   const [av, setAv] = useState(null);
   const [details, setDetails] = useState(null);
-  const [shadbala, setShadbala] = useState(null);
-  const [aspects, setAspects] = useState(null);
   const [longevity, setLongevity] = useState(null);
   const [conditions, setConditions] = useState(null);
   const [avasthas, setAvasthas] = useState(null);
@@ -116,8 +113,6 @@ export const AdvancedPage = () => {
     setError("");
     setAv(null);
     setDetails(null);
-    setShadbala(null);
-    setAspects(null);
     setLongevity(null);
     setConditions(null);
     setAvasthas(null);
@@ -129,9 +124,9 @@ export const AdvancedPage = () => {
     setFrAi("");
     setFrAiError("");
     let cancelled = false;
-    const done = { av: false, d: false, sb: false, asp: false };
+    const done = { av: false, d: false };
     const settle = () => {
-      if (!cancelled && done.av && done.d && done.sb && done.asp) setLoading(false);
+      if (!cancelled && done.av && done.d) setLoading(false);
     };
     astrologyService
       .getAshtakavarga(birthDetails, ayanamsa)
@@ -144,25 +139,9 @@ export const AdvancedPage = () => {
     astrologyService
       .getChartDetails(birthDetails, ayanamsa)
       .then((r) => !cancelled && setDetails(r.data))
-      .catch(() => {})
-      .finally(() => {
-        done.d = true;
-        settle();
-      });
-    astrologyService
-      .getShadbala(birthDetails, ayanamsa)
-      .then((r) => !cancelled && setShadbala(r.data))
       .catch((e) => !cancelled && setError(e.response?.data?.detail || ""))
       .finally(() => {
-        done.sb = true;
-        settle();
-      });
-    astrologyService
-      .getAspects(birthDetails, ayanamsa)
-      .then((r) => !cancelled && setAspects(r.data?.planets || null))
-      .catch(() => {})
-      .finally(() => {
-        done.asp = true;
+        done.d = true;
         settle();
       });
     // Longevity loads independently (does not gate the page spinner).
@@ -274,6 +253,23 @@ export const AdvancedPage = () => {
 
           <ErrorBanner message={error} />
 
+          {/* §79.3 — these used to be repeated here. Each now has one home, and
+              this card says where, so nobody thinks they were removed. */}
+          <Card title={t("advanced.moved.title")} icon={<Signpost size={24} />} accent="indigo">
+            <ul className="adv-moved">
+              {[
+                ["/strength?tab=composition", "shadbala"],
+                ["/jaimini", "karakas"],
+                ["/sensitive-points?tab=special", "special"],
+                ["/birth-chart?tab=aspects", "aspects"],
+              ].map(([to, key]) => (
+                <li key={key}>
+                  <Link to={to}>{t(`advanced.moved.${key}`)}</Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
+
           {loading ? (
             <Card>
               <LoadingState message={t("advanced.loading")} />
@@ -328,115 +324,20 @@ export const AdvancedPage = () => {
               {/* Advanced chart details */}
               {details && (
                 <Card
-                  title={t("advanced.chartFactors")}
+                  title={t("advanced.arudhaTitle")}
                   icon={<Compass size={24} />}
                   accent="indigo"
                 >
-                  <h4 className="adv-subhead">
-                    <GlossaryTerm term="Arudha">Arudha</GlossaryTerm> {t("advanced.padas")}
-                  </h4>
+                  <p className="card-intro">
+                    <GlossaryTerm term="Arudha">Arudha</GlossaryTerm> {t("advanced.arudhaIntro")}
+                  </p>
                   <div className="ui-field-grid">
                     {details.arudha_padas.map((a) => (
                       <DataField key={a.bhava} label={a.label} value={ln(a.sign_name, "rasi")} />
                     ))}
                   </div>
-
-                  <h4 className="adv-subhead">
-                    {t("advanced.chara")} <GlossaryTerm term="Karaka">Karakas</GlossaryTerm>{" "}
-                    (Jaimini)
-                  </h4>
-                  <div className="ui-field-grid">
-                    {details.chara_karakas.map((k) => (
-                      <DataField key={k.karaka} label={k.karaka} value={k.planet} />
-                    ))}
-                  </div>
-
-                  <h4 className="adv-subhead">
-                    {t("advanced.special")} <GlossaryTerm term="Lagna">Lagnas</GlossaryTerm>
-                  </h4>
-                  <div className="ui-field-grid">
-                    {details.special_lagnas.map((s) => (
-                      <DataField
-                        key={s.name}
-                        label={s.name}
-                        value={`${ln(s.sign_name, "rasi")} ${s.degrees}°`}
-                      />
-                    ))}
-                  </div>
-
-                  <h4 className="adv-subhead">
-                    <GlossaryTerm term="Upagraha">Upagrahas</GlossaryTerm> (
-                    {t("advanced.subPlanets")})
-                  </h4>
-                  <div className="ui-field-grid">
-                    {details.upagrahas.map((u) => (
-                      <DataField
-                        key={u.name}
-                        label={u.name}
-                        value={`${ln(u.sign_name, "rasi")} ${u.degrees}°`}
-                      />
-                    ))}
-                  </div>
                 </Card>
               )}
-
-              {/* Shadbala */}
-              {shadbala && (
-                <Card
-                  title={
-                    <>
-                      <GlossaryTerm>Shadbala</GlossaryTerm> (Planetary Strength)
-                    </>
-                  }
-                  icon={<Gauge size={24} />}
-                  accent="vermillion"
-                >
-                  <p className="card-intro">{t("advanced.shadbalaIntro")}</p>
-                  <div className="table-scroll">
-                    <table className="adv-table">
-                      <thead>
-                        <tr>
-                          <th>{t("common.planet")}</th>
-                          <th>Sthana</th>
-                          <th>Kaala</th>
-                          <th>Dig</th>
-                          <th>Cheshta</th>
-                          <th>Naisargika</th>
-                          <th>Drik</th>
-                          <th>{t("advanced.colTotal")}</th>
-                          <th>{t("advanced.colRequired")}</th>
-                          <th>{t("advanced.colRatio")}</th>
-                          <th>{t("advanced.colRank")}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {shadbala.planets.map((p) => (
-                          <tr key={p.planet}>
-                            <td className="fw-700">{p.planet}</td>
-                            <td>{p.sthana}</td>
-                            <td>{p.kaala}</td>
-                            <td>{p.dig}</td>
-                            <td>{p.cheshta}</td>
-                            <td>{p.naisargika}</td>
-                            <td>{p.drik}</td>
-                            <td className="fw-700">{p.total_rupa}</td>
-                            <td>{p.required_rupa}</td>
-                            <td
-                              className={`fw-700 ${p.sufficient ? "text-saffron" : "text-vermillion"}`}
-                            >
-                              {p.strength_ratio}
-                            </td>
-                            <td>{p.rank}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
-              )}
-
-              {/* Graha Drishti (aspects) — table only (no chart on this page) */}
-              <AspectsCard aspects={aspects} />
 
               {/* Ayu / longevity indication (gentle, conditional) */}
               {longevity && (

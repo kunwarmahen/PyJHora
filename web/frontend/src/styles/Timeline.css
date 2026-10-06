@@ -249,3 +249,12 @@
     align-items: baseline;
   }
 }
+
+/* Saturn item → the Sade Sati page, where the cycles are told in full (§79.3). */
+.tl-window-item__link {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent-deep);
+}

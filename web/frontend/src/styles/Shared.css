@@ -296,6 +296,27 @@
 }
 
 /* ---- Advanced data tables (Ashtakavarga / Shadbala) ---- */
+.adv-table__caption {
+  caption-side: top;
+  text-align: left;
+  padding-bottom: var(--space-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* "Where these moved" links on Chart Deep-Dive (§79.3). */
+.adv-moved {
+  margin: 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: var(--space-xs);
+}
+.adv-moved a {
+  color: var(--accent-deep);
+  font-weight: 600;
+}
+
 .adv-table {
   width: 100%;
   border-collapse: collapse;

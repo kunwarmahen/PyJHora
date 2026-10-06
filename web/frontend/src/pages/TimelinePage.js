@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { CalendarRange, Sparkles, Sun, Moon, RefreshCw } from "lucide-react";
 import Markdown from "../components/Markdown";
@@ -670,6 +670,11 @@ export const TimelinePage = () => {
                               ? selection.saturn.description
                               : t("timeline.saturnNone")}
                           </div>
+                          {/* The band is the overview; the cycles, phases and
+                              retrograde re-entries live on Sade Sati (§79.3). */}
+                          <Link className="tl-window-item__link" to="/sade-sati">
+                            {t("timeline.saturnMore")}
+                          </Link>
                         </div>
                       </div>
 

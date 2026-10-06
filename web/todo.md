@@ -26,7 +26,6 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 | §68.2 | CI — the test suites only run when someone types `./dev.sh test` | 🔴 open |
 | §68.3 | The frontend has never rendered a page in a test | 🔴 open |
 | §76 | Newcomer onboarding (76.2–76.7) — 4 owner questions in §76.9 | 🔴 proposed, not built |
-| §79.3 | Duplicated content between hub members (Shadbala, Argala, Karakas, …) | 🔴 open |
 | §79.4 | Root strays (`cmd.txt`, `test_log.txt`, `features_per_book.txt`) — owner to confirm | 🔴 owner call |
 | §79.3 | `/predictions` routed but linked from nowhere — retire or fold into Reports | 🔴 owner call |
 
@@ -8338,7 +8337,7 @@ local, captured at the adapters / HTTP client).
 
 ---
 
-## §79 Consolidation — ~40 pages into a dozen hubs, and the docs into one place (owner ask 2026-10-05) — ✅ 79.1/79.2/79.4/79.5 SHIPPED 2026-10-05, 79.3 open
+## §79 Consolidation — ~40 pages into a dozen hubs, and the docs into one place (owner ask 2026-10-05) — ✅ SHIPPED 2026-10-05/06 (two owner calls left: root strays, `/predictions`)
 
 **Ask:** "we have lot of information in all different places, some should be together." A review
 (2026-10-05) found two kinds of scatter: pages that are one idea split by build order (four return
@@ -8380,13 +8379,32 @@ redirects. Pages keep their own in-page `?tab=` bars; the hub strip is route lin
 Standalone: Dashboard, Ask, Muhurta, Remedies, Prashna, Learn, Rectify, Settings.
 Chakras moves out of "calendar" (it never was one). Drawer goes from ~40 rows to ~17.
 
-### 79.3 Duplicated content — one home each (P2, per hub, after 79.1/79.2) 🔴
-- Shadbala: Deep-Dive and Strength → Strength only (Deep-Dive links to it).
-- Argala: Sensitive Points and Jaimini → Jaimini only.
-- Karakas: Deep-Dive, Jaimini, Nadi Karakas → chara karakas in Jaimini; Nadi keeps its own (different) karakas.
-- Sade Sati: own page + Timeline band → keep both, but the Timeline band links to the page.
-- Chart of the Moment ↔ Prashna: "Ask about this moment" button from Now into Prashna.
-- `/predictions` is routed but linked from nowhere — retire it or fold into Reports (owner call).
+### 79.3 Duplicated content — one home each — ✅ SHIPPED 2026-10-06 (except `/predictions`, owner call)
+- **Chart Deep-Dive** stops repeating four things and links to their one home with a "Looking for
+  something that used to be here?" card: Shadbala → Strength › Composition; chara karakas → Jaimini;
+  special lagnas & upagrahas → Sensitive Points › Special (same `get_chart_details` data); graha
+  drishti → Birth Chart › Aspects. The Chart-factors card is now just Arudha padas (their only plain
+  list). Two fewer API calls on the page (`getShadbala`, `getAspects`).
+- **Strength › Composition** gains the numeric Shadbala table that lived on Deep-Dive, so nothing was
+  lost. **Its caption states the units**: components are virupas (shashtiamsas), total/required are rupas
+  — the old Deep-Dive table mixed the two with no label (255.5 next to 9.05).
+- **Argala — a real bug, found by the dedupe.** Two computations: `get_argala` (Sensitive Points) and
+  `get_jaimini` (Jaimini page, the `get_jaimini` AI tool, the Jaimini AI reading). The engine's
+  `house.get_argala` rows are indexed by HOUSE from the Lagna; `get_jaimini` indexed them by SIGN
+  (`lagna_sign + h - 1`), offsetting twice, so for every non-Aries Lagna the AI and the page reported
+  another house's argala as the 1st's and 7th's. Owner chart (Taurus): Jaimini said Moon *obstructs*
+  the 1st; the Moon is in Leo, the 4th — it *causes* argala. Fixed in `compute_kp.py` (`argala_all[h-1]`);
+  `tests/test_argala_agreement.py` pins the two computations to agree on both reference charts (both
+  non-Aries — the case the bug hid in). The Jaimini page's 2-row table → a link to the 12-house table;
+  the Jaimini AI reading still gets (now correct) 1st/7th rows.
+- **Sade Sati**: the Timeline's Saturn band stays (an overview is the timeline's job); its "what's
+  running" panel links to `/sade-sati` for the cycles in full.
+- **Chart of the Moment ↔ Prashna**: Now gets an "Ask a question of this moment (Prashna)" button.
+- Karakas: Nadi Karakas are a different set (Nadi significators), not a duplicate — left alone.
+- 🔴 Owner call: `/predictions` is routed but linked from nowhere — retire or fold into Reports.
+- Help: `featAdvanced` rewritten (says where the four things went), `featStrength` mentions the table.
+  Tests: backend 1152 pass (+3), frontend 360 pass. Browser-verified every new link lands
+  (`/strength?tab=composition` 7-row table, `/sensitive-points?tab=argala`, `/sade-sati`, `/prashna`).
 
 ### 79.4 Docs (P1) — ✅ (one item left to the owner)
 - `web/README.md` 2,333 → 66 lines: what it is, quick start, the hub table, and a docs index. The rest

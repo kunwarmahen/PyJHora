@@ -226,12 +226,15 @@ class KpMixin:
                             out.append(PLANET_NAMES[int(p)])
                 return out
 
+            # The engine's rows are indexed by HOUSE from the Lagna (it adds the
+            # ascendant offset itself), so row h-1 is house h. Indexing by sign
+            # here offset by the Lagna twice and showed another house's argala for
+            # every non-Aries chart (§79.3, tests/test_argala_agreement.py).
             argala = []
             for h in (1, 7):
-                r = (lagna_sign + h - 1) % 12
-                argala.append({"house": h, "sign_name": ZODIAC_NAMES[r],
-                               "argala": _clean(argala_all[r]),
-                               "virodhargala": _clean(virodha_all[r])})
+                argala.append({"house": h, "sign_name": ZODIAC_NAMES[(lagna_sign + h - 1) % 12],
+                               "argala": _clean(argala_all[h - 1]),
+                               "virodhargala": _clean(virodha_all[h - 1])})
 
             return {"status": "success", "chara_karakas": chara_karakas,
                     "atmakaraka": PLANET_NAMES.get(atma, str(atma)),

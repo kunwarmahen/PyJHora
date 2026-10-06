@@ -94,7 +94,7 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   10-porutham + Mangal/Kuja-dosha with cancellation nuances**; a **7th-house deep-dive** for both
   partners — lord, occupants, Venus/Jupiter karakas, Upapada; and a **dasha-overlap timeline** with
   a shared Saturn/Sade-Sati outlook, plus a marriage-aware couple AI reading), an Advanced page
-  (Ashtakavarga, Arudha, Karakas, Special Lagnas, Upagrahas, Shadbala, Ayu/longevity), and
+  (Ashtakavarga, Arudha padas, Ayu/longevity, planetary conditions, avasthas, friendships), and
   experimental Birth-Time Rectification (BV Raman śuddhi methods, with before/after charts)
 - **AI Integration**: Multi-model LLM support (Ollama/local, OpenAI-compatible, Gemini, ChatGPT)
 - **Interactive Q&A**: Chat with AI Astrologer for personalized insights
@@ -546,13 +546,12 @@ Also here: **Nakshatra Profile** (`/nakshatra`) — your birth star with its cla
 
 - **Ashtakavarga**: Bhinna (per-contributor) + Sarva (combined) bindu tables, with
   a Sarva heatmap (grand total 337)
-- **Chart factors**: Arudha padas (A1–A12), Chara karakas (Jaimini), Special lagnas
-  (Sree/Indu/Bhrigu Bindu/Pranapada/Kunda), Upagrahas (Gulika/Maandi + the 5 solar)
-- **Shadbala**: six-fold planetary strength (sthana/kaala/dig/cheshta/naisargika/drik)
-  with total rupa, required rupa, ratio and rank for Sun–Saturn
-- **Graha Drishti (aspects)**: per-graha table of the houses & planets each graha
-  aspects (incl. the Mars 4/8, Jupiter 5/9, Saturn 3/10 special aspects) plus rasi
-  drishti, with the Parashari sphuta strength (0–100%)
+- **Arudha padas** (A1–A12)
+- **One home each (§79.3).** Four things this page used to repeat now live in one place,
+  and a "Looking for something that used to be here?" card links to them: Shadbala's
+  six-component figures → Planetary Strength → Composition (now with a numeric table under
+  the bars: components in virupas, total/required in rupas); chara karakas → Jaimini;
+  special lagnas & upagrahas → Sensitive Points → Special; graha drishti → Birth Chart → Aspects.
 - **Ayu / vitality indication**: a gentle, conditional longevity band — **Alpa** (short) /
   **Madhya** (medium) / **Purna** (long) — from the classical sign-pair method, with its
   contributing factors. Framed as one signal among many, never a death date or age
@@ -587,7 +586,9 @@ Also here: **Nakshatra Profile** (`/nakshatra`) — your birth star with its cla
 - **Argala & Virodhargala** — per bhava, which houses receive strong planetary
   **intervention** (argala) vs **obstruction** (virodhargala), with a net verdict
 - Optional **AI reading** (model from Ask AI Astrologer) + smart-lookup **tools**
-  (`get_special_points`, `get_sphuta`, `get_sahams`, `get_argala`). The special lagnas are
+  (`get_special_points`, `get_sphuta`, `get_sahams`, `get_argala`). This is argala's only table;
+  `get_jaimini` reads the same engine rows for houses 1 and 7 and `tests/test_argala_agreement.py`
+  pins that the two agree. The special lagnas are
   also **seeded into the chat context by default** (the `special_points` section chip)
 - The **kaala-velas** additionally appear as *time* windows in the panchanga
   (`kaala_velas`) and annotate Muhurta candidates. They are a **caution, not an
@@ -799,7 +800,7 @@ the Daily / Period digests). Exposed to Ask-Astrologer as the `get_tithi_pravesh
 
 ## Other Systems
 
-Also here: **Jaimini** (`/jaimini`) — Chara Karakas, Karakamsa/Swamsa with rasi drishti, argala; **KP System** (`/kp`) — planet and cuspal sub-lords, four-fold significators, ruling planets, KP horary 1–249; **Nadi Karakas** (`/nadi`) — the chart read through planetary significators, events timed by their transits.
+Also here: **Jaimini** (`/jaimini`) — Chara Karakas, Karakamsa/Swamsa with rasi drishti (the 1st/7th argala it weighs links to the full twelve-house table on Sensitive Points); **KP System** (`/kp`) — planet and cuspal sub-lords, four-fold significators, ruling planets, KP horary 1–249; **Nadi Karakas** (`/nadi`) — the chart read through planetary significators, events timed by their transits.
 
 ### Sarvatobhadra Chakra (`/chakras`)
 
