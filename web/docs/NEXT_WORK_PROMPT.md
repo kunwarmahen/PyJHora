@@ -31,7 +31,8 @@ item. Treat §82 as the source of truth, not this prompt.
    - Vite migration: still optional now that the page harness exists. Do it?
 
    Don't start an item that depends on an answer before you have it.
-2. **§82.2 — CI.** Check whether `.github/workflows/web-ci.yml` has run (`gh run list`). If it hasn't,
+2. **§82.2 — CI.** Check whether `.github/workflows/web-ci.yml` has run (`gh run list`; if `gh` isn't installed, ask the owner to check the repo's Actions
+   tab). If it hasn't,
    say so; don't push just to trigger it. Pushing is the owner's call. If it has run and failed, fix it.
 3. **§82.3 translations** and **§82.4 product gaps**, as far as the answers allow. Notes:
    - For Mangal-dosha prevalence on Compatibility, *measure* it with the function that tab actually uses
