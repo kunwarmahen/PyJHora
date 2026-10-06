@@ -13,6 +13,12 @@ Default ayanamsa (True Chitra), as the app uses by default.
 
 Writes dosha_prevalence.json next to this package. Re-run after changing a dosha
 rule — tests/test_dosha_prevalence.py fails if a dosha has no measured figure.
+
+Also measures the Compatibility tab's Mangal dosha (§83.3), which is a different
+rule from the Birth Chart's "manglik" (Lagna, Moon AND Venus as references, with
+its own cancellations), so it gets its own figures under "compatibility" —
+measured with compute_match._mangal_dosha, the function that tab calls, on the
+same sampled charts.
 """
 import json
 import os
@@ -23,6 +29,8 @@ from datetime import date, datetime, timedelta, timezone
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from astrology import AstrologyCompute  # noqa: E402
+from astrology.compute_match import _mangal_dosha  # noqa: E402
+from astrology.engine import charts, drik, swe  # noqa: E402
 
 # (place, lat, lon, standard UTC offset). Offsets are the zone's standard time;
 # a sample needs plausible local times, not historical DST precision.
@@ -43,6 +51,7 @@ def main(n: int = 5000) -> None:
     rng = random.Random(SEED)
     span = (END - START).days
     counts, valid = {}, 0
+    mangal = {"manglik": 0, "uncancelled": 0}
     names = {}
     for _ in range(n):
         d = START + timedelta(days=rng.randrange(span + 1))
@@ -58,6 +67,13 @@ def main(n: int = 5000) -> None:
             key = dz.get("key")
             names[key] = dz.get("name")
             counts[key] = counts.get(key, 0) + (1 if dz.get("present") else 0)
+        # Same birth moment through the Compatibility tab's rule (no extra rng draws,
+        # so the figures above stay reproducible).
+        pp = charts.rasi_chart(swe.julday(d.year, d.month, d.day, minute / 60),
+                               drik.Place(place, lat, lon, tz))
+        m = _mangal_dosha(pp)
+        mangal["manglik"] += m["manglik"]
+        mangal["uncancelled"] += m["manglik"] and not m["cancellations"]
     out = {
         "method": "Share of sampled birth moments where get_doshas reports the dosha present. "
                   "Births uniform 1940-2015, uniform minute, 14 world cities, default ayanamsa.",
@@ -66,6 +82,13 @@ def main(n: int = 5000) -> None:
         "computed": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "doshas": {k: {"name": names[k], "percent": round(100 * c / valid, 1)}
                    for k, c in sorted(counts.items())},
+        "compatibility": {
+            "mangal": {
+                "name": "Mangal (Kuja) Dosha — Compatibility tab",
+                "percent": round(100 * mangal["manglik"] / valid, 1),
+                "uncancelled_percent": round(100 * mangal["uncancelled"] / valid, 1),
+            },
+        },
     }
     path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                         "dosha_prevalence.json")
@@ -74,6 +97,8 @@ def main(n: int = 5000) -> None:
         f.write("\n")
     for k, v in out["doshas"].items():
         print(f"{v['percent']:5.1f}%  {v['name']}")
+    c = out["compatibility"]["mangal"]
+    print(f"{c['percent']:5.1f}%  {c['name']} ({c['uncancelled_percent']}% with no cancellation)")
     print(f"({valid} charts)")
 
 

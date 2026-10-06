@@ -616,6 +616,16 @@ export const CompatibilityPage = () => {
                       <p className="score-box__status" style={{ marginBottom: "var(--space-md)" }}>
                         {result.mangal_dosha.verdict}
                       </p>
+                      {/* How common this rule is (§83.3) — measured, like the
+                          Birth Chart's dosha line, but for this tab's own rule. */}
+                      {result.mangal_dosha.prevalence_percent != null && (
+                        <p className="text-secondary" style={{ marginBottom: "var(--space-md)" }}>
+                          {t("compat.mangal.common", {
+                            n: Math.round(result.mangal_dosha.prevalence_percent),
+                            m: Math.round(result.mangal_dosha.uncancelled_percent),
+                          })}
+                        </p>
+                      )}
                       <div className="person-grid">
                         {[
                           { key: "boy", name: nameA, m: result.mangal_dosha.boy },
@@ -628,7 +638,7 @@ export const CompatibilityPage = () => {
                               {m.manglik
                                 ? t("compat.mangal.manglik")
                                 : t("compat.mangal.notManglik")}{" "}
-                              ({t("compat.mangal.marsIn", { sign: m.mars_sign })})
+                              ({t("compat.mangal.marsIn", { sign: ln(m.mars_sign, "rasi") })})
                             </p>
                             {Object.keys(m.from || {}).length > 0 && (
                               <p className="text-secondary">

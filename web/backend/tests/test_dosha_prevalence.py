@@ -28,3 +28,24 @@ def test_the_measurement_is_sane():
     # Ganda Moola is the Moon in 6 of 27 stars — a pure-probability cross-check
     # that the sampling itself is unbiased.
     assert abs(pct["ganda_moola"] - 100 * 6 / 27) < 2.5
+
+
+def test_compatibility_mangal_carries_its_own_measured_figure(args1, args2):
+    """The Compatibility tab's Mangal rule is not the Birth Chart's (§83.3): it
+    counts Mars from the Lagna, Moon AND Venus, so it needs its own figure,
+    measured with compute_match._mangal_dosha — the function the tab calls."""
+    comp = A.get_compatibility(
+        male_dob=args1["dob"], male_tob=args1["tob"], male_place=args1["place"],
+        male_lat=args1["lat"], male_lon=args1["lon"], male_tz=args1["tz"],
+        female_dob=args2["dob"], female_tob=args2["tob"], female_place=args2["place"],
+        female_lat=args2["lat"], female_lon=args2["lon"], female_tz=args2["tz"],
+    )
+    md = comp["mangal_dosha"]
+    stored = json.load(open(DATA))["compatibility"]["mangal"]
+    assert md["prevalence_percent"] == stored["percent"]
+    assert md["uncancelled_percent"] == stored["uncancelled_percent"]
+    # Mars sits in 6 of 12 houses from each of three references, so roughly
+    # 1 - (1/2)**3 = 87.5% of charts qualify; measured 88.9% (2026-10-06).
+    # The uncancelled share can only be smaller.
+    assert 82 <= stored["percent"] <= 94
+    assert 0 < stored["uncancelled_percent"] < stored["percent"]

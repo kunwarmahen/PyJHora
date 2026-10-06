@@ -36,5 +36,12 @@
    "name": "Shrapit Dosha",
    "percent": 10.0
   }
+ },
+ "compatibility": {
+  "mangal": {
+   "name": "Mangal (Kuja) Dosha \u2014 Compatibility tab",
+   "percent": 88.9,
+   "uncancelled_percent": 50.8
+  }
  }
 }

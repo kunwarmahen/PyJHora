@@ -29,7 +29,8 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 | §82.1 | Vite migration — the §68.3 blocker is gone; still optional | ⏸ owner: not now |
 | §82.2 | CI workflow has never run on GitHub — check the first run after a push | ✅ first run green (798fb4f) |
 | §82.3 | Translation backlog — §81 screens ✅ (§83.2); left: Hindi Help answers (~190), glossary, landing page, raja-yoga/panchanga/koota names | P2 |
-| §82.4 | Mangal Dosha prevalence on Compatibility; more Topic Reading topics | P2 |
+| §82.1 | **New:** Compatibility's Mangal rule flags 88.9% of charts — keep (now labelled) or narrow? | 🔴 owner call |
+| §82.4 | Mangal Dosha prevalence on Compatibility ✅ (§83.3); more Topic Reading topics | P2 |
 | §82.5 | Hardening: in-process rate limit, forwarded-IP trust, beacon inflation, realistic-payload harness | P3 |
 
 Product docs are in [`docs/`](docs/) — start at [`README.md`](README.md). A ready-to-paste prompt for
@@ -8639,6 +8640,11 @@ up directly. Each item names where the detail lives.
 - [ ] ⏸ **(owner 2026-10-06: not now)** **Vite migration** (§68 tail): declined 2026-09-10 partly because no component test would catch a
       build regression. §80's page harness now does — the blocker is gone; still optional.
 
+- [ ] 🔴 **(new 2026-10-06) Compatibility's Mangal rule flags 88.9% of charts** (§83.3). `_mangal_dosha` counts
+      Mars in houses 1/2/4/7/8/12 from the Lagna, the Moon *and* Venus, so ≈1−(½)³ of charts qualify; 50.8%
+      have it with no cancellation listed. The tab now shows both figures. Keep as is, or narrow (e.g. from the
+      Lagna only, or count only uncancelled cases as Manglik)? Re-run `scripts/dosha_prevalence.py` after.
+
 ### 82.2 Check first 🟡
 - [x] ✅ **Done 2026-10-06:** `web-ci` ran on push of 798fb4f and passed (checked via the public Actions API;
       `gh` isn't installed here). **CI's first run** (§80.3) — `.github/workflows/web-ci.yml` has never run on GitHub. After the next
@@ -8657,7 +8663,7 @@ up directly. Each item names where the detail lives.
       panchanga limb values, Ashtakoot koota names.
 
 ### 82.4 Product gaps noticed while building (P2)
-- [ ] **Mangal Dosha on Compatibility has no prevalence line** (§81.4) — that tab uses its own cancellation
+- [x] ✅ **Done 2026-10-06 (§83.3) — 88.9% / 50.8%.** **Mangal Dosha on Compatibility has no prevalence line** (§81.4) — that tab uses its own cancellation
       logic, so the Birth Chart figure isn't the same rule; measure it with that function before showing a
       number.
 - [ ] **Topic Reading's topics** are four (general/career/relationships/health) because that is what
@@ -8732,3 +8738,25 @@ green on 798fb4f.
   page hints stay English in Hindi. Glossary (~25 terms), landing page, and the by-design English names.
 - **Help/FAQ:** `languageAndTheme` now says plainly that Hindi doesn't cover every screen yet. **Docs:**
   FEATURES.md onboarding list; I18N doc §6 items 4 and 6 decided, plus the Pitru exception under §5.
+
+### 83.3 Mangal Dosha prevalence on Compatibility (§82.4) — ✅ SHIPPED 2026-10-06
+- **What.** `_mangal_dosha` moved, unchanged, from inside `get_compatibility` to module level in
+  `astrology/compute_match.py`, so `scripts/dosha_prevalence.py` measures **the function the tab calls** on
+  the same 5,000 sampled births (no extra rng draws, so every earlier figure reproduced exactly). Stored under
+  `compatibility.mangal` in `dosha_prevalence.json`; `get_compatibility` returns `prevalence_percent` +
+  `uncancelled_percent` in `mangal_dosha`; the Mangal tab shows "about N of every 100 charts are Manglik,
+  because Mars is counted from the Lagna, the Moon and Venus. About M in 100 have it with no cancellation".
+- **Measured: 88.9%** Manglik, **50.8%** with no cancellation listed. Cross-check: 6 of 12 houses from each
+  of three references → 1−(½)³ = 87.5% if independent. The Birth Chart's `dosha.manglik` is a different rule
+  (42.3%), which the Help answer now explains so the two tabs disagreeing isn't a surprise.
+- **New owner call** logged in §82.1: keep this rule (now labelled) or narrow it. Not changed unasked;
+  a match-making verdict is a bigger thing to move than a single-chart line.
+- **Also:** Hindi for the Mangal card's labels (`compat.mangal.*` had none) and the Mars sign now goes through
+  `ln()`. The verdict sentence and the cancellation reasons are still English backend f-strings (same class
+  as the raja-yoga labels in §82.3).
+- **Tests.** `test_dosha_prevalence.py::test_compatibility_mangal_carries_its_own_measured_figure` — API value
+  == stored value; stored figure in 82–94% (the probability argument) and uncancelled < total. Backend
+  golden/pitru/prevalence green; frontend 525/525 incl. the page harness; live API returned 88.9/50.8 after
+  a backend restart. Not browser-driven (the tab needs two partner profiles).
+- **Help/FAQ:** `featCompatibility` says the Mangal tab's rule makes ~9 in 10 Manglik and why it differs from
+  the Birth Chart. **Docs:** FEATURES.md Compatibility line.

@@ -10,6 +10,60 @@ from .engine import *  # noqa: F401,F403  (constants + helpers the bodies use)
 AstrologyCompute = None
 
 
+def _mangal_dosha(pp):
+    """Kuja / Mangal (Manglik) dosha with cancellation nuances. Mars in
+    houses 1/2/4/7/8/12 counted from the Lagna, the Moon and Venus flags
+    the dosha; classical parihara (own/exalt sign, sign-specific house
+    exceptions, benefic conjunction) softens or cancels it.
+
+    Module level so scripts/dosha_prevalence.py measures the very function the
+    Compatibility tab uses (§83.3) — `manglik` stays True when cancellations apply."""
+    signs = {pid: s for pid, (s, _l) in pp[1:] if pid in PLANET_NAMES}
+    lagna = pp[0][1][0]
+    mars_s = signs.get(2)
+    refs = {"Lagna": lagna, "Moon": signs.get(1), "Venus": signs.get(5)}
+    dosha_houses = {1, 2, 4, 7, 8, 12}
+    hits = {}
+    for name, rs in refs.items():
+        if rs is None or mars_s is None:
+            continue
+        h = ((mars_s - rs) % 12) + 1
+        if h in dosha_houses:
+            hits[name] = h
+    cancellations = []
+    if mars_s in (0, 7):
+        cancellations.append(f"Mars is in its own sign ({ZODIAC_NAMES[mars_s]}).")
+    if mars_s == 9:
+        cancellations.append("Mars is exalted in Capricorn.")
+    # Sign-specific house exceptions (traditional parihara).
+    exceptions = {1: {0}, 2: {2, 5}, 4: {0, 7}, 7: {3, 9}, 8: {8, 11}, 12: {1, 6}}
+    for name, h in hits.items():
+        if mars_s in exceptions.get(h, set()):
+            cancellations.append(
+                f"Mars in the {h}th from {name} sits in {ZODIAC_NAMES[mars_s]} — a classical exception.")
+    if signs.get(4) is not None and signs.get(4) == mars_s:
+        cancellations.append("Jupiter is conjunct Mars, tempering the dosha.")
+    return {"manglik": len(hits) > 0,
+            "mars_sign": ZODIAC_NAMES[mars_s] if mars_s is not None else "—",
+            "from": hits, "cancellations": cancellations}
+
+
+
+def _load_mangal_prevalence() -> Dict:
+    """The Compatibility tab's Mangal figures from dosha_prevalence.json, or {}."""
+    import json as _json
+    import os as _os
+    path = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))),
+                         "dosha_prevalence.json")
+    try:
+        with open(path) as f:
+            return _json.load(f).get("compatibility", {}).get("mangal", {})
+    except Exception:
+        return {}
+
+
+_MANGAL_PREVALENCE = _load_mangal_prevalence()
+
 class MatchMixin:
 
     @staticmethod
@@ -51,40 +105,6 @@ class MatchMixin:
             absolute_longitude = moon_rasi * 30.0 + moon_long
             nak, pada = drik.nakshatra_pada(absolute_longitude)[:2]
             return nak, pada, pp
-
-        def _mangal_dosha(pp):
-            """Kuja / Mangal (Manglik) dosha with cancellation nuances. Mars in
-            houses 1/2/4/7/8/12 counted from the Lagna, the Moon and Venus flags
-            the dosha; classical parihara (own/exalt sign, sign-specific house
-            exceptions, benefic conjunction) softens or cancels it."""
-            signs = {pid: s for pid, (s, _l) in pp[1:] if pid in PLANET_NAMES}
-            lagna = pp[0][1][0]
-            mars_s = signs.get(2)
-            refs = {"Lagna": lagna, "Moon": signs.get(1), "Venus": signs.get(5)}
-            dosha_houses = {1, 2, 4, 7, 8, 12}
-            hits = {}
-            for name, rs in refs.items():
-                if rs is None or mars_s is None:
-                    continue
-                h = ((mars_s - rs) % 12) + 1
-                if h in dosha_houses:
-                    hits[name] = h
-            cancellations = []
-            if mars_s in (0, 7):
-                cancellations.append(f"Mars is in its own sign ({ZODIAC_NAMES[mars_s]}).")
-            if mars_s == 9:
-                cancellations.append("Mars is exalted in Capricorn.")
-            # Sign-specific house exceptions (traditional parihara).
-            exceptions = {1: {0}, 2: {2, 5}, 4: {0, 7}, 7: {3, 9}, 8: {8, 11}, 12: {1, 6}}
-            for name, h in hits.items():
-                if mars_s in exceptions.get(h, set()):
-                    cancellations.append(
-                        f"Mars in the {h}th from {name} sits in {ZODIAC_NAMES[mars_s]} — a classical exception.")
-            if signs.get(4) is not None and signs.get(4) == mars_s:
-                cancellations.append("Jupiter is conjunct Mars, tempering the dosha.")
-            return {"manglik": len(hits) > 0,
-                    "mars_sign": ZODIAC_NAMES[mars_s] if mars_s is not None else "—",
-                    "from": hits, "cancellations": cancellations}
 
         try:
             boy_nak, boy_pada, boy_pp = _person_chart(
@@ -177,7 +197,13 @@ class MatchMixin:
                 "boy": {"nakshatra": nakshatra_names[boy_nak - 1], "pada": boy_pada},
                 "girl": {"nakshatra": nakshatra_names[girl_nak - 1], "pada": girl_pada},
                 "dashakoota": {"poruthams": dashakoota, "score": dashakoota_score, "max": 10},
-                "mangal_dosha": {"boy": boy_mangal, "girl": girl_mangal, "verdict": mangal_verdict},
+                "mangal_dosha": {
+                    "boy": boy_mangal, "girl": girl_mangal, "verdict": mangal_verdict,
+                    # How common THIS rule is (§83.3) — measured by
+                    # scripts/dosha_prevalence.py with _mangal_dosha itself.
+                    "prevalence_percent": _MANGAL_PREVALENCE.get("percent"),
+                    "uncancelled_percent": _MANGAL_PREVALENCE.get("uncancelled_percent"),
+                },
             }
         except Exception as e:
             print(f"Compatibility calculation error: {e}")
