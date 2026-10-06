@@ -191,7 +191,7 @@ PyJHora. The stack also builds and runs under **Podman** (`podman compose up --b
 | Suite | Run | What it covers |
 | --- | --- | --- |
 | Backend | `./dev.sh test` (or `cd backend && venv/bin/python -m pytest tests`) | ~1,170 tests: golden chart values vs Jagannatha Hora, endpoints (main-thread ASGI client, no Mongo), registries, the claim checker, prompts |
-| Frontend | `./dev.sh test web` (or `CI=true npx react-scripts test --watchAll=false`) | ~500 tests: config/registry modules, **every page mounted** (`src/pages/pages.smoke.test.js`), chart cell placement (`src/components/chartPlacement.test.js`) |
+| Frontend | `./dev.sh test web` (or `CI=true npx react-scripts test --watchAll=false`) | ~580 tests: config/registry modules, **every page mounted** (down / rejected / realistic) (`src/pages/pages.smoke.test.js`), chart cell placement (`src/components/chartPlacement.test.js`) |
 | Engine | `./dev.sh test engine` | PyJHora's own ~8,000 (slow; manual) |
 | CI | `.github/workflows/web-ci.yml` | backend + frontend (format, lint, tests) on every push/PR touching `web/` or `src/jhora/`; engine via manual dispatch |
 
@@ -202,6 +202,16 @@ on requests; every hub member must also render its hub strip. Traps it documents
 wipes `jest.fn` implementations between tests (stubs are plain functions); context stubs must be
 *stable* objects or effects that depend on them re-run forever; `react-markdown` is ESM-only, so the
 `Markdown` wrapper is stubbed.
+
+A third mode, **realistic** (§83.7), mounts every page against what the routes really send: the *real*
+`services/api.js` functions run (URLs, params, interceptors) with axios's adapter and `fetch` answering
+from `src/pages/__fixtures__/realistic.json` — 47 endpoints recorded from the running app for the owner's
+chart by `frontend/scripts/record_page_fixtures.py` (reads the harness's own route list and profile;
+skips AI, auth, the user's records and the LLM setup). Unrecorded paths get the 400. Re-record when a
+payload changes shape. Two things make it work: `package.json` `"jest"` maps `axios` to its CJS build
+(CRA's Jest doesn't transform axios's ESM — before the mapping, every realistic call threw and the pages
+swallowed it, so the mode "passed" without serving anything), and the `realistic mode is real` test fails
+unless the Birth Chart page is answered from the recordings and shows the recorded degrees.
 
 **The chart test** renders a chart whose `house` fields are deliberately wrong for their signs: a renderer
 that reads `house` instead of `sign_num` (the §65/§66 bug) fails it. Cells carry `data-house`/`data-sign`.

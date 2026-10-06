@@ -15,6 +15,15 @@
  * nothing in it" mode was tried first and dropped: the routes never send one
  * (`status != success` becomes a 4xx), so the crashes it found were the stub's.
  *
+ * A third mode (§83.7) mounts every page against what the routes really send:
+ *
+ *   • "realistic" — the REAL service functions run (so URLs, params and the
+ *                  axios interceptors are exercised), with axios's adapter and
+ *                  `fetch` answering from __fixtures__/realistic.json: responses
+ *                  recorded from the running app for the owner's chart by
+ *                  scripts/record_page_fixtures.py. A path with no recording
+ *                  (AI calls, the user's own records) gets the 400 above.
+ *
  * Pages are discovered from this directory, not listed, so a new page is covered
  * the moment it exists. The contexts are stubbed with a signed-in user, the
  * owner's profile selected and Everything mode on, so the advanced pages render
@@ -31,8 +40,19 @@ import { FEATURES, hubForPath } from "../config/features";
 
 // ── The stubbed world ───────────────────────────────────────────────────────
 
-// "down" | "rejected" — read at call time by the API stub below.
+// "down" | "rejected" | "realistic" — read at call time by the API stub below.
 let mockApiMode = "down";
+// Recorded responses keyed "METHOD /path" (see the header comment).
+const mockFixtures = require("./__fixtures__/realistic.json").responses;
+// How many requests a realistic mount answered from the recordings — a mode that
+// silently fell back to failures would otherwise pass every page (it did, until
+// axios's ESM build was mapped to its CJS one in package.json "jest").
+let mockFixtureHits = 0;
+const mockPathOf = (url) => {
+  const path = String(url || "").split("?")[0];
+  const at = path.indexOf("/api/");
+  return at >= 0 ? path.slice(at) : path.replace(/^https?:\/\/[^/]+/, "");
+};
 // A page that refetches on every state change it causes never stops calling an
 // instant stub, and the test would hang draining it. Past this many calls in one
 // mount the stub stops answering and records which method looped, so the hang
@@ -68,6 +88,10 @@ jest.mock("../services/api", () => {
       {
         get: (_, key) => {
           if (key === "then" || typeof key === "symbol") return undefined;
+          if (mockApiMode === "realistic") {
+            const svc = label === "api" ? realApi().default : realApi()[label];
+            if (svc && typeof svc[key] === "function") return svc[key];
+          }
           if (!fns[key]) fns[key] = () => reply(`${label}.${String(key)}`);
           return fns[key];
         },
@@ -75,6 +99,40 @@ jest.mock("../services/api", () => {
     );
   };
   const streamStub = () => ({ cancel: () => {}, done: reply("stream").catch(() => {}) });
+
+  // "realistic": the real api module, its adapter swapped for the recordings.
+  // Loaded on first use so the failure modes never touch it.
+  let real = null;
+  const realApi = () => {
+    if (real) return real;
+    real = jest.requireActual("../services/api");
+    real.default.defaults.adapter = (config) => {
+      mockCalls += 1;
+      if (mockCalls > mockCallLimit) {
+        mockLoop = mockLoop || `${config.method} ${config.url}`;
+        return new Promise(() => {});
+      }
+      const key = `${String(config.method || "get").toUpperCase()} ${mockPathOf(config.url)}`;
+      if (key in mockFixtures) {
+        mockFixtureHits += 1;
+        return Promise.resolve({
+          data: JSON.parse(JSON.stringify(mockFixtures[key])),
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          config,
+        });
+      }
+      return Promise.reject(
+        Object.assign(new Error("Request failed with status code 400"), {
+          config,
+          isAxiosError: true,
+          response: { status: 400, data: { detail: "Calculation failed" }, headers: {}, config },
+        })
+      );
+    };
+    return real;
+  };
   const named = {
     __esModule: true,
     default: service("api"),
@@ -209,11 +267,24 @@ jest.mock("../components/Markdown", () => ({
 beforeAll(() => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   // Pages that fetch directly (map picker, almanac) go through the same modes.
-  global.fetch = () => {
+  global.fetch = (input, init) => {
     mockCalls += 1;
     if (mockCalls > mockCallLimit) {
       mockLoop = mockLoop || "fetch";
       return new Promise(() => {});
+    }
+    if (mockApiMode === "realistic") {
+      const key = `${String(init?.method || "GET").toUpperCase()} ${mockPathOf(input?.url || input)}`;
+      if (key in mockFixtures) {
+        mockFixtureHits += 1;
+        const body = mockFixtures[key];
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve(JSON.parse(JSON.stringify(body))),
+          text: () => Promise.resolve(JSON.stringify(body)),
+        });
+      }
     }
     return mockApiMode === "down"
       ? Promise.reject(new TypeError("Failed to fetch"))
@@ -377,7 +448,7 @@ describe("every page mounts", () => {
     FEATURES.forEach((f) => expect(mounted).toContain(f.path));
   });
 
-  describe.each(["down", "rejected"])("with the API %s", (mode) => {
+  describe.each(["down", "rejected", "realistic"])("with the API %s", (mode) => {
     it.each(CASES.map((c) => [c.name, c]))("%s", async (_name, { C, name }) => {
       mockApiMode = mode;
       mockCalls = 0;
@@ -395,6 +466,29 @@ describe("every page mounts", () => {
         if (view) view.unmount();
       }
     });
+  });
+});
+
+// The realistic mode is only worth its name if the recordings are what the pages
+// actually got: a chart page must be answered from them, and must render content
+// rather than the failure path the other two modes already cover.
+describe("realistic mode is real", () => {
+  it("answers the birth chart page from the recordings", async () => {
+    mockApiMode = "realistic";
+    mockCalls = 0;
+    mockLoop = null;
+    mockFixtureHits = 0;
+    const { C } = CASES.find((c) => c.name === "BirthChartPage");
+    const view = await mount(C, "/birth-chart");
+    try {
+      expect(mockFixtureHits).toBeGreaterThanOrEqual(3);
+      // The recorded chart must reach the screen: the owner's Lagna at 25.1°
+      // and Jupiter at 22.9° (houses are labelled by number, not sign name).
+      expect(view.host.textContent).toMatch(/As\s*25\.1°/);
+      expect(view.host.textContent).toMatch(/Ju\s*22\.9°/);
+    } finally {
+      view.unmount();
+    }
   });
 });
 

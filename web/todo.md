@@ -31,7 +31,7 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 | §82.3 | Translation backlog — §81 screens ✅ (§83.2); left: Hindi Help answers (~190), raja-yoga/panchanga/koota names | P2 |
 | §82.1 | **New:** Compatibility's Mangal rule flags 88.9% of charts — keep (now labelled) or narrow? | 🔴 owner call |
 | §82.4 | Mangal Dosha prevalence on Compatibility ✅ (§83.3); more Topic Reading topics ✅ (§83.4) | ✅ |
-| §82.5 | Hardening: in-process rate limit, forwarded-IP trust, beacon inflation, realistic-payload harness | P3 |
+| §82.5 | Hardening: in-process rate limit, forwarded-IP trust, beacon inflation (realistic-payload harness ✅ §83.7) | P3 |
 
 Product docs are in [`docs/`](docs/) — start at [`README.md`](README.md). A ready-to-paste prompt for
 picking this list up in a fresh session is [`docs/NEXT_WORK_PROMPT.md`](docs/NEXT_WORK_PROMPT.md).
@@ -8678,7 +8678,7 @@ up directly. Each item names where the detail lives.
       origin is ever exposed, trust only Cloudflare's ranges.
 - [ ] **Funnel beacons can be inflated** by anyone posting `landing_view` (rate-limited, counts only — no
       data risk). If the counts start to matter, sample or dedupe by session.
-- [ ] **Page harness tests failure modes only** (§80.1). A "realistic payload" mode (recorded fixtures per
+- [x] ✅ **Done 2026-10-06 (§83.7).** **Page harness tests failure modes only** (§80.1). A "realistic payload" mode (recorded fixtures per
       endpoint) would catch a page that crashes on a real-but-unusual response — the empty-`{}` mode was
       dropped because the routes never send that shape.
 
@@ -8806,3 +8806,22 @@ green on 798fb4f.
   render; form at 1280/1024/390px has no overlap and no horizontal scroll.
 - **Help/FAQ:** `languageAndTheme` mentions the front page's own language button; hi `tryWithoutAccount` now
   quotes the Hindi heading. **Docs:** FEATURES.md "Public landing page".
+### 83.7 The page harness mounts every page on real payloads (§82.5) — ✅ SHIPPED 2026-10-06
+- **What.** A third harness mode, `realistic`: the real `services/api.js` functions run, with axios's adapter
+  (and `fetch`) answering from `src/pages/__fixtures__/realistic.json` — 47 endpoints, 290 KB, recorded from
+  the running app for the owner's chart by `frontend/scripts/record_page_fixtures.py` (Playwright; reads the
+  harness's `KEY_BY_COMPONENT` and `mockProfile`, so the lists can't drift; skips AI, auth, per-user records
+  and `/api/llm` — the machine's own model list isn't chart data). Unrecorded paths get the 400.
+- **Trap 1 — the mode passed while doing nothing.** CRA's Jest doesn't transform axios's ESM build, so
+  `requireActual("../services/api")` threw on every call and pages swallowed it: 38 of 51 pages "passed".
+  Fix: `package.json` `"jest": {"moduleNameMapper": {"^axios$": "axios/dist/node/axios.cjs"}}`. Guard:
+  `realistic mode is real` requires ≥3 recorded answers on the Birth Chart page and the recorded degrees on
+  screen (As 25.1°, Ju 22.9° — houses are numbered, so "Taurus" never appears). Instrumented once: every
+  chart page is served its data; 0-hit pages are the expected ones (admin, history, journal, settings, and
+  pages that need input first — Compatibility, Muhurta, Prashna).
+- **Real bug it found:** `offlineCache.openDb` stored `Promise.reject(err)` in `dbPromise` when IndexedDB is
+  unavailable (private windows) with no handler attached — an "Uncaught (in promise)" in those browsers on the
+  first cached response. Now marked handled; later callers still see the rejection.
+- **Tests.** Harness 197 → 198 cases (+51 realistic mounts, +1 realness check); frontend 583/583, eslint and
+  prettier clean. Re-record when a route's payload changes shape (the recorder's docstring says how).
+- **Help/FAQ:** n/a — test infrastructure plus an invisible console-error fix. **Docs:** ARCHITECTURE.md testing.

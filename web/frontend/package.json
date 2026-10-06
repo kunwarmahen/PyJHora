@@ -66,5 +66,10 @@
   "devDependencies": {
     "prettier": "^3.9.1",
     "react-scripts": "5.0.1"
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^axios$": "axios/dist/node/axios.cjs"
+    }
   }
 }

@@ -50,6 +50,10 @@ const openDb = () => {
     // Private windows and locked-down browsers throw here. Stay off rather than
     // retrying on every request for the rest of the session.
     dbPromise = Promise.reject(err);
+    // Nobody awaits this copy until the next request, so without a handler the
+    // browser reports it as an uncaught rejection (§83.7 — found by the page
+    // harness's realistic mode). Later callers still see it reject.
+    dbPromise.catch(() => {});
     throw err;
   });
   return dbPromise;
