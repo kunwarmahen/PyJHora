@@ -31,9 +31,9 @@ def test_the_measurement_is_sane():
 
 
 def test_compatibility_mangal_carries_its_own_measured_figure(args1, args2):
-    """The Compatibility tab's Mangal rule is not the Birth Chart's (§83.3): it
-    counts Mars from the Lagna, Moon AND Venus, so it needs its own figure,
-    measured with compute_match._mangal_dosha — the function the tab calls."""
+    """The Compatibility tab's Mangal rule is not the Birth Chart's (§83.3/§84): it
+    needs its own figure, measured with compute_match._mangal_dosha — the
+    function the tab calls."""
     comp = A.get_compatibility(
         male_dob=args1["dob"], male_tob=args1["tob"], male_place=args1["place"],
         male_lat=args1["lat"], male_lon=args1["lon"], male_tz=args1["tz"],
@@ -43,9 +43,10 @@ def test_compatibility_mangal_carries_its_own_measured_figure(args1, args2):
     md = comp["mangal_dosha"]
     stored = json.load(open(DATA))["compatibility"]["mangal"]
     assert md["prevalence_percent"] == stored["percent"]
-    assert md["uncancelled_percent"] == stored["uncancelled_percent"]
-    # Mars sits in 6 of 12 houses from each of three references, so roughly
-    # 1 - (1/2)**3 = 87.5% of charts qualify; measured 88.9% (2026-10-06).
-    # The uncancelled share can only be smaller.
-    assert 82 <= stored["percent"] <= 94
-    assert 0 < stored["uncancelled_percent"] < stored["percent"]
+    assert md["placement_percent"] == stored["placement_percent"]
+    # Mars in 6 of 12 houses from the Lagna: the placement alone is ~50% by pure
+    # probability (measured 50.6%); cancellations can only bring Manglik below it
+    # (measured 31.0%, 2026-10-06). A figure near 89 means the old any-of-three
+    # rule came back.
+    assert abs(stored["placement_percent"] - 50) < 3
+    assert 20 <= stored["percent"] < stored["placement_percent"]

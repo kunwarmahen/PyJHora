@@ -29,7 +29,7 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 | §82.1 | Vite migration — the §68.3 blocker is gone; still optional | ⏸ owner: not now |
 | §82.2 | CI workflow has never run on GitHub — check the first run after a push | ✅ first run green (798fb4f) |
 | §82.3 | Translation backlog — §81 screens ✅ glossary ✅ landing ✅ (§83.2/5/6); left: Hindi Help answers (~190), compat verdict text, raja-yoga/panchanga/koota names | P2 |
-| §82.1 | **New:** Compatibility's Mangal rule flags 88.9% of charts — keep (now labelled) or narrow? | 🔴 owner call |
+| §82.1 | **New:** Compatibility's Mangal rule flags 88.9% of charts — keep (now labelled) or narrow? | ✅ narrowed → 31.0% (§84) |
 | §82.4 | Mangal Dosha prevalence on Compatibility ✅ (§83.3); more Topic Reading topics ✅ (§83.4) | ✅ |
 | §82.3 | **New:** file upstream — PyJHora `pitru_dosha` condition #2 tests Rahu, not Ketu | 🟡 optional |
 | §82.5 | Hardening: in-process rate limit, forwarded-IP trust, beacon inflation (realistic-payload harness ✅ §83.7) | P3 |
@@ -8641,7 +8641,7 @@ up directly. Each item names where the detail lives.
 - [ ] ⏸ **(owner 2026-10-06: not now)** **Vite migration** (§68 tail): declined 2026-09-10 partly because no component test would catch a
       build regression. §80's page harness now does — the blocker is gone; still optional.
 
-- [ ] 🔴 **(new 2026-10-06) Compatibility's Mangal rule flags 88.9% of charts** (§83.3). `_mangal_dosha` counts
+- [x] ✅ **Done 2026-10-06 (§84) — owner: fix it; now 31.0%.** **Compatibility's Mangal rule flags 88.9% of charts** (§83.3). `_mangal_dosha` counts
       Mars in houses 1/2/4/7/8/12 from the Lagna, the Moon *and* Venus, so ≈1−(½)³ of charts qualify; 50.8%
       have it with no cancellation listed. The tab now shows both figures. Keep as is, or narrow (e.g. from the
       Lagna only, or count only uncancelled cases as Manglik)? Re-run `scripts/dosha_prevalence.py` after.
@@ -8834,3 +8834,30 @@ green on 798fb4f.
 - **Tests.** Harness 197 → 198 cases (+51 realistic mounts, +1 realness check); frontend 583/583, eslint and
   prettier clean. Re-record when a route's payload changes shape (the recorder's docstring says how).
 - **Help/FAQ:** n/a — test infrastructure plus an invisible console-error fix. **Docs:** ARCHITECTURE.md testing.
+
+---
+
+## §84 Compatibility's Mangal dosha — from the Lagna, and cancellations cancel (owner ask 2026-10-06) — ✅ SHIPPED 2026-10-06
+
+Owner: "fix that compatibility rule" (the §83.3 finding that 88.9% of charts came out Manglik).
+
+- **Measured first** (same sampler as `scripts/dosha_prevalence.py`, seed 76, n=5000): any of Lagna/Moon/Venus
+  88.9%; Lagna only 50.6%; Lagna only with no cancellation 27.3% in the scratch run; 2+ of 3 references with no
+  cancellation 26.4%; all three 13.3%.
+- **Rule chosen** (`compute_match._mangal_dosha`): **Manglik = Mars in house 1/2/4/7/8/12 from the Lagna, with no
+  classical cancellation.** Cancellations: Mars in its own sign (Aries/Scorpio) or exalted (Capricorn), the
+  sign-specific exception for the house it occupies *from the Lagna*, or Jupiter conjunct Mars. The same houses
+  from the Moon and Venus are returned as `supporting` and shown as added weight, not as the verdict. Each
+  partner gets `status` = `manglik` | `cancelled` | `none`; the mutual-cancellation verdict now runs on real
+  Manglik flags.
+- **31.0%, not 27.3%:** the old cancellation list also counted Moon/Venus house exceptions; those no longer cancel
+  a Lagna placement. 31.0% comes from the app's own function and is what the tab shows, next to "Mars in a dosha
+  house from the Lagna in ~51 of 100" (`placement_percent`, replacing `uncancelled_percent`). Cross-check: 6 of
+  12 houses gives 50% by pure probability, measured 50.6%.
+- **Not touched:** the Birth Chart's Manglik (`dosha.manglik`, 42.3%) is still PyJHora's rule. The two tabs can
+  disagree, and the Help answer says so. Aligning them would be a separate call.
+- **Tests.** `tests/test_mangal_rule.py`: a Lagna placement makes Manglik; Moon/Venus alone are only supporting;
+  own sign, exaltation and Jupiter cancel; a Moon-house exception doesn't cancel a Lagna placement.
+  `test_dosha_prevalence.py`: API == stored figures, placement within 3 points of 50%, Manglik below placement
+  and ≥20% (a figure near 89 means the old rule is back).
+- **Help/FAQ:** `featCompatibility` states the rule in plain words (~3 in 10). **Docs:** FEATURES.md Compatibility.

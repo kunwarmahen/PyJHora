@@ -2,7 +2,7 @@
  "method": "Share of sampled birth moments where get_doshas reports the dosha present. Births uniform 1940-2015, uniform minute, 14 world cities, default ayanamsa.",
  "samples": 5000,
  "seed": 76,
- "computed": "2026-10-06",
+ "computed": "2026-10-07",
  "doshas": {
   "ganda_moola": {
    "name": "Ganda Moola Dosha",
@@ -40,8 +40,8 @@
  "compatibility": {
   "mangal": {
    "name": "Mangal (Kuja) Dosha \u2014 Compatibility tab",
-   "percent": 88.9,
-   "uncancelled_percent": 50.8
+   "percent": 31.0,
+   "placement_percent": 50.6
   }
  }
 }

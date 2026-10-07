@@ -622,7 +622,7 @@ export const CompatibilityPage = () => {
                         <p className="text-secondary" style={{ marginBottom: "var(--space-md)" }}>
                           {t("compat.mangal.common", {
                             n: Math.round(result.mangal_dosha.prevalence_percent),
-                            m: Math.round(result.mangal_dosha.uncancelled_percent),
+                            m: Math.round(result.mangal_dosha.placement_percent),
                           })}
                         </p>
                       )}
@@ -637,7 +637,9 @@ export const CompatibilityPage = () => {
                               <strong>{t("compat.mangal.status")}:</strong>{" "}
                               {m.manglik
                                 ? t("compat.mangal.manglik")
-                                : t("compat.mangal.notManglik")}{" "}
+                                : m.status === "cancelled"
+                                  ? t("compat.mangal.cancelled")
+                                  : t("compat.mangal.notManglik")}{" "}
                               ({t("compat.mangal.marsIn", { sign: ln(m.mars_sign, "rasi") })})
                             </p>
                             {Object.keys(m.from || {}).length > 0 && (
@@ -646,6 +648,15 @@ export const CompatibilityPage = () => {
                                 {Object.entries(m.from)
                                   .map(([ref, h]) => `${ref} (${h})`)
                                   .join(", ")}
+                              </p>
+                            )}
+                            {(m.supporting || []).length > 0 && (
+                              <p className="text-secondary">
+                                {t("compat.mangal.supporting", {
+                                  refs: m.supporting
+                                    .map((r) => t(`compat.mangal.ref.${r}`))
+                                    .join(", "),
+                                })}
                               </p>
                             )}
                             {(m.cancellations || []).length > 0 && (

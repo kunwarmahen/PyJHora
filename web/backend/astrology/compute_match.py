@@ -11,13 +11,25 @@ AstrologyCompute = None
 
 
 def _mangal_dosha(pp):
-    """Kuja / Mangal (Manglik) dosha with cancellation nuances. Mars in
-    houses 1/2/4/7/8/12 counted from the Lagna, the Moon and Venus flags
-    the dosha; classical parihara (own/exalt sign, sign-specific house
-    exceptions, benefic conjunction) softens or cancels it.
+    """Kuja / Mangal (Manglik) dosha for match-making (owner decision 2026-10-06,
+    todo.md §84).
+
+    **Manglik = Mars in house 1/2/4/7/8/12 from the Lagna, with no classical
+    cancellation.** The Lagna is the primary reference; the same houses counted
+    from the Moon and Venus are reported as *supporting* placements (they add
+    weight in the reading, but do not make a chart Manglik on their own).
+
+    Why: the earlier rule flagged Mars from the Lagna OR the Moon OR Venus and
+    ignored its own cancellations — 6 of 12 houses from each of three references
+    made 88.9% of charts "Manglik" (measured, §83.3), which told a couple nothing.
+    This rule measures 27.3% (scripts/dosha_prevalence.py).
+
+    Cancellations (parihara) that apply to the Lagna placement: Mars in its own
+    sign (Aries/Scorpio) or exalted (Capricorn), the sign-specific exception for
+    the house it occupies from the Lagna, or Jupiter conjunct Mars.
 
     Module level so scripts/dosha_prevalence.py measures the very function the
-    Compatibility tab uses (§83.3) — `manglik` stays True when cancellations apply."""
+    Compatibility tab uses."""
     signs = {pid: s for pid, (s, _l) in pp[1:] if pid in PLANET_NAMES}
     lagna = pp[0][1][0]
     mars_s = signs.get(2)
@@ -30,23 +42,29 @@ def _mangal_dosha(pp):
         h = ((mars_s - rs) % 12) + 1
         if h in dosha_houses:
             hits[name] = h
+    placement = "Lagna" in hits
     cancellations = []
-    if mars_s in (0, 7):
-        cancellations.append(f"Mars is in its own sign ({ZODIAC_NAMES[mars_s]}).")
-    if mars_s == 9:
-        cancellations.append("Mars is exalted in Capricorn.")
-    # Sign-specific house exceptions (traditional parihara).
-    exceptions = {1: {0}, 2: {2, 5}, 4: {0, 7}, 7: {3, 9}, 8: {8, 11}, 12: {1, 6}}
-    for name, h in hits.items():
+    if placement:
+        if mars_s in (0, 7):
+            cancellations.append(f"Mars is in its own sign ({ZODIAC_NAMES[mars_s]}).")
+        if mars_s == 9:
+            cancellations.append("Mars is exalted in Capricorn.")
+        # Sign-specific house exceptions (traditional parihara).
+        exceptions = {1: {0}, 2: {2, 5}, 4: {0, 7}, 7: {3, 9}, 8: {8, 11}, 12: {1, 6}}
+        h = hits["Lagna"]
         if mars_s in exceptions.get(h, set()):
             cancellations.append(
-                f"Mars in the {h}th from {name} sits in {ZODIAC_NAMES[mars_s]} — a classical exception.")
-    if signs.get(4) is not None and signs.get(4) == mars_s:
-        cancellations.append("Jupiter is conjunct Mars, tempering the dosha.")
-    return {"manglik": len(hits) > 0,
+                f"Mars in the {h}th from the Lagna sits in {ZODIAC_NAMES[mars_s]} — a classical exception.")
+        if signs.get(4) is not None and signs.get(4) == mars_s:
+            cancellations.append("Jupiter is conjunct Mars, cancelling the dosha.")
+    manglik = placement and not cancellations
+    status = "manglik" if manglik else ("cancelled" if placement else "none")
+    return {"manglik": manglik,
+            "status": status,
             "mars_sign": ZODIAC_NAMES[mars_s] if mars_s is not None else "—",
-            "from": hits, "cancellations": cancellations}
-
+            "from": hits,
+            "supporting": [n for n in ("Moon", "Venus") if n in hits],
+            "cancellations": cancellations}
 
 
 def _load_mangal_prevalence() -> Dict:
@@ -184,8 +202,8 @@ class MatchMixin:
                 mangal_verdict = "Both partners are Manglik — the dosha is traditionally considered mutually cancelled."
             elif boy_mangal["manglik"] or girl_mangal["manglik"]:
                 who = "The groom" if boy_mangal["manglik"] else "The bride"
-                mangal_verdict = (f"{who} is Manglik while the partner is not — "
-                                  "weigh the cancellations before concluding.")
+                mangal_verdict = (f"{who} is Manglik while the partner is not — traditionally a point "
+                                  "to weigh, alongside the rest of the match.")
             else:
                 mangal_verdict = "Neither partner is Manglik — no Kuja dosha to reconcile."
 
@@ -202,7 +220,7 @@ class MatchMixin:
                     # How common THIS rule is (§83.3) — measured by
                     # scripts/dosha_prevalence.py with _mangal_dosha itself.
                     "prevalence_percent": _MANGAL_PREVALENCE.get("percent"),
-                    "uncancelled_percent": _MANGAL_PREVALENCE.get("uncancelled_percent"),
+                    "placement_percent": _MANGAL_PREVALENCE.get("placement_percent"),
                 },
             }
         except Exception as e:

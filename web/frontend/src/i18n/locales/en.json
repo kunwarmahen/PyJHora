@@ -1442,7 +1442,13 @@
       "notManglik": "Not Manglik",
       "marsIn": "Mars in {{sign}}",
       "from": "Dosha from",
-      "common": "How common: by this rule about {{n}} of every 100 charts are Manglik, because Mars is counted from the Lagna, the Moon and Venus. About {{m}} in 100 have it with no cancellation listed."
+      "common": "How common: by this rule about {{n}} of every 100 charts are Manglik. Mars sits in a dosha house from the Lagna in about {{m}} of every 100, and a classical cancellation clears it in the rest.",
+      "cancelled": "Cancelled — Mars is in a dosha house from the Lagna, but a classical exception applies",
+      "supporting": "Mars is also in a dosha house from the {{refs}}. Traditionally this adds weight, but on its own it does not make a chart Manglik.",
+      "ref": {
+        "Moon": "Moon",
+        "Venus": "Venus"
+      }
     },
     "ws": {
       "gunaMilan": "Guna Milan",
@@ -2879,7 +2885,7 @@
       "featBirthChart": "Your chart and everything read directly from it, in tabs: the chart itself, your ascendant and birth star, the yogas and doshas that were found, and the day's panchanga for your birthplace. In Everything mode two more tabs appear: Aspects (which planets \"look at\" which houses) and Advanced, where you can draw any divisional chart, from D2 up to D60.",
       "featChakras": "Traditional diagrams — Sarvatobhadra, Kota, Kaala and Tripataki — that arrange stars and signs into grids and wheels to judge transits. Visual, old, and for the curious.",
       "featCompare": "Put two charts side by side and see how they differ. Unlike Compatibility this is not match-making — it is a neutral comparison, useful for family members or for understanding two people you know.",
-      "featCompatibility": "Traditional match-making between two charts. Guna Milan scores the Ashtakoot (the classic 36-point match), Dashakoota (the ten-factor South Indian porutham system) and the Mangal-dosha question. The Mangal tab counts Mars from the Lagna, the Moon and Venus, so by that rule most people (about 9 in 10) are Manglik. The tab says so, and lists any classical cancellations; the Birth Chart's Manglik check is a different, narrower rule, which is why the two can disagree. Two more tabs look past the score: 7th House sets out each person's house of partnership, its lord, the marriage significators (Venus and Jupiter) and the Upapada, and Timeline shows how the two people's dasha periods overlap, along with Saturn's pressure on each.",
+      "featCompatibility": "Traditional match-making between two charts. Guna Milan scores the Ashtakoot (the classic 36-point match), Dashakoota (the ten-factor South Indian porutham system) and the Mangal-dosha question. The Mangal tab calls a chart Manglik when Mars sits in the 1st, 2nd, 4th, 7th, 8th or 12th house from the Lagna and no classical cancellation applies (Mars in its own or exalted sign, a sign-specific exception, or Jupiter with Mars). That's about 3 charts in 10. The same houses counted from the Moon and Venus are shown as supporting detail. The Birth Chart's Manglik check uses a different rule, so the two can disagree. Two more tabs look past the score: 7th House sets out each person's house of partnership, its lord, the marriage significators (Venus and Jupiter) and the Upapada, and Timeline shows how the two people's dasha periods overlap, along with Saturn's pressure on each.",
       "featDasha": "Vedic astrology's timing system. Your life is divided into planetary periods that run for years, each with sub-periods inside it, so a chart's promises are tied to *when*. If you only learn one advanced idea, make it this one. Vimsottari is shown by default; the picker also has the other nakshatra systems (Yogini, Ashtottari and more), the sign-based dashas of the Jaimini school (Narayana, Chara, Sthira and others), Kalachakra, and Sudarshana Chakra, which reads the same period from the Lagna, Moon and Sun at once.",
       "featEphemeris": "A plain table of where the planets are on any given day — the raw astronomical data behind everything else.",
       "featFortnightly": "The same idea as Today, widened to the next two weeks — for planning rather than checking in.",

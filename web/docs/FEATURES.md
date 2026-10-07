@@ -91,8 +91,9 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
   Varshaphal annual chart),
   Compatibility — now a **marriage/relationship
   workspace** (tabbed: Guna Milan with side-by-side **D1 + D9** charts + Ashtakoot **+ Dashakoota
-  10-porutham + Mangal/Kuja-dosha with cancellation nuances** (with its measured prevalence — 88.9% of charts
-  by this three-reference rule, 50.8% with no cancellation; §83.3); a **7th-house deep-dive** for both
+  10-porutham + Mangal/Kuja-dosha with cancellation nuances** (Manglik = Mars in 1/2/4/7/8/12 from the **Lagna**
+  with no classical cancellation — 31.0% of charts, measured; Moon/Venus placements shown as supporting;
+  §84); a **7th-house deep-dive** for both
   partners — lord, occupants, Venus/Jupiter karakas, Upapada; and a **dasha-overlap timeline** with
   a shared Saturn/Sade-Sati outlook, plus a marriage-aware couple AI reading), an Advanced page
   (Ashtakavarga, Arudha padas, Ayu/longevity, planetary conditions, avasthas, friendships), and
