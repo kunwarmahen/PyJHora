@@ -170,6 +170,7 @@ const cacheOwner = () => {
 // tab pick up the same reading instead of starting over. Callers don't change.
 const DETACHABLE_AI =
   /^\/api\/astrology\/([a-z0-9-]+-analysis|predict|ask|quiz\/generate|quiz\/grade|rectify-birth-time\/(chat|explain|events\/explain)|life-report\/chapter)$/;
+export const AI_READING_SAVED_EVENT = "jyotir:ai-reading-saved";
 const AI_PENDING_KEY = "ai_pending_jobs";
 const AI_PENDING_MAX_AGE_MS = 6 * 60 * 60 * 1000; // the server keeps jobs no longer
 const AI_POLL_RETRY_DELAYS = [1000, 2000, 4000, 8000, 15000, 15000, 30000, 30000];
@@ -308,6 +309,16 @@ api.interceptors.response.use((response) => {
 
 api.interceptors.response.use((response) => {
   const config = response.config || {};
+  // An AI reading's handler saves it to history before it answers, so a page's
+  // "Recent readings" strip can reload now (components/RecentReadings.js listens).
+  if (
+    response.status === 200 &&
+    (config.method || "").toLowerCase() === "post" &&
+    DETACHABLE_AI.test(aiPath(config.url)) &&
+    typeof window !== "undefined"
+  ) {
+    window.dispatchEvent(new Event(AI_READING_SAVED_EVENT));
+  }
   if (response.status === 200 && offlineCache.isCacheable(config.method, config.url)) {
     // Fire and forget: a full disk must never fail a request that succeeded.
     offlineCache.put(offlineCache.cacheKey(config, cacheOwner()), response.data);

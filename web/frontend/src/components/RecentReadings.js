@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { History, ChevronDown, Trash2, User } from "lucide-react";
 import { useProfile } from "../contexts/ProfileContext";
-import { astrologyService } from "../services/api";
+import { astrologyService, AI_READING_SAVED_EVENT } from "../services/api";
 import { intlLocale } from "../utils/format";
 import { OutcomeControl } from "./OutcomeControl";
 import "../styles/Chat.css";
@@ -57,6 +57,14 @@ export const RecentReadings = ({ source, profileId, limit = 8 }) => {
     load();
     if (profiles.length === 0 && loadProfiles) loadProfiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load]);
+
+  // A reading generated on this page is saved before its response arrives; pick it
+  // up then, rather than only on the next visit (a first reading used to leave the
+  // panel hidden, as if nothing had been stored).
+  useEffect(() => {
+    window.addEventListener(AI_READING_SAVED_EVENT, load);
+    return () => window.removeEventListener(AI_READING_SAVED_EVENT, load);
   }, [load]);
 
   const profileName = (pid) => {
