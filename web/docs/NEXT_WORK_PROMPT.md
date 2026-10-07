@@ -8,13 +8,13 @@ Paste everything below the line into a new Claude Code session opened at the rep
 You're continuing work on **Jyotir AI**, a Vedic astrology web app in `web/` (FastAPI + MongoDB
 backend in `web/backend`, React/CRA frontend in `web/frontend`) built on the PyJHora engine in
 `src/jhora`. The owner wants the remaining open work done. Everything that's open is written down in
-**`web/todo.md`**: the "Open work" table near the top is the index, and **§82** has the detail for each
-item. Treat §82 as the source of truth, not this prompt.
+**`web/todo.md`**: the "Open work" table near the top is the index, and **§85** has the detail for each
+item. Treat §85 as the source of truth, not this prompt.
 
 ## Before you change anything
 
-1. Read the "Open work" table at the top of `web/todo.md`, then all of **§82**. Skim §79–§81 for the
-   most recent context (hubs, docs split, the page-mount test harness, newcomer onboarding).
+1. Read the "Open work" table at the top of `web/todo.md`, then all of **§85**. Skim §83–§84 for the
+   most recent context (narrowed Pitru and Mangal rules, Hindi rollout, realistic-payload page harness).
 2. Read `web/README.md` and `web/docs/ARCHITECTURE.md` (testing section especially).
 3. Anything touching translations: read `web/docs/I18N_DATA_LAYER_DESIGN.md` **first** — it records
    traps that aren't visible in the code (e.g. nakshatra lists only correspond by position).
@@ -23,24 +23,20 @@ item. Treat §82 as the source of truth, not this prompt.
 
 ## What to do, in this order
 
-1. **Ask the owner the four §82.1 decisions in one go** (AskUserQuestion), with a recommendation for
-   each:
-   - Pitru Dosha (fires for 88.8% of charts): keep, narrow, or hide?
-   - New screens are English-only: is that the steady state, or should they be translated (Hindi first)?
-   - The Hindi typo `म्रृगशीर्षा`: patch the upstream file, or add an override?
-   - Vite migration: still optional now that the page harness exists. Do it?
-
-   Don't start an item that depends on an answer before you have it.
-2. **§82.2 — CI.** Check whether `.github/workflows/web-ci.yml` has run (`gh run list`; if `gh` isn't installed, ask the owner to check the repo's Actions
-   tab). If it hasn't,
-   say so; don't push just to trigger it. Pushing is the owner's call. If it has run and failed, fix it.
-3. **§82.3 translations** and **§82.4 product gaps**, as far as the answers allow. Notes:
-   - For Mangal-dosha prevalence on Compatibility, *measure* it with the function that tab actually uses
-     (pattern: `web/backend/scripts/dosha_prevalence.py`). Never quote a figure from memory.
-   - New Topic Reading topics need a prompt entry in `llm/prompts.py` `_build_prediction_prompt` before
-     the page offers them.
-4. **§82.5 hardening**, if time remains. The realistic-payload mode for the page harness is the most
-   valuable of these.
+1. **Ask the owner the §85.1 call** (AskUserQuestion, with a recommendation): should the Birth Chart's
+   Manglik use the same rule as Compatibility's? Leave the two parked items (Hindi typo, Vite) parked
+   unless the owner raises them. Don't start dependent work before you have the answer.
+2. **CI.** Check that `web-ci` is green for the latest pushed commit: `gh run list`, or if `gh` isn't
+   installed, `curl -s https://api.github.com/repos/kunwarmahen/PyJHora/actions/runs?per_page=5`. Don't
+   push just to trigger it; pushing is the owner's call. If it failed, fix it.
+3. **§85.2 translation**, Hindi first. Start with the Help answers, since page hints quote them. Notes:
+   - Merge new keys with a script that only adds missing keys and fails on any `{{placeholder}}` set that
+     differs from English (pattern in todo.md §83.2). Use the file's existing vocabulary ("पन्ना" for page,
+     "दैनिक डाइजेस्ट" for digest) and check what the UI label a Help answer names actually says in Hindi.
+   - Compatibility verdict/cancellations need reason *keys* from the backend before they can be translated.
+4. **§85.3 product follow-ups.** For any number that reaches a user, *measure* it with the function the
+   page actually uses (pattern: `web/backend/scripts/dosha_prevalence.py`). Never quote a figure from memory.
+5. **§85.4 upkeep** as it comes up. **§85.5 hardening** only if its condition has become true.
 
 ## How to work here (owner's standing preferences)
 
@@ -50,7 +46,7 @@ item. Treat §82 as the source of truth, not this prompt.
   `.github/` paths only.
 - A change isn't done until the **Help/FAQ** says so (`frontend/src/config/help.js` +
   `help.q/a.*` in `en.json`), **`web/docs/FEATURES.md`** is updated, and **`web/todo.md`** has a
-  numbered section: what shipped, the traps, the tests. Tick the §82 items you finish and update the
+  numbered section: what shipped, the traps, the tests. Tick the §85 items you finish and update the
   index table at the top.
 - `web/docs/` is git-ignored except for an allow-list in `web/.gitignore`. A new doc must be added there,
   or it never reaches git.

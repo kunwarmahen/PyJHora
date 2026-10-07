@@ -23,16 +23,13 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 
 | § | Item | Status |
 |---|---|---|
-| §82.1 | Pitru Dosha fires for 88.8% of charts — keep, narrow or hide? | ✅ narrowed → 31.5% (§83.1) |
-| §82.1 | New screens are English-only — steady state or translate (hi first)? | ✅ decided: translate, hi first (§82.3) |
-| §82.1 | Hindi typo `म्रृगशीर्षा` — patch upstream file or override? | ⏸ owner: ignore for now |
-| §82.1 | Vite migration — the §68.3 blocker is gone; still optional | ⏸ owner: not now |
-| §82.2 | CI workflow has never run on GitHub — check the first run after a push | ✅ first run green (798fb4f) |
-| §82.3 | Translation backlog — §81 screens ✅ glossary ✅ landing ✅ (§83.2/5/6); left: Hindi Help answers (~190), compat verdict text, raja-yoga/panchanga/koota names | P2 |
-| §82.1 | **New:** Compatibility's Mangal rule flags 88.9% of charts — keep (now labelled) or narrow? | ✅ narrowed → 31.0% (§84) |
-| §82.4 | Mangal Dosha prevalence on Compatibility ✅ (§83.3); more Topic Reading topics ✅ (§83.4) | ✅ |
-| §82.3 | **New:** file upstream — PyJHora `pitru_dosha` condition #2 tests Rahu, not Ketu | 🟡 optional |
-| §82.5 | Hardening: in-process rate limit, forwarded-IP trust, beacon inflation (realistic-payload harness ✅ §83.7) | P3 |
+| §85.1 | Owner calls: align the Birth Chart's Manglik with Compatibility's? · Hindi typo `म्रृगशीर्षा` (parked) · Vite (parked) | 🔴 owner |
+| §85.2 | Translation: Hindi Help answers (~190), compat verdict text, raja-yoga/panchanga/koota names, rest of hi (1,230/2,898 keys), Sanskrit | P2 |
+| §85.3 | Product follow-ups: upstream Pitru bug report, AI-reading check of the new Topic Reading topics, Compatibility page in the browser | P2 |
+| §85.4 | Upkeep: re-record harness fixtures on payload changes; re-run dosha prevalence on any rule change | ongoing |
+| §85.5 | Hardening, only if conditions change: Redis rate limit, Cloudflare-only forwarded IPs, beacon dedupe | P3 |
+
+§82 (collected 2026-10-06) was worked through in §83–§84; §85 is what remains.
 
 Product docs are in [`docs/`](docs/) — start at [`README.md`](README.md). A ready-to-paste prompt for
 picking this list up in a fresh session is [`docs/NEXT_WORK_PROMPT.md`](docs/NEXT_WORK_PROMPT.md).
@@ -8619,7 +8616,7 @@ hint stays dismissed across reload.
 
 ---
 
-## §82 Open follow-ups — everything still to do, in one place (collected 2026-10-06; worked in §83) — 🔴 OPEN
+## §82 Open follow-ups — collected 2026-10-06 — ✅ WORKED THROUGH in §83–§84; what remains is in §85
 
 Gathered at the end of §79–§81 so nothing lives only in a chat or a commit message. The "Open work"
 index at the top of this file mirrors this list. Owner calls are marked; everything else can be picked
@@ -8861,3 +8858,52 @@ Owner: "fix that compatibility rule" (the §83.3 finding that 88.9% of charts ca
   `test_dosha_prevalence.py`: API == stored figures, placement within 3 points of 50%, Manglik below placement
   and ≥20% (a figure near 89 means the old rule is back).
 - **Help/FAQ:** `featCompatibility` states the rule in plain words (~3 in 10). **Docs:** FEATURES.md Compatibility.
+
+---
+
+## §85 Future work — everything still open after §83–§84 (captured 2026-10-06) — 🔴 OPEN
+
+The single list to pick up from. Each item says why it's open and where the detail lives. The "Open work"
+index at the top mirrors it. Paste-ready session prompt: `docs/NEXT_WORK_PROMPT.md`.
+
+### 85.1 Owner calls 🔴
+- [ ] 🔴 **Align the Birth Chart's Manglik with Compatibility's?** The Birth Chart still uses PyJHora's
+      `dosha.manglik` (42.3% of charts); Compatibility now uses our own rule, Mars from the Lagna with
+      cancellations (31.0%, §84). A reader can be "Manglik" on one tab and not on the other. The Help answer
+      says so, but one rule would be clearer. Options: keep both (they answer slightly different questions),
+      or make the Birth Chart use `_mangal_dosha`. Re-run `scripts/dosha_prevalence.py` after.
+- [ ] ⏸ **Hindi typo `म्रृगशीर्षा`** in `src/jhora/lang/list_values_hi.txt` — owner: ignore for now (I18N doc §4.5).
+- [ ] ⏸ **Vite migration** — owner: not now. The page harness (incl. realistic mode, §83.7) would catch a
+      build regression if it's ever taken up.
+
+### 85.2 Translation (P2) — owner decision: translate, Hindi first
+- [ ] **Hindi Help answers**: ~190 of ~200 `help.a.*`/`help.q.*` missing. Highest value: page hints quote the
+      opening of each page's Help answer, so most hints are English for a Hindi reader (§83.2).
+- [ ] **Compatibility verdict + cancellation reasons** are English f-strings in `compute_match` (§83.3/§84).
+      Needs key-based reasons (e.g. `own_sign`, `exalted`, `exception`, `jupiter`) the frontend translates.
+- [ ] **Still English by design** (I18N doc §5/§6.5): Kendra-Trikona raja-yoga labels (our f-strings),
+      panchanga limb values, Ashtakoot koota names.
+- [ ] **The rest of the app in Hindi**: hi has 1,230 of 2,898 UI keys (counted 2026-10-06). Biggest blocks:
+      settings (~165), rectify (~82), muhurta (~73), varshaphal (~63), learn (~56).
+- [ ] **Sanskrit**: UI keys fall back to English; engine text routes sa→hi. Authoring `sa` is deferred (I18N
+      doc §6.1); the hand-written Sanskrit is unreviewed (§6.2).
+
+### 85.3 Product follow-ups (P2)
+- [ ] **Report upstream:** PyJHora `dosha.pitru_dosha` condition #2 says "Ketu in the 4th" but tests planet id
+      7 (Rahu) (§83.1). The app no longer calls it.
+- [ ] **Exercise the new Topic Reading topics with a live model** (wealth, education, travel; §83.4). Check
+      that readings use the Hora Lagna / D24 as instructed and the claim checker stays quiet.
+- [ ] **Drive the Compatibility page in a browser** with two partner profiles (§83.3/§84 were checked via
+      tests and the live API only): status line, "cancelled", supporting Moon/Venus, prevalence line, in en + hi.
+
+### 85.4 Upkeep (ongoing)
+- [ ] **Re-record the page-harness fixtures** when a route's payload changes shape:
+      `frontend/scripts/record_page_fixtures.py` (§83.7; needs the app running and Playwright in a scratch venv).
+- [ ] **Re-run `scripts/dosha_prevalence.py`** after any dosha rule change. Tests pin Pitru 25–40%, compat
+      Mangal placement ≈50% and Manglik < placement.
+
+### 85.5 Hardening (P3) — only if the condition becomes true
+- [ ] **Scaled past one uvicorn worker** → move the anonymous rate limit (`ratelimit.public_check`) to Redis.
+- [ ] **Origin reachable without Cloudflare** → trust `CF-Connecting-IP`/`X-Forwarded-For` only from Cloudflare's
+      ranges (the global hourly cap is the floor until then).
+- [ ] **Funnel counts start to matter** → sample or dedupe `landing_view` beacons by session.
