@@ -110,9 +110,12 @@ export const PreviewForm = () => {
             </small>
           )}
         </div>
-        <button className="btn btn-primary" type="submit" disabled={!ready || loading}>
-          {loading ? t("firstLook.loading") : t("preview.submit")}
-        </button>
+        <div className="preview__submit">
+          <span aria-hidden="true">&nbsp;</span>
+          <button className="btn btn-primary" type="submit" disabled={!ready || loading}>
+            {loading ? t("firstLook.loading") : t("preview.submit")}
+          </button>
+        </div>
         <p className="preview__privacy">{t("preview.privacy")}</p>
       </form>
 

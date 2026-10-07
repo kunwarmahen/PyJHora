@@ -10,7 +10,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
-  align-items: end;
+  /* Top-align: the time and place columns grow below their inputs (the
+     "not sure" chip, the found/tip lines), so bottom-aligning staggered every
+     label and input to a different height. */
+  align-items: start;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -18,7 +21,8 @@
 }
 
 .preview__form label,
-.preview__place {
+.preview__place,
+.preview__submit {
   display: grid;
   gap: 6px;
   font-size: 0.85rem;
@@ -58,6 +62,25 @@
   border-style: solid;
   border-color: var(--accent);
   color: var(--accent-ink);
+}
+
+.preview__place .location-search-container {
+  margin: 0;
+}
+
+.preview__place .location-search-input-group {
+  margin-bottom: 8px;
+}
+
+.preview__place .location-search-input {
+  font-size: 1rem;
+  padding: 10px 12px;
+  border-width: 1px;
+}
+
+/* An empty label line puts the button on the same row as the inputs. */
+.preview__submit > span {
+  visibility: hidden;
 }
 
 .preview__place small {
