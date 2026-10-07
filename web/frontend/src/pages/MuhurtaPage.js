@@ -279,7 +279,8 @@ export const MuhurtaPage = () => {
 
   const windows = result?.best_windows || [];
   const days = result?.days || [];
-  const personName = selectedProfile?.birth_details?.name || t("muhurta.you");
+  const ownName = selectedProfile?.birth_details?.name;
+  const personName = ownName || t("muhurta.you");
   const basis = result?.personal_basis;
 
   return (
@@ -339,7 +340,10 @@ export const MuhurtaPage = () => {
                   checked={personalize}
                   onChange={(e) => setPersonalize(e.target.checked)}
                 />
-                <User size={14} /> {t("muhurta.personalize", { name: personName })}
+                <User size={14} />{" "}
+                {ownName
+                  ? t("muhurta.personalize", { name: ownName })
+                  : t("muhurta.personalizeYou")}
               </label>
             </div>
           </div>

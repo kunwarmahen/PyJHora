@@ -636,8 +636,12 @@ export const SarvatobhadraPage = () => {
                               lineHeight: 1.45,
                             }}
                           >
-                            <strong style={{ color: "var(--cosmic-indigo)" }}>{f.planet}</strong>{" "}
-                            <span style={{ color: "var(--text-muted)" }}>({f.planet_nature})</span>{" "}
+                            <strong style={{ color: "var(--cosmic-indigo)" }}>
+                              {ln(f.planet, "graha")}
+                            </strong>{" "}
+                            <span style={{ color: "var(--text-muted)" }}>
+                              ({t(`sbc.nature.${f.planet_nature}`, f.planet_nature)})
+                            </span>{" "}
                             {f.kind === "occupation" ? t("sbc.findOccupies") : t("sbc.findVedha")}{" "}
                             <strong style={{ color: "var(--saffron)" }}>{f.anchor_label}</strong> (
                             {f.anchor_name})

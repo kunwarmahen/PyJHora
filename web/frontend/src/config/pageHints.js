@@ -37,7 +37,8 @@ export const hintsEnabled = (mode, createdAt, now) =>
 export const MIN_HINT_CHARS = 60;
 export const firstSentence = (text) => {
   const s = String(text || "").trim();
-  const sentences = s.match(/[^.!?]+[.!?]+(\s|$)/g);
+  // "।" (danda) ends a Hindi sentence; without it a Hindi answer was one long "sentence".
+  const sentences = s.match(/[^.!?।]+[.!?।]+(\s|$)/g);
   if (!sentences) return s;
   let out = sentences[0].trim();
   if (out.length < MIN_HINT_CHARS && sentences[1]) out = `${out} ${sentences[1].trim()}`;

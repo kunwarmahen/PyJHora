@@ -44,20 +44,26 @@ def _mangal_dosha(pp):
         if h in dosha_houses:
             hits[name] = h
     placement = "Lagna" in hits
-    cancellations = []
+    # Each cancellation is recorded twice: English text (the AI and API readers)
+    # and a language-neutral code the frontend translates (todo.md §85.2).
+    cancellations, codes = [], []
     if placement:
         if mars_s in (0, 7):
             cancellations.append(f"Mars is in its own sign ({ZODIAC_NAMES[mars_s]}).")
+            codes.append({"code": "own_sign", "sign": ZODIAC_NAMES[mars_s]})
         if mars_s == 9:
             cancellations.append("Mars is exalted in Capricorn.")
+            codes.append({"code": "exalted", "sign": ZODIAC_NAMES[mars_s]})
         # Sign-specific house exceptions (traditional parihara).
         exceptions = {1: {0}, 2: {2, 5}, 4: {0, 7}, 7: {3, 9}, 8: {8, 11}, 12: {1, 6}}
         h = hits["Lagna"]
         if mars_s in exceptions.get(h, set()):
             cancellations.append(
                 f"Mars in the {h}th from the Lagna sits in {ZODIAC_NAMES[mars_s]} — a classical exception.")
+            codes.append({"code": "exception", "house": h, "sign": ZODIAC_NAMES[mars_s]})
         if signs.get(4) is not None and signs.get(4) == mars_s:
             cancellations.append("Jupiter is conjunct Mars, cancelling the dosha.")
+            codes.append({"code": "jupiter"})
     manglik = placement and not cancellations
     status = "manglik" if manglik else ("cancelled" if placement else "none")
     return {"manglik": manglik,
@@ -65,7 +71,8 @@ def _mangal_dosha(pp):
             "mars_sign": ZODIAC_NAMES[mars_s] if mars_s is not None else "—",
             "from": hits,
             "supporting": [n for n in ("Moon", "Venus") if n in hits],
-            "cancellations": cancellations}
+            "cancellations": cancellations,
+            "cancellation_codes": codes}
 
 
 def _load_mangal_prevalence() -> Dict:
@@ -199,13 +206,17 @@ class MatchMixin:
             # ── Mangal (Kuja) dosha for both, with cancellation nuances.
             boy_mangal = _mangal_dosha(boy_pp)
             girl_mangal = _mangal_dosha(girl_pp)
+            # verdict = English (AI/API); verdict_key = what the frontend translates.
             if boy_mangal["manglik"] and girl_mangal["manglik"]:
+                verdict_key = "both"
                 mangal_verdict = "Both partners are Manglik — the dosha is traditionally considered mutually cancelled."
             elif boy_mangal["manglik"] or girl_mangal["manglik"]:
+                verdict_key = "boy" if boy_mangal["manglik"] else "girl"
                 who = "The groom" if boy_mangal["manglik"] else "The bride"
                 mangal_verdict = (f"{who} is Manglik while the partner is not — traditionally a point "
                                   "to weigh, alongside the rest of the match.")
             else:
+                verdict_key = "neither"
                 mangal_verdict = "Neither partner is Manglik — no Kuja dosha to reconcile."
 
             return {
@@ -218,6 +229,7 @@ class MatchMixin:
                 "dashakoota": {"poruthams": dashakoota, "score": dashakoota_score, "max": 10},
                 "mangal_dosha": {
                     "boy": boy_mangal, "girl": girl_mangal, "verdict": mangal_verdict,
+                    "verdict_key": verdict_key,
                     # How common THIS rule is (§83.3) — measured by
                     # scripts/dosha_prevalence.py with _mangal_dosha itself.
                     "prevalence_percent": _MANGAL_PREVALENCE.get("percent"),

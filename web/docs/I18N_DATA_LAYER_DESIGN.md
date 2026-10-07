@@ -276,9 +276,11 @@ labels, panchanga limb values, and Ashtakoot koota names.
    cover them.
 6. **New-page UI strings are English-only**, falling back via `fallbackLng` — the standing
    pattern for every recent feature page. Steady state, or debt to burn down? — **TRANSLATE, HINDI FIRST
-   (owner, 2026-10-06).** The §81 screens went first (todo.md §83.2). Sanskrit UI keys still fall back to
-   **en**, not hi: i18next's `fallbackLng` is not the engine's sa→hi hop. Hindi Help answers are the
-   largest remaining block (~190 of ~200 missing); they also feed the page hints.
+   (owner, 2026-10-06).** The §81 screens went first (todo.md §83.2); **every UI key and Help answer
+   followed in §88**, and `frontend/src/i18n/hindiCoverage.test.js` now fails on an en key without its
+   Hindi. Sanskrit UI keys still fall back to **en**, not hi: i18next's `fallbackLng` is not the engine's
+   sa→hi hop. The Compatibility Mangal verdict and cancellations travel as keys (`verdict_key`,
+   `cancellation_codes`) the frontend translates — the pattern for any future backend-composed reason.
 
 ## 7. Commands
 

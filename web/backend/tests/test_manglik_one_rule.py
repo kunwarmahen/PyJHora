@@ -23,8 +23,10 @@ def test_birth_chart_manglik_agrees_with_compatibility():
 def test_description_names_the_house_and_the_cancellation():
     placed = {"from": {"Lagna": 7}, "mars_sign": "Libra", "cancellations": []}
     assert "Mars is in the 7th house from the Lagna, in Libra." in _manglik_description(placed, "en")
-    cancelled = dict(placed, cancellations=["Jupiter is conjunct Mars, cancelling the dosha."])
+    cancelled = dict(placed, cancellations=["Jupiter is conjunct Mars, cancelling the dosha."],
+                     cancellation_codes=[{"code": "jupiter"}])
     assert "Cancelled: Jupiter is conjunct Mars" in _manglik_description(cancelled, "en")
     hi = _manglik_description(cancelled, "hi")
-    assert "सातवें" in hi and "Libra" not in hi and "Jupiter" not in hi
+    assert "सातवें" in hi and "तुला" in hi and "गुरु" in hi
+    assert "Libra" not in hi and "Jupiter" not in hi
     assert "In this chart" not in _manglik_description({"from": {}, "cancellations": []}, "en")

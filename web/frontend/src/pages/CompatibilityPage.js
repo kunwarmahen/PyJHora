@@ -614,7 +614,13 @@ export const CompatibilityPage = () => {
                     <>
                       <h4 className="card-subhead">{t("compat.mangal.title")}</h4>
                       <p className="score-box__status" style={{ marginBottom: "var(--space-md)" }}>
-                        {result.mangal_dosha.verdict}
+                        {/* verdict_key is translated; verdict is the English the
+                            AI reads (and what older cached responses carry). */}
+                        {result.mangal_dosha.verdict_key
+                          ? t(`compat.mangal.verdict.${result.mangal_dosha.verdict_key}`, {
+                              name: result.mangal_dosha.verdict_key === "boy" ? nameA : nameB,
+                            })
+                          : result.mangal_dosha.verdict}
                       </p>
                       {/* How common this rule is (§83.3) — measured, like the
                           Birth Chart's dosha line, but for this tab's own rule. */}
@@ -646,7 +652,7 @@ export const CompatibilityPage = () => {
                               <p className="text-secondary">
                                 {t("compat.mangal.from")}:{" "}
                                 {Object.entries(m.from)
-                                  .map(([ref, h]) => `${ref} (${h})`)
+                                  .map(([ref, h]) => `${t(`compat.mangal.ref.${ref}`)} (${h})`)
                                   .join(", ")}
                               </p>
                             )}
@@ -659,13 +665,26 @@ export const CompatibilityPage = () => {
                                 })}
                               </p>
                             )}
-                            {(m.cancellations || []).length > 0 && (
-                              <ul className="detail-list">
-                                {m.cancellations.map((c, i) => (
-                                  <li key={i}>{c}</li>
-                                ))}
-                              </ul>
-                            )}
+                            {m.cancellation_codes
+                              ? m.cancellation_codes.length > 0 && (
+                                  <ul className="detail-list">
+                                    {m.cancellation_codes.map((c, i) => (
+                                      <li key={i}>
+                                        {t(`compat.mangal.cancel.${c.code}`, {
+                                          sign: ln(c.sign, "rasi"),
+                                          house: c.house,
+                                        })}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )
+                              : (m.cancellations || []).length > 0 && (
+                                  <ul className="detail-list">
+                                    {m.cancellations.map((c, i) => (
+                                      <li key={i}>{c}</li>
+                                    ))}
+                                  </ul>
+                                )}
                           </div>
                         ))}
                       </div>

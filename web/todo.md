@@ -24,7 +24,7 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 | § | Item | Status |
 |---|---|---|
 | §85.1 | Owner calls: Manglik alignment ✅ done (§86) · Hindi typo `म्रृगशीर्षा` (parked) · Vite (parked) | ⏸ parked |
-| §85.2 | Translation: Hindi Help answers (~190), compat verdict text, raja-yoga/panchanga/koota names, rest of hi (1,230/2,898 keys), Sanskrit | P2 |
+| §85.2 | Translation: Hindi UI + Help + compat verdict ✅ done (§88). Left: raja-yoga/panchanga/koota names (English by design), Sanskrit (deferred) | P2 |
 | §85.3 | Product follow-ups: upstream Pitru bug report, AI-reading check of the new Topic Reading topics | P2 |
 | §85.4 | Upkeep: re-record harness fixtures on payload changes; re-run dosha prevalence on any rule change | ongoing |
 | §85.5 | Hardening, only if conditions change: Redis rate limit, Cloudflare-only forwarded IPs, beacon dedupe | P3 |
@@ -8877,14 +8877,12 @@ index at the top mirrors it. Paste-ready session prompt: `docs/NEXT_WORK_PROMPT.
       build regression if it's ever taken up.
 
 ### 85.2 Translation (P2) — owner decision: translate, Hindi first
-- [ ] **Hindi Help answers**: ~190 of ~200 `help.a.*`/`help.q.*` missing. Highest value: page hints quote the
-      opening of each page's Help answer, so most hints are English for a Hindi reader (§83.2).
-- [ ] **Compatibility verdict + cancellation reasons** are English f-strings in `compute_match` (§83.3/§84).
-      Needs key-based reasons (e.g. `own_sign`, `exalted`, `exception`, `jupiter`) the frontend translates.
+- [x] ✅ **Hindi Help answers** — all 216 `help.*` strings (§88).
+- [x] ✅ **Compatibility verdict + cancellation reasons** — `verdict_key` + `cancellation_codes`, translated
+      in the frontend; the Birth Chart's Hindi Manglik line now names the real reasons (§88).
 - [ ] **Still English by design** (I18N doc §5/§6.5): Kendra-Trikona raja-yoga labels (our f-strings),
       panchanga limb values, Ashtakoot koota names.
-- [ ] **The rest of the app in Hindi**: hi has 1,230 of 2,898 UI keys (counted 2026-10-06). Biggest blocks:
-      settings (~165), rectify (~82), muhurta (~73), varshaphal (~63), learn (~56).
+- [x] ✅ **The rest of the app in Hindi** — every en key has a hi string; `i18n/hindiCoverage.test.js` keeps it so (§88).
 - [ ] **Sanskrit**: UI keys fall back to English; engine text routes sa→hi. Authoring `sa` is deferred (I18N
       doc §6.1); the hand-written Sanskrit is unreviewed (§6.2).
 
@@ -8966,4 +8964,45 @@ for them in the Settings → Calendar subscription too.
   shape, endpoints); `routes_snapshot.json` +2; help `calendarPeriods` (+ "rahu kalam" prose,
   "rahukaal"/"yamagandam" search). Dashboard search n/a — Settings is `navOnly` with no tile;
   Help/FAQ is the search path. No AI tool — the AI already sees these via the digest/panchanga.
+
+## §88 Hindi everywhere — UI, Help, and the Compatibility verdict (§85.2, 2026-10-06) — ✅ SHIPPED 2026-10-06
+
+### 88.1 Compatibility verdict + cancellations translate
+- `_mangal_dosha` returns `cancellation_codes` beside the English `cancellations` (one-for-one:
+  `own_sign`/`exalted`/`exception`/`jupiter`, with `sign`/`house`); `compute_match` adds `verdict_key`
+  (`both`/`boy`/`girl`/`neither`). The English stays for the AI and the API. The page translates
+  the keys (`compat.mangal.verdict.*`, `.cancel.*`) and falls back to the English when a cached
+  response predates them. The "Dosha from" line's references (Lagna/Moon/Venus) were English too.
+- Birth Chart: the Hindi Manglik description builds its reasons from the codes, so it now says *which*
+  cancellation applies, in Hindi, with the sign in Hindi (it used to say only "परिहार लागू है").
+- Tests: `tests/test_mangal_cancellation_codes.py` (every code fires, matches the English one-for-one, Hindi has
+  no Latin script); `test_manglik_one_rule.py` updated.
+
+### 88.2 Every UI key in Hindi
+- hi went from 1,230 of 2,898 keys to all of them (+1,734 strings including the 26 that were the English
+  copied over, e.g. the digest cautions block and `help.a.digestTaraBala`). Help: all 216 strings.
+- Vocabulary kept to what hi.json already used: डाइजेस्ट (digest), पन्ना (page), पाठ (reading), and the
+  nav labels for page names. Settings tab names in Help answers match the Settings tabs.
+- `i18n/hindiCoverage.test.js`: every en key has a hi string, none is the English copied over (bar a
+  short allow-list of strings identical in both), and placeholders match. **A new en key now needs its
+  Hindi in the same change.**
+- Hindi ordinals use i18next's ordinal plurals: hi has a `_many` category (6 → 6ठा) that en lacks, so
+  `muhurta.subtools.house_ordinal_many` exists only in hi.
+
+### 88.3 Bugs found while translating
+- **Page hints were the whole Help answer in Hindi**: `firstSentence` split on `.!?` only, never on the danda
+  `।`. Fixed and tested (`onboarding.test.js`).
+- Muhurta's no-name toggle read **"Score against your's chart"** in English (`{{name}}'s` with name = "your");
+  now `muhurta.personalizeYou`.
+- The Sarvatobhadra finding line printed the planet and benefic/malefic in English and was built from
+  fragments that don't fit Hindi word order; now `ln()` + `sbc.nature.*`, and the Hindi fragments end in a colon.
+- PlanetExplorer's "Ask AI" prefill localizes the planet and sign names (the reader's question; the chart
+  context sent with it stays canonical).
+- Help `languageAndTheme` (en + hi) no longer says Help is mostly English.
+
+### Still open (§85.2)
+- Kendra-Trikona raja-yoga labels, panchanga limb values and Ashtakoot koota names (English by design).
+  Strings the backend composes in English (e.g. `window_label`, Sarvatobhadra anchor labels) still show
+  inside Hindi sentences.
+- Sanskrit UI is deferred; the new Hindi is Claude-written and has not been reviewed by a native reader.
 

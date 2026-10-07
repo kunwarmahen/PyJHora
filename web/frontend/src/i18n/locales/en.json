@@ -183,6 +183,11 @@
     "findingsNone": "No graha is currently sitting on or facing your sensitive points — a calm, unremarkable window.",
     "findOccupies": "is sitting on your",
     "findVedha": "casts vedha (faces) your",
+    "nature": {
+      "benefic": "benefic",
+      "malefic": "malefic",
+      "neutral": "neutral"
+    },
     "vedhaNote": "Vedha here is the saamne (frontal) line — a graha pierces the cell directly facing it across the chakra. We also flag grahas sitting on a sensitive cell.",
     "legendAnchor": "Your sensitive point",
     "legendVedha": "Casts vedha on a point",
@@ -1453,7 +1458,20 @@
       "supporting": "Mars is also in a dosha house from the {{refs}}. Traditionally this adds weight, but on its own it does not make a chart Manglik.",
       "ref": {
         "Moon": "Moon",
-        "Venus": "Venus"
+        "Venus": "Venus",
+        "Lagna": "Lagna"
+      },
+      "verdict": {
+        "both": "Both partners are Manglik — the dosha is traditionally considered mutually cancelled.",
+        "boy": "{{name}} is Manglik while the partner is not — traditionally a point to weigh, alongside the rest of the match.",
+        "girl": "{{name}} is Manglik while the partner is not — traditionally a point to weigh, alongside the rest of the match.",
+        "neither": "Neither partner is Manglik — no Kuja dosha to reconcile."
+      },
+      "cancel": {
+        "own_sign": "Mars is in its own sign ({{sign}}).",
+        "exalted": "Mars is exalted in {{sign}}.",
+        "exception": "Mars in house {{house}} from the Lagna sits in {{sign}} — a classical exception.",
+        "jupiter": "Jupiter is conjunct Mars, cancelling the dosha."
       }
     },
     "ws": {
@@ -1890,9 +1908,10 @@
     "find": "Find times",
     "locationNote": "Computed for {{place}} (your profile's place).",
     "personalize": "Score against {{name}}'s chart",
+    "personalizeYou": "Score against your chart",
     "personalizeOn": "Days and windows are also scored against your birth chart.",
     "personalizeOff": "Almanac only — the same answer for everyone at this place.",
-    "you": "your",
+    "you": "you",
     "basis": "Scored for {{name}} — birth star {{star}}, natal Moon in {{moon}}, lagna {{lagna}}. Each day also carries Tara Bala, Chandra Bala and the running dasha lords' gochara; each window its lagna shuddhi.",
     "shuddhi": {
       "strong": "Lagna: strong",
@@ -2958,7 +2977,7 @@
       "accessibility": "Yes. Every page starts with a “Skip to content” link so you are not walked through the whole menu first, the menu closes with Escape, and the tab bars move with the arrow keys. The chart itself is described out loud rather than announced as a picture — a screen reader reads the ascendant and then each sign or house with what is sitting in it. If you find something that cannot be reached from the keyboard, that is a bug worth reporting.",
       "aiCitations": "From a small library of out-of-copyright translations kept with the app — at present the 1885 English translation of Varaha Mihira's *Brihat Jataka*, plus a set of plainly-stated general principles. When a reading cites a chapter and verse, that verse is really in the book; the app never invents a reference. The general principles are labelled “General principle” rather than given a false verse number, so you can always tell which is which. The library is deliberately small, so many readings will have nothing to cite — those simply argue from the chart.",
       "featNakshatraGochara": "On the Transits page, under the main table. A sign is 30 degrees wide and a planet can sit in one for years; a nakshatra is 13°20', so it says far more about timing. This shows which of the 27 stars each planet is currently crossing, the dates it entered and leaves (including when a retrograde planet turns back into the star behind it), and — the part that is about you — the tarabala: that star counted from your own birth star, which gives one of nine classical results from Sampat (gain) to Vadha (avoid anything irreversible). Each star's deity and symbol are shown too, but labelled as imagery: the classical texts give no table of results for 'planet X in star Y', so nothing here pretends one exists.",
-      "languageAndTheme": "Yes. Settings → General → Language switches between English, Hindi and Sanskrit (Sanskrit is still a work in progress). Hindi doesn't cover every screen yet: sign, star and planet names, the main pages and the newcomer screens (Start here, the welcome steps, the checklist) are translated, while some longer explanations, including many Help answers, still appear in English. The front page has its own English / हिन्दी button beside the theme switch, so you can read it in Hindi before signing in. The theme — Light, Dark, or System to follow your device — is in the same place, and the sun/moon button in the page header flips it in one tap. Printed reports always come out light.",
+      "languageAndTheme": "Yes. Settings → General → Language switches between English, Hindi and Sanskrit (Sanskrit is still a work in progress). Sign, star and planet names, the pages, the newcomer screens and the Help answers are in Hindi; a few classical names (such as the panchanga limb values and the Ashtakoot kootas) and parts of some specialist screens still appear in English. The front page has its own English / हिन्दी button beside the theme switch, so you can read it in Hindi before signing in. The theme — Light, Dark, or System to follow your device — is in the same place, and the sun/moon button in the page header flips it in one tap. Printed reports always come out light.",
       "whatIsVarga": "A divisional chart, or varga, splits each sign into smaller slices and rebuilds the chart from them, to magnify one area of life. The Navamsa (D9) is the best known — marriage and inner strength — and the Dasamsa (D10) is read for career. Others cover siblings (D3), children (D7), parents (D12), and so on up to the very fine D60. They're all on the Birth Chart page under the Advanced tab; pick one from the list to draw it.",
       "whatIsAyanamsa": "Vedic astrology measures the zodiac against the fixed stars, and the stars have slowly drifted from where Western astrology's zodiac starts. The ayanamsa is how big that drift is taken to be, and different schools use slightly different values — which is why two apps can put a planet a degree apart, or even in a different nakshatra. This app defaults to True Chitra (a precise form of Lahiri) with mean Rahu and Ketu, which matches Jagannatha Hora. You can pick another — plain Lahiri, KP, Raman and others — in Settings → General → Ayanamsa.",
       "calendarFeed": "Yes. Settings → Calendar gives you a subscription link for Google Calendar, Apple Calendar or Outlook, carrying your chart's upcoming events — bhukti changes, Sade Sati boundaries, your solar return, slow-planet ingresses and eclipses on your birth stars. It refreshes by itself about twice a day. Anyone who has the link can see the feed (calendar apps can't log in), so keep it private.",

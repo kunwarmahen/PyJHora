@@ -14,6 +14,7 @@ import {
 import { firstSentence, hintIdFor, hintPath, hintsEnabled, parseSeen } from "./pageHints";
 import { sanitizeHandoff } from "./previewHandoff";
 import en from "../i18n/locales/en.json";
+import hi from "../i18n/locales/hi.json";
 
 const NOW = new Date("2026-10-06T12:00:00Z");
 const daysAgo = (n) => new Date(NOW.getTime() - n * 86400000).toISOString();
@@ -75,6 +76,16 @@ describe("page hints", () => {
     const id = hintIdFor("/start");
     expect(id).toBe("featStart");
     expect(firstSentence(en.help.a[id]).length).toBeGreaterThan(10);
+  });
+
+  it("ends a Hindi sentence at the danda", () => {
+    const long =
+      "यह पहला वाक्य अपने-आप में संकेत बनने के लिए पर्याप्त लंबा है, इसलिए यहीं रुकता है।";
+    expect(firstSentence(`${long} दूसरा वाक्य।`)).toBe(long);
+    // A hint is at most two sentences, so any longer Hindi answer is cut short.
+    Object.values(hi.help.a)
+      .filter((a) => (a.match(/।/g) || []).length > 2)
+      .forEach((a) => expect(firstSentence(a).length).toBeLessThan(a.length));
   });
 });
 

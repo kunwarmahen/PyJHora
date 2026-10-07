@@ -50,8 +50,6 @@ test("keys built from PLANS and FEATURES ids exist", () => {
   });
 });
 
-test("hi mirrors en's landing shape (the dev-only pricing note may stay English)", () => {
-  const enShape = shape(en.landing);
-  delete enShape.pricing.note;
-  expect(shape(hi.landing)).toEqual(enShape);
+test("hi mirrors en's landing shape", () => {
+  expect(shape(hi.landing)).toEqual(shape(en.landing));
 });

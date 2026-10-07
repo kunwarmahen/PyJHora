@@ -28,11 +28,9 @@ item. Treat §85 as the source of truth, not this prompt.
 2. **CI.** Check that `web-ci` is green for the latest pushed commit: `gh run list`, or if `gh` isn't
    installed, `curl -s https://api.github.com/repos/kunwarmahen/PyJHora/actions/runs?per_page=5`. Don't
    push just to trigger it; pushing is the owner's call. If it failed, fix it.
-3. **§85.2 translation**, Hindi first. Start with the Help answers, since page hints quote them. Notes:
-   - Merge new keys with a script that only adds missing keys and fails on any `{{placeholder}}` set that
-     differs from English (pattern in todo.md §83.2). Use the file's existing vocabulary ("पन्ना" for page,
-     "दैनिक डाइजेस्ट" for digest) and check what the UI label a Help answer names actually says in Hindi.
-   - Compatibility verdict/cancellations need reason *keys* from the backend before they can be translated.
+3. **§85.2 translation** is done for Hindi (§88). What's left there is English by design (raja-yoga,
+   panchanga, koota names) or deferred (Sanskrit). Any new UI string needs its Hindi in the same change;
+   `hindiCoverage.test.js` enforces it. Vocabulary: डाइजेस्ट (digest), पन्ना (page), पाठ (reading).
 4. **§85.3 product follow-ups.** For any number that reaches a user, *measure* it with the function the
    page actually uses (pattern: `web/backend/scripts/dosha_prevalence.py`). Never quote a figure from memory.
 5. **§85.4 upkeep** as it comes up. **§85.5 hardening** only if its condition has become true.

@@ -102,26 +102,39 @@ _MANGLIK_TEXT = {
     "hi": ("लग्न से पहले, दूसरे, चौथे, सातवें, आठवें या बारहवें भाव में मंगल, जब कोई शास्त्रीय परिहार "
            "लागू न हो (मंगल स्वराशि या उच्च राशि में, राशि-विशेष का अपवाद, या मंगल के साथ गुरु)। "
            "विवाह मिलान में परंपरागत रूप से देखा जाता है।",
-           "इस कुंडली में: मंगल लग्न से {h} भाव में है।",
-           "परिहार लागू है, इसलिए दोष निरस्त है।"),
+           "इस कुंडली में: मंगल लग्न से {h} भाव में, {sign} राशि में है।",
+           "परिहार के कारण दोष निरस्त है: {}"),
+}
+# Hindi for _mangal_dosha's cancellation_codes (todo.md §85.2). Sign names are
+# list_values_hi.txt's RAASI_LIST, the same source the frontend's tables use.
+_RASI_HI = dict(zip(ZODIAC_NAMES, ("मेष", "वृषभ", "मिथुन", "कर्क", "सिंह", "कन्या",
+                                   "तुला", "वृश्चिक", "धनु", "मकर", "कुंभ", "मीन")))
+_MANGLIK_CANCEL_HI = {
+    "own_sign": "मंगल अपनी राशि ({sign}) में है।",
+    "exalted": "मंगल {sign} में उच्च का है।",
+    "exception": "लग्न से {house} भाव में मंगल {sign} राशि में है — यह शास्त्रीय अपवाद है।",
+    "jupiter": "गुरु मंगल के साथ युति में है, जिससे दोष निरस्त होता है।",
 }
 _ORDINAL_EN = {1: "1st", 2: "2nd", 4: "4th", 7: "7th", 8: "8th", 12: "12th"}
 _ORDINAL_HI = {1: "पहले", 2: "दूसरे", 4: "चौथे", 7: "सातवें", 8: "आठवें", 12: "बारहवें"}
 
 
 def _manglik_description(m: Dict, engine_lang: str) -> str:
-    """The rule, then where Mars sits from the Lagna and any cancellation. The
-    cancellation reasons are English f-strings in _mangal_dosha (todo.md §85.2),
-    so Hindi gets a generic line rather than mixed-language text (and no sign name,
-    which _mangal_dosha also gives in English)."""
+    """The rule, then where Mars sits from the Lagna and any cancellation. Hindi
+    builds the reasons from _mangal_dosha's cancellation_codes, never its English
+    text, so the line is never mixed-language."""
     lang = engine_lang if engine_lang in _MANGLIK_TEXT else "en"
     rule, here, cancelled = _MANGLIK_TEXT[lang]
     h = m["from"].get("Lagna")
     if h is None:
         return rule
     if lang == "hi":
-        text = f"{rule} {here.format(h=_ORDINAL_HI[h])}"
-        return f"{text} {cancelled}" if m["cancellations"] else text
+        text = f"{rule} {here.format(h=_ORDINAL_HI[h], sign=_RASI_HI.get(m['mars_sign'], m['mars_sign']))}"
+        reasons = [_MANGLIK_CANCEL_HI[c["code"]].format(
+                       sign=_RASI_HI.get(c.get("sign"), c.get("sign")),
+                       house=_ORDINAL_HI.get(c.get("house"), c.get("house")))
+                   for c in m.get("cancellation_codes", [])]
+        return f"{text} {cancelled.format(' '.join(reasons))}" if reasons else text
     text = f"{rule} {here.format(h=_ORDINAL_EN[h], sign=m['mars_sign'])}"
     return f"{text} {cancelled.format(' '.join(m['cancellations']))}" if m["cancellations"] else text
 

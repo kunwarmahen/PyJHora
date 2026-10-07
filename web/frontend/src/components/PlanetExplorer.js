@@ -76,8 +76,10 @@ export const PlanetExplorer = ({
   const askAI = () => {
     if (!info) return;
     const q = t("explorer.askPrefill", {
-      planet: info.name,
-      sign: info.sign,
+      // The reader's own question, in their language; the chart context the
+      // Ask page sends alongside it stays canonical (I18N doc §5).
+      planet: ln(info.name, "graha"),
+      sign: ln(info.sign, "rasi"),
       house: info.house,
       name: personName || t("explorer.thisChart"),
     });
