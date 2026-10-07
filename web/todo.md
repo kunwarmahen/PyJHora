@@ -8889,8 +8889,10 @@ index at the top mirrors it. Paste-ready session prompt: `docs/NEXT_WORK_PROMPT.
 ### 85.3 Product follow-ups (P2)
 - [ ] **Report upstream:** PyJHora `dosha.pitru_dosha` condition #2 says "Ketu in the 4th" but tests planet id
       7 (Rahu) (§83.1). The app no longer calls it.
-- [ ] **Exercise the new Topic Reading topics with a live model** (wealth, education, travel; §83.4). Check
-      that readings use the Hora Lagna / D24 as instructed and the claim checker stays quiet.
+- [x] ✅ **Exercise the new Topic Reading topics with a live model** (wealth, education, travel; §83.4) — owner
+      ran them, works (2026-10-06). It surfaced one bug, fixed in f3ef787: a page's "Recent readings" strip
+      loaded only on page open and hides while empty, so a first reading looked unsaved (it was saved). The
+      strip now reloads on a `jyotir:ai-reading-saved` event api.js fires after every AI reading — all pages.
 - [x] ✅ **Drive the Compatibility page in a browser** — owner checked, works (2026-10-06) with two partner profiles (§83.3/§84 were checked via
       tests and the live API only): status line, "cancelled", supporting Moon/Venus, prevalence line, in en + hi.
 
