@@ -1283,6 +1283,8 @@ export const astrologyService = {
   // ---- iCal calendar subscription ----
   getCalendarToken: (profileId) =>
     api.get("/api/calendar/token", { params: { profile_id: profileId } }),
+  // Daily periods to avoid (§86) — per user, timed at their current location.
+  getPeriodsCalendarToken: () => api.get("/api/calendar/periods-token"),
 
   // ---- Astro-journal (dated life-event diary) ----
   listJournal: (profileId = null) =>

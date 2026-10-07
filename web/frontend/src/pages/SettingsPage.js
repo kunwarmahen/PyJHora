@@ -137,6 +137,33 @@ export const SettingsPage = () => {
     }
   };
 
+  // Daily periods-to-avoid feed (§86): one per user, not per chart — Rahu Kalam
+  // and friends divide the reader's own sunrise→sunset, so it is timed at the
+  // stored current location (the Location tab), never a birth place.
+  const [periodsUrl, setPeriodsUrl] = useState("");
+  const [periodsCopied, setPeriodsCopied] = useState(false);
+  useEffect(() => {
+    if (tab !== "calendar" || periodsUrl) return;
+    let cancelled = false;
+    astrologyService
+      .getPeriodsCalendarToken()
+      .then((res) => !cancelled && setPeriodsUrl(window.location.origin + res.data.path))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, periodsUrl]);
+
+  const copyPeriodsUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(periodsUrl);
+      setPeriodsCopied(true);
+      setTimeout(() => setPeriodsCopied(false), 1800);
+    } catch {
+      /* clipboard unavailable — user can select manually */
+    }
+  };
+
   // API access — public-API / MCP tokens (§2.3)
   const [apiTokens, setApiTokens] = useState([]);
   const [apiTokLabel, setApiTokLabel] = useState("");
@@ -1717,6 +1744,43 @@ export const SettingsPage = () => {
                 </button>
               </div>
               <p className="settings-hint">{t("settings.calendar.help")}</p>
+
+              <h3 className="settings-section-title settings-section-title--spaced">
+                {t("settings.calendar.periodsTitle")}
+              </h3>
+              <p className="settings-hint">{t("settings.calendar.periodsIntro")}</p>
+              {location ? (
+                <p className="settings-hint">
+                  {t("settings.calendar.periodsAt", { place: location.place || location.timezone })}
+                </p>
+              ) : (
+                <div className="settings-msg settings-msg--error">
+                  {t("settings.calendar.periodsNoLocation")}{" "}
+                  <button type="button" className="ui-btn ui-btn--ghost" onClick={() => setTab("location")}>
+                    {t("settings.calendar.periodsSetLocation")}
+                  </button>
+                </div>
+              )}
+              <label className="settings-label">{t("settings.calendar.url")}</label>
+              <div className="settings-cal-url">
+                <input
+                  type="text"
+                  readOnly
+                  aria-label={t("settings.calendar.periodsTitle")}
+                  value={periodsUrl || t("settings.calendar.loading")}
+                  onFocus={(e) => e.target.select()}
+                />
+                <button
+                  type="button"
+                  className="ui-btn ui-btn--ghost"
+                  onClick={copyPeriodsUrl}
+                  disabled={!periodsUrl}
+                >
+                  {periodsCopied ? <Check size={16} /> : <Copy size={16} />}
+                  {periodsCopied ? t("settings.calendar.copied") : t("settings.calendar.copy")}
+                </button>
+              </div>
+              <p className="settings-hint">{t("settings.calendar.periodsHelp")}</p>
               <p className="settings-hint">{t("settings.calendar.privacy")}</p>
             </div>
           )}

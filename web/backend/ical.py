@@ -8,11 +8,18 @@ Calendar apps can't send bearer tokens, so the feed is authorised by a
 the URL. No token table to maintain; the trade-off is that revocation means
 rotating SECRET_KEY (documented). Everything is computed on demand from the
 existing engine methods; this module only signs, gathers and serialises.
+
+A second, separate feed (§86) carries the daily periods to avoid — Rahu Kalam,
+Yamaganda, Gulika Kalam — as timed events. It is per *user*, not per chart:
+those windows divide the reader's own sunrise→sunset, so they come from the
+stored current location and never from a birth place. It is its own
+subscription so a calendar app can colour or hide ~3 events a day without
+burying the chart's rare dated events.
 """
 import base64
 import hashlib
 import hmac
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timedelta, timezone
 from typing import Optional, List, Dict, Any, Tuple
 
 from config import settings
@@ -54,6 +61,32 @@ def verify_token(token: str) -> Optional[Tuple[str, str]]:
     except Exception:
         return None
     return user_id, profile_id
+
+
+# The periods feed signs under its own domain so a chart token can never be
+# replayed as a periods token (or the reverse) — the payloads would otherwise
+# be indistinguishable "a:b" strings.
+_PERIODS_DOMAIN = "periods|"
+
+
+def make_periods_token(user_id: str) -> str:
+    """Signed, URL-safe token for a user's daily periods-to-avoid feed."""
+    payload = _b64(user_id.encode())
+    return f"{payload}.{_sign(_PERIODS_DOMAIN + payload)}"
+
+
+def verify_periods_token(token: str) -> Optional[str]:
+    """Return the user_id if the periods token is valid, else None."""
+    try:
+        payload, sig = token.split(".", 1)
+    except ValueError:
+        return None
+    if not hmac.compare_digest(sig, _sign(_PERIODS_DOMAIN + payload)):
+        return None
+    try:
+        return _unb64(payload).decode() or None
+    except Exception:
+        return None
 
 
 # --------------------------------------------------------------------------- #
@@ -118,6 +151,64 @@ def gather_events(birth_details: Dict[str, Any],
     return events
 
 
+# The same classical trio the daily digest lists under "Periods to avoid"
+# (compute_digests._avoid_windows) — keep the two in step.
+AVOID_PERIODS = (("rahu_kalam", "Rahu Kalam"),
+                 ("yamaganda", "Yamaganda"),
+                 ("gulika", "Gulika Kalam"))
+PERIODS_DAYS = 45
+
+
+def gather_avoid_periods(location: Dict[str, Any], days: int = PERIODS_DAYS,
+                         start: Optional[date] = None) -> List[Dict[str, Any]]:
+    """Timed {start, end (UTC datetimes), title, desc} events for the daily
+    periods to avoid at the reader's current location, for `days` days from
+    `start` (default: today in that zone).
+
+    The offset is resolved per day from the IANA zone, so a window that crosses
+    a DST change keeps its local clock time rather than sliding an hour."""
+    from timezones import offset_hours, local_now
+    zone = location.get("timezone")
+    lat, lon = location.get("latitude"), location.get("longitude")
+    if not zone or lat is None or lon is None:
+        return []
+    if start is None:
+        now = local_now(zone)
+        start = now.date() if now else _today()
+    place = location.get("place") or ""
+    events: List[Dict[str, Any]] = []
+    for i in range(days):
+        day = start + timedelta(days=i)
+        noon_utc = datetime(day.year, day.month, day.day, 12, tzinfo=timezone.utc)
+        tz = offset_hours(zone, noon_utc)
+        if tz is None:
+            continue
+        p = AstrologyCompute.get_panchanga(date=day.isoformat(), place=place,
+                                           lat=lat, lon=lon, tz=tz)
+        if p.get("status") != "success":
+            continue
+        local = timezone(timedelta(hours=tz))
+        for key, label in AVOID_PERIODS:
+            w = p.get(key) or {}
+            try:
+                sh, sm = map(int, str(w["start"]).split(":")[:2])
+                eh, em = map(int, str(w["end"]).split(":")[:2])
+            except (KeyError, TypeError, ValueError):
+                continue
+            s_dt = datetime(day.year, day.month, day.day, sh, sm, tzinfo=local)
+            e_dt = datetime(day.year, day.month, day.day, eh, em, tzinfo=local)
+            if e_dt <= s_dt:
+                continue
+            events.append({
+                "start": s_dt.astimezone(timezone.utc),
+                "end": e_dt.astimezone(timezone.utc),
+                "title": f"⛔ {label}",
+                "desc": (f"{label} {w['start']}–{w['end']} at {place or 'your location'}. "
+                         "Classically kept clear for anything newly begun."),
+            })
+    return events
+
+
 # --------------------------------------------------------------------------- #
 # ICS serialisation
 # --------------------------------------------------------------------------- #
@@ -152,13 +243,22 @@ def build_ics(calendar_name: str, events: List[Dict[str, str]]) -> str:
         "REFRESH-INTERVAL;VALUE=DURATION:PT12H",
     ]
     for i, ev in enumerate(events):
-        d = ev["date"].replace("-", "")
-        uid = hashlib.sha1(f"{calendar_name}:{ev['date']}:{ev['title']}:{i}".encode()).hexdigest()
+        if "start" in ev:
+            # Timed event, written in UTC so every app places it correctly.
+            # The UID is keyed on the instant (not the list index) so a refresh
+            # updates the same event instead of duplicating it.
+            s_utc = ev["start"].strftime("%Y%m%dT%H%M%SZ")
+            uid = hashlib.sha1(f"{calendar_name}:{s_utc}:{ev['title']}".encode()).hexdigest()
+            when = [f"DTSTART:{s_utc}", f"DTEND:{ev['end'].strftime('%Y%m%dT%H%M%SZ')}"]
+        else:
+            d = ev["date"].replace("-", "")
+            uid = hashlib.sha1(f"{calendar_name}:{ev['date']}:{ev['title']}:{i}".encode()).hexdigest()
+            when = [f"DTSTART;VALUE=DATE:{d}"]
         lines += [
             "BEGIN:VEVENT",
             f"UID:{uid}@jyotir.ai",
             f"DTSTAMP:{stamp}",
-            f"DTSTART;VALUE=DATE:{d}",
+            *when,
             _fold(f"SUMMARY:{_esc(ev['title'])}"),
         ]
         if ev.get("desc"):

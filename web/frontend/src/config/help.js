@@ -266,6 +266,12 @@ export const HELP_SECTIONS = [
         keywords: "calendar feed subscribe ical ics google calendar apple outlook",
       },
       {
+        id: "calendarPeriods",
+        to: "/settings?tab=calendar",
+        keywords:
+          "rahu kalam rahukalam rahu kaal rahukaal yamaganda yamagandam gulika gulikai kalam periods to avoid inauspicious calendar ical",
+      },
+      {
         id: "apiAccess",
         to: "/settings",
         keywords: "api token tokens mcp claude desktop script developer programmatic",

@@ -308,6 +308,16 @@
   "body": "",
   "params": []
  },
+ "GET /api/calendar/periods-token": {
+  "body": "",
+  "params": []
+ },
+ "GET /api/calendar/periods/{token}.ics": {
+  "body": "",
+  "params": [
+   "path:token*"
+  ]
+ },
  "GET /api/calendar/token": {
   "body": "",
   "params": [

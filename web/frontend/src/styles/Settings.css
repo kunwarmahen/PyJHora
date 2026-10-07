@@ -285,6 +285,13 @@
   font-size: 1rem;
   color: var(--text-primary);
 }
+/* A second section inside the same panel (Calendar: chart feed, then the
+   daily periods feed). */
+.settings-section-title--spaced {
+  margin-top: var(--space-lg, 24px);
+  padding-top: var(--space-md, 16px);
+  border-top: 1px solid var(--sandalwood);
+}
 
 .settings-pw-form {
   display: flex;

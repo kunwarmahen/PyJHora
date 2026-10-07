@@ -187,6 +187,8 @@ describe("help search coverage", () => {
     "rising sign",
     "without an account",
     "checklist",
+    "rahukaal",
+    "yamagandam",
   ])("finds %s", (term) => {
     const faq = filterHelp(term, text).flatMap((s) => s.items);
     const glossary = filterGlossary(term, GLOSSARY);
@@ -243,6 +245,7 @@ describe("help explains every capability in words", () => {
     "ayanamsa",
     "mcp",
     "calendar",
+    "rahu kalam",
   ])("%s", (term) => {
     expect(prose).toContain(term);
   });

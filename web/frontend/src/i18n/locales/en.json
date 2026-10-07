@@ -1368,7 +1368,13 @@
       "copied": "Copied",
       "error": "Could not generate the calendar link.",
       "help": "In your calendar app choose “Subscribe to calendar / From URL” and paste this link. It refreshes automatically (about twice a day).",
-      "privacy": "Anyone with this link can view the feed (it needs no login, so calendar apps can read it). Keep it private; if it leaks, rotate the server key to invalidate it."
+      "privacy": "Anyone with these links can view the feeds (they need no login, so calendar apps can read them). Keep them private; if one leaks, rotate the server key to invalidate it.",
+      "periodsTitle": "Daily periods to avoid",
+      "periodsIntro": "A separate calendar with each day’s Rahu Kalam, Yamaganda and Gulika Kalam as timed events, for the next 45 days. Subscribe to it on its own so you can give it a colour or hide it without losing your chart’s events.",
+      "periodsAt": "Timed for your current location: {{place}}. When you travel, update it on the Location tab; your calendar picks up the new times at its next refresh.",
+      "periodsNoLocation": "These windows follow your local sunrise, so they need your current location. The feed stays empty until you set one.",
+      "periodsSetLocation": "Set location",
+      "periodsHelp": "Subscribe the same way as above. Calendar apps refresh subscriptions on their own schedule (Google can take a day), so a change of location shows up after the next refresh."
     },
     "apiAccess": {
       "title": "API access (public API & MCP)",
@@ -2858,6 +2864,7 @@
       "whatIsVarga": "What are divisional charts (D9, D10 and the rest)?",
       "whatIsAyanamsa": "What's the ayanamsa, and why do other apps give different positions?",
       "calendarFeed": "Can I see my upcoming periods in my own calendar?",
+      "calendarPeriods": "Can I get Rahu Kalam in my phone's calendar?",
       "apiAccess": "Can I use my charts from a script or from Claude Desktop?",
       "featPredictions": "What is a Topic Reading?",
       "featStart": "What is the “Start here” page?"
@@ -2955,6 +2962,7 @@
       "whatIsVarga": "A divisional chart, or varga, splits each sign into smaller slices and rebuilds the chart from them, to magnify one area of life. The Navamsa (D9) is the best known — marriage and inner strength — and the Dasamsa (D10) is read for career. Others cover siblings (D3), children (D7), parents (D12), and so on up to the very fine D60. They're all on the Birth Chart page under the Advanced tab; pick one from the list to draw it.",
       "whatIsAyanamsa": "Vedic astrology measures the zodiac against the fixed stars, and the stars have slowly drifted from where Western astrology's zodiac starts. The ayanamsa is how big that drift is taken to be, and different schools use slightly different values — which is why two apps can put a planet a degree apart, or even in a different nakshatra. This app defaults to True Chitra (a precise form of Lahiri) with mean Rahu and Ketu, which matches Jagannatha Hora. You can pick another — plain Lahiri, KP, Raman and others — in Settings → General → Ayanamsa.",
       "calendarFeed": "Yes. Settings → Calendar gives you a subscription link for Google Calendar, Apple Calendar or Outlook, carrying your chart's upcoming events — bhukti changes, Sade Sati boundaries, your solar return, slow-planet ingresses and eclipses on your birth stars. It refreshes by itself about twice a day. Anyone who has the link can see the feed (calendar apps can't log in), so keep it private.",
+      "calendarPeriods": "Yes. Settings → Calendar has a second subscription link, separate from your chart's, that puts each day's Rahu Kalam, Yamaganda and Gulika Kalam into your calendar as timed events for the next 45 days — the same three listed under Periods to avoid on Today. They are worked out from sunrise and sunset where you are now (your current location), not where you were born, so set your location first and update it when you travel.",
       "apiAccess": "Yes, if you're comfortable with a little setup. Settings → API access creates a personal token for the read-only API, and the same token works with the app's MCP server, which lets an AI assistant such as Claude Desktop look up your charts. The token acts as you, so treat it like a password; you can revoke it there at any time. Nothing reached this way can change your data.",
       "featPredictions": "An AI reading of your chart on just one area of life — your life path, career, relationships, health, wealth, education or travel — instead of everything at once. Pick the topic and the AI reads the houses, lords, yogas and running dasha that bear on it; for career it also checks the 10th house counted from the Ghati Lagna, the classical second opinion on rise in standing. Wealth is checked the same way from the Hora Lagna, and education against the D24, the divisional chart for learning. It sits with the Life Report and Full Report in Reports, and every reading is saved to your AI History. Health readings are astrology, not medical advice.",
       "featStart": "The best first stop. It explains four things from your chart in everyday words: your Rising sign (Lagna — how you meet the world), your Moon sign (Rashi — your mind and feelings), your birth star (Nakshatra — the Moon's exact star group, with its traditional symbol and deity), and the chapter of life you're in now (your current dasha period and sub-period, with dates). Each card shows the Sanskrit name beside the plain one, so you'll recognise it on other pages. Nothing on it is written by the AI — it's worked out from your chart instantly — and if your birth time isn't known, it says what can't be stated without it instead of guessing. Underneath are a few questions you can send straight to the AI astrologer."

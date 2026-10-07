@@ -8938,3 +8938,32 @@ index at the top mirrors it. Paste-ready session prompt: `docs/NEXT_WORK_PROMPT.
 - **Not touched:** `if not lat or not lon` (Chennai fallback) has the same shape for lat/lon = 0
   (equator / Greenwich meridian exactly). Rare enough to leave; noted in §85.5.
 
+## §87 Daily periods to avoid as a calendar feed (owner ask 2026-10-06) — ✅ SHIPPED 2026-10-06
+
+The Today page lists **Periods to avoid** (Rahu Kalam, Yamaganda, Gulika Kalam); the owner asked
+for them in the Settings → Calendar subscription too.
+
+- **A second, separate feed**, not more events in the chart feed: ~3 events/day would bury the
+  rare bhukti/eclipse entries, and a separate subscription is a separate calendar the app lets
+  you colour or switch off. `GET /api/calendar/periods-token` (bearer) →
+  `GET /api/calendar/periods/{token}.ics` (public, signed). 45-day rolling window, timed events
+  in UTC (`DTSTART:…Z`/`DTEND`), UID keyed on the instant so a refresh updates rather than
+  duplicates.
+- **Per user, at the current location** (`user_settings.get_current_location`), never a birth
+  place — these windows divide the reader's own sunrise→sunset ([[viewer-location-not-server]]).
+  No location → an empty feed (not an error, not a guess); the Settings section says so and
+  links to the Location tab. The zone's offset is resolved **per day**, so the event text
+  quotes the correct wall-clock time across a DST change.
+- **Own signing domain** (`"periods|"` prefix): a chart-feed token can't open the periods feed
+  and vice versa — the payloads would otherwise both be plain `a:b` strings.
+- Times come from `get_panchanga` (the same values the Today digest and Almanac show);
+  `ical.AVOID_PERIODS` mirrors `compute_digests._avoid_windows` — keep them in step.
+  ~3 ms/day, so no cache.
+- Trap hit while testing: across a DST change the **UTC instant stays put and the local time
+  jumps** — the sun ignores clocks. The test asserts that, plus the post-change local time in
+  the description.
+- Tests: `tests/test_ical_periods.py` (tokens, panchanga parity, DST, empty location, ICS
+  shape, endpoints); `routes_snapshot.json` +2; help `calendarPeriods` (+ "rahu kalam" prose,
+  "rahukaal"/"yamagandam" search). Dashboard search n/a — Settings is `navOnly` with no tile;
+  Help/FAQ is the search path. No AI tool — the AI already sees these via the digest/panchanga.
+

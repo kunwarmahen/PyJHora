@@ -86,6 +86,35 @@ async def calendar_feed(token: str):
     return Response(content=body, media_type="text/calendar; charset=utf-8",
                     headers={"Content-Disposition": f'inline; filename="jyotir-{profile_id}.ics"'})
 
+# ── Daily periods-to-avoid feed (§86) ───────────────────────────────────────
+@router.get("/api/calendar/periods-token")
+async def get_periods_calendar_token(current_user: str = Depends(get_current_user)):
+    """Signed subscribe path for the user's Rahu Kalam / Yamaganda / Gulika feed.
+    `has_location` tells the UI whether the feed will have anything in it — the
+    windows need the reader's current place and never fall back to a birth one."""
+    import user_settings
+    loc = await user_settings.get_current_location(current_user)
+    token = ical.make_periods_token(current_user)
+    return {"token": token, "path": f"/api/calendar/periods/{token}.ics",
+            "has_location": bool(loc and loc.get("timezone")
+                                 and loc.get("latitude") is not None),
+            "place": (loc or {}).get("place") or ""}
+
+@router.get("/api/calendar/periods/{token}.ics")
+async def periods_calendar_feed(token: str):
+    """Public, token-authed iCal feed of the daily periods to avoid, timed at the
+    user's stored current location. With no location set the feed is empty (not
+    an error) so the subscription fills in as soon as one is saved."""
+    user_id = ical.verify_periods_token(token)
+    if not user_id:
+        raise HTTPException(status_code=403, detail="Invalid calendar token")
+    import user_settings
+    loc = await user_settings.get_current_location(user_id) or {}
+    events = ical.gather_avoid_periods(loc)
+    body = ical.build_ics("Jyotir AI — Periods to avoid", events)
+    return Response(content=body, media_type="text/calendar; charset=utf-8",
+                    headers={"Content-Disposition": 'inline; filename="jyotir-periods.ics"'})
+
 @router.post("/api/location/search")
 async def search_location(req: LocationSearchRequest):
     """

@@ -195,6 +195,16 @@ This is a full-stack web application for Vedic Astrology calculations using PyJH
 - **Rate limiting**: per-user per-minute + per-day quotas on the AI endpoints
 - **Safety disclaimer**: clear "guidance, not professional advice" footer
 
+### Calendar subscriptions (Settings → Calendar)
+
+Two read-only iCal feeds any calendar app can subscribe to (signed link, no login):
+
+- **Chart events** (per profile) — bhukti changes, Sade Sati boundaries, the solar return,
+  slow-planet ingresses and eclipses on natal stars, as all-day events.
+- **Daily periods to avoid** (per user, §87) — Rahu Kalam, Yamaganda and Gulika Kalam as timed
+  events for the next 45 days, at your **Settings → Location** (never the birth place; empty
+  until a location is set). A separate subscription so it can be coloured or hidden on its own.
+
 ### Essentials vs Everything (the view mode)
 
 The app grew to ~40 feature routes, which is a wall for anyone who doesn't already know Jyotish.
