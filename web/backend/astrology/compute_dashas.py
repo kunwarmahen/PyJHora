@@ -178,7 +178,7 @@ class DashasMixin:
             second = int(time_parts[2]) if len(time_parts) > 2 else 0
 
             # Default location if not provided
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707  # Chennai default
 
             tz_offset = 5.5 if tz is None else tz  # IST default
@@ -372,7 +372,7 @@ class DashasMixin:
             minute = int(time_parts[1]) if len(time_parts) > 1 else 0
             second = int(time_parts[2]) if len(time_parts) > 2 else 0
 
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707  # Chennai default
             tz_offset = 5.5 if tz is None else tz
 
@@ -490,7 +490,7 @@ class DashasMixin:
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             second = int(tp[2]) if len(tp) > 2 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = 5.5 if tz is None else tz
             dob_t = (year, month, day)
@@ -682,7 +682,7 @@ class DashasMixin:
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             second = int(tp[2]) if len(tp) > 2 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
 
@@ -741,7 +741,7 @@ class DashasMixin:
             year, month, day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place, lat, lon, tz_offset)

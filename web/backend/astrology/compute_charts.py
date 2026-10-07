@@ -30,7 +30,7 @@ class ChartsMixin:
             minute = int(time_parts[1]) if len(time_parts) > 1 else 0
 
             # Default location if not provided
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707  # Chennai default
 
             tz_offset = 5.5 if tz is None else tz  # IST default
@@ -211,7 +211,7 @@ class ChartsMixin:
             hour = int(time_parts[0])
             minute = int(time_parts[1]) if len(time_parts) > 1 else 0
 
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707  # Chennai default
             tz_offset = 5.5 if tz is None else tz  # IST default
 
@@ -286,7 +286,7 @@ class ChartsMixin:
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             second = int(tp[2]) if len(tp) > 2 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
@@ -334,7 +334,7 @@ class ChartsMixin:
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             second = int(tp[2]) if len(tp) > 2 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
@@ -448,7 +448,7 @@ class ChartsMixin:
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             second = int(tp[2]) if len(tp) > 2 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
@@ -589,7 +589,7 @@ class ChartsMixin:
             year, month, day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0)
@@ -664,7 +664,7 @@ class ChartsMixin:
             year, month, day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0)
@@ -735,7 +735,7 @@ class ChartsMixin:
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             second = int(tp[2]) if len(tp) > 2 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
@@ -837,7 +837,7 @@ class ChartsMixin:
             hour = int(time_parts[0])
             minute = int(time_parts[1]) if len(time_parts) > 1 else 0
 
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707  # Chennai default
             tz_offset = 5.5 if tz is None else tz
 
@@ -936,7 +936,7 @@ class ChartsMixin:
             y, m, d = map(int, start_date.split("-"))
             start = _date(y, m, d)
 
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707  # Chennai default
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place or "", lat, lon, tz_offset)
@@ -1014,7 +1014,7 @@ class ChartsMixin:
         try:
             from datetime import datetime, timezone as _utc, timedelta
             tz_off = current_tz if current_tz is not None else (tz if tz is not None else 5.5)
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             local_now = datetime.now(_utc.utc) + timedelta(hours=tz_off)
             if current_time:
@@ -1079,7 +1079,7 @@ class ChartsMixin:
             y, m, d = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd_dob = swe.julday(y, m, d, hour + minute / 60.0)
@@ -1182,7 +1182,7 @@ class ChartsMixin:
         y, m, d = map(int, dob.split("-"))
         tp = tob.split(":")
         hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-        if not lat or not lon:
+        if lat is None or lon is None:
             lat, lon = 13.0827, 80.2707
         place_obj = drik.Place(place or "", lat, lon, 5.5 if tz is None else tz)
         jd = swe.julday(y, m, d, hour + minute / 60.0)

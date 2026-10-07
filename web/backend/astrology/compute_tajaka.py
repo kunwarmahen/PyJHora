@@ -56,7 +56,7 @@ class TajakaMixin:
             hour = int(time_parts[0])
             minute = int(time_parts[1]) if len(time_parts) > 1 else 0
 
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707  # Chennai default
             tz_offset = 5.5 if tz is None else tz
 
@@ -230,7 +230,7 @@ class TajakaMixin:
             y, m, d = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place, lat, lon, tz_offset)
@@ -799,7 +799,7 @@ class TajakaMixin:
             # whole table moves ~5.7 days per degree of birth elongation — about
             # 75 seconds of dasha for every 1 second of birth time.
             second = int(float(tp_[2])) if len(tp_) > 2 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place, lat, lon, tz_offset)

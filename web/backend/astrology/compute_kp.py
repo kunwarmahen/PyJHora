@@ -31,7 +31,7 @@ class KpMixin:
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             second = int(tp[2]) if len(tp) > 2 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_off = tz if tz is not None else 5.5
             place_obj = drik.Place(place, lat, lon, tz_off)
@@ -99,7 +99,7 @@ class KpMixin:
             _set_ayanamsa("KP")
             from datetime import datetime, timezone as _utc, timedelta
             tz_off = tz if tz is not None else 5.5
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             local_now = datetime.now(_utc.utc) + timedelta(hours=tz_off)
             if date:
@@ -171,7 +171,7 @@ class KpMixin:
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             second = int(tp[2]) if len(tp) > 2 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)

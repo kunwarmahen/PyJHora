@@ -122,7 +122,7 @@ class MatchMixin:
             time_parts = tob.split(":")
             hour = int(time_parts[0])
             minute = int(time_parts[1]) if len(time_parts) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707  # Chennai default
             jd = swe.julday(year, month, day, hour + minute / 60)
             place_obj = drik.Place(place, lat, lon, person_tz if person_tz is not None else (5.5 if tz is None else tz))
@@ -341,7 +341,7 @@ class MatchMixin:
                 y, m, d = map(int, dob.split("-"))
                 tp = tob.split(":")
                 hh = int(tp[0]); mm = int(tp[1]) if len(tp) > 1 else 0
-                if not lat or not lon:
+                if lat is None or lon is None:
                     lat, lon = 13.0827, 80.2707
                 jd = swe.julday(y, m, d, hh + mm / 60.0)
                 return jd, drik.Place(place, lat, lon,

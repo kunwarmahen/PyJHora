@@ -769,7 +769,7 @@ class MuhurtaMixin:
             from datetime import datetime, timezone as _utc, timedelta
 
             tz_offset = tz if tz is not None else 5.5
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
 
             local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
@@ -867,7 +867,7 @@ class MuhurtaMixin:
             tp = tob.split(":")
             b_hour = int(tp[0]); b_min = int(tp[1]) if len(tp) > 1 else 0
             b_sec = int(tp[2]) if len(tp) > 2 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place or "", lat, lon, tz_offset)

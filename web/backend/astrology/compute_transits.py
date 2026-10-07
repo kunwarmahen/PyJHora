@@ -38,7 +38,7 @@ class TransitsMixin:
             hour = int(time_parts[0])
             minute = int(time_parts[1]) if len(time_parts) > 1 else 0
 
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707  # Chennai default
             tz_offset = 5.5 if tz is None else tz
 
@@ -475,7 +475,7 @@ class TransitsMixin:
             year, month, day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place or "", lat, lon, tz_offset)
@@ -742,7 +742,7 @@ class TransitsMixin:
             year, month, day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place, lat, lon, tz_offset)
@@ -880,7 +880,7 @@ class TransitsMixin:
             year, month, day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place or "", lat, lon, tz_offset)
@@ -935,7 +935,7 @@ class TransitsMixin:
             from datetime import datetime, timezone as _utc, timedelta
 
             tz_offset = tz if tz is not None else 5.5
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             if date:
                 year, month, day = map(int, date.split("-"))
@@ -1038,7 +1038,7 @@ class TransitsMixin:
         events: List[Dict] = []
         try:
             sy, sm, sd = map(int, start_date.split("-"))
-            tplace = drik.Place(place, lat or 13.0827, lon or 80.2707, tz_offset)
+            tplace = drik.Place(place, 13.0827 if lat is None else lat, 80.2707 if lon is None else lon, tz_offset)
             start_jd = swe.julday(sy, sm, sd, 0.0)
             if end_jd <= start_jd:
                 return []
@@ -1160,7 +1160,7 @@ class TransitsMixin:
             year, month, day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place, lat, lon, tz_offset)

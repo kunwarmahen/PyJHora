@@ -78,7 +78,7 @@ class PanchangaMixin:
                 drik.set_ayanamsa_mode("SURYASIDDHANTA")
 
             tz_offset = tz if tz is not None else 5.5
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             if date:
                 year, month, day = map(int, date.split("-"))
@@ -202,7 +202,7 @@ class PanchangaMixin:
             from datetime import datetime, timezone as _utc, timedelta
 
             tz_offset = tz if tz is not None else 5.5
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             if date:
                 year, month, day = map(int, date.split("-"))
@@ -285,7 +285,7 @@ class PanchangaMixin:
             )
 
             tz_offset = tz if tz is not None else 5.5
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             if from_date:
                 year, month, day = map(int, from_date.split("-"))
@@ -405,7 +405,7 @@ class PanchangaMixin:
             from jhora.panchanga.drik import Date
 
             tz_offset = tz if tz is not None else 5.5
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
 
             local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
@@ -477,7 +477,7 @@ class PanchangaMixin:
             from itertools import combinations
 
             tz_offset = tz if tz is not None else 5.5
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
 
             local_now = datetime.now(_utc.utc) + timedelta(hours=tz_offset)
@@ -579,7 +579,7 @@ class PanchangaMixin:
             from datetime import datetime, timezone as _utc, timedelta
 
             tz_offset = tz if tz is not None else 5.5
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             if date:
                 year, month, day = map(int, date.split("-"))

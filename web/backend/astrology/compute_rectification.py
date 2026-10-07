@@ -51,7 +51,7 @@ class RectificationMixin:
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             second = int(tp[2]) if len(tp) > 2 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = 5.5 if tz is None else tz
             place_obj = drik.Place(place, lat, lon, tz_offset)
@@ -236,7 +236,7 @@ class RectificationMixin:
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             second = int(tp[2]) if len(tp) > 2 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = 5.5 if tz is None else tz
             place_obj = drik.Place(place, lat, lon, tz_offset)

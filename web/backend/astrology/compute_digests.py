@@ -189,7 +189,7 @@ def _tarabala_window(janma_nak, place, lat, lon, tz, start_str, span_days,
         return None
     # The nakshatra running at noon is a sky fact; the place only fixes which
     # noon. Any of the caller's own coordinates give the same star for the day.
-    place_obj = drik.Place(place or "", lat or 13.0827, lon or 80.2707,
+    place_obj = drik.Place(place or "", 13.0827 if lat is None else lat, 80.2707 if lon is None else lon,
                            tz if tz is not None else 5.5)
     start = datetime(y, m, d)
     days, best, worst = [], [], []

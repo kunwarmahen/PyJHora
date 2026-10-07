@@ -27,7 +27,7 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 | §85.2 | Translation: Hindi UI + Help + compat verdict ✅ done (§88). Left: raja-yoga/panchanga/koota names (English by design), Sanskrit (deferred) | P2 |
 | §85.3 | Product follow-ups: upstream Pitru bug report, AI-reading check of the new Topic Reading topics | P2 |
 | §85.4 | Upkeep: re-record harness fixtures on payload changes; re-run dosha prevalence on any rule change | ongoing |
-| §85.5 | Hardening, only if conditions change: Redis rate limit, Cloudflare-only forwarded IPs, beacon dedupe | P3 |
+| §85.5 | Hardening, only if conditions change: Redis rate limit, Cloudflare-only forwarded IPs, beacon dedupe (zero-coordinate fallback ✅ §89; conditions re-checked 2026-10-06: one worker, tunnel-only origin, owner not changing the deployment) | P3 |
 
 §82 (collected 2026-10-06) was worked through in §83–§84; §85 is what remains.
 
@@ -8901,8 +8901,7 @@ index at the top mirrors it. Paste-ready session prompt: `docs/NEXT_WORK_PROMPT.
       Mangal placement ≈50% and Manglik < placement.
 
 ### 85.5 Hardening (P3) — only if the condition becomes true
-- [ ] **A birth exactly on the equator or Greenwich meridian** → `if not lat or not lon` swaps in Chennai; same
-      truthiness trap as §86.2's `tz or 5.5`. Fix to `is None` if it ever matters.
+- [x] ✅ **A birth exactly on the equator or Greenwich meridian** swapped in Chennai — fixed in §89.
 - [ ] **Scaled past one uvicorn worker** → move the anonymous rate limit (`ratelimit.public_check`) to Redis.
 - [ ] **Origin reachable without Cloudflare** → trust `CF-Connecting-IP`/`X-Forwarded-For` only from Cloudflare's
       ranges (the global hourly cap is the floor until then).
@@ -9005,4 +9004,16 @@ for them in the Settings → Calendar subscription too.
   Strings the backend composes in English (e.g. `window_label`, Sarvatobhadra anchor labels) still show
   inside Hindi sentences.
 - Sanskrit UI is deferred; the new Hindi is Claude-written and has not been reviewed by a native reader.
+
+## §89 A birth on the equator or the Greenwich meridian was charted in Chennai (§85.5, 2026-10-06) — ✅ SHIPPED 2026-10-06
+
+- `if not lat or not lon` (58 sites across `astrology/*.py`) and `lat or 13.0827` (2 sites) read a 0.0
+  coordinate as "not given" and substituted Chennai — the coordinate twin of §86.2's `tz or 5.5`. A noon
+  birth at 5.6°N 0.0°E (Accra's meridian) got Chennai's Libra Lagna; it is Cancer. Now `is None`; a missing
+  coordinate still falls back to Chennai (the frontend never sends 0 for "unknown").
+- `tests/test_zero_coordinates.py`: equator and Greenwich births differ from Chennai and match a
+  1e-6° nudge, plus a source scan that fails on `not <lat>` / `<lat> or <number>` in the backend.
+- §85.5's other three items re-checked against `docker-compose.nas.yml`: still one uvicorn worker, no
+  published ports (Cloudflare tunnel only), and the funnel counts only feed the admin Overview. The owner
+  isn't planning to change the deployment, so they stay parked.
 

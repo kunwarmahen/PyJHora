@@ -41,7 +41,7 @@ class ReferenceMixin:
             year, month, day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place, lat, lon, tz_offset)
@@ -199,7 +199,7 @@ class ReferenceMixin:
             year, month, day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place, lat, lon, tz_offset)
@@ -381,7 +381,7 @@ class ReferenceMixin:
             year, month, day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0)
@@ -476,7 +476,7 @@ class ReferenceMixin:
             year, month, day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place or "", lat, lon, tz_offset)
@@ -590,7 +590,7 @@ class ReferenceMixin:
             year, month, day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place, lat, lon, tz_offset)
@@ -758,7 +758,7 @@ class ReferenceMixin:
             y, mo, d = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place, lat, lon, tz_offset)
@@ -902,7 +902,7 @@ class ReferenceMixin:
             birth_year, birth_month, birth_day = map(int, dob.split("-"))
             tp = tob.split(":")
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place, lat, lon, tz_offset)
@@ -1067,7 +1067,7 @@ class ReferenceMixin:
             tparts = tob.split(":")
             hour = int(tparts[0])
             minute = int(tparts[1]) if len(tparts) > 1 else 0
-            if not lat or not lon:
+            if lat is None or lon is None:
                 lat, lon = 13.0827, 80.2707  # Chennai default
             tz_offset = tz if tz is not None else 5.5
             place_obj = drik.Place(place or "", lat, lon, tz_offset)
