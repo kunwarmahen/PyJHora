@@ -53,7 +53,7 @@ class RectificationMixin:
             second = int(tp[2]) if len(tp) > 2 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            tz_offset = tz or 5.5
+            tz_offset = 5.5 if tz is None else tz
             place_obj = drik.Place(place, lat, lon, tz_offset)
             base_fh = hour + minute / 60.0 + second / 3600.0
             jd = swe.julday(year, month, day, base_fh)
@@ -238,7 +238,7 @@ class RectificationMixin:
             second = int(tp[2]) if len(tp) > 2 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            tz_offset = tz or 5.5
+            tz_offset = 5.5 if tz is None else tz
             place_obj = drik.Place(place, lat, lon, tz_offset)
             base_fh = hour + minute / 60.0 + second / 3600.0
 

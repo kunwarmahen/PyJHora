@@ -22,7 +22,8 @@ def _mangal_dosha(pp):
     Why: the earlier rule flagged Mars from the Lagna OR the Moon OR Venus and
     ignored its own cancellations — 6 of 12 houses from each of three references
     made 88.9% of charts "Manglik" (measured, §83.3), which told a couple nothing.
-    This rule measures 27.3% (scripts/dosha_prevalence.py).
+    This rule measures 31.0% (scripts/dosha_prevalence.py). The Birth Chart's
+    dosha list uses this same function (§86), so the two tabs always agree.
 
     Cancellations (parihara) that apply to the Lagna placement: Mars in its own
     sign (Aries/Scorpio) or exalted (Capricorn), the sign-specific exception for
@@ -117,7 +118,7 @@ class MatchMixin:
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707  # Chennai default
             jd = swe.julday(year, month, day, hour + minute / 60)
-            place_obj = drik.Place(place, lat, lon, person_tz if person_tz is not None else (tz or 5.5))
+            place_obj = drik.Place(place, lat, lon, person_tz if person_tz is not None else (5.5 if tz is None else tz))
             pp = charts.rasi_chart(jd, place_obj)
             moon_rasi, moon_long = pp[2][1]  # pp[0]=Asc, pp[1]=Sun, pp[2]=Moon
             absolute_longitude = moon_rasi * 30.0 + moon_long

@@ -23,9 +23,8 @@ item. Treat §85 as the source of truth, not this prompt.
 
 ## What to do, in this order
 
-1. **Ask the owner the §85.1 call** (AskUserQuestion, with a recommendation): should the Birth Chart's
-   Manglik use the same rule as Compatibility's? Leave the two parked items (Hindi typo, Vite) parked
-   unless the owner raises them. Don't start dependent work before you have the answer.
+1. **§85.1 is answered** (Manglik aligned, §86); the Hindi typo and Vite stay parked unless the owner
+   raises them.
 2. **CI.** Check that `web-ci` is green for the latest pushed commit: `gh run list`, or if `gh` isn't
    installed, `curl -s https://api.github.com/repos/kunwarmahen/PyJHora/actions/runs?per_page=5`. Don't
    push just to trigger it; pushing is the owner's call. If it failed, fix it.

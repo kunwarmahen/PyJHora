@@ -181,7 +181,7 @@ class DashasMixin:
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707  # Chennai default
 
-            tz_offset = tz or 5.5  # IST default
+            tz_offset = 5.5 if tz is None else tz  # IST default
 
             # Calculate JD
             jd = swe.julday(year, month, day, hour + minute/60.0 + second/3600.0)
@@ -374,7 +374,7 @@ class DashasMixin:
 
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707  # Chennai default
-            tz_offset = tz or 5.5
+            tz_offset = 5.5 if tz is None else tz
 
             jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
             place_obj = drik.Place(place, lat, lon, tz_offset)
@@ -492,7 +492,7 @@ class DashasMixin:
             second = int(tp[2]) if len(tp) > 2 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            tz_offset = tz or 5.5
+            tz_offset = 5.5 if tz is None else tz
             dob_t = (year, month, day)
             tob_t = (hour, minute, second)
             place_obj = drik.Place(place, lat, lon, tz_offset)
@@ -684,7 +684,7 @@ class DashasMixin:
             second = int(tp[2]) if len(tp) > 2 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
 
             keys = applicability.applicability_check(
                 drik.Date(year, month, day), (hour, minute, second), place_obj) or []

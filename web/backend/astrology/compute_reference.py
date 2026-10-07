@@ -383,7 +383,7 @@ class ReferenceMixin:
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0)
 
             pp = charts.rasi_chart(jd, place_obj)

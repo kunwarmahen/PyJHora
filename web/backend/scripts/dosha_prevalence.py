@@ -14,11 +14,10 @@ Default ayanamsa (True Chitra), as the app uses by default.
 Writes dosha_prevalence.json next to this package. Re-run after changing a dosha
 rule — tests/test_dosha_prevalence.py fails if a dosha has no measured figure.
 
-Also measures the Compatibility tab's Mangal dosha (§83.3/§84), which is a
-different rule from the Birth Chart's "manglik" (Mars from the Lagna with its own
-cancellations), so it gets its own figures under "compatibility" —
-measured with compute_match._mangal_dosha, the function that tab calls, on the
-same sampled charts.
+Also measures the Compatibility tab's Mangal dosha (§83.3/§84) under
+"compatibility", with the placement-before-cancellations figure the tab shows,
+measured with compute_match._mangal_dosha on the same sampled charts. Since §86
+the Birth Chart's "manglik" is that same function, so the two percents match.
 """
 import json
 import os

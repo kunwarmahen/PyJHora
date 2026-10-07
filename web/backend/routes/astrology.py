@@ -990,7 +990,7 @@ async def get_compatibility(
             female_lon=request.female_longitude,
             male_tz=request.male_timezone,
             female_tz=request.female_timezone,
-            tz=request.male_timezone or request.female_timezone or 5.5
+            tz=next((z for z in (request.male_timezone, request.female_timezone) if z is not None), 5.5)
         )
         # AI compatibility analysis lives at /api/astrology/compatibility-analysis
         # (unified LLM service); this endpoint returns the deterministic score only.

@@ -23,9 +23,9 @@ numbers (`todo.md §52`), so finished sections stay where they are. What is stil
 
 | § | Item | Status |
 |---|---|---|
-| §85.1 | Owner calls: align the Birth Chart's Manglik with Compatibility's? · Hindi typo `म्रृगशीर्षा` (parked) · Vite (parked) | 🔴 owner |
+| §85.1 | Owner calls: Manglik alignment ✅ done (§86) · Hindi typo `म्रृगशीर्षा` (parked) · Vite (parked) | ⏸ parked |
 | §85.2 | Translation: Hindi Help answers (~190), compat verdict text, raja-yoga/panchanga/koota names, rest of hi (1,230/2,898 keys), Sanskrit | P2 |
-| §85.3 | Product follow-ups: upstream Pitru bug report, AI-reading check of the new Topic Reading topics, Compatibility page in the browser | P2 |
+| §85.3 | Product follow-ups: upstream Pitru bug report, AI-reading check of the new Topic Reading topics | P2 |
 | §85.4 | Upkeep: re-record harness fixtures on payload changes; re-run dosha prevalence on any rule change | ongoing |
 | §85.5 | Hardening, only if conditions change: Redis rate limit, Cloudflare-only forwarded IPs, beacon dedupe | P3 |
 
@@ -8867,7 +8867,7 @@ The single list to pick up from. Each item says why it's open and where the deta
 index at the top mirrors it. Paste-ready session prompt: `docs/NEXT_WORK_PROMPT.md`.
 
 ### 85.1 Owner calls 🔴
-- [ ] 🔴 **Align the Birth Chart's Manglik with Compatibility's?** The Birth Chart still uses PyJHora's
+- [x] ✅ **Align the Birth Chart's Manglik with Compatibility's?** — owner: yes (2026-10-06), shipped in §86. The Birth Chart still uses PyJHora's
       `dosha.manglik` (42.3% of charts); Compatibility now uses our own rule, Mars from the Lagna with
       cancellations (31.0%, §84). A reader can be "Manglik" on one tab and not on the other. The Help answer
       says so, but one rule would be clearer. Options: keep both (they answer slightly different questions),
@@ -8893,7 +8893,7 @@ index at the top mirrors it. Paste-ready session prompt: `docs/NEXT_WORK_PROMPT.
       7 (Rahu) (§83.1). The app no longer calls it.
 - [ ] **Exercise the new Topic Reading topics with a live model** (wealth, education, travel; §83.4). Check
       that readings use the Hora Lagna / D24 as instructed and the claim checker stays quiet.
-- [ ] **Drive the Compatibility page in a browser** with two partner profiles (§83.3/§84 were checked via
+- [x] ✅ **Drive the Compatibility page in a browser** — owner checked, works (2026-10-06) with two partner profiles (§83.3/§84 were checked via
       tests and the live API only): status line, "cancelled", supporting Moon/Venus, prevalence line, in en + hi.
 
 ### 85.4 Upkeep (ongoing)
@@ -8903,7 +8903,38 @@ index at the top mirrors it. Paste-ready session prompt: `docs/NEXT_WORK_PROMPT.
       Mangal placement ≈50% and Manglik < placement.
 
 ### 85.5 Hardening (P3) — only if the condition becomes true
+- [ ] **A birth exactly on the equator or Greenwich meridian** → `if not lat or not lon` swaps in Chennai; same
+      truthiness trap as §86.2's `tz or 5.5`. Fix to `is None` if it ever matters.
 - [ ] **Scaled past one uvicorn worker** → move the anonymous rate limit (`ratelimit.public_check`) to Redis.
 - [ ] **Origin reachable without Cloudflare** → trust `CF-Connecting-IP`/`X-Forwarded-For` only from Cloudflare's
       ranges (the global hourly cap is the floor until then).
 - [ ] **Funnel counts start to matter** → sample or dedupe `landing_view` beacons by session.
+
+---
+
+## §86 One Manglik rule — and every UTC+0 birth had been charted as IST (2026-10-06) — ✅ SHIPPED
+
+### 86.1 The Birth Chart's Manglik is Compatibility's (owner call on §85.1)
+- `get_doshas` now calls `compute_match._mangal_dosha` instead of upstream `dosha.manglik`: Mars in
+  1/2/4/7/8/12 from the Lagna, no classical cancellation. A reader is Manglik on both tabs or neither.
+- Description is ours, like Pitru (§83.1): `_MANGLIK_TEXT` en + hi in `compute_strength.py` — the rule, the
+  house from the Lagna, and any cancellation. The cancellation reasons are English f-strings (§85.2), so
+  Hindi gets a generic "परिहार लागू है" line and no sign name, never mixed-language text.
+- Prevalence: Birth Chart Manglik 42.3% → **31.0%**, equal to Compatibility's figure (now asserted in
+  `test_dosha_prevalence.py`). `tests/test_manglik_one_rule.py` pins the agreement on both reference charts.
+- Help `yogaAndDosha` + `featCompatibility` (en), FEATURES.md, I18N doc §5 updated.
+
+### 86.2 `tz or 5.5` — found because the two figures came out 30.9% vs 31.0%
+- The same rule on the same sampled charts should agree exactly. It didn't: `get_doshas` did
+  `tz_offset = tz or 5.5`, so **tz=0.0 became IST**. The script's London samples (UTC+0) were charted 5½ h off.
+- The pattern was in **30 places** across `astrology/*.py` plus the two compatibility routes
+  (`male_timezone or female_timezone`). Every birth in a UTC+0 zone — London, Lisbon, Dublin, Accra,
+  Reykjavik, Dakar — got the wrong chart on every page: a London noon birth (1990-05-10) showed a
+  Gemini Lagna; the right one is Leo.
+- Fixed to `5.5 if tz is None else tz` (None is still "not given"). The frontend never had the bug.
+- `tests/test_utc_zero_timezone.py`: the London chart, plus a source scan that fails on any
+  `tz/timezone or …` fallback in `astrology/`, `routes/` or the backend root.
+- Prevalence moved slightly from the corrected London samples (Kalathra 4.1 → 4.2, Pitru 31.5 → 31.6).
+- **Not touched:** `if not lat or not lon` (Chennai fallback) has the same shape for lat/lon = 0
+  (equator / Greenwich meridian exactly). Rare enough to leave; noted in §85.5.
+

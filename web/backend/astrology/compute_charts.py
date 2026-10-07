@@ -33,7 +33,7 @@ class ChartsMixin:
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707  # Chennai default
 
-            tz_offset = tz or 5.5  # IST default
+            tz_offset = 5.5 if tz is None else tz  # IST default
 
             # Calculate JD
             jd = swe.julday(year, month, day, hour + minute/60)
@@ -213,7 +213,7 @@ class ChartsMixin:
 
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707  # Chennai default
-            tz_offset = tz or 5.5  # IST default
+            tz_offset = 5.5 if tz is None else tz  # IST default
 
             jd = swe.julday(year, month, day, hour + minute / 60)
             place_obj = drik.Place(place, lat, lon, tz_offset)
@@ -288,7 +288,7 @@ class ChartsMixin:
             second = int(tp[2]) if len(tp) > 2 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
             pp = charts.rasi_chart(jd, place_obj)
             return {
@@ -336,7 +336,7 @@ class ChartsMixin:
             second = int(tp[2]) if len(tp) > 2 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
             pp = charts.rasi_chart(jd, place_obj)
             lagna_sign = pp[0][1][0]
@@ -450,7 +450,7 @@ class ChartsMixin:
             second = int(tp[2]) if len(tp) > 2 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
             dob_d = drik.Date(year, month, day)
             tob_t = (hour, minute, second)
@@ -591,7 +591,7 @@ class ChartsMixin:
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0)
 
             sb = strength.shad_bala(jd, place_obj)
@@ -666,7 +666,7 @@ class ChartsMixin:
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0)
 
             # Bhava Bala — [shashtiamsa, rupas, ratio] each 12 houses.
@@ -737,7 +737,7 @@ class ChartsMixin:
             second = int(tp[2]) if len(tp) > 2 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
             pp = charts.rasi_chart(jd, place_obj)
             h2p = utils.get_house_planet_list_from_planet_positions(pp)
@@ -839,7 +839,7 @@ class ChartsMixin:
 
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707  # Chennai default
-            tz_offset = tz or 5.5
+            tz_offset = 5.5 if tz is None else tz
 
             jd = swe.julday(year, month, day, hour + minute / 60.0)
             place_obj = drik.Place(place, lat, lon, tz_offset)
@@ -1081,7 +1081,7 @@ class ChartsMixin:
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd_dob = swe.julday(y, m, d, hour + minute / 60.0)
 
             year_offset = max(0, int(year_offset))
@@ -1184,6 +1184,6 @@ class ChartsMixin:
         hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
         if not lat or not lon:
             lat, lon = 13.0827, 80.2707
-        place_obj = drik.Place(place or "", lat, lon, tz or 5.5)
+        place_obj = drik.Place(place or "", lat, lon, 5.5 if tz is None else tz)
         jd = swe.julday(y, m, d, hour + minute / 60.0)
         return jd, place_obj, y, m, d, hour, minute

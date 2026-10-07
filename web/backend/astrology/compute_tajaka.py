@@ -58,7 +58,7 @@ class TajakaMixin:
 
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707  # Chennai default
-            tz_offset = tz or 5.5
+            tz_offset = 5.5 if tz is None else tz
 
             jd_dob = swe.julday(y, m, d, hour + minute / 60)
             place_obj = drik.Place(place, lat, lon, tz_offset)

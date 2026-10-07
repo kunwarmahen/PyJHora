@@ -9,6 +9,7 @@ from .engine import *  # noqa: F401,F403  (constants + helpers the bodies use)
 import re as _re
 
 from . import yoga_catalog
+from .compute_match import _mangal_dosha
 
 # Our catalog key -> the English display name PyJHora keys its dosha results by.
 # Not derivable: upstream spells it "Manglik Dosha" where we say "Manglik (Kuja)
@@ -85,6 +86,44 @@ _PITRU_TEXT = {
            "यहाँ इसे तब माना जाता है जब सूर्य या राहु नौवें भाव में हो, या सूर्य राहु अथवा केतु "
            "के साथ एक ही राशि में हो।", "इस कुंडली में: {}।"),
 }
+
+
+# Manglik on the Birth Chart uses the Compatibility tab's rule, compute_match.
+# _mangal_dosha (owner decision 2026-10-06, todo.md §86): Mars in 1/2/4/7/8/12 from
+# the Lagna with no classical cancellation. Before, this tab used upstream's
+# dosha.manglik (42.3%) and Compatibility ours (31.0%), so one reader could be
+# Manglik on one tab and not on the other. One rule, one answer.
+_MANGLIK_TEXT = {
+    "en": ("Mars in the 1st, 2nd, 4th, 7th, 8th or 12th house from the Lagna, with no classical "
+           "cancellation (Mars in its own or exalted sign, a sign-specific exception, or Jupiter "
+           "with Mars). Traditionally weighed in marriage compatibility.",
+           "In this chart: Mars is in the {h} house from the Lagna, in {sign}.",
+           "Cancelled: {}"),
+    "hi": ("लग्न से पहले, दूसरे, चौथे, सातवें, आठवें या बारहवें भाव में मंगल, जब कोई शास्त्रीय परिहार "
+           "लागू न हो (मंगल स्वराशि या उच्च राशि में, राशि-विशेष का अपवाद, या मंगल के साथ गुरु)। "
+           "विवाह मिलान में परंपरागत रूप से देखा जाता है।",
+           "इस कुंडली में: मंगल लग्न से {h} भाव में है।",
+           "परिहार लागू है, इसलिए दोष निरस्त है।"),
+}
+_ORDINAL_EN = {1: "1st", 2: "2nd", 4: "4th", 7: "7th", 8: "8th", 12: "12th"}
+_ORDINAL_HI = {1: "पहले", 2: "दूसरे", 4: "चौथे", 7: "सातवें", 8: "आठवें", 12: "बारहवें"}
+
+
+def _manglik_description(m: Dict, engine_lang: str) -> str:
+    """The rule, then where Mars sits from the Lagna and any cancellation. The
+    cancellation reasons are English f-strings in _mangal_dosha (todo.md §85.2),
+    so Hindi gets a generic line rather than mixed-language text (and no sign name,
+    which _mangal_dosha also gives in English)."""
+    lang = engine_lang if engine_lang in _MANGLIK_TEXT else "en"
+    rule, here, cancelled = _MANGLIK_TEXT[lang]
+    h = m["from"].get("Lagna")
+    if h is None:
+        return rule
+    if lang == "hi":
+        text = f"{rule} {here.format(h=_ORDINAL_HI[h])}"
+        return f"{text} {cancelled}" if m["cancellations"] else text
+    text = f"{rule} {here.format(h=_ORDINAL_EN[h], sign=m['mars_sign'])}"
+    return f"{text} {cancelled.format(' '.join(m['cancellations']))}" if m["cancellations"] else text
 
 
 def _pitru_reasons(planet_positions) -> List[str]:
@@ -175,7 +214,7 @@ class StrengthMixin:
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0)
             bhinna, sarva = AstrologyCompute._ashtakavarga_tables(jd, place_obj)
             return {
@@ -248,7 +287,7 @@ class StrengthMixin:
             second = int(tp[2]) if len(tp) > 2 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
 
             d1 = charts.rasi_chart(jd, place_obj)
@@ -408,7 +447,7 @@ class StrengthMixin:
             second = int(tp[2]) if len(tp) > 2 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0 + second / 3600.0)
 
             d1 = charts.rasi_chart(jd, place_obj)
@@ -526,7 +565,7 @@ class StrengthMixin:
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(year, month, day, hour + minute / 60.0)
 
             pp = charts.rasi_chart(jd, place_obj)
@@ -623,7 +662,7 @@ class StrengthMixin:
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            tz_offset = tz or 5.5
+            tz_offset = 5.5 if tz is None else tz
             jd = swe.julday(year, month, day, hour + minute / 60)
             place_obj = drik.Place(place, lat, lon, tz_offset)
 
@@ -640,11 +679,12 @@ class StrengthMixin:
                 return bool(v)
 
             pitru = _pitru_reasons(pp)
+            mangal = _mangal_dosha(pp)
             catalog = [
                 ("kala_sarpa", "Kala Sarpa Dosha", dosha.kala_sarpa(h2p),
                  "All planets fall on one side of the Rahu–Ketu axis. Can bring delays and obstacles, often with strong results later in life."),
-                ("manglik", "Manglik (Kuja) Dosha", dosha.manglik(pp),
-                 "Mars in certain houses from the Lagna, Moon or Venus. Traditionally weighed in marriage compatibility."),
+                # Compatibility's rule, not dosha.manglik — see _MANGLIK_TEXT.
+                ("manglik", "Manglik (Kuja) Dosha", mangal["manglik"], None),
                 # Our narrowed rule, not dosha.pitru_dosha — see _pitru_reasons.
                 ("pitru", "Pitru Dosha", bool(pitru), None),
                 ("guru_chandala", "Guru Chandala Dosha", dosha.guru_chandala_dosha(pp),
@@ -677,6 +717,9 @@ class StrengthMixin:
                     # Upstream's text explains upstream's five-condition rule, so
                     # it would contradict the verdict; ours is en + hi.
                     text, d = None, _pitru_description(pitru, engine_lang)
+                elif k == "manglik":
+                    # Same: upstream's text explains upstream's rule.
+                    text, d = None, _manglik_description(mangal, engine_lang)
                 doshas.append({
                     "key": k,
                     "name": n,
@@ -718,7 +761,7 @@ class StrengthMixin:
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            tz_offset = tz or 5.5
+            tz_offset = 5.5 if tz is None else tz
             jd = swe.julday(year, month, day, hour + minute / 60)
             place_obj = drik.Place(place, lat, lon, tz_offset)
 
@@ -797,7 +840,7 @@ class StrengthMixin:
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(y, m, d, hour + minute / 60.0)
 
             pp = charts.rasi_chart(jd, place_obj)
@@ -919,7 +962,7 @@ class StrengthMixin:
             hour = int(tp[0]); minute = int(tp[1]) if len(tp) > 1 else 0
             if not lat or not lon:
                 lat, lon = 13.0827, 80.2707
-            place_obj = drik.Place(place, lat, lon, tz or 5.5)
+            place_obj = drik.Place(place, lat, lon, 5.5 if tz is None else tz)
             jd = swe.julday(y, m, d, hour + minute / 60.0)
 
             def _get_aayu(s1, s2):

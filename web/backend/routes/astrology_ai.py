@@ -73,7 +73,7 @@ async def analyze_compatibility(
             female_lon=female_details.longitude,
             male_tz=male_details.timezone,
             female_tz=female_details.timezone,
-            tz=male_details.timezone or female_details.timezone
+            tz=next((z for z in (male_details.timezone, female_details.timezone) if z is not None), 5.5)
         )
 
         # Build the natal summary for both partners (lagna/moon/sun/planets).

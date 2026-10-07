@@ -31,9 +31,9 @@ def test_the_measurement_is_sane():
 
 
 def test_compatibility_mangal_carries_its_own_measured_figure(args1, args2):
-    """The Compatibility tab's Mangal rule is not the Birth Chart's (§83.3/§84): it
-    needs its own figure, measured with compute_match._mangal_dosha — the
-    function the tab calls."""
+    """The Compatibility tab carries its own Mangal figures (§83.3/§84), measured with
+    compute_match._mangal_dosha — the function the tab calls. Since §86 the Birth
+    Chart uses the same function, so its "manglik" figure must equal this one."""
     comp = A.get_compatibility(
         male_dob=args1["dob"], male_tob=args1["tob"], male_place=args1["place"],
         male_lat=args1["lat"], male_lon=args1["lon"], male_tz=args1["tz"],
@@ -50,3 +50,4 @@ def test_compatibility_mangal_carries_its_own_measured_figure(args1, args2):
     # rule came back.
     assert abs(stored["placement_percent"] - 50) < 3
     assert 20 <= stored["percent"] < stored["placement_percent"]
+    assert json.load(open(DATA))["doshas"]["manglik"]["percent"] == stored["percent"]

@@ -232,7 +232,8 @@ before touching it:
 - **Exception — Pitru Dosha (2026-10-06, todo.md §83.1).** The app now uses its own narrowed Pitru rule, so
   upstream's Pitru text (which explains upstream's five conditions) would contradict the verdict. Pitru
   never takes `get_dosha_details` text; `_PITRU_TEXT`/`_PITRU_REASONS` in `compute_strength.py` carry en + hi.
-  A future dosha that gets its own rule needs the same treatment.
+  **Manglik (§86)** got the same treatment: it uses Compatibility's `_mangal_dosha`, with
+  `_MANGLIK_TEXT` (en + hi). A future dosha that gets its own rule needs the same treatment.
 - **Unlike yogas, the language cannot move the astrology here** — detection is
   boolean and never reads the message file. `test_language_never_moves_the_astrology`
   pins that, and is what would catch it becoming untrue.
