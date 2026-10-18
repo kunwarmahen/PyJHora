@@ -2,6 +2,7 @@
 #
 #   Internet ─► Cloudflare edge (domain + SSL) ─► cloudflared ─► web (nginx :80)
 #                                                                  ├─ /api ─► backend :8000
+#                                                                  ├─ /mcp ─► mcp :8765 ─► backend
 #                                                                  └─ /    ─► static SPA
 #                                                                            backend ─► mongodb
 #
@@ -9,7 +10,7 @@
 # so no port-forwarding and no exposed ports. (One localhost-only debug port on the
 # web container is left commented below for on-NAS smoke tests.)
 #
-# Images (jyotirai-backend / jyotirai-web) are built locally and loaded onto the NAS
+# Images (jyotirai-backend / jyotirai-web / jyotirai-mcp) are built locally and loaded onto the NAS
 # by `./dev.sh nas deploy` — they are never built on the NAS.
 #
 # Required in .env (see .env.nas.example): MONGO_PASSWORD, SECRET_KEY, TUNNEL_TOKEN,
@@ -65,6 +66,17 @@ services:
     #   curl http://127.0.0.1:18088/health
     # ports:
     #   - "127.0.0.1:18088:80"
+    depends_on:
+      - backend
+      - mcp
+    restart: unless-stopped
+    networks: [jyotirai]
+
+  mcp:
+    # Hosted MCP endpoint (https://<site>/mcp, routed by nginx). Deliberately no
+    # env_file: it must never see a JYOTIR_API_TOKEN — each caller brings their own.
+    image: jyotirai-mcp:latest
+    container_name: jyotirai-mcp
     depends_on:
       - backend
     restart: unless-stopped

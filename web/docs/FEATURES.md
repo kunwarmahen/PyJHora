@@ -458,7 +458,8 @@ email.
 - **MCP server** (`web/mcp/`): a standalone [Model Context Protocol](https://modelcontextprotocol.io)
   server that wraps the same catalog so **Claude Desktop** (or any MCP client) can compute charts,
   dashas, panchanga, transits, KP, Jaimini, muhurta and more against your profiles — over stdio
-  or streamable-HTTP. It talks to the public API with your token; setup is in
+  or streamable-HTTP, and hosted at `https://<site>/mcp` where each caller authenticates with
+  their own token (no install). It talks to the public API with that token; setup is in
   [`web/mcp/README.md`](../mcp/README.md).
 
 #### What a position looks like (and what changed in Sept 2026)

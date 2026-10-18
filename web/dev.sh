@@ -39,7 +39,7 @@
 #   ./dev.sh nas deploy       # build images locally, ship + load on NAS, start stack
 #   #   only ships an image whose ID actually changed, streams it through the
 #   #   fastest compressor both ends share, and builds the two images in parallel
-#   ./dev.sh nas deploy backend      # only the backend image (or: web)
+#   ./dev.sh nas deploy backend      # only the backend image (or: web, mcp)
 #   ./dev.sh nas deploy --force      # re-ship even if the NAS already has this ID
 #   ./dev.sh nas deploy --skip-build # ship the images already built locally
 #   ./dev.sh nas up           # (re)start on NAS without rebuilding
@@ -85,6 +85,7 @@ COMPOSE_NAS="$ROOT_DIR/docker-compose.nas.yml"
 # Image names (built locally, loaded on the NAS — never built there).
 IMG_BACKEND="jyotirai-backend:latest"
 IMG_WEB="jyotirai-web:latest"
+IMG_MCP="jyotirai-mcp:latest"
 
 # Record of what is actually loaded on the NAS: "<image> <image-id>" per line,
 # rewritten after every successful load. Lets a deploy skip an image whose ID
@@ -558,12 +559,17 @@ build_web_image() {
   ( cd "$FRONTEND_DIR" && $ENGINE build "${wargs[@]}" -t "$IMG_WEB" -f Dockerfile.nas . )
 }
 
-nas_build_images() {  # nas_build_images <backend?> <web?> — builds the requested images in parallel
+build_mcp_image() {  # the hosted /mcp endpoint — small, holds no token
+  ( cd "$ROOT_DIR/mcp" && $ENGINE build -t "$IMG_MCP" -f Dockerfile . )
+}
+
+nas_build_images() {  # nas_build_images <backend?> <web?> <mcp?> — builds the requested images in parallel
   detect_engine
-  local do_be="$1" do_web="$2"
+  local do_be="$1" do_web="$2" do_mcp="${3:-0}"
   local lb="${TMPDIR:-/tmp}/jyotirai-build-backend.$$.log"
   local lw="${TMPDIR:-/tmp}/jyotirai-build-web.$$.log"
-  local pb="" pw="" rc=0
+  local lm="${TMPDIR:-/tmp}/jyotirai-build-mcp.$$.log"
+  local pb="" pw="" pm="" rc=0
 
   # The two builds share nothing, and the web build is dominated by a cold
   # `npm run build` while the backend's is mostly cache hits — so overlapping
@@ -576,6 +582,10 @@ nas_build_images() {  # nas_build_images <backend?> <web?> — builds the reques
     info "building web image $IMG_WEB (log: $lw) ..."
     build_web_image >"$lw" 2>&1 & pw=$!
   fi
+  if [ "$do_mcp" = 1 ]; then
+    info "building mcp image $IMG_MCP (log: $lm) ..."
+    build_mcp_image >"$lm" 2>&1 & pm=$!
+  fi
 
   if [ -n "$pb" ]; then
     if wait "$pb"; then ok "backend image built"; else rc=1; err "backend image build FAILED:"; tail -n 30 "$lb" >&2; fi
@@ -583,8 +593,11 @@ nas_build_images() {  # nas_build_images <backend?> <web?> — builds the reques
   if [ -n "$pw" ]; then
     if wait "$pw"; then ok "web image built";     else rc=1; err "web image build FAILED:";     tail -n 30 "$lw" >&2; fi
   fi
+  if [ -n "$pm" ]; then
+    if wait "$pm"; then ok "mcp image built";     else rc=1; err "mcp image build FAILED:";     tail -n 30 "$lm" >&2; fi
+  fi
   [ "$rc" -eq 0 ] || exit 1
-  rm -f "$lb" "$lw"
+  rm -f "$lb" "$lw" "$lm"
 }
 
 # --- image transfer -----------------------------------------------------
@@ -624,16 +637,17 @@ nas_ship_image() {  # nas_ship_image <image> <remote-basename>
 }
 
 nas_deploy() {
-  # ./dev.sh nas deploy [backend|web] [--force] [--skip-build]
-  local want_be=1 want_web=1 force=0 skip_build=0 a
+  # ./dev.sh nas deploy [backend|web|mcp] [--force] [--skip-build]
+  local want_be=1 want_web=1 want_mcp=1 force=0 skip_build=0 a
   for a in "$@"; do
     case "$a" in
-      backend)          want_web=0 ;;
-      web|frontend)     want_be=0 ;;
+      backend)          want_web=0; want_mcp=0 ;;
+      web|frontend)     want_be=0;  want_mcp=0 ;;
+      mcp)              want_be=0;  want_web=0 ;;
       --force|-f)       force=1 ;;
       --skip-build)     skip_build=1 ;;
       "")               ;;
-      *) err "unknown option '$a' (use: backend | web | --force | --skip-build)"; exit 1 ;;
+      *) err "unknown option '$a' (use: backend | web | mcp | --force | --skip-build)"; exit 1 ;;
     esac
   done
 
@@ -648,7 +662,7 @@ nas_deploy() {
   nas_sudo_prime
   detect_codec
 
-  [ "$skip_build" = 1 ] || nas_build_images "$want_be" "$want_web"
+  [ "$skip_build" = 1 ] || nas_build_images "$want_be" "$want_web" "$want_mcp"
 
   info "preparing ${NAS_PATH} on ${NAS_HOST} ..."
   nas_ssh "mkdir -p '${NAS_PATH}/nginx' '${NAS_PATH}/mongo-data'"
@@ -659,9 +673,9 @@ nas_deploy() {
   [ "$force" = 1 ] || state="$(nas_ssh "cat '${NAS_PATH}/${NAS_STATE_FILE}' 2>/dev/null" || true)"
   remote_id() { printf '%s\n' "$state" | awk -v n="$1" '$1==n {print $2; exit}'; }
 
-  local ship_be=0 ship_web=0
-  local id_be id_web
-  id_be="$(image_id "$IMG_BACKEND")"; id_web="$(image_id "$IMG_WEB")"
+  local ship_be=0 ship_web=0 ship_mcp=0
+  local id_be id_web id_mcp
+  id_be="$(image_id "$IMG_BACKEND")"; id_web="$(image_id "$IMG_WEB")"; id_mcp="$(image_id "$IMG_MCP")"
   if [ "$want_be" = 1 ]; then
     if [ -n "$id_be" ] && [ "$id_be" = "$(remote_id "$IMG_BACKEND")" ]; then
       ok "backend image unchanged — skipping transfer"
@@ -672,6 +686,11 @@ nas_deploy() {
       ok "web image unchanged — skipping transfer"
     else ship_web=1; fi
   fi
+  if [ "$want_mcp" = 1 ]; then
+    if [ -n "$id_mcp" ] && [ "$id_mcp" = "$(remote_id "$IMG_MCP")" ]; then
+      ok "mcp image unchanged — skipping transfer"
+    else ship_mcp=1; fi
+  fi
 
   info "syncing compose + config ..."
   nas_scp "$COMPOSE_NAS"                 "${NAS_PATH}/docker-compose.yml"
@@ -680,6 +699,7 @@ nas_deploy() {
 
   [ "$ship_be" = 1 ]  && nas_ship_image "$IMG_BACKEND" "jyotirai-backend"
   [ "$ship_web" = 1 ] && nas_ship_image "$IMG_WEB"     "jyotirai-web"
+  [ "$ship_mcp" = 1 ] && nas_ship_image "$IMG_MCP"     "jyotirai-mcp"
 
   # Build the remote script: load only what we shipped, then bring the stack up.
   local ext; ext="$(codec_ext)"
@@ -695,12 +715,14 @@ nas_deploy() {
   }
   [ "$ship_be" = 1 ]  && _load_for "$IMG_BACKEND" "jyotirai-backend"
   [ "$ship_web" = 1 ] && _load_for "$IMG_WEB"     "jyotirai-web"
+  [ "$ship_mcp" = 1 ] && _load_for "$IMG_MCP"     "jyotirai-mcp"
 
   # Rewrite the full state file: shipped images get the ID we just built, the
   # rest keep whatever was recorded, so a one-image deploy doesn't forget the other.
-  local st_be st_web
+  local st_be st_web st_mcp
   st_be="$([ "$ship_be" = 1 ] && echo "$id_be" || remote_id "$IMG_BACKEND")"
   st_web="$([ "$ship_web" = 1 ] && echo "$id_web" || remote_id "$IMG_WEB")"
+  st_mcp="$([ "$ship_mcp" = 1 ] && echo "$id_mcp" || remote_id "$IMG_MCP")"
 
   info "loading images + (re)starting the stack on NAS ..."
   # No `compose down` first: compose recreates exactly the containers whose image
@@ -715,6 +737,7 @@ nas_deploy() {
     : > '${NAS_STATE_FILE}'
     [ -n '${st_be}' ]  && echo '${IMG_BACKEND} ${st_be}'  >> '${NAS_STATE_FILE}'
     [ -n '${st_web}' ] && echo '${IMG_WEB} ${st_web}' >> '${NAS_STATE_FILE}'
+    [ -n '${st_mcp}' ] && echo '${IMG_MCP} ${st_mcp}' >> '${NAS_STATE_FILE}'
     exit 0
   "
 

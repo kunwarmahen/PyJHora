@@ -76,6 +76,49 @@ Add to `claude_desktop_config.json` (Settings → Developer → Edit Config):
 Restart Claude Desktop; the Jyotir AI tools appear in the tools menu. Ask it to
 "list my profiles", then "run the natal chart for <profile>".
 
+## Hosted endpoint — connect by URL, no code needed
+
+The NAS deployment serves the MCP server at **`https://www.jyotirai.win/mcp`**
+(its own `jyotirai-mcp` container, routed by nginx). Nothing to install: give your
+client the URL plus your token as a header.
+
+```bash
+# Claude Code
+claude mcp add --transport http jyotir-ai https://www.jyotirai.win/mcp \
+  --header "Authorization: Bearer jyd_your_token"
+```
+
+```json
+// Any client that takes a URL + headers (Cursor, Claude Desktop via mcp-remote, …)
+{
+  "mcpServers": {
+    "jyotir-ai": {
+      "url": "https://www.jyotirai.win/mcp",
+      "headers": { "Authorization": "Bearer jyd_your_token" }
+    }
+  }
+}
+```
+
+The hosted server holds **no token of its own**. Each request's
+`Authorization: Bearer jyd_…` is forwarded to `/api/v1` unchanged, so every
+caller acts as themselves. A request with no token gets a 401 before any MCP
+handling. Never set `JYOTIR_API_TOKEN` on that container: it is the fallback for
+a caller who sends none, and on a shared endpoint it would let anyone act as you.
+The compose service deliberately has no `env_file` for that reason.
+
+Ships with the rest of the stack: `./dev.sh nas deploy` (or `./dev.sh nas deploy mcp`
+for just this image).
+
+claude.ai's custom connectors want OAuth rather than a static header, so they
+can't use this endpoint yet. Claude Code, Claude Desktop (through `mcp-remote`),
+Cursor and SDK agents can.
+
+**Running `server.py` locally against the remote site** still works too:
+`JYOTIR_API_URL=https://www.jyotirai.win` (no `/api` suffix) and a token created
+on that site. Tokens live in each deployment's own Mongo, so one made on your
+local dev stack won't work against the NAS.
+
 ## What the tools return
 
 Positions come back naming the sign, not numbering it — a model reading a
@@ -102,7 +145,7 @@ placements, and they were being read as house numbers.
 | Var | Default | Meaning |
 |---|---|---|
 | `JYOTIR_API_URL` | `http://localhost:8000` | Base URL of the web backend |
-| `JYOTIR_API_TOKEN` | — (**required**) | Your Settings → API access token |
+| `JYOTIR_API_TOKEN` | — (required for stdio) | Your Settings → API access token. Over http it's only a fallback for callers that send none; leave it unset on a shared endpoint |
 | `MCP_TRANSPORT` | `stdio` | `stdio` or `http` (streamable-HTTP) |
 | `MCP_HTTP_HOST` | `127.0.0.1` | HTTP bind host |
 | `MCP_HTTP_PORT` | `8765` | HTTP bind port |

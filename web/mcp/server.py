@@ -13,14 +13,21 @@ mutation, so nothing here can change the user's data.
 
 Config (env):
   JYOTIR_API_URL     base URL of the web backend (default http://localhost:8000)
-  JYOTIR_API_TOKEN   a token from Settings → API access (required)
+  JYOTIR_API_TOKEN   a token from Settings → API access (required for stdio;
+                     optional for http — see below)
   MCP_TRANSPORT      "stdio" (default, for Claude Desktop) or "http"
   MCP_HTTP_HOST      bind host for http transport (default 127.0.0.1)
   MCP_HTTP_PORT      bind port for http transport (default 8765)
 
 Run:
   JYOTIR_API_TOKEN=jyd_… python server.py            # stdio
-  JYOTIR_API_TOKEN=jyd_… MCP_TRANSPORT=http python server.py
+  MCP_TRANSPORT=http python server.py                 # http (hosted)
+
+Over http every request authenticates with the CALLER's own token
+(`Authorization: Bearer jyd_…`), forwarded as-is to the API, so the hosted
+endpoint at https://<site>/mcp acts as whoever calls it. JYOTIR_API_TOKEN is only
+a fallback for a caller that sends none — never set it on a shared deployment, or
+anyone who can reach the endpoint acts as that token's owner.
 """
 import contextlib
 import json
@@ -55,8 +62,22 @@ _BIRTH_DETAILS_SCHEMA = {
 }
 
 
-def _auth_headers() -> Dict[str, str]:
-    return {"Authorization": f"Bearer {API_TOKEN}"}
+def _caller_token(server: Server | None = None) -> str:
+    """The token to act with: the http caller's own bearer token when there is
+    one, else the env token (stdio, or a single-user http run)."""
+    if server is not None:
+        try:
+            req = server.request_context.request
+        except LookupError:
+            req = None
+        auth = req.headers.get("authorization", "") if req is not None else ""
+        if auth.lower().startswith("bearer ") and auth[7:].strip():
+            return auth[7:].strip()
+    return API_TOKEN
+
+
+def _auth_headers(token: str | None = None) -> Dict[str, str]:
+    return {"Authorization": f"Bearer {token if token is not None else API_TOKEN}"}
 
 
 def _merged_input_schema(tool: Dict[str, Any]) -> Dict[str, Any]:
@@ -81,15 +102,23 @@ def _merged_input_schema(tool: Dict[str, Any]) -> Dict[str, Any]:
     return {"type": "object", "properties": props, "required": own.get("required", [])}
 
 
-async def _fetch_catalog(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
-    r = await client.get(f"{API_URL}/api/v1/tools", headers=_auth_headers())
+async def _fetch_catalog(client: httpx.AsyncClient, token: str | None = None) -> List[Dict[str, Any]]:
+    r = await client.get(f"{API_URL}/api/v1/tools", headers=_auth_headers(token))
     r.raise_for_status()
     return r.json().get("tools", [])
 
 
-def build_server(catalog: List[Dict[str, Any]]) -> Server:
+def build_server(catalog: List[Dict[str, Any]] | None) -> Server:
+    """`catalog=None` loads it lazily with the first caller's token (http mode,
+    where the server holds no token of its own). It's the same for every user."""
     server: Server = Server(SERVER_NAME)
-    by_name = {t["name"]: t for t in catalog}
+    cache: Dict[str, Any] = {"tools": catalog}
+
+    async def _catalog() -> List[Dict[str, Any]]:
+        if cache["tools"] is None:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                cache["tools"] = await _fetch_catalog(client, _caller_token(server))
+        return cache["tools"]
 
     # A synthetic tool for profile discovery, plus every catalog tool.
     profiles_tool = types.Tool(
@@ -102,7 +131,7 @@ def build_server(catalog: List[Dict[str, Any]]) -> Server:
     @server.list_tools()
     async def list_tools() -> List[types.Tool]:
         tools = [profiles_tool]
-        for t in catalog:
+        for t in await _catalog():
             tools.append(types.Tool(
                 name=t["name"],
                 description=t.get("description", t.get("label", t["name"])),
@@ -112,9 +141,11 @@ def build_server(catalog: List[Dict[str, Any]]) -> Server:
 
     @server.call_tool()
     async def call_tool(name: str, arguments: Dict[str, Any]) -> List[types.TextContent]:
+        token = _caller_token(server)
+        by_name = {t["name"]: t for t in await _catalog()}
         async with httpx.AsyncClient(timeout=60.0) as client:
             if name == "list_profiles":
-                r = await client.get(f"{API_URL}/api/v1/profiles", headers=_auth_headers())
+                r = await client.get(f"{API_URL}/api/v1/profiles", headers=_auth_headers(token))
                 payload = _safe_json(r)
             elif name in by_name:
                 args = dict(arguments or {})
@@ -125,7 +156,7 @@ def build_server(catalog: List[Dict[str, Any]]) -> Server:
                 body["args"] = args
                 r = await client.post(
                     f"{API_URL}/api/v1/tools/{name}",
-                    headers=_auth_headers(), json=body)
+                    headers=_auth_headers(token), json=body)
                 payload = _safe_json(r)
             else:
                 payload = {"error": f"Unknown tool '{name}'"}
@@ -160,6 +191,19 @@ def _run_http(server: Server) -> None:
     manager = StreamableHTTPSessionManager(app=server, json_response=False, stateless=True)
 
     async def handle(scope, receive, send):
+        # Turn away a caller with no token before the MCP layer, so the client
+        # sees a plain 401 instead of a session whose every call fails.
+        if not API_TOKEN:
+            headers = dict(scope.get("headers") or [])
+            auth = headers.get(b"authorization", b"").decode("latin-1")
+            if not (auth.lower().startswith("bearer ") and auth[7:].strip()):
+                body = json.dumps({"error": "Send your Jyotir AI API token as "
+                                   "'Authorization: Bearer jyd_…' (Settings → API access)."}).encode()
+                await send({"type": "http.response.start", "status": 401, "headers": [
+                    (b"content-type", b"application/json"),
+                    (b"www-authenticate", b'Bearer realm="jyotir-ai"')]})
+                await send({"type": "http.response.body", "body": body})
+                return
         await manager.handle_request(scope, receive, send)
 
     @contextlib.asynccontextmanager
@@ -193,22 +237,10 @@ async def _amain() -> None:
 def main() -> None:
     import anyio
     if TRANSPORT == "http":
-        # HTTP transport still needs the catalog; fetch synchronously first.
-        if not API_TOKEN:
-            print("ERROR: JYOTIR_API_TOKEN is not set.", file=sys.stderr)
-            sys.exit(2)
-
-        async def _load():
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                return await _fetch_catalog(client)
-
-        try:
-            catalog = anyio.run(_load)
-        except Exception as e:
-            print(f"ERROR: could not reach the Jyotir AI API at {API_URL}: {e}", file=sys.stderr)
-            sys.exit(1)
-        print(f"[{SERVER_NAME}] loaded {len(catalog)} tools from {API_URL}", file=sys.stderr)
-        _run_http(build_server(catalog))
+        # No token of its own: each caller brings theirs, and the catalog is
+        # loaded with the first one.
+        print(f"[{SERVER_NAME}] forwarding to {API_URL} with each caller's token", file=sys.stderr)
+        _run_http(build_server(None))
     else:
         anyio.run(_amain)
 

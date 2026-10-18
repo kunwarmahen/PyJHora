@@ -159,7 +159,7 @@ anything. Everything below runs over a single SSH ControlMaster connection.
 
 ```bash
 ./dev.sh nas deploy              # build, ship what changed, restart the stack
-./dev.sh nas deploy backend      # only the backend image (or: web)
+./dev.sh nas deploy backend      # only the backend image (or: web, mcp)
 ./dev.sh nas deploy --force      # re-ship even if the NAS already has this image ID
 ./dev.sh nas deploy --skip-build # ship the images already built locally
 ./dev.sh nas logs [svc]          # tail NAS logs
