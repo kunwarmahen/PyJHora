@@ -581,3 +581,52 @@
   color: var(--text-muted);
   font-family: monospace;
 }
+
+/* API access → "How to connect an AI app" guide (hosted /mcp endpoint). */
+.settings-mcp-guide {
+  margin-top: var(--space-lg);
+  border-top: 1px solid var(--sandalwood);
+  padding-top: var(--space-md);
+}
+.settings-mcp-guide__title {
+  margin: 0 0 var(--space-xs);
+  color: var(--text-primary);
+}
+.settings-mcp-steps {
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.settings-mcp-steps strong {
+  color: var(--text-primary);
+}
+.settings-mcp-field {
+  margin: var(--space-sm) 0;
+}
+.settings-mcp-field__label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
+}
+.settings-cal-url textarea {
+  flex: 1;
+  min-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid var(--sandalwood);
+  border-radius: var(--radius-md);
+  font-family: monospace;
+  font-size: 0.8rem;
+  background: var(--cream);
+  color: var(--text-primary);
+  resize: vertical;
+}
+.settings-mcp-dev {
+  margin: var(--space-sm) 0;
+}
+.settings-mcp-dev summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+}

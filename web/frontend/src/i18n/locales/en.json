@@ -1395,10 +1395,29 @@
       "lastUsed": "Last used",
       "never": "never",
       "revoke": "Revoke",
-      "docs": "Use the token as a Bearer credential against /api/v1, or set JYOTIR_API_TOKEN for the MCP server (see web/mcp/README.md). The API is read-only — it can’t change your data.",
+      "docs": "Scripts can call the same read-only REST API at /api/v1 with the token as a Bearer credential, for example:",
       "loadError": "Could not load your tokens",
       "createError": "Could not create the token",
-      "revokeError": "Could not revoke the token"
+      "revokeError": "Could not revoke the token",
+      "guide": {
+        "title": "How to connect an AI app",
+        "intro": "Let an AI assistant (Claude, Cursor, Setu or any app that supports “MCP servers”) read your charts and answer questions about them. It takes about a minute.",
+        "step1Title": "1. Create a token",
+        "step1Body": "Type a name above, such as the app you are connecting, and press Create token. Copy the token that appears. It is shown only once.",
+        "step2Title": "2. Add this site in your AI app",
+        "step2Body": "Look for “Add MCP server”, “Connectors” or “Tools” in the app's settings. Choose the option to connect at an address (a URL), not a program on your computer, and fill in:",
+        "fieldAddress": "Address (URL)",
+        "fieldToken": "Token",
+        "tokenHint": "Paste the token you created in step 1. Lost it? Create a new one and revoke the old one.",
+        "fieldHeader": "Header name (only if the app asks for one)",
+        "bearerHint": "Some apps have a single box for the whole header value instead. If so, put the word Bearer, a space, then your token:",
+        "step3Title": "3. Ask away",
+        "step3Body": "Try: “List my Jyotir AI profiles”, then “What dasha am I running?” or “Show today's panchang”. The app looks the answers up from your saved charts.",
+        "devSummary": "For developers: Claude Code, Cursor and scripts",
+        "devClaudeCode": "Claude Code, in a terminal:",
+        "devJson": "Apps configured with a JSON file (Cursor and others):",
+        "safety": "Access is read-only: an app can read your charts but can never change or delete anything. The token works like a password, so don't share it. Revoke it above at any time and that app loses access immediately. The claude.ai website's connectors need a different sign-in and can't use this yet."
+      }
     },
     "theme_light": "Light",
     "theme_dark": "Dark",
@@ -2884,7 +2903,7 @@
       "whatIsAyanamsa": "What's the ayanamsa, and why do other apps give different positions?",
       "calendarFeed": "Can I see my upcoming periods in my own calendar?",
       "calendarPeriods": "Can I get Rahu Kalam in my phone's calendar?",
-      "apiAccess": "Can I use my charts from a script or from Claude Desktop?",
+      "apiAccess": "Can I connect my charts to an AI app like Claude or Setu?",
       "featPredictions": "What is a Topic Reading?",
       "featStart": "What is the “Start here” page?"
     },
@@ -2982,7 +3001,7 @@
       "whatIsAyanamsa": "Vedic astrology measures the zodiac against the fixed stars, and the stars have slowly drifted from where Western astrology's zodiac starts. The ayanamsa is how big that drift is taken to be, and different schools use slightly different values — which is why two apps can put a planet a degree apart, or even in a different nakshatra. This app defaults to True Chitra (a precise form of Lahiri) with mean Rahu and Ketu, which matches Jagannatha Hora. You can pick another — plain Lahiri, KP, Raman and others — in Settings → General → Ayanamsa.",
       "calendarFeed": "Yes. Settings → Calendar gives you a subscription link for Google Calendar, Apple Calendar or Outlook, carrying your chart's upcoming events — bhukti changes, Sade Sati boundaries, your solar return, slow-planet ingresses and eclipses on your birth stars. It refreshes by itself about twice a day. Anyone who has the link can see the feed (calendar apps can't log in), so keep it private.",
       "calendarPeriods": "Yes. Settings → Calendar has a second subscription link, separate from your chart's, that puts each day's Rahu Kalam, Yamaganda and Gulika Kalam into your calendar as timed events for the next 45 days — the same three listed under Periods to avoid on Today. They are worked out from sunrise and sunset where you are now (your current location), not where you were born, so set your location first and update it when you travel.",
-      "apiAccess": "Yes, if you're comfortable with a little setup. Settings → API access creates a personal token for the read-only API, and the same token works with the app's MCP server, which lets an AI assistant such as Claude Desktop look up your charts. The token acts as you, so treat it like a password; you can revoke it there at any time. Nothing reached this way can change your data.",
+      "apiAccess": "Yes. Settings → API access creates a personal token, and the steps there connect any AI app that supports MCP servers (Claude, Cursor, Setu and others) by pasting in this site's address and the token, with nothing to install. The same token works for scripts against the read-only API. It acts as you, so treat it like a password; you can revoke it there at any time. Nothing reached this way can change your data.",
       "featPredictions": "An AI reading of your chart on just one area of life — your life path, career, relationships, health, wealth, education or travel — instead of everything at once. Pick the topic and the AI reads the houses, lords, yogas and running dasha that bear on it; for career it also checks the 10th house counted from the Ghati Lagna, the classical second opinion on rise in standing. Wealth is checked the same way from the Hora Lagna, and education against the D24, the divisional chart for learning. It sits with the Life Report and Full Report in Reports, and every reading is saved to your AI History. Health readings are astrology, not medical advice.",
       "featStart": "The best first stop. It explains four things from your chart in everyday words: your Rising sign (Lagna — how you meet the world), your Moon sign (Rashi — your mind and feelings), your birth star (Nakshatra — the Moon's exact star group, with its traditional symbol and deity), and the chapter of life you're in now (your current dasha period and sub-period, with dates). Each card shows the Sanskrit name beside the plain one, so you'll recognise it on other pages. Nothing on it is written by the AI — it's worked out from your chart instantly — and if your birth time isn't known, it says what can't be stated without it instead of guessing. Underneath are a few questions you can send straight to the AI astrologer."
     }
@@ -3346,7 +3365,11 @@
       "title": "Read the sky like it<br/>was <accent>written for you.</accent>",
       "sub": "{{site}} computes your Vedic chart to the arc-second with the Swiss Ephemeris, then explains it in plain language — with every answer traced back to the classical texts.",
       "seeFree": "See your chart free",
-      "meta": ["True Chitra ayanamsa", "Matches Jagannatha Hora", "50+ classical tools"]
+      "meta": [
+        "True Chitra ayanamsa",
+        "Matches Jagannatha Hora",
+        "50+ classical tools"
+      ]
     },
     "chart": {
       "northAria": "A North Indian style Vedic birth chart",

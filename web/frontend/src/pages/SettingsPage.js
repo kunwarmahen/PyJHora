@@ -170,7 +170,7 @@ export const SettingsPage = () => {
   const [apiTokBusy, setApiTokBusy] = useState(false);
   const [apiTokError, setApiTokError] = useState("");
   const [newApiToken, setNewApiToken] = useState(""); // shown once, after create
-  const [apiTokCopied, setApiTokCopied] = useState(false);
+  const [apiCopiedKey, setApiCopiedKey] = useState(""); // which Copy button just fired
 
   // Load the user's API tokens when the API-access tab opens.
   useEffect(() => {
@@ -217,15 +217,33 @@ export const SettingsPage = () => {
     }
   };
 
-  const copyNewApiToken = async () => {
+  const copyApiText = async (key, text) => {
     try {
-      await navigator.clipboard.writeText(newApiToken);
-      setApiTokCopied(true);
-      setTimeout(() => setApiTokCopied(false), 1800);
+      await navigator.clipboard.writeText(text);
+      setApiCopiedKey(key);
+      setTimeout(() => setApiCopiedKey((k) => (k === key ? "" : k)), 1800);
     } catch {
       /* clipboard unavailable — user can select manually */
     }
   };
+
+  // A read-only value with a Copy button (the connect guide's address, token, …).
+  const apiCopyRow = (key, value, { multiline = false } = {}) => (
+    <div className="settings-cal-url">
+      {multiline ? (
+        <textarea
+          readOnly
+          rows={value.split("\n").reduce((n, line) => n + Math.max(1, Math.ceil(line.length / 48)), 0)}
+          value={value} onFocus={(e) => e.target.select()} />
+      ) : (
+        <input type="text" readOnly value={value} onFocus={(e) => e.target.select()} />
+      )}
+      <button type="button" className="ui-btn ui-btn--ghost" onClick={() => copyApiText(key, value)}>
+        {apiCopiedKey === key ? <Check size={16} /> : <Copy size={16} />}
+        {apiCopiedKey === key ? t("settings.apiAccess.copied") : t("settings.apiAccess.copy")}
+      </button>
+    </div>
+  );
 
   // Notifications (daily digest + push)
   const [notif, setNotif] = useState(null); // prefs
@@ -1068,22 +1086,7 @@ export const SettingsPage = () => {
                   <p className="settings-token-new__label">
                     {t("settings.apiAccess.newTokenLabel")}
                   </p>
-                  <div className="settings-cal-url">
-                    <input
-                      type="text"
-                      readOnly
-                      value={newApiToken}
-                      onFocus={(e) => e.target.select()}
-                    />
-                    <button
-                      type="button"
-                      className="ui-btn ui-btn--ghost"
-                      onClick={copyNewApiToken}
-                    >
-                      {apiTokCopied ? <Check size={16} /> : <Copy size={16} />}
-                      {apiTokCopied ? t("settings.apiAccess.copied") : t("settings.apiAccess.copy")}
-                    </button>
-                  </div>
+                  {apiCopyRow("token", newApiToken)}
                   <p className="settings-hint settings-token-new__warn">
                     {t("settings.apiAccess.newTokenWarn")}
                   </p>
@@ -1142,7 +1145,77 @@ export const SettingsPage = () => {
                 </div>
               )}
 
-              <p className="settings-hint settings-token-docs">{t("settings.apiAccess.docs")}</p>
+              {/* How to connect — plain-language steps for the hosted /mcp endpoint */}
+              {(() => {
+                const mcpUrl = `${window.location.origin}/mcp`;
+                const tok = newApiToken || "jyd_…";
+                const g = (k) => t(`settings.apiAccess.guide.${k}`);
+                return (
+                  <div className="settings-mcp-guide">
+                    <h4 className="settings-mcp-guide__title">{g("title")}</h4>
+                    <p className="settings-hint">{g("intro")}</p>
+                    <ol className="settings-mcp-steps">
+                      <li>
+                        <strong>{g("step1Title")}</strong>
+                        <p className="settings-hint">{g("step1Body")}</p>
+                      </li>
+                      <li>
+                        <strong>{g("step2Title")}</strong>
+                        <p className="settings-hint">{g("step2Body")}</p>
+                        <div className="settings-mcp-field">
+                          <span className="settings-mcp-field__label">{g("fieldAddress")}</span>
+                          {apiCopyRow("url", mcpUrl)}
+                        </div>
+                        <div className="settings-mcp-field">
+                          <span className="settings-mcp-field__label">{g("fieldToken")}</span>
+                          {newApiToken ? (
+                            apiCopyRow("token2", newApiToken)
+                          ) : (
+                            <p className="settings-hint">{g("tokenHint")}</p>
+                          )}
+                        </div>
+                        <div className="settings-mcp-field">
+                          <span className="settings-mcp-field__label">{g("fieldHeader")}</span>
+                          {apiCopyRow("header", "Authorization")}
+                        </div>
+                        <p className="settings-hint">{g("bearerHint")}</p>
+                        {apiCopyRow("bearer", `Bearer ${tok}`)}
+                      </li>
+                      <li>
+                        <strong>{g("step3Title")}</strong>
+                        <p className="settings-hint">{g("step3Body")}</p>
+                      </li>
+                    </ol>
+
+                    <details className="settings-mcp-dev">
+                      <summary>{g("devSummary")}</summary>
+                      <p className="settings-hint">{g("devClaudeCode")}</p>
+                      {apiCopyRow(
+                        "cc",
+                        `claude mcp add --transport http jyotir-ai ${mcpUrl} \\\n  --header "Authorization: Bearer ${tok}"`,
+                        { multiline: true }
+                      )}
+                      <p className="settings-hint">{g("devJson")}</p>
+                      {apiCopyRow(
+                        "json",
+                        JSON.stringify(
+                          { mcpServers: { "jyotir-ai": { url: mcpUrl, headers: { Authorization: `Bearer ${tok}` } } } },
+                          null,
+                          2
+                        ),
+                        { multiline: true }
+                      )}
+                      <p className="settings-hint">{t("settings.apiAccess.docs")}</p>
+                      {apiCopyRow(
+                        "curl",
+                        `curl -H "Authorization: Bearer ${tok}" ${window.location.origin}/api/v1/profiles`
+                      )}
+                    </details>
+
+                    <p className="settings-hint settings-token-docs">{g("safety")}</p>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

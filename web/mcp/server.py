@@ -120,12 +120,19 @@ def build_server(catalog: List[Dict[str, Any]] | None) -> Server:
                 cache["tools"] = await _fetch_catalog(client, _caller_token(server))
         return cache["tools"]
 
+    # Every tool here is read-only compute over the user's own charts (the public
+    # API exposes no mutation), so say so: clients like Setu then mark them
+    # "read-only, no confirmation needed" on first add instead of guessing.
+    read_only = types.ToolAnnotations(
+        readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
+
     # A synthetic tool for profile discovery, plus every catalog tool.
     profiles_tool = types.Tool(
         name="list_profiles",
         description="List your saved birth profiles (id + name + birth summary). "
                     "Use a returned id as `profile_id` when running any other tool.",
         inputSchema={"type": "object", "properties": {}, "required": []},
+        annotations=read_only,
     )
 
     @server.list_tools()
@@ -136,6 +143,7 @@ def build_server(catalog: List[Dict[str, Any]] | None) -> Server:
                 name=t["name"],
                 description=t.get("description", t.get("label", t["name"])),
                 inputSchema=_merged_input_schema(t),
+                annotations=read_only,
             ))
         return tools
 
