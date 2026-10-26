@@ -9019,3 +9019,19 @@ for them in the Settings → Calendar subscription too.
   published ports (Cloudflare tunnel only), and the funnel counts only feed the admin Overview. The owner
   isn't planning to change the deployment, so they stay parked.
 
+## §90 A Jupiter ingress into the natal Moon sign was read as "the 12th from your Moon" (owner report 2026-10-26) — ✅ SHIPPED 2026-10-26
+
+- The owner's fortnight reading (Krishna Paksha 2026-10-26 → 11-09) said *"Jupiter enters Leo, activating
+  the 12th house from your natal Moon"*. The natal Moon is in Leo, so it is the **1st** (Janma Guru). The
+  engine was right; the prompt was not: the only house in the data was the snapshot's (`Jupiter transits your
+  12th from the Moon (Cancer)`, today), and `Jupiter enters Leo on 2026-10-31` carried none, so the model
+  joined them.
+- Now every ingress carries the house **of the sign entered**: `get_transits` upcoming entries get
+  `house_from_lagna`/`house_from_moon`; period-digest events get `to_sign` + `house_from_moon`; highlights and
+  both period prompts plus the daily/chart prompts print it ("… (your 1st from the natal Moon)"). The
+  snapshot line now reads "Jupiter **now** transits …" (and uses `_ordinal` — it would have said "1th").
+- Family digest: `_split_highlights` keeps the bare ingress in the shared sky and the house-bearing line
+  under the person, since the house differs per chart.
+- Tests: `test_golden.py::test_ingress_lines_carry_the_house_of_the_sign_entered` (owner's chart on
+  2026-10-26: Leo = 1st, today's Cancer = 12th) and `test_digest.py::test_ingress_house_stays_personal_…`.
+

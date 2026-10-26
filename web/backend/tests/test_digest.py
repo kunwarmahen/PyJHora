@@ -340,3 +340,11 @@ def test_glance_leaves_an_uncontested_window_unqualified():
                           "conflicts": []},
     }, "daily")
     assert lines[0] == "Good window — Amrit 07:36–09:09"
+
+
+def test_ingress_house_stays_personal_while_the_event_is_shared():
+    """The ingress itself is sky; the house it lands in differs per chart."""
+    sky, personal = digest._split_highlights([
+        "Jupiter enters Leo on 2026-10-31 (your 1st from the natal Moon)"])
+    assert sky == ["Jupiter enters Leo on 2026-10-31"]
+    assert personal == ["Jupiter enters Leo on 2026-10-31 (your 1st from the natal Moon)"]

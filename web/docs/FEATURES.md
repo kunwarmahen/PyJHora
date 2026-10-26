@@ -334,7 +334,7 @@ else stays on the owner's clock. Like the account location it stores an IANA zon
 coordinates), never an offset, so it is DST-correct. And the facts that are the same for everyone on that day — the panchanga headline, the
 retrograde list, upcoming ingresses — are printed **once** under an "Across the sky today" header
 rather than repeated under every name; each person's section then carries only what is specific to
-their chart.
+their chart (including which house from *their* Moon an ingress lands in).
 
 Current location stores an **IANA zone name**, never an offset, because an offset can't carry
 DST: a stored `-6.0` for Chicago is an hour wrong for half the year (India has no DST, which is
@@ -719,7 +719,9 @@ sits on neither. This is also why Jagannatha Hora offers daily / fortnightly / m
 - **This Fortnight** (`/fortnightly-digest`) — the running **paksha** (Shukla or Krishna, ~14.8 days)
   with its **Paksha Pravesha** chart (Lagna / Muntha / Tajaka yogas), the running dasha, the transit
   events inside the window (all-graha **sign-ingresses** and **retrograde stations**), and an AI
-  reading. Lunar-only — there is no solar fortnight.
+  reading. Lunar-only — there is no solar fortnight. Every ingress (here, in This Month and in the
+  daily digest) names the house it lands in from your natal Moon, so the reading never borrows
+  today's house for the sign being entered.
 - **This Month** (`/monthly-digest`) — the month on **either ladder**, switchable on the page:
   **Solar** = the **Maasa Pravesha** (Tajaka monthly solar return, the monthly analogue of Varshaphal);
   **Lunar** = the **birth-tithi return** (your natal tithi recurring). Either way **the "month" is that

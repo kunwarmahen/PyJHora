@@ -228,8 +228,9 @@ def _cadence(cadence: str) -> Dict[str, Any]:
     return _CADENCES.get(cadence, _CADENCES["daily"])
 
 
-# An ingress line, e.g. "Jupiter enters Leo on 2026-10-31".
-_INGRESS_RE = re.compile(r" enters .+ on \d{4}-\d{2}-\d{2}$")
+# An ingress line, e.g. "Jupiter enters Leo on 2026-10-31", optionally followed
+# by this chart's house: " (your 1st from the natal Moon)".
+_INGRESS_RE = re.compile(r" enters .+ on \d{4}-\d{2}-\d{2}( \(your .+\))?$")
 
 
 def _split_highlights(highlights: List[str]) -> Tuple[List[str], List[str]]:
@@ -237,7 +238,8 @@ def _split_highlights(highlights: List[str]) -> Tuple[List[str], List[str]]:
 
     'Sky' facts depend only on the date and the reader's location, so they read
     identically for every profile on the same day: the panchanga headline, the
-    current retrograde list, and upcoming sign-ingresses. Everything else (dasha,
+    current retrograde list, and upcoming sign-ingresses (minus the house it
+    lands in, which stays personal). Everything else (dasha,
     Sade-Sati, Jupiter-from-Moon, pravesha lagna, Tajaka yogas) is keyed to the
     individual chart. Splitting lets the combined digest print the shared sky once
     instead of repeating it under every name."""
@@ -249,7 +251,12 @@ def _split_highlights(highlights: List[str]) -> Tuple[List[str], List[str]]:
                 or s.startswith("Avoid for anything new:")
                 or " nakshatra" in s
                 or _INGRESS_RE.search(s)):
-            sky.append(s)
+            # An ingress is sky, but the house it lands in is this chart's own:
+            # the bare event is shared, the full line stays with the person.
+            bare, sep, _ = s.partition(" (your ")
+            sky.append(bare)
+            if sep:
+                personal.append(s)
         else:
             personal.append(s)
     return sky, personal

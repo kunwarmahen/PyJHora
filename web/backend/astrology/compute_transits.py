@@ -211,6 +211,11 @@ class TransitsMixin:
                         # just left — a real ingress, and a different story from the
                         # forward one, so the frontend can say so.
                         "retrograde_reentry": to_rasi == (from_rasi - 1) % 12,
+                        # The house of the sign being ENTERED. Without it the only
+                        # house beside this line is today's, and the model carried
+                        # that over (Jupiter into the Moon's sign read as the 12th).
+                        "house_from_lagna": house_from(natal_lagna_rasi, to_rasi),
+                        "house_from_moon": house_from(natal_moon_rasi, to_rasi),
                         "date": f"{ey:04d}-{em:02d}-{ed:02d}",
                     })
                 except Exception as ie:
@@ -1088,6 +1093,7 @@ class TransitsMixin:
                         events.append({
                             "date": as_date(exact),
                             "planet": PLANET_NAMES[pidx], "type": "ingress",
+                            "to_sign": ZODIAC_NAMES[to_rasi],
                             "text": f"{PLANET_NAMES[pidx]} enters {ZODIAC_NAMES[to_rasi]}",
                         })
 

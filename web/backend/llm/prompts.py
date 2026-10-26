@@ -21,6 +21,14 @@ def _ordinal(n):
     return f"{n}{suffix}"
 
 
+def _event_house(e) -> str:
+    """The house an ingress event lands in, from the natal Moon. The period
+    prompts also print today's "Jupiter now transits your 12th"; without its own
+    house the model gave the new sign that stale one."""
+    h = e.get("house_from_moon")
+    return f" (your {_ordinal(h)} from the natal Moon)" if h else ""
+
+
 def _ordinal_en(n) -> str:
     """1 → "1st". House numbers read as ordinals in a reading ("your 7th"), and a
     prompt that prints "house 7" invites the model to echo that phrasing back."""
@@ -1125,6 +1133,7 @@ Three paragraphs, four sentences each at most. Begin."""
             f"- {u['planet']} "
             f"{'re-enters (retrograde)' if u.get('retrograde_reentry') else 'enters'} "
             f"{u['to_sign']} on {u['date']}"
+            + (f" (your {_ordinal(u['house_from_moon'])} from the Moon)" if u.get("house_from_moon") else "")
             for u in transits.get("upcoming", [])
         ) or "- (none imminent)"
         retro = transits.get("retrograde", [])
@@ -1214,7 +1223,7 @@ Hard rules: The data above is authoritative — reason only from it, never contr
         def _bullets(items, empty):
             return "\n".join(f"- {i}" for i in items) if items else f"- ({empty})"
 
-        events = [f"{e['date']}: {e['text']}" for e in (d.get("events") or [])]
+        events = [f"{e['date']}: {e['text']}{_event_house(e)}" for e in (d.get("events") or [])]
         supports = [c["text"] for c in (d.get("supports") or [])]
         cautions = [c["text"] for c in (d.get("cautions") or [])]
 
@@ -1314,7 +1323,7 @@ The data above is authoritative — reason only from it and invent no placement,
         retro = transits.get("retrograde", [])
         events = d.get("events", [])
         event_lines = "\n".join(
-            f"- {e['date']}: {e['text']}" for e in events
+            f"- {e['date']}: {e['text']}{_event_house(e)}" for e in events
         ) or "- (no sign-changes or stations this window)"
         cautions = d.get("cautions") or []
         caution_lines = "\n".join(f"- {c['text']}" for c in cautions) \
@@ -2561,6 +2570,9 @@ Planetary Positions (All 9 Grahas) — house counted from the Lagna:"""
                 chart_description += (
                     f"\n- Upcoming: {u.get('planet', '?')} {verb} {u.get('to_sign', '?')} "
                     f"(from {u.get('from_sign', '?')}) on {u.get('date', '?')}"
+                    + (f" — house {u['house_from_lagna']} from Lagna / "
+                       f"{u['house_from_moon']} from Moon"
+                       if u.get("house_from_moon") else "")
                 )
 
         # Ashtakavarga — Sarva (combined) bindus per sign (higher = more supportive)

@@ -711,3 +711,22 @@ def test_daily_digest_exposes_the_natal_chart_to_the_prompt(args1):
     planets = d["transits"]["natal"]["planets"]
     assert set(planets) == set(CHART1_NATAL)
     assert planets["Venus"]["owns_houses"] == [1, 6]
+
+
+def test_ingress_lines_carry_the_house_of_the_sign_entered(args1):
+    """Jupiter enters Leo on 2026-10-31 — the owner's natal Moon sign. The
+    fortnight reading once called that "the 12th from your Moon": the only house
+    beside the ingress line was today's (Jupiter still in Cancer), and the model
+    carried it over. Every ingress now names its own house."""
+    t = A.get_transits(**args1, current_date="2026-10-26")
+    jup = next(u for u in t["upcoming"] if u["planet"] == "Jupiter")
+    assert (jup["to_sign"], jup["house_from_moon"]) == ("Leo", 1)
+    assert t["planets"]["Jupiter"]["house_from_moon"] == 12   # today, still Cancer
+
+    d = A.get_fortnightly_digest(**args1, date="2026-10-26")
+    ev = next(e for e in d["events"] if e["planet"] == "Jupiter" and e["type"] == "ingress")
+    assert ev["house_from_moon"] == 1
+    assert "Jupiter enters Leo on 2026-10-31 (your 1st from the natal Moon)" in d["highlights"]
+
+    daily = A.get_daily_digest(**args1, date="2026-10-26")
+    assert "Jupiter enters Leo on 2026-10-31 (your 1st from the natal Moon)" in daily["highlights"]

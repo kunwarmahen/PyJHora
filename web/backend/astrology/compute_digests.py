@@ -272,6 +272,17 @@ def _ordinal(n):
     return f"{n}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th') }"
 
 
+def _from_moon_suffix(house):
+    """' (your Nth from the natal Moon)' for a sign a graha is entering. Ingress
+    lines must carry their own house: the snapshot line beside them ("Jupiter
+    now transits your 12th…") is today's sign, and without this the model
+    pinned that stale house onto the new sign (Jupiter entering the Moon's own
+    sign was narrated as the 12th)."""
+    if not house:
+        return ""
+    return f" (your {_ordinal(house)} from the natal Moon)"
+
+
 def _avoid_windows(panch):
     """The classical trio to keep clear of for anything new — Rahu Kalam,
     Yamaganda and Gulika Kalam. These were already computed for the panchanga
@@ -522,7 +533,8 @@ class DigestsMixin:
                 for u in transits.get("upcoming", []):
                     verb = "re-enters" if u.get("retrograde_reentry") else "enters"
                     highlights.append(
-                        f"{u['planet']} {verb} {u['to_sign']} on {u['date']}")
+                        f"{u['planet']} {verb} {u['to_sign']} on {u['date']}"
+                        + _from_moon_suffix(u.get("house_from_moon")))
 
             # On the lunar basis the day carries its tithi-pravesha chart.
             pravesh = None
@@ -852,7 +864,7 @@ class DigestsMixin:
                     named_planets.add("Saturn")
                 if jup:
                     highlights.append(
-                        f"Jupiter transits your {jup.get('house_from_moon')}th from the Moon "
+                        f"Jupiter now transits your {_ordinal(jup.get('house_from_moon'))} from the Moon "
                         f"({jup.get('sign_name')})")
                 retro = [name for name, p in planets.items() if p.get("retrograde")]
                 if retro:
@@ -863,8 +875,14 @@ class DigestsMixin:
                     "retrograde": retro,
                     "sade_sati": sat.get("house_from_moon") in (12, 1, 2),
                 }
+            natal_moon = (((transits.get("natal") or {}).get("moon") or {}).get("sign_num")
+                          if transits.get("status") == "success" else None)
             for ev in events:
-                highlights.append(f"{ev['text']} on {ev['date']}")
+                if ev.get("type") == "ingress" and natal_moon and ev.get("to_sign") in ZODIAC_NAMES:
+                    ev["house_from_moon"] = (
+                        (ZODIAC_NAMES.index(ev["to_sign"]) - (int(natal_moon) - 1)) % 12 + 1)
+                highlights.append(f"{ev['text']} on {ev['date']}"
+                                  + _from_moon_suffix(ev.get("house_from_moon")))
 
             # Progressed-chart headline, named for the rung it was actually cast on.
             if pravesh:
