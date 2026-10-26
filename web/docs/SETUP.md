@@ -185,6 +185,10 @@ The deploy no longer runs `compose down` before `up`: compose recreates exactly
 the containers whose image ID changed, so Mongo and the Cloudflare tunnel stay up
 across a redeploy. For a hard reset use `./dev.sh nas down && ./dev.sh nas up`.
 
+`cloudflared` is set to `pull_policy: always`, so every `nas deploy` / `nas up`
+checks Docker Hub for a newer `cloudflare/cloudflared:latest` and recreates the
+tunnel only if it changed. To update just the tunnel, run `./dev.sh nas up`.
+
 **Passwords are asked once, up front.** There are two of them, and they are two
 different credentials: the **SSH login** (unless you've installed a key on the
 NAS with `ssh-copy-id`) and the NAS's own **`sudo`** password, since every remote

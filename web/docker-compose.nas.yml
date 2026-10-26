@@ -84,6 +84,9 @@ services:
 
   cloudflared:
     image: cloudflare/cloudflared:latest
+    # :latest is only fetched when missing, so without this the NAS keeps the first
+    # copy forever. Re-check on every `up`; recreated only if the digest changed.
+    pull_policy: always
     container_name: jyotirai-cloudflared
     command: tunnel --no-autoupdate run
     environment:
