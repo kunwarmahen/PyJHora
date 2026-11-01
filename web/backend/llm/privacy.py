@@ -17,7 +17,17 @@ whole birth-details objects — are covered by the same pass. Three passes:
     becomes the person's age — the one thing the model does use it for;
   * birth-details objects inside JSON (tool results), found by their `dob`/`tob`
     keys so a muhurta's own location, which has neither, is left alone;
-  * the request's own date and place wherever they appear as bare text.
+  * the request's own date, and full "City, State" place, wherever they appear
+    as bare text.
+
+The person's full name is NEVER hunted in text — names like Rohini, Chandra
+or Aditi are also chart words, and a find-and-replace would rewrite "Rohini
+nakshatra" or "Chandra Bala". It is swapped at its source instead: every prompt
+gets the name through a `name=` argument, which the caller passes through
+`shown_name()` — the profile's nickname (the user's choice under Profiles), or
+"this person" — and tool results carry it only in a birth-details `name` field,
+swapped by key. `user_settings.privacy_policy` loads the saved profiles to learn
+the nicknames.
 
 A bare birth time is deliberately NOT replaced: "10:45" is just as likely a
 muhurta window or a sunrise, and a wrong window is worse than a leaked minute.
@@ -38,12 +48,14 @@ PREF_KEYS = {
     "date": "ai_share_birth_date",
     "time": "ai_share_birth_time",
     "place": "ai_share_birth_place",
+    "name": "ai_share_full_name",
 }
 
 WITHHELD = {
     "date": "[birth date withheld]",
     "time": "[birth time withheld]",
     "place": "[birth place withheld]",
+    "name": "[name withheld]",
 }
 
 # The labelled lines the chart prompt writes (llm/prompts.py, chart description).
@@ -55,6 +67,9 @@ _FIELDS = {
     "time": ("tob", "time_of_birth", "birth_time"),
     "place": ("place", "birth_place", "place_of_birth",
               "latitude", "longitude", "lat", "lon", "lng"),
+    # Only ever read inside a birth-details object (one carrying `dob`/`tob`),
+    # so a planet's or a yoga's `name` is never touched.
+    "name": ("name",),
 }
 _MARKERS = ("dob", "tob", "date_of_birth", "birth_date")
 
@@ -88,6 +103,10 @@ class PrivacyPolicy:
         default_factory=lambda: {k: False for k in PREF_KEYS})
     dates: set = field(default_factory=set)
     places: set = field(default_factory=set)
+    # Full name → the profile's own name (its nickname), which is what a hosted
+    # model is shown instead. A name with no nickname — or one whose nickname IS
+    # the full name — maps to WITHHELD["name"].
+    names: Dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def from_prefs(cls, prefs: Optional[Dict[str, Any]]) -> "PrivacyPolicy":
@@ -98,19 +117,39 @@ class PrivacyPolicy:
     def withholds_anything(self) -> bool:
         return not all(self.share.values())
 
+    def nickname(self, full: str, profile_name: Any) -> None:
+        """Show `profile_name` wherever the full name `full` would go."""
+        full = (full or "").strip()
+        nick = str(profile_name or "").strip()
+        if not full:
+            return
+        if nick and nick.casefold() != full.casefold():
+            self.names[full] = nick
+        else:
+            self.names[full] = WITHHELD["name"]
+
+    def _alias(self, full: str) -> str:
+        return self.names.get(full.strip(), WITHHELD["name"])
+
     def remember(self, obj: Any) -> None:
-        """Note every birth-details dict inside `obj` (a request body), so its
-        date and place are caught even where they turn up as bare text."""
+        """Note every birth-details dict inside `obj` (a request body, a saved
+        profile), so its date, place and name are caught even where they turn
+        up as bare text. A `profile_name` beside the birth details is the
+        nickname that stands in for the name."""
         if isinstance(obj, dict):
+            bd = obj.get("birth_details")
+            if isinstance(bd, dict) and obj.get("profile_name") and bd.get("name"):
+                self.nickname(str(bd["name"]), obj["profile_name"])
             if obj.get("dob"):
                 self.dates.add(str(obj["dob"]).strip())
                 place = str(obj.get("place") or "").strip()
-                if place:
+                # Only a full "City, State, Country" is hunted in bare text. A
+                # lone town name is not: "Rohini" (a Delhi district) is also a
+                # nakshatra, and a reading with its star erased is worse than
+                # an unlabelled town. The labelled line and the `place` field
+                # still carry it, and both are always redacted.
+                if "," in place:
                     self.places.add(place)
-                    # "Shahgarh, Uttar Pradesh, India" is also written as "Shahgarh".
-                    city = place.split(",")[0].strip()
-                    if len(city) >= 4:
-                        self.places.add(city)
             for v in obj.values():
                 self.remember(v)
         elif isinstance(obj, (list, tuple)):
@@ -130,7 +169,7 @@ class PrivacyPolicy:
             for k, v in obj.items():
                 kind = next((c for c, keys in _FIELDS.items() if k in keys), None)
                 if is_birth and kind and self._withheld(kind) and v not in (None, ""):
-                    out[k] = WITHHELD[kind]
+                    out[k] = self._alias(str(v)) if kind == "name" else WITHHELD[kind]
                 else:
                     out[k] = self._redact_obj(v)
             return out
@@ -146,14 +185,12 @@ class PrivacyPolicy:
                 if d:
                     text = text.replace(d, WITHHELD["date"])
         if self._withheld("place"):
-            # Longest first, so the full "City, State" goes before the bare city.
             for p in sorted(self.places, key=len, reverse=True):
                 text = re.sub(rf"(?<!\w){re.escape(p)}(?!\w)", WITHHELD["place"], text)
         return text
 
-    def redact_text(self, text: Optional[str]) -> Optional[str]:
-        if not text or not self.withholds_anything:
-            return text
+    def _redact_lines(self, text: str) -> str:
+        """The chart prompt's labelled "Date of Birth: …" lines."""
         original = text
 
         def _line(kind):
@@ -168,6 +205,30 @@ class PrivacyPolicy:
         for kind, label in _LABELS.items():
             if self._withheld(kind):
                 text = re.sub(rf"({label}:[ \t]*)([^\n]*)", _line(kind), text)
+        return text
+
+    def redact_payload(self, obj: Any) -> Any:
+        """A redacted copy of a JSON-able response — the public API and MCP
+        (§90), whose reader is a model we can't see. Strings nested anywhere
+        also get the labelled-line pass, since a tool may carry a prompt-shaped
+        summary."""
+        if not self.withholds_anything:
+            return obj
+
+        def walk(o):
+            if isinstance(o, dict):
+                return {k: walk(v) for k, v in o.items()}
+            if isinstance(o, list):
+                return [walk(v) for v in o]
+            if isinstance(o, str):
+                return self._redact_lines(o)
+            return o
+        return self._redact_obj(walk(json.loads(json.dumps(obj, default=str))))
+
+    def redact_text(self, text: Optional[str]) -> Optional[str]:
+        if not text or not self.withholds_anything:
+            return text
+        text = self._redact_lines(text)
 
         stripped = text.lstrip()
         if stripped[:1] in ("{", "["):
@@ -248,3 +309,33 @@ def outbound_policy(cfg: Optional[ModelConfig]) -> Optional[PrivacyPolicy]:
         return None
     policy = getattr(cfg, "privacy", None) or PrivacyPolicy()
     return policy if policy.withholds_anything else None
+
+
+def may_leave(cfg: Optional[ModelConfig]) -> bool:
+    """True when a request on `cfg` could be answered by a hosted model — the
+    primary, or any fallback it would try (a busy local GPU falls back to the
+    cloud). The prompt is built before we know which one answers, so a name
+    chosen for it must be safe for all of them."""
+    if cfg is None:
+        return True
+    return any(not is_self_hosted(c) for c in [cfg, *(cfg.fallbacks or [])])
+
+
+def shown_name(cfg: Optional[ModelConfig], name: Optional[str],
+               default: str = "this person") -> str:
+    """The name to write into a prompt for the person called `name`.
+
+    The real name when everything that could answer is self-hosted or the user
+    allows it; otherwise the profile's nickname, or `default` when there is no
+    nickname (or it is the full name). A name that already IS a nickname is
+    kept. This is the only place a person's name is withheld from prompt text."""
+    name = (name or "").strip()
+    if not name:
+        return default
+    policy = getattr(cfg, "privacy", None) or PrivacyPolicy()
+    if not policy._withheld("name") or not may_leave(cfg):
+        return name
+    if name in policy.names.values() and name not in policy.names:
+        return name
+    alias = policy.names.get(name, WITHHELD["name"])
+    return default if alias == WITHHELD["name"] else alias

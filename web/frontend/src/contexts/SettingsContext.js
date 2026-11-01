@@ -57,6 +57,7 @@ export const SETTING_KEYS = {
   aiShareBirthDate: "ai_share_birth_date",
   aiShareBirthTime: "ai_share_birth_time",
   aiShareBirthPlace: "ai_share_birth_place",
+  aiShareFullName: "ai_share_full_name",
   // The newcomer's first week (§76.4/§76.5) — see config/checklist.js and
   // components/PageHint.js. Comma lists and an on/off switch.
   onboardingChecklist: "onboarding_checklist",
@@ -81,6 +82,7 @@ const SYNCED_KEYS = [
   "aiShareBirthDate",
   "aiShareBirthTime",
   "aiShareBirthPlace",
+  "aiShareFullName",
   "onboardingChecklist",
   "pageHints",
   "hintsSeen",
@@ -101,6 +103,7 @@ const IMMEDIATE_KEYS = [
   "aiShareBirthDate",
   "aiShareBirthTime",
   "aiShareBirthPlace",
+  "aiShareFullName",
   "onboardingChecklist",
   "pageHints",
   "hintsSeen",
@@ -155,6 +158,7 @@ const DEFAULTS = {
   aiShareBirthDate: "false",
   aiShareBirthTime: "false",
   aiShareBirthPlace: "false",
+  aiShareFullName: "false",
   onboardingChecklist: "",
   pageHints: "auto",
   hintsSeen: "",
@@ -206,6 +210,7 @@ export const SettingsProvider = ({ children }) => {
     aiShareBirthDate: read("aiShareBirthDate"),
     aiShareBirthTime: read("aiShareBirthTime"),
     aiShareBirthPlace: read("aiShareBirthPlace"),
+    aiShareFullName: read("aiShareFullName"),
   }));
 
   // Mirror of `settings` so callbacks can read the current values without being

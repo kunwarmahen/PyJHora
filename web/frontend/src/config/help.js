@@ -255,7 +255,7 @@ export const HELP_SECTIONS = [
         id: "privAiProviders",
         to: "/settings?tab=ai",
         keywords:
-          "gemini openai openrouter cloud hosted external send withheld redact anonymous birth date time place training",
+          "gemini openai openrouter cloud hosted external send withheld redact anonymous birth date time place name nickname training",
       },
       { id: "privKeys", to: "/settings" },
       { id: "privEmails", to: "/settings" },

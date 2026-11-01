@@ -1955,7 +1955,7 @@ async def life_report_chapter(
         check: dict = {}
         text = await llm_service.generate_life_report_chapter(
             chart_data=chart_data, title=title, focus=focus,
-            name=request.person_name or request.birth_details.name or "this person",
+            name=shown_name(cfg, request.person_name or request.birth_details.name),
             config=cfg, check=check, mode=check_mode)
         await claim_reports.record(
             check, username=current_user, source="life_report_chapter",

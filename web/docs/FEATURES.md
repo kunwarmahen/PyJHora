@@ -448,7 +448,7 @@ email.
 - **Token-authed public API** (`/api/v1/*`): a stable, **read-only** surface for scripts and
   automation. `GET /api/v1/tools` lists the full astrology tool catalog (schemas included);
   `POST /api/v1/tools/{name}` runs any tool against one of your saved profiles (`profile_id`)
-  or inline `birth_details`; `GET /api/v1/profiles` lists your charts. Rate-limited like the
+  or inline `birth_details`; `GET /api/v1/profiles` lists your charts (privacy-redacted — §90). Rate-limited like the
   AI endpoints; no account/profile mutation is exposed. Two tools in the catalog read **your own
   recorded data** rather than the ephemeris — `get_journal_entries` and `get_reading_outcomes` —
   scoped to the token's owner, and explicit when you have nothing recorded rather than answering
@@ -484,6 +484,9 @@ so each is named — `house_from_lagna`, `house_from_moon`, `house_from_al`,
   now the bhava. If you were reading it as a sign, read `sign_num`.
 - `rasi` — the 0-based twin — is **gone** from chart payloads. `sign_num` is
   `rasi + 1`.
+- Responses from `/api/v1` and MCP (profiles and tool results) withhold the birth
+  date, time and place, and show the full name as the profile's nickname, unless the account allows them in Settings → AI (§90) — the
+  same switches as hosted providers, since the reading model can't be seen.
 - Tool results served through `/api/v1` and MCP are sanitized for LLM use: the
   drawing coordinates (`sign_num`, `rasi`, and bare integer `sign` fields that sit
   beside a `*_name`) are stripped, because a coordinate reads as a house number to
@@ -1228,11 +1231,22 @@ Three approaches, chosen with a mode toggle:
 - **Privacy with hosted models (§78):** the chart is computed here, so a hosted
   provider (Gemini, OpenAI, OpenRouter, a cloud OpenAI-compatible host) is sent the
   computed chart, the profile name and your own text — but by default **not** the
-  birth date (replaced by the age), time or place/coordinates. Each can be allowed
+  birth date (replaced by the age), time or place/coordinates, nor the person's full
+  name, which prompts get as the profile's nickname (or "this person" when the
+  nickname is the full name). The name is swapped at its SOURCE — the `name=` every
+  prompt builder takes goes through `llm.privacy.shown_name()`, and a birth-details
+  `name` field is swapped by key — never by find-and-replace in text, because names
+  like Rohini, Chandra or Aditi are also chart words. For the same reason a lone town
+  (no comma) is not hunted in text either; only the full "City, State" is. A local
+  model with a cloud fallback gets the nickname too, since the prompt is built
+  before we know which answers. Each can be allowed
   per user in Settings → AI → "What hosted AI models may see". A self-hosted model
   always gets everything; a local model falling back to a hosted one is redacted.
   Redaction happens at the send points in `llm_service.py` (`llm/privacy.py`), so no
-  prompt builder has to remember it. Note: Gemini's free tier may use prompts for
+  prompt builder has to remember it.
+  The same choices apply to everything `/api/v1` and the MCP server return (§90):
+  an MCP client is a model we can't see, so it is always treated as hosted — no
+  self-hosted exemption there. Note: Gemini's free tier may use prompts for
   training — use a paid key if that matters.
 
 ### Admin console (`/admin`) — deployer only

@@ -9035,3 +9035,43 @@ for them in the Settings → Calendar subscription too.
 - Tests: `test_golden.py::test_ingress_lines_carry_the_house_of_the_sign_entered` (owner's chart on
   2026-10-26: Leo = 1st, today's Cancer = 12th) and `test_digest.py::test_ingress_house_stays_personal_…`.
 
+
+## §90 MCP / public API leaked the birth details §78 keeps from hosted models (owner ask 2026-11-01) — ✅ SHIPPED 2026-11-01
+
+§78 redacts at `LLMService`'s send points — where *our* model calls leave. `/api/v1` (and the
+hosted `/mcp` that proxies it) is the other way out: the client pulls raw JSON into a model we
+can't see, so `list_profiles` handed out dob/tob/place verbatim, and tool results carried them
+too (`get_saturn_transits` → birth date; `get_now_chart`, `get_panchanga`, `get_pancha_pakshi` →
+place).
+
+- `routes/v1.py`: `_api_privacy()` builds the caller's `PrivacyPolicy` from the same Settings → AI
+  prefs (`ai_share_birth_*`) and applies it to `/api/v1/profiles` and every tool result. **No
+  self-hosted exemption** — an API caller is always treated as hosted, since we can't tell. No
+  prefs / no DB → withhold all (fails closed).
+- `llm/privacy.py`: `PrivacyPolicy.redact_payload()` — `_redact_obj` plus the labelled-line pass
+  on every nested string (factored out as `_redact_lines`, shared with `redact_text`).
+- Computation is unaffected: `profile_id` resolves the real birth data server-side. The MCP
+  `list_profiles` description tells the model to pass `profile_id`, never copy a withheld value.
+- Copy: Settings → AI hint `settings.ai.privacy.connectedApps` + the `privAiProviders` FAQ answer
+  (en + hi); FEATURES.md, mcp/README.md.
+- Tests: `test_api_v1.py` — default withholds, opt-in honoured, profile listing keeps id+name,
+  nested labelled lines.
+- **Names (same day, owner ask; reworked after discussion):** the full name never reaches a hosted
+  model. It is swapped at its SOURCE, not by text search — a find-and-replace of "Rohini" or
+  "Chandra" would rewrite "Rohini nakshatra"/"Chandra Bala" (a first cut did exactly that, with a
+  stoplist; dropped). Every prompt gets the name as a `name=` argument: all 32 route call sites +
+  life report + digest pass it through `llm.privacy.shown_name(cfg, name)` → the profile's
+  nickname, or "this person" when there is none / it equals the full name; the real name only when
+  `may_leave(cfg)` is false (primary AND every fallback self-hosted — a busy local GPU falls back
+  to the cloud and the prompt is built first) or the new `ai_share_full_name` switch is on.
+  Birth-details `name` fields (tool results, API/MCP) are swapped by key. History titles keep the
+  real name (they stay on the server). `user_settings.privacy_policy()` is the one builder (deps,
+  digest, v1): prefs + every saved profile's nickname + the request's birth details.
+- **Place, same reason:** a lone town is no longer hunted in bare text ("Rohini" is also a Delhi
+  district); only a full "City, State" string is. The labelled line and `place`/coordinate fields
+  are still always redacted.
+- Not covered, by design: what the user types themselves ("I'm Asha Verma…") — scanning it would
+  bring the collision problem back. Settings → AI's "always sent" line already says so.
+- Profile form: nickname placeholder/hints + a warning when the profile name equals the full name.
+- Possible follow-up (not built): a per-token "include birth details" flag for a personal script
+  or a local-model MCP client, so it needn't loosen the hosted-provider switches for everything.

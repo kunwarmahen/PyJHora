@@ -40,6 +40,7 @@ PREFERENCE_KEYS = (
     "ai_share_birth_date",
     "ai_share_birth_time",
     "ai_share_birth_place",
+    "ai_share_full_name",
     # The newcomer's first week (§76.4/§76.5): checklist progress, whether the
     # one-line page hints show, and which pages' hints were already dismissed.
     # Comma lists / on|off — synced so a phone doesn't re-teach what the laptop did.
@@ -137,6 +138,34 @@ async def get_preferences(user_id: str) -> Dict[str, str]:
     doc = await db[COLLECTION].find_one({"user_id": user_id})
     prefs = (doc or {}).get("preferences") or {}
     return {k: prefs[k] for k in PREFERENCE_KEYS if k in prefs}
+
+
+async def privacy_policy(user_id: str, *seen: Any):
+    """The user's `llm.privacy.PrivacyPolicy`: their Settings → AI switches, the
+    nickname of every saved profile (so a request that carries only birth
+    details still has its full name swapped for the profile's name), and the
+    birth details in play (`seen`). No database → the default, everything
+    withheld; it fails closed."""
+    from llm.privacy import PrivacyPolicy
+    try:
+        prefs = await get_preferences(user_id)
+    except Exception:
+        prefs = {}
+    policy = PrivacyPolicy.from_prefs(prefs)
+    try:
+        profiles = await get_database()["saved_profiles"].find(
+            {"user_id": user_id}, {"profile_name": 1, "birth_details.name": 1}
+        ).to_list(500)
+    except Exception:
+        profiles = []
+    for p in profiles:
+        policy.remember(p)
+    for obj in seen:
+        try:
+            policy.remember(obj)
+        except Exception:
+            pass
+    return policy
 
 
 async def set_preferences(user_id: str, prefs: Dict[str, Any]) -> Dict[str, str]:

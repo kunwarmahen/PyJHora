@@ -208,7 +208,7 @@ async def analyze_kaala_chakra(
 
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_kaala_chakra(
-            kaala_data=kaala, name=request.person_name or "this person", config=cfg,
+            kaala_data=kaala, name=shown_name(cfg, request.person_name), config=cfg,
         )
         await _save_reading(
             current_user, source="kaala_chakra",
@@ -251,7 +251,7 @@ async def analyze_nakshatra_gochara(
 
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_nakshatra_gochara(
-            data=data, name=request.person_name or "this person", config=cfg,
+            data=data, name=shown_name(cfg, request.person_name), config=cfg,
         )
         await _save_reading(
             current_user, source="nakshatra_gochara",
@@ -292,7 +292,7 @@ async def analyze_kota_chakra(
 
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_kota_chakra(
-            kota_data=kota, name=request.person_name or "this person", config=cfg,
+            kota_data=kota, name=shown_name(cfg, request.person_name), config=cfg,
         )
         await _save_reading(
             current_user, source="kota_chakra",
@@ -338,7 +338,7 @@ async def analyze_tripataki_chakra(
 
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_tripataki(
-            trip_data=trip, name=request.person_name or "this person", config=cfg,
+            trip_data=trip, name=shown_name(cfg, request.person_name), config=cfg,
         )
         await _save_reading(
             current_user, source="tripataki_chakra",
@@ -383,7 +383,7 @@ async def analyze_sarvatobhadra(
 
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_sarvatobhadra(
-            sbc_data=sbc, name=request.person_name or "this person", config=cfg,
+            sbc_data=sbc, name=shown_name(cfg, request.person_name), config=cfg,
         )
         await _save_reading(
             current_user, source="sarvatobhadra",
@@ -429,7 +429,7 @@ async def analyze_sensitive_points(
                                 detail=data["sphuta"].get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_sensitive_points(
-            data=data, name=request.person_name or "this person", config=cfg,
+            data=data, name=shown_name(cfg, request.person_name), config=cfg,
         )
         await _save_reading(
             current_user, source="sensitive_points",
@@ -465,7 +465,7 @@ async def analyze_celestial(
                                 detail=data["clock"].get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_celestial(
-            data=data, name=request.person_name or "this person", config=cfg,
+            data=data, name=shown_name(cfg, request.person_name), config=cfg,
         )
         await _save_reading(
             current_user, source="celestial",
@@ -633,7 +633,7 @@ async def analyze_daily_digest(
         cfg = await _resolve_cfg(current_user, request)
         style, previously = await _digest_style(current_user, request.profile_id, "daily")
         ai_analysis = await llm_service.analyze_daily_digest(
-            digest_data=result, name=request.person_name or bd.name or "this person",
+            digest_data=result, name=shown_name(cfg, request.person_name or bd.name),
             config=cfg, style=style, previously=previously)
         await _save_reading(
             current_user, source="daily_digest",
@@ -669,7 +669,7 @@ async def analyze_fortnightly_digest(
         cfg = await _resolve_cfg(current_user, request)
         style, previously = await _digest_style(current_user, request.profile_id, "fortnightly")
         ai_analysis = await llm_service.analyze_fortnightly_digest(
-            digest_data=result, name=request.person_name or bd.name or "this person",
+            digest_data=result, name=shown_name(cfg, request.person_name or bd.name),
             config=cfg, style=style, previously=previously)
         await _save_reading(
             current_user, source="fortnightly_digest",
@@ -706,7 +706,7 @@ async def analyze_monthly_digest(
         cfg = await _resolve_cfg(current_user, request)
         style, previously = await _digest_style(current_user, request.profile_id, "monthly")
         ai_analysis = await llm_service.analyze_monthly_digest(
-            digest_data=result, name=request.person_name or bd.name or "this person",
+            digest_data=result, name=shown_name(cfg, request.person_name or bd.name),
             config=cfg, style=style, previously=previously)
         await _save_reading(
             current_user, source="monthly_digest",
@@ -748,7 +748,7 @@ async def analyze_tithi_pravesha(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_tithi_pravesha(
-            tp_data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            tp_data=result, name=shown_name(cfg, request.person_name or bd.name), config=cfg)
         label = {"tithi": "Tithi", "paksha": "Paksha", "month": "Lunar month",
                  "annual": "Tithi Pravesha"}[rung]
         await _save_reading(
@@ -783,7 +783,7 @@ async def analyze_bhrigu_markers(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_bhrigu_markers(
-            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            data=result, name=shown_name(cfg, request.person_name or bd.name), config=cfg)
         await _save_reading(
             current_user, source="bhrigu",
             title=f"Bhrigu markers — {request.person_name or bd.name or 'chart'}",
@@ -816,7 +816,7 @@ async def analyze_nadi_reading(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_nadi_reading(
-            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            data=result, name=shown_name(cfg, request.person_name or bd.name), config=cfg)
         await _save_reading(
             current_user, source="nadi",
             title=f"Nadi karaka reading — {request.person_name or bd.name or 'chart'}",
@@ -850,7 +850,7 @@ async def analyze_life_timeline(
             raise HTTPException(status_code=400, detail=ctx.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_timeline_window(
-            data=ctx, name=request.person_name or bd.name or "this person", config=cfg)
+            data=ctx, name=shown_name(cfg, request.person_name or bd.name), config=cfg)
         await _save_reading(
             current_user, source="timeline",
             title=f"Timeline — {request.target_date} — {request.person_name or bd.name or 'chart'}",
@@ -883,7 +883,7 @@ async def analyze_planet_conditions(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_planet_conditions(
-            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            data=result, name=shown_name(cfg, request.person_name or bd.name), config=cfg)
         await _save_reading(
             current_user, source="planet_conditions",
             title=f"Planet conditions — {request.person_name or bd.name or 'chart'}",
@@ -915,7 +915,7 @@ async def analyze_saturn_transits(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_saturn_transits(
-            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            data=result, name=shown_name(cfg, request.person_name or bd.name), config=cfg)
         await _save_reading(
             current_user, source="saturn_transits",
             title=f"Sade Sati — {request.person_name or bd.name or 'chart'}",
@@ -947,7 +947,7 @@ async def analyze_strength(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_strength(
-            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            data=result, name=shown_name(cfg, request.person_name or bd.name), config=cfg)
         await _save_reading(
             current_user, source="strength",
             title=f"Strength — {request.person_name or bd.name or 'chart'}",
@@ -979,7 +979,7 @@ async def analyze_nakshatra_profile(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_nakshatra_profile(
-            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            data=result, name=shown_name(cfg, request.person_name or bd.name), config=cfg)
         await _save_reading(
             current_user, source="nakshatra_profile",
             title=f"Nakshatra — {request.person_name or bd.name or 'chart'}",
@@ -1012,7 +1012,7 @@ async def analyze_planetary_nakshatras(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_planetary_nakshatras(
-            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            data=result, name=shown_name(cfg, request.person_name or bd.name), config=cfg)
         await _save_reading(
             current_user, source="planetary_nakshatras",
             title=f"Planetary nakshatras — {request.person_name or bd.name or 'chart'}",
@@ -1045,7 +1045,7 @@ async def analyze_gochara_phala(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_gochara_phala(
-            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            data=result, name=shown_name(cfg, request.person_name or bd.name), config=cfg)
         await _save_reading(
             current_user, source="gochara_phala",
             title=f"Gochara-phala — {request.person_name or bd.name or 'chart'}",
@@ -1077,7 +1077,7 @@ async def analyze_friendships(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_friendships(
-            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            data=result, name=shown_name(cfg, request.person_name or bd.name), config=cfg)
         await _save_reading(
             current_user, source="friendships",
             title=f"Friendships — {request.person_name or bd.name or 'chart'}",
@@ -1109,7 +1109,7 @@ async def analyze_avasthas(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_avasthas(
-            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            data=result, name=shown_name(cfg, request.person_name or bd.name), config=cfg)
         await _save_reading(
             current_user, source="avasthas",
             title=f"Avasthas — {request.person_name or bd.name or 'chart'}",
@@ -1140,7 +1140,7 @@ async def analyze_remedies(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_remedies(
-            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            data=result, name=shown_name(cfg, request.person_name or bd.name), config=cfg)
         await _save_reading(
             current_user, source="remedies",
             title=f"Remedies — {request.person_name or bd.name or 'chart'}",
@@ -1171,7 +1171,7 @@ async def analyze_kp(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_kp(
-            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            data=result, name=shown_name(cfg, request.person_name or bd.name), config=cfg)
         await _save_reading(
             current_user, source="kp",
             title=f"KP reading — {request.person_name or bd.name or 'chart'}",
@@ -1236,7 +1236,7 @@ async def analyze_jaimini(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_jaimini(
-            data=result, name=request.person_name or bd.name or "this person", config=cfg)
+            data=result, name=shown_name(cfg, request.person_name or bd.name), config=cfg)
         await _save_reading(
             current_user, source="jaimini",
             title=f"Jaimini reading — {request.person_name or bd.name or 'chart'}",
@@ -1267,7 +1267,7 @@ async def analyze_arudhas(
             raise HTTPException(status_code=400, detail=result.get("error", "Calculation failed"))
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_arudhas(
-            data=result, name=request.person_name or bd.name or "this person",
+            data=result, name=shown_name(cfg, request.person_name or bd.name),
             selected=request.selected, config=cfg)
         picks = ", ".join(request.selected) if request.selected else "AL, UL, A10, A11"
         await _save_reading(
@@ -1336,7 +1336,7 @@ async def analyze_varshaphal(
 
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_varshaphal(
-            varsha_data=varsha, name=request.person_name or "this person", config=cfg,
+            varsha_data=varsha, name=shown_name(cfg, request.person_name), config=cfg,
         )
         await _save_reading(
             current_user, source="varshaphal",
@@ -1379,7 +1379,7 @@ async def analyze_pancha_pakshi(
 
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.analyze_pancha_pakshi(
-            pp_data=pp, name=request.person_name or "this person", config=cfg,
+            pp_data=pp, name=shown_name(cfg, request.person_name), config=cfg,
         )
         await _save_reading(
             current_user, source="panchapakshi",
@@ -1418,7 +1418,7 @@ async def explain_rectification(
 
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.explain_rectification(
-            rectification_data=rect, name=request.person_name or "this person", config=cfg,
+            rectification_data=rect, name=shown_name(cfg, request.person_name), config=cfg,
         )
         await _save_reading(
             current_user, source="rectification",
@@ -1459,7 +1459,7 @@ async def explain_event_rectification(
 
         cfg = await _resolve_cfg(current_user, request)
         ai_analysis = await llm_service.explain_event_rectification(
-            rectification_data=rect, name=request.person_name or "this person", config=cfg,
+            rectification_data=rect, name=shown_name(cfg, request.person_name), config=cfg,
         )
         await _save_reading(
             current_user, source="rectification",
@@ -1495,7 +1495,7 @@ async def rectify_birth_time_chat(
         turn = await llm_service.rectification_chat(
             messages=[m.model_dump() for m in request.messages],
             collected_events=[e.model_dump() for e in request.collected_events],
-            name=request.person_name or "this person",
+            name=shown_name(cfg, request.person_name),
             config=cfg,
         )
         return {

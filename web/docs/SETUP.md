@@ -337,9 +337,11 @@ LOCAL_LLM_COOLDOWN=300
 LLM_FALLBACK_ORDER=gemini,openrouter,openai
 OLLAMA_CPU_URL=
 
-# Birth-detail privacy (§78). Hosted models are not sent the birth date, time or
-# place unless the user allows it in Settings → AI; self-hosted ones get
-# everything. "Self-hosted" = an Ollama / OpenAI-compatible endpoint on loopback,
+# Birth-detail privacy (§78/§90). Hosted models are not sent the birth date, time,
+# place or full name (the profile's nickname stands in) unless the user allows it
+# in Settings → AI; self-hosted ones get everything — unless a cloud fallback is
+# configured, in which case prompts use the nickname too. /api/v1 and MCP callers
+# are always treated as hosted. "Self-hosted" = an Ollama / OpenAI-compatible endpoint on loopback,
 # a private/Tailscale IP, a single-label or .local/.lan/.internal name. List any
 # other host that is really yours (e.g. a Tailscale MagicDNS name):
 # SELF_HOSTED_LLM_HOSTS=nas.tailnet-1234.ts.net

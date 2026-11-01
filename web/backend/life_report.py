@@ -26,6 +26,7 @@ import conversations as convo
 from chart_context import build_chart_context
 import claim_reports
 from database import get_database
+from llm.privacy import shown_name
 from llm_service import llm_service
 
 COLLECTION = "life_report_jobs"
@@ -261,7 +262,7 @@ async def run_job(job_id: str, user_id: str, cfg) -> None:
         try:
             text = await llm_service.generate_life_report_chapter(
                 chart_data=chart_data, title=title, focus=focus,
-                name=person, config=cfg, check=check, mode=check_mode)
+                name=shown_name(cfg, person), config=cfg, check=check, mode=check_mode)
         except Exception as e:
             await _set_chapter(oid, index, STATUS_ERROR)
             await db[COLLECTION].update_one(

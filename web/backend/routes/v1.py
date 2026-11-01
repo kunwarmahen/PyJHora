@@ -42,8 +42,20 @@ from fastapi import APIRouter
 from models import *  # noqa: F401,F403
 from deps import *  # noqa: F401,F403
 import deps as _deps
+from llm.privacy import PrivacyPolicy
 
 router = APIRouter()
+
+
+async def _api_privacy(user: str, *seen: Any) -> PrivacyPolicy:
+    """What this caller's responses may carry (§90). Whatever reads /api/v1 —
+    an MCP client, mostly — is a model we can't see and almost always a hosted
+    one, so it gets the same Settings → AI choices a hosted provider gets
+    (llm/privacy.py): birth date, time and place withheld, and the full name
+    shown as the profile's nickname, unless the user opted in. There is no
+    self-hosted exemption here; we can't tell. `seen` are the birth details in
+    play, so their date, place and name are caught as bare text."""
+    return await user_settings.privacy_policy(user, *seen)
 
 
 
@@ -61,6 +73,9 @@ async def api_v1_index():
         "version": "1",
         "auth": "Bearer token — create one under Settings → API access (jyd_…).",
         "read_only": True,
+        "privacy": "Birth date, time and place are withheld from responses, and a "
+                   "person's full name is shown as their profile name, unless the "
+                   "account allows them under Settings → AI.",
         "endpoints": {
             "list_tools": "GET /api/v1/tools",
             "list_profiles": "GET /api/v1/profiles",
@@ -97,7 +112,8 @@ async def api_v1_profiles(current_user: str = Depends(get_api_user)):
             "tob": bd.get("tob"),
             "place": bd.get("place"),
         })
-    return {"profiles": out}
+    policy = await _api_privacy(current_user, docs)
+    return {"profiles": policy.redact_payload(out)}
 
 
 @router.post("/api/v1/tools/{tool_name}")
@@ -127,4 +143,5 @@ async def api_v1_run_tool(tool_name: str, req: ToolRunRequest,
         )
     except tool_registry.ToolError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return {"tool": tool_name, "result": result}
+    policy = await _api_privacy(current_user, birth_details)
+    return {"tool": tool_name, "result": policy.redact_payload(result)}

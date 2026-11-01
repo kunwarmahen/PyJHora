@@ -22,6 +22,9 @@ def stub_llm(monkeypatch):
     class _Cfg:
         provider_type = ProviderType.OLLAMA
         model = "test-model"
+        base_url = None       # the server's own default endpoint — self-hosted
+        fallbacks = []
+        privacy = None
 
     async def _resolve_cfg(_user, _request):
         return _Cfg()

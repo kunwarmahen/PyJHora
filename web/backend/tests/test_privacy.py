@@ -10,7 +10,8 @@ import json
 import pytest
 
 from llm.base import ModelConfig, ProviderType
-from llm.privacy import PrivacyPolicy, WITHHELD, is_self_hosted, outbound_policy
+from llm.privacy import (PrivacyPolicy, WITHHELD, is_self_hosted, may_leave,
+                         outbound_policy, shown_name)
 
 BIRTH = {"name": "Asha", "dob": "1985-03-12", "tob": "10:45",
          "place": "Shahgarh, Uttar Pradesh, India",
@@ -28,7 +29,8 @@ Moon dasha 1985-03-12 to 1992-01-01. Muhurta window 10:45–11:30."""
 
 
 def _policy(**share):
-    p = PrivacyPolicy.from_prefs({f"ai_share_birth_{k}": "true" for k, v in share.items() if v})
+    p = PrivacyPolicy.from_prefs({(f"ai_share_{k}" if k == "full_name" else f"ai_share_birth_{k}"): "true"
+                                  for k, v in share.items() if v})
     p.remember({"birth_details": BIRTH})
     return p
 
@@ -63,7 +65,7 @@ def test_opting_in_sends_that_item():
     out = _policy(date=True).redact_text(PROMPT)
     assert "- Date of Birth: 1985-03-12" in out
     assert "Shahgarh" not in out
-    everything = _policy(date=True, time=True, place=True)
+    everything = _policy(date=True, time=True, place=True, full_name=True)
     assert not everything.withholds_anything
     assert everything.redact_text(PROMPT) == PROMPT
 
@@ -78,7 +80,8 @@ def test_tool_result_json_redacts_birth_objects_only():
     bd = out["profile"]["birth_details"]
     assert bd["dob"] == WITHHELD["date"] and bd["tob"] == WITHHELD["time"]
     assert bd["place"] == bd["latitude"] == bd["longitude"] == WITHHELD["place"]
-    assert bd["timezone"] == 5.5 and bd["name"] == "Asha"
+    # No saved profile gives "Asha" a nickname, so the name is withheld too.
+    assert bd["timezone"] == 5.5 and bd["name"] == WITHHELD["name"]
     assert out["location"] == {"place": "Delhi", "latitude": 28.61, "longitude": 77.2}
 
 
@@ -201,3 +204,75 @@ def test_plain_chat_send_point_redacts_hosted(monkeypatch):
     msgs = [{"role": "system", "content": PROMPT}, {"role": "user", "content": "?"}]
     asyncio.run(svc._chat_once_on(msgs, [], cfg, use_json=True))
     assert sent and "1985-03-12" not in sent[0] and "Shahgarh" not in sent[0]
+
+
+# ------------------------------------------------------------------ names
+# The name is swapped at its source (`shown_name`, the `name=` a prompt gets)
+# and in birth-details `name` fields — never hunted in text, because names
+# like Rohini or Chandra are also chart words.
+
+def _named(nick="Sunny", full="Asha Verma", **share):
+    p = _policy(**share)
+    p.remember({"profile_name": nick, "birth_details": {**BIRTH, "name": full}})
+    return p
+
+
+HOSTED = ProviderType.GEMINI
+
+
+def test_shown_name_is_the_nickname_for_a_hosted_model():
+    cfg = _cfg(HOSTED, policy=_named())
+    assert shown_name(cfg, "Asha Verma") == "Sunny"
+
+
+def test_shown_name_keeps_a_name_that_already_is_the_nickname():
+    assert shown_name(_cfg(HOSTED, policy=_named()), "Sunny") == "Sunny"
+
+
+def test_shown_name_without_a_nickname_is_neutral():
+    cfg = _cfg(HOSTED, policy=_named(nick="asha verma"))
+    assert shown_name(cfg, "Asha Verma") == "this person"
+    assert shown_name(cfg, "Someone Typed In") == "this person"
+    assert shown_name(cfg, "", default="there") == "there"
+
+
+def test_shown_name_is_real_when_nothing_can_leave():
+    local = _cfg(ProviderType.OLLAMA, "http://localhost:11434", policy=_named())
+    assert shown_name(local, "Asha Verma") == "Asha Verma"
+
+
+def test_a_cloud_fallback_counts_as_leaving():
+    # The prompt is built before we know who answers; a busy local GPU falls
+    # back to the cloud, so the name must already be safe for it.
+    local = _cfg(ProviderType.OLLAMA, "http://localhost:11434", policy=_named())
+    local.fallbacks = [_cfg(HOSTED, policy=local.privacy)]
+    assert may_leave(local)
+    assert shown_name(local, "Asha Verma") == "Sunny"
+
+
+def test_opting_in_sends_the_full_name():
+    cfg = _cfg(HOSTED, policy=_named(full_name=True))
+    assert shown_name(cfg, "Asha Verma") == "Asha Verma"
+
+
+def test_a_name_that_is_also_a_star_never_touches_the_reading():
+    p = _named(nick="Ro", full="Rohini")
+    text = "Moon in Rohini nakshatra; Chandra Bala is strong."
+    assert p.redact_text(text) == text
+    assert p.redact_payload({**BIRTH, "name": "Rohini"})["name"] == "Ro"
+
+
+def test_a_planet_or_yoga_name_field_is_never_touched():
+    p = _named()
+    out = p.redact_payload({"planets": [{"name": "Moon"}], "yogas": [{"name": "Gaja Kesari"}]})
+    assert out == {"planets": [{"name": "Moon"}], "yogas": [{"name": "Gaja Kesari"}]}
+
+
+def test_a_lone_town_is_not_hunted_in_text():
+    # "Rohini" is a Delhi district AND a nakshatra: the field and the labelled
+    # line go, the reading's star stays.
+    p = PrivacyPolicy()
+    p.remember({"birth_details": {**BIRTH, "place": "Rohini"}})
+    out = p.redact_text("Place of Birth: Rohini\nMoon in Rohini nakshatra")
+    assert out == f"Place of Birth: {WITHHELD['place']}\nMoon in Rohini nakshatra"
+    assert p.redact_payload({**BIRTH, "place": "Rohini"})["place"] == WITHHELD["place"]

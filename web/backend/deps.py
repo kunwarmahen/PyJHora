@@ -31,7 +31,7 @@ from database import User, BirthDetails, ChartData
 from astrology import AstrologyCompute, SUPPORTED_AYANAMSAS, DEFAULT_AYANAMSA, SUPPORTED_VARGAS, SUPPORTED_DASHAS
 from chart_context import build_chart_context
 from llm_service import llm_service, LLMProvider
-from llm.privacy import PrivacyPolicy
+from llm.privacy import PrivacyPolicy, shown_name
 import tools as tool_registry
 import conversations as convo
 import journal
@@ -206,17 +206,8 @@ async def _resolve_cfg(current_user: str, request: "AskQuestionRequest"):
     # so the fallbacks inherit the same output cap.
     # Which birth details a hosted model may see (§78), from the user's synced
     # Settings, plus this request's own birth details so they're recognised
-    # wherever they turn up. Before build_fallbacks, which copies it onto each.
-    prefs = {}
-    try:
-        prefs = await user_settings.get_preferences(current_user)
-    except Exception:
-        prefs = {}
-    cfg.privacy = PrivacyPolicy.from_prefs(prefs)
-    try:
-        cfg.privacy.remember(request.model_dump())
-    except Exception:
-        pass
+    # wherever they turn up, and the profiles' nicknames to show for names. Before build_fallbacks, which copies it onto each.
+    cfg.privacy = await user_settings.privacy_policy(current_user, request.model_dump())
     cfg.fallbacks = llm_service.build_fallbacks(cfg, user_keys)
     return cfg
 

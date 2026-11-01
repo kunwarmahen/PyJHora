@@ -27,6 +27,7 @@ import notifications
 import runtime_config
 import timezones
 import user_settings
+from llm.privacy import shown_name
 
 
 async def resolve_profile(user_id: str, prefs: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -125,10 +126,11 @@ async def _digest_cfg(user_id: str):
     # Nobody is watching the 3am run, so it matters more here than anywhere that
     # a busy GPU has somewhere else to go before the narrative is given up on.
     # The same birth-detail privacy the request path applies (§78). No request
-    # body here, so the policy knows no literal values — the labelled prompt
-    # lines and JSON fields it redacts are where a digest carries them.
-    from llm.privacy import PrivacyPolicy
-    cfg.privacy = PrivacyPolicy.from_prefs(prefs)
+    # body here, so the policy knows no literal dates or places — the labelled
+    # prompt lines and JSON fields it redacts are where a digest carries them —
+    # but it does learn every profile's nickname, so "Hi <full name>" goes out
+    # as the profile's name.
+    cfg.privacy = await user_settings.privacy_policy(user_id)
     cfg.fallbacks = llm_service.build_fallbacks(cfg, user_keys)
     # Same stale-model guard the request path applies (deps._resolve_cfg) — it
     # matters more here, where nobody is watching the 3am run fail.
@@ -430,7 +432,7 @@ async def _profile_block(user_id: str, profile: Dict[str, Any],
             if style == "focused":
                 previously = await digest_history.last_narrative(
                     user_id, str(profile.get("_id") or ""), cadence, exclude_date=window)
-            text = await analyze(digest_data=digest, name=name, config=cfg,
+            text = await analyze(digest_data=digest, name=shown_name(cfg, name, "there"), config=cfg,
                                  style=style, previously=previously)
             narrative = (text or "").strip() or None
             if not narrative:

@@ -80,3 +80,51 @@ def test_profile_id_resolution_can_actually_build_an_objectid():
     assert deps.ObjectId is ObjectId
     # A real 24-hex id must construct without raising.
     assert str(deps.ObjectId("6aa2ebf3ec73ec3936f48e5b")) == "6aa2ebf3ec73ec3936f48e5b"
+
+
+# ── birth-detail privacy (§90) ──────────────────────────────────────────────
+# The §78 redaction sits where OUR model calls leave. /api/v1 is the other way
+# out: an MCP client pulls the JSON into a model we can't see — almost always a
+# hosted one — so the caller's Settings → AI choices apply to every response.
+
+def test_v1_tool_result_withholds_birth_details_by_default(client):
+    # No database in the fixture → no preferences → the default: withhold all.
+    r = client.post("/api/v1/tools/get_saturn_transits",
+                    json={"birth_details": CHART1})
+    assert r.status_code == 200, r.text
+    assert CHART1["dob"] not in r.text
+    assert "[birth date withheld]" in r.text
+
+
+def test_v1_tool_result_honours_the_users_opt_in(client, monkeypatch):
+    import user_settings
+
+    async def allow_all(_user):
+        return {"ai_share_birth_date": "true", "ai_share_birth_time": "true",
+                "ai_share_birth_place": "true"}
+    monkeypatch.setattr(user_settings, "get_preferences", allow_all)
+    r = client.post("/api/v1/tools/get_saturn_transits",
+                    json={"birth_details": CHART1})
+    assert r.status_code == 200, r.text
+    assert CHART1["dob"] in r.text
+    assert "withheld" not in r.text
+
+
+def test_profile_listing_is_redacted_but_keeps_nickname_and_id():
+    from llm.privacy import PrivacyPolicy, WITHHELD
+    bd = {k: CHART1[k] for k in ("name", "dob", "tob", "place")}
+    policy = PrivacyPolicy()
+    policy.remember([{"profile_name": "Me", "birth_details": bd}])
+    out = policy.redact_payload([{"id": "abc", "profile_name": "Me", **bd}])[0]
+    # The full name is shown as the profile's nickname.
+    assert out["id"] == "abc" and out["name"] == "Me" and out["profile_name"] == "Me"
+    assert out["dob"] == WITHHELD["date"]
+    assert out["tob"] == WITHHELD["time"]
+    assert out["place"] == WITHHELD["place"]
+
+
+def test_redact_payload_catches_labelled_lines_in_nested_strings():
+    from llm.privacy import PrivacyPolicy, WITHHELD
+    out = PrivacyPolicy().redact_payload(
+        {"summary": "Time of Birth: 05:45:02\nLagna: Taurus"})
+    assert out["summary"] == f"Time of Birth: {WITHHELD['time']}\nLagna: Taurus"

@@ -550,6 +550,14 @@ export const ProfileSelectionPage = () => {
                   onChange={handleInputChange}
                   placeholder={t("profile.fullNamePlaceholder")}
                 />
+                <small>{t("profile.fullNameHint")}</small>
+                {formData.name.trim() &&
+                  formData.name.trim().toLowerCase() ===
+                    formData.profile_name.trim().toLowerCase() && (
+                    <small className="form-hint--warn" role="status">
+                      {t("profile.nicknameSameAsName")}
+                    </small>
+                  )}
               </div>
 
               <div className="form-group">

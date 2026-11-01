@@ -447,6 +447,10 @@
   font-size: 0.75rem;
 }
 
+.form-group small.form-hint--warn {
+  color: var(--warning);
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

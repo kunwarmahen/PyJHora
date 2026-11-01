@@ -987,6 +987,7 @@ export const SettingsPage = () => {
                   { k: "aiShareBirthDate", l: t("settings.ai.privacy.date") },
                   { k: "aiShareBirthTime", l: t("settings.ai.privacy.time") },
                   { k: "aiShareBirthPlace", l: t("settings.ai.privacy.place") },
+                  { k: "aiShareFullName", l: t("settings.ai.privacy.name") },
                 ].map((o) => (
                   <label key={o.k} className="settings-check">
                     <input
@@ -1003,6 +1004,7 @@ export const SettingsPage = () => {
                     : t("settings.ai.privacy.hosted")}
                 </p>
                 <p className="settings-hint">{t("settings.ai.privacy.alwaysSent")}</p>
+                <p className="settings-hint">{t("settings.ai.privacy.connectedApps")}</p>
                 {settings.aiProviderType === "gemini" && (
                   <p className="settings-hint settings-hint--warn">
                     {t("settings.ai.privacy.geminiFree")}

@@ -13,6 +13,14 @@ up here automatically — nothing to update in this server.
 Everything is **read-only compute**. The public API exposes no account or profile
 mutation, so nothing here can change your data.
 
+**Birth details are withheld by default.** An MCP client is almost always a hosted
+model (Claude, ChatGPT), and the API can't see which, so every response — profile
+listings and tool results — follows the account's Settings → AI choices for hosted
+models: birth date, time and place come back as `[… withheld]`, and a person's full
+name as their profile name (nickname), unless the user ticked them. Pass `profile_id`; the server resolves the real birth data itself, so
+every computation is still exact. Enforced in the API (`routes/v1.py`), not this
+proxy, so calling `/api/v1` directly gets the same treatment ([todo.md §90](../todo.md)).
+
 Two of the tools read **your own recorded data** rather than the ephemeris:
 `get_journal_entries` (your dated life events, each stamped with the dasha that
 was running) and `get_reading_outcomes` (your "did this land?" verdicts on past
@@ -29,7 +37,7 @@ MCP client  ──stdio/http──►  mcp/server.py  ──HTTPS + API token─
 
 The server fetches the tool catalog from `GET /api/v1/tools` at startup, registers
 each tool natively (so your client sees them with schemas), and forwards each call
-to `POST /api/v1/tools/{name}`. A `list_profiles` tool surfaces your saved charts.
+to `POST /api/v1/tools/{name}`. A `list_profiles` tool surfaces your saved charts (nickname + id; birth details withheld per Settings → AI).
 
 ## Setup
 

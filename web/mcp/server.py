@@ -130,7 +130,10 @@ def build_server(catalog: List[Dict[str, Any]] | None) -> Server:
     profiles_tool = types.Tool(
         name="list_profiles",
         description="List your saved birth profiles (id + name + birth summary). "
-                    "Use a returned id as `profile_id` when running any other tool.",
+                    "Use a returned id as `profile_id` when running any other tool. "
+                    "Birth date, time and place may read \"[… withheld]\" (the "
+                    "account's privacy choice) — always pass `profile_id`, never "
+                    "copy those into `birth_details`.",
         inputSchema={"type": "object", "properties": {}, "required": []},
         annotations=read_only,
     )
