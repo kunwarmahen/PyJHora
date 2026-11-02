@@ -485,8 +485,9 @@ so each is named — `house_from_lagna`, `house_from_moon`, `house_from_al`,
 - `rasi` — the 0-based twin — is **gone** from chart payloads. `sign_num` is
   `rasi + 1`.
 - Responses from `/api/v1` and MCP (profiles and tool results) withhold the birth
-  date, time and place, and show the full name as the profile's nickname, unless the account allows them in Settings → AI (§90) — the
-  same switches as hosted providers, since the reading model can't be seen.
+  date, time and place, and show the full name as the profile's nickname, unless
+  the account allows them in Settings → AI (§90) — the same switches as hosted
+  providers, since the reading model can't be seen.
 - Tool results served through `/api/v1` and MCP are sanitized for LLM use: the
   drawing coordinates (`sign_num`, `rasi`, and bare integer `sign` fields that sit
   beside a `*_name`) are stripped, because a coordinate reads as a house number to

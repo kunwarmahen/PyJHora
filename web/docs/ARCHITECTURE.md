@@ -15,7 +15,7 @@ pyjhora-web/
 │   ├── routes/              # 11 APIRouter modules (all ~160 handlers)
 │   ├── astrology/           # PyJHora wrapper — engine.py + 14 concern mixins + core.py
 │   ├── llm_service.py       # Multi-provider LLM layer (composes the llm/ mixins) + streaming
-│   ├── llm/                 # base.py (enums/config), providers/{ollama,openai,gemini}.py, prompts.py
+│   ├── llm/                 # base.py (enums/config), providers/{ollama,openai,gemini}.py, prompts.py, privacy.py (what hosted models may see)
 │   ├── chart_context.py     # Builds the structured chart context sent to the AI
 │   ├── claim_check.py       # Checks a finished reading against the chart it came from (§69) — extract, verify, regenerate once, annotate
 │   ├── claim_reports.py     # Daily claim-check counters + the admin triage queue
@@ -25,7 +25,7 @@ pyjhora-web/
 │   ├── conversations.py     # Unified AI history: chat threads + one-shot readings (source registry, save_reading, retention cap)
 │   ├── outcomes.py          # "Did this land?" verdicts on saved readings — snapshot, track record, fed back to the prompt
 │   ├── life_report.py       # Server-side Life Report job: runs the 7 chapters in the background so a sleeping phone can't interrupt it
-│   ├── user_settings.py     # Per-user encrypted API keys
+│   ├── user_settings.py     # Per-user encrypted API keys, synced preferences, privacy_policy()
 │   ├── ratelimit.py         # Per-user rate limiting for AI endpoints
 │   ├── shares.py            # Read-only shareable chart links
 │   ├── api_tokens.py        # Per-user hashed API tokens for the public API + MCP
@@ -80,6 +80,17 @@ concern in §4 — pure file moves, no behaviour change):
   `llm/providers/*`, prompt builders + the context renderer are `llm/prompts.py`
 - **tools.py**: the AI tool registry (50 tools) — also what `/api/v1/tools` and the
   MCP server publish
+- **llm/privacy.py** (§78/§90): what a hosted model may see. Birth date, time and
+  place are redacted at the four send points in `llm_service.py` (labelled prompt
+  lines, birth-details JSON fields, the request's own date and full "City, State"),
+  so no prompt builder has to remember it. The person's **name is never searched
+  for in text** — Rohini, Chandra, Aditi are also chart words — it is swapped at
+  its source: every prompt builder's `name=` goes through `shown_name(cfg, name)`
+  (the profile's nickname, or "this person"; the real name only when the primary
+  model and every fallback are self-hosted). `user_settings.privacy_policy()` is
+  the one place a policy is built — Settings → AI switches + every saved profile's
+  nickname + the request's birth details — for requests (`deps._resolve_cfg`), the
+  digest, and `/api/v1` + MCP, whose responses are always treated as hosted
 - **events.py**: the forward calendar of a chart's own events (§70) — dasha
   changes, Saturn's phases, ingresses, retrograde stations, eclipses — stored per
   (user, profile, stable key) so it can be recomputed freely without ever

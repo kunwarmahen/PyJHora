@@ -9073,5 +9073,9 @@ place).
 - Not covered, by design: what the user types themselves ("I'm Asha Verma…") — scanning it would
   bring the collision problem back. Settings → AI's "always sent" line already says so.
 - Profile form: nickname placeholder/hints + a warning when the profile name equals the full name.
+- Docs/copy sweep: ARCHITECTURE (llm/privacy.py + the swap-at-source rule), AI_TOOL_CALLING_DESIGN
+  (tool results are redacted; a tool must never paste the name/dob into free text), README, SETUP,
+  FEATURES, mcp/README; in-app (en + hi): Settings → AI, API-access safety note, `help.a.apiAccess`,
+  `help.a.privAiProviders`, and a landing-page privacy line.
 - Possible follow-up (not built): a per-token "include birth details" flag for a personal script
   or a local-model MCP client, so it needn't loosen the hosted-provider switches for everything.

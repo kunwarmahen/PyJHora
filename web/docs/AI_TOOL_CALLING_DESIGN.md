@@ -101,6 +101,14 @@ model only supplies the genuinely free parameters.
 Design rules:
 - **Birth details + ayanamsa are server-injected**, never trusted from the model
   — the model can't ask about a different person.
+  - Injected is not the same as *shown*. A tool result that carries a
+    birth-details object (`dob`/`tob` keys) has its date, time, place and `name`
+    redacted on its way to a hosted model (`llm/privacy.py`, §78), and every
+    `/api/v1` / MCP result is redacted the same way regardless of model (§90) —
+    the name becomes the profile's nickname. A new tool needs no extra work as
+    long as it returns birth data under those keys; it must not paste the name or
+    birth date into free text, because the name is deliberately never searched
+    for in text (Rohini, Chandra… are also chart words).
   - Injecting is not the same as *forwarding*. `_dasha_chain`, `_dasha_children`
     and `_pancha_pakshi` each accepted the injected `ayanamsa` and then called a
     compute that had no such parameter, so the value was silently dropped and the
