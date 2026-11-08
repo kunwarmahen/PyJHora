@@ -409,7 +409,11 @@ export const authService = {
     api.post("/api/auth/reset-password", { token, new_password: newPassword }),
   // Public-API / MCP tokens (§2.3). createApiToken returns the raw token ONCE.
   listApiTokens: () => api.get("/api/auth/api-tokens"),
-  createApiToken: (label) => api.post("/api/auth/api-tokens", { label }),
+  // profileIds null = all profiles, including future ones.
+  createApiToken: (label, profileIds = null) =>
+    api.post("/api/auth/api-tokens", { label, profile_ids: profileIds }),
+  setApiTokenProfiles: (id, profileIds) =>
+    api.put(`/api/auth/api-tokens/${id}/profiles`, { profile_ids: profileIds }),
   revokeApiToken: (id) => api.delete(`/api/auth/api-tokens/${id}`),
 };
 

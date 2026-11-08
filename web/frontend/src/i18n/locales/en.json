@@ -1387,7 +1387,7 @@
     },
     "apiAccess": {
       "title": "API access (public API & MCP)",
-      "intro": "Create a personal token to use the read-only astrology API from scripts or an MCP client like Claude Desktop. Tokens act on your account and your saved profiles.",
+      "intro": "Create a personal token to use the read-only astrology API from scripts or an MCP client like Claude Desktop. By default a token can see all your saved profiles, including ones you add later. You can limit it to chosen profiles.",
       "labelPlaceholder": "Label (e.g. Claude Desktop, my script)",
       "create": "Create token",
       "creating": "Creating…",
@@ -1407,7 +1407,7 @@
         "title": "How to connect an AI app",
         "intro": "Let an AI assistant (Claude, Cursor, Setu or any app that supports “MCP servers”) read your charts and answer questions about them. It takes about a minute.",
         "step1Title": "1. Create a token",
-        "step1Body": "Type a name above, such as the app you are connecting, and press Create token. Copy the token that appears. It is shown only once.",
+        "step1Body": "Type a name above, such as the app you are connecting, choose which profiles it may see (all of them by default, or tick just the ones you want), and press Create token. Copy the token that appears. It is shown only once.",
         "step2Title": "2. Add this site in your AI app",
         "step2Body": "Look for “Add MCP server”, “Connectors” or “Tools” in the app's settings. Choose the option to connect at an address (a URL), not a program on your computer, and fill in:",
         "fieldAddress": "Address (URL)",
@@ -1421,7 +1421,19 @@
         "devClaudeCode": "Claude Code, in a terminal:",
         "devJson": "Apps configured with a JSON file (Cursor and others):",
         "safety": "Access is read-only: an app can read your charts but can never change or delete anything. The token works like a password, so don't share it. Revoke it above at any time and that app loses access immediately. The claude.ai website's connectors need a different sign-in and can't use this yet. Your privacy choices in Settings → AI apply here too: unless you allow them, the app never receives birth dates, times, places or full names — profiles appear under their nickname."
-      }
+      },
+      "scopeLabel": "Profiles this token can see",
+      "scopeAll": "All profiles, including ones you add later",
+      "scopeNoProfiles": "You have no saved profiles yet.",
+      "scopeSummaryAll": "Sees: all profiles, including future ones",
+      "scopeSummarySome": "Sees: {{names}}",
+      "scopeSummaryNone": "Sees: none of your current profiles",
+      "scopeEdit": "Edit profiles",
+      "scopeSave": "Save",
+      "scopeCancel": "Cancel",
+      "scopeError": "Could not update the token's profiles",
+      "scopeOnly": "Only the profiles I tick below",
+      "scopePickOne": "Tick at least one profile."
     },
     "theme_light": "Light",
     "theme_dark": "Dark",
@@ -2908,6 +2920,7 @@
       "calendarFeed": "Can I see my upcoming periods in my own calendar?",
       "calendarPeriods": "Can I get Rahu Kalam in my phone's calendar?",
       "apiAccess": "Can I connect my charts to an AI app like Claude or Setu?",
+      "apiAccessProfiles": "Can I let an AI app see only some of my profiles?",
       "featPredictions": "What is a Topic Reading?",
       "featStart": "What is the “Start here” page?"
     },
@@ -3006,6 +3019,7 @@
       "calendarFeed": "Yes. Settings → Calendar gives you a subscription link for Google Calendar, Apple Calendar or Outlook, carrying your chart's upcoming events — bhukti changes, Sade Sati boundaries, your solar return, slow-planet ingresses and eclipses on your birth stars. It refreshes by itself about twice a day. Anyone who has the link can see the feed (calendar apps can't log in), so keep it private.",
       "calendarPeriods": "Yes. Settings → Calendar has a second subscription link, separate from your chart's, that puts each day's Rahu Kalam, Yamaganda and Gulika Kalam into your calendar as timed events for the next 45 days — the same three listed under Periods to avoid on Today. They are worked out from sunrise and sunset where you are now (your current location), not where you were born, so set your location first and update it when you travel.",
       "apiAccess": "Yes. Settings → API access creates a personal token, and the steps there connect any AI app that supports MCP servers (Claude, Cursor, Setu and others) by pasting in this site's address and the token, with nothing to install. The same token works for scripts against the read-only API. It acts as you, so treat it like a password; you can revoke it there at any time. Nothing reached this way can change your data. The app is treated like a cloud AI: birth dates, times, places and full names stay back unless you allow them in Settings → AI, and each profile appears under its nickname.",
+      "apiAccessProfiles": "Yes. When you create a token under Settings → API access, choose “All profiles, including ones you add later” (the default) or “Only the profiles I tick below” and tick one, two or as many as you like. The app then lists only those profiles, and any other profile looks to it as if it doesn't exist. Change it any time with Edit profiles next to the token. You don't need a new token, and the app picks up the change on its next request. With “All”, a profile you add tomorrow is visible straight away. With a list, new profiles stay hidden until you tick them.",
       "featPredictions": "An AI reading of your chart on just one area of life — your life path, career, relationships, health, wealth, education or travel — instead of everything at once. Pick the topic and the AI reads the houses, lords, yogas and running dasha that bear on it; for career it also checks the 10th house counted from the Ghati Lagna, the classical second opinion on rise in standing. Wealth is checked the same way from the Hora Lagna, and education against the D24, the divisional chart for learning. It sits with the Life Report and Full Report in Reports, and every reading is saved to your AI History. Health readings are astrology, not medical advice.",
       "featStart": "The best first stop. It explains four things from your chart in everyday words: your Rising sign (Lagna — how you meet the world), your Moon sign (Rashi — your mind and feelings), your birth star (Nakshatra — the Moon's exact star group, with its traditional symbol and deity), and the chapter of life you're in now (your current dasha period and sub-period, with dates). Each card shows the Sanskrit name beside the plain one, so you'll recognise it on other pages. Nothing on it is written by the AI — it's worked out from your chart instantly — and if your birth time isn't known, it says what can't be stated without it instead of guessing. Underneath are a few questions you can send straight to the AI astrologer."
     }

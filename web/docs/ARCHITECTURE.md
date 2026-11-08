@@ -28,7 +28,7 @@ pyjhora-web/
 │   ├── user_settings.py     # Per-user encrypted API keys, synced preferences, privacy_policy()
 │   ├── ratelimit.py         # Per-user rate limiting for AI endpoints
 │   ├── shares.py            # Read-only shareable chart links
-│   ├── api_tokens.py        # Per-user hashed API tokens for the public API + MCP
+│   ├── api_tokens.py        # Per-user hashed API tokens for the public API + MCP (+ per-token profile scope)
 │   ├── rag.py               # Classical-text retrieval + citations (local Ollama embeddings)
 │   ├── rag_corpus/          # The corpus itself: *.jsonl + import_text.py (see its README)
 │   ├── tests/               # Golden-value + endpoint smoke tests (./dev.sh test)

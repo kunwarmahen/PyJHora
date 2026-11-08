@@ -11,6 +11,11 @@ Design (mirrors `refresh_tokens.py`):
   token). The raw value is shown to the user exactly once, at creation.
 - Each row carries a human `label`, `created_at`, and `last_used_at` (bumped on
   use, best-effort) so the user can tell their tokens apart and revoke a stale one.
+- Each token carries a **profile scope** (which saved profiles an MCP client /
+  script may see and run tools on). `profile_ids: None` — the default — means
+  *every* profile, including ones created after the token; a list pins it to
+  exactly those ids. Enforced in `routes/v1.py`, nowhere else (the scope only
+  narrows the public API; a session JWT is never scoped).
 - Everything is keyed by `username` (the value auth uses as the JWT `sub` and the
   rest of the app treats as the user id).
 """
@@ -38,9 +43,23 @@ def _preview(token: str) -> str:
     return f"{TOKEN_PREFIX}…{token[-4:]}"
 
 
-async def issue(username: str, label: str = "") -> Optional[str]:
+def _clean_scope(profile_ids: Optional[List[str]]) -> Optional[List[str]]:
+    """None stays None (all profiles, now and future); a list is de-duplicated."""
+    if profile_ids is None:
+        return None
+    return list(dict.fromkeys(str(p) for p in profile_ids if p))
+
+
+def profile_allowed(scope: Optional[List[str]], profile_id: Optional[str]) -> bool:
+    """Whether a token with `scope` may touch `profile_id`. None = every profile."""
+    return scope is None or (profile_id is not None and str(profile_id) in scope)
+
+
+async def issue(username: str, label: str = "",
+                profile_ids: Optional[List[str]] = None) -> Optional[str]:
     """Create a new API token for `username`. Returns the raw token (only time
-    it's ever available in the clear), or None if the per-user cap is hit."""
+    it's ever available in the clear), or None if the per-user cap is hit.
+    `profile_ids=None` scopes it to all profiles, including future ones."""
     coll = get_database()[COLLECTION]
     count = await coll.count_documents({"username": username, "revoked": False})
     if count >= MAX_TOKENS_PER_USER:
@@ -55,6 +74,7 @@ async def issue(username: str, label: str = "") -> Optional[str]:
         "created_at": now,
         "last_used_at": None,
         "revoked": False,
+        "profile_ids": _clean_scope(profile_ids),
     })
     return token
 
@@ -62,6 +82,14 @@ async def issue(username: str, label: str = "") -> Optional[str]:
 async def verify(token: str) -> Optional[str]:
     """Return the owning username if the token is live (exists, not revoked),
     else None. Bumps `last_used_at` best-effort."""
+    info = await verify_scoped(token)
+    return info["username"] if info else None
+
+
+async def verify_scoped(token: str) -> Optional[dict]:
+    """Like `verify`, but returns `{"username", "profile_ids"}` so the caller can
+    enforce the token's profile scope. Tokens minted before scoping existed have
+    no field and read as None — all profiles, which is what they always had."""
     if not token or not token.startswith(TOKEN_PREFIX):
         return None
     coll = get_database()[COLLECTION]
@@ -76,7 +104,8 @@ async def verify(token: str) -> Optional[str]:
         )
     except Exception:
         pass
-    return doc.get("username")
+    return {"username": doc.get("username"),
+            "profile_ids": _clean_scope(doc.get("profile_ids"))}
 
 
 async def list_tokens(username: str) -> List[dict]:
@@ -91,7 +120,22 @@ async def list_tokens(username: str) -> List[dict]:
         "preview": d.get("preview", ""),
         "created_at": d.get("created_at"),
         "last_used_at": d.get("last_used_at"),
+        "profile_ids": _clean_scope(d.get("profile_ids")),
     } for d in docs]
+
+
+async def set_scope(username: str, token_id: str,
+                    profile_ids: Optional[List[str]]) -> bool:
+    """Change which profiles a live token may see (None = all, incl. future)."""
+    try:
+        oid = ObjectId(token_id)
+    except Exception:
+        return False
+    res = await get_database()[COLLECTION].update_one(
+        {"_id": oid, "username": username, "revoked": False},
+        {"$set": {"profile_ids": _clean_scope(profile_ids)}},
+    )
+    return res.matched_count == 1
 
 
 async def revoke(username: str, token_id: str) -> bool:

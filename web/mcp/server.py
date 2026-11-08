@@ -129,7 +129,8 @@ def build_server(catalog: List[Dict[str, Any]] | None) -> Server:
     # A synthetic tool for profile discovery, plus every catalog tool.
     profiles_tool = types.Tool(
         name="list_profiles",
-        description="List your saved birth profiles (id + name + birth summary). "
+        description="List the saved birth profiles this token may see (id + name + "
+                    "birth summary; the token's owner chooses which, default all). "
                     "Use a returned id as `profile_id` when running any other tool. "
                     "Birth date, time and place may read \"[… withheld]\" (the "
                     "account's privacy choice) — always pass `profile_id`, never "

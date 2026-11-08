@@ -37,12 +37,17 @@ MCP client  ──stdio/http──►  mcp/server.py  ──HTTPS + API token─
 
 The server fetches the tool catalog from `GET /api/v1/tools` at startup, registers
 each tool natively (so your client sees them with schemas), and forwards each call
-to `POST /api/v1/tools/{name}`. A `list_profiles` tool surfaces your saved charts (nickname + id; birth details withheld per Settings → AI).
+to `POST /api/v1/tools/{name}`. A `list_profiles` tool surfaces the saved charts the token is scoped to (default: all) (nickname + id; birth details withheld per Settings → AI).
 
 ## Setup
 
 1. **Create an API token**: in the web app, go to **Settings → API access** and
    create a token. Copy it (it's shown once) — it looks like `jyd_…`.
+   By default the token can see **all** your saved profiles, including ones
+   you add later; tick specific profiles instead to limit what the MCP client
+   sees (`list_profiles` only returns those, and any other `profile_id` is a
+   404). You can change this later with **Edit profiles**, without making a
+   new token.
 
 2. **Install** (its own venv — the MCP SDK needs newer deps than the backend):
 

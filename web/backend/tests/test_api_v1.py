@@ -128,3 +128,70 @@ def test_redact_payload_catches_labelled_lines_in_nested_strings():
     out = PrivacyPolicy().redact_payload(
         {"summary": "Time of Birth: 05:45:02\nLagna: Taurus"})
     assert out["summary"] == f"Time of Birth: {WITHHELD['time']}\nLagna: Taurus"
+
+
+# ── per-token profile scope ─────────────────────────────────────────────────
+# A token decides which saved profiles its MCP client / script can see. The
+# default (profile_ids=None) is every profile, including ones added later.
+
+def test_profile_scope_none_means_all_profiles_including_future():
+    import api_tokens
+    assert api_tokens.profile_allowed(None, "anything-created-tomorrow")
+    assert api_tokens.profile_allowed(["a", "b"], "a")
+    assert not api_tokens.profile_allowed(["a", "b"], "c")
+    assert not api_tokens.profile_allowed(["a"], None)
+    # Legacy tokens (no field) read back as None, never as "nothing".
+    assert api_tokens._clean_scope(None) is None
+    assert api_tokens._clean_scope(["a", "a", "b"]) == ["a", "b"]
+
+
+def test_token_create_defaults_to_all_profiles():
+    from models import ApiTokenCreateRequest
+    assert ApiTokenCreateRequest(label="Claude Desktop").profile_ids is None
+
+
+def _scoped_client(client, scope):
+    """Same client, but get_api_user behaves like a token scoped to `scope`."""
+    import main
+    from fastapi import Request
+
+    def scoped(request: Request):
+        request.state.api_profile_ids = scope
+        return "test-user"
+    main.app.dependency_overrides[main.get_api_user] = scoped
+    return client
+
+
+def _restore(client):
+    import main
+    main.app.dependency_overrides[main.get_api_user] = lambda: "test-user"
+
+
+def test_scoped_token_cannot_run_a_profile_outside_its_scope(client):
+    c = _scoped_client(client, ["6aa2ebf3ec73ec3936f48e5b"])
+    try:
+        r = c.post("/api/v1/tools/get_natal_chart",
+                   json={"profile_id": "6aa2ebf3ec73ec3936f48e5c"})
+        # Same 404 as someone else's id — the scope doesn't confirm existence.
+        assert r.status_code == 404, r.text
+    finally:
+        _restore(client)
+
+
+def test_scoped_token_inline_chart_works_without_cross_profile_journal(client, monkeypatch):
+    import deps
+    import routes.v1 as v1
+    called = []
+
+    async def spy(*a, **k):
+        called.append(k)
+    monkeypatch.setattr(v1, "attach_user_feedback", spy)
+    monkeypatch.setattr(deps, "attach_user_feedback", spy)
+    c = _scoped_client(client, ["6aa2ebf3ec73ec3936f48e5b"])
+    try:
+        r = c.post("/api/v1/tools/get_natal_chart", json={"birth_details": CHART1})
+        assert r.status_code == 200, r.text
+        # No profile pins the lookup, so it would span every profile — skipped.
+        assert called == []
+    finally:
+        _restore(client)

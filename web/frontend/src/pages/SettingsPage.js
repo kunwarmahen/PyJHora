@@ -33,6 +33,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useProfile } from "../contexts/ProfileContext";
 import { useCurrentLocation } from "../contexts/LocationContext";
 import LocationSearch from "../components/LocationSearch";
+import ApiProfileScope from "../components/ApiProfileScope";
 import { authService, astrologyService, notificationsService, setTokens } from "../services/api";
 import { enablePush, disablePush, pushSupported, pushUnavailableReason } from "../utils/push";
 import { formatDate } from "../utils/format";
@@ -170,6 +171,10 @@ export const SettingsPage = () => {
   const [apiTokBusy, setApiTokBusy] = useState(false);
   const [apiTokError, setApiTokError] = useState("");
   const [newApiToken, setNewApiToken] = useState(""); // shown once, after create
+  // Which profiles a token (and its MCP client) may see. null = all profiles,
+  // including ones added later — the default.
+  const [apiTokScope, setApiTokScope] = useState(null);
+  const [apiScopeEdit, setApiScopeEdit] = useState(null); // { id, scope } while editing
   const [apiCopiedKey, setApiCopiedKey] = useState(""); // which Copy button just fired
 
   // Load the user's API tokens when the API-access tab opens.
@@ -195,9 +200,10 @@ export const SettingsPage = () => {
     setApiTokError("");
     setNewApiToken("");
     try {
-      const res = await authService.createApiToken(apiTokLabel.trim());
+      const res = await authService.createApiToken(apiTokLabel.trim(), apiTokScope);
       setNewApiToken(res.data.token);
       setApiTokLabel("");
+      setApiTokScope(null);
       const list = await authService.listApiTokens();
       setApiTokens(list.data.tokens || []);
     } catch (err) {
@@ -205,6 +211,31 @@ export const SettingsPage = () => {
     } finally {
       setApiTokBusy(false);
     }
+  };
+
+  const saveApiTokenScope = async () => {
+    if (!apiScopeEdit) return;
+    setApiTokError("");
+    try {
+      const res = await authService.setApiTokenProfiles(apiScopeEdit.id, apiScopeEdit.scope);
+      const scope = res.data.profile_ids ?? null;
+      setApiTokens((prev) =>
+        prev.map((tk) => (tk.id === apiScopeEdit.id ? { ...tk, profile_ids: scope } : tk))
+      );
+      setApiScopeEdit(null);
+    } catch (err) {
+      setApiTokError(err.response?.data?.detail || t("settings.apiAccess.scopeError"));
+    }
+  };
+
+  const apiScopeSummary = (ids) => {
+    if (ids == null) return t("settings.apiAccess.scopeSummaryAll");
+    const names = (profiles || [])
+      .filter((p) => ids.includes(p._id))
+      .map((p) => p.profile_name || p.birth_details?.name);
+    return names.length
+      ? t("settings.apiAccess.scopeSummarySome", { names: names.join(", ") })
+      : t("settings.apiAccess.scopeSummaryNone");
   };
 
   const revokeApiToken = async (id) => {
@@ -233,12 +264,20 @@ export const SettingsPage = () => {
       {multiline ? (
         <textarea
           readOnly
-          rows={value.split("\n").reduce((n, line) => n + Math.max(1, Math.ceil(line.length / 48)), 0)}
-          value={value} onFocus={(e) => e.target.select()} />
+          rows={value
+            .split("\n")
+            .reduce((n, line) => n + Math.max(1, Math.ceil(line.length / 48)), 0)}
+          value={value}
+          onFocus={(e) => e.target.select()}
+        />
       ) : (
         <input type="text" readOnly value={value} onFocus={(e) => e.target.select()} />
       )}
-      <button type="button" className="ui-btn ui-btn--ghost" onClick={() => copyApiText(key, value)}>
+      <button
+        type="button"
+        className="ui-btn ui-btn--ghost"
+        onClick={() => copyApiText(key, value)}
+      >
         {apiCopiedKey === key ? <Check size={16} /> : <Copy size={16} />}
         {apiCopiedKey === key ? t("settings.apiAccess.copied") : t("settings.apiAccess.copy")}
       </button>
@@ -1096,6 +1135,12 @@ export const SettingsPage = () => {
               )}
 
               {/* Create */}
+              <ApiProfileScope
+                name="api-scope-new"
+                value={apiTokScope}
+                onChange={setApiTokScope}
+                profiles={profiles}
+              />
               <div className="settings-row settings-token-create">
                 <input
                   className="settings-input"
@@ -1109,7 +1154,7 @@ export const SettingsPage = () => {
                   type="button"
                   className="ui-btn ui-btn--primary"
                   onClick={createApiToken}
-                  disabled={apiTokBusy}
+                  disabled={apiTokBusy || (apiTokScope !== null && apiTokScope.length === 0)}
                 >
                   <Plus size={16} />
                   {apiTokBusy ? t("settings.apiAccess.creating") : t("settings.apiAccess.create")}
@@ -1127,6 +1172,38 @@ export const SettingsPage = () => {
                         <span className="settings-key-name">{tk.label}</span>
                         <span className="settings-token-preview">{tk.preview}</span>
                       </div>
+                      <p className="settings-hint settings-token-scope-summary">
+                        {apiScopeSummary(tk.profile_ids)}
+                      </p>
+                      {apiScopeEdit?.id === tk.id && (
+                        <>
+                          <ApiProfileScope
+                            name={`api-scope-${tk.id}`}
+                            value={apiScopeEdit.scope}
+                            onChange={(scope) => setApiScopeEdit({ id: tk.id, scope })}
+                            profiles={profiles}
+                          />
+                          <div className="settings-row">
+                            <button
+                              type="button"
+                              className="ui-btn ui-btn--primary"
+                              onClick={saveApiTokenScope}
+                              disabled={
+                                apiScopeEdit.scope !== null && apiScopeEdit.scope.length === 0
+                              }
+                            >
+                              {t("settings.apiAccess.scopeSave")}
+                            </button>
+                            <button
+                              type="button"
+                              className="control-btn control-btn--ghost"
+                              onClick={() => setApiScopeEdit(null)}
+                            >
+                              {t("settings.apiAccess.scopeCancel")}
+                            </button>
+                          </div>
+                        </>
+                      )}
                       <div className="settings-token-meta">
                         <span className="settings-hint">
                           {t("settings.apiAccess.lastUsed")}:{" "}
@@ -1134,6 +1211,17 @@ export const SettingsPage = () => {
                             ? formatDate(tk.last_used_at)
                             : t("settings.apiAccess.never")}
                         </span>
+                        {apiScopeEdit?.id !== tk.id && (
+                          <button
+                            type="button"
+                            className="control-btn control-btn--ghost"
+                            onClick={() =>
+                              setApiScopeEdit({ id: tk.id, scope: tk.profile_ids ?? null })
+                            }
+                          >
+                            {t("settings.apiAccess.scopeEdit")}
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="control-btn control-btn--ghost"
@@ -1201,7 +1289,14 @@ export const SettingsPage = () => {
                       {apiCopyRow(
                         "json",
                         JSON.stringify(
-                          { mcpServers: { "jyotir-ai": { url: mcpUrl, headers: { Authorization: `Bearer ${tok}` } } } },
+                          {
+                            mcpServers: {
+                              "jyotir-ai": {
+                                url: mcpUrl,
+                                headers: { Authorization: `Bearer ${tok}` },
+                              },
+                            },
+                          },
                           null,
                           2
                         ),
@@ -1831,7 +1926,11 @@ export const SettingsPage = () => {
               ) : (
                 <div className="settings-msg settings-msg--error">
                   {t("settings.calendar.periodsNoLocation")}{" "}
-                  <button type="button" className="ui-btn ui-btn--ghost" onClick={() => setTab("location")}>
+                  <button
+                    type="button"
+                    className="ui-btn ui-btn--ghost"
+                    onClick={() => setTab("location")}
+                  >
                     {t("settings.calendar.periodsSetLocation")}
                   </button>
                 </div>

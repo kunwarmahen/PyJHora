@@ -81,24 +81,35 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     return username
 
 
-async def get_api_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+async def get_api_user(request: Request,
+                       credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     """Auth for the public API (`/api/v1/*`) + MCP (§2.3).
 
     Accepts a user-managed API token (opaque `jyd_…`, verified against
     `api_tokens`). For convenience it also accepts a normal access JWT, so the
     same routes work from a logged-in browser session — but the intended
-    credential is the long-lived API token pasted into a script or MCP client."""
+    credential is the long-lived API token pasted into a script or MCP client.
+
+    The token's profile scope lands on `request.state.api_profile_ids` (None =
+    every profile); read it with `api_profile_scope(request)`."""
     token = credentials.credentials
+    request.state.api_profile_ids = None
     if token and token.startswith(api_tokens.TOKEN_PREFIX):
-        username = await api_tokens.verify(token)
-        if not username:
+        info = await api_tokens.verify_scoped(token)
+        if not info or not info.get("username"):
             raise HTTPException(status_code=401, detail="Invalid or revoked API token")
-        return username
+        request.state.api_profile_ids = info.get("profile_ids")
+        return info["username"]
     # Fall back to a session access token.
     username = decode_token(token)
     if not username:
         raise HTTPException(status_code=401, detail="Invalid token")
     return username
+
+
+def api_profile_scope(request: Request) -> Optional[List[str]]:
+    """The calling API token's profile scope: None = all profiles (incl. future)."""
+    return getattr(request.state, "api_profile_ids", None)
 
 
 async def get_admin_user(current_user: str = Depends(get_current_user)) -> str:

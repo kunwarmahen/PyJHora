@@ -1161,6 +1161,12 @@
    "path:conversation_id*"
   ]
  },
+ "PUT /api/auth/api-tokens/{token_id}/profiles": {
+  "body": "ApiTokenScopeRequest",
+  "params": [
+   "path:token_id*"
+  ]
+ },
  "PUT /api/auth/email": {
   "body": "UpdateEmailRequest",
   "params": []

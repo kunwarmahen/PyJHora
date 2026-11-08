@@ -92,15 +92,18 @@ async def api_v1_tools(current_user: str = Depends(get_api_user)):
 
 
 @router.get("/api/v1/profiles")
-async def api_v1_profiles(current_user: str = Depends(get_api_user)):
+async def api_v1_profiles(request: Request, current_user: str = Depends(get_api_user)):
     """The caller's saved profiles (id + name + birth summary) for use as
-    `profile_id` when running a tool. Read-only projection — no mutation here."""
+    `profile_id` when running a tool. Read-only projection — no mutation here.
+    Only the profiles the token is scoped to are listed (default: all)."""
     from database import database
     if database is None:
         raise HTTPException(status_code=500, detail="Database not connected")
     docs = await database["saved_profiles"].find(
         {"user_id": current_user}
     ).sort("created_at", -1).to_list(200)
+    scope = api_profile_scope(request)
+    docs = [d for d in docs if api_tokens.profile_allowed(scope, str(d["_id"]))]
     out = []
     for d in docs:
         bd = d.get("birth_details") or {}
@@ -117,11 +120,16 @@ async def api_v1_profiles(current_user: str = Depends(get_api_user)):
 
 
 @router.post("/api/v1/tools/{tool_name}")
-async def api_v1_run_tool(tool_name: str, req: ToolRunRequest,
+async def api_v1_run_tool(tool_name: str, req: ToolRunRequest, request: Request,
                           current_user: str = Depends(get_api_user)):
     """Run one astrology tool. Body: `profile_id` OR `birth_details`, an optional
     `ayanamsa`, and tool-specific `args`. Returns the tool's JSON result."""
     _enforce_rate_limit(current_user)
+    scope = api_profile_scope(request)
+    # A token scoped to some profiles sees the rest as nonexistent — same 404 as
+    # an id that isn't the caller's, so the scope doesn't confirm it exists.
+    if req.profile_id and not api_tokens.profile_allowed(scope, req.profile_id):
+        raise HTTPException(status_code=404, detail="Profile not found")
     birth_details = await _resolve_birth_details(req, current_user)
     if not birth_details.get("dob") or not birth_details.get("tob"):
         raise HTTPException(status_code=400, detail="birth data missing dob/tob")
@@ -131,8 +139,15 @@ async def api_v1_run_tool(tool_name: str, req: ToolRunRequest,
     # two tools answer 200 with an empty list over the public API and MCP, which
     # is indistinguishable from "you have nothing recorded". See §4.1c of
     # docs/AI_TOOL_CALLING_DESIGN.md.
-    await attach_user_feedback(current_user, birth_details=birth_details,
-                               profile_id=req.profile_id)
+    if scope is not None and not req.profile_id:
+        # Inline birth details on a scoped token: the chart still computes, but
+        # with no profile to pin them to, journal/outcome lookups would span ALL
+        # the user's profiles — including ones this token may not see.
+        birth_details["_journal"] = []
+        birth_details["_outcomes"] = []
+    else:
+        await attach_user_feedback(current_user, birth_details=birth_details,
+                                   profile_id=req.profile_id)
     try:
         result = tool_registry.dispatch(
             tool_name, req.args or {}, birth_details,

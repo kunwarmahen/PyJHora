@@ -276,6 +276,12 @@ export const HELP_SECTIONS = [
         to: "/settings",
         keywords: "api token tokens mcp claude desktop script developer programmatic",
       },
+      {
+        id: "apiAccessProfiles",
+        to: "/settings?tab=apiAccess",
+        keywords:
+          "api token mcp profiles which profiles limit restrict scope only some one two all future share claude",
+      },
     ],
   },
 ];

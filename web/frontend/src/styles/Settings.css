@@ -630,3 +630,14 @@
   cursor: pointer;
   color: var(--text-secondary);
 }
+
+/* API token profile scope — a fieldset for a11y, without the browser frame. */
+.settings-token-scope {
+  border: 0;
+  padding: 0;
+  margin: 8px 0 0;
+  min-width: 0;
+}
+.settings-token-scope legend {
+  padding: 0;
+}

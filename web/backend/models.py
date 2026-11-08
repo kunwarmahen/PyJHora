@@ -68,6 +68,13 @@ class ApiTokenCreateRequest(BaseModel):
     """Create a public-API / MCP token (§2.3). `label` helps the user tell tokens
     apart (e.g. 'Claude Desktop', 'my script')."""
     label: Optional[str] = None
+    # Which saved profiles the token may see. None (the default) = all of them,
+    # including profiles added later; a list pins it to exactly those ids.
+    profile_ids: Optional[List[str]] = None
+
+class ApiTokenScopeRequest(BaseModel):
+    """Change an existing token's profile scope. None = all profiles (incl. future)."""
+    profile_ids: Optional[List[str]] = None
 
 class ToolRunRequest(BaseModel):
     """Run one astrology tool over the public API (§2.3). Provide EITHER a

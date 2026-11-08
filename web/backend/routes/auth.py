@@ -274,7 +274,9 @@ async def create_api_token(req: ApiTokenCreateRequest, request: Request,
                            current_user: str = Depends(get_current_user)):
     """Create a new API token. The raw token is returned **once** here and never
     again — the caller must copy it now."""
-    token = await api_tokens.issue(current_user, label=req.label or "")
+    scope = await _validated_scope(current_user, req.profile_ids)
+    token = await api_tokens.issue(current_user, label=req.label or "",
+                                   profile_ids=scope)
     if token is None:
         raise HTTPException(
             status_code=400,
@@ -284,7 +286,46 @@ async def create_api_token(req: ApiTokenCreateRequest, request: Request,
     import admin as admin_service
     await admin_service.security_event("api_token_created", actor=current_user,
                                        detail=label, ip=_ip(request))
-    return {"token": token, "label": label}
+    return {"token": token, "label": label, "profile_ids": scope}
+
+
+async def _validated_scope(user: str, profile_ids: Optional[List[str]]) -> Optional[List[str]]:
+    """None = all profiles (incl. future). A list must be non-empty and every id
+    must be one of the caller's own saved profiles."""
+    if profile_ids is None:
+        return None
+    ids = list(dict.fromkeys(str(p) for p in profile_ids if p))
+    if not ids:
+        raise HTTPException(status_code=400,
+                            detail="Pick at least one profile, or allow all profiles.")
+    from database import database
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database not connected")
+    try:
+        oids = [ObjectId(p) for p in ids]
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid profile id")
+    owned = await database["saved_profiles"].count_documents(
+        {"_id": {"$in": oids}, "user_id": user})
+    if owned != len(ids):
+        raise HTTPException(status_code=400, detail="Unknown profile id")
+    return ids
+
+
+@router.put("/api/auth/api-tokens/{token_id}/profiles")
+async def set_api_token_profiles(token_id: str, req: ApiTokenScopeRequest, request: Request,
+                                 current_user: str = Depends(get_current_user)):
+    """Change which saved profiles an existing token (and so its MCP client) can
+    see. `profile_ids: null` = all profiles, including ones added later."""
+    scope = await _validated_scope(current_user, req.profile_ids)
+    if not await api_tokens.set_scope(current_user, token_id, scope):
+        raise HTTPException(status_code=404, detail="Token not found")
+    import admin as admin_service
+    await admin_service.security_event(
+        "api_token_scope_changed", actor=current_user,
+        detail=f"{token_id}: " + ("all profiles" if scope is None else f"{len(scope)} profile(s)"),
+        ip=_ip(request))
+    return {"status": "ok", "profile_ids": scope}
 
 
 @router.delete("/api/auth/api-tokens/{token_id}")

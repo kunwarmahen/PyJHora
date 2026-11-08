@@ -455,6 +455,10 @@ email.
   with an empty list.
 - **Personal API tokens**: create/revoke long-lived tokens under **Settings → API access**
   (shown once, stored hashed, prefixed `jyd_`). Authenticate with `Authorization: Bearer jyd_…`.
+  Each token has a **profile scope**: all profiles (default, including ones added later) or a
+  chosen list, editable afterwards. `/api/v1/profiles` lists only in-scope profiles, an
+  out-of-scope `profile_id` returns 404, and inline `birth_details` on a scoped token still
+  computes but carries no journal/outcome data (that lookup would span every profile).
 - **MCP server** (`web/mcp/`): a standalone [Model Context Protocol](https://modelcontextprotocol.io)
   server that wraps the same catalog so **Claude Desktop** (or any MCP client) can compute charts,
   dashas, panchanga, transits, KP, Jaimini, muhurta and more against your profiles — over stdio
