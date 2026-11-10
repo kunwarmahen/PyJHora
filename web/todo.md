@@ -9079,3 +9079,58 @@ place).
   `help.a.privAiProviders`, and a landing-page privacy line.
 - Possible follow-up (not built): a per-token "include birth details" flag for a personal script
   or a local-model MCP client, so it needn't loosen the hosted-provider switches for everything.
+
+## §91 claude.ai, through the MCP connector, read a chart it never fetched (owner report 2026-11-10) — ✅ SHIPPED 2026-11-10
+
+The owner connected the hosted `/mcp` to claude.ai and asked for the year ahead, career and money,
+and how 2026 went. Five turns, seven tools, **`get_natal_chart` never called**: the forecast was
+read off `get_upcoming_events` alone, the career answer made **no tool call** (house talk built on
+transit dates), "how did 2026 go" was refused ("I can't tell you"), and the transit Ashtakavarga
+bindus of Saturn's *sign* were read as "Saturn is your strongest planet". Cause: claude.ai loads
+connector tools by keyword search, and nothing told it a reading starts from the chart — our
+descriptions were written for the in-app reader, which has the chart pre-seeded
+(`get_natal_chart` literally said "call this first *if the placements were not already
+provided*").
+
+- **Server instructions** — `web/mcp/instructions.py` (dependency-free so the backend tests can
+  import it), passed as `Server(..., instructions=)`. Workflow: `list_profiles` → `profile_id`;
+  `get_reading_context` first; natal → dasha → transits; how to read a past period; bindus are the
+  sign's not the planet's; Vimsottari level names. Dockerfile copies it.
+- **`get_reading_context(topic, date?)`** (new, `tools.py`, ALWAYS_TOOLS, "Core chart"): one call =
+  natal chart with `owns_houses`, the topic's focus houses (`READING_TOPICS`: houses + the varga it
+  is read in — D10 career, D2 money, D9 relationships, D30 health, D24 education, D7 children, D4
+  property/foreign, D3 siblings, D20 spirituality) each with sign, lord, where the lord sits, and
+  occupants; the varga; the dasha (running chain, or the Maha/Bhukti on `date`); the Saturn phase
+  from the Moon; transits (with bindus); dated events (next 12 months, or ±9 months round `date`);
+  and `go_deeper_with` tools per topic. ~6–11 KB. One `get_transits` call supplies both natal and
+  sky. In date mode the Saturn phase drops `is_current` (relative to today, not to `date`).
+- **Past periods**: `get_transits` takes `date`, `get_upcoming_events` takes `from_date` (both
+  validated by `_check_date` → ToolError the model can correct).
+- **Bug**: `get_life_timeline`'s overview built its window from a year back, so `next_ingresses`
+  opened on past ingresses (Jupiter→Gemini 2025-12-05 listed as "next" in Nov 2026). Now filtered
+  to ≥ the reader's today, with `as_of` stated.
+- Descriptions: `get_natal_chart` says it is the foundation of every reading; `get_transits`
+  says the bindus belong to the sign; `get_dasha_chain` uses Antardasha/Pratyantardasha, not
+  "Antara" (see the dasha-level naming rule).
+- Tests: `tests/test_reading_context.py` (18) — every topic returns a grounded reading (9 natal
+  planets, lords placed, varga lagna, dasha chain), topics ↔ vargas ↔ follow-up tools resolve, the
+  schema enum matches `READING_TOPICS`, a past date reads the Maha covering it, bad topic/date
+  raise, transits/events take dates, timeline "next" lists hold no past dates, and **the MCP
+  instructions name only real tools**. Backend 1270 passed.
+- Not done: no UI change (the AI capabilities page lists the catalog itself); Help/FAQ unchanged —
+  nothing user-visible beyond the connector answering better. Re-run the owner's five questions on
+  claude.ai after deploy (the hosted MCP container must be rebuilt for the instructions).
+- **Follow-up, same day (Haiku):** after deploy, Sonnet built readings from many tools but Haiku
+  5.5 searched for `get_reading_context` by name and then still answered "next year" from
+  `get_upcoming_events` alone — whose description advertised "what should I watch for this
+  year", a closer keyword match than any instruction. Fixes: that phrase dropped (and
+  `get_varshaphal`'s "how is <year> for me?" reworded) in favour of "not a reading on its own —
+  call get_reading_context first"; `get_upcoming_events` / `get_transits` / `get_life_timeline`
+  results carry a `note` (`_FOUNDATION_NOTE`) saying they are timing only — a model that skims
+  descriptions still reads its results; the instructions open with a one-paragraph RULE for
+  forecasts. Tests pin the note and the absence of the bait phrase.
+- **Follow-up 2 (Sonnet, no vargas):** Sonnet searched for `get_reading_context` by exact name
+  twice, didn't get it (connector tool list still the pre-§91 cache / old backend), assembled the
+  reading from single tools and said it "hadn't cross-checked D9, D10". `get_reading_context` now
+  returns `vargas` — the D9 for every topic plus the topic's own (general → D10, so D9+D10);
+  instructions say to confirm a planet in the D9. Test asserts the exact varga set per topic.

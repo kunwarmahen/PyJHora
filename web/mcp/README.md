@@ -39,6 +39,14 @@ The server fetches the tool catalog from `GET /api/v1/tools` at startup, registe
 each tool natively (so your client sees them with schemas), and forwards each call
 to `POST /api/v1/tools/{name}`. A `list_profiles` tool surfaces the saved charts the token is scoped to (default: all) (nickname + id; birth details withheld per Settings → AI).
 
+It also sends **server instructions** ([`instructions.py`](instructions.py)), which the
+client shows its model: pick a profile, call `get_reading_context` before interpreting
+anything, read natal → dasha → transits, and how to read a *past* period with the dated
+tools. A client like claude.ai loads connector tools by keyword search; without this it
+answered a career question from a transit list and never fetched the birth chart (§91).
+`tests/test_reading_context.py` (backend) fails if the instructions name a tool that
+doesn't exist.
+
 ## Setup
 
 1. **Create an API token**: in the web app, go to **Settings → API access** and
@@ -123,9 +131,10 @@ The compose service deliberately has no `env_file` for that reason.
 Ships with the rest of the stack: `./dev.sh nas deploy` (or `./dev.sh nas deploy mcp`
 for just this image).
 
-claude.ai's custom connectors want OAuth rather than a static header, so they
-can't use this endpoint yet. Claude Code, Claude Desktop (through `mcp-remote`),
-Cursor and SDK agents can.
+claude.ai connects to it too (the owner's own connector, confirmed 2026-11-10),
+as do Claude Code, Claude Desktop (through `mcp-remote`), Cursor and SDK agents.
+Over claude.ai, start a new chat — or re-add the connector — after a deploy that
+changes tools or the instructions: it caches both from the first connection.
 
 **Running `server.py` locally against the remote site** still works too:
 `JYOTIR_API_URL=https://www.jyotirai.win` (no `/api` suffix) and a token created

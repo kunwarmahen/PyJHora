@@ -39,6 +39,8 @@ import httpx
 import mcp.types as types
 from mcp.server.lowlevel import Server
 
+from instructions import INSTRUCTIONS
+
 API_URL = os.environ.get("JYOTIR_API_URL", "http://localhost:8000").rstrip("/")
 API_TOKEN = os.environ.get("JYOTIR_API_TOKEN", "").strip()
 TRANSPORT = os.environ.get("MCP_TRANSPORT", "stdio").strip().lower()
@@ -111,7 +113,9 @@ async def _fetch_catalog(client: httpx.AsyncClient, token: str | None = None) ->
 def build_server(catalog: List[Dict[str, Any]] | None) -> Server:
     """`catalog=None` loads it lazily with the first caller's token (http mode,
     where the server holds no token of its own). It's the same for every user."""
-    server: Server = Server(SERVER_NAME)
+    # Instructions are what the client tells its model about this server as a
+    # whole: the reading workflow that no single tool description can carry.
+    server: Server = Server(SERVER_NAME, instructions=INSTRUCTIONS)
     cache: Dict[str, Any] = {"tools": catalog}
 
     async def _catalog() -> List[Dict[str, Any]]:

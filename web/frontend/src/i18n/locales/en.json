@@ -1420,7 +1420,7 @@
         "devSummary": "For developers: Claude Code, Cursor and scripts",
         "devClaudeCode": "Claude Code, in a terminal:",
         "devJson": "Apps configured with a JSON file (Cursor and others):",
-        "safety": "Access is read-only: an app can read your charts but can never change or delete anything. The token works like a password, so don't share it. Revoke it above at any time and that app loses access immediately. The claude.ai website's connectors need a different sign-in and can't use this yet. Your privacy choices in Settings → AI apply here too: unless you allow them, the app never receives birth dates, times, places or full names — profiles appear under their nickname."
+        "safety": "Access is read-only: an app can read your charts but can never change or delete anything. The token works like a password, so don't share it. Revoke it above at any time and that app loses access immediately. Your privacy choices in Settings → AI apply here too: unless you allow them, the app never receives birth dates, times, places or full names — profiles appear under their nickname."
       },
       "scopeLabel": "Profiles this token can see",
       "scopeAll": "All profiles, including ones you add later",

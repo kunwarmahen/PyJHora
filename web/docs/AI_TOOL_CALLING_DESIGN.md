@@ -91,12 +91,16 @@ model only supplies the genuinely free parameters.
 | `get_dasha_children` | `get_dasha_children` | `lords_path` |
 | `get_yogas` | `get_yogas` | — |
 | `get_doshas` | `get_doshas` | — |
-| `get_transits` | `get_transits` | — |
+| `get_transits` | `get_transits` | `date?` (§91 — any past/future day) |
 | `get_ashtakavarga` | `get_ashtakavarga` | — |
 | `get_shadbala` | `get_shadbala` | — |
 | `get_chart_details` | `get_chart_details` | — |
 | `get_divisional_chart` | `calculate_divisional_chart` | `varga_factor` |
 | `get_panchanga` | `get_panchanga` | `date?` |
+| `get_reading_context` (§91) | composes `get_transits` + dasha + vargas + events | `topic?`, `date?` |
+
+This was the first-cut set; the registry now holds 51 tools — `GET /api/v1/tools`
+(or `tools.tool_catalog()`) is the live list.
 
 Design rules:
 - **Birth details + ayanamsa are server-injected**, never trusted from the model
@@ -287,6 +291,31 @@ A read-only, user-independent endpoint exposes the toolset to users for transpar
 catalog is derived from the same `TOOLS` registry the loop calls, so it can't drift.
 The frontend **AI Capabilities** page (`pages/AiToolsPage.js`, route `/ai-tools`)
 renders it grouped by category, with a per-tool "Show technical schema" toggle.
+
+### 4.6 Hosted clients find tools by search (§91)
+
+The in-app reader gets the chart **seeded** into its prompt, so tool descriptions
+were written assuming the foundation is already there. A hosted MCP client
+(claude.ai) has nothing seeded and loads connector tools by **keyword search** —
+so it picks whichever description best matches the user's words. In practice:
+Sonnet assembled readings from many single tools but never fetched a varga; Haiku
+answered "how is my next year" from `get_upcoming_events` alone, because that
+description advertised "what should I watch for this year".
+
+What fixed it, in order of strength:
+1. **The result itself** — timing-only tools (`get_upcoming_events`,
+   `get_transits`, `get_life_timeline`) carry a `note` saying they are timing only
+   and naming `get_reading_context`. A model that skims descriptions still reads
+   its results.
+2. **A bundle tool** — `get_reading_context(topic, date?)` returns the natal
+   chart with lordships, the topic's focus houses (lord, where it sits,
+   occupants), the D9 + the topic's varga, the dasha, the Saturn phase, transits
+   and dated events, so missing a tool can't leave a reading without them.
+3. **Server instructions** — `web/mcp/instructions.py`, sent at MCP initialize.
+   Lead with the rule; `tests/test_reading_context.py` fails if they name a tool
+   that doesn't exist.
+4. **Descriptions** — never advertise a partial tool with a whole-question
+   phrase ("how is my year"); say what it does *not* cover.
 
 ## 5. Frontend
 

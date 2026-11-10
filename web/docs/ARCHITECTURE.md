@@ -78,7 +78,7 @@ concern in §4 — pure file moves, no behaviour change):
 - **llm_service.py** + **llm/**: unified LLM service (Ollama / OpenAI-compatible /
   Gemini / OpenAI) — the tool loop stays in `llm_service.py`; provider adapters are
   `llm/providers/*`, prompt builders + the context renderer are `llm/prompts.py`
-- **tools.py**: the AI tool registry (50 tools) — also what `/api/v1/tools` and the
+- **tools.py**: the AI tool registry (51 tools) — also what `/api/v1/tools` and the
   MCP server publish
 - **llm/privacy.py** (§78/§90): what a hosted model may see. Birth date, time and
   place are redacted at the four send points in `llm_service.py` (labelled prompt

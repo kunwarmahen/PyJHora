@@ -464,7 +464,12 @@ email.
   dashas, panchanga, transits, KP, Jaimini, muhurta and more against your profiles — over stdio
   or streamable-HTTP, and hosted at `https://<site>/mcp` where each caller authenticates with
   their own token (no install). It talks to the public API with that token; setup is in
-  [`web/mcp/README.md`](../mcp/README.md).
+  [`web/mcp/README.md`](../mcp/README.md). The server sends the client **reading instructions**
+  (profile first, then `get_reading_context`, natal → dasha → transits, how to read a past
+  period), and `get_reading_context(topic, date?)` returns a reading's whole foundation in one
+  call — natal chart with lordships, the topic's houses + lords + occupants, the D9 plus the topic's varga (D10 for career and a general forecast), the
+  dasha, Saturn phase, transits and dated events — so a client that finds tools by keyword
+  search can't skip the chart (§91).
 
 #### What a position looks like (and what changed in Sept 2026)
 

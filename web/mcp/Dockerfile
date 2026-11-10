@@ -7,7 +7,7 @@ FROM python:3.12-slim
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY server.py .
+COPY server.py instructions.py ./
 RUN useradd --system --no-create-home mcp
 USER mcp
 ENV MCP_TRANSPORT=http \

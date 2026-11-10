@@ -120,13 +120,41 @@ def _doshas(bd, ayanamsa, **_):
     return {"doshas": d.get("doshas", []) if d.get("status") == "success" else []}
 
 
-def _transits(bd, ayanamsa, current_tz: Optional[float] = None, **_):
+def _check_date(value: Optional[str], arg: str) -> Optional[str]:
+    """Validate an optional model-supplied YYYY-MM-DD, so a malformed date is a
+    ToolError the model can correct rather than a compute-layer crash."""
+    if not value:
+        return None
+    from datetime import datetime
+    try:
+        datetime.strptime(str(value), "%Y-%m-%d")
+    except ValueError:
+        raise ToolError(f"'{arg}' must be a date as YYYY-MM-DD, got {value!r}.")
+    return str(value)
+
+
+# Rides on the timing-only results (§91). A model that skipped the instructions
+# and the descriptions still reads the payload it got back.
+_FOUNDATION_NOTE = (
+    "Timing data only. Events trigger what the natal chart and the running "
+    "dasha promise — before interpreting, get the foundation with "
+    "get_reading_context (or get_natal_chart), unless it is already in your "
+    "context.")
+
+
+def _transits(bd, ayanamsa, current_tz: Optional[float] = None,
+              date: Optional[str] = None, **_):
+    # `date` reads the sky on another day — past or future — counted against the
+    # same natal chart. Without it, "how did 2026 go" had no transit tool at all
+    # and the model told the user so (§91).
     t = AstrologyCompute.get_transits(ayanamsa=ayanamsa, current_tz=current_tz,
+                                      current_date=_check_date(date, "date"),
                                       **_args(bd))
     if t.get("status") != "success":
         return t
     return {
         "transit_date": t.get("transit_date"),
+        "note": _FOUNDATION_NOTE,
         "natal": strip_layout_all(t.get("natal", {})),
         # Each row already carries house_from_lagna / _moon / _al / _ul; the
         # layout-only sign numbers would compete with them.
@@ -549,28 +577,36 @@ def _strength(bd, ayanamsa, **_):
 
 
 def _upcoming_events(bd, ayanamsa, months: int = 12,
-                     current_tz: Optional[float] = None, **_):
+                     current_tz: Optional[float] = None,
+                     from_date: Optional[str] = None, **_):
     """The dated things this chart has coming (§70).
 
     `get_life_timeline` answers "what is running"; this answers "what changes,
     and when" — which is the question a reader actually asks and the one the app
     could not answer at all before. "Today" is the *reader's* date, so a calendar
-    never opens on yesterday.
+    never opens on yesterday. `from_date` moves the window (e.g. 2026-01-01 with
+    months=12 is a review of 2026) — §91.
     """
     import timezones
     r = AstrologyCompute.get_upcoming_events(
-        months=months, from_date=timezones.today_at_offset(current_tz),
+        months=months,
+        from_date=(_check_date(from_date, "from_date")
+                   or timezones.today_at_offset(current_tz)),
         ayanamsa=ayanamsa, **_args(bd))
     if r.get("status") != "success":
         return r
     return {"from_date": r["from_date"], "to_date": r["to_date"],
+            # §91: a small hosted model answered "how is my next year" from this
+            # list alone. Results are read even when descriptions aren't.
+            "note": _FOUNDATION_NOTE,
             "counts": r["counts"],
             # Capped: a three-year horizon is ~80 events, and the model needs the
             # next ones, not all of them.
             "events": r["events"][:40]}
 
 
-def _life_timeline(bd, ayanamsa, target_date: Optional[str] = None, **_):
+def _life_timeline(bd, ayanamsa, target_date: Optional[str] = None,
+                   current_tz: Optional[float] = None, **_):
     # A specific date → the "what's running" window context (maha/bhukti, Saturn
     # phase, nearby ingresses/eclipses). No date → a compact overview: the current
     # dasha, the active Saturn phase, and the next few slow-planet ingresses.
@@ -590,12 +626,180 @@ def _life_timeline(bd, ayanamsa, target_date: Optional[str] = None, **_):
     cur_maha = next((m for m in tl.get("maha_bands", []) if m.get("is_current")), None)
     cur_bhukti = next((b for b in tl.get("bhukti_bands", []) if b.get("is_current")), None)
     cur_sat = next((p for p in tl.get("saturn_phases", []) if p.get("is_current")), None)
+    # The timeline window opens a year back (it draws the past too), so its
+    # ingress list starts in the past. Labelled "next", those read as coming —
+    # a hosted model told the owner a 2025 Jupiter ingress was ahead (§91).
+    import timezones
+    today = timezones.today_at_offset(current_tz)
     return {
+        "as_of": today,
+        "note": _FOUNDATION_NOTE,
         "moon_sign": tl.get("moon_sign"),
         "current_maha": cur_maha, "current_bhukti": cur_bhukti,
         "current_saturn_phase": cur_sat,
-        "next_ingresses": tl.get("ingresses", [])[:6],
-        "upcoming_eclipses": tl.get("eclipses", [])[:4],
+        "next_ingresses": [i for i in tl.get("ingresses", [])
+                           if i.get("date", "") >= today][:6],
+        "upcoming_eclipses": [e for e in tl.get("eclipses", [])
+                              if e.get("date", "") >= today][:4],
+    }
+
+
+# --------------------------------------------------------------------------- #
+# get_reading_context (§91) — the foundation of a reading in one call
+# --------------------------------------------------------------------------- #
+# A hosted client (claude.ai) loads tools by keyword search, so a reading built
+# from whatever its search happened to surface can skip the natal chart
+# entirely — it did: five turns, seven tools, never get_natal_chart, and a
+# career reading with no house lords. This bundles the parts every topic reading
+# stands on, so missing a tool can't leave a reading without them.
+#
+# topic → (focus houses from the Lagna, the varga the tradition reads it in).
+# The D9 rides along with every topic — it is where a planet's natal promise is
+# confirmed or undone — so "general" names the D10 and gets both (§91: Sonnet
+# wrote a year forecast that said it "hadn't cross-checked D9, D10").
+READING_TOPICS: Dict[str, Any] = {
+    "general":      ([1, 4, 7, 10], 10),
+    "career":       ([10, 6, 2, 11], 10),
+    "money":        ([2, 11, 5, 9], 2),
+    "relationships": ([7, 2, 11, 5], 9),
+    "health":       ([1, 6, 8, 12], 30),
+    "education":    ([4, 5, 9, 2], 24),
+    "children":     ([5, 9, 11], 7),
+    "property":     ([4, 11, 2], 4),
+    "siblings":     ([3, 11], 3),
+    "spirituality": ([9, 12, 5], 20),
+    "foreign":      ([12, 9, 3, 7], 4),
+}
+
+# Specific follow-up tools per topic, named so the model can go deeper.
+_TOPIC_NEXT: Dict[str, List[str]] = {
+    "general":      ["get_yogas", "get_strength", "get_upcoming_events"],
+    "career":       ["get_raja_yogas", "get_strength", "get_jaimini", "get_sahams"],
+    "money":        ["get_ashtakavarga", "get_yogas", "get_sahams", "get_strength"],
+    "relationships": ["get_arudha_padas", "get_doshas", "get_jaimini"],
+    "health":       ["get_strength", "get_planet_conditions", "get_longevity"],
+    "education":    ["get_yogas", "get_strength", "get_sahams"],
+    "children":     ["get_yogas", "get_sahams", "get_jaimini"],
+    "property":     ["get_ashtakavarga", "get_strength", "get_arudha_padas"],
+    "siblings":     ["get_aspects", "get_strength"],
+    "spirituality": ["get_jaimini", "get_yogas", "get_nadi"],
+    "foreign":      ["get_arudha_padas", "get_yogas", "get_aspects"],
+}
+
+_HOUSE_MEANING = [
+    "Self, body, vitality", "Wealth, family, speech", "Courage, siblings, effort",
+    "Home, mother, property, comfort", "Children, intellect, learning, merit",
+    "Health, enemies, debts, service", "Partner, marriage, partnerships",
+    "Longevity, sudden change, hidden matters", "Fortune, dharma, father, teachers",
+    "Career, status, action", "Gains, income, networks, aspirations",
+    "Loss, expense, foreign lands, liberation",
+]
+
+
+def _reading_context(bd, ayanamsa, topic: str = "general",
+                     date: Optional[str] = None,
+                     current_tz: Optional[float] = None, **_):
+    from chart_context import _house_rulers
+    import timezones
+
+    topic = (topic or "general").strip().lower()
+    if topic not in READING_TOPICS:
+        raise ToolError(f"Unknown topic {topic!r}. Choose one of: "
+                        f"{', '.join(READING_TOPICS)}.")
+    date = _check_date(date, "date")
+    today = timezones.today_at_offset(current_tz)
+    as_of = date or today
+    houses, varga = READING_TOPICS[topic]
+
+    # One transit call carries the natal chart (with lordships) AND the sky on
+    # the chosen day, counted from it.
+    t = AstrologyCompute.get_transits(ayanamsa=ayanamsa, current_tz=current_tz,
+                                      current_date=date, **_args(bd))
+    if t.get("status") != "success":
+        return t
+    natal = t.get("natal") or {}
+    natal_planets = natal.get("planets") or {}
+    lagna = natal.get("lagna") or {}
+    rulers = _house_rulers(lagna)
+
+    focus = []
+    for h in houses:
+        r = rulers[h - 1]
+        lord = natal_planets.get(r["lord"], {})
+        focus.append({
+            "house": h,
+            "signifies": _HOUSE_MEANING[h - 1],
+            "sign": r["sign"],
+            "lord": r["lord"],
+            "lord_sits_in": {"house": lord.get("house"), "sign": lord.get("sign_name"),
+                             "retrograde": lord.get("retrograde")},
+            "occupants": sorted(n for n, p in natal_planets.items()
+                                if p.get("house") == h),
+        })
+
+    # Dasha running on the chosen day.
+    if date:
+        w = AstrologyCompute.get_timeline_window_context(
+            target_date=date, ayanamsa=ayanamsa, **_args(bd))
+        dasha = ({"mahadasha": w.get("maha"), "antardasha": w.get("bhukti")}
+                 if w.get("status") == "success" else {"error": w.get("error")})
+        saturn_phase = w.get("saturn_phase") if w.get("status") == "success" else None
+        if saturn_phase:
+            # `is_current` is relative to today; here the phase covers `date`.
+            saturn_phase = {k: v for k, v in saturn_phase.items() if k != "is_current"}
+        events = {"window": "±9 months around the date",
+                  "ingresses": w.get("ingresses", []),
+                  "eclipses": w.get("eclipses", [])}
+    else:
+        chain = _dasha_chain(bd, ayanamsa, current_tz=current_tz)
+        dasha = {"chain": chain.get("dasha_tree") or chain.get("error"),
+                 "next_mahadasha": chain.get("next_dasha")}
+        tl = _life_timeline(bd, ayanamsa, current_tz=current_tz)
+        saturn_phase = tl.get("current_saturn_phase")
+        up = _upcoming_events(bd, ayanamsa, months=12, current_tz=current_tz)
+        events = {"window": "next 12 months", "events": up.get("events", [])[:15]}
+
+    vargas = {}
+    for f in ([9] + ([varga] if varga != 9 else [])):
+        vc = _divisional_chart(bd, ayanamsa, varga_factor=f)
+        vargas[vc.get("code") or f"D{f}"] = vc
+
+    return {
+        "topic": topic,
+        "as_of": as_of,
+        "is_past": as_of < today,
+        "how_to_use": (
+            "Read the natal promise first (focus houses: their lords, where the "
+            "lords sit, occupants; then confirm in the vargas — D9 for every "
+            "planet's real strength, plus the topic's own varga), then time it "
+            "with the dasha "
+            "lords — which houses they own and occupy — and only then the "
+            "transits. Transit `sav_bindus` are the Sarva Ashtakavarga bindus of "
+            "the SIGN being transited (28+ = supportive), not a planet's "
+            "strength."),
+        "natal": {
+            "lagna": {"sign_name": lagna.get("sign_name"),
+                      "degrees": lagna.get("degrees")},
+            "moon": {k: (natal.get("moon") or {}).get(k)
+                     for k in ("sign_name", "degrees", "nakshatra")},
+            "planets": {n: {k: p.get(k) for k in
+                            ("sign_name", "degrees", "house", "nakshatra",
+                             "retrograde", "owns_houses")}
+                        for n, p in natal_planets.items()},
+        },
+        "focus_houses": focus,
+        "vargas": vargas,
+        "dasha": dasha,
+        "saturn_phase_from_moon": saturn_phase,
+        "transits": {
+            "date": t.get("transit_date"),
+            "planets": {n: {k: p.get(k) for k in
+                            ("sign_name", "house_from_lagna", "house_from_moon",
+                             "retrograde", "sav_bindus", "bindu_label")}
+                        for n, p in (t.get("planets") or {}).items()},
+        },
+        "events": events,
+        "go_deeper_with": _TOPIC_NEXT[topic],
     }
 
 
@@ -915,15 +1119,42 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         "get_natal_chart",
         "Natal (D1/Rasi) chart: Lagna, Sun & Moon signs/nakshatras, and the "
         "sign/degrees/nakshatra of all nine grahas plus the house each occupies, "
-        "counted from the Lagna. Call this first if the natal placements were not "
-        "already provided.",
+        "counted from the Lagna. This is the FOUNDATION of every reading: call it "
+        "(or get_reading_context, which includes it) before interpreting any "
+        "house, lord, life area or timing, unless the natal placements are "
+        "already in your context. Never describe houses from transits or events "
+        "alone.",
         _EMPTY_PARAMS, _natal_chart,
+    ),
+    _Tool(
+        "get_reading_context",
+        "START HERE for any reading or life-area question (career, money, "
+        "relationships, health, education, children, property, siblings, "
+        "spirituality, foreign, or a general 'how is my year'). One call returns "
+        "the foundation: the natal chart with each planet's house and the houses "
+        "it rules; the topic's focus houses with their lords, where those lords "
+        "sit and who occupies them; the Navamsa (D9) plus the topic's own "
+        "divisional chart (D10 career and general, D2 money…); the running dasha; the Saturn phase; the "
+        "transits; and the dated events. Pass `date` to read a past or future "
+        "point instead of today (e.g. 2026-06-15 for 'how was 2026'). It names "
+        "the specific tools to go deeper with. If the natal chart is already in "
+        "your context, prefer the specific tools.",
+        {"type": "object", "properties": {
+            "topic": {"type": "string", "enum": list(READING_TOPICS),
+                      "default": "general",
+                      "description": "The life area being asked about."},
+            "date": {"type": "string",
+                     "description": "YYYY-MM-DD to read that point in time "
+                                    "(past or future); omit for today."}},
+         "required": []},
+        _reading_context,
     ),
     _Tool(
         "get_dasha_chain",
         "The currently-running dasha periods. For Vimsottari this returns the full "
-        "active chain Maha -> Bhukti -> Antara -> Sookshma plus the next Maha dasha. "
-        "Use for timing events.",
+        "active chain Mahadasha -> Antardasha (Bhukti) -> Pratyantardasha -> "
+        "Sookshma plus the next Mahadasha. Use for timing events; read each lord "
+        "through the houses it owns and occupies in the natal chart.",
         {"type": "object", "properties": {
             "dhasa_type": {"type": "string", "default": "vimsottari",
                            "description": "Dasha system; usually 'vimsottari'."}},
@@ -957,16 +1188,25 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
     ),
     _Tool(
         "get_transits",
-        "Current planetary transits (Gochara) over the natal chart: each planet's "
-        "sign/degree/nakshatra, house from natal Lagna and Moon, retrograde flag, "
-        "plus upcoming sign ingresses. Use for current/near-future timing. Also "
+        "Planetary transits (Gochara) over the natal chart — today, or on any "
+        "past or future `date`: each planet's sign/degree/nakshatra, house from "
+        "natal Lagna and Moon, retrograde flag, plus the following sign "
+        "ingresses. `sav_bindus`/`bindu_label` are the Sarva Ashtakavarga bindus "
+        "of the SIGN being transited (28+ supports the transit) — NOT a measure "
+        "of the planet's own strength. Use for timing, including reviewing a "
+        "past period (pass a date in it). Also "
         "counts each transit from the natal bhava arudhas — house_from_al (the "
         "Arudha Lagna: image, standing, the visible face of a matter), "
         "house_from_ul (the Upapada: marriage) and house_from_padas for all "
         "twelve — so a transit can be read for how a season LOOKS as well as how "
         "it feels. The classical good/bad gochara tables are counted from the "
         "Moon, not from an arudha; treat the arudha houses as position only.",
-        _EMPTY_PARAMS, _transits,
+        {"type": "object", "properties": {
+            "date": {"type": "string",
+                     "description": "YYYY-MM-DD to read the sky on that day "
+                                    "(past or future); omit for today."}},
+         "required": []},
+        _transits,
     ),
     _Tool(
         "get_now_chart",
@@ -1048,7 +1288,9 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         "Varshaphal / Tajaka annual (solar-return) horoscope for a target year: the "
         "annual Ascendant + planet signs, the Muntha (progressed point), the year-lord "
         "(Varsheshwara), key Sahams (sensitive points), present Tajaka yogas, and the "
-        "annual Mudda dasha sub-periods. Use for 'how is <year> for me?' questions.",
+        "annual Mudda dasha sub-periods. Adds the Tajaka annual view to a 'how is "
+        "<year> for me?' reading — call get_reading_context first; this does not "
+        "replace the natal chart and dasha.",
         {"type": "object", "properties": {
             "year": {"type": "integer",
                      "description": "Target Gregorian year, e.g. 2026 (>= birth year)."}},
@@ -1123,12 +1365,19 @@ TOOLS: Dict[str, _Tool] = {t.name: t for t in [
         "nodal axis shifting, retrograde stations, and eclipses (flagged when "
         "one falls on a natal nakshatra). Each event names the house it falls in "
         "counted from the Lagna, the Moon and the Arudha Lagna. Use for 'what is "
-        "coming up', 'when does my dasha change', 'when does Sade Sati end', "
-        "'what should I watch for this year'. `get_life_timeline` says what is "
-        "running NOW; this one says what CHANGES and when.",
+        "coming up', 'when does my dasha change', 'when does Sade Sati end'. "
+        "NOT a reading on its own: a dated list says WHEN, not what it means for "
+        "this chart — for a forecast ('next year', 'this year') call "
+        "get_reading_context first. `get_life_timeline` says what is "
+        "running NOW; this one says what CHANGES and when. Pass `from_date` to "
+        "list a past stretch instead — e.g. from_date=2026-01-01, months=12 "
+        "for 'how did 2026 go'.",
         {"type": "object", "properties": {
             "months": {"type": "integer", "default": 12,
-                       "description": "How far ahead to look, in months (1-60)."}},
+                       "description": "How far ahead to look, in months (1-60)."},
+            "from_date": {"type": "string",
+                          "description": "YYYY-MM-DD the window starts on (past "
+                                         "or future); omit for today."}},
          "required": []},
         _upcoming_events,
     ),
@@ -1565,7 +1814,7 @@ ALWAYS_TOOLS: List[str] = [
     "get_dasha_periods", "get_applicable_dashas",
     "get_sarvatobhadra_chakra", "get_kota_chakra",
     "get_kaala_chakra", "get_tripataki_chakra",
-    "get_saturn_transits", "get_upcoming_events",
+    "get_saturn_transits", "get_upcoming_events", "get_reading_context",
     # get_nakshatra_profile / get_gochara_phala are section-toggled (SECTION_TOOL),
     # not always-on, so their Ask context chips can turn them off.
     "get_journal_entries", "get_reading_outcomes", "search_classical_texts",
@@ -1611,6 +1860,7 @@ def tool_specs(names: Optional[List[str]] = None) -> List[Dict[str, Any]]:
 # model never sees `label`/`category`; they only shape how the catalog reads to
 # a person. Tools are listed here in the order they should appear.
 _DISPLAY: Dict[str, Dict[str, str]] = {
+    "get_reading_context":  {"label": "Reading foundation (chart + topic houses + dasha + transits)", "category": "Core chart"},
     "get_natal_chart":      {"label": "Natal chart",            "category": "Core chart"},
     "get_chart_details":    {"label": "House-by-house detail",  "category": "Core chart"},
     "get_aspects":          {"label": "Graha drishti (aspects)", "category": "Core chart"},
